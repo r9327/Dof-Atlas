@@ -367,6 +367,7 @@ jobs:
             --base-manifest "$RUNNER_TEMP/atlas-previous/atlas-manifest.json"
           cp dist/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp dist/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+          python -m scripts.windows.release_channel --manifest dist-release/atlas-manifest.json --archive dist-release/atlas-windows.zip --output dist-release/atlas-channel.json
       - name: Require every pinned Quest source in the signed Release manifest
         if: >-
           github.event_name == 'workflow_run' ||
@@ -464,6 +465,7 @@ jobs:
             dist-release/atlas-windows.zip
             dist-release/atlas-windows.part*
             dist-release/atlas-manifest.json
+            dist-release/atlas-channel.json
             dist-release/DofusAtlas.exe
             dist-release/DofusAtlasSetup.exe
           retention-days: 7
@@ -520,7 +522,7 @@ jobs:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
           tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
-          assets=(dist-release/atlas-manifest.json
+          assets=(dist-release/atlas-manifest.json dist-release/atlas-channel.json
                   dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
           shopt -s nullglob
           parts=(dist-release/atlas-windows.part*)
@@ -598,6 +600,7 @@ jobs:
             --launcher prior/DofusAtlas.exe
           cp prior/DofusAtlas.exe dist-release/DofusAtlas.exe
           cp prior/DofusAtlasSetup.exe dist-release/DofusAtlasSetup.exe
+          python -m scripts.windows.release_channel --manifest dist-release/atlas-manifest.json --archive dist-release/atlas-windows.zip --output dist-release/atlas-channel.json
           python - <<'PY'
           from pathlib import Path
           from app.distribution.manifest import parse_manifest
@@ -658,7 +661,7 @@ jobs:
         run: |
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$SOURCE_SHA"
           tag="sha-$(echo "$SOURCE_SHA" | cut -c1-12)"
-          assets=(dist-release/atlas-manifest.json
+          assets=(dist-release/atlas-manifest.json dist-release/atlas-channel.json
                   dist-release/DofusAtlas.exe dist-release/DofusAtlasSetup.exe)
           shopt -s nullglob
           parts=(dist-release/atlas-windows.part*)
