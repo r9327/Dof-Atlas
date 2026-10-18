@@ -236,6 +236,107 @@ class UiSession:
         write_json(self.folder / "actions.json", self.journal)
 
 
+def configure_validation_fonts(app) -> dict:
+    """Register Windows fonts for Qt's isolated offscreen scene, without app changes."""
+    from PySide6.QtGui import QFont, QFontDatabase
+
+    font_dir = Path(os.environ.get("WINDIR") or os.environ.get("SystemRoot") or "C:/Windows") / "Fonts"
+    registered = []
+    for filename in ("segoeui.ttf", "arial.ttf", "tahoma.ttf", "calibri.ttf"):
+        path = font_dir / filename
+        if path.is_file():
+            token = QFontDatabase.addApplicationFont(str(path))
+            if token >= 0:
+                families = list(QFontDatabase.applicationFontFamilies(token))
+                registered.append({"file": filename, "families": families})
+    if registered and registered[0]["families"]:
+        app.setFont(QFont(registered[0]["families"][0], 10))
+    return {"windows_font_dir": font_dir.is_dir(), "loaded": registered,
+            "application_font_family": app.font().family()}
+
+
+def _glyph_signature(font, letter: str) -> str:
+    import hashlib
+    from PySide6.QtCore import QRect, Qt
+    from PySide6.QtGui import QImage, QPainter
+
+    canvas = QImage(96, 72, QImage.Format_ARGB32)
+    canvas.fill(Qt.white)
+    painter = QPainter(canvas)
+    try:
+        painter.setPen(Qt.black)
+        painter.setFont(font)
+        painter.drawText(QRect(0, 0, 96, 72), Qt.AlignCenter, letter)
+    finally:
+        painter.end()
+    return hashlib.sha256(canvas.bits().tobytes()).hexdigest()
+
+
+def glyph_legibility_probe(page, *, screenshots=()) -> dict:
+    """Reject square/tofu substitutions for text in actual live widget fonts."""
+    from PySide6.QtGui import QFont, QFontInfo, QFontMetrics
+    from PySide6.QtWidgets import QLabel
+
+    labels = [label for label in page.findChildren(QLabel)
+              if label.isVisible() and label.text().strip()]
+    title = next((label for label in labels if label.objectName() == "AchievementDetailTitle"), None)
+    chosen = ([title] if title is not None else []) + [label for label in labels if label is not title][:3]
+    samples = ("A", "W", "m", "é", "ç", "8")
+    results = []
+    for label in chosen:
+        font = QFont(label.font())
+        font.setPixelSize(34)
+        metrics = QFontMetrics(font)
+        signatures = {char: _glyph_signature(font, char) for char in samples}
+        coverage = {char: bool(metrics.inFontUcs4(ord(char))) for char in samples}
+        results.append({
+            "widget": label.objectName(), "requested_font": font.family(),
+            "resolved_font": QFontInfo(font).family(),
+            "unique_raster_glyphs": len(set(signatures.values())),
+            "glyph_coverage": coverage, "raster_sha256": signatures,
+            "passed": all(coverage.values()) and len(set(signatures.values())) == len(samples),
+        })
+    # Actual PNG pixels are authoritative. Qt can report distinct available
+    # glyphs while its live stylesheet still paints hundreds of identical
+    # fallback squares, as observed in the old success screenshots.
+    from PySide6.QtGui import QImage
+    from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
+
+    files = list(dict.fromkeys(Path(name) for name in screenshots))
+    # Exactly the PNGs actually attached to all prior assertions: a clean
+    # final screen must not hide an earlier unreadable capture.
+    if not files:
+        frames = [("live-grab", page.grab().toImage())]
+    else:
+        frames = [(path.name, QImage(str(path))) for path in files]
+    raster_checks = []
+    for name, image in frames:
+        if image.isNull():
+            raster = {"status": "BLOCKED", "reason": "MISSING_OR_INVALID_PNG"}
+        else:
+            image = image.convertToFormat(QImage.Format_Grayscale8)
+            raster = detect_replacement_squares(
+                image.bits().tobytes(), image.width(), image.height(),
+                image.bytesPerLine(),
+            )
+        raster_checks.append({"capture": name, **raster})
+    failed_captures = [row for row in raster_checks if row["status"] != "PASS"]
+    font_passed = bool(results) and all(r["passed"] for r in results)
+    passed = font_passed and not failed_captures
+    raster = {"status": "FAIL" if failed_captures else "PASS",
+              "captures_checked": len(raster_checks),
+              "total_hollow_boxes": sum(row.get("box_count", 0) for row in raster_checks),
+              "bad_captures": failed_captures[:20],
+              "captures": raster_checks}
+    return {"status": "PASS" if passed else "FAIL",
+            "reason": ("REPEATED_SCREENSHOT_TOFU" if raster["status"] != "PASS"
+                       else "FONT_RASTER_OK" if font_passed
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS"),
+            "sample_chars": list(samples), "labels": results,
+            "screenshot_raster": raster,
+            "limits": "Actual rendered raster plus sampled Qt font glyphs; not OCR or full visual/contrast certification."}
+
+
 def build_scene(temp: Path):
     from PySide6.QtCore import QThread
     from PySide6.QtWidgets import QApplication
@@ -249,6 +350,7 @@ def build_scene(temp: Path):
     from app.ui.theme import atlas_stylesheet
 
     app = QApplication.instance() or QApplication([])
+    app._doctor_font_registration = configure_validation_fonts(app)
     if QThread.currentThread() != app.thread():
         raise RuntimeError("Doctor UI must run on the Qt application thread")
     app.setStyleSheet(atlas_stylesheet())
@@ -669,6 +771,7 @@ def worker(folder: Path) -> int:
                         qt_platform=app.platformName(), dpi=screen.logicalDotsPerInch(),
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
+                        validation_fonts=getattr(app, "_doctor_font_registration", {}),
                         progress_source="temporary isolated canonical services")
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
@@ -685,6 +788,14 @@ def worker(folder: Path) -> int:
         if report["tests_executed"]:
             session.scenario = "session"
             session.check("qt-exceptions", "Deliver all Qt callbacks", "No callback exception", qt_errors, not qt_errors, page)
+            typography = glyph_legibility_probe(
+                page,
+                screenshots=[folder / name for name in session.evidence
+                             if name.endswith(".png") and not name.endswith("-blocks.png")],
+            )
+            session.check("glyph-rendering", "Inspect live Windows Qt rendered glyphs and all evidence PNGs",
+                          "Distinct ASCII/French glyphs and no repeated tofu rectangles in captures",
+                          typography, typography["status"] == "PASS", page)
         page.close()
         page.deleteLater()
         settle()
