@@ -1869,6 +1869,522 @@
           "label": "Revenir au point de départ des mémoires"
         }
       ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2271_step_0051",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -3,
+        2
+      ],
+      "next": [
+        2,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Emprunter la porte à gauche"
+        },
+        {
+          "kind": "talk",
+          "label": "Présenter à Orukam les trois formes rencontrées"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Imagiro"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2271_step_0052",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        -3
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Présenter les trois formes à Imagiro"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de bois",
+          "object_id": 23311,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de feu",
+          "object_id": 7225,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts d'eau",
+          "object_id": 7222,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de vent",
+          "object_id": 7223,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de roche",
+          "object_id": 7224,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la bière légère",
+          "object_id": 24021
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier l'Umeshushu",
+          "object_id": 23150
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la gnôle de Grobe",
+          "object_id": 23806
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la salle de combat"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2271_step_0053",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Gagner le combat individuel déclenché",
+          "monster_id": 6558,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Gérer les glyphes noirs et l'invisibilité des ennemis"
+        },
+        {
+          "kind": "interact",
+          "label": "Monter puis actionner la coupe d'offrande en papier"
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre après la téléportation"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2271_step_0054",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Obtenir les votes de Tensojobo, Tanu, Wapishikami et Akwanokima"
+        },
+        {
+          "kind": "talk",
+          "label": "Interroger les Akaitei puis Tensojobo"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier trois votes positifs",
+          "object_id": 24018,
+          "quantity": 3
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier deux votes négatifs",
+          "object_id": 24019,
+          "quantity": 2
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre l'Umeshushu à Urazim",
+          "object_id": 23150
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre la gnôle à Urazawi",
+          "object_id": 23806
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre la bière légère à Urazaki",
+          "object_id": 24021
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Urazawi pour revenir au rêve"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Éviter les mauvais dialogues : attente possible de dix à soixante minutes"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2271_step_0055",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        4
+      ],
+      "next": [
+        0,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kian Zhi"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre Doshidorobo dans le combat individuel",
+          "monster_id": 6559,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Laisser Pwapwapwa détourner l'attention",
+          "monster_id": 6595
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Maître des Rêves après le combat"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple de retour"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2271_step_0056",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        2
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans le temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Demander à Daoh de retourner en Pandala"
+        },
+        {
+          "kind": "interact",
+          "label": "Prendre le passage au sud-ouest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2271_step_0057",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge et prendre le passage de droite"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Shufamukin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le palais de bambou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2271_step_0058",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au samouraï Holi puis à la Daimya Hikomi"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel tactique",
+          "monster_id": 6560,
+          "group_mode": "solo",
+          "objective": "Wulan_kills_Wukurigi"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Permettre à Wulan de vaincre Wukurigi",
+          "monster_id": 6563
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Laisser les samouraïs mourir pour déclencher les phases",
+          "monster_id": 6562
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Renforcer Wulan en éliminant le shinobi",
+          "monster_id": 6561
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2271_step_0059",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        4,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer les Deux Souffles auprès du Grandapan",
+          "quest_id": 2201
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à la déesse Pandawa et à Keltra Ekazumi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête Main dans la main",
+          "quest_id": 2200
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer le Jardin de l'union",
+          "quest_id": 2202
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple Pandawa"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2271_step_0060",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -2
+      ],
+      "next": [
+        4,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer au temple Pandawa et examiner le verre puis le livre"
+        },
+        {
+          "kind": "interact",
+          "label": "Prier devant la statue de classe"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre Torakhan dans le combat individuel",
+          "monster_id": 6565,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Gérer les téléportations de Keltra Ekazumi",
+          "monster_id": 6564
+        },
+        {
+          "kind": "interact",
+          "label": "Prier une seconde fois pour obtenir la volonté de l'Ourse"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Pandiwan Kenobi"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2271_step_0061",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -2
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Pandiwan Kenobi"
+        },
+        {
+          "kind": "interact",
+          "label": "Se placer devant le gong et accomplir le dialogue guidé"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la main de Pandawa",
+          "object_id": 24101,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Pandala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2271_step_0062",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Utiliser la main de Pandawa",
+          "object_id": 24101
+        },
+        {
+          "kind": "talk",
+          "label": "Parler successivement à Imagiro puis Orukam"
+        },
+        {
+          "kind": "equip",
+          "label": "Équiper le Domakuro",
+          "object_id": 23237
+        },
+        {
+          "kind": "equip",
+          "label": "Équiper le Dorigami",
+          "object_id": 23408
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la roche"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Keltra puis Imagirorukam"
+        },
+        {
+          "kind": "combat",
+          "label": "Terminer le combat tactique en solitaire",
+          "monster_id": 6314,
+          "group_mode": "solo_tactical"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer le Jardin de l'union",
+          "quest_id": 2202
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Recevoir le Dofus Tacheté",
+          "object_id": 7112
+        }
+      ]
     }
   ]
 }
