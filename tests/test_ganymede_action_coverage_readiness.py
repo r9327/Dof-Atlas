@@ -41,5 +41,20 @@ class ActionCoverageReadinessTests(unittest.TestCase):
             {"dokille", "dofoozbz"})
 
 
+    def test_human_review_and_auto_hints_are_separate(self):
+        result = audit_ganymede_replacement_readiness(ROOT)
+        self.assertEqual(result["status"], "BLOCKED_PENDING_PLAYABLE_ACTIONS",
+                         result["issues"])
+        self.assertEqual(result["source_action_reviewed_steps"], 338)
+        self.assertEqual(result["source_auto_extracted_hint_steps"], 55)
+        nightmare = next(row for row in result["guide_reports"]
+                         if row["atlas_guide_id"] == "dofus_du_cauchemar")
+        evidence = nightmare["source_guides"][0]
+        self.assertEqual(evidence["reviewed_action_candidate_steps"], 0)
+        self.assertEqual(evidence["auto_extracted_candidate_steps"], 55)
+        self.assertFalse(nightmare["ready_to_replace"])
+        self.assertEqual(result["ready_to_replace"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
