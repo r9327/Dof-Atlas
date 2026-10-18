@@ -766,3 +766,20 @@ de la sémantique jeu/version, des consommations effectives,
 des objets déjà possédés et des combats. Il est interdit
 de brancher directement les résultats non vérifiés à la
 liste « À préparer » ou d'activer l'optimiseur #226.
+
+
+### Remplacement des parcours Dofus — contrat corrigé (18/10/2026)
+
+**BUT : vider les anciens parcours Dofus visibles et les remplacer par le suivi CONTINU de chaque étape Ganymède**, et non fusionner l'ancien parcours V4 avec une liste de nouvelles quêtes. La séquence source fait référence, Atlas fournit les véritables actions et le suivi par personnage. Chaque occurrence numérotée conserve son identité `ganymede_guide_id + source_step_number`, même lorsqu'elle évoque plusieurs fois la même quête. Aucun texte éditorial Ganymède n'est reproduit sans autorisation.
+
+**État exact du corpus :** 95/95 guides sources, 7 705 étapes numérotées de liens/coordonnées, mais zéro ensemble de fiches d'actions reconstruites et prouvées. Les sources manquent encore des actions concrètes vérifiées dans Doduda/DPLN ; les snapshots ne sont PAS des remplacements complets. La priorité #229 consiste désormais à construire ces fiches originales, ensuite #226 substituera les étapes actives et #225 les affichera.
+
+**Couverture de remplacement actuelle :** catalogue Atlas = 22 guides de catégorie `dofus`, dont 20 ont une correspondance Ganymède directe dans le crosswalk `metadata_only` ; `dofoozbz` et `dokille` n'en ont pas et requièrent recherche avant toute suppression. Le guide aventure **Sylvestre Opti** est distinct : conserver son identité et son parcours tant qu'aucune transformation explicite n'est certifiée.
+
+Un contrôle de non-effacement `tools.audit_ganymede_replacement_readiness` inventorie par ID les 22 guides, les fichiers historiques et sources, et met `ready_to_replace=false` pour tout contenu ne possédant que des références :
+
+    python -m tools.audit_ganymede_replacement_readiness --output artifacts/guides/replacement_readiness.json
+
+**Conditions de bascule future par guide :** N/N étapes complètes dans l'ordre source, actions Atlas originales avec ID de quête/objectif valide, prérequis et choix vérifiés, sauvegarde/rollback de l'ancien guide, migration explicite des `manual_steps` par personnage, suivi Actuelle/Suivant/Précédent jusqu'à la dernière étape, tests offline et multi-personnages. Ne pas supprimer `sections[].steps` tant que toutes ces garanties ne sont pas démontrées. Après bascule, ne plus montrer les anciens pas dans l'UI.
+
+Les tests `tests/test_ganymede_replacement_readiness.py` contrôlent l'interdiction de remplacer avec des snapshots partiels, les guides sans correspondance, la conservation des sauvegardes et le cas d'un ancien guide invalide.
