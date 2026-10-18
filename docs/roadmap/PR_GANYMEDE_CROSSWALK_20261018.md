@@ -573,3 +573,41 @@ Dolmanax 1, Dokoko 5, Émeraude 8, Pourpre 8) ;
 Sources : [DPLN : quêtes du Pourpre](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-pourpre.html),
 [Pourpre profond](https://www.dofuspourlesnoobs.com/pourpre-profond.html),
 [guide Ganymède 2276](https://ganymede-app.com/guides/2276).
+
+
+### Vérification des noms français dans la source canonique Doduda
+
+Nouvel audit **en lecture seule** `tools.audit_ganymede_canonical_names` :
+il prend uniquement les correspondances de quêtes déjà qualifiées
+`REVIEW_TRIANGULATED_SOURCES` et compare leur nom DPLN au nom
+français effectivement disponible dans **l'installation Doduda d'Atlas**.
+Les noms sont lus depuis `quests.json/RefIds/nameId` et
+`languages/fr.json/entries` via le lecteur à index sur disque
+`QuestSources` déjà utilisé par Atlas. Cette opération ne charge
+pas les données enrichies de 72 Mo, ne modifie pas les données du jeu,
+ni la progression ni le moteur des guides.
+
+Commande avec des données Doduda installées :
+
+    python -m tools.audit_ganymede_canonical_names --raw-quests CHEMIN/quests.json --french-language CHEMIN/languages/fr.json --output artifacts/guides/canonical_name_review.json
+
+États autorisés : `PASS_CANONICAL_NAMES_ONLY` lorsque tous les
+**noms** correspondent (et seulement les noms), `REVIEW_CANONICAL_NAME_GAPS`
+lorsqu'un nom diffère ou reste indisponible,
+`BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` si la source locale n'est
+pas présente (code 2, **pas** considéré comme absence de quête),
+ou `FAIL` pour des données illisibles/non certifiées en amont.
+
+Dans tous les états :
+`candidate_identity_confirmed=false`,
+`required_quest_objectives_confirmed=false` et
+`certified_routes=0`. Un nom identique ne garantit pas que les
+objectifs, critères d'accès, coordonnées ou besoins matériels soient
+corrects ; ces vérifications sont indispensables pour l'optimiseur #226.
+Six nouveaux tests avec des données Doduda factices couvrent l'égalité
+des noms, variantes, absence de localisation/source, conflit d'ID
+canonique et le refus des instantanés non validés.
+
+Le dépôt GitHub ne contient pas les fichiers bruts Doduda installés :
+il serait **trompeur** d'affirmer les 33 noms confirmés par le jeu tant
+que cet audit n'a pas été exécuté avec les fichiers runtime réels.
