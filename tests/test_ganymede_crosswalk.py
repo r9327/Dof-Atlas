@@ -204,5 +204,21 @@ class GanymedeCrosswalkAuditTests(unittest.TestCase):
         self.assertEqual(report["guide_coverage"][1]["mapping_status"], "UNMAPPED")
 
 
+    def test_candidate_mapping_is_distinct_from_verified_steps(self) -> None:
+        self.manifest["guides"][0]["mapping_confidence"] = "candidate"
+        self._write()
+        report = audit_ganymede_crosswalk(self.root)
+        self.assertEqual(report["status"], "PASS_METADATA_ONLY")
+        self.assertEqual(report["candidate_guide_ids"], [2205])
+        self.assertEqual(report["guide_coverage"][0]["mapping_status"], "CANDIDATE_METADATA_ONLY")
+        self.assertEqual(report["verified_routes"], 0)
+
+    def test_unproved_mapping_confidence_fails(self) -> None:
+        self.manifest["guides"][0]["mapping_confidence"] = "verified"
+        self._write()
+        codes = [i["code"] for i in audit_ganymede_crosswalk(self.root)["issues"]]
+        self.assertIn("unproved_mapping_confidence", codes)
+
+
 if __name__ == "__main__":
     unittest.main()
