@@ -59,7 +59,7 @@ class RuntimeLocationTests(unittest.TestCase):
             source = user / "runtime"
             executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
             executable.parent.mkdir(parents=True)
-            binary = b"MZ!" 
+            binary = b"MZ!"
             executable.write_bytes(binary)
             (source / "state.json").write_text(json.dumps({
                 "active": "v1", "previous": None, "pending": False,
