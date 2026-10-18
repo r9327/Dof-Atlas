@@ -501,3 +501,34 @@ Cela porte à **17** le nombre de références nominatives recoupées :
 Références : [quêtes du Dokoko](https://www.dofuspourlesnoobs.com/quecirctes-du-dokoko.html),
 [succès Koko Boy](https://www.dofuspourlesnoobs.com/koko-boy.html),
 [guide public Ganymède 2208](https://ganymede-app.com/guides/2208).
+
+
+### Quatrième rapprochement nominatif : Dofus Émeraude (8 quêtes)
+
+DPLN liste **huit quêtes** du succès « Vert émeraude ».
+Les IDs DofusDB **1463, 1464, 1465, 1466, 1467, 1469, 1470, 1471**
+ont été recoupés par nom et numéro avec les 52 étapes Ganymède 2211
+et le guide Atlas `dofus_emeraude`. Les huit quêtes figurent dans
+les deux collections d'IDs ; le guide Atlas demeure « partial »
+car il inclut d'autres contextes et alternatives.
+
+Le fichier `ganymede_dpln_emeraude_evidence.json` conserve séparément
+les **ressources**, **dragodindes**, **donjon**, **captures d'âmes**,
+**succès préalables**, **métiers** et les classes de combats
+(**7 en groupe**, **1 tactique seul**, **4 seuls**, autres aléatoires)
+indiquées dans le récapitulatif de DPLN. Les prérequis du succès
+« Mais où sont les Dofus ? » restent à développer en quêtes
+canoniques vérifiées.
+
+Ces informations de source ne sont pas une liste d'achats, ne
+valident pas les objectifs et ne prennent pas encore en charge les
+quantités par personnage. Le futur #226 devra dédupliquer et
+positionner les préparations au bon moment avant l'UI #225.
+
+Cela porte à **25 correspondances de noms/IDs recensées** :
+11 Cawotte, 1 Dolmanax, 5 Dokoko et 8 Émeraude,
+**aucun objectif ni route certifié**.
+
+Sources : [Dofus Émeraude DPLN](https://www.dofuspourlesnoobs.com/dofus-emeraude.html),
+[Vert émeraude](https://www.dofuspourlesnoobs.com/vert-eacutemeraude.html),
+[guide Ganymède 2211](https://ganymede-app.com/guides/2211).
