@@ -117,6 +117,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             # The validator checks external IDs and coordinates against the
             # observed source without enabling the replacement.
             state["reviewed_action_candidate_steps"] = 0
+            state["auto_extracted_candidate_steps"] = 0
             state["action_candidate_evidence_status"] = "NOT_RECONSTRUCTED"
             candidate_file = (
                 GUIDES_DIR / f"ganymede_{source_id}_action_candidates.json"
@@ -127,6 +128,12 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
                 if action_report["status"] == "REVIEW_ACTION_CANDIDATES_ONLY":
                     state["reviewed_action_candidate_steps"] = (
                         action_report["reviewed_steps"]
+                    )
+                elif action_report["status"] == "AUTO_EXTRACTED_NEEDS_MANUAL_REVIEW":
+                    # Source extraction may be useful for review, but is not
+                    # a verified action or a cutover failure by itself.
+                    state["auto_extracted_candidate_steps"] = (
+                        action_report["auto_extracted_steps"]
                     )
                 else:
                     issues.append({
