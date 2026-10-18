@@ -75,8 +75,13 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(got.tag, "v1")
         self.assertEqual(got.archive_size, 7)
         self.assertEqual(got.part_urls[0], self.base + "atlas-windows.part0001")
-        get.assert_called_once_with(self.base + "atlas-manifest.json",
-                                    client.MAX_MANIFEST_BYTES)
+        # The stable-channel pointer is checked before the older web fallback.
+        # This fixture returns a legacy manifest to simulate an absent channel.
+        from unittest.mock import call
+        self.assertEqual(get.call_args_list, [
+            call(client.CHANNEL_URL, client.CHANNEL_LIMIT),
+            call(self.base + "atlas-manifest.json", client.MAX_MANIFEST_BYTES),
+        ])
 
     def test_web_redirect_rejects_untrusted_repository(self):
         fake = "https://github.com/not-our-repo/releases/tag/v1"
