@@ -10,7 +10,8 @@ DIRECTORY = Path("data/encyclopedia/guides")
 DEFAULT = DIRECTORY / "ganymede_2205_action_candidates.json"
 KINDS = {"guide_dependency", "quest_prerequisite", "prepare_object",
          "optional_preparation", "quest_start", "quest_finish",
-         "talk", "interact", "move", "drop_object"}
+         "talk", "interact", "move", "drop_object",
+         "optional_delivery", "check_object", "collect_object", "craft", "group_mechanic", "optional_capture", "optional_drop", "check_equipment", "equip", "goal_reward", "combat", "dungeon", "repeat_interaction"}
 
 
 def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
@@ -63,10 +64,18 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                 if kind not in KINDS or not isinstance(action.get("label"), str) or not action["label"].strip():
                     issues.append(f"invalid action type/label: {num}")
                     continue
-                for name, ns in (("quest_id", "quest"), ("object_id", "object"), ("monster_id", "monster")):
+                for name, ns in (("quest_id", "quest"), ("object_id", "object"), ("monster_id", "monster"), ("dungeon_id", "dungeon")):
                     if name in action and (type(action[name]) is not int or
                                             action[name] not in source["external_dofusdb_ids"][ns]):
                         issues.append(f"unobserved {name}: {num}")
+
+                for plural, ns in (("object_ids", "object"),):
+                    if plural in action and (not isinstance(action[plural], list) or
+                                             any(type(v) is not int or v not in source["external_dofusdb_ids"][ns]
+                                                 for v in action[plural])):
+                        issues.append(f"unobserved {plural}: {num}")
+                if "participants_min" in action and (type(action["participants_min"]) is not int or action["participants_min"] < 1):
+                    issues.append(f"invalid participants_min: {num}")
                 if "guide_id" in action and action["guide_id"] not in source["linked_guide_ids"]:
                     issues.append(f"unobserved guide link: {num}")
                 if "quantity" in action and (type(action["quantity"]) is not int or action["quantity"] <= 0):
