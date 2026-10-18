@@ -112,6 +112,12 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
             ("turquoise", 87, 2217),
             ("ivoire", 118, 2256),
             ("glaces", 121, 2216),
+            ("bwork_camps", 34, 2207),
+            ("otomai_1", 7, 2219),
+            ("sufokia", 39, 2228),
+            ("valonia_1", 30, 2206),
+            ("sidimote_1", 25, 2224),
+            ("koalaks", 9, 2227),
         ):
             with self.subTest(guide=name):
                 path = Path(f"data/encyclopedia/guides/ganymede_{name}_observed_links.json")

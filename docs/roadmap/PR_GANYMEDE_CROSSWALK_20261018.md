@@ -261,3 +261,9 @@ Les sources sont des pages publiques d'octobre 2026 ; les instantanés
 conservent leur URL et date. La correspondance vers les IDs de quêtes
 et d'objectifs Atlas, le statut des actions obligatoires, les besoins
 et la route générée ne sont **pas certifiés**.
+
+### Quatrième lot — premiers parcours de progression (18/10/2026)
+
+Six guides d'aventure supplémentaires sont inventoriés : **Campements Bwork/Gobelins** (34), **Otomaï 1** (7), **Sufokia** (39), **Valonia 1** (30), **Sidimote 1** (25) et **Koalaks** (9). Soit **144 étapes** supplémentaires.
+
+**Couverture cumulée : 19/95 guides, 1247 étapes de liens factuels**, 76 guides restant sans instantané d'étapes. Ce n'est ni une reprise des textes Ganymède, ni la preuve d'une équivalence avec les ID de quêtes Atlas ; génération et optimisation restent bloquées tant que les liens ne sont pas qualifiés et recoupés.
