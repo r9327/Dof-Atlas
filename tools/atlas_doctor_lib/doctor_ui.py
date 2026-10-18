@@ -46,7 +46,7 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
                 keys.append("guide-return")
             keys.append("final-sheet")
         required.extend(name + "/" + key for key in keys)
-    return required + ["session/qt-exceptions"]
+    return required + ["session/qt-exceptions", "session/glyph-rendering"]
 
 
 def write_json(path: Path, payload: Any) -> None:
