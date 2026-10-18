@@ -83,8 +83,8 @@ def choose_runtime_before_setup() -> None:
         if not messagebox.askyesno(
             "Dofus Atlas - emplacement",
             "Les fichiers du jeu (~3 Go) peuvent etre installes sur le disque "
-            "de votre choix. Le petit lanceur reste dans AppData.\\n\\n"
-            f"Emplacement actuel :\\n{current}\\n\\n"
+            "de votre choix. Le petit lanceur reste dans AppData.\n\n"
+            f"Emplacement actuel :\n{current}\n\n"
             "Choisir un autre disque ou dossier ?",
             parent=window,
         ):
