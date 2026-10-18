@@ -11,7 +11,7 @@ Ne pas inventer :
 - panneau dédié aux déplacements / Zaaps, boutons « Copier la commande », badges sur les coordonnées, statut macro permanent, légende supplémentaire de transport ;
 - bloc « Quêtes liées à cette fiche », bloc local « À préparer », « Sources du guide », « Succès liés », « Pourquoi cet ordre ? », « Étapes précédentes », « À suivre » ou « Destination suivante » ;
 - grosse liste de personnages, cartes individuelles de personnages ou tableau multicomptes toujours visible ;
-- changement de structure par rapport à la capture validée du panneau **Préparation générale du guide** : conserver la carte ouverte, ses quatre filtres, ses lignes concrètes et le bloc Pierres d'âme ; ne pas substituer l'ancien menu générique « PRÉREQUIS » du catalogue.
+- changement de structure par rapport à la capture validée du panneau **Préparation générale du guide** : conserver le bandeau, la carte et ses quatre filtres, mais **remplacer le gros bloc Pierres d'âme par une unique ligne compacte dans l'onglet Objets** ; ne pas substituer le menu « PRÉREQUIS » du catalogue.
 
 Si un détail visuel n'est pas explicitement documenté ici, **préserver l'existant/maquette**, ne pas improviser ; confronter les captures Doctor UI à la composition validée avant de déclarer PASS.
 
