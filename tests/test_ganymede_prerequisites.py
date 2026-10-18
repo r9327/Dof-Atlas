@@ -99,10 +99,10 @@ class GanymedePrerequisiteAuditTests(unittest.TestCase):
     def write_raw(self, criterion: str) -> None:
         self.raw_path.parent.mkdir(parents=True, exist_ok=True)
         self.raw_path.write_text(json.dumps({
-            "RefIds": {
-                "100": {"data": {"id": 100, "startCriterion": criterion}},
-                "101": {"data": {"id": 101, "startCriterion": "BT=1"}},
-            },
+            "RefIds": [
+                {"data": {"id": 100, "startCriterion": criterion}},
+                {"data": {"id": 101, "startCriterion": "BT=1"}},
+            ],
         }), encoding="utf-8")
 
     def audit(self, *, valid: bool = True) -> dict:

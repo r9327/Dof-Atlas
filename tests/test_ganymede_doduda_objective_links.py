@@ -65,7 +65,7 @@ class GanymedeDodudaObjectiveLinkAuditTests(unittest.TestCase):
             ("quest_objectives.json", self.objectives),
         ):
             (self.raw_dir / name).write_text(
-                json.dumps({"RefIds": data}), encoding="utf-8"
+                json.dumps({"RefIds": list(data.values())}), encoding="utf-8"
             )
 
     def _audit(self, *, valid: bool = True) -> dict:
