@@ -18,6 +18,8 @@ from .archive_parts import assemble_archive_parts
 REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
+CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
+CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
@@ -179,6 +181,52 @@ def _latest_release_api() -> RemoteRelease:
 
 
 
+
+def _latest_release_channel() -> RemoteRelease:
+    """Resolve the fixed stable-channel URL to one immutable hashed release."""
+    try:
+        doc = json.loads(_read_limited(CHANNEL_URL, CHANNEL_LIMIT))
+        if not isinstance(doc, dict) or set(doc) != {
+            "protocol_version", "channel", "tag", "source_sha",
+            "manifest_sha256", "archive_size",
+        } or doc["protocol_version"] != 1 or doc["channel"] != "stable":
+            raise UpdateError("Invalid stable channel metadata")
+        tag = doc["tag"]
+        if not isinstance(tag, str) or not re.fullmatch(r"[A-Za-z0-9._+-]{1,100}", tag):
+            raise UpdateError("Invalid stable channel tag")
+        source_sha, digest = doc["source_sha"], doc["manifest_sha256"]
+        if (not isinstance(source_sha, str) or not re.fullmatch(r"[a-f0-9]{40}", source_sha)
+                or not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)):
+            raise UpdateError("Invalid stable channel digest")
+        size = doc["archive_size"]
+        if type(size) is not int or not 0 < size <= 16 * 1024**3 + 512 * 1024**2:
+            raise UpdateError("Invalid stable channel archive size")
+        base = f"https://github.com/{REPO}/releases/download/{tag}/"
+        raw = _read_limited(_safe_url(base + MANIFEST_NAME, asset=True), MAX_MANIFEST_BYTES)
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise UpdateError("Stable channel manifest SHA-256 mismatch")
+        manifest = parse_manifest(raw)
+        if manifest.source_sha != source_sha:
+            raise UpdateError("Stable channel source SHA mismatch")
+        if manifest.archive_parts:
+            if manifest.archive_size != size:
+                raise UpdateError("Stable channel multipart size mismatch")
+            part_urls = tuple(_safe_url(base + p.name, asset=True) for p in manifest.archive_parts)
+            archive_url = ""
+        else:
+            if size > MAX_ARCHIVE_BYTES:
+                raise UpdateError("Single archive exceeds GitHub size limit")
+            part_urls = ()
+            archive_url = _safe_url(base + ARCHIVE_NAME, asset=True)
+        launcher_url = (_safe_url(base + LAUNCHER_NAME, asset=True)
+                        if manifest.launcher_sha256 is not None else None)
+        delta_url = (_safe_url(base + DELTA_NAME, asset=True)
+                     if manifest.delta is not None else None)
+        return RemoteRelease(tag, archive_url, size, manifest, launcher_url, delta_url, part_urls)
+    except (KeyError, TypeError, ValueError, ManifestError) as exc:
+        raise UpdateError("Invalid stable channel metadata") from exc
+
+
 def _latest_release_web() -> RemoteRelease:
     """Fallback to the official stable-release redirect when the API is unavailable."""
     try:
@@ -232,11 +280,15 @@ def latest_release() -> RemoteRelease:
         if not str(api_failure).startswith("Unable to contact GitHub:"):
             raise
         try:
-            return _latest_release_web()
-        except UpdateError as web_failure:
-            raise UpdateError(
-                f"GitHub API: {api_failure}; official release page: {web_failure}"
-            ) from web_failure
+            return _latest_release_channel()
+        except UpdateError as channel_failure:
+            try:
+                return _latest_release_web()
+            except UpdateError as web_failure:
+                raise UpdateError(
+                    f"GitHub API: {api_failure}; stable channel: {channel_failure}; "
+                    f"official release page: {web_failure}"
+                ) from web_failure
 
 def _download_multipart(release: RemoteRelease, directory: Path,
                         progress: Progress | None) -> Path:
