@@ -1,7 +1,20 @@
 # PR Organizer — commande Zaap 3.7, favori persistant et slots épurés
 
 Date : 18 octobre 2026. Base : main SHA 6a52522d1bd7e501a5c3b4d6d58253bfec755fdc.
-Statut : périmètre et premières corrections ; **ne pas merger avant tests Windows**.
+Statut : implémentation locale terminée ; **ne pas merger avant tests Windows et CI du SHA poussé**.
+
+## Implémentation réalisée
+- Zaap Organizer : commande directe `/zaap x,y` depuis les coordonnées canoniques, sans Havre-Sac, calibration ni clic ; refus sûr lorsque les coordonnées manquent.
+- Favori principal : persistance par `character:<id>` vérifié, repli nom+classe uniquement s'il est unique, migration sûre des anciennes valeurs HWND et refus des identités ambiguës.
+- Guide Succès/Lanyel : participants explicites et persistants par ID stable, y compris hors ligne ; un clic transmet une seule commande au runtime ciblé. Zéro sélection, cible ambiguë ou toutes les cibles hors ligne restent fail-closed.
+- Travel ciblé : seules les formes `/travel x,y` et `/zaap zx,zy ; /travel x,y` sont acceptées, avec une séquence au plus par client Unity vérifié.
+- Slots : les numéros visibles ont été retirés sans modifier les indices internes, raccourcis, exports ni l'ordre des sessions.
+
+## Validation locale disponible
+- Tests ciblés Zaap, identité/favori, runtime Travel et UI participants : PASS.
+- Doctor Agent HARD des micro-lots : PASS ; syntaxe et `git diff --check` : PASS.
+- Doctor FAST source-only : les groupes architecture, identité, persistance, démarrage, lazy loading, budgets et cibles du diff passent. Les groupes async/golden restent bloqués uniquement par les données Doduda/LFS absentes de ce checkout (`data/cache/dofus_maps/raw/doduda_cli/quest_categories.json`).
+- Restent obligatoires avant fusion : test Windows réel multi-fenêtres 1/2/5, vérification stop/focus/fenêtre fermée, matérialisation des données pour les groupes FAST bloqués, puis CI exacte du SHA poussé.
 
 ## Bug favori de la fenêtre principale
 Diagnostic dans `app/pages/organizer/character_sessions.py` : `set_primary_window` enregistre `hwnd:<handle>` ; au redémarrage, Windows peut affecter un autre HWND. `sanitize_profiles` conserve pourtant ce jeton éphémère, mais l'étoile ne retrouve plus le client et le primaire est perdu visuellement et fonctionnellement.
