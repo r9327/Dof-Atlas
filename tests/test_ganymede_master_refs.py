@@ -194,7 +194,6 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
             ("2287", 150, 2287),
             ("2293", 138, 2293),
             ("3794", 288, 3794),
-            ("2234", 212, 2234),
         ):
             with self.subTest(guide=name):
                 path = Path(f"data/encyclopedia/guides/ganymede_{name}_observed_links.json")
@@ -203,6 +202,28 @@ class GanymedeMasterReferenceAuditTests(unittest.TestCase):
                 self.assertEqual(report["source_guide_id"], guide_id)
                 self.assertEqual(report["observed_steps"], expected)
                 self.assertEqual(report["verified_routes"], 0)
+
+    def test_complete_public_index_has_exactly_one_snapshot_per_guide(self) -> None:
+        source_index = json.loads((ROOT / INDEX).read_text(encoding="utf-8"))
+        indexed = {
+            row["ganymede_guide_id"]: row["listed_step_count"]
+            for row in source_index["guides"]
+        }
+        self.assertEqual(len(indexed), 95)
+        self.assertEqual(sum(indexed.values()), 7705)
+        snapshots = sorted(
+            (ROOT / "data/encyclopedia/guides").glob(
+                "ganymede_*_observed_links.json"
+            )
+        )
+        self.assertEqual(len(snapshots), 95)
+        seen: dict[int, int] = {}
+        for snapshot in snapshots:
+            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+            guide_id = payload["source"]["guide_id"]
+            self.assertNotIn(guide_id, seen, snapshot.name)
+            seen[guide_id] = len(payload["steps"])
+        self.assertEqual(seen, indexed)
 
     def test_missing_source_step_fails(self) -> None:
         self.master["steps"].pop()
