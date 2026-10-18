@@ -135,6 +135,22 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                     if step_no in reviewed_actions:
                         raise ValueError("Duplicate action candidate step")
                     reviewed_actions[step_no] = action_step
+            # Reviewed factual actions are separate from executable/certified
+            # objectives. Never make these drafts playable from a source hint.
+            candidate_by_step = {}
+            candidate_path = root / GUIDES_DIR / f"ganymede_{source_id}_action_candidates.json"
+            if candidate_path.is_file():
+                from tools.audit_ganymede_step_actions import audit_action_candidates
+                validation = audit_action_candidates(root, candidate_path)
+                if validation["status"] != "REVIEW_ACTION_CANDIDATES_ONLY":
+                    raise ValueError(f"Invalid candidate actions for {source_id}: {validation['issues']}")
+                candidate_evidence = _json(candidate_path)
+                if candidate_evidence.get("atlas_guide_id") != atlas_id:
+                    raise ValueError("Candidate actions belong to another Atlas guide")
+                candidate_by_step = {
+                    entry["source_step_number"]: entry
+                    for entry in candidate_evidence["steps"]
+                }
             steps = []
             for i, source_step in enumerate(source_steps, 1):
                 if source_step["source_step_number"] != i:
@@ -170,7 +186,14 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                         else "NO_ACTION_CANDIDATE_YET"
                     ),
                     "verified_actions": [],
-                    "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+                    "source_action_candidates": candidate_by_step.get(i, {}).get("actions", []),
+                    "source_action_review_status": (
+                        candidate_by_step.get(i, {}).get("review_status", "NOT_RECONSTRUCTED")
+                    ),
+                    "action_reconstruction_status": (
+                        "REVIEW_FACTUAL_ACTION_NOT_CANONICAL" if i in candidate_by_step
+                        else "NEEDS_CANONICAL_OBJECTIVE_REVIEW"
+                    ),
                     "manual_completion_allowed": False,
                     "auto_completion_allowed": False,
                     "original_prose_imported": False,
@@ -194,6 +217,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                     expected.get("public_tree_prerequisite_guide_ids", []),
                 "expected_source_step_count": len(steps),
                 "playable_step_count": 0,
+                "factual_action_reviewed_step_count": len(candidate_by_step),
                 "source_action_candidate_steps": len(reviewed_actions),
                 "source_action_candidate_actions": sum(
                     len(value["actions"]) for value in reviewed_actions.values()

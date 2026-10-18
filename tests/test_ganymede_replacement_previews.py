@@ -189,6 +189,22 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     stable_step_id(gid, step)
 
+    def test_cawotte_factual_actions_remain_review_only(self) -> None:
+        previews = build_dofus_replacement_previews(ROOT)["previews"]
+        cawotte = previews["dofus_cawotte"]
+        self.assertEqual(cawotte["factual_action_reviewed_step_count"], 64)
+        self.assertEqual(cawotte["playable_step_count"], 0)
+        self.assertFalse(cawotte["replacement_active"])
+        steps = cawotte["sections"][0]["steps"]
+        self.assertEqual(len(steps), 64)
+        self.assertTrue(all(s["source_action_candidates"] for s in steps))
+        self.assertTrue(all(s["verified_actions"] == [] for s in steps))
+        self.assertTrue(all(not s["manual_completion_allowed"]
+                            and not s["auto_completion_allowed"] for s in steps))
+        self.assertEqual(steps[2]["source_action_candidates"][0]["quest_id"], 836)
+        self.assertTrue(any(a.get("quest_id") == 836
+                            for a in steps[9]["source_action_candidates"]))
+
     def test_repository_dofus_guide_step_continuity(self) -> None:
         result = build_dofus_replacement_previews(ROOT)
         self.assertEqual(result["status"], "PREVIEWS_READY_NOT_PLAYABLE",
