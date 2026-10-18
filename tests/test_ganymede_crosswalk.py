@@ -8,6 +8,7 @@ from pathlib import Path
 from tools.audit_ganymede_crosswalk import (
     CATALOG,
     CROSSWALK,
+    MAIN_INDEX,
     audit_ganymede_crosswalk,
 )
 
@@ -38,13 +39,28 @@ class GanymedeCrosswalkAuditTests(unittest.TestCase):
     def _write(self) -> None:
         manifest_path = self.root / CROSSWALK
         catalog_path = self.root / CATALOG
+        index_path = self.root / MAIN_INDEX
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
             json.dumps(self.manifest, ensure_ascii=False), encoding="utf-8"
         )
         catalog_path.write_text(
             json.dumps({"guides": [{"id": "dofus_cawotte"}]}), encoding="utf-8"
+        )
+        index_path.write_text(
+            json.dumps({
+                "schema_version": 1,
+                "snapshot": {"total_main_guides": 1, "guide_routes_certified": 0},
+                "guides": [{
+                    "ganymede_guide_id": 2205,
+                    "source_url": "https://ganymede-app.com/guides/2205",
+                    "title": "Cawwot Dofus",
+                    "status": "metadata_only",
+                }],
+            }),
+            encoding="utf-8",
         )
 
     def test_metadata_registry_is_not_guide_certification(self) -> None:
@@ -82,6 +98,15 @@ class GanymedeCrosswalkAuditTests(unittest.TestCase):
         self._write()
         self.assertIn(
             "external_id",
+            [issue["code"] for issue in audit_ganymede_crosswalk(self.root)["issues"]],
+        )
+
+    def test_crosswalk_absent_from_source_index_fails(self) -> None:
+        self.manifest["guides"][0]["ganymede_guide_id"] = 2206
+        self.manifest["guides"][0]["source_url"] = "https://ganymede-app.com/guides/2206"
+        self._write()
+        self.assertIn(
+            "crosswalk_guide_absent_from_index",
             [issue["code"] for issue in audit_ganymede_crosswalk(self.root)["issues"]],
         )
 
