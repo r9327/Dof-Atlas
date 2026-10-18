@@ -51,10 +51,39 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le prologue des secrets des Dofus",
+              "guide_id": 2284
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia première partie",
+              "guide_id": 2206
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia deuxième partie",
+              "guide_id": 2265
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia troisième partie",
+              "guide_id": 2288
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif final : obtenir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2285_step_0002",
@@ -87,10 +116,54 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Émeraude",
+              "object_id": 737,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Pourpre",
+              "object_id": 694,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Turquoise",
+              "object_id": 739,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ocre",
+              "object_id": 7754,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ivoire",
+              "object_id": 7115,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ébène",
+              "object_id": 7114,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la Bworkette académique"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2285_step_0003",
@@ -122,10 +195,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer l'Académie des Gobelins sans quitter la salle finale",
+              "dungeon_id": 138,
+              "stay_at_end": true
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gobalden et attester posséder les six Dofus primordiaux"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Goblinecone dans la Forêt enneigée"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2285_step_0004",
@@ -153,10 +244,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier les six Dofus précédemment préparés",
+              "references_previous_stage": 2
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Goblinecone et lui présenter les six Dofus"
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         }
       ]
     }
@@ -165,5 +274,8 @@
     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
-  ]
+  ],
+  "factual_action_reviewed_step_count": 4,
+  "source_action_candidate_steps": 4,
+  "source_action_candidate_actions": 18
 }
