@@ -163,7 +163,7 @@ d'étapes des sous-guides et rattacher les actions aux véritables
 Le moteur #226 ne doit pas optimiser sur des liens encore non qualifiés.
 
 
-## Premiers sous-guides détaillés — couverture source 4 / 95
+## Premiers sous-guides détaillés — couverture source 9 / 95
 
 Trois sous-guides prioritaires ont été parcourus sur les pages publiques du
 18 octobre 2026, en complément du guide complet MG0 :
@@ -175,7 +175,7 @@ Trois sous-guides prioritaires ont été parcourus sur les pages publiques du
 | Dofus Cawotte | 2205 | 64 | \`ganymede_cawotte_observed_links.json\` |
 | Dofus Émeraude | 2211 | 52 | \`ganymede_emeraude_observed_links.json\` |
 
-Total : **509 étapes sur 4 guides**, soit **4 / 95 guides** documentés
+Premier lot : **509 étapes sur 4 guides**. Avec le lot suivant, **726 étapes sur 9 / 95 guides** documentés
 au niveau des liens factuels. Les titres d'étapes pouvant comporter des
 coordonnées, l'inventaire prend en compte **les coordonnées du titre ET du
 corps**, avec déduplication sur une même étape.
@@ -189,9 +189,54 @@ fichiers nommés \`ganymede_*_observed_links.json\` et indique pour
 chacun des 95 guides \`OBSERVED_UNCLASSIFIED\` ou \`NOT_INGESTED\`,
 avec un total \`observed_source_steps\`. Une source incohérente bloque
 l'audit global. **Il ne reste pas « 91 guides terminés » : il reste
-91 / 95 guides non inventoriés à ce niveau de détail.**
+86 / 95 guides non inventoriés à ce niveau de détail.**
 
 Ces liens sont des observations non interprétées. L'analyse des quêtes
 avec DPLN/Tougli/JOL, les véritables \`quest_id\` et \`objective_id\`
 d'Atlas, les intervalles de sous-guides, les consommables exacts et
 l'optimisation de route restent à réaliser.
+
+
+### Deuxième lot — cinq autres guides collectés
+
+| Guide public | ID Ganymède | Étapes |
+| --- | ---: | ---: |
+| Dolmanax | 2248 | 9 |
+| Où sont les Dofus ? | 2204 | 26 |
+| Dokoko | 2208 | 49 |
+| Dofus Pourpre | 2276 | 45 |
+| Dofus des Veilleurs | 2209 | 88 |
+
+Les 217 étapes de ce deuxième lot complètent les 509 du premier.
+Toutes sont numérotées et rattachées à leur guide/page source. Le
+rapprochement des **quêtes et objectifs canoniques Atlas n'est pas encore
+fait** et aucun trajet généré ne peut utiliser ces liens comme consignes
+certifiées.
+
+### Collecteur HTML contrôlé pour la suite
+
+\`tools.ganymede_source_link_ingest\` est le collecteur reproductible.
+Il utilise exclusivement les articles d'étapes des pages publiques et
+ne sauvegarde **ni rédaction, ni HTML, ni illustration externe**. Il
+conserve les ID de liens et les coordonnées mentionnées, sans les
+transformer en objectifs ou en commandes.
+
+Exemple, sans écriture :
+
+    py -3.13 -m tools.ganymede_source_link_ingest --guide-id 2248 --fetch --checked-on 2026-10-18
+
+Pour créer explicitement un instantané vérifié après contrôle :
+
+    py -3.13 -m tools.ganymede_source_link_ingest --guide-id 2248 --fetch --checked-on 2026-10-18 --apply
+
+Pour travailler sans réseau, remplacer \`--fetch\` par
+\`--html-dir <dossier>\` (fichiers locaux \`2248-1.html\`, etc.).
+Les téléchargements échoués, pages renvoyant un autre numéro,
+pagination tronquée ou guide absent de l'index interrompent la
+collecte **avant toute modification du JSON final**. À ce stade,
+l'outil prend volontairement **un seul guide explicite à la fois** ;
+pas de parcours silencieux des 95 pages source, ni de modification
+de la progression Atlas.
+
+Les instantanés déjà présents restent la source versionnée utilisée
+par Doctor ; aucune récupération réseau au démarrage d'Atlas.
