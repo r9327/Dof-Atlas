@@ -1,7 +1,17 @@
 # PR Guide Tools — Guide Opti V2 : planificateur intégral
 
 Date : 18 octobre 2026. Base : main SHA 6a52522d1bd7e501a5c3b4d6d58253bfec755fdc.
-Statut : contrat fonctionnel et plan de développement, **non implémenté**. Pas de fusion tant que les comportements ne sont pas testés.
+Statut : **socle moteur implémenté et testé de façon ciblée ; certification CI exacte encore requise**. La route réelle complète dépend toujours des données locales vérifiées et ne doit pas être déclarée certifiée depuis les seuls tests unitaires.
+
+## Implémentation livrée dans cette PR
+- `GuideRoutePlanner` compose le moteur canonique `AdventureRouteEngine` sans créer de second générateur. Il calcule une route indépendante pour chaque identité `character:<id>`, puis groupe uniquement les actions que chaque participant doit encore faire.
+- Les besoins de préparation et de pierres d'âme restent ventilés par personnage, avec quantité requise, stock connu et reste à acquérir. Les captures `soul_stone`, `zone_special` et `drop` sont des contrats explicites ; aucun mot présent dans un titre ne suffit à inférer une pierre.
+- `GuideTravelPlan` expose `direct` et `zaap_then_travel`. Un Zaap exige destination exacte, monde connu, preuve, et éligibilité explicite de tous les participants ; sinon le moteur revient au trajet direct ou bloque si la destination est inconnue.
+- Les succès incompatibles sont distribués en passages déterministes. Les actions bloquées et transports incomplets restent des constats auditables.
+- Le nommage partagé conserve les noms officiels et remonte en REVIEW les longueurs ou doublons ambigus, sans troncature silencieuse.
+- Le builder GPS V5 exporte titres, contrat de titre et gabarit de trajet direct. Le gabarit statique ne contient volontairement aucun faux participant : les identités doivent être liées au runtime par l'Organizer.
+
+Validation locale ciblée : `tests.test_guide_route_planner`, `tests.test_guide_route_naming` et `tests.test_guide_ultime_v5_or_runtime`. Cette validation ne remplace ni les scénarios avec le jeu et ses données matérialisées, ni `Public PR / Safe Validation`, ni `Phase Certification / Full Validation` sur le SHA candidat exact.
 
 ## Mission
 Produire un parcours COMPLET et cohérent (Quêtes / Succès / Guide Lanyel / Guide Succès), non une succession de lignes isolées, en minimisant les passages de zone, déplacements, retours PNJ et donjons, sans franchir un prérequis, perdre une étape ou contredire une quête. L'affichage garde les décisions de la PR UI.
