@@ -137,11 +137,22 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
                         or row.get("dofusdb_url") !=
                         f"https://dofusdb.fr/fr/database/quest/{row.get('quest_id')}"):
                     raise ValueError("invalid access/prerequisite reference")
+            time_gate = evidence.get("timed_progression_evidence")
+            if time_gate is not None:
+                if (not isinstance(time_gate, dict)
+                        or type(time_gate.get("requires_calendar_pages")) is not int
+                        or time_gate["requires_calendar_pages"] <= 0
+                        or type(time_gate.get("max_offerings_per_day")) is not int
+                        or time_gate["max_offerings_per_day"] <= 0
+                        or time_gate.get("reward_interval") != "daily"
+                        or time_gate.get("schedule_policy") != "NON_BLOCKING_LONG_TERM_GOAL"):
+                    raise ValueError("invalid or falsely blocking timed progression")
             evidence_by_guide[source_id] = {
                 "named_quests": identities,
                 "source_path": evidence_path.name,
                 "dpln_source": sources["dpln_quest_list"],
                 "required_context_ids": {row["quest_id"] for row in access},
+                "timed_progression": time_gate,
             }
         except (OSError, ValueError, TypeError) as exc:
             problems.append({
@@ -221,6 +232,7 @@ def audit_ganymede_quest_candidates(root: Path) -> dict[str, object]:
             "numeric_id_candidate_count": len(records),
             "triangulated_named_quest_candidates": len(verified_names),
             "named_evidence_file": evidence["source_path"] if evidence else None,
+            "timed_progression_review": evidence["timed_progression"] if evidence else None,
             "external_only_quest_ids": sorted(external_ids - local_ids),
             "atlas_only_quest_ids": sorted(local_ids - external_ids),
             "candidate_pairs": records,

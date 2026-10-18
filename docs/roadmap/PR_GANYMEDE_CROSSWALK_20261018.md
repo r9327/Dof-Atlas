@@ -348,3 +348,30 @@ du guide Atlas/Ganymède ou une prétention de certification erronée font
 quête à ses véritables objectifs Atlas/Doduda, leurs prérequis réels,
 les consommables utiles et leur étape d'acquisition, puis vérifier les
 branches facultatives et les déplacements multi-personnages.
+
+
+### Deuxième rapprochement indépendant : Dolmanax
+
+Les données publiques **DPLN / DofusDB / Ganymède / Atlas** concordent sur
+la quête **L'année du dragon**, ID 954. Le guide Atlas Dolmanax contient
+une étape de quête ID 954, citée dans l'étape source 2 de Ganymède 2248.
+
+La particularité du Dolmanax est documentée dans
+`ganymede_dpln_dolmanax_evidence.json` avec provenance et contraintes
+temporelles : **365 pages de calendrier**, au maximum **une offrande par jour**.
+Son statut de planification est
+`NON_BLOCKING_LONG_TERM_GOAL` : ne pas forcer 365 jours d'attente
+avant les autres guides, ne pas acheter automatiquement 365 offrandes
+sans calendrier, et suivre l'avancement **par personnage**.
+
+L'audit produit désormais **12 correspondances de noms/IDs recoupées**
+sur Cawotte et Dolmanax, toutes au statut
+`REVIEW_TRIANGULATED_SOURCES`. Il valide la forme des informations
+temporelles mais ne valide pas encore les objectifs précis ni le trajet.
+Le moteur #226 devra tenir compte de la limite journalière et du
+calendrier réel ; il ne doit pas déduire un nombre de jours restant
+depuis cette seule donnée.
+
+Références : [quête](https://www.dofuspourlesnoobs.com/lanneacutee-du-dragon.html),
+[calendrier](https://www.dofuspourlesnoobs.com/calendrier-de-lalmanax.html),
+[DofusDB quête 954](https://dofusdb.fr/fr/database/quest/954).
