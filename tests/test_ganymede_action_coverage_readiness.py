@@ -46,7 +46,7 @@ class ActionCoverageReadinessTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED_PENDING_PLAYABLE_ACTIONS",
                          result["issues"])
         self.assertEqual(result["source_action_reviewed_steps"], 338)
-        self.assertEqual(result["source_auto_extracted_hint_steps"], 55)
+        self.assertEqual(result["source_auto_extracted_hint_steps"], 1356)
         nightmare = next(row for row in result["guide_reports"]
                          if row["atlas_guide_id"] == "dofus_du_cauchemar")
         evidence = nightmare["source_guides"][0]
