@@ -415,3 +415,7 @@ Vulkania, guide source Ganymède 3737, a été parcouru sur **3 pages** avec **1
 ### Douzième lot — Domakuro (18/10/2026)
 
 Le guide source Domakuro 2212 a été observé en entier : **120 étapes continues** sur **trois pages**. Liens publics et mentions de coordonnées sont archivés comme faits non classifiés, sans texte éditorial. **85 guides sur 95, 4 809 étapes observées, 10 guides non détaillés**. Les consultations d'Ébène et Forgelave ont été limitées ; aucun instantané partiel n'a été ajouté. Aucun objectif Atlas n'est certifié.
+
+### Treizième lot — Dofus Ébène (18/10/2026)
+
+Ganymède guide **2261 / Ébène : 142 étapes** publiques successives sur 3 pages. Fichier de références factuelles, aucune reproduction éditoriale et zéro certification d'objectif/route. Le lot porte l'inventaire à **86/95 guides / 4 951 étapes**, 9 guides restant à inventorier. Forgelave reste non détaillé : la consultation de sa deuxième page a été bloquée, et aucun instantané incomplet n'a été enregistré.
