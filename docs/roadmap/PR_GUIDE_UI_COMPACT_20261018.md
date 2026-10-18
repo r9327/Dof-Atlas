@@ -140,6 +140,38 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - Comparer **la forme, l'espacement, la position et le contenu** de chaque bouton et portrait à la maquette approuvée, pas simplement la présence d'un widget portant le bon objectName.
 - Faire échouer la certification UI si des portraits/boutons sont des carrés ou du texte de remplacement, si le panneau Personnages a été changé en liste, ou si la sélection ne survit pas au redémarrage.
 
+## Contrat de SURVOL et de navigation liée aux quêtes — obligatoire sur chaque ligne utile
+
+**Règle de présentation : le texte de la fiche reste COURT. L'identité de la quête est portée par la ligne et apparaît au SURVOL, pas dans une section supplémentaire.**
+
+### Personnages
+- Le survol d'un petit portrait de classe dans le MENU DÉROULANT des personnages affiche **le vrai NOM/ PSEUDO du personnage** (élément obligatoire et vérifié), puis classe, progression pertinente, état de connexion et preuve réseau/manuelle/inconnue dans une **mini-infobulle au niveau de la souris**.
+- Si plusieurs personnages ont la même classe ou la même icône, afficher leur nom propre et le bon taux ; aucun tooltip générique `Pandawa` au lieu du pseudo. Pas de pseudo écrit sous les icônes en permanence.
+- Clic sur le portrait = inclure/exclure ce personnage du guide et des macros ; SURVOL = information seulement, pas de sélection, de macro ni de validation.
+
+### Lignes de quête : infobulle sur la LIGNE ENTIÈRE
+- Chaque ligne d'action ou d'objectif lié à une ou plusieurs quêtes doit afficher **au survol de sa zone utile** le(s) **nom(s) complet(s) et EXACT(s) des quêtes réellement associées à CETTE ligne**. Cela concerne, sans exception oubliée : PNJ/dialogues, déplacements avec objectifs de quête, combats (y compris les checkboxes `×N monstre`), collecte/récolte, drops, donjons, captures, validation/rendre quête.
+- Prendre les **IDs des quêtes et des objectifs en données** ; résoudre leur vrai nom depuis le provider de quêtes. Ne pas déduire l'association en copiant toute la liste des quêtes d'une fiche sur toutes les lignes. **Pas de fausse association** : si aucun quest_id probant, pas de nom inventé ; si plusieurs quêtes, les lister une seule fois chacune, dans un ordre stable.
+- L'infobulle est un petit commentaire contextuel **près du pointeur**, pas un encadré qui prend de la place dans la fiche. Format minimal : `Quête : <nom complet>` ou `Quêtes : <nom 1> ; <nom 2>`. Si pertinent et prouvé, ajouter l'objectif associé, sans longues phrases. Une étape de trajet non liée à une quête n'affiche pas arbitrairement une quête.
+- Tooltip requis lorsque la souris se trouve SUR LE TEXTE mais également sur la zone cliquable associée et sur les cases de combats ; veiller au propagations Qt `QFrame`/`QLabel`/`QCheckBox`. Le survol ne doit ni recouvrir ni désactiver le clic sur `[x,y]`.
+- Tooltip sur le petit bouton de navigation : **nom complet de la quête + `Ouvrir dans Quêtes`** ; le même objectif/quête doit être affiché pour la ligne et pour son bouton.
+
+### Petit bouton « aller à la quête » SUR SA LIGNE — existant, à réparer/completer
+- Le bouton est **déjà partiellement présent** dans `GuideUltimeManualCard._add_inline_quest_links` de `app/modules/encyclopedia/views/guide_ultime_manual_view.py` : `QToolButton` 24×24, icône Qt `SP_FileIcon`, objet `GuideManualQuestInlineButton`, tooltip du nom. Il est ajouté par `SharedGuideManualCard._add_line_section` dans `app/modules/encyclopedia/views/shared_manual_guide_view.py`. **RÉUTILISER CE CONTRÔLE** et le style validé plutôt que créer un gros bouton, une colonne dédiée ou une liste `Quêtes liées`.
+- Défaut observé dans le code : `_shown_quest_ids` empêche l'apparition d'un raccourci sur **chaque ligne concernée** dès qu'une quête a déjà eu un raccourci dans la même fiche. **Ne pas confondre « éviter les doublons du même bouton sur la même ligne » avec « supprimer les liens nécessaires sur les lignes suivantes ».** Chaque ligne pertinente doit permettre de rejoindre SA quête même si elle apparaît aussi ailleurs sur la fiche. Une seule icône de navigation par cible et par ligne utile, pas une répétition mécanique dans un regroupement qui n'a qu'une action.
+- Au clic, ouvrir **directement l'onglet Quêtes avec la bonne fiche quête, identifiée par quest_id**, pour le personnage sélectionné ; ne pas seulement afficher le titre, copier le nom, aller au sommaire ou rouvrir la fiche Guide. Réutiliser `questRequested = Signal(int, str, int)`, `SharedGuideManualView._open_quest_from_card` et `EncyclopediaPage.navigate_to_entity("quest", id, source="guide_gps", ...)` (à revalider au HEAD final), sans duplicer de système de navigation.
+- Si une action sert **plusieurs** quêtes, son survol liste les vrais noms ; le(s) petit(s) accès quêtes ouvrent **une cible choisie explicitement**. Autoriser un menu de sélection TRÈS compact au clic si nécessaire pour ne pas encombrer la ligne ; aucun lien ne doit choisir arbitrairement « la première » quête.
+- Si la ligne n'est liée à aucune quête vérifiée, **aucun faux bouton « aller à la quête »**. Les liens de progression du guide, et le bouton `Guide` unique déjà existant, doivent garder leur comportement.
+- Cliquer la coordonnée `[x,y]` reste exclusivement le geste de déplacement (macro Organizer Travel ou Zaap+Travel suivant le plan) ; **cliquer le petit bouton de la ligne** est exclusivement le geste de navigation dans l'onglet Quêtes. Cliquer le checkbox combat coche l'objectif ; aucune de ces actions ne doit déclencher les autres par propagation accidentelle.
+
+### Tests de survol et navigation à ajouter dans Doctor UI / Qt
+1. Ouvrir Personnages : survol de chaque portrait => pseudo exact, classe exacte, progression individuelle ; classes identiques avec pseudos différents, offline, état inconnu. Fermer/rouvrir le menu et l'app => sélections sauvegardées.
+2. Survol d'une ligne PNJ => nom quête exact ; survol combats/checkbox => nom complet de la quête + monstre/quantité ; survol récolte/drop/capture => bon quest_id ; ligne multi-quêtes => tous les noms ; ligne non liée => aucun faux nom.
+3. Même quête sur **deux lignes successives** : chacune offre son petit accès navigable si pertinente ; bon tooltip de ligne ET de bouton, pas d'affichage du bouton dans une ligne sans preuve.
+4. Clic bouton => onglet Quêtes, vraie quête ouverte sur le bon personnage, sans modifier l'état des fiches ; clic coordonnée => macro sans navigation Quêtes ; clic case combat => objectif uniquement ; survol => zéro déclenchement.
+5. Captures Doctor UI réelles avec infobulles visibles près du curseur : **portrait**, **texte d'action**, **case combat**, **bouton quête**, et captures état sans survol pour prouver aucune pollution visuelle.
+6. Le contrat doit être appliqué aux DEUX présentations Guide Succès / Lanyel depuis le rendu partagé et ne pas écraser les réparations de la PR #201.
+
 ## Contrôle de fidélité obligatoire
 1. Rendre une capture COMPLÈTE en **état par défaut** : en-tête fixe, préparation refermée, personnages refermés, sommaire refermé, une fiche seule. Comparer visuellement à la **dernière maquette approuvée dans le fil de discussion**, pas à un mockup plus ancien.
 2. Rendre des captures distinctes **Préparation ouverte**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
