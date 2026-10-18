@@ -161,3 +161,37 @@ canonique Atlas : le rapprochement reste à effectuer et vérifier.
 d'étapes des sous-guides et rattacher les actions aux véritables
 \`quest_id\` / \`objective_id\` d'Atlas, avec provenance et validation DPLN.
 Le moteur #226 ne doit pas optimiser sur des liens encore non qualifiés.
+
+
+## Premiers sous-guides détaillés — couverture source 4 / 95
+
+Trois sous-guides prioritaires ont été parcourus sur les pages publiques du
+18 octobre 2026, en complément du guide complet MG0 :
+
+| Guide source | ID Ganymède | Étapes publiques | Fichier instantané |
+| --- | ---: | ---: | --- |
+| Guide complet MG0 | 2251 | 156 | \`ganymede_master_observed_links.json\` |
+| Dofus Argenté | 2203 | 237 | \`ganymede_argente_observed_links.json\` |
+| Dofus Cawotte | 2205 | 64 | \`ganymede_cawotte_observed_links.json\` |
+| Dofus Émeraude | 2211 | 52 | \`ganymede_emeraude_observed_links.json\` |
+
+Total : **509 étapes sur 4 guides**, soit **4 / 95 guides** documentés
+au niveau des liens factuels. Les titres d'étapes pouvant comporter des
+coordonnées, l'inventaire prend en compte **les coordonnées du titre ET du
+corps**, avec déduplication sur une même étape.
+
+La commande d'audit s'applique à chaque fichier via \`--snapshot\` :
+
+    py -3.13 -m tools.audit_ganymede_master_refs --snapshot data/encyclopedia/guides/ganymede_argente_observed_links.json
+
+\`tools.audit_ganymede_crosswalk\` agrège désormais automatiquement les
+fichiers nommés \`ganymede_*_observed_links.json\` et indique pour
+chacun des 95 guides \`OBSERVED_UNCLASSIFIED\` ou \`NOT_INGESTED\`,
+avec un total \`observed_source_steps\`. Une source incohérente bloque
+l'audit global. **Il ne reste pas « 91 guides terminés » : il reste
+91 / 95 guides non inventoriés à ce niveau de détail.**
+
+Ces liens sont des observations non interprétées. L'analyse des quêtes
+avec DPLN/Tougli/JOL, les véritables \`quest_id\` et \`objective_id\`
+d'Atlas, les intervalles de sous-guides, les consommables exacts et
+l'optimisation de route restent à réaliser.
