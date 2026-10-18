@@ -399,6 +399,7 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
     from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
 
     files = list(dict.fromkeys(Path(name) for name in screenshots))
+    has_stored_captures = bool(files)
     # Exactly the PNGs actually attached to all prior assertions: a clean
     # final screen must not hide an earlier unreadable capture.
     if not files:
@@ -418,6 +419,9 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
         raster_checks.append({"capture": name, **raster})
     failed_captures = [row for row in raster_checks if row["status"] != "PASS"]
     font_passed = bool(results) and all(r["passed"] for r in results)
+    square_font_glyphs = any(
+        row["unique_raster_glyphs"] < len(samples) for row in results
+    )
     passed = font_passed and not failed_captures
     raster = {"status": "FAIL" if failed_captures else "PASS",
               "captures_checked": len(raster_checks),
@@ -425,9 +429,12 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
               "bad_captures": failed_captures[:20],
               "captures": raster_checks}
     return {"status": "PASS" if passed else "FAIL",
-            "reason": ("REPEATED_SCREENSHOT_TOFU" if raster["status"] != "PASS"
-                       else "FONT_RASTER_OK" if font_passed
-                       else "MISSING_OR_SQUARE_FONT_GLYPHS"),
+            "reason": ("REPEATED_SCREENSHOT_TOFU"
+                       if raster["status"] != "PASS"
+                       and (has_stored_captures or not square_font_glyphs)
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS" if square_font_glyphs
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS" if not font_passed
+                       else "FONT_RASTER_OK"),
             "sample_chars": list(samples), "labels": results,
             "screenshot_raster": raster,
             "limits": "Actual rendered raster plus sampled Qt font glyphs; not OCR or full visual/contrast certification."}
