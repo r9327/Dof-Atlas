@@ -13,6 +13,7 @@ from pathlib import Path
 from tools.audit_ganymede_master_refs import (
     INDEX, ROOT, audit_ganymede_master_refs,
 )
+from tools.audit_ganymede_step_actions import audit_action_candidates
 
 GUIDES_DIR = Path("data/encyclopedia/guides")
 CATALOG = GUIDES_DIR / "catalog.json"
@@ -112,6 +113,26 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
                     payload = json.loads(path.read_text(encoding="utf-8"))
                     state["observed_source_step_count"] = len(payload["steps"])
                     state["source_snapshot_verified"] = True
+            # A source-action review is evidence, not gameplay certification.
+            # The validator checks external IDs and coordinates against the
+            # observed source without enabling the replacement.
+            state["reviewed_action_candidate_steps"] = 0
+            state["action_candidate_evidence_status"] = "NOT_RECONSTRUCTED"
+            candidate_file = (
+                GUIDES_DIR / f"ganymede_{source_id}_action_candidates.json"
+            )
+            if (root / candidate_file).is_file():
+                action_report = audit_action_candidates(root, candidate_file)
+                state["action_candidate_evidence_status"] = action_report["status"]
+                if action_report["status"] == "REVIEW_ACTION_CANDIDATES_ONLY":
+                    state["reviewed_action_candidate_steps"] = (
+                        action_report["reviewed_steps"]
+                    )
+                else:
+                    issues.append({
+                        "code": "action_candidate_evidence_invalid",
+                        "detail": f"{source_id}: {action_report.get('issues', [])}",
+                    })
             sources.append(state)
         # The known snapshot schema explicitly forbids editorial text/actions.
         # It never proves a runnable fiche, progress migration or prerequisites.
