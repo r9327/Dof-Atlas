@@ -95,6 +95,8 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
                 or row.get("quest_mapping_verified") is not False
                 or row.get("route_parity_verified") is not False):
             issues.append({"code": "unproved_certification", "detail": where})
+        if row.get("mapping_confidence") not in (None, "candidate"):
+            issues.append({"code": "unproved_mapping_confidence", "detail": where})
 
     coverage = payload.get("coverage", {})
     if not isinstance(coverage, dict) or coverage.get("asserted_complete") is not False:
@@ -210,8 +212,9 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
             "public_tree_prerequisite_guide_ids": item.get("public_tree_prerequisite_guide_ids", []),
             "atlas_guide_ids": crosswalk_by_id.get(item["ganymede_guide_id"], {}).get("atlas_guide_ids", []),
             "mapping_status": (
-                "CROSSWALK_METADATA_ONLY" if item["ganymede_guide_id"] in crosswalk_by_id
-                else "UNMAPPED"
+                "UNMAPPED" if item["ganymede_guide_id"] not in crosswalk_by_id
+                else "CANDIDATE_METADATA_ONLY" if crosswalk_by_id[item["ganymede_guide_id"]].get("mapping_confidence") == "candidate"
+                else "CROSSWALK_METADATA_ONLY"
             ),
         }
         for item in index_rows if isinstance(item, dict)
@@ -235,6 +238,10 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
         "unmapped_guide_ids": [
             row["ganymede_guide_id"] for row in guide_coverage
             if row["mapping_status"] == "UNMAPPED"
+        ],
+        "candidate_guide_ids": [
+            row["ganymede_guide_id"] for row in guide_coverage
+            if row["mapping_status"] == "CANDIDATE_METADATA_ONLY"
         ],
         "issues": issues,
     }
