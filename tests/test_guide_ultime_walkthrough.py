@@ -155,6 +155,41 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
         self.assertEqual(QApplication.clipboard().text(), "/travel 5,6")
         view.close()
 
+    def test_visible_position_launches_once_for_selected_participants(self):
+        class _Participants:
+            @staticmethod
+            def selected_keys():
+                return ("character:101", "character:202")
+
+        calls: list[tuple[str, tuple[str, ...]]] = []
+        view = GuideUltimeUniversalView(
+            self.service,
+            character_key="hero",
+            quest_provider=self.provider,
+            participant_service=_Participants(),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        QApplication.processEvents()
+        target = next(
+            label
+            for label in view.findChildren(QLabel)
+            if label.property("travelCommand") == "/travel 5,6"
+        )
+        event = QMouseEvent(
+            QEvent.MouseButtonRelease,
+            QPointF(1, 1),
+            QPointF(1, 1),
+            Qt.LeftButton,
+            Qt.LeftButton,
+            Qt.NoModifier,
+        )
+        QApplication.sendEvent(target, event)
+        self.assertEqual(
+            calls,
+            [("/travel 5,6", ("character:101", "character:202"))],
+        )
+        view.close()
+
     def test_breadcrumb_is_directly_inside_guide_and_returns_to_guides(self):
         view = GuideUltimeUniversalView(self.service, character_key="hero", quest_provider=self.provider)
         QApplication.processEvents()

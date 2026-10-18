@@ -158,7 +158,7 @@ class EncyclopediaPage(QWidget):
         quest_graph: QuestGraphService | None = None,
         guide_progress_by_guide: dict[str, tuple[int, int, str]] | None = None,
         guide_progress_character_key: str = "",
-        launch_travel_callback: Callable[[str], None] | None = None,
+        launch_travel_callback: Callable[[str, tuple[str, ...]], None] | None = None,
         related_data_ready_callback: Callable[[AchievementProvider, GuideProvider], None] | None = None,
         initial_tab: str = DEFAULT_TAB,
     ) -> None:
