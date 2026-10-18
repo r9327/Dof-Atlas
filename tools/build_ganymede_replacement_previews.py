@@ -144,7 +144,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                     "type": "info",
                     "title": f"Étape {i}",
                     "content": "",
-                    "optional": False,
+                    "optional": bool(candidate_by_step.get(i, {}).get("optional_completion", False)),
                     "source_guide_id": source_id,
                     "source_step_number": i,
                     "source_page": source_step["source_page"],
@@ -158,6 +158,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                          "is_step_action_certified": False}
                         for qid in quest_refs
                     ],
+                    "route_phase": candidate_by_step.get(i, {}).get("route_phase"),
                     "source_action_candidate_status": (
                         "REVIEW_SOURCE_ACTION" if i in candidate_by_step
                         else "NO_ACTION_CANDIDATE_YET"

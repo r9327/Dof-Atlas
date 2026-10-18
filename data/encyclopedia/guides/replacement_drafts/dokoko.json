@@ -48,10 +48,20 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "goal_reward",
+              "label": "Parcours Dokoko : viser l'obtention du Dofus et choisir ensuite si le 100 % est poursuivi",
+              "object_id": 17078
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0002",
@@ -105,10 +115,40 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir un Casque pour accéder à l'île",
+              "object_id": 1019,
+              "quest_id": 1666,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir des Ailes en bois",
+              "object_id": 1021,
+              "quest_id": 1666,
+              "quantity": 1
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Réserver deux pierres d'âme moyennes pour les parcours Émeraude et Ocre",
+              "object_id": 9687,
+              "quantity": 2,
+              "conditional": "emeraude_ocre"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'agent de la traversée"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0003",
@@ -155,10 +195,32 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Acheter le billet de traversée auprès de l'agent",
+              "quest_id": 1666
+            },
+            {
+              "kind": "check_equipment",
+              "label": "Vérifier le casque et les ailes en bois",
+              "object_ids": [
+                1019,
+                1021
+              ]
+            },
+            {
+              "kind": "interact",
+              "label": "Activer le canon pour rejoindre l'île"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0004",
@@ -227,10 +289,29 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Valider le débarquement auprès de l'employée",
+              "quest_id": 1666
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer les vacances sur l'île",
+              "quest_id": 1667
+            },
+            {
+              "kind": "move",
+              "label": "Enregistrer le Zaap de la plage, puis rejoindre Kaponor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0005",
@@ -269,10 +350,24 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Accepter la mission de Kaponor",
+              "quest_id": 1671
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le touriste près de la plage"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0006",
@@ -302,10 +397,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner Gropinson Cruaule sur son séjour"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir vers les plantations de la plage"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0007",
@@ -341,10 +449,40 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Ramasser la première feuille de salace marine",
+              "object_id": 17164,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir quatre pulpes de Kokonut pendant les déplacements",
+              "object_id": 17162,
+              "quantity": 4,
+              "monster_id": 218,
+              "collection_window_end": 11
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir quatre huiles de tortue de la plage",
+              "object_id": 17163,
+              "quantity": 4,
+              "collection_window_end": 11
+            },
+            {
+              "kind": "move",
+              "label": "Aller jusqu'à la deuxième plante"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0008",
@@ -376,10 +514,25 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Ramasser la deuxième feuille de salace marine",
+              "object_id": 17164,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Traverser la plage vers la troisième plante"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0009",
@@ -411,10 +564,25 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Ramasser la troisième feuille de salace marine",
+              "object_id": 17164,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la cale du bateau"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0010",
@@ -460,10 +628,33 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Accepter la quête des masques auprès de Kara Bean",
+              "quest_id": 1675
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner les livres pour ouvrir la recherche du trésor"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la recherche du trésor des Moonies",
+              "quest_id": 1672
+            },
+            {
+              "kind": "move",
+              "label": "Ressortir puis atteindre la dernière plante"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0011",
@@ -499,10 +690,38 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Ramasser la quatrième feuille de salace marine",
+              "object_id": 17164,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Contrôler les quatre pulpes de Kokonut",
+              "object_id": 17162,
+              "quantity": 4,
+              "monster_id": 218
+            },
+            {
+              "kind": "check_object",
+              "label": "Contrôler les quatre huiles de tortue",
+              "object_id": 17163,
+              "quantity": 4
+            },
+            {
+              "kind": "move",
+              "label": "Revenir voir Gropinson Cruaule"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0012",
@@ -534,10 +753,29 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Remettre les ingrédients à Gropinson Cruaule"
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre trois Rokoko",
+              "monster_id": 4152,
+              "quantity": 3
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Vieux Rokoko"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0013",
@@ -567,10 +805,24 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Parler au Vieux Rokoko puis terminer le combat",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Poursuivre vers la noix de coco ouverte"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0014",
@@ -602,10 +854,33 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la noix de coco ouverte"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat de groupe déclenché",
+              "group_mode": "group"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser le deuxième parchemin des Moonies",
+              "object_id": 17394
+            },
+            {
+              "kind": "move",
+              "label": "Retourner au point de remise des ingrédients"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0015",
@@ -679,10 +954,29 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Remettre la feuille du Vieux Rokoko et terminer la quête",
+              "quest_id": 1667
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer l'enquête chez les Kannibouls",
+              "quest_id": 1668
+            },
+            {
+              "kind": "move",
+              "label": "Entrer dans la forêt"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0016",
@@ -721,10 +1015,24 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Parler à Fred Hex et accepter la mission des chefs",
+              "quest_id": 1673
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le tambour"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0017",
@@ -756,10 +1064,33 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer le petit tambour"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "interact",
+              "label": "Lire le troisième parchemin des Moonies",
+              "object_id": 17395
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le village Kanniboul"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0018",
@@ -796,10 +1127,40 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon du village Kanniboul sans quitter la salle finale",
+              "dungeon_id": 27,
+              "stay_at_end": true
+            },
+            {
+              "kind": "optional_capture",
+              "label": "Capturer le Kanniboul Ebil pour le parcours Émeraude",
+              "monster_id": 2960,
+              "conditional": "emeraude"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner le petit pot puis utiliser le parchemin",
+              "object_id": 27416
+            },
+            {
+              "kind": "talk",
+              "label": "Parler au Kanniboul Ebil avant de repartir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Mama Vaudou"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0019",
@@ -873,10 +1234,29 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête d'indigestion auprès de Mama Vaudou",
+              "quest_id": 1668
+            },
+            {
+              "kind": "quest_start",
+              "label": "Accepter l'enquête sur les squelettes",
+              "quest_id": 1669
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la cale suivante"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0020",
@@ -906,10 +1286,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le coffre dans la cale"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le chemin du crâne"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0021",
@@ -939,10 +1332,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Traverser le crâne, descendre dans la grotte et inspecter le squelette"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le bateau de LeChouque"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0022",
@@ -979,10 +1385,38 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger Jack Martel"
+            },
+            {
+              "kind": "dungeon",
+              "label": "Terminer le bateau de LeChouque et rester dans la dernière salle",
+              "dungeon_id": 91,
+              "stay_at_end": true
+            },
+            {
+              "kind": "quest_start",
+              "label": "Parler à LeChouque pour ouvrir la quête de la main",
+              "quest_id": 1676
+            },
+            {
+              "kind": "talk",
+              "label": "Poursuivre le dialogue avec LeChouque"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir à l'entrée de la grotte"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0023",
@@ -1012,10 +1446,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Notufyne"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Fat Bob"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0024",
@@ -1045,10 +1492,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger Fat Bob sur la nuit précédente"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Grande-Barbe"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0025",
@@ -1078,10 +1538,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner Grande-Barbe"
+            },
+            {
+              "kind": "move",
+              "label": "Aller voir Coupe-Gorge"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0026",
@@ -1111,10 +1584,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger Coupe-Gorge sur la nuit précédente"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Kanniboul Ghour"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0027",
@@ -1144,10 +1630,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Kanniboul Ghour"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner chez Coupe-Gorge"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0028",
@@ -1177,10 +1676,28 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Confronter Coupe-Gorge sur ses réponses"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat de groupe déclenché",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner auprès de Mama Vaudou"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0029",
@@ -1254,10 +1771,29 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Remettre l'amulette et finir l'enquête",
+              "quest_id": 1669
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer le rendez-vous avec Moon",
+              "quest_id": 1670
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'Arbre de Moon"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0030",
@@ -1296,10 +1832,49 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer seulement les quatre premières salles de l'Arbre de Moon",
+              "dungeon_id": 92,
+              "stop_before_boss": true
+            },
+            {
+              "kind": "check_object",
+              "label": "Récolter jusqu'à cinq engrais de Moon pour la suite",
+              "object_id": 17283,
+              "quantity": 5
+            },
+            {
+              "kind": "optional_drop",
+              "label": "Compléter les engrais en dehors du donjon si nécessaire",
+              "monster_id": 217,
+              "object_id": 17283
+            },
+            {
+              "kind": "optional_drop",
+              "label": "Autre monstre permettant les engrais",
+              "monster_id": 216,
+              "object_id": 17283
+            },
+            {
+              "kind": "optional_drop",
+              "label": "Autre monstre permettant les engrais",
+              "monster_id": 215,
+              "object_id": 17283
+            },
+            {
+              "kind": "move",
+              "label": "Sortir avant le combat contre Moon et atteindre la statue"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0031",
@@ -1329,10 +1904,23 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Inspecter la statue de Moon"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à l'Arbre de Moon"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0032",
@@ -1389,17 +1977,43 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "DOKOKO_REWARD_PATH",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer l'Arbre de Moon, combat final inclus",
+              "dungeon_id": 92,
+              "stay_at_end": true
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Remettre la racine requise à Moon et terminer la quête",
+              "quest_id": 1670
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Récupérer le Dokoko",
+              "object_id": 17078
+            },
+            {
+              "kind": "move",
+              "label": "Début de la partie facultative 100 % de l'île",
+              "optional_branch": true
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0033",
           "type": "info",
           "title": "Étape 33",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 33,
           "source_page": 1,
@@ -1420,17 +2034,33 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Se défendre contre l'aventurier maudit puis lui reparler",
+              "group_mode": "group"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récupérer une mâchoire de pirate dans le chemin du crâne",
+              "object_id": 17406,
+              "quantity": 1
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0034",
           "type": "info",
           "title": "Étape 34",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 34,
           "source_page": 1,
@@ -1453,17 +2083,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Reparler à l'aventurier maudit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la grotte au crâne"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0035",
           "type": "info",
           "title": "Étape 35",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 35,
           "source_page": 1,
@@ -1491,17 +2134,40 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer le crochet doré puis ouvrir la grille"
+            },
+            {
+              "kind": "talk",
+              "label": "Confronter Wunaye Willeh"
+            },
+            {
+              "kind": "combat",
+              "label": "Gagner le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Valider le trésor des Moonies",
+              "quest_id": 1672
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0036",
           "type": "info",
           "title": "Étape 36",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 36,
           "source_page": 1,
@@ -1562,17 +2228,103 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir les troncs de Kokoko",
+              "object_id": 1002,
+              "quantity": 11,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les cordes solides",
+              "object_id": 1004,
+              "quantity": 8,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Conserver le drapeau pirate obtenu plus tôt",
+              "object_id": 17384,
+              "quantity": 1,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les crânes de pirates",
+              "object_id": 1009,
+              "quantity": 8,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir du rhum de qualité",
+              "object_id": 2620,
+              "quantity": 6,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir la colle",
+              "object_id": 1018,
+              "quantity": 10,
+              "quest_id": 1671
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les Citronanas",
+              "object_id": 10831,
+              "quantity": 8,
+              "quest_id": 1673
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les masques verts",
+              "object_id": 1014,
+              "quantity": 5,
+              "quest_id": 1675
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les masques jaunes",
+              "object_id": 1015,
+              "quantity": 5,
+              "quest_id": 1675
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les masques rouges",
+              "object_id": 1016,
+              "quantity": 5,
+              "quest_id": 1675
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir les masques bleus",
+              "object_id": 1017,
+              "quantity": 5,
+              "quest_id": 1675
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Kanniboul Kau pour les tonneaux"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0037",
           "type": "info",
           "title": "Étape 37",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 37,
           "source_page": 1,
@@ -1597,17 +2349,32 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Demander quatre tonneaux au Kanniboul Kau",
+              "object_id": 1000,
+              "quantity": 4
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Kanniboul Himik"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0038",
           "type": "info",
           "title": "Étape 38",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 38,
           "source_page": 1,
@@ -1630,17 +2397,39 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combattre le Kanniboul Himik en groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "interact",
+              "label": "Inspecter la jarre après la victoire"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Veggob"
+            },
+            {
+              "kind": "move",
+              "label": "Aller voir le Kanniboul Ghour"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0039",
           "type": "info",
           "title": "Étape 39",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 39,
           "source_page": 1,
@@ -1663,17 +2452,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Montrer le paquet au Kanniboul Ghour"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre les œufs de la forêt"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0040",
           "type": "info",
           "title": "Étape 40",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 40,
           "source_page": 1,
@@ -1698,17 +2500,36 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le premier groupe d'œufs"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre le Dostrogo seulement s'il apparaît",
+              "monster_id": 4162,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre les deuxièmes œufs"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0041",
           "type": "info",
           "title": "Étape 41",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 41,
           "source_page": 1,
@@ -1733,17 +2554,36 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le deuxième groupe d'œufs"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre le Dostrogo seulement s'il apparaît",
+              "monster_id": 4162,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre les troisièmes œufs"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0042",
           "type": "info",
           "title": "Étape 42",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 42,
           "source_page": 1,
@@ -1768,17 +2608,36 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le troisième groupe d'œufs"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre le Dostrogo seulement s'il apparaît",
+              "monster_id": 4162,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir auprès de l'aventurier maudit"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0043",
           "type": "info",
           "title": "Étape 43",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 43,
           "source_page": 1,
@@ -1801,17 +2660,30 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Reparler à l'aventurier maudit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Telltail"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0044",
           "type": "info",
           "title": "Étape 44",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 44,
           "source_page": 1,
@@ -1843,17 +2715,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête de la main auprès de Telltail",
+              "quest_id": 1676
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la cale de Kara Bean"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0045",
           "type": "info",
           "title": "Étape 45",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 45,
           "source_page": 1,
@@ -1885,17 +2771,31 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Clore la quête des masques avec Kara Bean",
+              "quest_id": 1675
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Seth Halitosis"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0046",
           "type": "info",
           "title": "Étape 46",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 46,
           "source_page": 1,
@@ -1921,17 +2821,35 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Échanger six rhums de qualité contre une toile",
+              "object_ids": [
+                999,
+                2620
+              ],
+              "quantity": 6
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le dernier groupe d'œufs"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0047",
           "type": "info",
           "title": "Étape 47",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 47,
           "source_page": 1,
@@ -1956,17 +2874,36 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le dernier groupe d'œufs"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre le Dostrogo s'il apparaît",
+              "monster_id": 4162,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Veggob"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0048",
           "type": "info",
           "title": "Étape 48",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 48,
           "source_page": 1,
@@ -1998,17 +2935,35 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Remettre les ingrédients au Kanniboul Ghour"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la mission des chefs auprès de Veggob",
+              "quest_id": 1673
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'établi sur la plage"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2208_step_0049",
           "type": "info",
           "title": "Étape 49",
           "content": "",
-          "optional": false,
+          "optional": true,
           "source_guide_id": 2208,
           "source_step_number": 49,
           "source_page": 1,
@@ -2039,10 +2994,32 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "route_phase": "OPTIONAL_ISLAND_COMPLETION",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "craft",
+              "label": "Fabriquer six planches de Kokoko",
+              "object_id": 1001,
+              "quantity": 6
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer deux poutres de Kokoko",
+              "object_id": 1003,
+              "quantity": 2
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Remettre le travail à Kaponor et terminer la dernière quête",
+              "quest_id": 1671
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         }
       ]
     }
@@ -2051,5 +3028,8 @@
     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
-  ]
+  ],
+  "factual_action_reviewed_step_count": 49,
+  "source_action_candidate_steps": 49,
+  "source_action_candidate_actions": 148
 }
