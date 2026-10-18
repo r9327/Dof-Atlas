@@ -31,6 +31,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("guides-lanyel/combat", required)
         self.assertIn("guides-success/geometry-3-960", required)
         self.assertIn("guide-quests/dofus_sylvestre-quest-1", required)
+        self.assertIn("session/glyph-rendering", required)
+        self.assertIn("session/glyph-rendering", required_assertions(["validator-smoke"]))
         smoke = required_assertions(["validator-smoke"])
         self.assertNotIn("validator-smoke/guide-return", smoke)
         self.assertIn("validator-smoke/manual-persist", smoke)
