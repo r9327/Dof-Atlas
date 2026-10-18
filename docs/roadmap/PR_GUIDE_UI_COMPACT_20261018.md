@@ -100,6 +100,46 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 - Ne PAS afficher `Zaap conseillé`, nouvelle carte trajet, bouton supplémentaire, icône nouvelle, chaîne de commande ni une notification de prévisualisation permanente.
 - Identité de session vérifiée avant toute commande, arrêt d'urgence et refus sûr en absence de certitude ; les sources / règles de choix restent dans les données et diagnostics internes.
 
+## Contrat graphique STRICT — vrais portraits, images et icônes des boutons
+
+**Les boutons doivent avoir leurs vraies icônes, selon la maquette approuvée ; aucun bouton représenté par un caractère de remplacement, un carré, un emoji arbitraire, un glyphe police absent ou une image cassée.** Ne pas substituer une nouvelle charte graphique. Les boutons à texte conservent leur texte et leur style déjà validés. Les boutons icône-seule restent discrets et de mêmes dimensions que les contrôles voisins.
+
+### Identités et portraits cliquables (obligatoire)
+- L'ancien MENU DÉROULANT des personnages reste à sa place : petit bouton avec icône « personnages » à droite de `Mon parcours` avant le bouton `Sommaire`. Il ouvre le **même panneau compact précédent**, fermé par défaut et repliable au clic ; ne pas utiliser un sélecteur de liste, un modal, des cartes par personnage ou des checkboxes à côté du pseudo.
+- Chaque **portrait de classe est lui-même le bouton** (QToolButton/QWidget accessible et réellement cliquable), pas juste une image décorative. Clic gauche : inclure/exclure ce personnage du GUIDE courant. Sélection = appartenance aux quêtes/captures/déplacements du guide, **sans modifier sa progression**. À l'ouverture, recharger les choix persistés, même si Organizer a changé l'ordre des fenêtres.
+- Pour les classes reconnues, image réelle issue de `data/images/classes/<class_key>.png` (ex. `pandawa.png`, `huppermage.png`, `ecaflip.png`, `enutrof.png`, `feca.png`, `forgelance.png` ; même principe pour les 19 fichiers). Réutiliser l'éventuel helper canonique `app/pages/organizer/common.py` pour résolution et variantes, mais **ne pas prendre la même icône pour tous les personnages**.
+- Les images disponibles dans le dépôt sont **stockées via Git LFS** (un objet `*.png` de ~130 octets lu sans filtre est typiquement un pointeur LFS, pas une image). Le chargement, le packaging PyInstaller et les tests Windows doivent garantir les vrais octets d'image décodables ; ne pas considérer l'existence d'un fichier comme la preuve que QPixmap peut l'afficher. En cas d'image invalide, rapport Doctor UI FAIL avec classe/chemin, pas de validation de captures de « carrés » ou de lettres fictives.
+- Diamètre visuel du portrait : environ **36 à 42 px**, avec une **fine couronne circulaire de progression** distincte du statut sélectionné. Images centrées, non déformées, fond identique aux contrôles précédents ; l'anneau ne doit pas cacher le portrait. Un **discret check/contour** matérialise la sélection, différence également perceptible sans couleur seule ; non-sélectionné atténué mais reconnaissable.
+- Au survol du portrait : une infobulle compacte affichée près du pointeur avec le VRAI pseudo, classe, progression fiable, origine de preuve et état réseau/offline ; **pas de texte permanent sous les portraits**. Deux personnages de même classe conservent chacun leur bouton, leur pseudo et leur propre état.
+- Ligne de portraits compacte, avec espacement homogène ; adaptation responsive quand >5 personnages : défilement horizontal du panneau si nécessaire, sans couper/cacher le dernier portrait ni agrandir la hauteur du guide. Aucune case numérotée. Permettre navigation clavier/focus et activation Enter/Space.
+- Les personnages offline restent visibles et sélectionnables, mais ne sont jamais ciblés par une macro ; si aucun personnage sélectionné : aucune macro, jamais repli sur « tous les clients ».
+- `Guide déjà fini avec N personnages` et `Chapitre fini avec N personnages` : **petite partie secondaire et refermée** dans cet ancien panneau, jamais présentée en grand formulaire initial ; stock persistant, comptages cohérents, déclaration manuelle clairement séparée de la progression réseau.
+
+### Inventaire des contrôles et icônes à reproduire
+| Emplacement | Visuel demandé | Interaction | Consignes graphiques |
+| --- | --- | --- | --- |
+| En-tête à droite | **Petit engrenage paramètres** | Ouvrir réglages | Même pictogramme et dimensions que la maquette ; utiliser icône valide, pas « ⚙ » en texte si fonte incertaine |
+| Ligne navigation | Bouton **Aller à la fiche**, icône de position/jump discrète + libellé | Saisie et accès direct à une fiche | Garder largeur majoritaire, largeur d'icône cohérente |
+| À sa droite | **Bouton Overlay : icône carte uniquement** | Afficher/masquer l'overlay | Petit carré, pas de libellé ajouté, état actif/inactif |
+| Préparation générale | **Petite icône clipboard/liste** + chevron à droite | Dérouler/fermer le même panneau d'avant | Une seule bande compacte et aucun sous-panneau inventé |
+| Mon parcours | **Icône personnages (groupe)**, icône seule | Afficher/masquer les portraits | Juste avant Sommaire, même taille que bouton Overlay |
+| Mon parcours | **Icône de sommaire/liste** + texte `Sommaire` + chevron | Dérouler/fermer chapitres | Même ligne, pas de bouton de remplacement |
+| Liste chapitres | Coche/cercle de progression + chevrons | Dérouler / aller à une fiche | Icônes discrètes et cohérentes avec les couleurs du thème |
+| Fiche | Positions **[x,y] en gras** et apparence déjà existante | Clic unique macro auto Travel/Zaap selon #226/#227 | **AUCUNE** nouvelle icône, badge, image, marqueur Zaap ni bouton copier à côté |
+| Fiche | **Cases de validation de combats** | Cocher ×N monstre précis | Vraies checkbox du style Lanyel ; pas de faux caractères □ / ■ |
+| Navigation bas | `Précédent` flèche gauche, `Valider` état validé, `Suivant` flèche droite | Changer de fiche / validation | Garder les 3 boutons, ordre, proportions, labels, feedback existants |
+| Overlay | Images/icônes **déjà fournies par Atlas** | Afficher les éléments existants | Aucune refonte des assets ou du placement en #225 |
+
+- Utiliser les pictogrammes **cohérents avec les composants Qt/Atlas déjà en place**, icônes SVG/PNG réellement décodées ou icônes dessinées vectoriellement de façon fiable si l'équivalent Atlas existe déjà. Pas de dépendance à des caractères Unicode pour rendre un bouton fonctionnel, pas de « texte de secours » visible à la place d'images connues.
+- Si une icône de la maquette est absente du dépôt, reprendre d'abord l'équivalent visuel dans les composants existants, documenter la provenance/licence d'un éventuel nouvel asset et faire valider son rendu ; **ne pas inventer un dessin ou remplacer par un emoji**. Garder le thème sombre/clair, survol, focus, état désactivé et écran HDPI cohérents.
+- Boutons icône-seule : `setAccessibleName`, vrai tooltip, état de bascule lisible ; éviter les signaux déclenchés au survol. Les zones cliquables restent suffisantes sans agrandir visuellement les icônes.
+
+### Validation visuelle et packaging graphique
+- Screenshots Doctor UI **avant/après** pour : (1) état initial menus fermés ; (2) préparation ouverte ; (3) personnes ouvertes, avec vrais portraits de 5 classes différentes ; (4) un portrait déselectionné et deux de même classe avec progression distincte ; (5) sommaire ouvert ; (6) fiche Lanyel et Succès ; (7) zoom/HDPI, écran minimal.
+- Checks Qt d'existence d'image réelle : `QPixmap.isNull() == False`, taille lisible, décodage de tous les assets utilisés, absence de pointeur Git LFS dans la version Windows distribuée ; contrôles interactifs associés aux bonnes fonctions ; pas d'icône invisible ni de texte tronqué.
+- Comparer **la forme, l'espacement, la position et le contenu** de chaque bouton et portrait à la maquette approuvée, pas simplement la présence d'un widget portant le bon objectName.
+- Faire échouer la certification UI si des portraits/boutons sont des carrés ou du texte de remplacement, si le panneau Personnages a été changé en liste, ou si la sélection ne survit pas au redémarrage.
+
 ## Contrôle de fidélité obligatoire
 1. Rendre une capture COMPLÈTE en **état par défaut** : en-tête fixe, préparation refermée, personnages refermés, sommaire refermé, une fiche seule. Comparer visuellement à la **dernière maquette approuvée dans le fil de discussion**, pas à un mockup plus ancien.
 2. Rendre des captures distinctes **Préparation ouverte**, **Personnages ouvert**, **Sommaire ouvert**, **Fiche Lanyel**, **Fiche Succès**, **état scrollé**. Comparer disposition, ordre, marges, largeurs, typographies, positions, boutons, couleurs, aucune zone superflue.
