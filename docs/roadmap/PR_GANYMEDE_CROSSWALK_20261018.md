@@ -411,3 +411,7 @@ Toutes les étapes des guides suivants ont été relevées sur deux ou trois pag
 ### Onzième lot — Vulkania (18/10/2026)
 
 Vulkania, guide source Ganymède 3737, a été parcouru sur **3 pages** avec **113 étapes numérotées sans trou**, liens factuels et mentions de coordonnées conservés sans rédaction externe. **Couverture cumulée : 84 guides sur 95, 4 689 étapes observées ; 11 guides restant sans instantané détaillé**. Domakuro et Pandala 3 n'ont pas été intégrés lors de cette collecte : consultation limitée ou première page vide. Aucun prérequis ni objectif Atlas n'est certifié par le simple référencement.
+
+### Douzième lot — Domakuro (18/10/2026)
+
+Le guide source Domakuro 2212 a été observé en entier : **120 étapes continues** sur **trois pages**. Liens publics et mentions de coordonnées sont archivés comme faits non classifiés, sans texte éditorial. **85 guides sur 95, 4 809 étapes observées, 10 guides non détaillés**. Les consultations d'Ébène et Forgelave ont été limitées ; aucun instantané partiel n'a été ajouté. Aucun objectif Atlas n'est certifié.
