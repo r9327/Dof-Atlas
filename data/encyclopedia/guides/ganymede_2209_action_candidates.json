@@ -1,0 +1,2913 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_des_veilleurs",
+  "source_guide_id": 2209,
+  "source_url": "https://ganymede-app.com/guides/2209",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 88,
+  "evidence_level": "AUTOMATED_SOURCE_ACTION_HINTS_UNVERIFIED",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "manual_review_pending": 88,
+  "auto_extraction_unresolved_steps": 1,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2209_step_0001",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -20,
+        -20
+      ],
+      "next": [
+        -20,
+        -20
+      ],
+      "actions": [
+        {
+          "kind": "goal_reward",
+          "label": "Objectif : obtenir le Dofus des Veilleurs",
+          "object_id": 16061
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2209_step_0002",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -20,
+        -20
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15533 ×1",
+          "object_id": 15533,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15531 ×1",
+          "object_id": 15531,
+          "quantity": 1
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 15730 ×1",
+          "object_id": 15730,
+          "quantity": 1
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 15729 ×1",
+          "object_id": 15729,
+          "quantity": 1
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 15731 ×1",
+          "object_id": 15731,
+          "quantity": 1
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 15728 ×1",
+          "object_id": 15728,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14946 ×1",
+          "object_id": 14946,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14509 ×1",
+          "object_id": 14509,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14516 ×10",
+          "object_id": 14516,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7906 ×10",
+          "object_id": 7906,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15416 ×1",
+          "object_id": 15416,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6961 ×1",
+          "object_id": 6961,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15990 ×1",
+          "object_id": 15990,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2209_step_0003",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1484",
+          "quest_id": 1484
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sergeant Zlatzom"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Tower"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2209_step_0004",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Colonel O'Whel"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorancient"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2209_step_0005",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1484",
+          "quest_id": 1484
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gladis"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1485",
+          "quest_id": 1485
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1487",
+          "quest_id": 1487
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2209_step_0006",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        -1
+      ],
+      "next": [
+        -5,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Sergeant Frinklan"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1485",
+          "quest_id": 1485
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Megistus the Collector"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1486",
+          "quest_id": 1486
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2209_step_0007",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        -1
+      ],
+      "next": [
+        -1,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Zap Gobdon"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Affectionate Hurtful Locker"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-1,-1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2209_step_0008",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        -1
+      ],
+      "next": [
+        -1,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1486",
+          "quest_id": 1486
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Megistus the Collector"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Portal"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2209_step_0009",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        1,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1530",
+          "quest_id": 1530
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gladis"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorancient"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1533",
+          "quest_id": 1533
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2209_step_0010",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        0
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : a hidden cell behind the roof of the house in the top right like"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2209_step_0011",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Tower"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorerwoman"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2209_step_0012",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        2
+      ],
+      "next": [
+        5,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Sergeant Resaca to Answer that you're on a special"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2209_step_0013",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        1
+      ],
+      "next": [
+        5,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1530",
+          "quest_id": 1530
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Frank Lee Smisse"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her tostart the quest Clandestine Messenger"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2209_step_0014",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        0
+      ],
+      "next": [
+        5,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mama Fia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,-2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2209_step_0015",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        -2
+      ],
+      "next": [
+        4,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the skull under the blue Flame on the left below"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Diashin Darkeyes"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2209_step_0016",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        3
+      ],
+      "next": [
+        5,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Gobikahn"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zap Gobdon"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2209_step_0017",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        3
+      ],
+      "next": [
+        5,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Madame Hyrda"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2209_step_0018",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        2
+      ],
+      "next": [
+        8,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Torturer's Tavern"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Al Capo"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [8,4]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2209_step_0019",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        4
+      ],
+      "next": [
+        8,
+        8
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Rufiette"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs twice"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [8,8]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2209_step_0020",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        8
+      ],
+      "next": [
+        6,
+        7
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Venimus"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,7]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2209_step_0021",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        7
+      ],
+      "next": [
+        5,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the door at the top left"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à The Butcher"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2209_step_0022",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        1
+      ],
+      "next": [
+        5,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1531",
+          "quest_id": 1531
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Frank Lee Smisse"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2209_step_0023",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        2
+      ],
+      "next": [
+        6,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Torturer's Tavern"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1532",
+          "quest_id": 1532
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zap Gobdon"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Belle Adrenne"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 15533",
+          "object_id": 15533
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,-2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2209_step_0024",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        -2
+      ],
+      "next": [
+        5,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Cut-throat"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the chest"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 15530",
+          "object_id": 15530
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2209_step_0025",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        2
+      ],
+      "next": [
+        6,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Torturer's Tavern"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zap Gobdon"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,-2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2209_step_0026",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        -2
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Cut-throat"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Frank Lee Smisse"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Belle Adrenne"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Queen of Thieves"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2209_step_0027",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1532",
+          "quest_id": 1532
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorancient"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1571",
+          "quest_id": 1571
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Colonel O'Whel"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gizmond Quelyn to Announce that the colonel sent"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [3,1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2209_step_0028",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        -46,
+        18
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Xelor Temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Amine"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à to meet the Master of Zaaps"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-46,18]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2209_step_0029",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -46,
+        18
+      ],
+      "next": [
+        -20,
+        -20
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-20,-20]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2209_step_0030",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -20,
+        -20
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2209_step_0031",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Tower"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Gizmond Quelyn to Introduce the Master of Zaaps"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Doctor B'boing"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gizmond Quelyn"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2209_step_0032",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        2,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1571",
+          "quest_id": 1571
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps to complete the quest Master of Zaaps"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1572",
+          "quest_id": 1572
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Vertime the Collector"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [2,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2209_step_0033",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        6
+      ],
+      "next": [
+        6,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : 3 times on the Clock That's 7 Minutes Fast"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : ing on these clocks will give you Minute from Xelorium as quest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2209_step_0034",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        6
+      ],
+      "next": [
+        6,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : twice on the chest"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2209_step_0035",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        6
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Belle Adrenne's Krosmoglob"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15730 ×1",
+          "object_id": 15730,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15729 ×1",
+          "object_id": 15729,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15731 ×1",
+          "object_id": 15731,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15728 ×1",
+          "object_id": 15728,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2209_step_0036",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        4,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Clockmaker's Workbench"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 15909 ×1",
+          "object_id": 15909,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 15910 ×1",
+          "object_id": 15910,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2209_step_0037",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        2
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the temple"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2209_step_0038",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        4,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1572",
+          "quest_id": 1572
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Doc Ettem Bworn"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1573",
+          "quest_id": 1573
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2209_step_0039",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        2
+      ],
+      "next": [
+        4,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the temple"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Electrobolt"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps to Point the electrobolt"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Doc Ettem Bworn's Krosmoglob"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Chronomagic Hammer"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the clones to Deliver a nice hammer blow"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2209_step_0040",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        2
+      ],
+      "next": [
+        0,
+        5
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Master of Zaaps"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,5]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2209_step_0041",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -25,
+        -36
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1573",
+          "quest_id": 1573
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Gizmond Quelyn to Give the eternal battery"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-25,-36]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2209_step_0042",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        -36
+      ],
+      "next": [
+        22,
+        19
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Treasure Chest"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1608",
+          "quest_id": 1608
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Nova"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,19]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2209_step_0043",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        19
+      ],
+      "next": [
+        12,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Toni Rubbinson"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the wooden crate below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [12,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2209_step_0044",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        12,
+        24
+      ],
+      "next": [
+        11,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Ripate Inn"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [11,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2209_step_0045",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        24
+      ],
+      "next": [
+        12,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the barrel below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [12,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2209_step_0046",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        12,
+        24
+      ],
+      "next": [
+        7,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Ripate Inn"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Captain Wugposh"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2209_step_0047",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        22
+      ],
+      "next": [
+        7,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Cruel Bootlegger"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mary Reankle who just appeared"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 16050",
+          "object_id": 16050
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2209_step_0048",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        22
+      ],
+      "next": [
+        7,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Actions non extraites : contrôler la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2209_step_0049",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        22
+      ],
+      "next": [
+        22,
+        19
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mary Reankle"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the building"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,19]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2209_step_0050",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        19
+      ],
+      "next": [
+        22,
+        19
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Erika Barley"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2209_step_0051",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        28
+      ],
+      "next": [
+        25,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Arthur Coward to obtain Arthur Coward as a follower"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 16044",
+          "object_id": 16044
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Erika Barley to Go back up to the surface"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2209_step_0052",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        19
+      ],
+      "next": [
+        -25,
+        -36
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Arthur Coward"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-25,-36]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2209_step_0053",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        -36
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Treasure Chest"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1608",
+          "quest_id": 1608
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Nova"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2209_step_0054",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1609",
+          "quest_id": 1609
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-4,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2209_step_0055",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        0
+      ],
+      "next": [
+        -4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Sram Temple"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the coffin below"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gein the Silent"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2209_step_0056",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1610",
+          "quest_id": 1610
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14946 ×1",
+          "object_id": 14946,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14509 ×1",
+          "object_id": 14509,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14516 ×10",
+          "object_id": 14516,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7906 ×10",
+          "object_id": 7906,
+          "quantity": 10
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2209_step_0057",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Traveler's Tower"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gladis"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the console in the middle"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Agent Bloude's Krosmoglob"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2209_step_0058",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -3,
+        9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the alembic"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Colonel O'Whel"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-3,9]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2209_step_0059",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -3,
+        9
+      ],
+      "next": [
+        -3,
+        9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Mine"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Hidden Portal"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2209_step_0060",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -3
+      ],
+      "next": [
+        3,
+        -5
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the bucket below"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Digicode"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the bucket again"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : one of the chests spread throughout the dimension"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 16054",
+          "object_id": 16054
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [3,-5]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2209_step_0061",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -5
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bucket like in the previous step"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Digicode"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zap Gobdon"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Belle Adrenne"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Strongboxer Guardian"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the King Nidas"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bucket"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2209_step_0062",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        2,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Portal"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15416 ×1",
+          "object_id": 15416,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6961 ×1",
+          "object_id": 6961,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15990 ×1",
+          "object_id": 15990,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [2,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "stable_step_id": "ganymede_2209_step_0063",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        2
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 15416",
+          "object_id": 15416
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "stable_step_id": "ganymede_2209_step_0064",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        4,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Anne Saulo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 65,
+      "stable_step_id": "ganymede_2209_step_0065",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        3
+      ],
+      "next": [
+        8,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Arielle"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [8,4]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 66,
+      "stable_step_id": "ganymede_2209_step_0066",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        4
+      ],
+      "next": [
+        4,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ellie Ksire"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 67,
+      "stable_step_id": "ganymede_2209_step_0067",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        3
+      ],
+      "next": [
+        4,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Arielle"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir :"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 68,
+      "stable_step_id": "ganymede_2209_step_0068",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        1
+      ],
+      "next": [
+        5,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the box below"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Roy Alpars"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [5,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 69,
+      "stable_step_id": "ganymede_2209_step_0069",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        2
+      ],
+      "next": [
+        7,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Torturer's Tavern"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the In-Service Malitiaman"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 70,
+      "stable_step_id": "ganymede_2209_step_0070",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        2
+      ],
+      "next": [
+        7,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the passage"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à San Tress"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Shrouded Canals Jailer to Offer 1000 kamas"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Malitiamen Lookout"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,4]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 71,
+      "stable_step_id": "ganymede_2209_step_0071",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        4
+      ],
+      "next": [
+        8,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Valeteen"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Grima Fandanga"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs twice"
+        }
+      ]
+    },
+    {
+      "source_step_number": 72,
+      "stable_step_id": "ganymede_2209_step_0072",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        6
+      ],
+      "next": [
+        8,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Valeteen"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : your Rikiki Wand"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the grid below"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Fraktor"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Svivomito"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs twice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [8,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 73,
+      "stable_step_id": "ganymede_2209_step_0073",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        3
+      ],
+      "next": [
+        9,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Miss Eloc"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [9,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 74,
+      "stable_step_id": "ganymede_2209_step_0074",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        9,
+        3
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ecaflippy"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 75,
+      "stable_step_id": "ganymede_2209_step_0075",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Portal"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the pedestal in the middle"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [3,1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 76,
+      "stable_step_id": "ganymede_2209_step_0076",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        1,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the building"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Museum Guardian"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the book"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 77,
+      "stable_step_id": "ganymede_2209_step_0077",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        2
+      ],
+      "next": [
+        1,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Devourer of Books"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 78,
+      "stable_step_id": "ganymede_2209_step_0078",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        6
+      ],
+      "next": [
+        7,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Outpost"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Corporal Tart"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 79,
+      "stable_step_id": "ganymede_2209_step_0079",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        3
+      ],
+      "next": [
+        6,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Hyperia Shrik"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,-4]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 80,
+      "stable_step_id": "ganymede_2209_step_0080",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        -4
+      ],
+      "next": [
+        3,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Time Hunter"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [3,-4]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 81,
+      "stable_step_id": "ganymede_2209_step_0081",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -4
+      ],
+      "next": [
+        4,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the building"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Time Huntress"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 82,
+      "stable_step_id": "ganymede_2209_step_0082",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        2
+      ],
+      "next": [
+        2,
+        5
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Time Hunterto start a fightalone"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [2,5]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 83,
+      "stable_step_id": "ganymede_2209_step_0083",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        5
+      ],
+      "next": [
+        7,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Time Huntress"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 84,
+      "stable_step_id": "ganymede_2209_step_0084",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        3
+      ],
+      "next": [
+        -4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Hyperia Shrik"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Roman numeral that corresponds"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Methea"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Olivie Frange to Snatch the page"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-4,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 85,
+      "stable_step_id": "ganymede_2209_step_0085",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        0
+      ],
+      "next": [
+        -4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Sram Temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gein the Silent"
+        }
+      ]
+    },
+    {
+      "source_step_number": 86,
+      "stable_step_id": "ganymede_2209_step_0086",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        0
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1613",
+          "quest_id": 1613
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 87,
+      "stable_step_id": "ganymede_2209_step_0087",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Voyagers' Tower"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Colonel O'Whel"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorancient"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gein the Silent"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à everyone in the room"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Explorancient who becomes Echo"
+        },
+        {
+          "kind": "combat",
+          "label": "Combat contre monstre nº 3977",
+          "monster_id": 3977
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Echo"
+        }
+      ]
+    },
+    {
+      "source_step_number": 88,
+      "stable_step_id": "ganymede_2209_step_0088",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        -24
+      ],
+      "next": [
+        -22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 7172",
+          "object_id": 7172
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1613",
+          "quest_id": 1613
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 16061",
+          "object_id": 16061
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Recevoir objet récompense nº 16061",
+          "object_id": 16061
+        }
+      ]
+    }
+  ]
+}
