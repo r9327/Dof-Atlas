@@ -1032,10 +1032,27 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'éleveur de dragodindes"
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir Wanglong comme suiveur",
+              "object_id": 23724
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'auberge interdite"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0017",
@@ -1081,10 +1098,28 @@
             }
           ],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Passer par le mécanisme secret"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer une bière forte",
+              "object_id": 23733
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer les Deux Souffles",
+              "quest_id": 2201
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0018",
@@ -1116,10 +1151,31 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Emprunter le passage vers Shufamukin"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Shufamukin"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Acheter la bière spéciale",
+              "object_id": 24021
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la bibliothèque"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0019",
@@ -1149,10 +1205,26 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Monter à la bibliothèque"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Chochi"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Zangzang"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0020",
@@ -1189,10 +1261,32 @@
           },
           "atlas_quest_candidates": [],
           "verified_actions": [],
-          "action_reconstruction_status": "NEEDS_CANONICAL_OBJECTIVE_REVIEW",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": false,
           "auto_completion_allowed": false,
-          "original_prose_imported": false
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Conserver Wanglong comme compagnon",
+              "object_id": 23724
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zangzang"
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir Zangzang comme compagnon",
+              "object_id": 23725
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le temple"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
         },
         {
           "id": "ganymede_2271_step_0021",
@@ -2875,7 +2969,7 @@
     "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
     "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
   ],
-  "factual_action_reviewed_step_count": 15,
-  "source_action_candidate_steps": 15,
-  "source_action_candidate_actions": 55
+  "factual_action_reviewed_step_count": 20,
+  "source_action_candidate_steps": 20,
+  "source_action_candidate_actions": 72
 }
