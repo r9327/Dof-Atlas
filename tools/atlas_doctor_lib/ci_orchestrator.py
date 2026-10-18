@@ -17,7 +17,7 @@ from tools.atlas_integrity import classify_risk
 from tools.ci_scope_gate import changed_paths
 from tools.phase_adaptive_gate import critical_changed
 from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui
-from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible
+from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible, QT_DETECTOR_PATHS
 
 REGISTRY = Path(__file__).with_name('ci_routes.json')
 
@@ -34,6 +34,13 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
     tooling_only = (tooling_eligible(paths, deleted=deleted) if tooling_scope is None else tooling_scope)
     tooling_only = (tooling_only and phase_route.get('route') in {'FULL', 'SCOPED'}
                     and ui_plan.get('status') != 'REVIEW_REQUIRED' and event != 'workflow_dispatch')
+    if any(path in QT_DETECTOR_PATHS for path in paths):
+        # A detector can be tooling-only only when both the real Windows
+        # Success oracle AND its existing validator are scheduled. No scoped
+        # certification is permitted if the UI planner cannot prove this.
+        required = {'validator-smoke', 'achievement-detail'}
+        tooling_only = (tooling_only and ui_plan.get('status') == 'UI_REQUIRED'
+                        and required <= set(ui_plan.get('selected_scenarios', ())))
     full = event == 'workflow_dispatch' or (not docs_only and not tooling_only and (
         bool(deleted) or bool(critical_changed(paths)) or classify_risk(paths)["risk"] in {"HIGH", "CRITICAL"} or phase_route.get('route') != 'SCOPED'
         or ui_plan.get('status') == 'REVIEW_REQUIRED'))

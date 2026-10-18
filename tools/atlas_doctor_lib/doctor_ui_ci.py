@@ -31,7 +31,10 @@ UI_CONSUMERS = {
     "app/modules/encyclopedia/views/manual_route_guides_view.py": ALL_GUIDES,
     "app/modules/encyclopedia/views/deferred_achievement_guides_view.py": ALL_GUIDES,
     "app/modules/encyclopedia/views/guides_view.py": ALL_GUIDES,
-    "app/modules/encyclopedia/views/encyclopedia_page.py": ALL_GUIDES,
+    "app/modules/encyclopedia/views/encyclopedia_page.py": (*ALL_GUIDES, "achievement-detail"),
+    "app/modules/encyclopedia/views/achievements_view.py": ("achievement-detail",),
+    "app/modules/encyclopedia/widgets/achievement_detail_widget.py": ("achievement-detail",),
+    "app/modules/encyclopedia/providers/achievement_provider.py": (*ALL_GUIDES, "achievement-detail"),
     "app/modules/encyclopedia/services/link_service.py": ("guide-quests",),
     "app/pages/quests_page.py": ("guide-quests",),
     "app/pages/lazy_quests_page.py": ("guide-quests",),
@@ -122,7 +125,18 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             uncertainty.append("INVALID_PATH: " + path)
         elif path.endswith(".md") or path == ".ai/context_index.json":
             continue
-        elif _ci_workflow(path) or path in VALIDATOR_PATHS or path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tests/test_doctor_ui")):
+        elif path in ("tools/atlas_doctor_lib/doctor_ui_qt.py",
+                       "tools/atlas_doctor_lib/doctor_ui.py",
+                       "tests/test_doctor_ui_qt.py", "tests/test_doctor_ui.py"):
+            # Changes to shared UI assertions must exercise both production
+            # Guides as well as the smoke and Success journeys; otherwise
+            # manual/combat persistence could silently pass via smoke alone.
+            include(("guides-success", "guides-lanyel", "validator-smoke", "achievement-detail"),
+                    "Shared Doctor Qt validator changed: " + path, path)
+        elif path.startswith(("tools/atlas_doctor_lib/doctor_ui", "tools/atlas_doctor_lib/ui_raster_oracle", "tools/atlas_doctor_lib/ui_contrast_oracle", "tests/test_doctor_ui")):
+            include(("validator-smoke", "achievement-detail"),
+                    "Validator and real Success journey changed: " + path, path)
+        elif _ci_workflow(path) or path in VALIDATOR_PATHS:
             include(("validator-smoke",), "Validator/selection contract changed: " + path, path)
         elif path in UI_CONSUMERS:
             include(UI_CONSUMERS[path], "Explicit Qt runtime consumer: " + path, path)

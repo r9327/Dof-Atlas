@@ -1,6 +1,7 @@
 """Bounded CI-only validation, distinct from application/Phase certification."""
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 import subprocess
@@ -38,6 +39,69 @@ OWNERS = frozenset({
 })
 RETIRED_WORKFLOWS = frozenset({'.github/workflows/public-pr-ci.yml'})
 
+# Real Doctor UI detector files are tooling only when their import boundary
+# is verified AND the Windows detector journeys are selected separately.
+# Changing application views/providers is never eligible.
+QT_DETECTOR_PATHS = frozenset({
+    'tools/atlas_doctor_lib/doctor_ui.py',
+    'tools/atlas_doctor_lib/doctor_ui_qt.py',
+    'tools/atlas_doctor_lib/ui_raster_oracle.py',
+    'tools/atlas_doctor_lib/ui_contrast_oracle.py',
+    'tests/test_doctor_ui_qt.py',
+})
+
+
+def _qt_detector_boundary(root: Path | None, path: str) -> bool:
+    if root is None:
+        return False
+    root = root.resolve()
+    source = root / path
+    try:
+        if (source.is_symlink() or not source.is_file()
+                or not source.resolve().is_relative_to(root)
+                or source.stat().st_size > 512 * 1024):
+            return False
+        ast_tree = ast.parse(source.read_text(encoding='utf-8-sig'), filename=path)
+    except (OSError, SyntaxError, UnicodeError, ValueError):
+        return False
+    if path.startswith('tests/'):
+        return True  # Real Qt test runs on Windows; not imported by stdlib.
+    if path.endswith(('/ui_raster_oracle.py', '/ui_contrast_oracle.py')):
+        # The screenshot raster analyzer must remain completely stdlib-only.
+        forbidden = ('app', 'PySide6', 'shiboken6')
+        for node in ast.walk(ast_tree):
+            if isinstance(node, ast.Import) and any(
+                alias.name.split('.')[0] in forbidden for alias in node.names
+            ):
+                return False
+            if isinstance(node, ast.ImportFrom) and (
+                (node.module or '').split('.')[0] in forbidden
+            ):
+                return False
+    # Imports of PySide/app are allowed inside *executed isolated functions*.
+    # At module import time the Doctor orchestrator must remain stdlib-only.
+    top_level = []
+    for node in ast_tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        top_level.extend(ast.walk(node))
+    for node in top_level:
+        if isinstance(node, ast.Import):
+            if any(alias.name.startswith(('app.', 'PySide6', 'shiboken6'))
+                   or alias.name in {'app', 'PySide6', 'shiboken6'} for alias in node.names):
+                return False
+        elif isinstance(node, ast.ImportFrom):
+            name = node.module or ''
+            if name.startswith(('app.', 'PySide6', 'shiboken6')) or name in {'app', 'PySide6', 'shiboken6'}:
+                return False
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if ((isinstance(func, ast.Name) and func.id == '__import__')
+                    or (isinstance(func, ast.Attribute) and func.attr == 'import_module')):
+                return False
+    return True
+
+
 
 def eligible(paths, *, deleted=(), root: Path | None = None, base_sha='') -> bool:
     registry = json.loads(Path(__file__).with_name('ci_routes.json').read_text())
@@ -70,6 +134,9 @@ def eligible(paths, *, deleted=(), root: Path | None = None, base_sha='') -> boo
                 if old != new:
                     return False
             except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+                return False
+        elif path in QT_DETECTOR_PATHS:
+            if not _qt_detector_boundary(root, path):
                 return False
         elif path not in OWNERS and path not in workflows:
             return False

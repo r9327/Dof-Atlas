@@ -183,6 +183,75 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(self.select(paths, route={'route': 'INVALID'})['full'])
         self.assertTrue(self.select(paths, deleted=['tools/old_capability.py'])['full'])
         self.assertTrue(self.select(paths, event='workflow_dispatch')['full'])
+    def test_real_ui_detector_is_focused_only_with_success_and_smoke_evidence(self):
+        from tools.atlas_doctor_lib.ci_tooling_scope import eligible, QT_DETECTOR_PATHS
+
+        paths = [
+            'tools/atlas_doctor_lib/doctor_ui.py',
+            'tools/atlas_doctor_lib/doctor_ui_qt.py',
+            'tools/atlas_doctor_lib/ui_raster_oracle.py',
+            'tools/atlas_doctor_lib/ui_contrast_oracle.py',
+            'tools/atlas_doctor_lib/doctor_ui_ci.py',
+            'tests/test_doctor_ui.py',
+            'tests/test_doctor_ui_ci.py',
+            'tests/test_doctor_ui_qt.py',
+            'tools/atlas_doctor_lib/ci_tooling_scope.py',
+            'tools/atlas_doctor_lib/ci_orchestrator.py',
+            'tests/test_doctor_ci_orchestrator.py',
+            '.github/workflows/doctor-ui.yml',
+            '.ai/context_index.json',
+        ]
+        self.assertEqual(len(QT_DETECTOR_PATHS), 5)
+        self.assertTrue(eligible(paths, root=ROOT, base_sha='HEAD'))
+        # Caller without a verified local source may not downscope.
+        self.assertFalse(eligible(paths))
+        ui = {'status': 'UI_REQUIRED',
+              'selected_scenarios': ['validator-smoke', 'achievement-detail']}
+        good = select_workflows(paths, event='pull_request',
+                                phase_route={'route': 'FULL'}, ui_plan=ui,
+                                tooling_scope=eligible(paths, root=ROOT, base_sha='HEAD'))
+        self.assertTrue(good['tooling_only'])
+        self.assertFalse(good['full'])
+        self.assertFalse(good['phase'])
+        self.assertFalse(good['specialist_fallback'])
+        self.assertTrue(good['workflows']['doctor-ui']['selected'])
+        self.assertFalse(good['workflows']['phase8-memory-benchmark']['selected'])
+        self.assertFalse(good['workflows']['json-focused-data-contract']['selected'])
+        for bad_ui in (
+            {'status': 'UI_REQUIRED', 'selected_scenarios': ['validator-smoke']},
+            {'status': 'UI_REQUIRED', 'selected_scenarios': ['achievement-detail']},
+            {'status': 'REVIEW_REQUIRED', 'selected_scenarios': ['validator-smoke', 'achievement-detail']},
+        ):
+            with self.subTest(bad_ui=bad_ui):
+                result = select_workflows(
+                    paths, event='pull_request', phase_route={'route': 'FULL'},
+                    ui_plan=bad_ui, tooling_scope=True,
+                )
+                self.assertTrue(result['full'])
+                self.assertTrue(result['phase'])
+        self.assertFalse(eligible(paths + ['app/modules/encyclopedia/views/achievements_view.py'],
+                                  root=ROOT))
+
+    def test_tooling_scope_rejects_unsafe_module_import_in_qt_detector(self):
+        from tools.atlas_doctor_lib.ci_tooling_scope import eligible
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / 'tools/atlas_doctor_lib/doctor_ui_qt.py'
+            target.parent.mkdir(parents=True)
+            for content in (
+                'from app.ui import theme\\n',
+                'from PySide6.QtWidgets import QWidget\\n',
+                '__import__("app.ui.theme")\\n',
+            ):
+                target.write_text(content.replace('\\n', '\n'), encoding='utf-8')
+                self.assertFalse(eligible(['tools/atlas_doctor_lib/doctor_ui_qt.py'],
+                                          root=root, base_sha='HEAD'))
+            target.write_text(
+                'def worker():\\n    from PySide6.QtWidgets import QWidget\\n'.replace('\\n', '\n'),
+                encoding='utf-8',
+            )
+            self.assertTrue(eligible(['tools/atlas_doctor_lib/doctor_ui_qt.py'],
+                                     root=root, base_sha='HEAD'))
 
     def test_integrity_policy_only_allows_additive_ci_test_wiring(self):
         from tools.atlas_doctor_lib.ci_tooling_scope import eligible
