@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -46,6 +47,15 @@ _ACHIEVEMENT_COMPACT_SOURCES = (
     "dungeons.json",
     "languages/fr.json",
 )
+
+
+def _utf8_subprocess_env() -> dict[str, str]:
+    """Keep JSON worker streams independent from the Windows ANSI code page."""
+
+    env = dict(os.environ)
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    return env
 
 
 def _achievement_compact_source_signature(data_dir: Path) -> list[list[object]]:
@@ -115,6 +125,7 @@ def ensure_achievement_compact_cache(
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=_utf8_subprocess_env(),
         timeout=90,
         check=True,
     )
@@ -786,6 +797,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                env=_utf8_subprocess_env(),
             )
             try:
                 categories: dict[int, AchievementCategory] = {}
@@ -1440,6 +1452,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                env=_utf8_subprocess_env(),
                 timeout=90,
                 check=True,
             )
