@@ -1,8 +1,7 @@
 """Fail-closed, single-route cutover for fully certified Ganymède Dofus guides.
 
 Never show source-link drafts as playable. A verified replacement is selected
-in place of, not in addition to, the legacy catalogue entry. The user's
-existing per-character guide progression remains untouched.
+in place of, not in addition to, the legacy catalogue entry. No historical character progression exists to migrate.
 """
 from __future__ import annotations
 
@@ -60,7 +59,7 @@ def select_verified_replacement_path(
         if (not isinstance(declaration, dict)
                 or declaration.get("enabled") is not True
                 or declaration.get("status") != "CERTIFIED_FOR_CUTOVER"
-                or declaration.get("progress_migration_verified") is not True):
+                ):
             return None
 
         source_id = declaration.get("source_guide_id")
