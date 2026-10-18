@@ -839,3 +839,41 @@ transforme jamais une ancienne validation en nouvelle fiche achevée
 sans preuve ; (5) certifier toutes les étapes et faire **une seule
 bascule réversible** par guide. Ne jamais afficher une fiche vide
 ou un parcours parallèle à l'ancien guide comme s'il était prêt.
+
+
+### Bascule atomique côté GuideProvider — une seule séquence (18/10/2026)
+
+Le chargeur de guides Atlas dispose maintenant d'un sélecteur
+`guide_ganymede_cutover.select_verified_replacement_path` : sur
+une entrée du catalogue Dofus, il conserve l'ancien fichier ou
+sélectionne **à la place** le nouveau fichier correspondant
+dans `replacement_drafts`. Il ne charge jamais les deux
+séquences comme deux guides pour un même ID.
+
+La bascule est **désactivée par défaut** et échoue en mode
+fermé : aucun `replacement_drafts/cutover_manifest.json` n'est
+livré. Une déclaration future doit porter
+`CERTIFIED_FOR_CUTOVER`, l'ID de guide source, le compte exact
+des étapes, l'empreinte du parcours et une migration de
+progression **par personnage** explicitement vérifiée.
+
+Avant toute activation, le sélecteur impose aussi une fiche
+canonique **exécutable et vérifiée pour chacune des étapes** :
+ID source stable et consécutif, `verified_actions` non vide,
+preuve d'action, progressions vérifiées, même ID du guide Atlas,
+et aucune copie du texte éditorial Ganymède. Les ébauches
+actuelles `DRAFT_NOT_PLAYABLE` échouent volontairement à
+ce contrôle, donc la nouvelle UI n'affichera pas de fausses
+actions.
+
+Dix tests indépendants couvrent le retour à l'ancien guide,
+la migration absente, les fiches vides, l'ordre incorrect,
+l'empreinte incompatible, la non-réécriture du progrès et
+l'interdiction des chemins de fichiers dangereux.
+
+**L'objectif final reste le remplacement total des anciens
+parcours Dofus**, pas une coexistence ou un catalogue de
+squelettes. Il reste à reconstruire et certifier les consignes
+de jeu originales de chaque étape grâce à nos données et à
+la source Ganymède, puis à activer le suivi continu #226/#225
+à mesure que chaque guide devient vraiment jouable.
