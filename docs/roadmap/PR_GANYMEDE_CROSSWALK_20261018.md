@@ -267,3 +267,33 @@ et la route générée ne sont **pas certifiés**.
 Six guides d'aventure supplémentaires sont inventoriés : **Campements Bwork/Gobelins** (34), **Otomaï 1** (7), **Sufokia** (39), **Valonia 1** (30), **Sidimote 1** (25) et **Koalaks** (9). Soit **144 étapes** supplémentaires.
 
 **Couverture cumulée : 19/95 guides, 1247 étapes de liens factuels**, 76 guides restant sans instantané d'étapes. Ce n'est ni une reprise des textes Ganymède, ni la preuve d'une équivalence avec les ID de quêtes Atlas ; génération et optimisation restent bloquées tant que les liens ne sont pas qualifiés et recoupés.
+
+
+### Rapprochement des IDs de quêtes — audit préliminaire
+
+Le nouvel outil `tools.audit_ganymede_quest_candidates` compare, guide par
+guide, les IDs de quêtes cités dans les liens DOFUSDB publics à ceux des
+étapes `type=quest` des guides Atlas actuellement versionnés.
+
+    py -3.13 -m tools.audit_ganymede_quest_candidates --output artifacts/guides/ganymede_quest_candidates.json
+
+Il fournit pour chaque guide : les IDs externes observés et les numéros
+d'étapes où ils apparaissent, les IDs de quêtes présents dans ses guides
+Atlas associés, les intersections numériques, les références citées
+seulement par la source et celles présentes seulement dans Atlas.
+
+**Un identifiant numérique identique ne prouve pas encore une identité
+de quête vérifiée** : l'intersection est étiquetée
+`REVIEW_NUMERIC_ID_ONLY`, avec
+`quest_identity_confirmed=false` et
+`required_objective_confirmed=false`. Les références absentes du guide
+Atlas local ne sont pas présumées absentes du catalogue global Doduda.
+Les renvois Ganymède non rapprochés à un guide Atlas sont distingués
+par `GUIDE_UNMAPPED`. Aucune donnée n'est écrite dans les guides,
+aucune progression n'est modifiée et aucun prérequis/itinéraire n'est
+déduit de ces liens.
+
+La **prochaine validation** doit relier les candidats aux fiches de
+quête canoniques Atlas/Doduda et vérifier nom, version et objectifs
+contre DPLN et si besoin Tougli/JOL. En cas de divergence :
+`REVIEW` ou `BLOCKED`, sans basculer la nouvelle route #226.
