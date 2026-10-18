@@ -1,0 +1,541 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_tachete",
+  "source_guide_id": 2271,
+  "source_url": "https://ganymede-app.com/guides/2271",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 62,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2271_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé le guide Dorigami",
+          "guide_id": 2221
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Posséder le métier paysan au niveau 20",
+          "profession": "farmer",
+          "level": 20
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif : récupérer le Dofus Tacheté",
+          "object_id": 7112
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2271_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir le Domakuro",
+          "object_id": 23237,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir le Dorigami",
+          "object_id": 23408,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir les épices",
+          "object_id": 1977,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Préparer les autres ressources de l'étape",
+          "object_ids": [
+            13729,
+            23950,
+            23951,
+            23311,
+            7225,
+            7222,
+            7223,
+            7224,
+            23957,
+            23965,
+            7014,
+            7018
+          ],
+          "quantities_to_verify": true
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre les dragons en Pandala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2271_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Vérifier le Domakuro et le Dorigami",
+          "object_ids": [
+            23237,
+            23408
+          ]
+        },
+        {
+          "kind": "interact",
+          "label": "Traverser la cascade et monter l'escalier"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Imagiro puis Orukam"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête de réunion des dragons",
+          "quest_id": 2200
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la garde de l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2271_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -30
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au gardien de l'auberge interdite"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'atelier des forgerons"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2271_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        21,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Anatakwa"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat collectif visant à soigner le Yokaï",
+          "monster_id": 6570,
+          "group_mode": "group",
+          "mechanic": "heal_enemy"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Utiliser une invocation Cawotte pour le soin",
+          "monster_id": 556
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Alternative de soin avec une baguette",
+          "object_id": 7110
+        },
+        {
+          "kind": "move",
+          "label": "Revenir auprès du gardien"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2271_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -30
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au gardien pour débloquer l'accès"
+        },
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge interdite"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Grandapan puis au prêtre Pandawa"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner derrière la cascade"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2271_step_0007",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        36,
+        -43
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser la cascade"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Grandapan de la mission des prêtres"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge du cimetière"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2271_step_0008",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        36,
+        -43
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la boisson de Grobe numéro un",
+          "object_id": 23731,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la boisson de Grobe numéro deux",
+          "object_id": 23806,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2271_step_0009",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge interdite"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au prêtre Pandawa, puis au Grandapan, puis au prêtre"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2271_step_0010",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage secret"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel contre Sumowa",
+          "monster_id": 6515,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Se placer sur les glyphes blancs pour diminuer les résistances"
+        },
+        {
+          "kind": "interact",
+          "label": "Activer la machine puis le tuyau"
+        },
+        {
+          "kind": "move",
+          "label": "Sortir de la salle secrète"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2271_step_0011",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Suivre les indications de la tortue Ninjawa"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter deux Pizwa",
+          "object_id": 23972,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter un Pandazahi",
+          "object_id": 23179,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter cinq bières Tsingtawo",
+          "object_id": 24007,
+          "quantity": 5
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'interlocuteur suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2271_step_0012",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -32
+      ],
+      "next": [
+        23,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à la tortue Ninjawa"
+        },
+        {
+          "kind": "talk",
+          "label": "Confronter l'individu suspect"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel déclenché",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Zangzang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2271_step_0013",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -30
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à la machine de l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2271_step_0014",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage caché"
+        },
+        {
+          "kind": "interact",
+          "label": "Actionner la machine au centre"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge Pandazaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2271_step_0015",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        18,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Acheter une bière Pandneken",
+          "object_id": 7055,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter une bouteille d'alcool à 99 %",
+          "object_id": 23482,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Contrôler les consommables nécessaires",
+          "object_ids": [
+            7055,
+            23482,
+            23179,
+            1977
+          ]
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'éleveur de dragodindes"
+        }
+      ]
+    }
+  ]
+}
