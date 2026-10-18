@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_cawotte",
+  "source_guide_id": 2205,
+  "source_url": "https://ganymede-app.com/guides/2205",
+  "reviewed_on": "2026-10-18",
+  "source_step_count": 64,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2205_step_0001",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        25,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "guide_id": 2204,
+          "label": "Contrôler le parcours d'accès aux Dofus"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "quest_id": 827,
+          "label": "Contrôler l'accès aux Wabbits"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "quest_id": 2193,
+          "label": "Contrôler le préalable du sage"
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2205_step_0002",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "object_id": 361,
+          "quantity": 1,
+          "label": "Cawotte pour la quête gastronomique",
+          "quest_id": 840,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 969,
+          "quantity": 1,
+          "label": "Couronne du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 970,
+          "quantity": 1,
+          "label": "Bâton du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 971,
+          "quantity": 1,
+          "label": "Cape du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "optional_preparation",
+          "object_id": 361,
+          "quantity": 100,
+          "needed_at_source_step": 34,
+          "conditional": "sort_cawotte",
+          "label": "Cawottes supplémentaires pour le sort facultatif"
+        },
+        {
+          "kind": "optional_preparation",
+          "object_id": 9687,
+          "quantity": 2,
+          "conditional": "parcours_ocre_et_emeraude",
+          "label": "Pierres d'âme pour parcours parallèles"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le PNJ au sud du Zaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2205_step_0003",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 836,
+          "label": "Commencer Sauvegarder l'espèce avec Lilou la Lenalde"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 828,
+          "label": "Ouvrir Timassacre entre wabbits avec Logel le Lenald"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre chez le capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2205_step_0004",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -2
+      ],
+      "next": [
+        23,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 952,
+          "label": "Démarrer La chasse de Lily auprès du capitaine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wanald"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2205_step_0005",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -4
+      ],
+      "next": [
+        24,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 833,
+          "label": "Interroger Wanald et ouvrir Jamais deux sans trois"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre à la maison Wabbit"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2205_step_0006",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -6
+      ],
+      "next": [
+        24,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger avec le Wabbit du Midi Wayonnant"
+        },
+        {
+          "kind": "interact",
+          "label": "Entrer dans la maison et examiner le tapis"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone du bois"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2205_step_0007",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -7
+      ],
+      "next": [
+        26,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner l'un des tas de bois"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone de la plante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2205_step_0008",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -9
+      ],
+      "next": [
+        24,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la plante rose"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers le point suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2205_step_0009",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -10
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner le trou dans le sol"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Lilou la Lenalde"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2205_step_0010",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 836,
+          "label": "Terminer Sauvegarder l'espèce avec Lilou la Lenalde"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 837,
+          "label": "Démarrer Faites l'amour, pas la guerre avec Lilou"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers l'étape suivante"
+        }
+      ]
+    }
+  ]
+}
