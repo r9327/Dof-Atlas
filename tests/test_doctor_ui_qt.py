@@ -574,6 +574,10 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         title = QLabel("Premier temps")
         title.setObjectName("AchievementDetailTitle")
         title.setFont(QFont("Arial", 15))
+        # Point-size metrics vary with the Windows runner DPI and installed
+        # font fallback. Keep enough real pixels for the contrast oracle to
+        # exercise its ink threshold instead of blocking on fixture geometry.
+        title.setMinimumHeight(32)
         title.setStyleSheet("color: #f5f7f2; background-color: transparent;")
         inner.addWidget(title)
         inner.addStretch(1)
