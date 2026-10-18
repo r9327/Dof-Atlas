@@ -317,6 +317,273 @@
           "label": "Continuer vers l'étape suivante"
         }
       ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2205_step_0011",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -4
+      ],
+      "next": [
+        24,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Parler à Wawitna et récupérer son prélèvement",
+          "object_id": 13205
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir un Wabbit Noir aplati en combattant un Wabbit Noir",
+          "object_id": 12878,
+          "monster_id": 65,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Aller vers les plantations"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2205_step_0012",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -8
+      ],
+      "next": [
+        26,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner les Cawottes présentes sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Passer par les souterrains vers le prochain point"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2205_step_0013",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -11
+      ],
+      "next": [
+        27,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Inspecter le récipient et récupérer le jus de Cawotte râpée",
+          "object_id": 12877
+        },
+        {
+          "kind": "move",
+          "label": "Sortir vers l'est"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2205_step_0014",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        -11
+      ],
+      "next": [
+        22,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Wabbit rencontré sur cette carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'entrée souterraine via le Zaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2205_step_0015",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -7
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer puis utiliser le passage souterrain"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner le tableau et récupérer l'œuf Wabbit",
+          "object_id": 12874
+        },
+        {
+          "kind": "drop_object",
+          "label": "Vérifier la récupération d'un Wabbit Noir aplati",
+          "object_id": 12878,
+          "monster_id": 65,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Lilou la Lenalde"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2205_step_0016",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer Faites l'amour, pas la guerre auprès de Lilou",
+          "quest_id": 837
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer Ça sent la cawotte auprès de Lilou",
+          "quest_id": 838
+        },
+        {
+          "kind": "move",
+          "label": "Repartir vers les points de collecte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2205_step_0017",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -6
+      ],
+      "next": [
+        24,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la Cawotte suivante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2205_step_0018",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -8
+      ],
+      "next": [
+        24,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers le nord"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2205_step_0019",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -9
+      ],
+      "next": [
+        25,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la position suivante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2205_step_0020",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -7
+      ],
+      "next": [
+        25,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à la dernière étape de cette séquence"
+        }
+      ]
     }
   ]
 }

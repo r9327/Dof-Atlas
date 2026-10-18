@@ -29,15 +29,15 @@ class ActionCandidateTests(unittest.TestCase):
         (self.root / DEFAULT).write_text(json.dumps(self.payload), encoding="utf-8")
         return audit_action_candidates(self.root)
 
-    def test_ten_source_steps_with_29_actions(self):
+    def test_twenty_source_steps_with_actions(self):
         report = self.check()
         self.assertEqual(report["status"], "REVIEW_ACTION_CANDIDATES_ONLY", report["issues"])
         self.assertEqual(report["source_steps"], 64)
-        self.assertEqual(report["reviewed_steps"], 10)
-        self.assertEqual(report["remaining_steps"], 54)
+        self.assertEqual(report["reviewed_steps"], 20)
+        self.assertEqual(report["remaining_steps"], 44)
         self.assertFalse(report["ready_to_replace"])
         self.assertEqual(report["certified_actions"], 0)
-        self.assertEqual(sum(len(s["actions"]) for s in self.payload["steps"]), 29)
+        self.assertEqual(sum(len(s["actions"]) for s in self.payload["steps"]), 53)
 
     def test_repeated_quest_is_not_deduplicated_across_steps(self):
         self.assertIn(836, [a.get("quest_id") for a in self.payload["steps"][2]["actions"]])

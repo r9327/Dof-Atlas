@@ -10,7 +10,7 @@ DIRECTORY = Path("data/encyclopedia/guides")
 DEFAULT = DIRECTORY / "ganymede_2205_action_candidates.json"
 KINDS = {"guide_dependency", "quest_prerequisite", "prepare_object",
          "optional_preparation", "quest_start", "quest_finish",
-         "talk", "interact", "move"}
+         "talk", "interact", "move", "drop_object"}
 
 
 def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
@@ -63,7 +63,7 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                 if kind not in KINDS or not isinstance(action.get("label"), str) or not action["label"].strip():
                     issues.append(f"invalid action type/label: {num}")
                     continue
-                for name, ns in (("quest_id", "quest"), ("object_id", "object")):
+                for name, ns in (("quest_id", "quest"), ("object_id", "object"), ("monster_id", "monster")):
                     if name in action and (type(action[name]) is not int or
                                             action[name] not in source["external_dofusdb_ids"][ns]):
                         issues.append(f"unobserved {name}: {num}")
