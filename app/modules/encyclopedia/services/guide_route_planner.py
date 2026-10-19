@@ -24,6 +24,7 @@ from app.modules.encyclopedia.services.adventure_route_engine import (
     RouteStep,
 )
 from app.modules.encyclopedia.services.guide_route_naming import title_for_route_step
+from app.modules.encyclopedia.services.guide_team_route_order import order_team_actions
 
 
 class TravelMode(StrEnum):
@@ -253,6 +254,7 @@ class GuideRoutePlanner:
         participant_plans: tuple[ParticipantRoutePlan, ...],
         memberships: Mapping[str, list[tuple[int, str]]],
         engine: AdventureRouteEngine,
+        participant_starts: Mapping[str, RouteLocation | None],
     ) -> tuple[str, ...] | None:
         """Merge team actions subject to *real* prerequisites, not visual order.
 
@@ -277,7 +279,7 @@ class GuideRoutePlanner:
         completions_by_quest: dict[int, set[str]] = defaultdict(set)
         for action_id in memberships:
             action = engine.by_id[action_id]
-            if action.activates_quest:
+            if action.is_start:
                 starts_by_quest[action.quest_id].add(action_id)
             if action.completes_quest:
                 completions_by_quest[action.quest_id].add(action_id)
@@ -293,7 +295,7 @@ class GuideRoutePlanner:
                 for prerequisite in action.prerequisites_actions:
                     if prerequisite in member_ids:
                         connect(prerequisite, action_id)
-                if action.requires_active_quest and not action.activates_quest:
+                if action.requires_active_quest and not action.is_start:
                     for start in starts_by_quest.get(action.quest_id, ()):
                         if start in member_ids:
                             connect(start, action_id)
@@ -302,27 +304,11 @@ class GuideRoutePlanner:
                         if completion in member_ids:
                             connect(completion, action_id)
 
-        def priority(action_id: str) -> tuple[object, ...]:
-            return (
-                min(index for index, _key in memberships[action_id]),
-                engine.by_id[action_id].location.display(),
-                action_id,
-            )
-
-        available = {action_id for action_id, degree in incoming.items()
-                     if degree == 0}
-        ordered: list[str] = []
-        while available:
-            action_id = min(available, key=priority)
-            available.remove(action_id)
-            ordered.append(action_id)
-            for next_id in successors[action_id]:
-                incoming[next_id] -= 1
-                if incoming[next_id] == 0:
-                    available.add(next_id)
-        if len(ordered) != len(incoming):
-            return None
-        return tuple(ordered)
+        # Source-step indices are tie-breakers, not hard prerequisites.
+        # Pick among canonically available actions via movement heuristic.
+        return order_team_actions(
+            successors, incoming, memberships, engine, participant_starts,
+        )
 
     def plan(
         self,
@@ -394,6 +380,7 @@ class GuideRoutePlanner:
 
         ordered_ids = self._shared_action_order(
             participant_plans, memberships, self.engine,
+            {state.character_key: state.start_location for state in states},
         )
         if ordered_ids is None:
             issues.append(GuidePlanningIssue(
