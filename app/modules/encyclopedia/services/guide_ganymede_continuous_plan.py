@@ -21,6 +21,7 @@ from app.modules.encyclopedia.services.guide_ganymede_plan_input import (
 )
 from app.modules.encyclopedia.services.guide_ganymede_preparation import (
     stage_preparation_preview,
+    summarize_stage_preparation,
 )
 from app.modules.encyclopedia.services.guide_route_naming import (
     title_for_ganymede_step,
@@ -103,8 +104,14 @@ def project_ganymede_continuous_plan(
         },
     )
     preparation_by_step: dict[str, list[dict]] = {}
+    preparation_due_step: dict[int, list[dict]] = {}
     for row in preparation["rows"]:
         preparation_by_step.setdefault(row["source_step_id"], []).append(row)
+        due = row["needed_at_source_step"]
+        if type(due) is not int or not 1 <= due <= len(steps):
+            raise ValueError("Preparation need points outside signed Ganymède steps")
+        preparation_due_step.setdefault(due, []).append(row)
+    compact = summarize_stage_preparation(preparation)
     labels = _localized_labels(french_label_evidence)
     stages = []
     covered = set()
@@ -226,6 +233,9 @@ def project_ganymede_continuous_plan(
             "verified_travel_plan": None,
             "action_rows": action_rows,
             "preparation_rows": preparation_by_step.get(sid, []),
+            # Source occurrence and due time are different: a need mentioned
+            # early can matter just before a much later dungeon/action.
+            "preparation_due_rows": preparation_due_step.get(number, []),
             "pending_character_keys": pending,
             "manually_completed_character_keys": completed,
             "all_selected_participants_completed": bool(selected) and not pending,
@@ -250,6 +260,7 @@ def project_ganymede_continuous_plan(
         "source_action_count": sum(len(step["action_rows"]) for step in stages),
         "audited_action_count": len(covered),
         "preparation_item_occurrences": preparation["open_item_occurrences_per_character"],
+        "preparation_summary": compact,
         "unknown_stock_rows": preparation["unknown_stock_rows"],
         "must_purchase": False,
         "actual_step_id": actual,
