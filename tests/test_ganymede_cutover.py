@@ -102,7 +102,7 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
         for step in self.steps:
             step["verified_actions"] = []
-            step["source_action_candidates"] = [{"text": "Suivre le guide Ganymède"}]
+            step["source_action_candidates"] = [{"kind": "move", "label": "Rejoindre la position indiquée"}]
         self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
         self.save()
         self.assertIsNotNone(select_verified_replacement_path(self.guides, self.entry))
