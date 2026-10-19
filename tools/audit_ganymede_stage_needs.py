@@ -25,6 +25,17 @@ OBJECT_NEEDS = frozenset({
 PREREQUISITES = frozenset({"guide_dependency", "quest_prerequisite"})
 ENCOUNTER_ACTIONS = frozenset({"combat", "dungeon", "group_mechanic", "optional_capture"})
 ON_ROUTE_ACQUISITIONS = frozenset({"drop_object", "optional_drop", "collect_object"})
+# Source-introduction reward IDs: a Dofus described as the guide's destination
+# cannot simultaneously become a mandatory item to bring at its first step.
+# Names and IDs were cross-checked against the pinned Doduda FR catalog.
+FIRST_STEP_GOAL_ITEMS = {
+    "dofus_abyssal": 18043,
+    "dofus_des_glaces": 7043,
+    "dofus_ebene": 7114,
+    "dofus_ivoire": 7115,
+    "dofus_turquoise": 739,
+    "domakuro": 23237,
+}
 
 
 def stage_needs(candidate: dict) -> dict:
@@ -51,6 +62,7 @@ def stage_needs(candidate: dict) -> dict:
         needs: list[dict] = []
         prereqs: list[dict] = []
         encounters: list[dict] = []
+        goals: list[dict] = []
         for action_index, action in enumerate(stage["actions"]):
             kind = action["kind"]
             optional = (kind.startswith("optional_")
@@ -58,7 +70,26 @@ def stage_needs(candidate: dict) -> dict:
                         or "conditional" in action
                         or "alternative_group" in action
                         or action.get("optional_branch") is True)
-            if kind in OBJECT_NEEDS:
+            # Some auto-extracted introductions mislabel the *Dofus reward*
+            # as "Prévoir objet". Preserve the raw action but never turn the
+            # item being pursued into a prerequisite or shopping order.
+            reward_intro = (
+                position == 1 and kind == "check_object"
+                and action.get("object_id") ==
+                FIRST_STEP_GOAL_ITEMS.get(candidate["atlas_guide_id"])
+            )
+            if kind == "goal_reward" or reward_intro:
+                goals.append({
+                    "source_action_index": action_index,
+                    "source_action_label": action.get("label"),
+                    "original_kind": kind,
+                    "external_dofusdb_object_id": action.get("object_id"),
+                    "goal_reward_candidate": True,
+                    "reclassified_source_intro": reward_intro,
+                    "owned_or_obtained_by_character": None,
+                    "canonical_objective_verified": False,
+                })
+            if kind in OBJECT_NEEDS and not reward_intro:
                 # A 'check_object' with no observed object ID remains a textual
                 # task; never fabricate an item, amount, recipe or drop rate.
                 external_ids = list(dict.fromkeys(
@@ -128,13 +159,14 @@ def stage_needs(candidate: dict) -> dict:
                     "canonical_requirement_verified": False,
                     "character_completion_known": None,
                 })
-        if needs or prereqs or encounters:
+        if needs or prereqs or encounters or goals:
             output.append({
                 "stable_step_id": stage["stable_step_id"],
                 "source_step_number": position,
                 "needs": needs,
                 "prerequisites": prereqs,
                 "encounters": encounters,
+                "goal_rewards": goals,
             })
     return {
         "atlas_guide_id": candidate["atlas_guide_id"],
@@ -195,6 +227,17 @@ def audit_stage_needs(root: Path) -> dict:
             len(stage["encounters"])
             for guide in needs.values()
             for stage in guide["stages_with_requirements"]
+        ),
+        "goal_reward_proposals": sum(
+            len(stage["goal_rewards"])
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+        ),
+        "intro_reward_reclassifications": sum(
+            reward["reclassified_source_intro"]
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+            for reward in stage["goal_rewards"]
         ),
         "on_route_acquisition_proposals": sum(
             need["acquisition_mode_candidate"] is not None
