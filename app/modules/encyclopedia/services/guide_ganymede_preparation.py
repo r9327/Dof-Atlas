@@ -174,4 +174,121 @@ def stage_preparation_preview(
     }
 
 
-__all__ = ["stage_preparation_preview"]
+def summarize_stage_preparation(preview: Mapping[str, Any]) -> dict[str, Any]:
+    """A compact, conservative item/character summary for Guide UI.
+
+    Group repeated observations by *item ID*, without treating distinct source
+    references as separate consumptions. A numeric need is informative only
+    if its character has exactly one known, non-optional, non-route-acquirable
+    occurrence. No item category, transferable stock, or shopping quantity is
+    inferred from an action label.
+    """
+    if (preview.get("status") != "REVIEW_PREPARATION_BY_CHARACTER"
+            or preview.get("manual_progress_only") is not True
+            or preview.get("mandatory_purchase_claimed") is not False
+            or preview.get("auto_completion_allowed") is not False):
+        raise ValueError("Only non-automatic Ganymède preparation may be summarized")
+    selected = preview.get("selected_character_keys")
+    sources = preview.get("rows")
+    if (not isinstance(selected, list) or not isinstance(sources, list)
+            or any(not isinstance(key, str) or not key for key in selected)
+            or len(set(selected)) != len(selected)):
+        raise ValueError("Invalid preparation participants or rows")
+    grouped: dict[tuple[str, int], dict[str, list[Mapping[str, Any]]]] = {}
+    for row in sources:
+        if not isinstance(row, Mapping):
+            raise ValueError("Malformed item occurrence")
+        guide_id, item_id, key = (
+            row.get("atlas_guide_id"), row.get("item_id"), row.get("character_key")
+        )
+        if (not isinstance(guide_id, str) or not guide_id
+                or type(item_id) is not int or item_id <= 0 or key not in selected
+                or row.get("must_purchase") is not False
+                or row.get("canonical_requirement_verified") is not False
+                or not isinstance(row.get("proposal_id"), str)
+                or not isinstance(row.get("source_step_id"), str)):
+            raise ValueError("Untrusted item occurrence or character")
+        grouped.setdefault((guide_id, item_id), {}).setdefault(key, []).append(row)
+    result = []
+    for (guide_id, item_id), by_person in sorted(grouped.items()):
+        occurrences = sorted(
+            {
+                (row["source_step_id"], row["proposal_id"])
+                for entries in by_person.values() for row in entries
+            }
+        )
+        characters: dict[str, dict[str, Any]] = {}
+        total_required = 0
+        total_missing = 0
+        totals_known = bool(by_person)
+        for key in selected:
+            entries = by_person.get(key, [])
+            if not entries:
+                continue
+            owned = {row.get("owned_quantity_explicit") for row in entries}
+            if len(owned) != 1:
+                raise ValueError("Conflicting inventory for one item and character")
+            owned_value = next(iter(owned))
+            if owned_value is not None and (
+                type(owned_value) is not int or owned_value < 0
+            ):
+                raise ValueError("Invalid stock quantity")
+            optional = any(row.get("optional_or_conditional") is True for row in entries)
+            on_route = any(row.get("obtainable_on_route_candidate") is True for row in entries)
+            single = len(entries) == 1
+            raw = entries[0].get("quantity_per_character_candidate") if single else None
+            known_quantity = type(raw) is int and raw > 0
+            candidate = raw if (
+                single and known_quantity and not optional and not on_route
+            ) else None
+            missing = (
+                max(0, candidate - owned_value)
+                if candidate is not None and owned_value is not None else None
+            )
+            if candidate is None or missing is None:
+                totals_known = False
+            else:
+                total_required += candidate
+                total_missing += missing
+            characters[key] = {
+                "source_occurrence_count": len(entries),
+                "required_candidate": candidate,
+                "owned_quantity_explicit": owned_value,
+                "remaining_quantity_candidate": missing,
+                "optional_or_conditional": optional,
+                "obtainable_on_route_candidate": on_route,
+                "requires_quantity_review": candidate is None,
+            }
+        labels = sorted({
+            row.get("display_label", row.get("source_label", ""))
+            for entries in by_person.values() for row in entries
+            if isinstance(row.get("display_label", row.get("source_label")), str)
+        })
+        result.append({
+            "atlas_guide_id": guide_id,
+            "item_id": item_id,
+            "source_labels": labels,
+            "source_occurrences": [
+                {"source_step_id": step_id, "proposal_id": proposal_id}
+                for step_id, proposal_id in occurrences
+            ],
+            "selected_character_keys": list(selected),
+            "by_character": characters,
+            "required_total_candidate": total_required if totals_known else None,
+            "remaining_total_candidate": total_missing if totals_known else None,
+            "quantity_review_required": not totals_known,
+            "must_purchase": False,
+            "canonical_requirement_verified": False,
+        })
+    return {
+        "schema_version": 1,
+        "status": "REVIEW_PREPARATION_COMPACT",
+        "selected_character_keys": list(selected),
+        "distinct_item_count": len(result),
+        "automatic_completion_allowed": False,
+        "mandatory_purchase_claimed": False,
+        "items": result,
+    }
+
+
+__all__ = ["stage_preparation_preview", "summarize_stage_preparation"]
