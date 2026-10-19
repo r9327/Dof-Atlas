@@ -52,10 +52,10 @@ def stage_needs(candidate: dict) -> dict:
             if kind in OBJECT_NEEDS:
                 # A 'check_object' with no observed object ID remains a textual
                 # task; never fabricate an item, amount, recipe or drop rate.
-                external_ids = (
-                    [action["object_id"]] if "object_id" in action
-                    else list(action.get("object_ids", []))
-                )
+                external_ids = list(dict.fromkeys(
+                    ([action["object_id"]] if "object_id" in action else [])
+                    + list(action.get("object_ids", []))
+                ))
                 needs.append({
                     "source_action_index": action_index,
                     "kind": kind,
@@ -73,7 +73,8 @@ def stage_needs(candidate: dict) -> dict:
                     "optional": kind.startswith("optional_")
                     or action.get("optional") is True
                     or "conditional" in action
-                    or "alternative_group" in action,
+                    or "alternative_group" in action
+                    or action.get("optional_branch") is True,
                     "obtainable_on_route_candidate": action.get(
                         "can_obtain_on_route"
                     ),
@@ -88,7 +89,9 @@ def stage_needs(candidate: dict) -> dict:
                     "external_dofusdb_quest_id": action.get("quest_id"),
                     "ganymede_prerequisite_guide_id": action.get("guide_id"),
                     "optional": action.get("optional") is True
-                    or "conditional" in action,
+                    or "conditional" in action
+                    or "alternative_group" in action
+                    or action.get("optional_branch") is True,
                     "canonical_requirement_verified": False,
                 })
         if needs or prereqs:
@@ -133,6 +136,12 @@ def audit_stage_needs(root: Path) -> dict:
                 "source": path.name, "code": "stage_needs_invalid",
                 "detail": str(exc),
             })
+    total = sum(row["source_step_count"] for row in needs.values())
+    if len(paths) != 20 or len(needs) != 20 or total != 1694:
+        problems.append({
+            "code": "incomplete_dofus_stage_needs_corpus",
+            "detail": f"expected 20 guides/1694 stages, got {len(needs)}/{total}",
+        })
     return {
         "schema_version": 1,
         "status": "FAIL" if problems else "REVIEW_ONLY_NOT_READY_FOR_OPTIMIZATION",
