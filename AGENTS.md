@@ -13,6 +13,27 @@ For every non-trivial structural task, Graphify is mandatory before modifying co
 
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
+## Universal PR CI cadence (all current and future PRs)
+
+**Finish the entire scoped PR before running its GitHub CI certification.**
+Keep every implementation PR in **Draft** while editing, even across multiple
+commits. During development, use only focused local unit, contract and Doctor
+checks; do not repeatedly dispatch full CI, phase certification, memory
+benchmarks or Windows distribution workflows. Never interpret skipped/not-run
+checks as PASS. This applies to guides, Doctor, Graphify, launcher, Organizer,
+data, and every other PR without exception.
+
+Once implementation, dependencies, tests and self-review are finished, ensure
+the branch contains the complete final candidate and mark the PR **Ready for
+review**. This single transition triggers Phase Certification on that SHA.
+If final certification fails, return to Draft while fixing as appropriate,
+then mark Ready for review again, or manually dispatch certification for the
+new exact SHA. Never merge with stale evidence or skip mandatory tests.
+Do not use `[skip ci]` as the primary workflow control: the official PR
+trigger is intentionally limited to `ready_for_review`. Normal `main`
+push/release safeguards remain enabled.
+
+
 ## Library documentation (Context7)
 
 When an external library or API detail matters, prefer Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. If MCP is unavailable, Codex can use the repository-scoped `.agents/skills/find-docs/SKILL.md` with the `npx ctx7@latest` CLI (Node.js 18+ required). Do not query both modes for the same answer. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If neither Context7 mode is available, use official docs; do not block runtime or CI.
