@@ -14,6 +14,9 @@ from tools.audit_ganymede_master_refs import (
     INDEX, ROOT, audit_ganymede_master_refs,
 )
 from tools.audit_ganymede_step_actions import audit_action_candidates
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    select_verified_replacement_path,
+)
 
 GUIDES_DIR = Path("data/encyclopedia/guides")
 CATALOG = GUIDES_DIR / "catalog.json"
@@ -141,13 +144,21 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
                         "detail": f"{source_id}: {action_report.get('issues', [])}",
                     })
             sources.append(state)
-        # The known snapshot schema explicitly forbids editorial text/actions.
-        # It never proves a runnable fiche, progress migration or prerequisites.
-        blockers.extend([
-            "SOURCE_STEP_ACTIONS_NOT_RECONSTRUCTED",
-            "DODUDA_OBJECTIVES_AND_PREREQUISITES_NOT_CERTIFIED",
-            "PROGRESS_MIGRATION_NOT_VERIFIED",
-        ])
+        # The provider is the authority for a real cutover. Do not keep
+        # reporting zero after the source-trusted manual route was activated.
+        replacement = select_verified_replacement_path(root / GUIDES_DIR, entry)
+        mode = None
+        if replacement is not None:
+            activated = json.loads(replacement.read_text(encoding="utf-8"))
+            mode = activated["replacement_status"]
+        else:
+            blockers.extend([
+                "SOURCE_STEP_ACTIONS_NOT_RECONSTRUCTED",
+                "DODUDA_OBJECTIVES_AND_PREREQUISITES_NOT_CERTIFIED",
+                "PROGRESS_MIGRATION_NOT_VERIFIED",
+            ])
+        certified = mode == "CERTIFIED_FOR_CUTOVER"
+        source_manual = mode == "TRUSTED_SOURCE_STEPS"
         records.append({
             "atlas_guide_id": local_id,
             "category": "dofus",
@@ -155,24 +166,42 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "legacy_guide_preserved": True,
             "legacy_progress_preserved": True,
             "source_guides": sources,
-            "replacement_active": False,
-            "ready_to_replace": False,
+            "replacement_active": replacement is not None,
+            "replacement_mode": mode,
+            "ready_to_replace": replacement is not None and not blockers,
+            "source_trusted_manual_only": source_manual,
+            "canonical_objectives_verified": certified,
+            "outstanding_capabilities": ([
+                "CANONICAL_DODUDA_OBJECTIVES_AND_PREREQUISITES_UNCERTIFIED",
+                "AUTOMATIC_QUEST_COMPLETION_DISABLED",
+                "GLOBAL_ROUTE_OPTIMIZATION_NOT_VERIFIED",
+            ] if source_manual else []),
             "blockers": sorted(set(blockers)),
         })
 
     mapped = sum(bool(record["source_guides"]) for record in records)
+    ready = sum(record["ready_to_replace"] for record in records)
+    activated = sum(record["replacement_active"] for record in records)
+    source_manual_count = sum(record["source_trusted_manual_only"] for record in records)
+    canonical_count = sum(record["canonical_objectives_verified"] for record in records)
     return {
         "schema_version": 1,
-        "status": "FAIL" if issues else "BLOCKED_PENDING_PLAYABLE_ACTIONS",
-        "evidence_level": "migration_gate_not_route_generation",
+        "status": ("FAIL" if issues else
+                   "SOURCE_TRUSTED_MANUAL_ACTIVE" if ready else
+                   "BLOCKED_PENDING_PLAYABLE_ACTIONS"),
+        "evidence_level": ("source_trusted_manual_only" if source_manual_count
+                           else "migration_gate_not_route_generation"),
         "dofus_guides": len(records),
         "dofus_guides_with_direct_source_mapping": mapped,
         "dofus_guides_without_direct_source_mapping": [
             r["atlas_guide_id"] for r in records
             if not r["source_guides"]
         ],
-        "ready_to_replace": 0,
-        "replacement_activated": False,
+        "ready_to_replace": ready,
+        "replacement_activated": activated > 0,
+        "replacement_activated_count": activated,
+        "source_trusted_manual_guides": source_manual_count,
+        "certified_canonical_guides": canonical_count,
         "source_action_reviewed_steps": sum(
             source["reviewed_action_candidate_steps"]
             for record in records for source in record["source_guides"]
@@ -201,7 +230,8 @@ def main() -> int:
         args.output.write_text(serialized, encoding="utf-8")
     else:
         print(serialized, end="")
-    return 1 if report["status"] == "FAIL" else 2
+    return (1 if report["status"] == "FAIL" else
+            0 if report["status"] == "SOURCE_TRUSTED_MANUAL_ACTIVE" else 2)
 
 
 if __name__ == "__main__":
