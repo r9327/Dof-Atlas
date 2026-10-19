@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,7 +9,10 @@ from pathlib import Path
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
 )
-from tools.build_ganymede_source_cutovers import prepare_source_cutover, retain_legacy_display_metadata
+from tools.build_ganymede_source_cutovers import (
+    assert_reviewed_actions_match_source, prepare_source_cutover,
+    retain_legacy_display_metadata,
+)
 
 
 def fixture():
@@ -59,6 +63,36 @@ class SourceCutoverTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "different local guide"):
             retain_legacy_display_metadata(route, {"id": "dofus_emeraude",
                                                    "category": "dofus"})
+
+    def test_signed_manual_route_must_match_source_review_actions(self):
+        source = fixture()
+        reviewed = deepcopy(source)
+        self.assertIsNone(assert_reviewed_actions_match_source(reviewed, source))
+        reviewed["sections"][0]["steps"][0]["source_action_candidates"][0]["label"] = "Combattre un monstre inventé"
+        with self.assertRaisesRegex(ValueError, "Source action evidence drift"):
+            assert_reviewed_actions_match_source(reviewed, source)
+
+    def test_unreviewed_action_injection_or_reordered_actions_is_rejected(self):
+        source = fixture()
+        reviewed = deepcopy(source)
+        reviewed["sections"][0]["steps"][0]["source_action_candidates"].append(
+            {"kind": "combat", "label": "Fausse obligation"},
+        )
+        with self.assertRaisesRegex(ValueError, "Source action evidence drift"):
+            assert_reviewed_actions_match_source(reviewed, source)
+
+    def test_local_review_status_must_agree_with_audited_source(self):
+        source = fixture()
+        reviewed = deepcopy(source)
+        reviewed["sections"][0]["steps"][0]["source_action_review_status"] = "REVIEW_SOURCE_ACTION"
+        with self.assertRaisesRegex(ValueError, "Source action evidence drift"):
+            assert_reviewed_actions_match_source(reviewed, source)
+
+    def test_unknown_action_kind_cannot_be_signed(self):
+        candidate = fixture()
+        candidate["sections"][0]["steps"][0]["source_action_candidates"][0]["kind"] = "unverified_new_kind"
+        with self.assertRaisesRegex(ValueError, "Malformed action"):
+            prepare_source_cutover(candidate)
 
     def test_empty_action_rejected(self):
         candidate = fixture()
