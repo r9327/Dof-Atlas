@@ -19,7 +19,8 @@ ALLOWED_SOURCE_STATUS = frozenset({
 })
 OBJECT_NEEDS = frozenset({
     "prepare_object", "optional_preparation", "check_object", "collect_object",
-    "craft", "drop_object", "optional_drop", "check_equipment", "equip",
+    "craft", "drop_object", "optional_drop", "optional_delivery",
+    "check_equipment", "equip",
 })
 PREREQUISITES = frozenset({"guide_dependency", "quest_prerequisite"})
 ENCOUNTER_ACTIONS = frozenset({"combat", "dungeon", "group_mechanic", "optional_capture"})
