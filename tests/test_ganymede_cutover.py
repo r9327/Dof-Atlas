@@ -29,6 +29,7 @@ class GanymedeCutoverTests(unittest.TestCase):
                 "source_step_number": n,
                 "original_prose_imported": False,
                 "manual_completion_allowed": True,
+                "source_action_review_status": "CERTIFIED_CANONICAL_ACTIONS",
                 "verified_actions": [{
                     "kind": "quest_objective",
                     "text": f"Effectuer l'objectif Atlas numéro {n}",
@@ -48,6 +49,9 @@ class GanymedeCutoverTests(unittest.TestCase):
             "expected_source_step_count": 2,
             "playable_step_count": 2,
             "source_text_copied": False,
+            "guide_progress_id_unchanged": True,
+            "legacy_manual_steps_migration_verified": True,
+            "cutover_blockers": [],
             "sections": [{"id": "ganymede_2205_continuous",
                           "steps": self.steps}],
         }
@@ -84,18 +88,18 @@ class GanymedeCutoverTests(unittest.TestCase):
             self.guides, {"id": "alignement_bonta", "category": "alignements"}
         ))
 
-    def test_no_historical_or_legacy_migration_required(self) -> None:
+    def test_legacy_progress_migration_must_be_verified(self) -> None:
+        self.payload["legacy_manual_steps_migration_verified"] = False
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
         self.save()
-        self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
-                         self.drafts / "dofus_cawotte.json")
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
 
-    def test_trusted_source_cutover_without_human_objective_review(self) -> None:
+    def test_trusted_source_label_cannot_bypass_canonical_certification(self) -> None:
         self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
         self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
         self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
         self.save()
-        self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
-                         self.drafts / "dofus_cawotte.json")
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
 
     def test_trusted_source_candidate_actions_without_manual_verification(self) -> None:
         self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
@@ -105,7 +109,7 @@ class GanymedeCutoverTests(unittest.TestCase):
             step["source_action_candidates"] = [{"kind": "move", "label": "Rejoindre la position indiquée"}]
         self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
         self.save()
-        self.assertIsNotNone(select_verified_replacement_path(self.guides, self.entry))
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
 
     def test_trusted_source_rejects_mixed_empty_candidate_labels(self) -> None:
         self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
@@ -140,6 +144,18 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.payload["replacement_status"] = "DRAFT_NOT_PLAYABLE"
         self.payload["completeness_status"] = "draft"
         self.payload["playable_step_count"] = 0
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_unreviewed_source_actions_cannot_be_signed_into_playability(self) -> None:
+        self.steps[0]["source_action_review_status"] = "AUTO_EXTRACTED_NEEDS_REVIEW"
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_unresolved_cutover_blockers_are_rejected(self) -> None:
+        self.payload["cutover_blockers"] = ["OBJECTIVES_AND_PREREQUISITES_UNVERIFIED"]
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
         self.save()
         self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
 
