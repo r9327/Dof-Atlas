@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import tempfile
 
-from app.quest_catalog import localized_name
+from app.quest_catalog import text_for
 from app.quest_source_index import QuestSources
 from scripts.windows.quest_assets import RELATIVE_ROOT, _digest, read_lock
 from tools.audit_ganymede_master_refs import INDEX, ROOT
@@ -35,6 +35,20 @@ KIND_NOUN = {
     "dungeon": "donjon",
     "guide": "guide",
 }
+
+
+
+def _french_name(row: dict, entries: object) -> str:
+    """Never silently substitute an English/raw name for a French label."""
+    value = text_for(entries, row.get("nameId"), "") if hasattr(entries, "get") else ""
+    if value:
+        return value
+    native = row.get("name")
+    if isinstance(native, dict):
+        french = native.get("fr")
+        if isinstance(french, str) and french.strip():
+            return french.strip()
+    return ""
 
 
 def render_labels(candidate: dict, names: dict[tuple[str, int], str]) -> dict:
@@ -195,7 +209,7 @@ def resolve_all(root: Path, *, raw_dir: Path | None = None) -> dict:
                     row = rows.get(identifier)
                     if not isinstance(row, dict) or row.get("id", identifier) != identifier:
                         continue
-                    name = localized_name(row, language, fallback="")
+                    name = _french_name(row, language)
                     if name:
                         names[namespace, identifier] = name
         finally:
