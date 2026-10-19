@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_nebuleux",
+  "source_guide_id": 2247,
+  "source_url": "https://ganymede-app.com/guides/2247",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 6,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2247_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé le Dofus des Veilleurs",
+          "guide_id": 2209
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé Enutrosor troisième partie",
+          "guide_id": 2239
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé Xélorium troisième partie",
+          "guide_id": 2243
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé Srambad troisième partie",
+          "guide_id": 2246
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Réunir quatre participants ayant lancé ou terminé la quête",
+          "quest_id": 1614,
+          "participants_min": 4
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif final : obtenir le Nébuleux",
+          "object_id": 8698
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2247_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Avoir le Dofus des Veilleurs",
+          "object_id": 16061,
+          "quantity": 1,
+          "quest_id": 1614
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir une montre rapide",
+          "object_id": 15910,
+          "quantity": 1,
+          "quest_id": 1614
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir une montre lente",
+          "object_id": 15909,
+          "quantity": 1,
+          "quest_id": 1614
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Khelebragon à Amakna"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2247_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        7,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Parler à Khelebragon pour démarrer la quête",
+          "quest_id": 1614
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la montre rapide en Xélorium",
+          "object_id": 15910
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la montre lente en Xélorium",
+          "object_id": 15909
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'accès au Mégalithe"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2247_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        3
+      ],
+      "next": [
+        7,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Demander à Hypéria l'accès au Mégalithe"
+        },
+        {
+          "kind": "interact",
+          "label": "Se placer sur la dalle correspondant à l'heure du serveur",
+          "mechanic": "hour_tile",
+          "timezone_warning": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2247_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        3
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Khelebragon"
+        },
+        {
+          "kind": "combat",
+          "label": "Engager le combat contre l'Oiseau du Temps à quatre",
+          "monster_id": 3970,
+          "participants_min": 4,
+          "turns_survive": 17,
+          "all_allies_must_survive": true
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Tenir 17 tours, maintenir les quatre survivants et anticiper les retours de position",
+          "participants_min": 4,
+          "turns_survive": 17
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Utiliser les glyphes de téléfrag pour limiter la baisse périodique de résistances",
+          "monster_id": 3970
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Équiper le Dokoko pour la survie si disponible",
+          "object_id": 17078
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Équiper le Dofus Argenté si disponible",
+          "object_id": 19629
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Méthéa puis Khelebragon après le combat"
+        },
+        {
+          "kind": "interact",
+          "label": "Alterner les montres rapide et lente pour la sortie",
+          "object_ids": [
+            15910,
+            15909
+          ]
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le messager de Xélor"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2247_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au héraut puis au dieu Xélor"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Reparler à Khelebragon pour terminer la quête",
+          "quest_id": 1614
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Recevoir le Dofus Nébuleux",
+          "object_id": 8698
+        }
+      ]
+    }
+  ]
+}

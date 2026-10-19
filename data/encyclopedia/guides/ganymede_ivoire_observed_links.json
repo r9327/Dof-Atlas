@@ -1,0 +1,2647 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Ganymède",
+    "guide_id": 2256,
+    "source_url": "https://ganymede-app.com/guides/2256",
+    "checked_on": "2026-10-18",
+    "page_count": 3,
+    "steps_per_page": 50,
+    "route_role": "specialized_guide",
+    "extraction_scope": "factual_link_occurrences_only",
+    "editorial_text_imported": false,
+    "notice": "Observed link and coordinate mentions only. No Atlas quest or route action certified."
+  },
+  "coverage": {
+    "observed_steps": 118,
+    "distinct_linked_guide_ids": 8,
+    "linked_main_index_guide_ids": 8,
+    "linked_outside_main_index_guide_ids": [],
+    "step_guide_links": 11,
+    "dofusdb_step_link_counts": {
+      "quest": 40,
+      "dungeon": 12,
+      "object": 51,
+      "monster": 16
+    },
+    "coordinate_mentions": 221,
+    "quest_objective_mapping_verified": 0,
+    "route_order_certified": false
+  },
+  "steps": [
+    {
+      "source_step_number": 1,
+      "source_page": 1,
+      "linked_guide_ids": [
+        2204,
+        2229,
+        2239,
+        2213,
+        2225,
+        2249,
+        2263,
+        2269
+      ],
+      "external_dofusdb_ids": {
+        "quest": [
+          1317
+        ],
+        "dungeon": [],
+        "object": [
+          7115
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": []
+    },
+    {
+      "source_step_number": 2,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1905,
+          1906,
+          1911,
+          1913,
+          1908
+        ],
+        "dungeon": [],
+        "object": [
+          1983,
+          11110,
+          13993,
+          8367,
+          11310,
+          17979,
+          11102,
+          1334,
+          17565,
+          9935,
+          15990,
+          11109,
+          15280
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -77,
+          -45
+        ],
+        [
+          -6,
+          -3
+        ]
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1905
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -6,
+          -3
+        ],
+        [
+          -36,
+          -60
+        ]
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -36,
+          -60
+        ],
+        [
+          -25,
+          32
+        ]
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -25,
+          32
+        ],
+        [
+          8,
+          2
+        ]
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19161,
+          11310,
+          17979,
+          11102,
+          1334,
+          19160,
+          1983,
+          11110,
+          13993,
+          8367
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          8,
+          2
+        ],
+        [
+          3,
+          -21
+        ]
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          3,
+          -21
+        ],
+        [
+          8,
+          2
+        ]
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          8,
+          2
+        ],
+        [
+          -25,
+          32
+        ]
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -25,
+          32
+        ],
+        [
+          3,
+          -17
+        ]
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          3,
+          -17
+        ],
+        [
+          -9,
+          -22
+        ]
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1905,
+          1906
+        ],
+        "dungeon": [
+          95
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -9,
+          -22
+        ],
+        [
+          -36,
+          -60
+        ]
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -36,
+          -60
+        ],
+        [
+          2,
+          -1
+        ]
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          2,
+          -1
+        ],
+        [
+          -15,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -15,
+          27
+        ],
+        [
+          -22,
+          33
+        ],
+        [
+          -34,
+          -58
+        ]
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -34,
+          -58
+        ],
+        [
+          -15,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -22,
+          33
+        ],
+        [
+          -15,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -15,
+          27
+        ],
+        [
+          -10,
+          35
+        ]
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -10,
+          35
+        ],
+        [
+          -23,
+          21
+        ]
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -23,
+          21
+        ],
+        [
+          -54,
+          14
+        ]
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          4978,
+          5058
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -54,
+          14
+        ],
+        [
+          -1,
+          -4
+        ]
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -1,
+          -4
+        ],
+        [
+          -2,
+          33
+        ]
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -2,
+          33
+        ],
+        [
+          25,
+          28
+        ]
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          25,
+          28
+        ],
+        [
+          29,
+          7
+        ]
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          29,
+          7
+        ],
+        [
+          21,
+          -13
+        ]
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          21,
+          -13
+        ],
+        [
+          27,
+          -27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          103
+        ],
+        "object": [
+          9935
+        ],
+        "monster": [
+          4977,
+          5019
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          27,
+          -27
+        ],
+        [
+          11,
+          -77
+        ]
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          11,
+          -77
+        ],
+        [
+          -20,
+          -61
+        ]
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          55
+        ],
+        "object": [
+          11996
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -20,
+          -61
+        ],
+        [
+          -64,
+          -55
+        ]
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -64,
+          -55
+        ],
+        [
+          -15,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -15,
+          27
+        ],
+        [
+          -85,
+          -59
+        ]
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          84
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -85,
+          -59
+        ],
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1906,
+          1907
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1907
+        ],
+        "dungeon": [],
+        "object": [
+          19165
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -72,
+          -77
+        ],
+        [
+          12,
+          15
+        ],
+        [
+          14,
+          13
+        ]
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          4985
+        ]
+      },
+      "coordinate_mentions": []
+    },
+    {
+      "source_step_number": 35,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1907,
+          1908
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -6,
+          -2
+        ]
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -6,
+          -2
+        ],
+        [
+          -8,
+          -5
+        ]
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1510,
+          1506,
+          1505,
+          1504,
+          1507
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -8,
+          -5
+        ],
+        [
+          -5,
+          -5
+        ]
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          76
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -5,
+          -5
+        ],
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19165
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": []
+    },
+    {
+      "source_step_number": 41,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -72,
+          -77
+        ],
+        [
+          -9,
+          -22
+        ]
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1908,
+          1909
+        ],
+        "dungeon": [],
+        "object": [
+          11994
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -9,
+          -22
+        ],
+        [
+          -76,
+          -80
+        ]
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "source_page": 1,
+      "linked_guide_ids": [
+        2213
+      ],
+      "external_dofusdb_ids": {
+        "quest": [
+          1317
+        ],
+        "dungeon": [],
+        "object": [
+          11996
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -76,
+          -80
+        ],
+        [
+          -59,
+          -58
+        ]
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          11996
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -59,
+          -58
+        ],
+        [
+          -74,
+          -53
+        ]
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1909
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -53
+        ],
+        [
+          -72,
+          -79
+        ]
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1910
+        ],
+        "dungeon": [],
+        "object": [
+          19170,
+          11996
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -72,
+          -79
+        ],
+        [
+          -74,
+          -53
+        ]
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1910
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -71,
+          -78
+        ],
+        [
+          -70,
+          -77
+        ]
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -70,
+          -77
+        ],
+        [
+          -70,
+          -75
+        ]
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -70,
+          -75
+        ],
+        [
+          -76,
+          -81
+        ]
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          4972,
+          4969,
+          4970,
+          4971
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -76,
+          -81
+        ],
+        [
+          -72,
+          -79
+        ]
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1910
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -72,
+          -79
+        ]
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -53
+        ],
+        [
+          -77,
+          -44
+        ]
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -77,
+          -44
+        ],
+        [
+          15,
+          -56
+        ]
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          15,
+          -56
+        ],
+        [
+          8,
+          -76
+        ]
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          103
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          8,
+          -76
+        ],
+        [
+          12,
+          -77
+        ]
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          103
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          12,
+          -77
+        ],
+        [
+          -26,
+          -5
+        ]
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1872,
+          1871
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -26,
+          -5
+        ],
+        [
+          -27,
+          -3
+        ]
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          11994
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -27,
+          -3
+        ],
+        [
+          -76,
+          -80
+        ]
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1913,
+          1914,
+          1911,
+          1912
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -76,
+          -80
+        ],
+        [
+          -36,
+          -60
+        ]
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -36,
+          -60
+        ],
+        [
+          -24,
+          39
+        ]
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          7879,
+          12772,
+          12773
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -24,
+          39
+        ],
+        [
+          -18,
+          16
+        ]
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -18,
+          16
+        ],
+        [
+          2,
+          -9
+        ]
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          2,
+          -9
+        ],
+        [
+          1,
+          -12
+        ]
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          1,
+          -12
+        ],
+        [
+          -34,
+          -58
+        ]
+      ]
+    },
+    {
+      "source_step_number": 65,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19193,
+          19195,
+          19194
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -34,
+          -58
+        ]
+      ]
+    },
+    {
+      "source_step_number": 66,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -34,
+          -58
+        ],
+        [
+          1,
+          -12
+        ]
+      ]
+    },
+    {
+      "source_step_number": 67,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1914
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          1,
+          -12
+        ],
+        [
+          1,
+          16
+        ]
+      ]
+    },
+    {
+      "source_step_number": 68,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          1,
+          16
+        ],
+        [
+          -65,
+          29
+        ]
+      ]
+    },
+    {
+      "source_step_number": 69,
+      "source_page": 2,
+      "linked_guide_ids": [
+        2229
+      ],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -65,
+          29
+        ],
+        [
+          -63,
+          29
+        ]
+      ]
+    },
+    {
+      "source_step_number": 70,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -63,
+          29
+        ],
+        [
+          -67,
+          31
+        ]
+      ]
+    },
+    {
+      "source_step_number": 71,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -67,
+          31
+        ],
+        [
+          -66,
+          28
+        ]
+      ]
+    },
+    {
+      "source_step_number": 72,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -66,
+          28
+        ],
+        [
+          1,
+          16
+        ]
+      ]
+    },
+    {
+      "source_step_number": 73,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          1,
+          16
+        ],
+        [
+          -14,
+          34
+        ]
+      ]
+    },
+    {
+      "source_step_number": 74,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          15990,
+          19174
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -14,
+          34
+        ],
+        [
+          -10,
+          30
+        ]
+      ]
+    },
+    {
+      "source_step_number": 75,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          4998
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -10,
+          30
+        ],
+        [
+          -27,
+          5
+        ]
+      ]
+    },
+    {
+      "source_step_number": 76,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -27,
+          5
+        ],
+        [
+          7,
+          1
+        ]
+      ]
+    },
+    {
+      "source_step_number": 77,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          7,
+          1
+        ],
+        [
+          1,
+          16
+        ]
+      ]
+    },
+    {
+      "source_step_number": 78,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          1,
+          16
+        ],
+        [
+          -65,
+          29
+        ]
+      ]
+    },
+    {
+      "source_step_number": 79,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -65,
+          29
+        ],
+        [
+          -76,
+          -71
+        ]
+      ]
+    },
+    {
+      "source_step_number": 80,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -76,
+          -71
+        ],
+        [
+          -68,
+          -78
+        ]
+      ]
+    },
+    {
+      "source_step_number": 81,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -68,
+          -78
+        ],
+        [
+          -75,
+          -80
+        ]
+      ]
+    },
+    {
+      "source_step_number": 82,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -75,
+          -80
+        ],
+        [
+          -59,
+          -74
+        ]
+      ]
+    },
+    {
+      "source_step_number": 83,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          70
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -59,
+          -74
+        ],
+        [
+          24,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 84,
+      "source_page": 2,
+      "linked_guide_ids": [
+        2269
+      ],
+      "external_dofusdb_ids": {
+        "quest": [
+          1736
+        ],
+        "dungeon": [
+          97
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          24,
+          27
+        ],
+        [
+          3,
+          17
+        ]
+      ]
+    },
+    {
+      "source_step_number": 85,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          3,
+          17
+        ],
+        [
+          2,
+          -1
+        ]
+      ]
+    },
+    {
+      "source_step_number": 86,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          2,
+          -1
+        ],
+        [
+          4,
+          -6
+        ]
+      ]
+    },
+    {
+      "source_step_number": 87,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          4,
+          -6
+        ],
+        [
+          -6,
+          -15
+        ]
+      ]
+    },
+    {
+      "source_step_number": 88,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          89
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -6,
+          -15
+        ],
+        [
+          0,
+          -3
+        ]
+      ]
+    },
+    {
+      "source_step_number": 89,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          0,
+          -3
+        ],
+        [
+          6,
+          -21
+        ]
+      ]
+    },
+    {
+      "source_step_number": 90,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          6,
+          -21
+        ],
+        [
+          15,
+          -57
+        ]
+      ]
+    },
+    {
+      "source_step_number": 91,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          15,
+          -57
+        ],
+        [
+          24,
+          27
+        ]
+      ]
+    },
+    {
+      "source_step_number": 92,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          24,
+          27
+        ],
+        [
+          -16,
+          25
+        ]
+      ]
+    },
+    {
+      "source_step_number": 93,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -16,
+          25
+        ],
+        [
+          -11,
+          37
+        ]
+      ]
+    },
+    {
+      "source_step_number": 94,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19188
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -11,
+          37
+        ],
+        [
+          -23,
+          22
+        ]
+      ]
+    },
+    {
+      "source_step_number": 95,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -23,
+          22
+        ],
+        [
+          -11,
+          37
+        ]
+      ]
+    },
+    {
+      "source_step_number": 96,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -11,
+          37
+        ],
+        [
+          -16,
+          32
+        ]
+      ]
+    },
+    {
+      "source_step_number": 97,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          11109
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -16,
+          32
+        ],
+        [
+          -23,
+          35
+        ]
+      ]
+    },
+    {
+      "source_step_number": 98,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -23,
+          35
+        ],
+        [
+          6,
+          3
+        ]
+      ]
+    },
+    {
+      "source_step_number": 99,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          6,
+          3
+        ],
+        [
+          -10,
+          -13
+        ]
+      ]
+    },
+    {
+      "source_step_number": 100,
+      "source_page": 2,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          5001
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -10,
+          -13
+        ],
+        [
+          4,
+          8
+        ]
+      ]
+    },
+    {
+      "source_step_number": 101,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          4,
+          8
+        ],
+        [
+          -11,
+          37
+        ]
+      ]
+    },
+    {
+      "source_step_number": 102,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -11,
+          37
+        ],
+        [
+          -16,
+          32
+        ]
+      ]
+    },
+    {
+      "source_step_number": 103,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -16,
+          32
+        ],
+        [
+          -11,
+          37
+        ]
+      ]
+    },
+    {
+      "source_step_number": 104,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -11,
+          37
+        ],
+        [
+          -14,
+          25
+        ]
+      ]
+    },
+    {
+      "source_step_number": 105,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          106
+        ],
+        "object": [
+          11994
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -14,
+          25
+        ],
+        [
+          -76,
+          -80
+        ]
+      ]
+    },
+    {
+      "source_step_number": 106,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1912,
+          1911,
+          1913
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -76,
+          -80
+        ],
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 107,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1909,
+          1915
+        ],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          4992,
+          4974
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 108,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19165
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 109,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -52,
+          -87
+        ]
+      ]
+    },
+    {
+      "source_step_number": 110,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          67
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -52,
+          -87
+        ],
+        [
+          -57,
+          -81
+        ]
+      ]
+    },
+    {
+      "source_step_number": 111,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -57,
+          -81
+        ],
+        [
+          -52,
+          -87
+        ]
+      ]
+    },
+    {
+      "source_step_number": 112,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -52,
+          -87
+        ],
+        [
+          -16,
+          13
+        ]
+      ]
+    },
+    {
+      "source_step_number": 113,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": [
+          5022
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -16,
+          13
+        ],
+        [
+          -14,
+          21
+        ]
+      ]
+    },
+    {
+      "source_step_number": 114,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19273
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -14,
+          21
+        ],
+        [
+          -33,
+          38
+        ]
+      ]
+    },
+    {
+      "source_step_number": 115,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          18043,
+          17078
+        ],
+        "monster": [
+          4974,
+          4991
+        ]
+      },
+      "coordinate_mentions": [
+        [
+          -33,
+          38
+        ],
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 116,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          19165
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -74,
+          -83
+        ]
+      ]
+    },
+    {
+      "source_step_number": 117,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -9,
+          -22
+        ]
+      ]
+    },
+    {
+      "source_step_number": 118,
+      "source_page": 3,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [
+          1915
+        ],
+        "dungeon": [],
+        "object": [
+          7115
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -9,
+          -22
+        ]
+      ]
+    }
+  ]
+}

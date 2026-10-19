@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "id": "dofus_dom_de_pin",
+  "title": "Dofus Dom de Pin",
+  "category": "dofus",
+  "completeness_status": "draft",
+  "description": "Prévisualisation technique des étapes Ganymède (références uniquement).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "DRAFT_NOT_PLAYABLE",
+  "replacement_active": false,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2285,
+  "source_guide_url": "https://ganymede-app.com/guides/2285",
+  "source_prerequisite_guide_ids": [
+    2288,
+    2284
+  ],
+  "expected_source_step_count": 4,
+  "playable_step_count": 0,
+  "source_link_snapshot": "ganymede_2285_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2285_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2285_step_0001",
+          "type": "info",
+          "title": "Étape 1",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2284,
+            2206,
+            2265,
+            2288
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              27803
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le prologue des secrets des Dofus",
+              "guide_id": 2284
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia première partie",
+              "guide_id": 2206
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia deuxième partie",
+              "guide_id": 2265
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia troisième partie",
+              "guide_id": 2288
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif final : obtenir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0002",
+          "type": "info",
+          "title": "Étape 2",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              737,
+              694,
+              739,
+              7754,
+              7115,
+              7114
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Émeraude",
+              "object_id": 737,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Pourpre",
+              "object_id": 694,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Turquoise",
+              "object_id": 739,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ocre",
+              "object_id": 7754,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ivoire",
+              "object_id": 7115,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ébène",
+              "object_id": 7114,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la Bworkette académique"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0003",
+          "type": "info",
+          "title": "Étape 3",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              3
+            ],
+            [
+              38,
+              -80
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              138
+            ],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer l'Académie des Gobelins sans quitter la salle finale",
+              "dungeon_id": 138,
+              "stay_at_end": true
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gobalden et attester posséder les six Dofus primordiaux"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Goblinecone dans la Forêt enneigée"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0004",
+          "type": "info",
+          "title": "Étape 4",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -80
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              27803
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier les six Dofus précédemment préparés",
+              "references_previous_stage": 2
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Goblinecone et lui présenter les six Dofus"
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [
+    "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
+    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED"
+  ],
+  "factual_action_reviewed_step_count": 4,
+  "source_action_candidate_steps": 4,
+  "source_action_candidate_actions": 18
+}

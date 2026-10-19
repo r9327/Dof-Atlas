@@ -1,0 +1,979 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Ganymède",
+    "index_url": "https://ganymede-app.com/tree?view=list",
+    "observed_on": "2026-10-18",
+    "purpose": "factual_titles_and_links_only",
+    "guide_body_extracted": false
+  },
+  "snapshot": {
+    "total_main_guides": 95,
+    "complete_metadata_inventory": true,
+    "quest_data_integrated": false,
+    "guide_routes_certified": 0,
+    "public_tree_prerequisite_graph": {
+      "status": "SOURCE_METADATA_ONLY",
+      "source_url": "https://ganymede-app.com/tree?view=list",
+      "checked_on": "2026-10-18",
+      "listed_step_counts": 95,
+      "guides_with_dependencies": 40,
+      "dependency_edges": 57,
+      "route_content_certified": false
+    }
+  },
+  "guides": [
+    {
+      "ganymede_guide_id": 2251,
+      "title": "Complete Guide",
+      "recommended_level_min": 1,
+      "source_url": "https://ganymede-app.com/guides/2251",
+      "status": "metadata_only",
+      "listed_step_count": 156,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2203,
+      "title": "Silver Dofus",
+      "recommended_level_min": 1,
+      "source_url": "https://ganymede-app.com/guides/2203",
+      "status": "metadata_only",
+      "listed_step_count": 237,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2248,
+      "title": "Dolmanax",
+      "recommended_level_min": 10,
+      "source_url": "https://ganymede-app.com/guides/2248",
+      "status": "metadata_only",
+      "listed_step_count": 9,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2204,
+      "title": "But Where Are the Dofus?",
+      "recommended_level_min": 40,
+      "source_url": "https://ganymede-app.com/guides/2204",
+      "status": "metadata_only",
+      "listed_step_count": 26,
+      "public_tree_prerequisite_guide_ids": [
+        2203
+      ]
+    },
+    {
+      "ganymede_guide_id": 2207,
+      "title": "Bwork and Goblin Camps",
+      "recommended_level_min": 40,
+      "source_url": "https://ganymede-app.com/guides/2207",
+      "status": "metadata_only",
+      "listed_step_count": 34,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2219,
+      "title": "Otomai 1",
+      "recommended_level_min": 40,
+      "source_url": "https://ganymede-app.com/guides/2219",
+      "status": "metadata_only",
+      "listed_step_count": 7,
+      "public_tree_prerequisite_guide_ids": [
+        2228
+      ]
+    },
+    {
+      "ganymede_guide_id": 2228,
+      "title": "Sufokia",
+      "recommended_level_min": 50,
+      "source_url": "https://ganymede-app.com/guides/2228",
+      "status": "metadata_only",
+      "listed_step_count": 39,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2206,
+      "title": "Valonia 1",
+      "recommended_level_min": 50,
+      "source_url": "https://ganymede-app.com/guides/2206",
+      "status": "metadata_only",
+      "listed_step_count": 30,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2224,
+      "title": "Sidimote 1",
+      "recommended_level_min": 70,
+      "source_url": "https://ganymede-app.com/guides/2224",
+      "status": "metadata_only",
+      "listed_step_count": 25,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2205,
+      "title": "Cawwot Dofus",
+      "recommended_level_min": 80,
+      "source_url": "https://ganymede-app.com/guides/2205",
+      "status": "metadata_only",
+      "listed_step_count": 64,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2230,
+      "title": "Krosmoz",
+      "recommended_level_min": 80,
+      "source_url": "https://ganymede-app.com/guides/2230",
+      "status": "metadata_only",
+      "listed_step_count": 51,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2210,
+      "title": "Ohwymi 1",
+      "recommended_level_min": 80,
+      "source_url": "https://ganymede-app.com/guides/2210",
+      "status": "metadata_only",
+      "listed_step_count": 76,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2223,
+      "title": "Cania 1",
+      "recommended_level_min": 90,
+      "source_url": "https://ganymede-app.com/guides/2223",
+      "status": "metadata_only",
+      "listed_step_count": 60,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2227,
+      "title": "Koalaks",
+      "recommended_level_min": 90,
+      "source_url": "https://ganymede-app.com/guides/2227",
+      "status": "metadata_only",
+      "listed_step_count": 9,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2208,
+      "title": "Dokoko",
+      "recommended_level_min": 100,
+      "source_url": "https://ganymede-app.com/guides/2208",
+      "status": "metadata_only",
+      "listed_step_count": 49,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2237,
+      "title": "Enudorado 1",
+      "recommended_level_min": 100,
+      "source_url": "https://ganymede-app.com/guides/2237",
+      "status": "metadata_only",
+      "listed_step_count": 29,
+      "public_tree_prerequisite_guide_ids": [
+        2209
+      ]
+    },
+    {
+      "ganymede_guide_id": 2225,
+      "title": "Sidimote 2",
+      "recommended_level_min": 100,
+      "source_url": "https://ganymede-app.com/guides/2225",
+      "status": "metadata_only",
+      "listed_step_count": 54,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2209,
+      "title": "Watchers Dofus",
+      "recommended_level_min": 100,
+      "source_url": "https://ganymede-app.com/guides/2209",
+      "status": "metadata_only",
+      "listed_step_count": 88,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2226,
+      "title": "Bonta / Brakmar",
+      "recommended_level_min": 110,
+      "source_url": "https://ganymede-app.com/guides/2226",
+      "status": "metadata_only",
+      "listed_step_count": 54,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2250,
+      "title": "Ecaflipus 1",
+      "recommended_level_min": 110,
+      "source_url": "https://ganymede-app.com/guides/2250",
+      "status": "metadata_only",
+      "listed_step_count": 48,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2220,
+      "title": "Otomai 2",
+      "recommended_level_min": 110,
+      "source_url": "https://ganymede-app.com/guides/2220",
+      "status": "metadata_only",
+      "listed_step_count": 7,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2211,
+      "title": "Emerald Dofus",
+      "recommended_level_min": 120,
+      "source_url": "https://ganymede-app.com/guides/2211",
+      "status": "metadata_only",
+      "listed_step_count": 52,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2231,
+      "title": "Kingdom of Amakna",
+      "recommended_level_min": 120,
+      "source_url": "https://ganymede-app.com/guides/2231",
+      "status": "metadata_only",
+      "listed_step_count": 65,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2240,
+      "title": "Xelorium 1",
+      "recommended_level_min": 120,
+      "source_url": "https://ganymede-app.com/guides/2240",
+      "status": "metadata_only",
+      "listed_step_count": 27,
+      "public_tree_prerequisite_guide_ids": [
+        2209
+      ]
+    },
+    {
+      "ganymede_guide_id": 2276,
+      "title": "Crimson Dofus",
+      "recommended_level_min": 130,
+      "source_url": "https://ganymede-app.com/guides/2276",
+      "status": "metadata_only",
+      "listed_step_count": 45,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2222,
+      "title": "Ohwymi 2",
+      "recommended_level_min": 130,
+      "source_url": "https://ganymede-app.com/guides/2222",
+      "status": "metadata_only",
+      "listed_step_count": 74,
+      "public_tree_prerequisite_guide_ids": [
+        2210
+      ]
+    },
+    {
+      "ganymede_guide_id": 2244,
+      "title": "Srambad 1",
+      "recommended_level_min": 130,
+      "source_url": "https://ganymede-app.com/guides/2244",
+      "status": "metadata_only",
+      "listed_step_count": 29,
+      "public_tree_prerequisite_guide_ids": [
+        2209
+      ]
+    },
+    {
+      "ganymede_guide_id": 2212,
+      "title": "Domakuro",
+      "recommended_level_min": 140,
+      "source_url": "https://ganymede-app.com/guides/2212",
+      "status": "metadata_only",
+      "listed_step_count": 120,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2234,
+      "title": "Pandala 1",
+      "recommended_level_min": 140,
+      "source_url": "https://ganymede-app.com/guides/2234",
+      "status": "metadata_only",
+      "listed_step_count": 212,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2232,
+      "title": "Cania 2",
+      "recommended_level_min": 150,
+      "source_url": "https://ganymede-app.com/guides/2232",
+      "status": "metadata_only",
+      "listed_step_count": 44,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2238,
+      "title": "Enudorado 2",
+      "recommended_level_min": 150,
+      "source_url": "https://ganymede-app.com/guides/2238",
+      "status": "metadata_only",
+      "listed_step_count": 50,
+      "public_tree_prerequisite_guide_ids": [
+        2237
+      ]
+    },
+    {
+      "ganymede_guide_id": 2255,
+      "title": "Evil Forest",
+      "recommended_level_min": 150,
+      "source_url": "https://ganymede-app.com/guides/2255",
+      "status": "metadata_only",
+      "listed_step_count": 43,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2213,
+      "title": "Frigost 1",
+      "recommended_level_min": 150,
+      "source_url": "https://ganymede-app.com/guides/2213",
+      "status": "metadata_only",
+      "listed_step_count": 181,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2252,
+      "title": "Otomai 3",
+      "recommended_level_min": 150,
+      "source_url": "https://ganymede-app.com/guides/2252",
+      "status": "metadata_only",
+      "listed_step_count": 13,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2262,
+      "title": "Cania 3",
+      "recommended_level_min": 160,
+      "source_url": "https://ganymede-app.com/guides/2262",
+      "status": "metadata_only",
+      "listed_step_count": 79,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2257,
+      "title": "Ecaflipus 2",
+      "recommended_level_min": 160,
+      "source_url": "https://ganymede-app.com/guides/2257",
+      "status": "metadata_only",
+      "listed_step_count": 91,
+      "public_tree_prerequisite_guide_ids": [
+        2250
+      ]
+    },
+    {
+      "ganymede_guide_id": 2214,
+      "title": "Amber Ochre",
+      "recommended_level_min": 170,
+      "source_url": "https://ganymede-app.com/guides/2214",
+      "status": "metadata_only",
+      "listed_step_count": 30,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2221,
+      "title": "Dorigami",
+      "recommended_level_min": 170,
+      "source_url": "https://ganymede-app.com/guides/2221",
+      "status": "metadata_only",
+      "listed_step_count": 64,
+      "public_tree_prerequisite_guide_ids": [
+        2212
+      ]
+    },
+    {
+      "ganymede_guide_id": 2253,
+      "title": "Pandala 2",
+      "recommended_level_min": 170,
+      "source_url": "https://ganymede-app.com/guides/2253",
+      "status": "metadata_only",
+      "listed_step_count": 59,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2241,
+      "title": "Xelorium 2",
+      "recommended_level_min": 170,
+      "source_url": "https://ganymede-app.com/guides/2241",
+      "status": "metadata_only",
+      "listed_step_count": 61,
+      "public_tree_prerequisite_guide_ids": [
+        2240
+      ]
+    },
+    {
+      "ganymede_guide_id": 2215,
+      "title": "Frigost 2",
+      "recommended_level_min": 180,
+      "source_url": "https://ganymede-app.com/guides/2215",
+      "status": "metadata_only",
+      "listed_step_count": 101,
+      "public_tree_prerequisite_guide_ids": [
+        2213
+      ]
+    },
+    {
+      "ganymede_guide_id": 2235,
+      "title": "Sidimote 3",
+      "recommended_level_min": 180,
+      "source_url": "https://ganymede-app.com/guides/2235",
+      "status": "metadata_only",
+      "listed_step_count": 31,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2254,
+      "title": "Sidimote 4",
+      "recommended_level_min": 180,
+      "source_url": "https://ganymede-app.com/guides/2254",
+      "status": "metadata_only",
+      "listed_step_count": 52,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2245,
+      "title": "Srambad 2",
+      "recommended_level_min": 180,
+      "source_url": "https://ganymede-app.com/guides/2245",
+      "status": "metadata_only",
+      "listed_step_count": 71,
+      "public_tree_prerequisite_guide_ids": [
+        2244
+      ]
+    },
+    {
+      "ganymede_guide_id": 2217,
+      "title": "Turquoise Dofus",
+      "recommended_level_min": 180,
+      "source_url": "https://ganymede-app.com/guides/2217",
+      "status": "metadata_only",
+      "listed_step_count": 87,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2229,
+      "title": "Nimaltopia",
+      "recommended_level_min": 190,
+      "source_url": "https://ganymede-app.com/guides/2229",
+      "status": "metadata_only",
+      "listed_step_count": 67,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2265,
+      "title": "Valonia 2",
+      "recommended_level_min": 190,
+      "source_url": "https://ganymede-app.com/guides/2265",
+      "status": "metadata_only",
+      "listed_step_count": 32,
+      "public_tree_prerequisite_guide_ids": [
+        2206
+      ]
+    },
+    {
+      "ganymede_guide_id": 2288,
+      "title": "Valonia 3",
+      "recommended_level_min": 190,
+      "source_url": "https://ganymede-app.com/guides/2288",
+      "status": "metadata_only",
+      "listed_step_count": 79,
+      "public_tree_prerequisite_guide_ids": [
+        2265
+      ]
+    },
+    {
+      "ganymede_guide_id": 2269,
+      "title": "Abyssal Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2269",
+      "status": "metadata_only",
+      "listed_step_count": 174,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2281,
+      "title": "After the Rain",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2281",
+      "status": "metadata_only",
+      "listed_step_count": 69,
+      "public_tree_prerequisite_guide_ids": [
+        2271,
+        2268
+      ]
+    },
+    {
+      "ganymede_guide_id": 2590,
+      "title": "Al Howin",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2590",
+      "status": "metadata_only",
+      "listed_step_count": 16,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2274,
+      "title": "Albatrocious Rock",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2274",
+      "status": "metadata_only",
+      "listed_step_count": 26,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2249,
+      "title": "Alignment Bonta",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2249",
+      "status": "metadata_only",
+      "listed_step_count": 774,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2263,
+      "title": "Alignment Brakmar",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2263",
+      "status": "metadata_only",
+      "listed_step_count": 696,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2291,
+      "title": "Atoll of the Possessed",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2291",
+      "status": "metadata_only",
+      "listed_step_count": 41,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2271,
+      "title": "Black-Spotted Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2271",
+      "status": "metadata_only",
+      "listed_step_count": 62,
+      "public_tree_prerequisite_guide_ids": [
+        2221
+      ]
+    },
+    {
+      "ganymede_guide_id": 2233,
+      "title": "Brotherhood of the Forgotten",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2233",
+      "status": "metadata_only",
+      "listed_step_count": 87,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2247,
+      "title": "Cloudy Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2247",
+      "status": "metadata_only",
+      "listed_step_count": 6,
+      "public_tree_prerequisite_guide_ids": [
+        2246,
+        2239,
+        2243
+      ]
+    },
+    {
+      "ganymede_guide_id": 2280,
+      "title": "Corruption",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2280",
+      "status": "metadata_only",
+      "listed_step_count": 40,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2286,
+      "title": "Crimson Dawn",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2286",
+      "status": "metadata_only",
+      "listed_step_count": 65,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2264,
+      "title": "Crocuzko",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2264",
+      "status": "metadata_only",
+      "listed_step_count": 40,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2282,
+      "title": "Destroyed",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2282",
+      "status": "metadata_only",
+      "listed_step_count": 32,
+      "public_tree_prerequisite_guide_ids": [
+        2281
+      ]
+    },
+    {
+      "ganymede_guide_id": 2261,
+      "title": "Ebony Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2261",
+      "status": "metadata_only",
+      "listed_step_count": 142,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2258,
+      "title": "Ecaflipus 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2258",
+      "status": "metadata_only",
+      "listed_step_count": 39,
+      "public_tree_prerequisite_guide_ids": [
+        2257
+      ]
+    },
+    {
+      "ganymede_guide_id": 2268,
+      "title": "Eliocalypse: Resonance",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2268",
+      "status": "metadata_only",
+      "listed_step_count": 101,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2239,
+      "title": "Enudorado 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2239",
+      "status": "metadata_only",
+      "listed_step_count": 65,
+      "public_tree_prerequisite_guide_ids": [
+        2238
+      ]
+    },
+    {
+      "ganymede_guide_id": 2595,
+      "title": "Fleaster",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2595",
+      "status": "metadata_only",
+      "listed_step_count": 67,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2270,
+      "title": "Four Over Five",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2270",
+      "status": "metadata_only",
+      "listed_step_count": 141,
+      "public_tree_prerequisite_guide_ids": [
+        2211,
+        2276,
+        2217,
+        2218,
+        2214
+      ]
+    },
+    {
+      "ganymede_guide_id": 2216,
+      "title": "Frigost 3 + Ice Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2216",
+      "status": "metadata_only",
+      "listed_step_count": 121,
+      "public_tree_prerequisite_guide_ids": [
+        2215
+      ]
+    },
+    {
+      "ganymede_guide_id": 3794,
+      "title": "Frigost complementary",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/3794",
+      "status": "metadata_only",
+      "listed_step_count": 288,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2275,
+      "title": "Future Fantastic",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2275",
+      "status": "metadata_only",
+      "listed_step_count": 54,
+      "public_tree_prerequisite_guide_ids": [
+        2268,
+        2277,
+        2280,
+        2279,
+        2278
+      ]
+    },
+    {
+      "ganymede_guide_id": 2256,
+      "title": "Ivory Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2256",
+      "status": "metadata_only",
+      "listed_step_count": 118,
+      "public_tree_prerequisite_guide_ids": [
+        2229
+      ]
+    },
+    {
+      "ganymede_guide_id": 2292,
+      "title": "Kingdom of Freezammer",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2292",
+      "status": "metadata_only",
+      "listed_step_count": 72,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 3795,
+      "title": "Kwismas",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/3795",
+      "status": "metadata_only",
+      "listed_step_count": 103,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2287,
+      "title": "Lavasmith Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2287",
+      "status": "metadata_only",
+      "listed_step_count": 150,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2279,
+      "title": "Misery",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2279",
+      "status": "metadata_only",
+      "listed_step_count": 43,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2283,
+      "title": "Nightmare Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2283",
+      "status": "metadata_only",
+      "listed_step_count": 55,
+      "public_tree_prerequisite_guide_ids": [
+        2275,
+        2282
+      ]
+    },
+    {
+      "ganymede_guide_id": 2218,
+      "title": "Ochre Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2218",
+      "status": "metadata_only",
+      "listed_step_count": 33,
+      "public_tree_prerequisite_guide_ids": [
+        2204
+      ]
+    },
+    {
+      "ganymede_guide_id": 2266,
+      "title": "Ohwymi 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2266",
+      "status": "metadata_only",
+      "listed_step_count": 71,
+      "public_tree_prerequisite_guide_ids": [
+        2222
+      ]
+    },
+    {
+      "ganymede_guide_id": 3738,
+      "title": "Osavora",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/3738",
+      "status": "metadata_only",
+      "listed_step_count": 97,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2293,
+      "title": "Pandala 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2293",
+      "status": "metadata_only",
+      "listed_step_count": 138,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2285,
+      "title": "Pine Done",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2285",
+      "status": "metadata_only",
+      "listed_step_count": 4,
+      "public_tree_prerequisite_guide_ids": [
+        2288,
+        2284
+      ]
+    },
+    {
+      "ganymede_guide_id": 2284,
+      "title": "Secret of the Dofus: Prologue",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2284",
+      "status": "metadata_only",
+      "listed_step_count": 21,
+      "public_tree_prerequisite_guide_ids": [
+        2272,
+        2283
+      ]
+    },
+    {
+      "ganymede_guide_id": 2278,
+      "title": "Servitude",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2278",
+      "status": "metadata_only",
+      "listed_step_count": 29,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2259,
+      "title": "Sidimote 5",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2259",
+      "status": "metadata_only",
+      "listed_step_count": 25,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2272,
+      "title": "Six out of Six",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2272",
+      "status": "metadata_only",
+      "listed_step_count": 56,
+      "public_tree_prerequisite_guide_ids": [
+        2256,
+        2261,
+        2270
+      ]
+    },
+    {
+      "ganymede_guide_id": 2273,
+      "title": "Sparkling Silver Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2273",
+      "status": "metadata_only",
+      "listed_step_count": 15,
+      "public_tree_prerequisite_guide_ids": [
+        2272
+      ]
+    },
+    {
+      "ganymede_guide_id": 2246,
+      "title": "Srambad 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2246",
+      "status": "metadata_only",
+      "listed_step_count": 73,
+      "public_tree_prerequisite_guide_ids": [
+        2245
+      ]
+    },
+    {
+      "ganymede_guide_id": 2290,
+      "title": "Sylvan Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2290",
+      "status": "metadata_only",
+      "listed_step_count": 2,
+      "public_tree_prerequisite_guide_ids": [
+        2289,
+        2285
+      ]
+    },
+    {
+      "ganymede_guide_id": 2289,
+      "title": "Tree Hiding the Forest",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2289",
+      "status": "metadata_only",
+      "listed_step_count": 112,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2236,
+      "title": "Vigilantes",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2236",
+      "status": "metadata_only",
+      "listed_step_count": 45,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2260,
+      "title": "Vulbis Dofus",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2260",
+      "status": "metadata_only",
+      "listed_step_count": 47,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 3737,
+      "title": "Vulkania",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/3737",
+      "status": "metadata_only",
+      "listed_step_count": 113,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2277,
+      "title": "War",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2277",
+      "status": "metadata_only",
+      "listed_step_count": 53,
+      "public_tree_prerequisite_guide_ids": []
+    },
+    {
+      "ganymede_guide_id": 2243,
+      "title": "Xelorium 3",
+      "recommended_level_min": 200,
+      "source_url": "https://ganymede-app.com/guides/2243",
+      "status": "metadata_only",
+      "listed_step_count": 73,
+      "public_tree_prerequisite_guide_ids": [
+        2241
+      ]
+    }
+  ]
+}

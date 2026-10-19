@@ -88,7 +88,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertEqual(view.current_guide_id, "dofus_sylvestre")
             service = view._catalog_manual_services["dofus_sylvestre"]
             self.assertEqual(service.guide_id, "dofus_sylvestre")
-            self.assertEqual(service.guide_title, "Lanyel Sylvestre")
+            self.assertEqual(service.guide_title, "Sylvestre Opti")
             self.assertEqual(service.manual_audit_data["quest_count"], 198)
             self.assertEqual(service.manual_audit_data["route_model"], "map_segments")
             self.assertGreater(len(service.cards), 0)

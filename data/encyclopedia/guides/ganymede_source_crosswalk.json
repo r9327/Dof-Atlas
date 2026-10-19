@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Ganymède",
+    "index_url": "https://ganymede-app.com/tree?view=list",
+    "role": "route_reference_priority",
+    "checked_on": "2026-10-18",
+    "scope": "public_guide_metadata_only",
+    "editorial_reuse": "original_atlas_content_only"
+  },
+  "coverage": {
+    "source_index_guides_reported": 95,
+    "inventory_scope": "initial_matches_and_thematic_candidates_pending_quest_ids",
+    "asserted_complete": false
+  },
+  "guides": [
+    {
+      "external_key": "complete_route",
+      "ganymede_guide_id": 2251,
+      "source_url": "https://ganymede-app.com/guides/2251",
+      "label": "Parcours complet MG0",
+      "atlas_guide_ids": [
+        "guide_complet"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "incarnam_astrub",
+      "ganymede_guide_id": 2203,
+      "source_url": "https://ganymede-app.com/guides/2203",
+      "label": "Incarnam / Astrub — GP1",
+      "atlas_guide_ids": [
+        "dofus_argente"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dolmanax",
+      "ganymede_guide_id": 2248,
+      "source_url": "https://ganymede-app.com/guides/2248",
+      "label": "Dolmanax",
+      "atlas_guide_ids": [
+        "dolmanax"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "cawotte",
+      "ganymede_guide_id": 2205,
+      "source_url": "https://ganymede-app.com/guides/2205",
+      "label": "Dofus Cawotte",
+      "atlas_guide_ids": [
+        "dofus_cawotte"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dokoko",
+      "ganymede_guide_id": 2208,
+      "source_url": "https://ganymede-app.com/guides/2208",
+      "label": "Dokoko",
+      "atlas_guide_ids": [
+        "dokoko"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "emeraude",
+      "ganymede_guide_id": 2211,
+      "source_url": "https://ganymede-app.com/guides/2211",
+      "label": "Dofus Émeraude",
+      "atlas_guide_ids": [
+        "dofus_emeraude"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "veilleurs",
+      "ganymede_guide_id": 2209,
+      "source_url": "https://ganymede-app.com/guides/2209",
+      "label": "Dofus des Veilleurs",
+      "atlas_guide_ids": [
+        "dofus_des_veilleurs"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "glaces",
+      "ganymede_guide_id": 2216,
+      "source_url": "https://ganymede-app.com/guides/2216",
+      "label": "Frigost 3 / Dofus des Glaces",
+      "atlas_guide_ids": [
+        "dofus_des_glaces"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "ebene",
+      "ganymede_guide_id": 2261,
+      "source_url": "https://ganymede-app.com/guides/2261",
+      "label": "Dofus Ébène",
+      "atlas_guide_ids": [
+        "dofus_ebene"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "ivoire",
+      "ganymede_guide_id": 2256,
+      "source_url": "https://ganymede-app.com/guides/2256",
+      "label": "Dofus Ivoire",
+      "atlas_guide_ids": [
+        "dofus_ivoire"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "bonta_brakmar_intro",
+      "ganymede_guide_id": 2226,
+      "source_url": "https://ganymede-app.com/guides/2226",
+      "label": "Bonta / Brâkmar — introduction",
+      "atlas_guide_ids": [
+        "alignement_bonta",
+        "alignement_brakmar"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "alignement_bonta",
+      "ganymede_guide_id": 2249,
+      "source_url": "https://ganymede-app.com/guides/2249",
+      "label": "Alignement Bonta",
+      "atlas_guide_ids": [
+        "alignement_bonta"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "alignement_brakmar",
+      "ganymede_guide_id": 2263,
+      "source_url": "https://ganymede-app.com/guides/2263",
+      "label": "Alignement Brâkmar",
+      "atlas_guide_ids": [
+        "alignement_brakmar"
+      ],
+      "status": "metadata_only",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_pourpre",
+      "ganymede_guide_id": 2276,
+      "source_url": "https://ganymede-app.com/guides/2276",
+      "label": "Crimson Dofus",
+      "atlas_guide_ids": [
+        "dofus_pourpre"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "domakuro",
+      "ganymede_guide_id": 2212,
+      "source_url": "https://ganymede-app.com/guides/2212",
+      "label": "Domakuro",
+      "atlas_guide_ids": [
+        "domakuro"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dorigami",
+      "ganymede_guide_id": 2221,
+      "source_url": "https://ganymede-app.com/guides/2221",
+      "label": "Dorigami",
+      "atlas_guide_ids": [
+        "dorigami"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_turquoise",
+      "ganymede_guide_id": 2217,
+      "source_url": "https://ganymede-app.com/guides/2217",
+      "label": "Turquoise Dofus",
+      "atlas_guide_ids": [
+        "dofus_turquoise"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_nebuleux",
+      "ganymede_guide_id": 2247,
+      "source_url": "https://ganymede-app.com/guides/2247",
+      "label": "Cloudy Dofus",
+      "atlas_guide_ids": [
+        "dofus_nebuleux"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_abyssal",
+      "ganymede_guide_id": 2269,
+      "source_url": "https://ganymede-app.com/guides/2269",
+      "label": "Abyssal Dofus",
+      "atlas_guide_ids": [
+        "dofus_abyssal"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_vulbis",
+      "ganymede_guide_id": 2260,
+      "source_url": "https://ganymede-app.com/guides/2260",
+      "label": "Vulbis Dofus",
+      "atlas_guide_ids": [
+        "dofus_vulbis"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_tachete",
+      "ganymede_guide_id": 2271,
+      "source_url": "https://ganymede-app.com/guides/2271",
+      "label": "Black-Spotted Dofus",
+      "atlas_guide_ids": [
+        "dofus_tachete"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_dom_de_pin",
+      "ganymede_guide_id": 2285,
+      "source_url": "https://ganymede-app.com/guides/2285",
+      "label": "Pine Done",
+      "atlas_guide_ids": [
+        "dofus_dom_de_pin"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_du_cauchemar",
+      "ganymede_guide_id": 2283,
+      "source_url": "https://ganymede-app.com/guides/2283",
+      "label": "Nightmare Dofus",
+      "atlas_guide_ids": [
+        "dofus_du_cauchemar"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    },
+    {
+      "external_key": "dofus_forgelave",
+      "ganymede_guide_id": 2287,
+      "source_url": "https://ganymede-app.com/guides/2287",
+      "label": "Lavasmith Dofus",
+      "atlas_guide_ids": [
+        "dofus_forgelave"
+      ],
+      "status": "metadata_only",
+      "mapping_confidence": "candidate",
+      "mapping_basis": "source_guide_and_atlas_dofus_identity; quest_ids_not_compared",
+      "quest_mapping_verified": false,
+      "route_parity_verified": false
+    }
+  ]
+}

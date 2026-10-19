@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2248,
+  "atlas_guide_id": "dolmanax",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/lanneacutee-du-dragon.html",
+    "dpln_calendar": "https://www.dofuspourlesnoobs.com/calendrier-de-lalmanax.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2248"
+  },
+  "main_quests": [
+    {
+      "quest_id": 954,
+      "name": "L'année du dragon",
+      "achievement_group": "Le repos du dragon",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/954",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [],
+  "timed_progression_evidence": {
+    "requires_calendar_pages": 365,
+    "max_offerings_per_day": 1,
+    "reward_interval": "daily",
+    "schedule_policy": "NON_BLOCKING_LONG_TERM_GOAL",
+    "notes": "365 calendar pages; progress is per character and cannot be treated as a single optimized visit."
+  }
+}

@@ -1,0 +1,1206 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_du_cauchemar",
+  "source_guide_id": 2283,
+  "source_url": "https://ganymede-app.com/guides/2283",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 55,
+  "evidence_level": "AUTOMATED_SOURCE_ACTION_HINTS_UNVERIFIED",
+  "extraction_provenance": "ganymede_public_pages_and_source_link_snapshot",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "manual_review_pending": 55,
+  "auto_extraction_unresolved_steps": 0,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2283_step_0001",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "quest_prerequisite",
+          "label": "Avoir le métier de mineur niveau 10."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2283_step_0002",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Planifier les ressources nécessaires."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2283_step_0003",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        38,
+        -21
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Draconiros."
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2283_step_0004",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        38,
+        -21
+      ],
+      "next": [
+        41,
+        -56
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Rimanda."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2283_step_0005",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        41,
+        -56
+      ],
+      "next": [
+        0,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Pandamonium Guardian."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2283_step_0006",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        43,
+        -59
+      ],
+      "next": [
+        42,
+        -58
+      ],
+      "actions": [
+        {
+          "kind": "group_mechanic",
+          "label": "Positionner 12 classes sur le pentacle."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2283_step_0007",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        43,
+        -59
+      ],
+      "next": [
+        0,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Vérifier si vous avez le 'Rêve d'Harmonie'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2283_step_0008",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        3
+      ],
+      "next": [
+        -25,
+        36
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Hogion."
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2283_step_0009",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        36
+      ],
+      "next": [
+        -32,
+        -59
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Acheter un 'Ballon de Gobbowl de Brakmar'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2283_step_0010",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -32,
+        -59
+      ],
+      "next": [
+        -29,
+        -59
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Acheter un 'Ballon de Gobbowl de Bonta'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2283_step_0011",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -29,
+        -59
+      ],
+      "next": [
+        -36,
+        -60
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Bagrutta Stonestomach."
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2283_step_0012",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -36,
+        -60
+      ],
+      "next": [
+        0,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler aux Pyramides Prismatiques."
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2283_step_0013",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        1
+      ],
+      "next": [
+        0,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Roi Grimaçant."
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2283_step_0014",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        1
+      ],
+      "next": [
+        1,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Julith le Boucher."
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2283_step_0015",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        3
+      ],
+      "next": [
+        2,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Grand Krackal."
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2283_step_0016",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        4
+      ],
+      "next": [
+        2,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Donner de la 'Mimilk' à l'orphelin."
+        },
+        {
+          "kind": "talk",
+          "label": "Donner du 'Pain Tahde' à l'orphelin."
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2283_step_0017",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        2
+      ],
+      "next": [
+        3,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Fighting with le 'Demolisseur Trool'."
+        },
+        {
+          "kind": "combat",
+          "label": "Fighting with le 'Constructeur Crackler'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2283_step_0018",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        3
+      ],
+      "next": [
+        4,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Donner de la 'Bière Blanche Légendaire' au Stubbyob."
+        },
+        {
+          "kind": "talk",
+          "label": "Donner un 'Gâteau Rasputin' au Stubbyob."
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2283_step_0019",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        3
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Donner le ballon aux prisonniers."
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2283_step_0020",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        0,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer le combat 3 vagues avec les Chafers."
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2283_step_0021",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        0
+      ],
+      "next": [
+        1,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Double cliquer sur la 'Toile Nightmare'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2283_step_0022",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        0
+      ],
+      "next": [
+        4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'Horreur de l'Aube."
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2283_step_0023",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        0
+      ],
+      "next": [
+        1,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Collecter 12 'Peur viscérale'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2283_step_0024",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        0
+      ],
+      "next": [
+        43,
+        -57
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Cliquer sur le grand trou."
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2283_step_0025",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        43,
+        -57
+      ],
+      "next": [
+        43,
+        -57
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Na'Hama."
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2283_step_0026",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Combat contre les Lemures."
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2283_step_0027",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Combat contre le Mane Brutasmodan."
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2283_step_0028",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler aux Mane des Destroyers."
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2283_step_0029",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Combat contre Helzbeth."
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2283_step_0030",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler aux Nightmare Destroyers."
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2283_step_0031",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        38,
+        -21
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Draconiros."
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2283_step_0032",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        38,
+        -21
+      ],
+      "next": [
+        3,
+        -21
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Rimanda."
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2283_step_0033",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -21
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Magus Ax."
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2283_step_0034",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        15,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "craft",
+          "label": "Fabriquer 5 'Vertus d'Harmonie'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2283_step_0035",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -31
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Se diriger vers le temple."
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2283_step_0036",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        2,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Urazawi."
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2283_step_0037",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        4
+      ],
+      "next": [
+        2,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Commencer la quête 'Totems de Maimane'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2283_step_0038",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        4
+      ],
+      "next": [
+        2,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Collecter 6 totems."
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2283_step_0039",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        4
+      ],
+      "next": [
+        38,
+        -20
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête 'Totems de Maimane'."
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2283_step_0040",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        38,
+        -20
+      ],
+      "next": [
+        -36,
+        -60
+      ],
+      "actions": [
+        {
+          "kind": "craft",
+          "label": "Créer une rune d'harmonie."
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2283_step_0041",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -36,
+        -60
+      ],
+      "next": [
+        -24,
+        39
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler aux Pyramides Prismatiques."
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2283_step_0042",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -24,
+        39
+      ],
+      "next": [
+        -20,
+        39
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ilaster Kro'Ly."
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2283_step_0043",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -20,
+        39
+      ],
+      "next": [
+        -22,
+        36
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2283_step_0044",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -22,
+        36
+      ],
+      "next": [
+        -21,
+        36
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2283_step_0045",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -21,
+        36
+      ],
+      "next": [
+        -25,
+        32
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Convaincre le grimoire démoniaque."
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2283_step_0046",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        32
+      ],
+      "next": [
+        -27,
+        38
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2283_step_0047",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -27,
+        38
+      ],
+      "next": [
+        -34,
+        -60
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2283_step_0048",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -34,
+        -60
+      ],
+      "next": [
+        -33,
+        -58
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2283_step_0049",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -33,
+        -58
+      ],
+      "next": [
+        -28,
+        -55
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2283_step_0050",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -28,
+        -55
+      ],
+      "next": [
+        -36,
+        -54
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Lancer un combat de groupe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2283_step_0051",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -36,
+        -54
+      ],
+      "next": [
+        -24,
+        39
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Soldat de la Lance Brutale"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les objets de quête requis"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à [-24,39]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2283_step_0052",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -24,
+        39
+      ],
+      "next": [
+        -22,
+        41
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans la Bibliothèque"
+        },
+        {
+          "kind": "move",
+          "label": "Monter les escaliers deux fois"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ilaster Kro'Li"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à [4,0] dans la zone de l'Enfer des Destructeurs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2283_step_0053",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        0
+      ],
+      "next": [
+        4,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Cliquer sur le trou géant"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à l'Enfer des Destructeurs deux fois"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Servitude"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Entropix"
+        },
+        {
+          "kind": "combat",
+          "label": "Combattre les Cavaliers de l'Éliocalypse"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2283_step_0054",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'Enfer des Destructeurs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Helzbeth, Mère des Destructeurs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Draconiros"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Helzbeth, Mère des Destructeurs à nouveau"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Draconiros à nouveau"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à lui pour approcher le chronomorph"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Entropix"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2283_step_0055",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Entropix"
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter Entropix"
+        }
+      ]
+    }
+  ]
+}

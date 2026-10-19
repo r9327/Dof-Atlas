@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "id": "dofus_dom_de_pin",
+  "title": "Dofus Dom de Pin",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2285,
+  "source_guide_url": "https://ganymede-app.com/guides/2285",
+  "source_prerequisite_guide_ids": [
+    2288,
+    2284
+  ],
+  "expected_source_step_count": 4,
+  "playable_step_count": 4,
+  "source_link_snapshot": "ganymede_2285_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2285_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2285_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Terminer le prologue des secrets des Dofus",
+          "content": "Terminer le prologue des secrets des Dofus\nTerminer Valonia première partie\nTerminer Valonia deuxième partie\nTerminer Valonia troisième partie\nObjectif final : obtenir le Dom de Pin",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2284,
+            2206,
+            2265,
+            2288
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              27803
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le prologue des secrets des Dofus",
+              "guide_id": 2284
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia première partie",
+              "guide_id": 2206
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia deuxième partie",
+              "guide_id": 2265
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer Valonia troisième partie",
+              "guide_id": 2288
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif final : obtenir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Disposer du Dofus Émeraude",
+          "content": "Disposer du Dofus Émeraude\nDisposer du Dofus Pourpre\nDisposer du Dofus Turquoise\nDisposer du Dofus Ocre\nDisposer du Dofus Ivoire\nDisposer du Dofus Ébène\nRejoindre la Bworkette académique",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              737,
+              694,
+              739,
+              7754,
+              7115,
+              7114
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Émeraude",
+              "object_id": 737,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Pourpre",
+              "object_id": 694,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Turquoise",
+              "object_id": 739,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ocre",
+              "object_id": 7754,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ivoire",
+              "object_id": 7115,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Disposer du Dofus Ébène",
+              "object_id": 7114,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la Bworkette académique"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Terminer l'Académie des Gobelins sans quitter la salle finale",
+          "content": "Terminer l'Académie des Gobelins sans quitter la salle finale\nParler à Gobalden et attester posséder les six Dofus primordiaux\nRejoindre Goblinecone dans la Forêt enneigée",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              3
+            ],
+            [
+              38,
+              -80
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              138
+            ],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer l'Académie des Gobelins sans quitter la salle finale",
+              "dungeon_id": 138,
+              "stay_at_end": true
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gobalden et attester posséder les six Dofus primordiaux"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Goblinecone dans la Forêt enneigée"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2285_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Vérifier les six Dofus précédemment préparés",
+          "content": "Vérifier les six Dofus précédemment préparés\nParler à Goblinecone et lui présenter les six Dofus\nRecevoir le Dom de Pin",
+          "optional": false,
+          "source_guide_id": 2285,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -80
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              27803
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier les six Dofus précédemment préparés",
+              "references_previous_stage": 2
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Goblinecone et lui présenter les six Dofus"
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir le Dom de Pin",
+              "object_id": 27803
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 4,
+  "source_action_candidate_steps": 4,
+  "source_action_candidate_actions": 18,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 180,
+  "recommended_level_max": 200,
+  "reward_item_id": 27803,
+  "illustration_item_id": 27803,
+  "image": null,
+  "linked_achievement_ids": [
+    1705,
+    5222,
+    5925,
+    5928,
+    5931,
+    5932,
+    5933
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}
