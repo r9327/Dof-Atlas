@@ -174,11 +174,15 @@ class GuideStockNeed:
     item_id: int | None
     name: str
     required_by_character: Mapping[str, int]
-    remaining_by_character: Mapping[str, int]
+    remaining_by_character: Mapping[str, int | None]
 
     @property
-    def total_remaining(self) -> int:
-        return sum(self.remaining_by_character.values())
+    def total_remaining(self) -> int | None:
+        """A reliable total requires an explicit inventory for every participant."""
+        if any(value is None for value in self.remaining_by_character.values()):
+            return None
+        return sum(value for value in self.remaining_by_character.values()
+                   if value is not None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -544,13 +548,21 @@ class GuideRoutePlanner:
         rows: list[GuideStockNeed] = []
         for item_key, per_character in required.items():
             item_id, _normalized_name = item_key
-            remaining: dict[str, int] = {}
+            remaining: dict[str, int | None] = {}
             for character_key, quantity in per_character.items():
                 state = state_by_key[character_key]
-                owned = 0
+                # A missing snapshot (or missing item in a partial snapshot)
+                # is UNKNOWN, never proof that the character owns zero.
+                owned: int | None = None
                 if item_id is not None and state.progress is not None:
-                    owned = max(0, int(state.progress.owned_items.get(item_id, 0)))
-                remaining[character_key] = max(0, quantity - owned)
+                    candidate = state.progress.owned_items.get(item_id)
+                    if candidate is not None:
+                        if type(candidate) is not int or candidate < 0:
+                            raise ValueError("Invalid explicit inventory quantity")
+                        owned = candidate
+                remaining[character_key] = (
+                    max(0, quantity - owned) if owned is not None else None
+                )
             rows.append(
                 GuideStockNeed(
                     item_id,
