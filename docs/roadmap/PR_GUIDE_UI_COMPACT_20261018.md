@@ -318,3 +318,19 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 5. Tests de non-régression des progressions Quêtes/Succès, Guide Lanyel/Guide Succès, de l'intégration du rendu partagé #201 et de la libération Qt au retour Home. Rebaser après #201, puis validation Doctor/Graphify et CI au HEAD final.
 
 **CRITÈRE DE SORTIE : si l'UI n'est pas reconnaissable comme la maquette validée, la PR est FAIL même si les tests unitaires passent.**
+
+
+## Accueil des guides — ajout des 95 guides Ganymède (demande validée 19/10)
+
+**Disposition approuvée : conserver intégralement les blocs existants.** En haut, les guides optimisés et les alignements restent **à gauche**, les guides Dofus **à droite**. Ne pas convertir ces blocs existants en accordéons, ne pas les déplacer et ne pas refaire l'accueil.
+
+**Uniquement en dessous**, afficher les nouvelles familles dans une **grille de deux colonnes alignées**, à largeur égale, avec des sous-menus déroulants compacts :
+- Ligne 1 : **Dimensions divines** | **Eliocalypse**.
+- Ligne 2 : **Zones et régions** | **Événements**.
+- Ligne 3 : **Autres aventures** | **Îles et territoires** (ajuster la taxonomie sans perdre de guide ni créer de doublon).
+- Chaque famille s'ouvre/se ferme indépendamment ; les deux cellules d'une même ligne restent alignées même lorsqu'une seule est ouverte. Aucun décalage ou réagencement automatique des catégories.
+- Les guides déjà visibles dans les blocs du haut (Dofus et Alignements notamment) ne doivent pas être dupliqués en dessous ; leur source peut être Ganymède sans créer deux entrées pour un même parcours.
+
+**NON NÉGOCIABLE : les sous-menus ne sont pas décoratifs.** Utiliser l'inventaire canonique `data/encyclopedia/guides/ganymede_main_index.json` de la PR #229 : **95 vrais guides identifiés par `ganymede_guide_id`**, titre, niveau, nombre d'étapes, URL source et prérequis. Chaque ligne doit être alimentée par une entrée réelle et ouvrir une vraie fiche de guide Atlas, avec les étapes ordonnées, leurs actions, coordonnées et prérequis lorsque ces données sont disponibles. Les parcours sont fournis par la #229, puis optimisés par la #226 ; la #225 consomme ces données, sans créer de guides fictifs ni de faux boutons. Ne jamais assimiler `metadata_only` à un parcours jouable. Si une fiche n'a encore que des métadonnées, afficher explicitement son état non disponible (sans action de lancement), et faire échouer la certification de couverture fonctionnelle tant que les guides promis ne sont pas réellement intégrés.
+
+**Contrôles de certification** : vérifier automatiquement que les 95 IDs source ont chacun une entrée de catalogue unique, que toutes les entrées sont classées (aucun guide oublié), qu'aucun guide existant n'est dupliqué, que chaque entrée jouable charge des étapes réelles et que l'ouverture/progression/persistance fonctionne. Tester les accordéons côte à côte (états fermé/ouvert indépendants, fenêtre réduite, scroll, thème), les liens vers les vraies fiches, et l'absence de contenu de remplissage. Le statut de cette section reste **À IMPLÉMENTER / À CERTIFIER** tant que les tests et les captures Doctor UI ne prouvent pas le résultat.
