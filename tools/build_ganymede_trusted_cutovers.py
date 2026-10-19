@@ -1,4 +1,4 @@
-"""Build integrity-bound Ganymède cutover files from complete trusted action sets.
+"""Build integrity-bound Ganymède cutovers from separately certified actions.
 
 Does not alter the live catalogue. Incomplete guides remain unactivated.
 """
@@ -16,41 +16,70 @@ from tools.audit_ganymede_master_refs import ROOT
 from tools.build_ganymede_replacement_previews import build_dofus_replacement_previews
 
 
-def _action_label(action: dict) -> str:
-    value = action.get("label")
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError("Ganymède action has no readable label")
-    return value.strip()
+# No automatically extracted hint or candidate label can certify a quest action.
+# Canonical action evidence and a verified legacy-progress mapping are mandatory.
+_ALLOWED_ACTION_KINDS = frozenset({
+    "quest_objective", "interaction", "travel", "combat",
+    "dungeon", "collect", "craft", "prepare", "information",
+})
 
 
 def prepare_trusted_cutover(preview: dict) -> dict:
-    """Transform a fully populated candidate route into one playable route."""
+    """Prepare an already-certified continuous route; never certify candidates."""
     payload = deepcopy(preview)
-    steps = payload["sections"][0]["steps"]
-    if not steps:
+    if payload.get("guide_progress_id_unchanged") is not True:
+        raise ValueError("Guide progress identity is not preserved")
+    if payload.get("legacy_manual_steps_migration_verified") is not True:
+        raise ValueError("Legacy progress mapping has not been certified")
+    if payload.get("cutover_blockers") != []:
+        raise ValueError("Unresolved cutover blockers")
+    if payload.get("source_text_copied") is not False:
+        raise ValueError("Unlicensed source text cannot be imported")
+
+    sections = payload.get("sections")
+    if not isinstance(sections, list) or len(sections) != 1 or not isinstance(sections[0], dict):
+        raise ValueError("Expected one continuous source route")
+    steps = sections[0].get("steps")
+    if not isinstance(steps, list) or not steps:
         raise ValueError("Empty route")
     expected_count = payload.get("expected_source_step_count")
     if type(expected_count) is not int or expected_count != len(steps):
         raise ValueError("Source step count mismatch")
     source_id = payload.get("source_guide_id")
+    if type(source_id) is not int or source_id <= 0:
+        raise ValueError("Invalid source guide ID")
     for number, step in enumerate(steps, 1):
-        if (step.get("id") != f"ganymede_{source_id}_step_{number:04d}"
-                or step.get("source_step_number") != number):
-            raise ValueError("Unstable or unordered Ganymède step IDs")
-        actions = step.get("source_action_candidates")
+        expected_id = f"ganymede_{source_id}_step_{number:04d}"
+        if (not isinstance(step, dict)
+                or step.get("id") != expected_id
+                or step.get("source_guide_id") != source_id
+                or step.get("source_step_number") != number
+                or step.get("original_prose_imported") is not False):
+            raise ValueError(f"Unstable or unordered Ganymède step at {number}")
+        if step.get("source_action_review_status") != "CERTIFIED_CANONICAL_ACTIONS":
+            raise ValueError(f"Unreviewed source actions at {expected_id}")
+        actions = step.get("verified_actions")
         if not isinstance(actions, list) or not actions:
-            raise ValueError(f"Missing Ganymède actions at {step['id']}")
-        labels = [_action_label(action) for action in actions]
+            raise ValueError(f"Missing canonical verified actions at {expected_id}")
+        for action in actions:
+            if (not isinstance(action, dict)
+                    or action.get("verified") is not True
+                    or action.get("kind") not in _ALLOWED_ACTION_KINDS
+                    or not isinstance(action.get("text"), str)
+                    or not action["text"].strip()
+                    or not isinstance(action.get("evidence"), list)
+                    or not action["evidence"]):
+                raise ValueError(f"Unverified action at {expected_id}")
+        labels = [action["text"].strip() for action in actions]
         step["title"] = labels[0]
         step["content"] = "\n".join(labels)
         step["manual_completion_allowed"] = True
         step["auto_completion_allowed"] = False
-        # Preserve action kinds, IDs, quantities, conditions and route coordinates.
-    payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
+
+    payload["replacement_status"] = "CERTIFIED_FOR_CUTOVER"
     payload["replacement_active"] = True
     payload["completeness_status"] = "complete"
     payload["playable_step_count"] = len(steps)
-    payload["cutover_blockers"] = []
     return payload
 
 
@@ -72,7 +101,7 @@ def build_trusted_cutovers(root: Path) -> dict:
         payloads[guide_id] = payload
         declarations[guide_id] = {
             "enabled": True,
-            "status": "TRUSTED_SOURCE_CUTOVER",
+            "status": "CERTIFIED_FOR_CUTOVER",
             "source_guide_id": source_id,
             "source_step_count": len(steps),
             "fingerprint": route_fingerprint(source_id, [step["id"] for step in steps]),
