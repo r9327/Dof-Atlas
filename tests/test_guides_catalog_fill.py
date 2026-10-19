@@ -113,7 +113,7 @@ class GuideCatalogFillTests(unittest.TestCase):
 
         result = self._shared_generated_build()
         rebuilt = result.guides["dofus_sylvestre"]
-        self.assertEqual(rebuilt["title"], "Lanyel Sylvestre")
+        self.assertEqual(rebuilt["title"], "Sylvestre Opti")
         self.assertEqual(rebuilt["category"], "aventure")
         catalog_row = next(
             row for row in result.catalog["guides"]
