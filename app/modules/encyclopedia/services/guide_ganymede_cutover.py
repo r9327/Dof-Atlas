@@ -116,8 +116,8 @@ def select_verified_replacement_path(
                 candidates = step.get("source_action_candidates")
                 if not isinstance(candidates, list) or not candidates:
                     return None
-                if not any(isinstance(candidate, dict) and isinstance(candidate.get("text"), str)
-                           and candidate["text"].strip() for candidate in candidates):
+                if not any(isinstance(candidate, dict) and isinstance(candidate.get("label"), str)
+                           and candidate["label"].strip() for candidate in candidates):
                     return None
             for action in actions:
                 if (not isinstance(action, dict)
