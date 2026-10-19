@@ -47,6 +47,43 @@ CERTIFIED avant l'exécution de la CI finale sur le SHA figé.**
 Date : 18 octobre 2026. Base : main SHA 6a52522d1bd7e501a5c3b4d6d58253bfec755fdc.
 Statut : **socle moteur implémenté et testé de façon ciblée ; certification CI exacte encore requise**. La route réelle complète dépend toujours des données locales vérifiées et ne doit pas être déclarée certifiée depuis les seuls tests unitaires.
 
+### Raccordement complémentaire après vérification des 20 sources
+
+Le récapitulatif `summarize_stage_preparation` regroupe les références par
+**ID d'objet** et par **personnage sélectionné**. Une quantité totale n'est
+proposée que si les besoins sont univoques et que les stocks individuels
+sont explicitement connus ; plusieurs mentions, choix conditionnels et
+objets à obtenir sur le parcours restent **quantités à vérifier**, pas achats
+obligatoires. `preparation_rows` conserve le lieu de mention de la source,
+tandis que `preparation_due_rows` expose séparément l'étape de consommation
+future (`needed_at_source_step`) : pas de rappel prématuré ni d'oubli de
+besoin différé.
+
+Le pont accepte facultativement le **`QuestProvider.get_quest(id)` existant**
+pour vérifier la présence de chaque ID de quête Ganymède dans le catalogue
+Atlas, récupérer le nom français et produire **un seul lien de navigation par
+ID de quête et par fiche**. Les lignes gardent chacune leur nom en survol ;
+une quête inconnue n'obtient aucun bouton et aucune progression n'est
+inférée. Résolution mise en cache par ID pour ne pas charger plusieurs fois
+les mêmes détails.
+
+Contrôle de parité effectué sur les **20 fichiers de cutover** et les **20
+fichiers d'actions candidates** sur la branche : aucune différence détectée
+dans les 6 166 actions pour les champs `kind`, `label`, `quest_id`,
+`object_id`, `monster_id`, `dungeon_id`, `guide_id`.
+Il s'agit d'un **contrôle source ↔ source**, pas d'une preuve de jouabilité
+ou d'objectifs terminés.
+
+Tests de non-régression supplémentaires : doublons/quantités conservatrices,
+0/2/5 personnages, 1 000 IDs d'objets sur cinq personnages, besoin énoncé
+en fiche 2 puis exigible en fiche 34, déduplication de quêtes et refus
+d'un mauvais ID renvoyé par le catalogue.
+
+**Portée à finir avant certification :** intégrer ces services au vrai
+consommateur #225, vérifier tous les engagements de planification canonique,
+les comportements QuestProvider et Organizer en environnement Windows, puis
+certifier une seule fois au SHA final. Pas de FULL par commit.
+
 ## Implémentation livrée dans cette PR
 - `GuideRoutePlanner` compose le moteur canonique `AdventureRouteEngine` sans créer de second générateur. Il calcule une route indépendante pour chaque identité `character:<id>`, puis groupe uniquement les actions que chaque participant doit encore faire.
 - Les besoins de préparation et de pierres d'âme restent ventilés par personnage, avec quantité requise, stock connu et reste à acquérir. Les captures `soul_stone`, `zone_special` et `drop` sont des contrats explicites ; aucun mot présent dans un titre ne suffit à inférer une pierre.
