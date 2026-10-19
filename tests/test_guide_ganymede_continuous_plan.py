@@ -234,6 +234,17 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
             sum(row["show_quest_button"] for row in step["action_rows"]),
             2,
         )
+        # Real Cawotte stage 2 references quest 835 three times. Only the
+        # first line gets a button; all three retain their hover tooltip.
+        repeated = [
+            row for row in step["action_rows"]
+            if row["quest_reference"]
+            and row["quest_reference"]["quest_id"] == 835
+        ]
+        self.assertEqual(len(repeated), 3)
+        self.assertEqual(sum(row["show_quest_button"] for row in repeated), 1)
+        self.assertTrue(all(row["quest_hover_name"] == "Quête 835"
+                            for row in repeated))
         self.assertEqual(len(provider.calls), len(set(provider.calls)))
         self.assertTrue(any(row["quest_hover_name"] == "Quête 840"
                             for row in step["action_rows"]))
