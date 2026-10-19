@@ -89,9 +89,6 @@ def build_trusted_cutovers(root: Path) -> dict:
 def write_trusted_cutovers(result: dict, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     expected = set(result["payloads"])
-    for stale in output_dir.glob("*.json"):
-        if stale.name != "cutover_manifest.json" and stale.stem not in expected:
-            stale.unlink()
     for guide_id, payload in result["payloads"].items():
         (output_dir / f"{guide_id}.json").write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
