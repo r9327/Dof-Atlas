@@ -82,9 +82,9 @@ class ReplacementReadinessTests(unittest.TestCase):
         self.assertIn("INVALID_LEGACY_GUIDE", report["guide_reports"][0]["blockers"])
         self.assertEqual(report["ready_to_replace"], 0)
 
-    def test_repository_dofus_guides_are_not_yet_replaceable(self) -> None:
+    def test_repository_dofus_guides_use_source_trusted_manual_cutovers(self) -> None:
         report = audit_ganymede_replacement_readiness(ROOT)
-        self.assertEqual(report["status"], "BLOCKED_PENDING_PLAYABLE_ACTIONS",
+        self.assertEqual(report["status"], "SOURCE_TRUSTED_MANUAL_ACTIVE",
                          report["issues"])
         self.assertEqual(report["dofus_guides"], 22)
         self.assertEqual(report["dofus_guides_with_direct_source_mapping"], 20)
@@ -92,10 +92,18 @@ class ReplacementReadinessTests(unittest.TestCase):
             set(report["dofus_guides_without_direct_source_mapping"]),
             {"dofoozbz", "dokille"},
         )
-        self.assertEqual(report["ready_to_replace"], 0)
-        self.assertFalse(report["replacement_activated"])
-        self.assertTrue(all(not guide["ready_to_replace"]
-                            for guide in report["guide_reports"]))
+        self.assertEqual(report["ready_to_replace"], 20)
+        self.assertEqual(report["replacement_activated_count"], 20)
+        self.assertTrue(report["replacement_activated"])
+        self.assertEqual(report["source_trusted_manual_guides"], 20)
+        self.assertEqual(report["certified_canonical_guides"], 0)
+        active = [g for g in report["guide_reports"] if g["replacement_active"]]
+        self.assertEqual(len(active), 20)
+        self.assertTrue(all(g["source_trusted_manual_only"] for g in active))
+        self.assertTrue(all(not g["canonical_objectives_verified"] for g in active))
+        self.assertTrue(all(not g["replacement_active"] for g in report["guide_reports"]
+                            if g["atlas_guide_id"] in {"dofoozbz", "dokille"}))
+
 
 
 if __name__ == "__main__":
