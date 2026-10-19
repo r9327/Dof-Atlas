@@ -50,6 +50,16 @@ def _engine() -> AdventureRouteEngine:
 
 
 class GuideRoutePlannerTests(unittest.TestCase):
+    def test_zero_selected_characters_is_empty_not_an_error(self) -> None:
+        plan = GuideRoutePlanner(_engine()).plan([])
+        self.assertEqual(plan.participants, ())
+        self.assertEqual(plan.activities, ())
+        self.assertEqual(plan.stock, ())
+        self.assertEqual(
+            [issue.code for issue in plan.issues],
+            ["no_selected_participants"],
+        )
+
     def test_progress_and_stock_stay_per_character(self) -> None:
         plan = GuideRoutePlanner(_engine()).plan(
             [
