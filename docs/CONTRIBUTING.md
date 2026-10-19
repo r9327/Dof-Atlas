@@ -31,6 +31,18 @@ une migration. Les changements Qt doivent vérifier le cycle de vie, les signaux
 et la destruction ciblée. Les changements réseau doivent préserver les limites
 de confiance, les identités de session et l’arrêt propre des workers.
 
+## Cadence CI commune à toutes les PR
+
+Ouvrir les PR en **Draft** et effectuer d'abord la totalité du travail prévu
+(implémentation, contrats, tests ciblés, intégrations, relecture). Les commits
+intermédiaires ne doivent **pas** déclencher une FULL/Phase Certification.
+
+Quand la PR est réellement complète, la passer en **Ready for review** pour
+déclencher **une certification CI** du SHA final. En cas d'échec, corriger,
+puis recertifier le nouveau SHA (nouveau passage Draft → Ready ou
+`workflow_dispatch` manuel). Ne jamais réutiliser un résultat d'un ancien
+SHA. Le push sur `main` et les garde-fous de publication restent inchangés.
+
 ## Validation proportionnée
 
 Pendant le développement, lancez d’abord le module de test le plus proche puis
