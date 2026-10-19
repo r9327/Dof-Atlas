@@ -29,7 +29,14 @@ def prepare_trusted_cutover(preview: dict) -> dict:
     steps = payload["sections"][0]["steps"]
     if not steps:
         raise ValueError("Empty route")
-    for step in steps:
+    expected_count = payload.get("expected_source_step_count")
+    if type(expected_count) is not int or expected_count != len(steps):
+        raise ValueError("Source step count mismatch")
+    source_id = payload.get("source_guide_id")
+    for number, step in enumerate(steps, 1):
+        if (step.get("id") != f"ganymede_{source_id}_step_{number:04d}"
+                or step.get("source_step_number") != number):
+            raise ValueError("Unstable or unordered Ganymède step IDs")
         actions = step.get("source_action_candidates")
         if not isinstance(actions, list) or not actions:
             raise ValueError(f"Missing Ganymède actions at {step['id']}")
