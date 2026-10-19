@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.agent_task_profiles import infer_task_type, load_config, select_work_card
+from tools.agent_task_profiles import TaskProfileError, infer_task_type, load_config, select_work_card
 
 
 class AgentTaskProfileTests(unittest.TestCase):
@@ -66,6 +66,27 @@ class AgentTaskProfileTests(unittest.TestCase):
             infer_task_type(["app/a.py"], certification=True),
             "certification",
         )
+
+    def test_non_object_top_level_json_fails_with_domain_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profiles.json"
+            for raw in ("null", "[]", "42", "true", '"plain string"'):
+                with self.subTest(raw=raw):
+                    path.write_text(raw, encoding="utf-8")
+                    with self.assertRaisesRegex(TaskProfileError, "JSON object"):
+                        load_config(path)
+
+    def test_invalid_model_tier_rows_fail_with_domain_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profiles.json"
+            for tiers in ([], [None], ["tier"], [123], [{}, False]):
+                with self.subTest(tiers=tiers):
+                    path.write_text(json.dumps({
+                        "schema_version": 1, "quality_levels": {},
+                        "task_profiles": {}, "model_tiers": tiers,
+                    }), encoding="utf-8")
+                    with self.assertRaisesRegex(TaskProfileError, "model tier objects"):
+                        load_config(path)
 
     def test_invalid_schema_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

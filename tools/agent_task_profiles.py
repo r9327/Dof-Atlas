@@ -49,12 +49,16 @@ def load_config(path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise TaskProfileError(f"Unable to load task profiles: {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise TaskProfileError("task_profiles.json must contain a JSON object.")
     if payload.get("schema_version") != 1:
         raise TaskProfileError("Unsupported task profile schema_version; expected 1.")
     if not isinstance(payload.get("quality_levels"), dict):
         raise TaskProfileError("task_profiles.json must define quality_levels.")
-    if not isinstance(payload.get("model_tiers"), list) or not payload["model_tiers"]:
-        raise TaskProfileError("task_profiles.json must define at least one model tier.")
+    if not isinstance(payload.get("model_tiers"), list) or not payload["model_tiers"] or any(
+        not isinstance(tier, dict) for tier in payload["model_tiers"]
+    ):
+        raise TaskProfileError("task_profiles.json must define a nonempty list of model tier objects.")
     if not isinstance(payload.get("task_profiles"), dict):
         raise TaskProfileError("task_profiles.json must define task_profiles.")
     return payload
