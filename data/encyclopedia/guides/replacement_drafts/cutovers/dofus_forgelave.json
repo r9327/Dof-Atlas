@@ -48,7 +48,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -109,96 +108,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1939,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1939",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1938
-                    }
-                  ],
-                  "local_alternative_groups": [
-                    "quest:1946:or:1",
-                    "quest:1951:or:1"
-                  ]
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1940,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1940",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1950,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1950",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1949
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1951,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1951",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1953,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1953",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -352,106 +261,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1942,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1942",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1943,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1943",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1945,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1945",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1946,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1946",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1947,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1947",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1942
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1945
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1946
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -547,23 +356,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1938,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1938",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -624,31 +416,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1939,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1939",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1938
-                    }
-                  ],
-                  "local_alternative_groups": [
-                    "quest:1946:or:1",
-                    "quest:1951:or:1"
-                  ]
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -703,7 +470,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -792,7 +558,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -862,31 +627,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1939,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1939",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1938
-                    }
-                  ],
-                  "local_alternative_groups": [
-                    "quest:1946:or:1",
-                    "quest:1951:or:1"
-                  ]
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -941,73 +681,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1954,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1954",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1938
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1956,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1956",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1940,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1940",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1955,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1955",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1085,7 +758,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1137,7 +809,6 @@
               5202
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1185,7 +856,6 @@
               5202
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1240,7 +910,6 @@
               5202
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1293,7 +962,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1348,7 +1016,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1402,7 +1069,6 @@
               5209
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1459,7 +1125,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1510,7 +1175,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1563,7 +1227,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1608,7 +1271,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1657,7 +1319,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1712,7 +1373,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1757,7 +1417,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1811,38 +1470,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1956,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1956",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1955,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1955",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1922,7 +1549,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1973,7 +1599,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2024,7 +1649,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2080,7 +1704,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2131,7 +1754,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2181,7 +1803,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2232,7 +1853,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2292,7 +1912,6 @@
               5217
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2343,7 +1962,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2392,23 +2010,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1940,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1940",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2468,28 +2069,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1954,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1954",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1938
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2546,23 +2125,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1943,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1943",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2636,23 +2198,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1942,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1942",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2718,7 +2263,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2767,7 +2311,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2818,7 +2361,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2872,7 +2414,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2916,7 +2457,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2975,7 +2515,6 @@
               5150
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3035,7 +2574,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3113,7 +2651,6 @@
               5145
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3162,7 +2699,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3207,7 +2743,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3262,43 +2797,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1943,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1943",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1944,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1944",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1943
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3369,7 +2867,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3424,7 +2921,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3473,7 +2969,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3524,23 +3019,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1942,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1942",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3590,7 +3068,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3643,7 +3120,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3700,7 +3176,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3757,7 +3232,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3810,7 +3284,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3863,28 +3336,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1944,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1944",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1943
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3936,28 +3387,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1945,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1945",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4025,28 +3454,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1946,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1946",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4096,7 +3503,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4156,7 +3562,6 @@
               5151
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4206,7 +3611,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4251,7 +3655,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4296,7 +3699,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4345,7 +3747,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4390,7 +3791,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4459,7 +3859,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4509,7 +3908,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4584,7 +3982,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4633,7 +4030,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4685,7 +4081,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4731,7 +4126,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4783,7 +4177,6 @@
               5210
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4849,7 +4242,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4898,7 +4290,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4943,7 +4334,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4988,7 +4378,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5033,7 +4422,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5084,28 +4472,6 @@
               5168
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1946,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1946",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5169,28 +4535,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1945,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1945",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1944
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5256,36 +4600,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1947,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1947",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1942
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1945
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1946
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5339,7 +4653,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5386,7 +4699,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5431,7 +4743,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5476,7 +4787,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5521,7 +4831,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5566,7 +4875,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5611,7 +4919,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5663,7 +4970,6 @@
               3823
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5706,36 +5012,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1947,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1947",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1942
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1945
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1946
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5793,28 +5069,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1948,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1948",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1939
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5894,7 +5148,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5943,7 +5196,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5988,7 +5240,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6037,7 +5288,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6086,7 +5336,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6133,23 +5382,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1951,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1951",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6201,7 +5433,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6257,23 +5488,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1953,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1953",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6327,7 +5541,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6378,7 +5591,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6430,7 +5642,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6482,28 +5693,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1949,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1949",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1939
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6556,7 +5745,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6651,7 +5839,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6709,7 +5896,6 @@
               5216
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6758,7 +5944,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6810,7 +5995,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6877,7 +6061,6 @@
               5175
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6944,7 +6127,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6993,7 +6175,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7046,7 +6227,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7099,7 +6279,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7161,28 +6340,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1949,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1949",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1939
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7236,7 +6393,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7287,28 +6443,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1950,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1950",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1949
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7358,7 +6492,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7407,7 +6540,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7452,7 +6584,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7501,7 +6632,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7550,7 +6680,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7603,7 +6732,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7652,7 +6780,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7706,7 +6833,6 @@
               5105
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7755,7 +6881,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7802,7 +6927,6 @@
               5176
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7855,7 +6979,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7902,28 +7025,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1948,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1948",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1939
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7979,28 +7080,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1950,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1950",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1949
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8041,7 +7120,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8086,7 +7164,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8139,7 +7216,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8184,7 +7260,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8233,7 +7308,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8282,7 +7356,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8331,7 +7404,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8392,7 +7464,6 @@
               4109
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8442,7 +7513,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8490,43 +7560,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1951,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1951",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1952,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1952",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1951
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8591,7 +7624,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8644,7 +7676,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8703,7 +7734,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8761,7 +7791,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8833,7 +7862,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8891,28 +7919,6 @@
               5180
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1952,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1952",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1951
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8977,7 +7983,6 @@
               5158
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9040,23 +8045,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1953,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1953",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9112,28 +8100,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1950,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_forgelave_quest_1950",
-                  "atlas_section_id": "dofus_forgelave_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1949
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9185,7 +8151,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,

@@ -43,7 +43,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -99,23 +98,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 954,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dolmanax_quest_954",
-                  "atlas_section_id": "dolmanax_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -188,7 +170,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -257,7 +238,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -296,7 +276,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -330,7 +309,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -364,7 +342,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -398,7 +375,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -432,7 +408,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,

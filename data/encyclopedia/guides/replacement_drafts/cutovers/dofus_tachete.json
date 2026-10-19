@@ -45,7 +45,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -115,83 +114,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2200,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2200",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2180
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2158,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2158",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2202,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2202",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2200
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2201,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2201",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -274,28 +196,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2200,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2200",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2180
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -357,7 +257,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -407,7 +306,6 @@
               556
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -469,7 +367,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -522,7 +419,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -574,7 +470,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -623,7 +518,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -666,7 +560,6 @@
               6515
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -728,28 +621,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2158,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2158",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -812,7 +683,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -866,7 +736,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -911,7 +780,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -965,7 +833,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1030,7 +897,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1080,23 +946,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2201,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2201",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1149,7 +998,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1203,7 +1051,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1259,7 +1106,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1314,7 +1160,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1366,7 +1211,6 @@
               6546
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1428,7 +1272,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1481,7 +1324,6 @@
               6308
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1544,7 +1386,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1599,7 +1440,6 @@
               6620
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1667,14 +1507,6 @@
               6550
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2164,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1742,7 +1574,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1803,7 +1634,6 @@
               6553
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1866,7 +1696,6 @@
               6307
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1929,7 +1758,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1983,7 +1811,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2032,7 +1859,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2081,7 +1907,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2138,7 +1963,6 @@
               6502
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2200,7 +2024,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2264,7 +2087,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2326,28 +2148,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2158,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2158",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2432,7 +2232,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2483,7 +2282,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2528,7 +2326,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2578,7 +2375,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2656,7 +2452,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2714,7 +2509,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2799,7 +2593,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2846,7 +2639,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2895,7 +2687,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2952,7 +2743,6 @@
               6554
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3034,32 +2824,6 @@
               6478
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2203,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2203",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2159
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3147,32 +2911,6 @@
               6472
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2203,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2203",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2159
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3252,7 +2990,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3322,7 +3059,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3410,7 +3146,6 @@
               6558
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3462,7 +3197,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3545,7 +3279,6 @@
               6595
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3605,7 +3338,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3658,7 +3390,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3712,7 +3443,6 @@
               6561
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3783,63 +3513,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2201,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2201",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2200,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2200",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2180
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2202,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2202",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2200
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3898,7 +3571,6 @@
               6564
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3964,7 +3636,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -4024,28 +3695,6 @@
               6314
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2202,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_tachete_quest_2202",
-                  "atlas_section_id": "dofus_tachete_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2200
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,

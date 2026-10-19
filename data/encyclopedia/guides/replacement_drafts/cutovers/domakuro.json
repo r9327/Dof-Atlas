@@ -52,23 +52,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2149,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2149",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -155,94 +138,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 158,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2150,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2150",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2152,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2152",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2151
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2154,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2154",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2153
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2155,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2155",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2154
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -471,14 +366,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 158,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -532,7 +419,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -577,7 +463,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -622,7 +507,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -667,7 +551,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -716,7 +599,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -790,7 +672,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -931,7 +812,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -984,7 +864,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1029,7 +908,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1082,14 +960,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 158,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1144,28 +1014,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2150,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2150",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1215,7 +1063,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1260,7 +1107,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1309,7 +1155,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1358,7 +1203,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1403,7 +1247,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1452,7 +1295,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1497,7 +1339,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1550,7 +1391,6 @@
               6238
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1592,7 +1432,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1641,7 +1480,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1702,7 +1540,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1763,7 +1600,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1858,7 +1694,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1925,7 +1760,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1977,7 +1811,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2046,48 +1879,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2150,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2150",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2149
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2151,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2151",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2150
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2150,7 +1941,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2195,7 +1985,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2256,14 +2045,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2161,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2312,7 +2093,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2365,7 +2145,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2418,7 +2197,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2471,7 +2249,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2517,7 +2294,6 @@
               6267
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2562,7 +2338,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2610,48 +2385,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2151,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2151",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2150
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2152,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2152",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2151
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2714,7 +2447,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2767,7 +2499,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2812,7 +2543,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2857,7 +2587,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2904,7 +2633,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2954,7 +2682,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2999,7 +2726,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3049,7 +2775,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3110,7 +2835,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3164,7 +2888,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3209,7 +2932,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3258,7 +2980,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3303,7 +3024,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3348,7 +3068,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3393,7 +3112,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3438,7 +3156,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3483,7 +3200,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3540,7 +3256,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3593,7 +3308,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3638,7 +3352,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3683,7 +3396,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3732,7 +3444,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3780,48 +3491,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2152,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2152",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2151
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2153,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2153",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2152
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3880,7 +3549,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3925,7 +3593,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3974,7 +3641,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4023,7 +3689,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4076,7 +3741,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4121,7 +3785,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4166,7 +3829,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4211,7 +3873,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4256,7 +3917,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4301,7 +3961,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4346,7 +4005,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4393,7 +4051,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4447,7 +4104,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4498,7 +4154,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4548,7 +4203,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4596,48 +4250,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2153,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2153",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2152
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2154,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2154",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2153
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4700,7 +4312,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4745,7 +4356,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4796,7 +4406,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4846,7 +4455,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4899,7 +4507,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4952,7 +4559,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5001,7 +4607,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5055,7 +4660,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5104,7 +4708,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5149,7 +4752,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5194,7 +4796,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5239,7 +4840,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5284,7 +4884,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5329,7 +4928,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5374,7 +4972,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5424,7 +5021,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5496,7 +5092,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5561,7 +5156,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5612,7 +5206,6 @@
               6260
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5659,7 +5252,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5719,7 +5311,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5772,7 +5363,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5828,48 +5418,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2154,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2154",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2153
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2155,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2155",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2154
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5952,7 +5500,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6002,7 +5549,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6055,7 +5601,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6102,7 +5647,6 @@
               6202
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6155,7 +5699,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6204,7 +5747,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6250,7 +5792,6 @@
               6212
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6292,7 +5833,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6337,7 +5877,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6382,7 +5921,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6427,7 +5965,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6479,48 +6016,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2155,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2155",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2154
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2197,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2197",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2155
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6585,7 +6080,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6632,7 +6126,6 @@
               6282
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6687,7 +6180,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6740,7 +6232,6 @@
               6283
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6791,7 +6282,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6844,28 +6334,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2197,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "domakuro_quest_2197",
-                  "atlas_section_id": "domakuro_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2155
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,

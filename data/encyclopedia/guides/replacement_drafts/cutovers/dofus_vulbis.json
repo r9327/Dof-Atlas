@@ -57,189 +57,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2064,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2064",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2063
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2085,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2085",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2087,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2087",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2086
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1791,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2078,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2078",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2064
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2079,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2079",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2078
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2080,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2080",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2079
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2081,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2081",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2080
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2082,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2082",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2081
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2083,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2083",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2082
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -319,48 +136,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2081,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2081",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2080
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2083,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2083",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2082
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -474,48 +249,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2078,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2078",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2064
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2064,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2064",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2063
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -568,7 +301,6 @@
               3143
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -631,7 +363,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -694,7 +425,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -747,7 +477,6 @@
               5873
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -806,48 +535,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2078,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2078",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2064
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2079,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2079",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2078
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -908,7 +595,6 @@
               5871
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -963,7 +649,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1024,7 +709,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1073,7 +757,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1127,7 +810,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1177,7 +859,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1227,7 +908,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1277,7 +957,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1331,23 +1010,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2085,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2085",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1402,48 +1064,6 @@
               5871
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2079,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2079",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2078
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2080,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2080",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2079
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1512,7 +1132,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1582,7 +1201,6 @@
               5862
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1644,7 +1262,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1704,68 +1321,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2080,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2080",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2079
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2081,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2081",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2080
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2087,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2087",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2086
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1822,7 +1377,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1874,7 +1428,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1935,7 +1488,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -1988,7 +1540,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2064,7 +1615,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2128,7 +1678,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2181,7 +1730,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2240,7 +1788,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2295,54 +1842,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2081,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2081",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2080
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2082,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2082",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2081
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1791,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2408,7 +1907,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2461,7 +1959,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2506,7 +2003,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2556,7 +2052,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2601,7 +2096,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2651,7 +2145,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2700,14 +2193,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1791,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2766,7 +2251,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2818,48 +2302,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2082,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2082",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2081
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2083,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2083",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2082
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2910,7 +2352,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -2955,7 +2396,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3004,7 +2444,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3051,7 +2490,6 @@
               5887
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3116,7 +2554,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3217,7 +2654,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
@@ -3274,28 +2710,6 @@
               5842
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2083,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_vulbis_quest_2083",
-                  "atlas_section_id": "dofus_vulbis_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2082
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,

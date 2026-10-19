@@ -46,7 +46,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -88,23 +87,6 @@
               8018
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1631,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1631",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -154,23 +136,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1631,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1631",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -225,7 +190,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -287,98 +251,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1649,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1649",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1650,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1650",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2512
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1651,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1651",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1650
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2513,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2513",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1651
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1637,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1637",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -543,23 +415,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1632,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1632",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -611,23 +466,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1639,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1639",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -680,38 +518,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1649,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1649",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1633,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1633",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -769,7 +575,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -824,7 +629,6 @@
               4113
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -875,23 +679,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1633,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1633",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -941,7 +728,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -990,23 +776,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1637,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1637",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1058,23 +827,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1642,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1642",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1126,7 +878,6 @@
               4098
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1174,43 +925,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1642,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1642",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1643,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1643",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1642
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1269,7 +983,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1317,43 +1030,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1632,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1632",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1634,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1634",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1632
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1424,7 +1100,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1471,23 +1146,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1655,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1655",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1531,43 +1189,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1639,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1639",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1640,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1640",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1639
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1626,7 +1247,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1693,7 +1313,6 @@
               981
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1776,48 +1395,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1643,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1643",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1642
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1644,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1644",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1643
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1880,7 +1457,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1954,7 +1530,6 @@
               4110
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2041,43 +1616,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1649,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1649",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2512,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2512",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1649
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2140,7 +1678,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2211,48 +1748,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2512,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2512",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1649
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1650,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1650",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2512
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2314,48 +1809,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1644,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1644",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1643
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1645,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1645",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1644
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2448,23 +1901,6 @@
               984
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1655,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1655",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2557,48 +1993,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1645,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1645",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1644
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1646,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1646",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1645
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2664,7 +2058,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2722,48 +2115,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1640,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1640",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1639
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1641,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1641",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1640
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2822,7 +2173,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2882,7 +2232,6 @@
               982
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2966,48 +2315,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1634,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1634",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1632
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1635,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1635",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1634
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3082,48 +2389,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1646,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1646",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1645
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1647,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1647",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1646
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3189,48 +2454,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1650,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1650",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2512
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1651,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1651",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1650
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3294,7 +2517,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3341,23 +2563,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1637,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1637",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3410,7 +2615,6 @@
               36
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3459,7 +2663,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3506,28 +2709,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1641,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1641",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1640
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3580,48 +2761,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1647,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1647",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1646
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1648,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1648",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1647
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3687,7 +2826,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3739,48 +2877,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1651,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1651",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1650
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2513,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2513",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1651
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3835,7 +2931,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3892,7 +2987,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3939,7 +3033,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3981,7 +3074,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4032,7 +3124,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4089,48 +3180,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1635,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1635",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1634
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2004,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2004",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1635
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4195,7 +3244,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4251,7 +3299,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4305,43 +3352,6 @@
               4113
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2513,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2513",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1651
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1633,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1633",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4397,28 +3407,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1648,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1648",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1647
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4468,7 +3456,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4516,43 +3503,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2004,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2004",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1635
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1958,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1958",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4598,7 +3548,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4659,88 +3608,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1983,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1983",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1986,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1986",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1985
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1992,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1992",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1998,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1998",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2008,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2008",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4882,7 +3749,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4937,63 +3803,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1958,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1958",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1959,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1959",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1958
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1975,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1975",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1958
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5060,7 +3869,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5105,7 +3913,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5154,7 +3961,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5198,7 +4004,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5257,23 +4062,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1994,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1994",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5323,7 +4111,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5392,23 +4179,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1996,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1996",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5473,23 +4243,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1996,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1996",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5552,7 +4305,6 @@
               8019
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5615,14 +4367,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 896,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5670,23 +4414,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1978,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1978",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5747,68 +4474,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1959,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1959",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1958
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2009,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2009",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1959
-                    }
-                  ],
-                  "local_alternative_groups": [
-                    "quest:1960:or:1",
-                    "quest:1960:or:10",
-                    "quest:1960:or:11",
-                    "quest:1960:or:12",
-                    "quest:1960:or:13",
-                    "quest:1960:or:14",
-                    "quest:1960:or:15",
-                    "quest:1960:or:16",
-                    "quest:1960:or:17",
-                    "quest:1960:or:18",
-                    "quest:1960:or:19",
-                    "quest:1960:or:2",
-                    "quest:1960:or:3",
-                    "quest:1960:or:4",
-                    "quest:1960:or:5",
-                    "quest:1960:or:6",
-                    "quest:1960:or:7",
-                    "quest:1960:or:8",
-                    "quest:1960:or:9"
-                  ]
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5867,7 +4532,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5921,63 +4585,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2009,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2009",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1959
-                    }
-                  ],
-                  "local_alternative_groups": [
-                    "quest:1960:or:1",
-                    "quest:1960:or:10",
-                    "quest:1960:or:11",
-                    "quest:1960:or:12",
-                    "quest:1960:or:13",
-                    "quest:1960:or:14",
-                    "quest:1960:or:15",
-                    "quest:1960:or:16",
-                    "quest:1960:or:17",
-                    "quest:1960:or:18",
-                    "quest:1960:or:19",
-                    "quest:1960:or:2",
-                    "quest:1960:or:3",
-                    "quest:1960:or:4",
-                    "quest:1960:or:5",
-                    "quest:1960:or:6",
-                    "quest:1960:or:7",
-                    "quest:1960:or:8",
-                    "quest:1960:or:9"
-                  ]
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1960,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1960",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6026,23 +4633,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1984,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1984",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6108,7 +4698,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6151,7 +4740,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6201,7 +4789,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6250,7 +4837,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6298,48 +4884,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1975,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1975",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1958
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1976,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1976",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1975
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6412,23 +4956,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1992,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1992",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6474,7 +5001,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6522,43 +5048,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1978,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1978",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1979,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1979",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1978
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6623,23 +5112,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1981,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1981",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6697,14 +5169,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2005,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6769,23 +5233,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1980,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1980",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6837,7 +5284,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6885,23 +5331,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1980,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1980",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6949,23 +5378,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1981,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1981",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7023,7 +5435,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7070,23 +5481,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1998,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1998",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7142,7 +5536,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7190,23 +5583,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 718,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_718",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7252,7 +5628,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7300,7 +5675,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7377,7 +5751,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7428,23 +5801,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1994,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1994",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7490,7 +5846,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7535,7 +5890,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7578,7 +5932,6 @@
               5281
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7619,7 +5972,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7663,20 +6015,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2005,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2006,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7735,7 +6073,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7772,7 +6109,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7811,7 +6147,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7854,7 +6189,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7891,7 +6225,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7932,7 +6265,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -7969,7 +6301,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8009,7 +6340,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8050,7 +6380,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8093,7 +6422,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8143,7 +6471,6 @@
               5252
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8193,7 +6520,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8248,7 +6574,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8313,7 +6638,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8355,7 +6679,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8396,7 +6719,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8449,58 +6771,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1960,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1960",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1962,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1962",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1960
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1988,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1988",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8576,7 +6846,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8623,23 +6892,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1992,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1992",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8689,7 +6941,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8734,7 +6985,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8790,34 +7040,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1962,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1962",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1960
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2192,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8880,7 +7102,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -8935,54 +7156,6 @@
               4315
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1976,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1976",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1975
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1977,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1977",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1976
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1696,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9052,14 +7225,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1696,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9115,7 +7280,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9164,7 +7328,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9215,7 +7378,6 @@
               5256
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9275,43 +7437,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1988,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1988",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1989,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1989",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1988
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9382,7 +7507,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9427,7 +7551,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9472,7 +7595,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9529,23 +7651,6 @@
               159
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2000,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2000",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9600,7 +7705,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9651,23 +7755,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1982,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1982",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9719,23 +7806,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1999,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1999",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9787,7 +7857,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9843,7 +7912,6 @@
               148
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9894,7 +7962,6 @@
               148
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -9948,38 +8015,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1982,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1982",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1998,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1998",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10047,7 +8082,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10113,7 +8147,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10158,7 +8191,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10203,7 +8235,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10248,7 +8279,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10293,7 +8323,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10338,7 +8367,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10383,7 +8411,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10427,20 +8454,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2006,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 153,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10510,48 +8523,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1989,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1989",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1988
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1990,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1990",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1989
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10618,7 +8589,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10675,7 +8645,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10720,7 +8689,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10765,7 +8733,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10810,7 +8777,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10851,7 +8817,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10908,23 +8873,6 @@
               3140
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 718,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_718",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -10982,7 +8930,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11031,7 +8978,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11080,7 +9026,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11127,23 +9072,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1983,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1983",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11189,7 +9117,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11230,7 +9157,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11271,7 +9197,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11316,7 +9241,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11356,48 +9280,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1990,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1990",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1989
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1991,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1991",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1990
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11466,7 +9348,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11506,43 +9387,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1984,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1984",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1985,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1985",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1984
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11612,7 +9456,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11689,23 +9532,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2008,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2008",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11761,7 +9587,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11810,7 +9635,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11853,23 +9677,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2007,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2007",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11919,7 +9726,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -11972,7 +9778,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12025,7 +9830,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12086,7 +9890,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12129,7 +9932,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12178,7 +9980,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12223,7 +10024,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12272,7 +10072,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12317,7 +10116,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12371,7 +10169,6 @@
               498
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12429,7 +10226,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12474,7 +10270,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12519,7 +10314,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12568,23 +10362,6 @@
               5246
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2007,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2007",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12640,28 +10417,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1991,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1991",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1990
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12715,7 +10470,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12768,7 +10522,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12822,48 +10575,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1985,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1985",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1984
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1986,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1986",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1985
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -12957,7 +10668,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13017,7 +10727,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13075,7 +10784,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13124,7 +10832,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13171,7 +10878,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13227,7 +10933,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13283,7 +10988,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13340,20 +11044,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 896,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2003,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13408,7 +11098,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13457,7 +11146,6 @@
               5271
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13502,7 +11190,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13551,7 +11238,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13599,48 +11285,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1986,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1986",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1985
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1987,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1987",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1986
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13699,7 +11343,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13746,7 +11389,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13802,28 +11444,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1977,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1977",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1976
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13881,7 +11501,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13922,7 +11541,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -13963,7 +11581,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14016,7 +11633,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14057,7 +11673,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14098,7 +11713,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14147,7 +11761,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14192,7 +11805,6 @@
               5292
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14247,23 +11859,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2000,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2000",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14309,7 +11904,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14350,7 +11944,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14391,7 +11984,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14434,23 +12026,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1999,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1999",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14516,28 +12091,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1987,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1987",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1986
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14591,7 +12144,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14634,23 +12186,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1998,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1998",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14696,7 +12231,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14743,7 +12277,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14794,23 +12327,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2008,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_2008",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14880,14 +12396,6 @@
               3945
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1607,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -14941,23 +12449,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1983,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1983",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -15006,20 +12497,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2003,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 897,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -15076,28 +12553,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1979,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_argente_quest_1979",
-                  "atlas_section_id": "dofus_argente_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1978
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -15149,7 +12604,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -15203,7 +12657,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,

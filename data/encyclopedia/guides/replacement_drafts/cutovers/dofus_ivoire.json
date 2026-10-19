@@ -54,14 +54,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1317,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -168,98 +160,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1905,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1905",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1462
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1906,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1906",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1905
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1911,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1911",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1913,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1913",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1908,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1908",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1907
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -376,28 +276,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1905,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1905",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1462
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -451,7 +329,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -496,7 +373,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -552,7 +428,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -661,7 +536,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -714,7 +588,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -763,7 +636,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -812,7 +684,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -870,48 +741,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1905,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1905",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1462
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1906,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1906",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1905
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -979,7 +808,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1028,7 +856,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1077,7 +904,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1126,7 +952,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1183,7 +1008,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1248,7 +1072,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1297,7 +1120,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1350,7 +1172,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1402,7 +1223,6 @@
               5058
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1455,7 +1275,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1504,7 +1323,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1557,7 +1375,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1606,7 +1423,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1655,7 +1471,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1711,7 +1526,6 @@
               5019
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1777,7 +1591,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1826,7 +1639,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1879,7 +1691,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1932,7 +1743,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1983,7 +1793,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2032,48 +1841,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1906,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1906",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1905
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1907,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1907",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1906
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2144,28 +1911,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1907,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1907",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1906
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2207,7 +1952,6 @@
               4985
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2259,48 +2003,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1907,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1907",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1906
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1908,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1908",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1907
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2359,7 +2061,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2414,38 +2115,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1510,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1506,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1505,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1504,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1507,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2492,7 +2161,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2548,7 +2216,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2592,7 +2259,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2649,7 +2315,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2699,48 +2364,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1908,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1908",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1907
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1909,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1909",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1908
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2809,14 +2432,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1317,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2872,7 +2487,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2919,28 +2533,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1909,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1909",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1908
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2986,14 +2578,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1910,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3054,14 +2638,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1910,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3111,7 +2687,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3164,7 +2739,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3218,7 +2792,6 @@
               4971
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3265,14 +2838,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1910,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3322,7 +2887,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3379,7 +2943,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3428,7 +2991,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3475,7 +3037,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3522,7 +3083,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3575,20 +3135,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1872,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1871,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3635,7 +3181,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3689,68 +3234,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1913,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1913",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1914,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1914",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1911,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1911",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1912,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1912",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3809,7 +3292,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3858,7 +3340,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3919,7 +3400,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3972,7 +3452,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4017,7 +3496,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4062,7 +3540,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4133,7 +3610,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4188,23 +3664,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1914,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1914",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4258,7 +3717,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4309,7 +3767,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4358,7 +3815,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4403,7 +3859,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4448,7 +3903,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4501,7 +3955,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4553,7 +4006,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4621,7 +4073,6 @@
               4998
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4666,7 +4117,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4711,7 +4161,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4760,7 +4209,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4809,7 +4257,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4862,7 +4309,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4907,7 +4353,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4952,7 +4397,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -4999,7 +4443,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5055,14 +4498,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1736,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5112,7 +4547,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5169,7 +4603,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5218,7 +4651,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5269,7 +4701,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5314,7 +4745,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5363,7 +4793,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5412,7 +4841,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5461,7 +4889,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5510,7 +4937,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5557,7 +4983,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5606,7 +5031,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5651,7 +5075,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5702,7 +5125,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5756,7 +5178,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5805,7 +5226,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5856,7 +5276,6 @@
               5001
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5901,7 +5320,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -5950,7 +5368,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6003,7 +5420,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6048,7 +5464,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6101,7 +5516,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6159,53 +5573,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1912,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1912",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1911,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1911",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1913,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1913",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6271,48 +5638,6 @@
               4974
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1909,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1909",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1908
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 1915,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1915",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1909
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6373,7 +5698,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6418,7 +5742,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6465,7 +5788,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6519,7 +5841,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6564,7 +5885,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6611,7 +5931,6 @@
               5022
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6662,7 +5981,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6713,7 +6031,6 @@
               4991
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6774,7 +6091,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6827,7 +6143,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -6872,28 +6187,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 1915,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_ivoire_quest_1915",
-                  "atlas_section_id": "dofus_ivoire_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 1909
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,

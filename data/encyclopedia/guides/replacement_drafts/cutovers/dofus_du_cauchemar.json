@@ -48,7 +48,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -104,52 +103,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2421,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2413
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2423,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2138
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2422
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -192,28 +145,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2421,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2413
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -254,7 +185,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -301,14 +231,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2424,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -393,7 +315,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -438,14 +359,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2424,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -486,7 +399,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -529,7 +441,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -572,7 +483,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -628,7 +538,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -671,7 +580,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -708,7 +616,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -749,7 +656,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -790,7 +696,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -836,7 +741,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -885,7 +789,6 @@
               6800
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -933,7 +836,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -981,7 +883,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1033,14 +934,6 @@
               6746
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2428,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1080,7 +973,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1131,14 +1023,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2437,
-              "atlas_occurrences": [],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1195,7 +1079,6 @@
               6750
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1236,7 +1119,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1280,48 +1162,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2421,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2413
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2422,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2422",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2421
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1356,7 +1196,6 @@
               6751
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1388,7 +1227,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1420,7 +1258,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1465,7 +1302,6 @@
               6760
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1502,7 +1338,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1546,52 +1381,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2422,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2422",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2421
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            },
-            {
-              "quest_id": 2423,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2138
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2422
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1632,7 +1421,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1679,7 +1467,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1722,7 +1509,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1763,7 +1549,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1807,7 +1592,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1865,23 +1649,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2425,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2425",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1938,7 +1705,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -1991,23 +1757,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2425,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2425",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2051,7 +1800,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2092,7 +1840,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2133,7 +1880,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2174,7 +1920,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2215,7 +1960,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2261,7 +2005,6 @@
               6774
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2304,7 +2047,6 @@
               6763
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2345,7 +2087,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2388,7 +2129,6 @@
               6768
             ]
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2429,7 +2169,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2470,7 +2209,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2515,7 +2253,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2568,7 +2305,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -2623,436 +2359,6 @@
             ],
             "monster": []
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2420,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2420",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 704
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 716
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 938
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1462
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1463
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1464
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1465
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1466
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1467
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1469
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1470
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1471
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1521
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1522
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1523
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1524
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1525
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1526
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1528
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1529
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1615
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1631
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1632
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1634
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1635
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1653
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1654
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1656
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1657
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1658
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1659
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1660
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1661
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1662
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1663
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1677
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1781
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1782
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1784
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1785
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1786
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1787
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1788
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1789
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1791
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1792
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1793
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1841
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1905
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1906
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1907
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1908
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1909
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1911
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1912
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1913
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1914
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1915
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1958
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1959
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1960
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1962
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1963
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1964
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1965
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1966
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1967
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1968
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1969
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1970
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1971
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1972
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1973
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 1974
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2004
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2009
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2035
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2036
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2037
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2038
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2039
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2040
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2041
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2042
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2043
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2044
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2048
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2049
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2050
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2138
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2192
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2193
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2194
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2195
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2409
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2442
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2443
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2444
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2445
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2446
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2447
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2448
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2470
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3100,7 +2406,6 @@
             "object": [],
             "monster": []
           },
-          "atlas_quest_candidates": [],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
@@ -3163,32 +2468,6 @@
               6777
             ]
           },
-          "atlas_quest_candidates": [
-            {
-              "quest_id": 2423,
-              "atlas_occurrences": [
-                {
-                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
-                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
-                  "local_optional": false,
-                  "local_relation": "mandatory",
-                  "local_declared_prerequisites": [
-                    {
-                      "type": "quest",
-                      "entity_id": 2138
-                    },
-                    {
-                      "type": "quest",
-                      "entity_id": 2422
-                    }
-                  ],
-                  "local_alternative_groups": []
-                }
-              ],
-              "identity_certified": false,
-              "is_step_action_certified": false
-            }
-          ],
           "verified_actions": [],
           "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
           "manual_completion_allowed": true,
