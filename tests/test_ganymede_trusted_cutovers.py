@@ -20,6 +20,9 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
             "expected_source_step_count": 1,
             "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
             "source_text_copied": False,
+            "guide_progress_id_unchanged": True,
+            "legacy_manual_steps_migration_verified": True,
+            "cutover_blockers": [],
             "sections": [{
                 "id": "ganymede_2205_continuous",
                 "steps": [{
@@ -28,7 +31,13 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
                     "source_step_number": 1,
                     "manual_completion_allowed": False,
                     "original_prose_imported": False,
-                    "verified_actions": [],
+                    "source_action_review_status": "CERTIFIED_CANONICAL_ACTIONS",
+                    "verified_actions": [{
+                        "kind": "prepare",
+                        "text": "Préparer une Cawotte",
+                        "verified": True,
+                        "evidence": [{"type": "doduda_object", "id": 361}],
+                    }],
                     "source_action_candidates": [{
                         "kind": "prepare_object",
                         "label": "Préparer une Cawotte",
@@ -59,7 +68,7 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
             "payloads": {"dofus_cawotte": payload},
             "manifest": {"schema_version": 1, "guides": {"dofus_cawotte": {
                 "enabled": True,
-                "status": "TRUSTED_SOURCE_CUTOVER",
+                "status": "CERTIFIED_FOR_CUTOVER",
                 "source_guide_id": source_id,
                 "source_step_count": len(step_ids),
                 "fingerprint": route_fingerprint(source_id, step_ids),
@@ -86,12 +95,27 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
             prepare_trusted_cutover(self.preview)
 
     def test_missing_actions_never_activates(self):
-        self.preview["sections"][0]["steps"][0]["source_action_candidates"] = []
+        self.preview["sections"][0]["steps"][0]["verified_actions"] = []
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_candidate_labels_are_not_canonical_evidence(self):
+        self.preview["sections"][0]["steps"][0]["verified_actions"] = []
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unreviewed_automatic_actions_cannot_be_activated(self):
+        self.preview["sections"][0]["steps"][0]["source_action_review_status"] = "AUTO_EXTRACTED_NEEDS_REVIEW"
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unverified_progress_migration_cannot_be_activated(self):
+        self.preview["legacy_manual_steps_migration_verified"] = False
         with self.assertRaises(ValueError):
             prepare_trusted_cutover(self.preview)
 
     def test_empty_action_label_never_activates(self):
-        self.preview["sections"][0]["steps"][0]["source_action_candidates"][0]["label"] = " "
+        self.preview["sections"][0]["steps"][0]["verified_actions"][0]["text"] = " "
         with self.assertRaises(ValueError):
             prepare_trusted_cutover(self.preview)
 
