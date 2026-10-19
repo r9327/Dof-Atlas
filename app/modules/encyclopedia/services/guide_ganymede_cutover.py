@@ -1,4 +1,4 @@
-"""Fail-closed, single-route cutover for fully certified Ganymède Dofus guides.
+"""Fail-closed, single-route cutover for technically validated Ganymède Dofus guides.
 
 Never show source-link drafts as playable. A verified replacement is selected
 in place of, not in addition to, the legacy catalogue entry. No historical character progression exists to migrate.
@@ -26,7 +26,7 @@ def route_fingerprint(source_guide_id: int, step_ids: list[str]) -> str:
 
 
 def certified_payload_sha256(payload: dict) -> str:
-    """Bind the signed manifest to every draft action and its evidence."""
+    """Bind the cutover manifest to the full replacement payload."""
     encoded = json.dumps(
         payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
     ).encode("utf-8")
@@ -58,7 +58,7 @@ def select_verified_replacement_path(
         declaration = declarations.get(guide_id)
         if (not isinstance(declaration, dict)
                 or declaration.get("enabled") is not True
-                or declaration.get("status") != "CERTIFIED_FOR_CUTOVER"
+                or declaration.get("status") not in ("CERTIFIED_FOR_CUTOVER", "TRUSTED_SOURCE_CUTOVER")
                 ):
             return None
 
@@ -83,7 +83,7 @@ def select_verified_replacement_path(
                 or payload.get("category") != "dofus"
                 or payload.get("source_guide_id") != source_id
                 or payload.get("route_origin") != "GANYMEDE_CONTINUOUS_STEP_ORDER"
-                or payload.get("replacement_status") != "CERTIFIED_FOR_CUTOVER"
+                or payload.get("replacement_status") not in ("CERTIFIED_FOR_CUTOVER", "TRUSTED_SOURCE_CUTOVER")
                 or payload.get("replacement_active") is not True
                 or payload.get("completeness_status") != "complete"
                 or payload.get("expected_source_step_count") != count
