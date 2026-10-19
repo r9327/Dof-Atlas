@@ -197,6 +197,74 @@ class GuideRoutePlannerTests(unittest.TestCase):
         )
         self.assertEqual(stones.total_remaining, 2)
 
+    def test_shared_route_preserves_all_characters_prerequisite_order(self) -> None:
+        # Player 1 already finished the first action. An earliest-index-only
+        # sort would put 'finish' before 'start' for player 2.
+        engine = AdventureRouteEngine([
+            RouteAction(
+                "quest:start", 1, "Prendre — Mission", "start",
+                location=RouteLocation(map_id=20, x=20, y=0),
+                activates_quest=True,
+            ),
+            RouteAction(
+                "quest:finish", 1, "Vaincre la cible", "combat",
+                location=RouteLocation(map_id=10, x=0, y=0),
+                prerequisites_actions=frozenset({"quest:start"}),
+                monster_ids=frozenset({99}),
+            ),
+        ])
+        plan = GuideRoutePlanner(engine).plan([
+            GuideParticipantState(
+                "character:1",
+                progress=RouteProgress(
+                    active_quest_ids={1},
+                    completed_action_ids={"quest:start"},
+                ),
+            ),
+            GuideParticipantState("character:2"),
+        ])
+        self.assertEqual(
+            [row.action.action_id for row in plan.activities],
+            ["quest:start", "quest:finish"],
+        )
+        self.assertEqual(plan.activities[0].participant_keys, ("character:2",))
+        self.assertEqual(
+            plan.activities[1].participant_keys,
+            ("character:1", "character:2"),
+        )
+        self.assertNotIn(
+            "shared_route_order_conflict", [issue.code for issue in plan.issues],
+        )
+
+    def test_conflicting_individual_route_orders_fail_closed(self) -> None:
+        # Each participant optimizes from a different current map. Two
+        # opposite sequences cannot be combined into one claimed safe route.
+        a = RouteLocation(map_id=11, x=0, y=0, zone="Amakna")
+        b = RouteLocation(map_id=12, x=30, y=0, zone="Amakna")
+        engine = AdventureRouteEngine([
+            RouteAction("quest:a", 1, "Prendre — A", "start",
+                        location=a, activates_quest=True),
+            RouteAction("quest:b", 2, "Prendre — B", "start",
+                        location=b, activates_quest=True),
+        ])
+        plan = GuideRoutePlanner(engine).plan([
+            GuideParticipantState("character:1", start_location=a),
+            GuideParticipantState("character:2", start_location=b),
+        ])
+        self.assertEqual(len(plan.participants), 2)
+        self.assertEqual(plan.activities, ())
+        self.assertIn(
+            "shared_route_order_conflict", [issue.code for issue in plan.issues],
+        )
+        self.assertEqual(
+            [step.actions[0].action_id for step in plan.participants[0].route.steps],
+            ["quest:a", "quest:b"],
+        )
+        self.assertEqual(
+            [step.actions[0].action_id for step in plan.participants[1].route.steps],
+            ["quest:b", "quest:a"],
+        )
+
     def test_invalid_identity_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             GuideParticipantState("slot:1")
