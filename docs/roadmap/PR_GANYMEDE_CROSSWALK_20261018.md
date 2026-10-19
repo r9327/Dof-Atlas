@@ -954,3 +954,9 @@ La séquence de travail reste **#229 → #226 → #225**, sans fusion ni
 remplacement des anciennes fiches avant une vraie certification au SHA.
 Le fait d'avoir 100 % des positions sources **ne signifie pas** disposer
 de 100 % des fiches jouables.
+
+### Sécurité effective de la bascule — contrôle du 19/10/2026
+
+Le générateur de cutover ne peut plus convertir de simples `source_action_candidates`, y compris les indices extraits automatiquement, en guide jouable : un libellé ou une position ne prouve ni l'objectif Doduda ni le prérequis. **Chaque étape** doit maintenant disposer de `verified_actions` non vides, d'une preuve associée, de `source_action_review_status = CERTIFIED_CANONICAL_ACTIONS`, et le guide doit présenter `legacy_manual_steps_migration_verified = true`, `guide_progress_id_unchanged = true` et **zéro** `cutover_blockers`. Le sélecteur runtime refuse les anciens manifests `TRUSTED_SOURCE_CUTOVER` capables de contourner cette preuve et exige `CERTIFIED_FOR_CUTOVER` avec empreinte du payload.
+
+**État : zéro guide déclaré jouable par ces seuls brouillons.** Les fichiers `replacement_drafts` sont des outils de travail pour reconstituer, croiser et tester les actions, pas des commandes de jeu. L'activation future est soumise à la vérification des 1 694 étapes des 20 guides Dofus correspondants, aux prérequis/alternatives, à la migration de progression par personnage, puis aux tests UI et CI. Ne pas contourner le contrôle pour afficher prématurément les 95 guides dans #225.
