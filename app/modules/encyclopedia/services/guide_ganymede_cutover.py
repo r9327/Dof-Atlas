@@ -37,6 +37,8 @@ def certified_payload_sha256(payload: dict) -> str:
 def select_verified_replacement_path(
     guides_dir: Path,
     catalog_row: dict,
+    *,
+    allow_source_manual: bool = False,
 ) -> Path | None:
     """Select exactly one integrity-checked Dofus route, or keep the legacy file.
 
@@ -68,6 +70,12 @@ def select_verified_replacement_path(
         if (not isinstance(declaration, dict)
                 or declaration.get("enabled") is not True
                 or status not in {"CERTIFIED_FOR_CUTOVER", "TRUSTED_SOURCE_STEPS"}):
+            return None
+
+        # Source-hint routes have no canonical quest/objective connections yet.
+        # Until the guide UI explicitly supports them, keep the legacy runtime
+        # route and all existing quest navigation/progression contracts.
+        if status == "TRUSTED_SOURCE_STEPS" and allow_source_manual is not True:
             return None
 
         source_id = declaration.get("source_guide_id")
