@@ -88,7 +88,6 @@ def build_trusted_cutovers(root: Path) -> dict:
 
 def write_trusted_cutovers(result: dict, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    expected = set(result["payloads"])
     for guide_id, payload in result["payloads"].items():
         (output_dir / f"{guide_id}.json").write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -100,9 +99,12 @@ def write_trusted_cutovers(result: dict, output_dir: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True,
+                        help="Explicit replacement_drafts directory, never the live guides root")
     args = parser.parse_args()
     result = build_trusted_cutovers(args.root)
+    if args.output_dir.name != "replacement_drafts":
+        parser.error("--output-dir must name an explicit replacement_drafts directory")
     write_trusted_cutovers(result, args.output_dir)
     print(json.dumps({
         "ready": len(result["payloads"]),
