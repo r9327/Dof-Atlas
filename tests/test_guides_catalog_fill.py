@@ -101,7 +101,7 @@ class GuideCatalogFillTests(unittest.TestCase):
     def test_lanyel_sylvestre_reuses_the_adventure_guide_engine(self):
         guide = self.by_id["dofus_sylvestre"]
         self.assertEqual(guide.id, "dofus_sylvestre")
-        self.assertEqual(guide.title, "Lanyel Sylvestre")
+        self.assertEqual(guide.title, "Sylvestre Opti")
         self.assertEqual(guide.category, "aventure")
         self.assertEqual(len(guide.steps), 218)
         self.assertEqual(len(guide.required_steps), 198)
