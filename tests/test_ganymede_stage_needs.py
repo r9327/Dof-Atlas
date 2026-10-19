@@ -64,6 +64,19 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertFalse(first["needs"][0]["canonical_requirement_verified"])
         self.assertEqual(first["prerequisites"][0]["ganymede_prerequisite_guide_id"], 2211)
 
+    def test_collection_window_and_prior_stage_provenance_survive_export(self):
+        data = candidate()
+        data["steps"][0]["actions"][0]["collection_window_end"] = 2
+        data["steps"][2]["actions"][0]["references_previous_stage"] = 1
+        result = stage_needs(data)
+        initial = result["stages_with_requirements"][0]["needs"][0]
+        later = result["stages_with_requirements"][1]["needs"][0]
+        self.assertEqual(initial["needed_at_source_step"], 3)
+        self.assertEqual(initial["collection_window_end_candidate"], 2)
+        self.assertIsNone(initial["references_previous_stage_candidate"])
+        self.assertEqual(later["references_previous_stage_candidate"], 1)
+        self.assertIsNone(later["collection_window_end_candidate"])
+
     def test_optional_or_alternative_must_not_become_mandatory_stock(self):
         doc = stage_needs(candidate())
         first = doc["stages_with_requirements"][0]
