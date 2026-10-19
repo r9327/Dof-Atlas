@@ -11,14 +11,15 @@ on:
   push:
     branches:
       - main
+  # Every PR is developed as Draft. Certify once its complete candidate is
+  # explicitly marked Ready for review, never on every intermediate commit.
+  # Fixes after a failed final certification require manual workflow_dispatch
+  # on the updated branch/SHA. Keep main push certification unchanged.
   pull_request:
     branches:
       - main
       - phase8/peak250-guide-worker-v1
     types:
-      - opened
-      - reopened
-      - synchronize
       - ready_for_review
 
 permissions:
