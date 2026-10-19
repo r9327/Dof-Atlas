@@ -126,6 +126,16 @@ def project_ganymede_continuous_plan(
         for index, action in enumerate(candidates):
             if not isinstance(action, dict) or not isinstance(action.get("label"), str):
                 raise ValueError("Malformed source action")
+            signed_references = {
+                "object_ids": list(dict.fromkeys(
+                    ([action["object_id"]] if type(action.get("object_id")) is int else [])
+                    + (action.get("object_ids") or [])
+                )),
+                "quest_id": action.get("quest_id"),
+                "monster_id": action.get("monster_id"),
+                "dungeon_id": action.get("dungeon_id"),
+                "guide_id": action.get("guide_id"),
+            }
             row = audited_at_step.get(index)
             if row is not None:
                 if row["source_label"] != action["label"]:
@@ -134,7 +144,17 @@ def project_ganymede_continuous_plan(
                 classification = row["classification"]
                 label = row["display_label"]
                 localized = row["localized_name_verified"]
-                references = row["source_references"]
+                audited_references = row["source_references"]
+                for namespace, observed in audited_references.items():
+                    signed = signed_references[namespace]
+                    # A preparation audit can omit the associated quest ID,
+                    # but must never contradict an ID actually reported.
+                    if namespace == "object_ids":
+                        if observed and set(observed) != set(signed):
+                            raise ValueError("Conflicting source object IDs")
+                    elif observed is not None and observed != signed:
+                        raise ValueError(f"Conflicting source {namespace} ID")
+                references = signed_references
                 optional = row["optional"]
                 details = row["source_details"]
                 tree_predecessor = (
@@ -153,27 +173,17 @@ def project_ganymede_continuous_plan(
             else:
                 # Steps with no audited preparation still belong to the route.
                 # Their action references are display-only, not canonical.
-                reference = {
-                    "object_ids": list(dict.fromkeys(
-                        ([action["object_id"]] if type(action.get("object_id")) is int else [])
-                        + (action.get("object_ids") or [])
-                    )),
-                    "quest_id": action.get("quest_id"),
-                    "monster_id": action.get("monster_id"),
-                    "dungeon_id": action.get("dungeon_id"),
-                    "guide_id": action.get("guide_id"),
-                }
                 overlay = {
                     "source_guide_id": guide_id,
                     "stable_step_id": sid,
                     "source_action_index": index,
-                    "source_references": reference,
+                    "source_references": signed_references,
                     "source_label": action["label"],
                 }
                 _apply_localized_label(overlay, labels)
                 label = overlay["display_label"]
                 localized = overlay["localized_name_verified"]
-                references = reference
+                references = signed_references
                 optional = action.get("optional") is True
                 classification = "source_action_reference"
                 tree_predecessor = False
