@@ -89,6 +89,14 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
                          self.drafts / "dofus_cawotte.json")
 
+    def test_trusted_source_cutover_without_human_objective_review(self) -> None:
+        self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
+        self.save()
+        self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
+                         self.drafts / "dofus_cawotte.json")
+
     def test_no_activation_from_unplayable_source_preview(self) -> None:
         self.payload["replacement_active"] = False
         self.payload["replacement_status"] = "DRAFT_NOT_PLAYABLE"
