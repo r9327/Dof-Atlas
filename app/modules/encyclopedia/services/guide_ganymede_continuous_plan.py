@@ -22,6 +22,9 @@ from app.modules.encyclopedia.services.guide_ganymede_plan_input import (
 from app.modules.encyclopedia.services.guide_ganymede_preparation import (
     stage_preparation_preview,
 )
+from app.modules.encyclopedia.services.guide_route_naming import (
+    title_for_ganymede_step,
+)
 
 
 def project_ganymede_continuous_plan(
@@ -179,11 +182,14 @@ def project_ganymede_continuous_plan(
             type(v) is not int for v in p
         ) for p in positions):
             raise ValueError("Invalid observed Ganymède coordinates")
+        title = title_for_ganymede_step(step["title"], number)
         stages.append({
             "id": sid,
             "source_step_number": number,
             "source_page": step["source_page"],
             "title": step["title"],
+            "short_title": title.text,
+            "title_review_required": title.review_required,
             "source_coordinates_mentioned": positions,
             "verified_travel_plan": None,
             "action_rows": action_rows,
