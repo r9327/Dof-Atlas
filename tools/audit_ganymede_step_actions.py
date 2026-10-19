@@ -5,6 +5,7 @@ import argparse
 import json
 from pathlib import Path
 from tools.audit_ganymede_master_refs import ROOT
+from tools.ganymede_action_step_contract import validate_step_action
 
 DIRECTORY = Path("data/encyclopedia/guides")
 DEFAULT = DIRECTORY / "ganymede_2205_action_candidates.json"
@@ -71,6 +72,13 @@ def audit_action_candidates(root: Path, path: Path = DEFAULT) -> dict:
                 if kind not in KINDS or not isinstance(action.get("label"), str) or not action["label"].strip():
                     issues.append(f"invalid action type/label: {num}")
                     continue
+                issues.extend(
+                    f"step {num}: {error}" for error in validate_step_action(
+                        action, step_number=num,
+                        source_step_count=len(raw_steps),
+                        observed_monster_ids=source["external_dofusdb_ids"]["monster"],
+                    )
+                )
                 for name, ns in (("quest_id", "quest"), ("object_id", "object"), ("monster_id", "monster"), ("dungeon_id", "dungeon")):
                     if name in action and (type(action[name]) is not int or
                                             action[name] not in source["external_dofusdb_ids"][ns]):
