@@ -18,6 +18,25 @@ from tools.build_ganymede_replacement_previews import build_dofus_replacement_pr
 from tools.build_ganymede_trusted_cutovers import assert_reviewed_source_parity
 
 DIRECTORY = Path("data/encyclopedia/guides/replacement_drafts")
+# Static presentation/catalogue context is not a step, objective or progress.
+# It must survive a source-route cutover without copying old journey steps.
+_LEGACY_METADATA = (
+    "recommended_level_min", "recommended_level_max",
+    "reward_item_id", "illustration_item_id", "image",
+    "linked_achievement_ids",
+)
+
+
+def retain_legacy_display_metadata(route: dict, legacy: dict) -> dict:
+    """Keep verified local guide identity/icon/reward; never reuse old steps."""
+    if route.get("id") != legacy.get("id") or route.get("category") != legacy.get("category"):
+        raise ValueError("Cannot reuse metadata from a different local guide")
+    for field in _LEGACY_METADATA:
+        if field in legacy:
+            route[field] = deepcopy(legacy[field])
+    route["display_metadata_source"] = "ATLAS_LEGACY_CATALOGUE"
+    return route
+
 _SOURCE_STATUSES = {"REVIEW_SOURCE_ACTION", "AUTO_EXTRACTED_NEEDS_REVIEW"}
 
 
@@ -89,6 +108,9 @@ def build_source_cutovers(root: Path) -> dict:
         stored = json.loads(path.read_text(encoding="utf-8"))
         assert_reviewed_source_parity(stored, freshly_built)
         payload = prepare_source_cutover(stored)
+        # Reuse catalogue display identity, not old quest routes or progress.
+        legacy = json.loads((root / DIRECTORY.parent / f"{guide_id}.json").read_text(encoding="utf-8"))
+        retain_legacy_display_metadata(payload, legacy)
         steps = payload["sections"][0]["steps"]
         source_id = payload["source_guide_id"]
         payloads[guide_id] = payload
