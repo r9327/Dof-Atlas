@@ -10,7 +10,7 @@ from typing import Any
 _BOOLEAN_FLAGS = frozenset({
     "optional", "can_obtain_on_route", "group_fight", "cumulative_target",
     "stay_at_end", "capture_required", "daily_reset", "ally_must_survive",
-    "stop_before_boss", "quest_update_even_if_lost",
+    "stop_before_boss", "quest_update_even_if_lost", "optional_branch",
 })
 _POSITIVE_COUNTS = frozenset({
     "quantity_per_character", "repeat_count", "participants_min",
@@ -18,7 +18,7 @@ _POSITIVE_COUNTS = frozenset({
 })
 _TEXT_IDENTIFIERS = frozenset({
     "conditional", "alternative_group", "counter_scope", "quantity_scope",
-    "relation", "group_mode", "optional_branch", "mechanic",
+    "relation", "group_mode", "mechanic",
 })
 
 
