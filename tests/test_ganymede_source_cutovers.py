@@ -21,6 +21,8 @@ def fixture():
                 "id": "ganymede_2205_step_0001", "source_guide_id": 2205,
                 "source_step_number": 1, "original_prose_imported": False,
                 "verified_actions": [],
+                "atlas_quest_candidates": [{"quest_id": 827, "atlas_occurrences": []}],
+                "external_dofusdb_ids": {"quest": [827], "dungeon": [], "object": [], "monster": []},
                 "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
                 "source_action_candidates": [{"kind": "move", "label": "Aller à [25,-4]"}],
             }]}]}
@@ -35,6 +37,8 @@ class SourceCutoverTests(unittest.TestCase):
         self.assertFalse(route["canonical_objectives_certified"])
         self.assertFalse(route["legacy_manual_steps_migration_verified"])
         self.assertEqual(step["content"], "Aller à [25,-4]")
+        self.assertNotIn("atlas_quest_candidates", step)
+        self.assertEqual(step["external_dofusdb_ids"]["quest"], [827])
 
     def test_empty_action_rejected(self):
         candidate = fixture()
