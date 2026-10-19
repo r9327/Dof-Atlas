@@ -49,6 +49,13 @@ Statut : **socle moteur implémenté et testé de façon ciblée ; certification
 
 ### Raccordement complémentaire après vérification des 20 sources
 
+Correction de temporalité vérifiée par les cas de régression Cawotte :
+**cocher la fiche de mention n'efface jamais un besoin exigible à une fiche
+ultérieure** ; seul l'achèvement de la fiche d'échéance par le personnage
+concerné supprime sa ligne. Exemple : ressource facultative mentionnée en
+fiche 2, échéance fiche 34. Même en multicomptes, la validation du premier
+personnage ne modifie pas les besoins des autres.
+
 Le récapitulatif `summarize_stage_preparation` regroupe les références par
 **ID d'objet** et par **personnage sélectionné**. Une quantité totale n'est
 proposée que si les besoins sont univoques et que les stocks individuels
