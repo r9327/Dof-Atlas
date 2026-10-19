@@ -757,6 +757,13 @@ jobs:
             tests.test_security_hardening_guardrails
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Check Ganymede name and need provenance (PR 229)
+        if: ${{ github.event.pull_request.number == 229 }}
+        shell: pwsh
+        run: |
+          python -m unittest -v tests.test_ganymede_action_name_resolution tests.test_ganymede_stage_needs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload Doctor merge evidence
         if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
