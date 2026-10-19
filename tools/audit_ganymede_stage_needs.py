@@ -68,6 +68,12 @@ def stage_needs(candidate: dict) -> dict:
                     "needed_at_source_step": action.get(
                         "needed_at_source_step", position
                     ),
+                    "collection_window_end_candidate": action.get(
+                        "collection_window_end"
+                    ),
+                    "references_previous_stage_candidate": action.get(
+                        "references_previous_stage"
+                    ),
                     "conditional": action.get("conditional"),
                     "alternative_group": action.get("alternative_group"),
                     "optional": kind.startswith("optional_")
