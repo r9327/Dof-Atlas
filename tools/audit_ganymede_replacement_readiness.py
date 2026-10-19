@@ -144,13 +144,22 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
                         "detail": f"{source_id}: {action_report.get('issues', [])}",
                     })
             sources.append(state)
-        # The provider is the authority for a real cutover. Do not keep
-        # reporting zero after the source-trusted manual route was activated.
-        replacement = select_verified_replacement_path(root / GUIDES_DIR, entry)
+        # Validate signed source routes independently from their release gate.
+        # Prepared is not activated: existing quest links stay in the runtime
+        # until the manual UI and cross-navigation are integrated (#225/#226).
+        staged = select_verified_replacement_path(
+            root / GUIDES_DIR, entry, allow_source_manual=True,
+        )
+        replacement = select_verified_replacement_path(
+            root / GUIDES_DIR, entry,
+            allow_source_manual=entry.get("ganymede_manual_ui_ready") is True,
+        )
         mode = None
-        if replacement is not None:
-            activated = json.loads(replacement.read_text(encoding="utf-8"))
-            mode = activated["replacement_status"]
+        if staged is not None:
+            candidate = json.loads(staged.read_text(encoding="utf-8"))
+            mode = candidate["replacement_status"]
+            if replacement is None:
+                blockers.append("MANUAL_UI_AND_QUEST_LINKS_NOT_INTEGRATED")
         else:
             blockers.extend([
                 "SOURCE_STEP_ACTIONS_NOT_RECONSTRUCTED",
@@ -167,6 +176,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "legacy_progress_preserved": True,
             "source_guides": sources,
             "replacement_active": replacement is not None,
+            "replacement_staged": staged is not None,
             "replacement_mode": mode,
             "ready_to_replace": replacement is not None and not blockers,
             "source_trusted_manual_only": source_manual,
@@ -183,11 +193,13 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
     ready = sum(record["ready_to_replace"] for record in records)
     activated = sum(record["replacement_active"] for record in records)
     source_manual_count = sum(record["source_trusted_manual_only"] for record in records)
+    staged_count = sum(record["replacement_staged"] for record in records)
     canonical_count = sum(record["canonical_objectives_verified"] for record in records)
     return {
         "schema_version": 1,
         "status": ("FAIL" if issues else
                    "SOURCE_TRUSTED_MANUAL_ACTIVE" if ready else
+                   "SOURCE_TRUSTED_MANUAL_STAGED" if staged_count else
                    "BLOCKED_PENDING_PLAYABLE_ACTIONS"),
         "evidence_level": ("source_trusted_manual_only" if source_manual_count
                            else "migration_gate_not_route_generation"),
@@ -201,6 +213,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         "replacement_activated": activated > 0,
         "replacement_activated_count": activated,
         "source_trusted_manual_guides": source_manual_count,
+        "source_trusted_manual_staged_count": staged_count,
         "certified_canonical_guides": canonical_count,
         "source_action_reviewed_steps": sum(
             source["reviewed_action_candidate_steps"]
@@ -231,7 +244,7 @@ def main() -> int:
     else:
         print(serialized, end="")
     return (1 if report["status"] == "FAIL" else
-            0 if report["status"] == "SOURCE_TRUSTED_MANUAL_ACTIVE" else 2)
+            0 if report["status"] in {"SOURCE_TRUSTED_MANUAL_ACTIVE", "SOURCE_TRUSTED_MANUAL_STAGED"} else 2)
 
 
 if __name__ == "__main__":
