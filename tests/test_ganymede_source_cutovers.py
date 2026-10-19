@@ -8,7 +8,7 @@ from pathlib import Path
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
 )
-from tools.build_ganymede_source_cutovers import prepare_source_cutover
+from tools.build_ganymede_source_cutovers import prepare_source_cutover, retain_legacy_display_metadata
 
 
 def fixture():
@@ -39,6 +39,26 @@ class SourceCutoverTests(unittest.TestCase):
         self.assertEqual(step["content"], "Aller à [25,-4]")
         self.assertNotIn("atlas_quest_candidates", step)
         self.assertEqual(step["external_dofusdb_ids"]["quest"], [827])
+
+    def test_legacy_display_metadata_survives_without_old_steps(self):
+        route = prepare_source_cutover(fixture())
+        old = {"id": "dofus_cawotte", "category": "dofus",
+               "reward_item_id": 361, "illustration_item_id": 361,
+               "recommended_level_min": 80, "linked_achievement_ids": [123],
+               "sections": [{"steps": [{"id": "old_quest", "type": "quest"}]}]}
+        decorated = retain_legacy_display_metadata(route, old)
+        self.assertEqual(decorated["reward_item_id"], 361)
+        self.assertEqual(decorated["linked_achievement_ids"], [123])
+        self.assertEqual(decorated["recommended_level_min"], 80)
+        self.assertEqual(decorated["sections"][0]["steps"][0]["id"],
+                         "ganymede_2205_step_0001")
+        self.assertNotIn("parts", decorated)
+
+    def test_legacy_metadata_cannot_be_taken_from_another_guide(self):
+        route = prepare_source_cutover(fixture())
+        with self.assertRaisesRegex(ValueError, "different local guide"):
+            retain_legacy_display_metadata(route, {"id": "dofus_emeraude",
+                                                   "category": "dofus"})
 
     def test_empty_action_rejected(self):
         candidate = fixture()
