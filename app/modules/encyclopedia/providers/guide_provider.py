@@ -229,12 +229,12 @@ class GuideProvider:
                 self.validation_errors.append(f"catalog.json: categorie non autorisee: {row.get('category')}")
             path = self._safe_guide_path(file_name)
             if path is not None:
-                # Exactly one entry per guide: select a fully certified
-                # Ganymède route *instead of* its legacy file, never both.
-                # Without a valid cutover manifest, keep the original guide
-                # and its per-character progress untouched.
+                # Preserve legacy quest behavior until a Ganymède manual-step UI
+                # is actually integrated and the catalogue explicitly opts in.
+                # Never add a second route beside the first.
                 replacement = select_verified_replacement_path(
-                    self.guides_dir, row
+                    self.guides_dir, row,
+                    allow_source_manual=row.get("ganymede_manual_ui_ready") is True,
                 )
                 entries.append((replacement or path, dict(row)))
         return sorted(entries, key=lambda item: (self._category_sort_key(str(item[1].get("category") or "")), safe_int(item[1].get("order"), 9999) or 9999, item[0].name))
