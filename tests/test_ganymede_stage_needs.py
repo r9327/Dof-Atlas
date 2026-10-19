@@ -77,6 +77,46 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertEqual(later["references_previous_stage_candidate"], 1)
         self.assertIsNone(later["collection_window_end_candidate"])
 
+    def test_encounters_and_in_route_drops_are_not_shopping_orders(self):
+        data = candidate()
+        data["steps"][1]["actions"] = [
+            {"kind": "combat", "label": "Combattre ensemble",
+             "monster_id": 44, "group_fight": True, "participants_min": 3},
+            {"kind": "dungeon", "label": "Entrer au donjon", "dungeon_id": 70},
+            {"kind": "optional_capture", "label": "Capture facultative",
+             "monster_id": 44, "conditional": "guide_ocre"},
+            {"kind": "group_mechanic", "label": "Activer trois dalles",
+             "participants_min": 3},
+        ]
+        data["steps"][2]["actions"].extend([
+            {"kind": "drop_object", "label": "Obtenir la ressource",
+             "object_id": 81, "quantity": 2},
+            {"kind": "collect_object", "label": "Récolter la ressource",
+             "object_id": 82, "quantity": 1},
+            {"kind": "optional_drop", "label": "Drop annexe",
+             "object_id": 83},
+        ])
+        stages = stage_needs(data)["stages_with_requirements"]
+        self.assertEqual([s["source_step_number"] for s in stages], [1, 2, 3])
+        encounters = stages[1]["encounters"]
+        self.assertEqual([e["kind"] for e in encounters],
+                         ["combat", "dungeon", "optional_capture", "group_mechanic"])
+        self.assertEqual(encounters[0]["participants_min_candidate"], 3)
+        self.assertEqual(encounters[0]["external_dofusdb_monster_id"], 44)
+        self.assertFalse(encounters[0]["canonical_requirement_verified"])
+        self.assertIsNone(encounters[0]["character_completion_known"])
+        self.assertTrue(encounters[2]["optional"])
+        self.assertEqual(encounters[2]["conditional_candidate"], "guide_ocre")
+        self.assertFalse(encounters[3]["optional"])
+        drops = stages[2]["needs"][1:]
+        self.assertEqual([n["acquisition_mode_candidate"] for n in drops],
+                         ["drop_object", "collect_object", "optional_drop"])
+        self.assertTrue(all(n["obtainable_on_route_candidate"] is True for n in drops))
+        self.assertTrue(drops[-1]["optional"])
+        self.assertFalse(drops[0]["canonical_requirement_verified"])
+        self.assertIsNone(drops[0]["owned_or_prepared_by_any_character"])
+        self.assertEqual(drops[0]["source_action_label"], "Obtenir la ressource")
+
     def test_optional_or_alternative_must_not_become_mandatory_stock(self):
         doc = stage_needs(candidate())
         first = doc["stages_with_requirements"][0]
