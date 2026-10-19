@@ -351,6 +351,26 @@ jobs:
           }
           Write-Host "Ganymede action labels resolved from pinned French data: 1218/1218"
 
+      - name: Export all 95 Ganymede source-stage references (PR 229)
+        if: ${{ github.event.pull_request.number == 229 && steps.route.outputs.run_full == 'true' }}
+        shell: pwsh
+        run: |
+          $report = "artifacts/phase_certification/ganymede_all_guide_stage_refs.json"
+          python -m tools.build_ganymede_all_guide_stages --output $report
+          if ($LASTEXITCODE -ne 0) { throw "Ganymede 95-guide source references could not be exported" }
+          $source = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          if ($source.status -ne "REVIEW_PUBLIC_REFERENCES_ONLY" -or
+              $source.source_guides -ne 95 -or
+              $source.source_steps -ne 7705 -or
+              $source.playable_guides -ne 0 -or
+              $source.canonical_objectives_verified -ne 0 -or
+              $source.ready_to_replace -ne $false -or
+              $source.localized_reference_occurrences -le 0) {
+            throw "Ganymede source-stage export differs from audited public tree"
+          }
+          Write-Host "Ganymede source stages: 95 guides / 7705 stages"
+          Write-Host "Named source references: $($source.localized_reference_occurrences) / $($source.reference_occurrences)"
+
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
         if: steps.route.outputs.run_full == 'true'
@@ -784,7 +804,7 @@ jobs:
         if: ${{ github.event.pull_request.number == 229 }}
         shell: pwsh
         run: |
-          python -m unittest -v tests.test_ganymede_action_name_resolution tests.test_ganymede_stage_needs
+          python -m unittest -v tests.test_ganymede_action_name_resolution tests.test_ganymede_stage_needs tests.test_ganymede_all_guide_stages
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Doctor merge evidence
