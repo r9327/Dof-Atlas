@@ -328,6 +328,17 @@ jobs:
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Export Ganymede French label evidence (PR 229)
+        if: ${{ github.event.pull_request.number == 229 && steps.route.outputs.run_full == 'true' }}
+        shell: pwsh
+        run: |
+          $report = "artifacts/phase_certification/ganymede_french_label_evidence.json"
+          python -m tools.resolve_ganymede_action_labels --output $report
+          $code = $LASTEXITCODE
+          if ($code -eq 1) { throw "Ganymede name evidence could not be validated" }
+          if ($code -eq 2) { Write-Warning "Pinned Doduda source unavailable: see report; never certify names" }
+          if ($code -ne 0 -and $code -ne 2) { exit $code }
+
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
         if: steps.route.outputs.run_full == 'true'
