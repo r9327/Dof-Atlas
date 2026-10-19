@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
-    certified_payload_sha256, route_fingerprint,
+    certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
 )
-from tools.build_ganymede_trusted_cutovers import prepare_trusted_cutover
+from tools.build_ganymede_trusted_cutovers import prepare_trusted_cutover, write_trusted_cutovers
 
 
 class TrustedCutoverBuilderTests(unittest.TestCase):
@@ -47,6 +49,30 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
         self.assertFalse(self.preview["sections"][0]["steps"][0]["manual_completion_allowed"])
         self.assertEqual(len(certified_payload_sha256(result)), 64)
         self.assertEqual(len(route_fingerprint(2205, [step["id"]])), 64)
+
+    def test_generated_manifest_selects_trusted_route(self):
+        payload = prepare_trusted_cutover(self.preview)
+        source_id = payload["source_guide_id"]
+        step_ids = [step["id"] for step in payload["sections"][0]["steps"]]
+        result = {
+            "payloads": {"dofus_cawotte": payload},
+            "manifest": {"schema_version": 1, "guides": {"dofus_cawotte": {
+                "enabled": True,
+                "status": "TRUSTED_SOURCE_CUTOVER",
+                "source_guide_id": source_id,
+                "source_step_count": len(step_ids),
+                "fingerprint": route_fingerprint(source_id, step_ids),
+                "payload_sha256": certified_payload_sha256(payload),
+            }}},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            guides = Path(tmp) / "guides"
+            output = guides / "replacement_drafts"
+            write_trusted_cutovers(result, output)
+            self.assertEqual(
+                select_verified_replacement_path(guides, {"id": "dofus_cawotte", "category": "dofus"}),
+                output / "dofus_cawotte.json",
+            )
 
     def test_missing_actions_never_activates(self):
         self.preview["sections"][0]["steps"][0]["source_action_candidates"] = []
