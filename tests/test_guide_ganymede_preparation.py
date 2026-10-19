@@ -138,6 +138,31 @@ class GanymedeStagePreparationTests(unittest.TestCase):
         zero = stage_preparation_preview(_fixture(()))
         self.assertEqual(summarize_stage_preparation(zero)["items"], [])
 
+    def test_one_thousand_items_five_characters_remain_distinct_and_compact(self):
+        participants = [f"character:{index}" for index in range(1, 6)]
+        source = _fixture(participants)
+        base = source["source_action_proposals"][0]
+        source["source_action_proposals"] = []
+        for number in range(1, 1001):
+            row = deepcopy(base)
+            row["proposal_id"] = f"ganymede_2205_step_{number:04d}:action:000"
+            row["stable_step_id"] = f"ganymede_2205_step_{number:04d}"
+            row["source_step_number"] = number
+            row["source_references"]["object_ids"] = [number]
+            row["quantity_candidate"] = 1
+            source["source_action_proposals"].append(row)
+        inventories = {key: {i: 0 for i in range(1, 1001)}
+                       for key in participants}
+        preview = stage_preparation_preview(source, known_owned_items=inventories)
+        summary = summarize_stage_preparation(preview)
+        self.assertEqual(summary["distinct_item_count"], 1000)
+        self.assertEqual(len(preview["rows"]), 5000)
+        self.assertEqual(summary["items"][0]["required_total_candidate"], 5)
+        self.assertEqual(summary["items"][-1]["remaining_total_candidate"], 5)
+        self.assertTrue(all(len(item["by_character"]) == 5
+                            and not item["must_purchase"]
+                            for item in summary["items"]))
+
     def test_compact_rejects_false_certification_and_foreign_participants(self):
         preview = stage_preparation_preview(_fixture())
         preview["mandatory_purchase_claimed"] = True
