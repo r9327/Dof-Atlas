@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.resolve_ganymede_action_labels import PATTERN, render_labels, resolve_all
+from tools.resolve_ganymede_action_labels import PATTERN, _french_name, render_labels, resolve_all
 
 
 def candidate():
@@ -40,6 +40,19 @@ def candidate():
 
 
 class GanymedeActionNameResolutionTests(unittest.TestCase):
+    def test_untranslated_raw_name_is_not_misreported_as_french(self):
+        self.assertEqual(_french_name({"name": "English fallback", "nameId": 12}, {}),
+                         "")
+        self.assertEqual(
+            _french_name({"name": {"fr": "Nom français", "en": "English"}}, {}),
+            "Nom français",
+        )
+        self.assertEqual(
+            _french_name({"name": "English fallback", "nameId": 12},
+                         {"12": "Nom français"}),
+            "Nom français",
+        )
+
     def test_numeric_pattern_only_matches_explicit_source_ids(self):
         self.assertIsNotNone(PATTERN.search("Prévoir objet nº 17983 ×3"))
         self.assertIsNotNone(PATTERN.search("Guide n° 2204"))
