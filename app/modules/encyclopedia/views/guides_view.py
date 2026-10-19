@@ -1156,6 +1156,8 @@ class GuidesView(QWidget):
         self.link_service = LinkService(navigate_callback)
         self.launch_travel_callback = launch_travel_callback
         self.current_character_key = character_key or ""
+        self._continuous_route_panel = None
+        self._continuous_selected_character_keys: tuple[str, ...] | None = None
         self.quest_progress = self.quest_progress_service.progress
         self.quest_catalog = None
         self.progress_calculator = None
@@ -1668,6 +1670,11 @@ class GuidesView(QWidget):
         self.detail_header.setVisible(True)
         self._render_header(guide)
         self._render_breadcrumb(guide)
+        if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS":
+            self._render_continuous_source_guide(guide)
+            self.stack.setCurrentWidget(self.detail_page)
+            return
+        self._continuous_route_panel = None
         if self._guide_uses_steps_column(guide):
             self._populate_guide_left(guide)
         else:
@@ -1680,6 +1687,42 @@ class GuidesView(QWidget):
             0,
             lambda value=previous_position: self.center_scroll.verticalScrollBar().setValue(value),
         )
+
+    def _render_continuous_source_guide(self, guide: Guide) -> None:
+        """Source-mode only: never mix Ganymède with legacy quest series."""
+        from app.modules.encyclopedia.views.guide_continuous_route_panel import (
+            ContinuousGuideRoutePanel,
+        )
+
+        clear_layout(self.left_layout)
+        clear_layout(self.center_layout)
+        clear_layout(self.right_layout)
+        self.left_panel.setVisible(False)
+        self.right_panel.setVisible(False)
+        self.center_panel.setVisible(True)
+        self.center_panel.setMinimumWidth(340)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([0, 700, 0])
+        keys = self._continuous_selected_character_keys
+        if keys is None:
+            keys = ((self.current_character_key,)
+                    if is_character_key(self.current_character_key) else ())
+        panel = ContinuousGuideRoutePanel(
+            guide.raw, self.guide_progress_service, keys,
+        )
+        self.center_layout.addWidget(panel)
+        self._continuous_route_panel = panel
+        self.detail_header_progress.setVisible(False)
+        self.detail_header_done_button.setVisible(False)
+
+    def set_continuous_route_characters(self, character_keys: Iterable[str]) -> bool:
+        """Explicit multi-character choice used by the Guide's character picker."""
+        if self._continuous_route_panel is None:
+            return False
+        keys = tuple(character_keys)
+        self._continuous_route_panel.set_characters(keys)
+        self._continuous_selected_character_keys = keys
+        return True
 
     def show_quest_detail(self, quest_id: int, preserve_scroll: bool = False) -> bool:
         guide = self.current_guide()
