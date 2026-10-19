@@ -61,6 +61,10 @@ def prepare_source_cutover(draft: dict) -> dict:
         step["content"] = "\n".join(labels)
         step["manual_completion_allowed"] = True
         step["auto_completion_allowed"] = False
+        # Old Atlas quest-occurrence joins are available in the untouched draft.
+        # They are not consumed by the active renderer; dropping duplicate
+        # occurrences prevents the new routes from retaining needless RAM.
+        step.pop("atlas_quest_candidates", None)
     payload["description"] = "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés)."
     payload["completeness_status"] = "complete"
     payload["replacement_status"] = "TRUSTED_SOURCE_STEPS"
