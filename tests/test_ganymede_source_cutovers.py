@@ -86,7 +86,8 @@ class SourceCutoverTests(unittest.TestCase):
                 root, row, allow_source_manual=True), active / "dofus_cawotte.json")
             route["sections"][0]["steps"][0]["content"] = "Altéré"
             (active / "dofus_cawotte.json").write_text(json.dumps(route), encoding="utf-8")
-            self.assertIsNone(select_verified_replacement_path(root, row))
+            self.assertIsNone(select_verified_replacement_path(
+                root, row, allow_source_manual=True))
 
     def test_no_manifest_no_cutover(self):
         with tempfile.TemporaryDirectory() as tmp:
