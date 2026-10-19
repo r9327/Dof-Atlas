@@ -10,7 +10,7 @@ import argparse
 import json
 from pathlib import Path
 
-from tools.audit_ganymede_master_refs import ROOT
+from tools.audit_ganymede_master_refs import INDEX, ROOT
 from tools.audit_ganymede_step_actions import audit_action_candidates
 
 SOURCE = Path("data/encyclopedia/guides")
@@ -38,7 +38,49 @@ FIRST_STEP_GOAL_ITEMS = {
 }
 
 
-def stage_needs(candidate: dict) -> dict:
+def _public_tree_predecessors(root: Path) -> dict[int, set[int]]:
+    """Resolve direct and transitive public-tree links, refusing malformed cycles."""
+    doc = json.loads((root / INDEX).read_text(encoding="utf-8"))
+    rows = doc.get("guides")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("missing Ganymède guide tree")
+    links: dict[int, set[int]] = {}
+    for row in rows:
+        gid = row.get("ganymede_guide_id")
+        parents = row.get("public_tree_prerequisite_guide_ids")
+        if (type(gid) is not int or gid <= 0 or gid in links
+                or not isinstance(parents, list)
+                or any(type(x) is not int or x <= 0 for x in parents)
+                or len(parents) != len(set(parents))):
+            raise ValueError("malformed public guide prerequisite graph")
+        links[gid] = set(parents)
+    if any(not parents <= links.keys() for parents in links.values()):
+        raise ValueError("public guide prerequisite graph references missing guide")
+
+    complete: dict[int, set[int]] = {}
+    visiting: set[int] = set()
+
+    def walk(gid: int) -> set[int]:
+        if gid in visiting:
+            raise ValueError("cycle in public guide prerequisite graph")
+        if gid in complete:
+            return complete[gid]
+        visiting.add(gid)
+        found = set(links[gid])
+        for parent in links[gid]:
+            found.update(walk(parent))
+        visiting.remove(gid)
+        complete[gid] = found
+        return found
+
+    for gid in links:
+        walk(gid)
+    return complete
+
+
+def stage_needs(
+    candidate: dict, *, verified_guide_predecessors: set[int] | None = None,
+) -> dict:
     """Keep every source action occurrence, even repeated object/quest IDs.
 
     Quantities are *source proposals*, never projected into inventories. An
@@ -61,6 +103,7 @@ def stage_needs(candidate: dict) -> dict:
             raise ValueError(f"untrusted stage {position}")
         needs: list[dict] = []
         prereqs: list[dict] = []
+        related_guides: list[dict] = []
         encounters: list[dict] = []
         goals: list[dict] = []
         for action_index, action in enumerate(stage["actions"]):
@@ -132,7 +175,7 @@ def stage_needs(candidate: dict) -> dict:
                     "owned_or_prepared_by_any_character": None,
                 })
             if kind in PREREQUISITES:
-                prereqs.append({
+                row = {
                     "source_action_index": action_index,
                     "source_action_label": action.get("label"),
                     "kind": kind,
@@ -140,7 +183,23 @@ def stage_needs(candidate: dict) -> dict:
                     "ganymede_prerequisite_guide_id": action.get("guide_id"),
                     "optional": optional,
                     "canonical_requirement_verified": False,
-                })
+                }
+                if kind == "guide_dependency":
+                    tree_confirmed = (
+                        type(action.get("guide_id")) is int
+                        and action["guide_id"] in
+                        (verified_guide_predecessors or set())
+                    )
+                    row["public_tree_predecessor_verified"] = tree_confirmed
+                    row["source_link_is_canonical_quest_prerequisite"] = False
+                    if tree_confirmed:
+                        prereqs.append(row)
+                    else:
+                        # A linked guide is not necessarily a predecessor:
+                        # e.g. GP2 links the GP0 complete guide for navigation.
+                        related_guides.append(row)
+                else:
+                    prereqs.append(row)
             if kind in ENCOUNTER_ACTIONS:
                 encounters.append({
                     "source_action_index": action_index,
@@ -161,12 +220,13 @@ def stage_needs(candidate: dict) -> dict:
                     "canonical_requirement_verified": False,
                     "character_completion_known": None,
                 })
-        if needs or prereqs or encounters or goals:
+        if needs or prereqs or related_guides or encounters or goals:
             output.append({
                 "stable_step_id": stage["stable_step_id"],
                 "source_step_number": position,
                 "needs": needs,
                 "prerequisites": prereqs,
+                "related_guide_links": related_guides,
                 "encounters": encounters,
                 "goal_rewards": goals,
             })
@@ -184,6 +244,11 @@ def audit_stage_needs(root: Path) -> dict:
     root = Path(root).resolve()
     needs = {}
     problems: list[dict] = []
+    try:
+        tree_predecessors = _public_tree_predecessors(root)
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        tree_predecessors = {}
+        problems.append({"code": "invalid_public_guide_tree", "detail": str(exc)})
     paths = sorted((root / SOURCE).glob("ganymede_*_action_candidates.json"))
     for path in paths:
         report = audit_action_candidates(root, path)
@@ -195,7 +260,13 @@ def audit_stage_needs(root: Path) -> dict:
             continue
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
-            row = stage_needs(doc)
+            if doc["source_guide_id"] not in tree_predecessors:
+                raise ValueError("source guide absent from reviewed public tree")
+            row = stage_needs(
+                doc, verified_guide_predecessors=tree_predecessors[
+                    doc["source_guide_id"]
+                ],
+            )
             guide_id = row["atlas_guide_id"]
             if guide_id in needs:
                 raise ValueError(f"duplicate Atlas guide {guide_id}")
@@ -225,6 +296,16 @@ def audit_stage_needs(root: Path) -> dict:
             for row in needs.values()
         ),
         "source_stages": sum(row["source_step_count"] for row in needs.values()),
+        "verified_public_tree_guide_predecessor_proposals": sum(
+            sum(item["kind"] == "guide_dependency" for item in stage["prerequisites"])
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+        ),
+        "unverified_guide_link_proposals": sum(
+            len(stage["related_guide_links"])
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+        ),
         "encounter_action_proposals": sum(
             len(stage["encounters"])
             for guide in needs.values()
