@@ -28,6 +28,40 @@ from app.modules.encyclopedia.services.guide_route_naming import (
 )
 
 
+def _quest_link_by_id(
+    quest_id: int | None,
+    provider: object | None,
+    names: dict[int, str | None],
+) -> dict[str, object] | None:
+    """Match a source quest ID to the existing Atlas QuestProvider by ID only."""
+    if quest_id is None:
+        return None
+    if type(quest_id) is not int or quest_id <= 0:
+        raise ValueError("Invalid source quest ID")
+    if quest_id not in names:
+        resolved = None
+        if provider is not None:
+            getter = getattr(provider, "get_quest", None)
+            if not callable(getter):
+                raise ValueError("Expected the existing get_quest(id) provider contract")
+            record = getter(quest_id)
+            if record is not None:
+                if type(getattr(record, "id", None)) is not int or record.id != quest_id:
+                    raise ValueError("Source quest and Atlas catalogue IDs do not match")
+                name = getattr(record, "name", None)
+                if isinstance(name, str) and name.strip():
+                    resolved = name.strip()
+        names[quest_id] = resolved
+    name = names[quest_id]
+    return {
+        "quest_id": quest_id,
+        "quest_name": name,
+        "catalog_id_verified": name is not None,
+        "navigation_allowed": name is not None,
+        "quest_completion_verified": False,
+    }
+
+
 def project_ganymede_continuous_plan(
     guides_dir: Path,
     audited_needs: Mapping[str, object],
@@ -37,6 +71,7 @@ def project_ganymede_continuous_plan(
     completed_source_steps: Mapping[str, Iterable[str]] | None = None,
     known_owned_items: Mapping[str, Mapping[int, int]] | None = None,
     french_label_evidence: Mapping[str, object] | None = None,
+    quest_provider: object | None = None,
 ) -> dict[str, object]:
     """Join all signed source steps and audited needs without losing empty stages.
 
@@ -113,6 +148,7 @@ def project_ganymede_continuous_plan(
         preparation_due_step.setdefault(due, []).append(row)
     compact = summarize_stage_preparation(preparation)
     labels = _localized_labels(french_label_evidence)
+    quest_names: dict[int, str | None] = {}
     stages = []
     covered = set()
     for number, step in enumerate(steps, 1):
@@ -130,6 +166,8 @@ def project_ganymede_continuous_plan(
             raise ValueError("Missing source actions")
         audited_at_step = by_step.get(sid, {})
         action_rows = []
+        linked_quests = []
+        seen_quest_ids: set[int] = set()
         for index, action in enumerate(candidates):
             if not isinstance(action, dict) or not isinstance(action.get("label"), str):
                 raise ValueError("Malformed source action")
@@ -196,8 +234,23 @@ def project_ganymede_continuous_plan(
                 tree_predecessor = False
                 quantity = None
                 on_route = False
+            quest_link = _quest_link_by_id(
+                references["quest_id"], quest_provider, quest_names,
+            )
+            show_quest_button = False
+            if quest_link is not None:
+                qid = quest_link["quest_id"]
+                if qid not in seen_quest_ids:
+                    seen_quest_ids.add(qid)
+                    linked_quests.append(quest_link)
+                    show_quest_button = quest_link["navigation_allowed"]
             action_rows.append({
                 "source_action_index": index,
+                "quest_reference": quest_link,
+                "quest_hover_name": (
+                    quest_link["quest_name"] if quest_link else None
+                ),
+                "show_quest_button": show_quest_button,
                 "kind": action.get("kind"),
                 "source_label": action["label"],
                 "display_label": label,
@@ -232,6 +285,7 @@ def project_ganymede_continuous_plan(
             "source_coordinates_mentioned": positions,
             "verified_travel_plan": None,
             "action_rows": action_rows,
+            "linked_quests": linked_quests,
             "preparation_rows": preparation_by_step.get(sid, []),
             # Source occurrence and due time are different: a need mentioned
             # early can matter just before a much later dungeon/action.
@@ -259,6 +313,8 @@ def project_ganymede_continuous_plan(
         "source_step_count": len(stages),
         "source_action_count": sum(len(step["action_rows"]) for step in stages),
         "audited_action_count": len(covered),
+        "catalog_quest_ids_resolved": sum(name is not None for name in quest_names.values()),
+        "catalog_quest_ids_unresolved": sum(name is None for name in quest_names.values()),
         "preparation_item_occurrences": preparation["open_item_occurrences_per_character"],
         "preparation_summary": compact,
         "unknown_stock_rows": preparation["unknown_stock_rows"],
