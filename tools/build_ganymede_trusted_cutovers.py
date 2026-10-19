@@ -105,6 +105,9 @@ def main() -> int:
     if args.output_dir.name != "replacement_drafts":
         parser.error("--output-dir must name an explicit replacement_drafts directory")
     result = build_trusted_cutovers(args.root)
+    if result["skipped"]:
+        print(json.dumps({"skipped": result["skipped"]}, ensure_ascii=False, indent=2))
+        return 2
     write_trusted_cutovers(result, args.output_dir)
     print(json.dumps({
         "ready": len(result["payloads"]),
