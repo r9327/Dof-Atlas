@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import unittest
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
 )
-from tools.build_ganymede_trusted_cutovers import prepare_trusted_cutover, write_trusted_cutovers
+from tools.build_ganymede_trusted_cutovers import (
+    assert_reviewed_source_parity, prepare_trusted_cutover, write_trusted_cutovers,
+)
 
 
 class TrustedCutoverBuilderTests(unittest.TestCase):
@@ -18,6 +21,7 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
             "category": "dofus",
             "source_guide_id": 2205,
             "expected_source_step_count": 1,
+            "source_link_snapshot": "ganymede_cawotte_observed_links.json",
             "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
             "source_text_copied": False,
             "guide_progress_id_unchanged": True,
@@ -29,6 +33,12 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
                     "id": "ganymede_2205_step_0001",
                     "source_guide_id": 2205,
                     "source_step_number": 1,
+                    "source_page": 1,
+                    "source_coordinates_mentioned": [[25, -4]],
+                    "source_linked_guide_ids": [2204],
+                    "external_dofusdb_ids": {
+                        "quest": [827], "dungeon": [], "object": [], "monster": [],
+                    },
                     "manual_completion_allowed": False,
                     "original_prose_imported": False,
                     "source_action_review_status": "CERTIFIED_CANONICAL_ACTIONS",
@@ -83,6 +93,30 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
                 select_verified_replacement_path(guides, {"id": "dofus_cawotte", "category": "dofus"}),
                 output / "dofus_cawotte.json",
             )
+
+    def test_reviewed_actions_preserve_source_fact_parity(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["verified_actions"][0]["text"] = "Préparer la ressource canonique"
+        assert_reviewed_source_parity(reviewed, fresh)
+
+    def test_reviewed_step_cannot_rewrite_source_coordinates_or_ids(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["source_coordinates_mentioned"] = [[1, 1]]
+        with self.assertRaisesRegex(ValueError, "source_coordinates_mentioned"):
+            assert_reviewed_source_parity(reviewed, fresh)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["external_dofusdb_ids"]["quest"] = [999]
+        with self.assertRaisesRegex(ValueError, "external_dofusdb_ids"):
+            assert_reviewed_source_parity(reviewed, fresh)
+
+    def test_reviewed_route_cannot_point_at_another_source(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["source_guide_id"] = 999
+        with self.assertRaisesRegex(ValueError, "source_guide_id"):
+            assert_reviewed_source_parity(reviewed, fresh)
 
     def test_source_count_mismatch_rejected(self):
         self.preview["expected_source_step_count"] = 2
