@@ -236,9 +236,9 @@ class GuideRoutePlannerTests(unittest.TestCase):
             "shared_route_order_conflict", [issue.code for issue in plan.issues],
         )
 
-    def test_conflicting_individual_route_orders_fail_closed(self) -> None:
-        # Each participant optimizes from a different current map. Two
-        # opposite sequences cannot be combined into one claimed safe route.
+    def test_independent_actions_remain_shared_despite_different_solo_routes(self) -> None:
+        # Geographic preferences are not canonical prerequisites. If players
+        # start on opposite sides of a zone, one common route is still valid.
         a = RouteLocation(map_id=11, x=0, y=0, zone="Amakna")
         b = RouteLocation(map_id=12, x=30, y=0, zone="Amakna")
         engine = AdventureRouteEngine([
@@ -251,11 +251,6 @@ class GuideRoutePlannerTests(unittest.TestCase):
             GuideParticipantState("character:1", start_location=a),
             GuideParticipantState("character:2", start_location=b),
         ])
-        self.assertEqual(len(plan.participants), 2)
-        self.assertEqual(plan.activities, ())
-        self.assertIn(
-            "shared_route_order_conflict", [issue.code for issue in plan.issues],
-        )
         self.assertEqual(
             [step.actions[0].action_id for step in plan.participants[0].route.steps],
             ["quest:a", "quest:b"],
@@ -263,6 +258,16 @@ class GuideRoutePlannerTests(unittest.TestCase):
         self.assertEqual(
             [step.actions[0].action_id for step in plan.participants[1].route.steps],
             ["quest:b", "quest:a"],
+        )
+        self.assertEqual(
+            {row.action.action_id for row in plan.activities},
+            {"quest:a", "quest:b"},
+        )
+        self.assertTrue(all(row.participant_keys == (
+            "character:1", "character:2",
+        ) for row in plan.activities))
+        self.assertNotIn(
+            "shared_route_order_conflict", [issue.code for issue in plan.issues],
         )
 
     def test_invalid_identity_is_rejected(self) -> None:
