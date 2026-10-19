@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from tools.build_ganymede_home_catalog import (
-    CROSSWALK, DESTINATION, GROUPS, INDEX, LAYOUT,
+    CATALOG, CROSSWALK, DESTINATION, GROUPS, INDEX, LAYOUT,
     build_home_catalog, render_catalog,
 )
 
@@ -19,7 +19,7 @@ class GanymedeHomeCatalogTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        for source in (INDEX, CROSSWALK):
+        for source in (INDEX, CROSSWALK, CATALOG):
             target = self.root / source
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((ROOT / source).read_bytes())
@@ -94,6 +94,18 @@ class GanymedeHomeCatalogTests(unittest.TestCase):
             ganymede_guide_id=data["guides"][0]["ganymede_guide_id"]
         ))
         with self.assertRaisesRegex(ValueError, "Duplicate"):
+            build_home_catalog(self.root)
+
+    def test_crosswalk_cannot_link_to_an_invented_local_guide(self) -> None:
+        self.edit(CROSSWALK, lambda data: data["guides"][0].update(
+            atlas_guide_ids=["guide_qui_n_existe_pas"]
+        ))
+        with self.assertRaisesRegex(ValueError, "Nonexistent Atlas navigation targets"):
+            build_home_catalog(self.root)
+
+    def test_disabled_atlas_guide_is_not_a_valid_destination(self) -> None:
+        self.edit(CATALOG, lambda data: data["guides"][0].update(enabled=False))
+        with self.assertRaisesRegex(ValueError, "Nonexistent Atlas navigation targets"):
             build_home_catalog(self.root)
 
     def test_unknown_crosswalk_source_cannot_create_navigation(self) -> None:
