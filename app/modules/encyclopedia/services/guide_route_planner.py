@@ -396,6 +396,11 @@ class GuideRoutePlanner:
             )
 
         zaap_routes = tuple(verified_zaap_routes)
+        # This is a route *estimate*, not live player tracking.
+        # Never move a player to another participant's inferred position.
+        projected_locations = {
+            state.character_key: state.start_location for state in states
+        }
         activities: list[GroupedGuideActivity] = []
         for action_id in ordered_ids:
             rows = memberships[action_id]
@@ -409,7 +414,11 @@ class GuideRoutePlanner:
                 worlds_by_character,
                 zaap_routes,
                 issues,
+                projected_locations,
             )
+            if action.location.x is not None and action.location.y is not None:
+                for character_key in participant_keys:
+                    projected_locations[character_key] = action.location
             synthetic_step = RouteStep(
                 index=len(activities) + 1,
                 location=action.location,
@@ -446,6 +455,7 @@ class GuideRoutePlanner:
         worlds_by_character: Mapping[str, str],
         zaap_routes: tuple[VerifiedZaapRoute, ...],
         issues: list[GuidePlanningIssue],
+        projected_locations: Mapping[str, RouteLocation | None],
     ) -> GuideTravelPlan | None:
         destination = action.location
         if destination.x is None or destination.y is None:
@@ -457,6 +467,16 @@ class GuideRoutePlanner:
                 )
             )
             return None
+
+        # A global command applies to the whole selected subset. If one
+        # participant is already on the destination map, forcing a Zaap on
+        # everybody adds a needless teleport and can split the group.
+        if any(
+            projected_locations.get(key) is not None
+            and projected_locations[key].same_map(destination)
+            for key in participant_keys
+        ):
+            return GuideTravelPlan(TravelMode.DIRECT, destination, participant_keys)
 
         candidates = sorted(
             (
