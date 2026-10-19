@@ -107,6 +107,24 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.save()
         self.assertIsNotNone(select_verified_replacement_path(self.guides, self.entry))
 
+    def test_trusted_source_rejects_mixed_empty_candidate_labels(self) -> None:
+        self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
+        for step in self.steps:
+            step["verified_actions"] = []
+            step["source_action_candidates"] = [
+                {"kind": "move", "label": "Aller au prochain point"},
+                {"kind": "interact", "label": ""},
+            ]
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_manifest_status_must_match_payload_status(self) -> None:
+        self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
     def test_trusted_source_empty_candidates_still_rejected(self) -> None:
         self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
         self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
