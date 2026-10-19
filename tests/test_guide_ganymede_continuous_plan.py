@@ -146,9 +146,16 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         self.assertTrue(first["action_rows"])
         self.assertTrue(all(row["source_label"] and row["display_label"]
                             for row in first["action_rows"]))
-        self.assertTrue(any(row["classification"] == "related_guide_reference"
-                            for stage in plan["stages"]
-                            for row in stage["action_rows"]))
+        related = [
+            row for stage in plan["stages"] for row in stage["action_rows"]
+            if row["classification"] == "related_guide_reference"
+        ]
+        self.assertTrue(related)
+        self.assertTrue(all(
+            row["navigation_only"] and not row["public_tree_predecessor_verified"]
+            and not row["must_purchase"]
+            for row in related
+        ))
         self.assertTrue(all(row["canonical_objective_verified"] is False
                             for stage in plan["stages"]
                             for row in stage["action_rows"]))
