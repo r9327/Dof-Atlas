@@ -1,9 +1,14 @@
 """The canonical label overlay must not certify gameplay or corrupt source links."""
 from __future__ import annotations
 
+import hashlib
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from tools.resolve_ganymede_action_labels import PATTERN, render_labels
+from tools.resolve_ganymede_action_labels import PATTERN, render_labels, resolve_all
 
 
 def candidate():
@@ -80,6 +85,65 @@ class GanymedeActionNameResolutionTests(unittest.TestCase):
         self.assertEqual(result["resolved_action_labels"], 0)
         self.assertEqual(result["unresolved_references"][0]["cause"],
                          "unlinked_or_ambiguous_id")
+
+    def test_full_overlay_uses_localized_pinned_raw_and_rejects_stale_digest(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            raw = root / "raw"
+            raw.mkdir()
+            catalog = root / "data/encyclopedia/guides"
+            catalog.mkdir(parents=True)
+            for source_id in range(9001, 9021):
+                data = {
+                    "atlas_guide_id": f"dofus_{source_id}",
+                    "source_guide_id": source_id, "source_step_count": 1,
+                    "steps": [{
+                        "source_step_number": 1,
+                        "stable_step_id": f"ganymede_{source_id}_step_0001",
+                        "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+                        "actions": [{
+                            "kind": "prepare_object",
+                            "label": "Prévoir objet nº 17983 ×1",
+                            "object_id": 17983, "quantity": 1,
+                        }],
+                    }],
+                }
+                (catalog / f"ganymede_{source_id}_action_candidates.json").write_text(
+                    json.dumps(data, ensure_ascii=False), encoding="utf-8"
+                )
+            items = raw / "items.json"
+            lang = raw / "languages/fr.json"
+            lang.parent.mkdir(parents=True)
+            items.write_text(json.dumps({
+                "RefIds": [{"data": {"id": 17983, "nameId": 500}}]
+            }), encoding="utf-8")
+            lang.write_text(json.dumps({
+                "entries": {"500": "Ressource française"}
+            }), encoding="utf-8")
+            pinned = {}
+            for key, path in (("items.json", items), ("languages/fr.json", lang)):
+                data = path.read_bytes()
+                pinned[key] = {"size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+            fake_lock = {"tag": "test-pinned", "assets": pinned}
+            valid = {"status": "AUTO_EXTRACTED_NEEDS_MANUAL_REVIEW", "issues": []}
+            with patch("tools.resolve_ganymede_action_labels.read_lock", return_value=fake_lock), \
+                 patch("tools.resolve_ganymede_action_labels.audit_action_candidates",
+                       return_value=valid):
+                report = resolve_all(root, raw_dir=raw)
+                self.assertEqual(report["status"], "REVIEW_NAMES_RESOLVED", report)
+                self.assertEqual(report["resolved_action_labels"], 20)
+                self.assertEqual(report["unresolved_reference_count"], 0)
+                self.assertFalse(report["ready_to_replace"])
+                self.assertEqual(
+                    report["guides"][0]["label_overrides"][0]["display_label"],
+                    "Prévoir objet «Ressource française» ×1",
+                )
+                items.write_text(items.read_text(encoding="utf-8") + " ",
+                                 encoding="utf-8")
+                blocked = resolve_all(root, raw_dir=raw)
+                self.assertEqual(blocked["status"],
+                                 "BLOCKED_CANONICAL_SOURCE_UNAVAILABLE")
+                self.assertIn("items.json", blocked["missing_or_stale_pinned_assets"])
 
     def test_identical_ids_in_two_stages_keep_both_occurrences(self):
         source = candidate()
