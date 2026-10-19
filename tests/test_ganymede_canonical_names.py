@@ -93,7 +93,7 @@ class GanymedeCanonicalNameReviewTests(unittest.TestCase):
 
     def _write_canonical(self, name: str | None, *, row_id: int = 100) -> None:
         self._write(self.quests_path, {
-            "RefIds": {"100": {"data": {"id": row_id, "nameId": 300}}}
+            "RefIds": [{"data": {"id": row_id, "nameId": 300}}]
         })
         self._write(self.language_path, {
             "entries": {"300": name} if name is not None else {}
