@@ -197,6 +197,32 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                     root, self.audited, "dofus_cawotte", ["character:1"],
                 )
 
+    def test_audited_action_ids_match_signed_source_and_keep_quest_context(self):
+        plan = self.build()
+        stage = plan["stages"][1]
+        item = next(
+            row for row in stage["action_rows"]
+            if 361 in row["source_references"]["object_ids"]
+        )
+        self.assertEqual(item["source_references"]["quest_id"], 840)
+        self.assertFalse(item["canonical_objective_verified"])
+
+        bad = deepcopy(self.audited)
+        second = next(
+            stage for stage in
+            bad["guides"]["dofus_cawotte"]["stages_with_requirements"]
+            if stage["source_step_number"] == 2
+        )
+        need = next(
+            item for item in second["needs"]
+            if 361 in item["external_dofusdb_object_ids"]
+        )
+        need["external_dofusdb_object_ids"] = [99999999]
+        with self.assertRaises(ValueError):
+            project_ganymede_continuous_plan(
+                GUIDES, bad, "dofus_cawotte", ["character:1"],
+            )
+
     def test_audited_report_mismatch_is_rejected(self):
         bad = deepcopy(self.audited)
         bad["guides"]["dofus_cawotte"]["source_guide_id"] = 123
