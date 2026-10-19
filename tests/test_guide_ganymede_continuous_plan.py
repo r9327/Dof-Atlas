@@ -140,6 +140,34 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
             for row in after_mark["stages"][1]["preparation_rows"]
         ))
 
+    def test_future_need_is_due_later_not_reclassified_as_purchase(self):
+        route = self.build()
+        self.assertEqual(route["preparation_summary"]["status"],
+                         "REVIEW_PREPARATION_COMPACT")
+        self.assertEqual(
+            route["preparation_summary"]["distinct_item_count"],
+            len({r["item_id"] for stage in route["stages"]
+                 for r in stage["preparation_rows"]}),
+        )
+        # Ganymède Cawotte lists optional extra carrots on stage 2, needed
+        # at stage 34. The original source occurrence stays at stage 2.
+        source_stage = route["stages"][1]
+        future_stage = route["stages"][33]
+        source_rows = [
+            r for r in source_stage["preparation_rows"]
+            if r["item_id"] == 361 and r["needed_at_source_step"] == 34
+        ]
+        self.assertTrue(source_rows)
+        matching = [
+            r for r in future_stage["preparation_due_rows"]
+            if r["proposal_id"] == source_rows[0]["proposal_id"]
+        ]
+        self.assertEqual(len(matching), len(source_rows))
+        self.assertTrue(all(r["optional_or_conditional"]
+                            and not r["must_purchase"] for r in matching))
+        self.assertFalse(any(r["proposal_id"] == source_rows[0]["proposal_id"]
+                             for r in source_stage["preparation_due_rows"]))
+
     def test_source_actions_keep_audited_types_and_ignore_navigation_links(self):
         plan = self.build(guide="dofus_argente")
         first = plan["stages"][0]
