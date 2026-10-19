@@ -136,6 +136,8 @@ def stage_preparation_preview(
                     "character_key": character,
                     "item_id": item_id,
                     "source_label": source["source_label"],
+                    "display_label": source.get("display_label", source["source_label"]),
+                    "localized_name_verified": source.get("localized_name_verified", False),
                     "quantity_per_character_candidate": quantity,
                     "owned_quantity_explicit": owned,
                     "remaining_quantity_candidate": remaining,
