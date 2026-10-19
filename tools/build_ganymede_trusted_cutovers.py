@@ -102,9 +102,9 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True,
                         help="Explicit replacement_drafts directory, never the live guides root")
     args = parser.parse_args()
-    result = build_trusted_cutovers(args.root)
     if args.output_dir.name != "replacement_drafts":
         parser.error("--output-dir must name an explicit replacement_drafts directory")
+    result = build_trusted_cutovers(args.root)
     write_trusted_cutovers(result, args.output_dir)
     print(json.dumps({
         "ready": len(result["payloads"]),
