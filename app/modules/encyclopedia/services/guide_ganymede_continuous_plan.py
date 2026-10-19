@@ -19,6 +19,9 @@ from app.modules.encyclopedia.services.guide_ganymede_plan_input import (
     _localized_labels,
     prepare_ganymede_plan_input,
 )
+from app.modules.encyclopedia.services.guide_ganymede_preparation import (
+    stage_preparation_preview,
+)
 
 
 def project_ganymede_continuous_plan(
@@ -28,6 +31,7 @@ def project_ganymede_continuous_plan(
     character_keys: Iterable[str],
     *,
     completed_source_steps: Mapping[str, Iterable[str]] | None = None,
+    known_owned_items: Mapping[str, Mapping[int, int]] | None = None,
     french_label_evidence: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     """Join all signed source steps and audited needs without losing empty stages.
@@ -88,6 +92,16 @@ def project_ganymede_continuous_plan(
             raise ValueError("Foreign, duplicated or invalid Ganymède progress ID")
         marks[key] = frozenset(items)
 
+    preparation = stage_preparation_preview(
+        source,
+        known_owned_items=known_owned_items,
+        completed_source_steps={
+            key: {atlas_guide_id: marks[key]} for key in selected
+        },
+    )
+    preparation_by_step: dict[str, list[dict]] = {}
+    for row in preparation["rows"]:
+        preparation_by_step.setdefault(row["source_step_id"], []).append(row)
     labels = _localized_labels(french_label_evidence)
     stages = []
     covered = set()
@@ -173,6 +187,7 @@ def project_ganymede_continuous_plan(
             "source_coordinates_mentioned": positions,
             "verified_travel_plan": None,
             "action_rows": action_rows,
+            "preparation_rows": preparation_by_step.get(sid, []),
             "pending_character_keys": pending,
             "manually_completed_character_keys": completed,
             "all_selected_participants_completed": bool(selected) and not pending,
@@ -196,6 +211,9 @@ def project_ganymede_continuous_plan(
         "source_step_count": len(stages),
         "source_action_count": sum(len(step["action_rows"]) for step in stages),
         "audited_action_count": len(covered),
+        "preparation_item_occurrences": preparation["open_item_occurrences_per_character"],
+        "unknown_stock_rows": preparation["unknown_stock_rows"],
+        "must_purchase": False,
         "actual_step_id": actual,
         "manual_progress_only": True,
         "auto_completion_allowed": False,
