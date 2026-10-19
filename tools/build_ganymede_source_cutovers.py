@@ -16,6 +16,7 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 from tools.audit_ganymede_master_refs import ROOT
 from tools.build_ganymede_replacement_previews import build_dofus_replacement_previews
 from tools.build_ganymede_trusted_cutovers import assert_reviewed_source_parity
+from tools.audit_ganymede_step_actions import KINDS
 
 DIRECTORY = Path("data/encyclopedia/guides/replacement_drafts")
 # Static presentation/catalogue context is not a step, objective or progress.
@@ -38,6 +39,25 @@ def retain_legacy_display_metadata(route: dict, legacy: dict) -> dict:
     return route
 
 _SOURCE_STATUSES = {"REVIEW_SOURCE_ACTION", "AUTO_EXTRACTED_NEEDS_REVIEW"}
+
+
+def assert_reviewed_actions_match_source(reviewed: dict, fresh: dict) -> None:
+    """Do not sign altered, injected or reordered action hints.
+
+    The freshly generated preview comes from source snapshots plus audited
+    candidate evidence. A reviewed local draft must agree on every *candidate*
+    action before it may be promoted to a signed manual route. Certified
+    canonical actions are a separate contract and never inferred here.
+    """
+    for number, (actual, expected) in enumerate(zip(
+        reviewed["sections"][0]["steps"], fresh["sections"][0]["steps"], strict=True
+    ), 1):
+        for field in ("source_action_candidates", "source_action_review_status",
+                      "source_action_candidate_status"):
+            if actual.get(field) != expected.get(field):
+                raise ValueError(
+                    f"Source action evidence drift at step {number} in {field}"
+                )
 
 
 def prepare_source_cutover(draft: dict) -> dict:
@@ -70,7 +90,7 @@ def prepare_source_cutover(draft: dict) -> dict:
             raise ValueError(f"Missing source action candidates at {number}")
         labels = []
         for action in actions:
-            if not isinstance(action, dict) or not isinstance(action.get("kind"), str):
+            if not isinstance(action, dict) or action.get("kind") not in KINDS:
                 raise ValueError(f"Malformed action at {number}")
             label = action.get("label")
             if not isinstance(label, str) or not label.strip() or len(label) > 120:
@@ -107,6 +127,7 @@ def build_source_cutovers(root: Path) -> dict:
         path = root / DIRECTORY / f"{guide_id}.json"
         stored = json.loads(path.read_text(encoding="utf-8"))
         assert_reviewed_source_parity(stored, freshly_built)
+        assert_reviewed_actions_match_source(stored, freshly_built)
         payload = prepare_source_cutover(stored)
         # Reuse catalogue display identity, not old quest routes or progress.
         legacy = json.loads((root / DIRECTORY.parent / f"{guide_id}.json").read_text(encoding="utf-8"))
