@@ -5134,5 +5134,14 @@
   "source_action_candidate_actions": 369,
   "progress_migration_not_required": true,
   "canonical_objectives_certified": false,
-  "auto_completion_allowed": false
+  "auto_completion_allowed": false,
+  "recommended_level_min": 160,
+  "recommended_level_max": 200,
+  "reward_item_id": 739,
+  "illustration_item_id": 739,
+  "image": null,
+  "linked_achievement_ids": [
+    1385
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
 }

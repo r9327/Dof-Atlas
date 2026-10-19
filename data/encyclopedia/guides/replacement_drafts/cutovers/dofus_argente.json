@@ -12682,5 +12682,26 @@
   "source_action_candidate_actions": 845,
   "progress_migration_not_required": true,
   "canonical_objectives_certified": false,
-  "auto_completion_allowed": false
+  "auto_completion_allowed": false,
+  "recommended_level_min": 1,
+  "recommended_level_max": 40,
+  "reward_item_id": 19629,
+  "illustration_item_id": 19629,
+  "image": null,
+  "linked_achievement_ids": [
+    649,
+    1378,
+    1379,
+    1380,
+    1381,
+    1671,
+    1672,
+    1673,
+    1674,
+    1675,
+    1676,
+    1678,
+    1679
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
 }

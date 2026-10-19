@@ -6360,5 +6360,20 @@
   "source_action_candidate_actions": 412,
   "progress_migration_not_required": true,
   "canonical_objectives_certified": false,
-  "auto_completion_allowed": false
+  "auto_completion_allowed": false,
+  "recommended_level_min": 50,
+  "recommended_level_max": 200,
+  "reward_item_id": 7043,
+  "illustration_item_id": 7043,
+  "image": null,
+  "linked_achievement_ids": [
+    551,
+    552,
+    553,
+    554,
+    920,
+    921,
+    922
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
 }

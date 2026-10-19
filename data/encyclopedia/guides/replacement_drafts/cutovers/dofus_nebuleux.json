@@ -410,5 +410,30 @@
   "source_action_candidate_actions": 28,
   "progress_migration_not_required": true,
   "canonical_objectives_certified": false,
-  "auto_completion_allowed": false
+  "auto_completion_allowed": false,
+  "recommended_level_min": 100,
+  "recommended_level_max": 200,
+  "reward_item_id": 8698,
+  "illustration_item_id": 8698,
+  "image": null,
+  "linked_achievement_ids": [
+    1072,
+    1073,
+    1074,
+    1075,
+    1076,
+    1102,
+    1103,
+    1104,
+    1105,
+    1106,
+    1142,
+    1143,
+    1144,
+    1145,
+    1146,
+    1186,
+    1188
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
 }
