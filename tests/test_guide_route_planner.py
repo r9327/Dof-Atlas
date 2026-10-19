@@ -124,6 +124,32 @@ class GuideRoutePlannerTests(unittest.TestCase):
             ("character:1", "character:2"),
         )
 
+    def test_no_team_zaap_when_a_participant_is_already_on_the_map(self) -> None:
+        route = VerifiedZaapRoute(
+            destination=DESTINATION,
+            zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
+            world="Monde des Douze",
+            eligible_character_keys=frozenset({"character:1", "character:2"}),
+            evidence="verified:test",
+        )
+        plan = GuideRoutePlanner(_engine()).plan(
+            [
+                GuideParticipantState(
+                    "character:1", world="Monde des Douze",
+                    start_location=DESTINATION,
+                ),
+                GuideParticipantState(
+                    "character:2", world="Monde des Douze",
+                    start_location=RouteLocation(map_id=3, x=20, y=0, zone="Amakna"),
+                ),
+            ],
+            verified_zaap_routes=[route],
+        )
+        start = next(row for row in plan.activities if row.action.action_id == "quest:start")
+        self.assertEqual(start.travel_plan.mode, TravelMode.DIRECT)
+        self.assertEqual(start.travel_plan.participant_keys,
+                         ("character:1", "character:2"))
+
     def test_zaap_fails_closed_when_world_is_unknown(self) -> None:
         route = VerifiedZaapRoute(
             destination=DESTINATION,
