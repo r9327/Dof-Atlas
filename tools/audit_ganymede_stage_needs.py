@@ -22,6 +22,8 @@ OBJECT_NEEDS = frozenset({
     "craft", "drop_object", "optional_drop", "check_equipment", "equip",
 })
 PREREQUISITES = frozenset({"guide_dependency", "quest_prerequisite"})
+ENCOUNTER_ACTIONS = frozenset({"combat", "dungeon", "group_mechanic", "optional_capture"})
+ON_ROUTE_ACQUISITIONS = frozenset({"drop_object", "optional_drop", "collect_object"})
 
 
 def stage_needs(candidate: dict) -> dict:
@@ -47,8 +49,14 @@ def stage_needs(candidate: dict) -> dict:
             raise ValueError(f"untrusted stage {position}")
         needs: list[dict] = []
         prereqs: list[dict] = []
+        encounters: list[dict] = []
         for action_index, action in enumerate(stage["actions"]):
             kind = action["kind"]
+            optional = (kind.startswith("optional_")
+                        or action.get("optional") is True
+                        or "conditional" in action
+                        or "alternative_group" in action
+                        or action.get("optional_branch") is True)
             if kind in OBJECT_NEEDS:
                 # A 'check_object' with no observed object ID remains a textual
                 # task; never fabricate an item, amount, recipe or drop rate.
@@ -58,6 +66,7 @@ def stage_needs(candidate: dict) -> dict:
                 ))
                 needs.append({
                     "source_action_index": action_index,
+                    "source_action_label": action.get("label"),
                     "kind": kind,
                     "external_dofusdb_object_ids": external_ids,
                     "quantity_candidate": action.get("quantity"),
@@ -76,13 +85,13 @@ def stage_needs(candidate: dict) -> dict:
                     ),
                     "conditional": action.get("conditional"),
                     "alternative_group": action.get("alternative_group"),
-                    "optional": kind.startswith("optional_")
-                    or action.get("optional") is True
-                    or "conditional" in action
-                    or "alternative_group" in action
-                    or action.get("optional_branch") is True,
-                    "obtainable_on_route_candidate": action.get(
-                        "can_obtain_on_route"
+                    "optional": optional,
+                    "acquisition_mode_candidate": (
+                        kind if kind in ON_ROUTE_ACQUISITIONS else None
+                    ),
+                    "obtainable_on_route_candidate": (
+                        True if kind in ON_ROUTE_ACQUISITIONS
+                        else action.get("can_obtain_on_route")
                     ),
                     "source_review_status": stage["review_status"],
                     "canonical_requirement_verified": False,
@@ -91,21 +100,40 @@ def stage_needs(candidate: dict) -> dict:
             if kind in PREREQUISITES:
                 prereqs.append({
                     "source_action_index": action_index,
+                    "source_action_label": action.get("label"),
                     "kind": kind,
                     "external_dofusdb_quest_id": action.get("quest_id"),
                     "ganymede_prerequisite_guide_id": action.get("guide_id"),
-                    "optional": action.get("optional") is True
-                    or "conditional" in action
-                    or "alternative_group" in action
-                    or action.get("optional_branch") is True,
+                    "optional": optional,
                     "canonical_requirement_verified": False,
                 })
-        if needs or prereqs:
+            if kind in ENCOUNTER_ACTIONS:
+                encounters.append({
+                    "source_action_index": action_index,
+                    "source_action_label": action.get("label"),
+                    "kind": kind,
+                    "external_dofusdb_monster_id": action.get("monster_id"),
+                    "external_dofusdb_dungeon_id": action.get("dungeon_id"),
+                    "alternative_monster_ids_candidate": action.get(
+                        "alternative_monster_ids"
+                    ),
+                    "participants_min_candidate": action.get("participants_min"),
+                    "group_fight_candidate": action.get("group_fight"),
+                    "repeat_count_candidate": action.get("repeat_count"),
+                    "capture_required_candidate": action.get("capture_required"),
+                    "conditional_candidate": action.get("conditional"),
+                    "optional": optional,
+                    "source_review_status": stage["review_status"],
+                    "canonical_requirement_verified": False,
+                    "character_completion_known": None,
+                })
+        if needs or prereqs or encounters:
             output.append({
                 "stable_step_id": stage["stable_step_id"],
                 "source_step_number": position,
                 "needs": needs,
                 "prerequisites": prereqs,
+                "encounters": encounters,
             })
     return {
         "atlas_guide_id": candidate["atlas_guide_id"],
