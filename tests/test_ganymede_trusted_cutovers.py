@@ -17,6 +17,7 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
             "id": "dofus_cawotte",
             "category": "dofus",
             "source_guide_id": 2205,
+            "expected_source_step_count": 1,
             "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
             "source_text_copied": False,
             "sections": [{
@@ -73,6 +74,16 @@ class TrustedCutoverBuilderTests(unittest.TestCase):
                 select_verified_replacement_path(guides, {"id": "dofus_cawotte", "category": "dofus"}),
                 output / "dofus_cawotte.json",
             )
+
+    def test_source_count_mismatch_rejected(self):
+        self.preview["expected_source_step_count"] = 2
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unstable_step_order_rejected(self):
+        self.preview["sections"][0]["steps"][0]["source_step_number"] = 2
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
 
     def test_missing_actions_never_activates(self):
         self.preview["sections"][0]["steps"][0]["source_action_candidates"] = []
