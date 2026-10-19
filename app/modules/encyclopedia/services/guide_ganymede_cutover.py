@@ -1,7 +1,7 @@
-"""Fail-closed, single-route cutover for technically validated Ganymède Dofus guides.
+"""Fail-closed, single-route cutover for canonically certified Ganymède Dofus guides.
 
 Never show source-link drafts as playable. A verified replacement is selected
-in place of, not in addition to, the legacy catalogue entry. No historical character progression exists to migrate.
+in place of, not in addition to, the legacy catalogue entry. Preserve the existing guide ID; require explicit migration certification.
 """
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def select_verified_replacement_path(
         declaration = declarations.get(guide_id)
         if (not isinstance(declaration, dict)
                 or declaration.get("enabled") is not True
-                or declaration.get("status") not in ("CERTIFIED_FOR_CUTOVER", "TRUSTED_SOURCE_CUTOVER")
+                or declaration.get("status") != "CERTIFIED_FOR_CUTOVER"
                 ):
             return None
 
@@ -83,12 +83,15 @@ def select_verified_replacement_path(
                 or payload.get("category") != "dofus"
                 or payload.get("source_guide_id") != source_id
                 or payload.get("route_origin") != "GANYMEDE_CONTINUOUS_STEP_ORDER"
-                or payload.get("replacement_status") not in ("CERTIFIED_FOR_CUTOVER", "TRUSTED_SOURCE_CUTOVER")
+                or payload.get("replacement_status") != "CERTIFIED_FOR_CUTOVER"
                 or payload.get("replacement_active") is not True
                 or payload.get("completeness_status") != "complete"
                 or payload.get("expected_source_step_count") != count
                 or payload.get("playable_step_count") != count
-                or payload.get("source_text_copied") is not False):
+                or payload.get("source_text_copied") is not False
+                or payload.get("guide_progress_id_unchanged") is not True
+                or payload.get("legacy_manual_steps_migration_verified") is not True
+                or payload.get("cutover_blockers") != []):
             return None
         sections = payload.get("sections")
         if (not isinstance(sections, list) or len(sections) != 1
@@ -98,7 +101,7 @@ def select_verified_replacement_path(
         if not isinstance(steps, list) or len(steps) != count:
             return None
 
-        trusted_source = declaration.get("status") == "TRUSTED_SOURCE_CUTOVER"
+        # Candidate labels are not evidence: never activate an unverified route.
         if payload.get("replacement_status") != declaration.get("status"):
             return None
         step_ids = []
@@ -109,18 +112,12 @@ def select_verified_replacement_path(
                     or step.get("source_guide_id") != source_id
                     or step.get("source_step_number") != n
                     or step.get("manual_completion_allowed") is not True
-                    or step.get("original_prose_imported") is not False):
+                    or step.get("original_prose_imported") is not False
+                    or step.get("source_action_review_status") != "CERTIFIED_CANONICAL_ACTIONS"):
                 return None
             actions = step.get("verified_actions")
-            if not isinstance(actions, list) or (not actions and not trusted_source):
+            if not isinstance(actions, list) or not actions:
                 return None
-            if trusted_source and not actions:
-                candidates = step.get("source_action_candidates")
-                if not isinstance(candidates, list) or not candidates:
-                    return None
-                if not all(isinstance(candidate, dict) and isinstance(candidate.get("label"), str)
-                           and candidate["label"].strip() for candidate in candidates):
-                    return None
             for action in actions:
                 if (not isinstance(action, dict)
                         or action.get("verified") is not True
