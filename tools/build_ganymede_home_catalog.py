@@ -15,6 +15,7 @@ from tools.audit_ganymede_master_refs import ROOT
 
 INDEX = Path("data/encyclopedia/guides/ganymede_main_index.json")
 CROSSWALK = Path("data/encyclopedia/guides/ganymede_source_crosswalk.json")
+CATALOG = Path("data/encyclopedia/guides/catalog.json")
 DESTINATION = Path("data/encyclopedia/guides/ganymede_home_catalog.json")
 
 # Stable editorial groups, not inferred quest dependency or progression.
@@ -55,6 +56,18 @@ def build_home_catalog(root: Path = ROOT) -> dict:
     root = Path(root).resolve()
     index = json.loads((root / INDEX).read_text(encoding="utf-8"))
     crosswalk = json.loads((root / CROSSWALK).read_text(encoding="utf-8"))
+    atlas_catalog = json.loads((root / CATALOG).read_text(encoding="utf-8"))
+    local_rows = atlas_catalog.get("guides")
+    if not isinstance(local_rows, list) or not local_rows:
+        raise ValueError("Atlas home guide catalog is unavailable")
+    local_ids = {
+        row.get("id") for row in local_rows
+        if isinstance(row, dict) and row.get("enabled") is True
+        and isinstance(row.get("id"), str)
+    }
+    if len(local_ids) != len([row for row in local_rows
+                               if isinstance(row, dict) and row.get("enabled") is True]):
+        raise ValueError("Duplicate or invalid Atlas guide IDs")
     rows = index.get("guides")
     if not isinstance(rows, list) or len(rows) != 95:
         raise ValueError("Expected the complete, authoritative 95-guide index")
@@ -84,6 +97,9 @@ def build_home_catalog(root: Path = ROOT) -> dict:
                 or any(not isinstance(x, str) or not x.strip() for x in atlas_ids)
                 or len(set(atlas_ids)) != len(atlas_ids)):
             raise ValueError(f"Invalid Atlas IDs for source guide: {source_id}")
+        missing_local = sorted(set(atlas_ids) - local_ids)
+        if missing_local:
+            raise ValueError(f"Nonexistent Atlas navigation targets: {missing_local}")
         links[source_id] = list(atlas_ids)
 
     source_by_id = {row["ganymede_guide_id"]: row for row in rows}
