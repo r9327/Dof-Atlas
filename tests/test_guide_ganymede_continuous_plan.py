@@ -31,6 +31,7 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
 
     def test_all_twenty_signed_dofus_routes_are_complete_and_ordered(self):
         total = 0
+        actions_total = 0
         for guide_id in sorted(self.audited["guides"]):
             with self.subTest(guide=guide_id):
                 plan = self.build(guide_id)
@@ -58,8 +59,13 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                     for x in stages
                 ))
                 self.assertFalse(plan["ready_for_automatic_planning"])
+                self.assertEqual(plan["preparation_item_occurrences"],
+                                 sum(len(x["preparation_rows"]) for x in stages))
+                self.assertFalse(plan["must_purchase"])
                 total += len(stages)
+                actions_total += plan["source_action_count"]
         self.assertEqual(total, 1694)
+        self.assertEqual(actions_total, 6166)
 
     def test_actual_stage_uses_first_unfinished_for_selected_characters(self):
         baseline = self.build()
@@ -98,6 +104,38 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         self.assertEqual(len(five["stages"][0]["pending_character_keys"]), 5)
         self.assertEqual(len(five["stages"]), 64)
         self.assertFalse(five["auto_completion_allowed"])
+
+    def test_stage_preparation_per_character_no_made_up_inventory(self):
+        route = self.build(
+            characters=("character:1", "character:2"),
+            known_owned_items={"character:1": {361: 1}},
+        )
+        step = route["stages"][1]
+        carrots = [row for row in step["preparation_rows"]
+                   if row["item_id"] == 361]
+        self.assertTrue(carrots)
+        first = next(row for row in carrots
+                     if row["character_key"] == "character:1")
+        second = next(row for row in carrots
+                      if row["character_key"] == "character:2")
+        self.assertEqual(first["owned_quantity_explicit"], 1)
+        self.assertEqual(first["remaining_quantity_candidate"], 0)
+        self.assertIsNone(second["remaining_quantity_candidate"])
+        self.assertFalse(any(row["must_purchase"] for row in carrots))
+        step_id = step["id"]
+        after_mark = self.build(
+            characters=("character:1", "character:2"),
+            known_owned_items={"character:1": {361: 1}},
+            completed_source_steps={"character:1": {step_id}},
+        )
+        self.assertFalse(any(
+            row["character_key"] == "character:1"
+            for row in after_mark["stages"][1]["preparation_rows"]
+        ))
+        self.assertTrue(any(
+            row["character_key"] == "character:2"
+            for row in after_mark["stages"][1]["preparation_rows"]
+        ))
 
     def test_source_actions_keep_audited_types_and_ignore_navigation_links(self):
         plan = self.build(guide="dofus_argente")
