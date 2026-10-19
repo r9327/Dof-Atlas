@@ -156,6 +156,19 @@ class GanymedePlanInputTests(unittest.TestCase):
         self.assertEqual(row["source_label"], target["source_label"])
         self.assertEqual(row["display_label"], translated)
         self.assertTrue(row["localized_name_verified"])
+        from app.modules.encyclopedia.services.guide_ganymede_plan_input import (
+            preview_ganymede_preparation,
+        )
+        projected = preview_ganymede_preparation(
+            self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
+            french_label_evidence=evidence,
+        )
+        prepared_row = next(
+            p for p in projected["rows"]
+            if p["proposal_id"] == target["proposal_id"]
+        )
+        self.assertEqual(prepared_row["display_label"], translated)
+        self.assertTrue(prepared_row["localized_name_verified"])
         self.assertFalse(row["canonical_objective_verified"])
         self.assertFalse(row["route_planning_ready"])
         self.assertFalse(next(p for p in localized["source_action_proposals"]
