@@ -184,6 +184,17 @@ def audit_stage_needs(root: Path) -> dict:
             bool(row["stages_with_requirements"]) for row in needs.values()
         ),
         "source_stages": sum(row["source_step_count"] for row in needs.values()),
+        "encounter_action_proposals": sum(
+            len(stage["encounters"])
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+        ),
+        "on_route_acquisition_proposals": sum(
+            need["acquisition_mode_candidate"] is not None
+            for guide in needs.values()
+            for stage in guide["stages_with_requirements"]
+            for need in stage["needs"]
+        ),
         "canonical_requirements_certified": 0,
         "stock_assumed": False,
         "participants_assumed": False,
