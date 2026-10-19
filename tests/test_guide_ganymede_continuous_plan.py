@@ -1,0 +1,162 @@
+"""Real-data contracts for the signed 20-guide Ganymède route bridge."""
+from __future__ import annotations
+
+from copy import deepcopy
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+
+from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
+    project_ganymede_continuous_plan,
+)
+from tools.audit_ganymede_stage_needs import audit_stage_needs
+
+
+ROOT = Path(__file__).resolve().parents[1]
+GUIDES = ROOT / "data/encyclopedia/guides"
+
+
+class GanymedeContinuousPlanTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.audited = audit_stage_needs(ROOT)
+        if cls.audited.get("status") == "FAIL":
+            raise AssertionError(cls.audited.get("issues"))
+
+    def build(self, guide="dofus_cawotte", characters=("character:1",), **kwargs):
+        return project_ganymede_continuous_plan(
+            GUIDES, self.audited, guide, characters, **kwargs,
+        )
+
+    def test_all_twenty_signed_dofus_routes_are_complete_and_ordered(self):
+        total = 0
+        for guide_id in sorted(self.audited["guides"]):
+            with self.subTest(guide=guide_id):
+                plan = self.build(guide_id)
+                stages = plan["stages"]
+                self.assertEqual(plan["status"], "TRUSTED_SOURCE_STEPS_MANUAL_ONLY")
+                self.assertEqual(plan["source_step_count"], len(stages))
+                self.assertEqual(len(stages),
+                                 self.audited["guides"][guide_id]["source_step_count"])
+                self.assertEqual(plan["actual_step_id"], stages[0]["id"])
+                self.assertEqual(
+                    [x["source_step_number"] for x in stages],
+                    list(range(1, len(stages) + 1)),
+                )
+                self.assertEqual(
+                    sum(len(x["action_rows"]) for x in stages),
+                    plan["source_action_count"],
+                )
+                self.assertTrue(all(
+                    x["verified_travel_plan"] is None
+                    and not x["automatic_completion_allowed"]
+                    and len(x["pending_character_keys"]) == 1
+                    and all(not a["canonical_objective_verified"]
+                            and not a["auto_completion_allowed"]
+                            for a in x["action_rows"])
+                    for x in stages
+                ))
+                self.assertFalse(plan["ready_for_automatic_planning"])
+                total += len(stages)
+        self.assertEqual(total, 1694)
+
+    def test_actual_stage_uses_first_unfinished_for_selected_characters(self):
+        baseline = self.build()
+        first, second = (s["id"] for s in baseline["stages"][:2])
+        self.assertEqual(first, baseline["actual_step_id"])
+        p1 = {"character:1": {first}}
+        single = self.build(completed_source_steps=p1)
+        self.assertEqual(single["actual_step_id"], second)
+        self.assertEqual(single["stages"][0]["manually_completed_character_keys"],
+                         ["character:1"])
+        mixed = self.build(
+            characters=("character:1", "character:2"),
+            completed_source_steps=p1,
+        )
+        self.assertEqual(mixed["actual_step_id"], first)
+        self.assertEqual(mixed["stages"][0]["pending_character_keys"],
+                         ["character:2"])
+        both = self.build(
+            characters=("character:1", "character:2"),
+            completed_source_steps={
+                "character:1": {first}, "character:2": {first},
+            },
+        )
+        self.assertEqual(both["actual_step_id"], second)
+        self.assertTrue(both["stages"][0]["all_selected_participants_completed"])
+        self.assertEqual(both["stages"][0]["pending_character_keys"], [])
+
+    def test_zero_and_five_participants_do_not_invent_progress_or_travel(self):
+        empty = self.build(characters=())
+        self.assertEqual(empty["actual_step_id"], None)
+        self.assertTrue(all(not s["all_selected_participants_completed"]
+                            for s in empty["stages"]))
+        five = self.build(
+            characters=tuple(f"character:{i}" for i in range(1, 6))
+        )
+        self.assertEqual(len(five["stages"][0]["pending_character_keys"]), 5)
+        self.assertEqual(len(five["stages"]), 64)
+        self.assertFalse(five["auto_completion_allowed"])
+
+    def test_source_actions_keep_audited_types_and_ignore_navigation_links(self):
+        plan = self.build(guide="dofus_argente")
+        first = plan["stages"][0]
+        self.assertTrue(first["action_rows"])
+        self.assertTrue(all(row["source_label"] and row["display_label"]
+                            for row in first["action_rows"]))
+        self.assertTrue(any(row["classification"] == "related_guide_reference"
+                            for stage in plan["stages"]
+                            for row in stage["action_rows"]))
+        self.assertTrue(all(row["canonical_objective_verified"] is False
+                            for stage in plan["stages"]
+                            for row in stage["action_rows"]))
+        self.assertEqual(plan["audited_action_count"],
+                         len(set(
+                             (stage["id"], row["source_action_index"])
+                             for stage in plan["stages"]
+                             for row in stage["action_rows"]
+                             if row["classification"] != "source_action_reference"
+                         )))
+
+    def test_invalid_or_foreign_manual_progress_is_rejected(self):
+        first = self.build()["stages"][0]["id"]
+        for values in (
+            {"character:other": [first]},
+            {"character:1": ["ganymede_999_step_0001"]},
+            {"character:1": [first, first]},
+            {"character:1": "ganymede_2205_step_0001"},
+        ):
+            with self.subTest(values=values):
+                with self.assertRaises(ValueError):
+                    self.build(completed_source_steps=values)
+
+    def test_signed_file_tampering_is_rejected(self):
+        manifest_source = GUIDES / "replacement_drafts/cutovers/cutover_manifest.json"
+        guide_source = GUIDES / "replacement_drafts/cutovers/dofus_cawotte.json"
+        with TemporaryDirectory(prefix="atlas-signed-source-") as tmp:
+            root = Path(tmp)
+            dest = root / "replacement_drafts/cutovers"
+            dest.mkdir(parents=True)
+            (dest / "cutover_manifest.json").write_bytes(manifest_source.read_bytes())
+            changed = json.loads(guide_source.read_text(encoding="utf-8"))
+            changed["sections"][0]["steps"][0]["title"] = "TAMPERED"
+            (dest / "dofus_cawotte.json").write_text(
+                json.dumps(changed, ensure_ascii=False), encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                project_ganymede_continuous_plan(
+                    root, self.audited, "dofus_cawotte", ["character:1"],
+                )
+
+    def test_audited_report_mismatch_is_rejected(self):
+        bad = deepcopy(self.audited)
+        bad["guides"]["dofus_cawotte"]["source_guide_id"] = 123
+        with self.assertRaises(ValueError):
+            project_ganymede_continuous_plan(
+                GUIDES, bad, "dofus_cawotte", ["character:1"],
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
