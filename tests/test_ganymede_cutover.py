@@ -97,6 +97,26 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
                          self.drafts / "dofus_cawotte.json")
 
+    def test_trusted_source_candidate_actions_without_manual_verification(self) -> None:
+        self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
+        for step in self.steps:
+            step["verified_actions"] = []
+            step["source_action_candidates"] = [{"text": "Suivre le guide Ganymède"}]
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
+        self.save()
+        self.assertIsNotNone(select_verified_replacement_path(self.guides, self.entry))
+
+    def test_trusted_source_empty_candidates_still_rejected(self) -> None:
+        self.manifest["guides"]["dofus_cawotte"]["status"] = "TRUSTED_SOURCE_CUTOVER"
+        self.payload["replacement_status"] = "TRUSTED_SOURCE_CUTOVER"
+        for step in self.steps:
+            step["verified_actions"] = []
+            step["source_action_candidates"] = []
+        self.manifest["guides"]["dofus_cawotte"]["payload_sha256"] = certified_payload_sha256(self.payload)
+        self.save()
+        self.assertIsNone(select_verified_replacement_path(self.guides, self.entry))
+
     def test_no_activation_from_unplayable_source_preview(self) -> None:
         self.payload["replacement_active"] = False
         self.payload["replacement_status"] = "DRAFT_NOT_PLAYABLE"
