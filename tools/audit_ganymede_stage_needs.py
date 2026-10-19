@@ -75,8 +75,10 @@ def stage_needs(candidate: dict) -> dict:
             # item being pursued into a prerequisite or shopping order.
             reward_intro = (
                 position == 1 and kind == "check_object"
-                and action.get("object_id") ==
-                FIRST_STEP_GOAL_ITEMS.get(candidate["atlas_guide_id"])
+                and candidate["atlas_guide_id"] in FIRST_STEP_GOAL_ITEMS
+                and type(action.get("object_id")) is int
+                and action["object_id"] ==
+                FIRST_STEP_GOAL_ITEMS[candidate["atlas_guide_id"]]
             )
             if kind == "goal_reward" or reward_intro:
                 goals.append({
