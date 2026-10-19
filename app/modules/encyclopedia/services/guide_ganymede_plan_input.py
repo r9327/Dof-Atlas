@@ -43,6 +43,8 @@ def prepare_ganymede_plan_input(
     guides = audited.get("guides")
     if not isinstance(guides, Mapping) or len(guides) != 20:
         raise ValueError("Missing 20 Ganymède guide plans")
+    if sum(guide.get("source_step_count", 0) for guide in guides.values()) != 1694:
+        raise ValueError("Source step count inconsistent with audited corpus")
 
     keys = tuple(require_character_key(v) for v in character_keys)
     if len(set(keys)) != len(keys):
