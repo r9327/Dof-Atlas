@@ -117,6 +117,37 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertIsNone(drops[0]["owned_or_prepared_by_any_character"])
         self.assertEqual(drops[0]["source_action_label"], "Obtenir la ressource")
 
+    def test_dofus_goal_in_source_intro_is_never_a_required_purchase(self):
+        data = candidate()
+        data["atlas_guide_id"] = "dofus_abyssal"
+        data["steps"][0]["actions"].append({
+            "kind": "check_object", "label": "Prévoir objet nº 18043",
+            "object_id": 18043,
+        })
+        result = stage_needs(data)
+        opening = result["stages_with_requirements"][0]
+        self.assertFalse(any(
+            18043 in requirement["external_dofusdb_object_ids"]
+            for requirement in opening["needs"]
+        ))
+        rewards = opening["goal_rewards"]
+        self.assertEqual(len(rewards), 1)
+        self.assertEqual(rewards[0]["external_dofusdb_object_id"], 18043)
+        self.assertEqual(rewards[0]["original_kind"], "check_object")
+        self.assertTrue(rewards[0]["reclassified_source_intro"])
+        self.assertIsNone(rewards[0]["owned_or_obtained_by_character"])
+        self.assertFalse(rewards[0]["canonical_objective_verified"])
+
+        # A generic check of a different object is not reclassified merely
+        # because it occurs in the first source stage.
+        data["steps"][0]["actions"][-1]["object_id"] = 18044
+        other = stage_needs(data)["stages_with_requirements"][0]
+        self.assertFalse(other["goal_rewards"])
+        self.assertTrue(any(
+            18044 in row["external_dofusdb_object_ids"]
+            for row in other["needs"]
+        ))
+
     def test_optional_delivery_is_kept_as_conditional_item_need(self):
         data = candidate()
         data["steps"][2]["actions"].append({
@@ -177,6 +208,8 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertEqual(report["canonical_requirements_certified"], 0)
         self.assertEqual(report["encounter_action_proposals"], 444)
         self.assertEqual(report["on_route_acquisition_proposals"], 91)
+        self.assertEqual(report["intro_reward_reclassifications"], 6)
+        self.assertGreaterEqual(report["goal_reward_proposals"], 6)
         self.assertGreater(report["guides_with_encounter_proposals"], 0)
         self.assertGreater(report["guides_with_preparation_proposals"], 0)
         self.assertIs(report["stock_assumed"], False)
