@@ -10,6 +10,7 @@ from app.modules.encyclopedia.services.adventure_route_engine import (
 from app.modules.encyclopedia.services.guide_route_naming import (
     audit_title_decisions,
     title_for_route_step,
+    title_for_ganymede_step,
 )
 
 
@@ -70,6 +71,21 @@ class GuideRouteNamingTests(unittest.TestCase):
             "title_too_long",
             [row.code for row in audit_title_decisions([decision])],
         )
+
+    def test_ganymede_stage_titles_preserve_exact_names_without_index_noise(self):
+        normal = title_for_ganymede_step(
+            "Étape 2 — Cawotte pour la quête gastronomique", 2,
+        )
+        self.assertEqual(normal.text, "Cawotte pour la quête gastronomique")
+        self.assertFalse(normal.review_required)
+        long = "Rencontrer un PNJ avec un nom officiel incroyablement long"
+        decision = title_for_ganymede_step("Étape 3 — " + long, 3)
+        self.assertEqual(decision.text, long)
+        self.assertTrue(decision.review_required)
+        mismatched = title_for_ganymede_step("Étape 9 — Texte source", 3)
+        self.assertEqual(mismatched.text, "Étape 9 — Texte source")
+        with self.assertRaises(ValueError):
+            title_for_ganymede_step("Étape 1 — ", 1)
 
     def test_duplicate_titles_are_explicit_review_findings(self) -> None:
         action = RouteAction("q1:start", 1, "Prendre — Une quête", "start")
