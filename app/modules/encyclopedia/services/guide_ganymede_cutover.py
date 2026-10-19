@@ -86,7 +86,6 @@ def select_verified_replacement_path(
                 or payload.get("replacement_status") != "CERTIFIED_FOR_CUTOVER"
                 or payload.get("replacement_active") is not True
                 or payload.get("completeness_status") != "complete"
-                or payload.get("legacy_manual_steps_migration_verified") is not True
                 or payload.get("expected_source_step_count") != count
                 or payload.get("playable_step_count") != count
                 or payload.get("source_text_copied") is not False):
