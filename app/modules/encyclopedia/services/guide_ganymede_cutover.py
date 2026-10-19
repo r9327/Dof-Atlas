@@ -99,6 +99,8 @@ def select_verified_replacement_path(
             return None
 
         trusted_source = declaration.get("status") == "TRUSTED_SOURCE_CUTOVER"
+        if payload.get("replacement_status") != declaration.get("status"):
+            return None
         step_ids = []
         for n, step in enumerate(steps, 1):
             expected_id = f"ganymede_{source_id}_step_{n:04d}"
@@ -116,7 +118,7 @@ def select_verified_replacement_path(
                 candidates = step.get("source_action_candidates")
                 if not isinstance(candidates, list) or not candidates:
                     return None
-                if not any(isinstance(candidate, dict) and isinstance(candidate.get("label"), str)
+                if not all(isinstance(candidate, dict) and isinstance(candidate.get("label"), str)
                            and candidate["label"].strip() for candidate in candidates):
                     return None
             for action in actions:
