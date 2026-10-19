@@ -192,6 +192,40 @@ class GanymedeStagePreparationTests(unittest.TestCase):
             for row in data["rows"]
         ))
 
+    def test_future_requirement_remains_after_source_step_until_due_step(self):
+        source_step = "ganymede_2205_step_0003"
+        due_step = "ganymede_2205_step_0008"
+        from_source_mark = stage_preparation_preview(
+            _fixture(), completed_source_steps={
+                "character:1": {"dofus_cawotte": {source_step}},
+            },
+        )
+        pending = [
+            row for row in from_source_mark["rows"]
+            if row["character_key"] == "character:1"
+            and row["source_step_id"] == source_step
+            and row["needed_at_source_step"] == 8
+        ]
+        self.assertTrue(pending, "Marking the early source step must not erase a later need")
+
+        after_due_mark = stage_preparation_preview(
+            _fixture(), completed_source_steps={
+                "character:1": {"dofus_cawotte": {due_step}},
+            },
+        )
+        self.assertFalse(any(
+            row["character_key"] == "character:1"
+            and row["source_step_id"] == source_step
+            and row["needed_at_source_step"] == 8
+            for row in after_due_mark["rows"]
+        ))
+        self.assertTrue(any(
+            row["character_key"] == "character:2"
+            and row["source_step_id"] == source_step
+            and row["needed_at_source_step"] == 8
+            for row in after_due_mark["rows"]
+        ))
+
     def test_zero_and_five_characters(self):
         none = stage_preparation_preview(_fixture(()))
         self.assertEqual(none["rows"], [])
