@@ -117,6 +117,23 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertIsNone(drops[0]["owned_or_prepared_by_any_character"])
         self.assertEqual(drops[0]["source_action_label"], "Obtenir la ressource")
 
+    def test_optional_delivery_is_kept_as_conditional_item_need(self):
+        data = candidate()
+        data["steps"][2]["actions"].append({
+            "kind": "optional_delivery", "label": "Échanger 100 ressources",
+            "object_id": 361, "quantity": 100, "conditional": "optional_spell",
+        })
+        result = stage_needs(data)
+        needs = result["stages_with_requirements"][-1]["needs"]
+        delivery = needs[-1]
+        self.assertEqual(delivery["kind"], "optional_delivery")
+        self.assertEqual(delivery["external_dofusdb_object_ids"], [361])
+        self.assertEqual(delivery["needed_at_source_step"], 3)
+        self.assertEqual(delivery["quantity_candidate"], 100)
+        self.assertTrue(delivery["optional"])
+        self.assertIsNone(delivery["obtainable_on_route_candidate"])
+        self.assertFalse(delivery["canonical_requirement_verified"])
+
     def test_optional_or_alternative_must_not_become_mandatory_stock(self):
         doc = stage_needs(candidate())
         first = doc["stages_with_requirements"][0]
