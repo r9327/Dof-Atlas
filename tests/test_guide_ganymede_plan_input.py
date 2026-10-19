@@ -110,18 +110,18 @@ class GanymedePlanInputTests(unittest.TestCase):
         target = next((
             row for row in original["source_action_proposals"]
             if isinstance(row["source_label"], str)
-            and re.search(r"n[º°o]\\s*\\d+", row["source_label"], re.I)
+            and re.search(r"n[º°o]\s*\d+", row["source_label"], re.I)
             and row["source_references"]["object_ids"]
         ), None)
         self.assertIsNotNone(target, "Corpus must contain a named object reference")
         item_id = next(
             (i for i in target["source_references"]["object_ids"]
-             if re.search(r"n[º°o]\\s*" + str(i) + r"\\b",
+             if re.search(r"n[º°o]\s*" + str(i) + r"\b",
                           target["source_label"], re.I)), None,
         )
         self.assertIsNotNone(item_id, "A generic label needs its own referenced ID")
         translated = re.sub(
-            r"n[º°o]\\s*" + str(item_id) + r"\\b",
+            r"n[º°o]\s*" + str(item_id) + r"\b",
             "«Objet localisé de test»", target["source_label"], count=1, flags=re.I,
         )
         override = {
