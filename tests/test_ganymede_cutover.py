@@ -202,11 +202,15 @@ class GanymedeCutoverTests(unittest.TestCase):
         self.assertEqual(self.old_guide.read_bytes(), bytes_before)
         self.assertFalse((self.guides / "progress").exists())
 
-    def test_real_staged_dofus_cutovers_are_selected_by_manifest(self) -> None:
+    def test_real_staged_dofus_cutovers_require_explicit_ui_integration(self) -> None:
         from app.constants import DATA_DIR
         guides = DATA_DIR / "encyclopedia" / "guides"
-        self.assertEqual(select_verified_replacement_path(
+        self.assertIsNone(select_verified_replacement_path(
             guides, {"id": "dofus_cawotte", "category": "dofus"}
+        ))
+        self.assertEqual(select_verified_replacement_path(
+            guides, {"id": "dofus_cawotte", "category": "dofus"},
+            allow_source_manual=True,
         ), guides / "replacement_drafts" / "cutovers" / "dofus_cawotte.json")
         self.assertIsNone(select_verified_replacement_path(
             guides, {"id": "dofoozbz", "category": "dofus"}
