@@ -71,10 +71,7 @@ class GanymedeDodudaIdAuditTests(unittest.TestCase):
         self.canonical.parent.mkdir(parents=True, exist_ok=True)
         self.canonical.write_text(
             json.dumps({
-                "RefIds": {
-                    str(qid): {"data": {"id": qid}}
-                    for qid in ids
-                }
+                "RefIds": [{"data": {"id": qid}} for qid in ids]
             }), encoding="utf-8",
         )
 
