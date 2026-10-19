@@ -1,5 +1,49 @@
 # PR Guide Tools — Guide Opti V2 : planificateur intégral
 
+## Pont concret Ganymède 20 guides → #226 → #225 (19/10/2026)
+
+Le service `guide_ganymede_continuous_plan.project_ganymede_continuous_plan`
+charge **uniquement** les cutovers Dofus signés par #229 (`replacement_drafts/cutovers/`),
+vérifie le manifeste et son SHA-256, puis joint le rapport `audit_ganymede_stage_needs`
+par `source_guide_id + stable_step_id + source_action_index + source_label`.
+Il conserve **toutes** les étapes, même celles sans proposition de préparation.
+Vérifications de données visées : **20 guides / 1 694 étapes / 6 166 actions
+sources**, avec ordre initial immuable. Refus d'une divergence de libellé,
+d'objet, de quête, de monstre, de donjon ou de guide à ID connu.
+
+Sortie par fiche : `id`, `source_step_number`, `source_page`, titre exact
+et `short_title` sans préfixe numéroté, positions observées **non exécutables**,
+`action_rows` avec classe de proposition, identités externes typées et statut
+facultatif, `preparation_rows` par personnage (stock explicitement connu ou
+inconnu, quantités indicatives), `pending_character_keys` et
+`manually_completed_character_keys`. `actual_step_id` est la première fiche
+inachevée par **au moins un** personnage sélectionné. Aucune ancienne
+progression importée ; les coches source restent manuelles. Les 15 liens
+prédécesseurs de l'arbre Ganymède ne sont pas des quêtes automatiquement
+validées ; les 9 renvois non confirmés sont de la navigation uniquement.
+
+Les libellés français localisés restent un overlay facultatif attesté par
+`resolve_ganymede_action_labels` : le texte source n'est jamais modifié.
+Les 6 récompenses Dofus qui figuraient en introductions ne sont jamais
+classées comme objets à acheter. Les prises en route conservent leur caractère
+conditionnel et ne sont pas comptabilisées comme achats obligatoires.
+
+**Frontière d'intégration :** ce pont fournit le parcours **source en suivi
+manuel** à l'UI #225, pas une simulation attestée des quêtes. La navigation
+réseau/Organizer, la certitude des objectifs et les trajets exécutables exigent
+les preuves séparées des services correspondants ; `verified_travel_plan=None`
+est intentionnel en absence d'une preuve de transport par personnage. Les
+optimisations du planificateur canonique restent appliquées uniquement à ses
+`RouteAction` réels. Ne pas inventer des transformations depuis les liens
+Ganymède vers des `RouteAction` vérifiés.
+
+Tests ajoutés : `tests.test_guide_ganymede_continuous_plan` (20 parcours,
+1 694/6 166, chargement signé, progression 0/1/2/5, préparation individuelle,
+ID source et navigation), `tests.test_guide_route_naming` et
+`tests.test_guide_route_planner` (pas de Zaap inutile). **Ne pas déclarer
+CERTIFIED avant l'exécution de la CI finale sur le SHA figé.**
+
+
 Date : 18 octobre 2026. Base : main SHA 6a52522d1bd7e501a5c3b4d6d58253bfec755fdc.
 Statut : **socle moteur implémenté et testé de façon ciblée ; certification CI exacte encore requise**. La route réelle complète dépend toujours des données locales vérifiées et ne doit pas être déclarée certifiée depuis les seuls tests unitaires.
 
