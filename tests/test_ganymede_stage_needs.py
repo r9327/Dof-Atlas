@@ -1,10 +1,14 @@
 """Source proposals become scoped planning evidence, never shopping orders."""
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
-from tools.audit_ganymede_stage_needs import audit_stage_needs, stage_needs
+from tools.audit_ganymede_stage_needs import (
+    _public_tree_predecessors, audit_stage_needs, stage_needs,
+)
 
 
 def candidate() -> dict:
@@ -62,7 +66,9 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertIs(first["needs"][0]["obtainable_on_route_candidate"], True)
         self.assertIsNone(first["needs"][0]["owned_or_prepared_by_any_character"])
         self.assertFalse(first["needs"][0]["canonical_requirement_verified"])
-        self.assertEqual(first["prerequisites"][0]["ganymede_prerequisite_guide_id"], 2211)
+        self.assertEqual(first["related_guide_links"][0]["ganymede_prerequisite_guide_id"], 2211)
+        self.assertFalse(first["related_guide_links"][0]["public_tree_predecessor_verified"])
+        self.assertEqual(first["prerequisites"][0]["external_dofusdb_quest_id"], 300)
 
     def test_collection_window_and_prior_stage_provenance_survive_export(self):
         data = candidate()
@@ -156,6 +162,38 @@ class GanymedeStageNeedsTests(unittest.TestCase):
             for row in unknown["needs"]
         ))
 
+    def test_source_tree_membership_not_a_navigational_link_controls_blocking(self):
+        data = candidate()
+        source_only = stage_needs(data)["stages_with_requirements"][0]
+        self.assertEqual(len(source_only["related_guide_links"]), 1)
+        self.assertEqual(len(source_only["prerequisites"]), 1)
+
+        tree = stage_needs(data, verified_guide_predecessors={2211})
+        first = tree["stages_with_requirements"][0]
+        self.assertFalse(first["related_guide_links"])
+        self.assertEqual(len(first["prerequisites"]), 2)
+        guide = first["prerequisites"][0]
+        self.assertTrue(guide["public_tree_predecessor_verified"])
+        self.assertFalse(guide["source_link_is_canonical_quest_prerequisite"])
+        self.assertFalse(guide["canonical_requirement_verified"])
+
+    def test_tree_transitive_closure_and_cycle_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            catalog = root / "data/encyclopedia/guides/ganymede_main_index.json"
+            catalog.parent.mkdir(parents=True)
+            rows = [
+                {"ganymede_guide_id": 1, "public_tree_prerequisite_guide_ids": []},
+                {"ganymede_guide_id": 2, "public_tree_prerequisite_guide_ids": [1]},
+                {"ganymede_guide_id": 3, "public_tree_prerequisite_guide_ids": [2]},
+            ]
+            catalog.write_text(json.dumps({"guides": rows}), encoding="utf-8")
+            self.assertEqual(_public_tree_predecessors(root)[3], {1, 2})
+            rows[0]["public_tree_prerequisite_guide_ids"] = [3]
+            catalog.write_text(json.dumps({"guides": rows}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                _public_tree_predecessors(root)
+
     def test_optional_delivery_is_kept_as_conditional_item_need(self):
         data = candidate()
         data["steps"][2]["actions"].append({
@@ -178,7 +216,7 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         first = doc["stages_with_requirements"][0]
         self.assertEqual(first["needs"][1]["external_dofusdb_object_ids"], [42, 43])
         self.assertTrue(first["needs"][1]["optional"])
-        self.assertTrue(first["prerequisites"][1]["optional"])
+        self.assertTrue(first["prerequisites"][0]["optional"])
         last = doc["stages_with_requirements"][1]["needs"][0]
         self.assertTrue(last["optional"])
         self.assertEqual(last["quantity_per_character_candidate"], 1)
@@ -217,6 +255,14 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertEqual(report["encounter_action_proposals"], 444)
         self.assertEqual(report["on_route_acquisition_proposals"], 91)
         self.assertEqual(report["intro_reward_reclassifications"], 6)
+        self.assertEqual(report["verified_public_tree_guide_predecessor_proposals"], 15)
+        self.assertEqual(report["unverified_guide_link_proposals"], 9)
+        argente = report["guides"]["dofus_argente"]["stages_with_requirements"][0]
+        self.assertEqual(
+            argente["related_guide_links"][0]["ganymede_prerequisite_guide_id"],
+            2251,
+        )
+        self.assertFalse(argente["related_guide_links"][0]["public_tree_predecessor_verified"])
         self.assertGreaterEqual(report["goal_reward_proposals"], 6)
         self.assertGreater(report["guides_with_encounter_proposals"], 0)
         self.assertGreater(report["guides_with_preparation_proposals"], 0)
