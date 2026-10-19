@@ -175,6 +175,10 @@ class GanymedeStageNeedsTests(unittest.TestCase):
         self.assertEqual(report["source_candidate_guides"], 20)
         self.assertEqual(report["source_stages"], 1694)
         self.assertEqual(report["canonical_requirements_certified"], 0)
+        self.assertEqual(report["encounter_action_proposals"], 444)
+        self.assertEqual(report["on_route_acquisition_proposals"], 91)
+        self.assertGreater(report["guides_with_encounter_proposals"], 0)
+        self.assertGreater(report["guides_with_preparation_proposals"], 0)
         self.assertIs(report["stock_assumed"], False)
         self.assertIs(report["participants_assumed"], False)
 
