@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class ActionCoverageReadinessTests(unittest.TestCase):
     def test_emeraude_candidates_are_visible_but_never_certified(self):
         result = audit_ganymede_replacement_readiness(ROOT)
-        self.assertEqual(result["status"], "BLOCKED_PENDING_PLAYABLE_ACTIONS",
+        self.assertEqual(result["status"], "SOURCE_TRUSTED_MANUAL_STAGED",
                          result["issues"])
         self.assertEqual(result["dofus_guides"], 22)
         self.assertEqual(result["dofus_guides_with_direct_source_mapping"], 20)
@@ -32,7 +32,9 @@ class ActionCoverageReadinessTests(unittest.TestCase):
         self.assertEqual(state["source_step_actions_verified"], 0)
         self.assertFalse(state["canonical_objectives_verified"])
         self.assertFalse(emeraude["ready_to_replace"])
-        self.assertIn("PROGRESS_MIGRATION_NOT_VERIFIED", emeraude["blockers"])
+        self.assertIn("MANUAL_UI_AND_QUEST_LINKS_NOT_INTEGRATED", emeraude["blockers"])
+        self.assertTrue(emeraude["replacement_staged"])
+        self.assertFalse(emeraude["replacement_active"])
 
     def test_unmatched_dofus_kept(self):
         result = audit_ganymede_replacement_readiness(ROOT)
@@ -43,10 +45,12 @@ class ActionCoverageReadinessTests(unittest.TestCase):
 
     def test_human_review_and_auto_hints_are_separate(self):
         result = audit_ganymede_replacement_readiness(ROOT)
-        self.assertEqual(result["status"], "BLOCKED_PENDING_PLAYABLE_ACTIONS",
+        self.assertEqual(result["status"], "SOURCE_TRUSTED_MANUAL_STAGED",
                          result["issues"])
         self.assertEqual(result["source_action_reviewed_steps"], 338)
         self.assertEqual(result["source_auto_extracted_hint_steps"], 1356)
+        self.assertEqual(result["source_trusted_manual_staged_count"], 20)
+        self.assertEqual(result["replacement_activated_count"], 0)
         nightmare = next(row for row in result["guide_reports"]
                          if row["atlas_guide_id"] == "dofus_du_cauchemar")
         evidence = nightmare["source_guides"][0]
