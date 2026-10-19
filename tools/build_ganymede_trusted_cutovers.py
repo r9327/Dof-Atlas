@@ -83,6 +83,49 @@ def prepare_trusted_cutover(preview: dict) -> dict:
     return payload
 
 
+
+_GUIDES = Path("data/encyclopedia/guides")
+_SOURCE_FIELDS = (
+    "id", "source_guide_id", "source_step_number", "source_page",
+    "source_coordinates_mentioned", "source_linked_guide_ids",
+    "external_dofusdb_ids",
+)
+_ROUTE_FIELDS = (
+    "id", "category", "source_guide_id", "expected_source_step_count",
+    "source_link_snapshot", "route_origin", "source_text_copied",
+)
+
+
+def assert_reviewed_source_parity(reviewed: dict, fresh: dict) -> None:
+    """Check immutable source facts against a freshly audited public snapshot.
+
+    Human-reviewed action evidence is stored in replacement_drafts; rebuilding
+    previews would erase it. Do not trust a reviewed file's source IDs alone.
+    """
+    if not isinstance(reviewed, dict):
+        raise ValueError("Reviewed route must be a JSON object")
+    for key in _ROUTE_FIELDS:
+        if reviewed.get(key) != fresh.get(key):
+            raise ValueError(f"Reviewed route differs from source in {key}")
+    lhs = reviewed.get("sections")
+    rhs = fresh.get("sections")
+    if (not isinstance(lhs, list) or len(lhs) != 1
+            or not isinstance(rhs, list) or len(rhs) != 1):
+        raise ValueError("Missing continuous route")
+    source_steps = rhs[0].get("steps")
+    reviewed_steps = lhs[0].get("steps")
+    if (not isinstance(source_steps, list)
+            or not isinstance(reviewed_steps, list)
+            or len(reviewed_steps) != len(source_steps)):
+        raise ValueError("Reviewed source step coverage differs")
+    for number, (actual, expected) in enumerate(zip(reviewed_steps, source_steps), 1):
+        if not isinstance(actual, dict) or not isinstance(expected, dict):
+            raise ValueError(f"Malformed step {number}")
+        for key in _SOURCE_FIELDS:
+            if actual.get(key) != expected.get(key):
+                raise ValueError(f"Source mismatch in {key} at step {number}")
+
+
 def build_trusted_cutovers(root: Path) -> dict:
     report = build_dofus_replacement_previews(root)
     if report["status"] != "PREVIEWS_READY_NOT_PLAYABLE":
@@ -92,8 +135,13 @@ def build_trusted_cutovers(root: Path) -> dict:
     skipped = {}
     for guide_id, preview in sorted(report["previews"].items()):
         try:
-            payload = prepare_trusted_cutover(preview)
-        except (ValueError, KeyError, TypeError) as exc:
+            # Reviewed files preserve the independently verified actions;
+            # freshly generated previews intentionally contain candidates only.
+            reviewed_path = root / _GUIDES / "replacement_drafts" / f"{guide_id}.json"
+            reviewed = json.loads(reviewed_path.read_text(encoding="utf-8"))
+            assert_reviewed_source_parity(reviewed, preview)
+            payload = prepare_trusted_cutover(reviewed)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             skipped[guide_id] = str(exc)
             continue
         steps = payload["sections"][0]["steps"]
