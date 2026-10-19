@@ -11,6 +11,7 @@ from app.modules.encyclopedia.services.guide_ganymede_plan_input import (
 )
 from app.modules.encyclopedia.services.guide_ganymede_preparation import (
     stage_preparation_preview,
+    summarize_stage_preparation,
 )
 from tools.audit_ganymede_stage_needs import audit_stage_needs
 
@@ -90,6 +91,62 @@ class GanymedeStagePreparationTests(unittest.TestCase):
         self.assertTrue(all(x["optional_or_conditional"] and
                             x["needed_at_source_step"] == 8
                             for x in optional))
+
+    def test_compact_summary_never_adds_repeated_or_optional_source_actions(self):
+        preview = stage_preparation_preview(
+            _fixture(), known_owned_items={
+                "character:1": {361: 1, 441: 0},
+            },
+        )
+        summary = summarize_stage_preparation(preview)
+        self.assertEqual(summary["status"], "REVIEW_PREPARATION_COMPACT")
+        self.assertEqual(summary["distinct_item_count"], 4)
+        self.assertFalse(summary["mandatory_purchase_claimed"])
+        carrots = next(x for x in summary["items"] if x["item_id"] == 361)
+        self.assertEqual(len(carrots["source_occurrences"]), 2)
+        self.assertTrue(carrots["quantity_review_required"])
+        self.assertIsNone(carrots["required_total_candidate"])
+        self.assertIsNone(carrots["remaining_total_candidate"])
+        self.assertTrue(carrots["by_character"]["character:1"]["requires_quantity_review"])
+        self.assertFalse(carrots["must_purchase"])
+        on_route = next(x for x in summary["items"] if x["item_id"] == 441)
+        self.assertIsNone(on_route["remaining_total_candidate"])
+        self.assertTrue(on_route["by_character"]["character:1"]["obtainable_on_route_candidate"])
+
+    def test_single_known_item_sums_only_explicit_per_character_needs(self):
+        source = _fixture()
+        source["source_action_proposals"] = source["source_action_proposals"][:1]
+        preview = stage_preparation_preview(source, known_owned_items={
+            "character:1": {361: 1},
+            "character:2": {361: 2},
+        })
+        summary = summarize_stage_preparation(preview)
+        self.assertEqual(summary["distinct_item_count"], 1)
+        item = summary["items"][0]
+        self.assertEqual(item["required_total_candidate"], 6)
+        self.assertEqual(item["remaining_total_candidate"], 3)
+        self.assertEqual(item["by_character"]["character:1"]["remaining_quantity_candidate"], 2)
+        self.assertEqual(item["by_character"]["character:2"]["remaining_quantity_candidate"], 1)
+        self.assertFalse(item["quantity_review_required"])
+        self.assertFalse(item["must_purchase"])
+        partial = stage_preparation_preview(
+            source, known_owned_items={"character:1": {361: 1}}
+        )
+        self.assertIsNone(
+            summarize_stage_preparation(partial)["items"][0]["remaining_total_candidate"]
+        )
+        zero = stage_preparation_preview(_fixture(()))
+        self.assertEqual(summarize_stage_preparation(zero)["items"], [])
+
+    def test_compact_rejects_false_certification_and_foreign_participants(self):
+        preview = stage_preparation_preview(_fixture())
+        preview["mandatory_purchase_claimed"] = True
+        with self.assertRaises(ValueError):
+            summarize_stage_preparation(preview)
+        preview = stage_preparation_preview(_fixture())
+        preview["rows"][0]["character_key"] = "character:unknown"
+        with self.assertRaises(ValueError):
+            summarize_stage_preparation(preview)
 
     def test_manual_progress_hides_only_selected_character_stage(self):
         data = stage_preparation_preview(
