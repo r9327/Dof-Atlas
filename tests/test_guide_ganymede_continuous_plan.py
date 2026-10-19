@@ -168,6 +168,21 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                             and not r["must_purchase"] for r in matching))
         self.assertFalse(any(r["proposal_id"] == source_rows[0]["proposal_id"]
                              for r in source_stage["preparation_due_rows"]))
+        # Completing the first mention must NOT hide a later requirement.
+        source_done = self.build(
+            completed_source_steps={"character:1": {source_stage["id"]}},
+        )
+        self.assertTrue(any(
+            r["proposal_id"] == source_rows[0]["proposal_id"]
+            for r in source_done["stages"][33]["preparation_due_rows"]
+        ))
+        due_done = self.build(
+            completed_source_steps={"character:1": {future_stage["id"]}},
+        )
+        self.assertFalse(any(
+            r["proposal_id"] == source_rows[0]["proposal_id"]
+            for r in due_done["stages"][33]["preparation_due_rows"]
+        ))
 
     def test_source_actions_keep_audited_types_and_ignore_navigation_links(self):
         plan = self.build(guide="dofus_argente")
