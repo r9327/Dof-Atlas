@@ -253,7 +253,17 @@ class GuideRoutePlanner:
     ) -> GlobalGuidePlan:
         states = tuple(participants)
         if not states:
-            raise ValueError("global guide plan requires at least one participant")
+            # The guide remains visible with nobody selected, but planning
+            # must never invent a participant, action or inventory requirement.
+            return GlobalGuidePlan(
+                participants=(),
+                activities=(),
+                stock=(),
+                issues=(GuidePlanningIssue(
+                    "no_selected_participants",
+                    "Select at least one character to calculate a route",
+                ),),
+            )
         keys = tuple(state.character_key for state in states)
         if len(keys) != len(set(keys)):
             raise ValueError("duplicate participant character_key")
