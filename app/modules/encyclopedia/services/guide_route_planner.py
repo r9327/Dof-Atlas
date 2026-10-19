@@ -244,6 +244,57 @@ class GuideRoutePlanner:
     def __init__(self, engine: AdventureRouteEngine) -> None:
         self.engine = engine
 
+    @staticmethod
+    def _shared_action_order(
+        participant_plans: tuple[ParticipantRoutePlan, ...],
+        memberships: Mapping[str, list[tuple[int, str]]],
+        engine: AdventureRouteEngine,
+    ) -> tuple[str, ...] | None:
+        """Merge per-character itineraries only when their order is compatible.
+
+        Sorting on each action's *earliest* per-character index is not a safe
+        team itinerary: another character might need its predecessor first.
+        Preserve every character's ordered actions (also inside a route step).
+        Contradictory itineraries are reported instead of inventing a global
+        traversal or silently marking one player's prerequisite as complete.
+        """
+        successors: dict[str, set[str]] = {
+            action_id: set() for action_id in memberships
+        }
+        incoming = {action_id: 0 for action_id in memberships}
+        for participant in participant_plans:
+            previous: str | None = None
+            for step in participant.route.steps:
+                for action in step.actions:
+                    action_id = action.action_id
+                    if (previous is not None and previous != action_id
+                            and action_id not in successors[previous]):
+                        successors[previous].add(action_id)
+                        incoming[action_id] += 1
+                    previous = action_id
+
+        def priority(action_id: str) -> tuple[object, ...]:
+            return (
+                min(index for index, _key in memberships[action_id]),
+                engine.by_id[action_id].location.display(),
+                action_id,
+            )
+
+        available = {action_id for action_id, degree in incoming.items()
+                     if degree == 0}
+        ordered: list[str] = []
+        while available:
+            action_id = min(available, key=priority)
+            available.remove(action_id)
+            ordered.append(action_id)
+            for next_id in successors[action_id]:
+                incoming[next_id] -= 1
+                if incoming[next_id] == 0:
+                    available.add(next_id)
+        if len(ordered) != len(incoming):
+            return None
+        return tuple(ordered)
+
     def plan(
         self,
         participants: Iterable[GuideParticipantState],
@@ -312,16 +363,26 @@ class GuideRoutePlanner:
                         (step.index, participant.character_key)
                     )
 
+        ordered_ids = self._shared_action_order(
+            participant_plans, memberships, self.engine,
+        )
+        if ordered_ids is None:
+            issues.append(GuidePlanningIssue(
+                "shared_route_order_conflict",
+                "Individual routes require incompatible action ordering; "
+                "keep personal itineraries and do not fabricate a common route",
+            ))
+            return GlobalGuidePlan(
+                participants=participant_plans,
+                activities=(),
+                stock=self._stock(participant_plans, states, capture_by_action),
+                issues=tuple(issues),
+            )
+
         zaap_routes = tuple(verified_zaap_routes)
         activities: list[GroupedGuideActivity] = []
-        for action_id, rows in sorted(
-            memberships.items(),
-            key=lambda item: (
-                min(index for index, _key in item[1]),
-                self.engine.by_id[item[0]].location.display(),
-                item[0],
-            ),
-        ):
+        for action_id in ordered_ids:
+            rows = memberships[action_id]
             action = self.engine.by_id[action_id]
             participant_keys = tuple(
                 key for key in keys if any(row_key == key for _index, row_key in rows)
