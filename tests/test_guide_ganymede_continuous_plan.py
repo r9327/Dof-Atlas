@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from tempfile import TemporaryDirectory
 import unittest
 
@@ -194,6 +195,52 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                              for row in stage["action_rows"]
                              if row["classification"] != "source_action_reference"
                          )))
+
+    def test_canonical_quest_id_names_tooltips_and_buttons_are_deduplicated(self):
+        class FakeQuestProvider:
+            def __init__(self):
+                self.calls = []
+
+            def get_quest(self, quest_id):
+                self.calls.append(quest_id)
+                if quest_id in (840, 835):
+                    return SimpleNamespace(id=quest_id, name=f"Quête {quest_id}")
+                return None
+
+        provider = FakeQuestProvider()
+        plan = self.build(quest_provider=provider)
+        step = plan["stages"][1]
+        self.assertEqual(
+            {row["quest_id"]: row["quest_name"] for row in step["linked_quests"]
+             if row["catalog_id_verified"]},
+            {840: "Quête 840", 835: "Quête 835"},
+        )
+        self.assertEqual(
+            sum(row["show_quest_button"] for row in step["action_rows"]),
+            2,
+        )
+        self.assertEqual(len(provider.calls), len(set(provider.calls)))
+        self.assertTrue(any(row["quest_hover_name"] == "Quête 840"
+                            for row in step["action_rows"]))
+        self.assertTrue(all(
+            row["quest_completion_verified"] is False
+            for stage in plan["stages"] for row in stage["linked_quests"]
+        ))
+        self.assertGreaterEqual(plan["catalog_quest_ids_resolved"], 2)
+
+        unknown = self.build()
+        self.assertEqual(unknown["catalog_quest_ids_resolved"], 0)
+        self.assertTrue(all(
+            not action["show_quest_button"] and action["quest_hover_name"] is None
+            for stage in unknown["stages"] for action in stage["action_rows"]
+        ))
+
+    def test_catalogue_cannot_link_a_wrong_quest_id(self):
+        class WrongQuestProvider:
+            def get_quest(self, quest_id):
+                return SimpleNamespace(id=quest_id + 1, name="Wrong quest")
+        with self.assertRaises(ValueError):
+            self.build(quest_provider=WrongQuestProvider())
 
     def test_invalid_or_foreign_manual_progress_is_rejected(self):
         first = self.build()["stages"][0]["id"]
