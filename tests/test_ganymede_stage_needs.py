@@ -147,6 +147,14 @@ class GanymedeStageNeedsTests(unittest.TestCase):
             18044 in row["external_dofusdb_object_ids"]
             for row in other["needs"]
         ))
+        data["atlas_guide_id"] = "dofus_test"
+        data["steps"][0]["actions"][-1].pop("object_id")
+        unknown = stage_needs(data)["stages_with_requirements"][0]
+        self.assertFalse(unknown["goal_rewards"])
+        self.assertTrue(any(
+            row["kind"] == "check_object" and not row["external_dofusdb_object_ids"]
+            for row in unknown["needs"]
+        ))
 
     def test_optional_delivery_is_kept_as_conditional_item_need(self):
         data = candidate()
