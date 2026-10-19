@@ -71,6 +71,9 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         baseline = self.build()
         first, second = (s["id"] for s in baseline["stages"][:2])
         self.assertEqual(first, baseline["actual_step_id"])
+        self.assertTrue(baseline["stages"][0]["title"].startswith("Étape 1 — "))
+        self.assertFalse(baseline["stages"][0]["short_title"].startswith("Étape 1 — "))
+        self.assertTrue(baseline["stages"][0]["short_title"])
         p1 = {"character:1": {first}}
         single = self.build(completed_source_steps=p1)
         self.assertEqual(single["actual_step_id"], second)
