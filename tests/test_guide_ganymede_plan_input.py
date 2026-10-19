@@ -105,7 +105,7 @@ class GanymedePlanInputTests(unittest.TestCase):
         import re
 
         original = prepare_ganymede_plan_input(
-            self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+            self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
         )
         target = next((
             row for row in original["source_action_proposals"]
@@ -148,7 +148,7 @@ class GanymedePlanInputTests(unittest.TestCase):
             }],
         }
         localized = prepare_ganymede_plan_input(
-            self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+            self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
             french_label_evidence=evidence,
         )
         row = next(p for p in localized["source_action_proposals"]
@@ -166,21 +166,21 @@ class GanymedePlanInputTests(unittest.TestCase):
         stale["guides"][0]["label_overrides"][0]["source_label"] = "Other action"
         with self.assertRaises(ValueError):
             prepare_ganymede_plan_input(
-                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
                 french_label_evidence=stale,
             )
         wrong_id = deepcopy(evidence)
         wrong_id["guides"][0]["label_overrides"][0]["resolved_entities"][0]["source_entity_id"] = 99999999
         with self.assertRaises(ValueError):
             prepare_ganymede_plan_input(
-                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
                 french_label_evidence=wrong_id,
             )
         missing_proof = deepcopy(evidence)
         missing_proof["status"] = "REVIEW_NAME_GAPS"
         with self.assertRaises(ValueError):
             prepare_ganymede_plan_input(
-                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                self.report, ["character:1"], atlas_guide_ids=["dofus_argente"],
                 french_label_evidence=missing_proof,
             )
 
