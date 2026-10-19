@@ -1,7 +1,9 @@
 """No dangling preparations or invented source links in Ganymède candidates."""
 from __future__ import annotations
 
+import json
 import unittest
+from pathlib import Path
 
 from tools.ganymede_action_step_contract import validate_step_action
 
@@ -60,6 +62,40 @@ class StageActionScopeTests(unittest.TestCase):
         for values in ([101, 101], [200], [100, True], [], "100"):
             with self.subTest(values=values):
                 self.assertTrue(review({"alternative_monster_ids": values}))
+
+    def test_all_1694_real_stage_hints_preserve_reference_semantics(self):
+        root = Path(__file__).resolve().parents[1]
+        folder = root / "data/encyclopedia/guides"
+        raw_by_source = {
+            doc["source"]["guide_id"]: doc
+            for path in folder.glob("ganymede_*_observed_links.json")
+            if (doc := json.loads(path.read_text(encoding="utf-8")))
+        }
+        candidates = sorted(folder.glob("ganymede_*_action_candidates.json"))
+        self.assertEqual(len(candidates), 20)
+        total = 0
+        problems = []
+        for path in candidates:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            source = raw_by_source[doc["source_guide_id"]]
+            source_rows = {
+                row["source_step_number"]: row for row in source["steps"]
+            }
+            for step in doc["steps"]:
+                num = step["source_step_number"]
+                total += 1
+                monsters = source_rows[num]["external_dofusdb_ids"]["monster"]
+                for index, action in enumerate(step["actions"]):
+                    for error in validate_step_action(
+                        action, step_number=num,
+                        source_step_count=len(source_rows),
+                        observed_monster_ids=monsters,
+                    ):
+                        problems.append(
+                            f"{path.name} step={num} action={index}: {error}"
+                        )
+        self.assertEqual(total, 1694)
+        self.assertEqual(problems, [])
 
     def test_invalid_stage_bounds_are_fail_closed(self):
         self.assertTrue(review({}, stage=0))
