@@ -333,11 +333,23 @@ jobs:
         shell: pwsh
         run: |
           $report = "artifacts/phase_certification/ganymede_french_label_evidence.json"
-          python -m tools.resolve_ganymede_action_labels --output $report
-          $code = $LASTEXITCODE
-          if ($code -eq 1) { throw "Ganymede name evidence could not be validated" }
-          if ($code -eq 2) { Write-Warning "Pinned Doduda source unavailable: see report; never certify names" }
-          if ($code -ne 0 -and $code -ne 2) { exit $code }
+          $dictionary = "artifacts/phase_certification/ganymede_pinned_name_dictionary_v1.json"
+          python -m tools.resolve_ganymede_action_labels --output $report --dictionary-output $dictionary
+          if ($LASTEXITCODE -ne 0) { throw "Ganymede name evidence cannot be resolved from pinned sources" }
+          $evidence = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          $compact = Get-Content -LiteralPath $dictionary -Raw | ConvertFrom-Json
+          if ($evidence.status -ne "REVIEW_NAMES_RESOLVED" -or
+              $evidence.generic_label_actions -ne 1218 -or
+              $evidence.resolved_action_labels -ne 1218 -or
+              $evidence.unresolved_reference_count -ne 0 -or
+              $compact.status -ne "REVIEW_NAMES_RESOLVED" -or
+              $compact.source_candidate_guides -ne 20 -or
+              $compact.resolved_action_labels -ne 1218 -or
+              $compact.ready_to_replace -ne $false -or
+              $compact.canonical_objectives_verified -ne 0) {
+            throw "Ganymede pinned French label coverage differs from certified source expectations"
+          }
+          Write-Host "Ganymede action labels resolved from pinned French data: 1218/1218"
 
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
