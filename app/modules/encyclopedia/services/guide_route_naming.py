@@ -106,6 +106,25 @@ def title_for_route_step(step: RouteStep) -> GuideTitleDecision:
     return GuideTitleDecision("Actions coordonnées", "structured_fallback")
 
 
+def title_for_ganymede_step(title: str, number: int) -> GuideTitleDecision:
+    """Remove only the redundant numbered wrapper of a signed source title.
+
+    Preserve its exact subject and punctuation; flag long/vague titles rather
+    than truncating an NPC, monster, dungeon or quest name.
+    """
+    if type(number) is not int or number < 1 or not isinstance(title, str):
+        raise ValueError("A source stage needs a numbered text title")
+    name = _clean(title)
+    prefixes = (f"Étape {number} — ", f"Etape {number} — ")
+    for prefix in prefixes:
+        if name.startswith(prefix):
+            name = _clean(name[len(prefix):])
+            break
+    if not name:
+        raise ValueError("Empty signed source stage title")
+    return GuideTitleDecision(name, "ganymede_signed_source")
+
+
 def audit_title_decisions(
     decisions: Iterable[GuideTitleDecision],
 ) -> tuple[GuideTitleViolation, ...]:
@@ -149,4 +168,5 @@ __all__ = [
     "GuideTitleViolation",
     "audit_title_decisions",
     "title_for_route_step",
+    "title_for_ganymede_step",
 ]
