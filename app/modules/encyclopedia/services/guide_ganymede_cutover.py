@@ -98,6 +98,7 @@ def select_verified_replacement_path(
         if not isinstance(steps, list) or len(steps) != count:
             return None
 
+        trusted_source = declaration.get("status") == "TRUSTED_SOURCE_CUTOVER"
         step_ids = []
         for n, step in enumerate(steps, 1):
             expected_id = f"ganymede_{source_id}_step_{n:04d}"
@@ -109,8 +110,15 @@ def select_verified_replacement_path(
                     or step.get("original_prose_imported") is not False):
                 return None
             actions = step.get("verified_actions")
-            if not isinstance(actions, list) or not actions:
+            if not isinstance(actions, list) or (not actions and not trusted_source):
                 return None
+            if trusted_source and not actions:
+                candidates = step.get("source_action_candidates")
+                if not isinstance(candidates, list) or not candidates:
+                    return None
+                if not any(isinstance(candidate, dict) and isinstance(candidate.get("text"), str)
+                           and candidate["text"].strip() for candidate in candidates):
+                    return None
             for action in actions:
                 if (not isinstance(action, dict)
                         or action.get("verified") is not True
