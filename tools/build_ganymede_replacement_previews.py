@@ -4,8 +4,8 @@ Produces fully ordered, ID-stable *draft* route JSON from public factual
 link/coordinate observations and existing Atlas quest IDs. No Ganymède prose
 is copied. A link to a quest is not proof of the action required at a step.
 
-This tool intentionally CANNOT activate or replace existing guides. The
-step actions, quest-objective mapping, prerequisites, need technical validation before cutover; no historical character progress exists.
+This tool exports non-live drafts for technical review. Ganymède is the trusted
+route source; historical character progress migration is not required.
 """
 from __future__ import annotations
 
