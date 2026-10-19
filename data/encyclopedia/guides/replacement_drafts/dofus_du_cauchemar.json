@@ -1,0 +1,3221 @@
+{
+  "schema_version": 1,
+  "id": "dofus_du_cauchemar",
+  "title": "Dofus du Cauchemar",
+  "category": "dofus",
+  "completeness_status": "draft",
+  "description": "Prévisualisation technique des étapes Ganymède (références uniquement).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "DRAFT_NOT_PLAYABLE",
+  "replacement_active": false,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2283,
+  "source_guide_url": "https://ganymede-app.com/guides/2283",
+  "source_prerequisite_guide_ids": [
+    2275,
+    2282
+  ],
+  "expected_source_step_count": 55,
+  "playable_step_count": 0,
+  "source_link_snapshot": "ganymede_2283_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2283_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2283_step_0001",
+          "type": "info",
+          "title": "Étape 1",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2282,
+            2275,
+            2280
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26066
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_prerequisite",
+              "label": "Avoir le métier de mineur niveau 10."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0002",
+          "type": "info",
+          "title": "Étape 2",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421,
+              2423
+            ],
+            "dungeon": [],
+            "object": [
+              11503,
+              2636,
+              311,
+              6765,
+              14635,
+              7224,
+              7223,
+              23311,
+              7225,
+              7222,
+              1538,
+              1535,
+              1537,
+              1536,
+              21966
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2421,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2413
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            },
+            {
+              "quest_id": 2423,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2138
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2422
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Planifier les ressources nécessaires."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0003",
+          "type": "info",
+          "title": "Étape 3",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              38,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2421,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2413
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0004",
+          "type": "info",
+          "title": "Étape 4",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -21
+            ],
+            [
+              41,
+              -56
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Rimanda."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0005",
+          "type": "info",
+          "title": "Étape 5",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              41,
+              -56
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2424
+            ],
+            "dungeon": [],
+            "object": [
+              25907
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2424,
+              "atlas_occurrences": [],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Pandamonium Guardian."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0006",
+          "type": "info",
+          "title": "Étape 6",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -59
+            ],
+            [
+              40,
+              -56
+            ],
+            [
+              39,
+              -55
+            ],
+            [
+              42,
+              -57
+            ],
+            [
+              43,
+              -56
+            ],
+            [
+              43,
+              -55
+            ],
+            [
+              42,
+              -54
+            ],
+            [
+              43,
+              -54
+            ],
+            [
+              42,
+              -53
+            ],
+            [
+              41,
+              -53
+            ],
+            [
+              40,
+              -53
+            ],
+            [
+              41,
+              -59
+            ],
+            [
+              42,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Positionner 12 classes sur le pentacle."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0007",
+          "type": "info",
+          "title": "Étape 7",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -59
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2424
+            ],
+            "dungeon": [],
+            "object": [
+              25907
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2424,
+              "atlas_occurrences": [],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier si vous avez le 'Rêve d'Harmonie'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0008",
+          "type": "info",
+          "title": "Étape 8",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              3
+            ],
+            [
+              -25,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Hogion."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0009",
+          "type": "info",
+          "title": "Étape 9",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              36
+            ],
+            [
+              -32,
+              -59
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26061
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Acheter un 'Ballon de Gobbowl de Brakmar'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0010",
+          "type": "info",
+          "title": "Étape 10",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -59
+            ],
+            [
+              -29,
+              -59
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26059
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Acheter un 'Ballon de Gobbowl de Bonta'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0011",
+          "type": "info",
+          "title": "Étape 11",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -29,
+              -59
+            ],
+            [
+              -33,
+              -57
+            ],
+            [
+              -36,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25969,
+              2151,
+              2150,
+              1732,
+              1773,
+              1734,
+              11503,
+              2636,
+              311,
+              6765
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Bagrutta Stonestomach."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0012",
+          "type": "info",
+          "title": "Étape 12",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -60
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26038
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Pyramides Prismatiques."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0013",
+          "type": "info",
+          "title": "Étape 13",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Roi Grimaçant."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0014",
+          "type": "info",
+          "title": "Étape 14",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              1
+            ],
+            [
+              1,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Julith le Boucher."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0015",
+          "type": "info",
+          "title": "Étape 15",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Grand Krackal."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0016",
+          "type": "info",
+          "title": "Étape 16",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              6765,
+              311,
+              2636,
+              11503
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner de la 'Mimilk' à l'orphelin."
+            },
+            {
+              "kind": "talk",
+              "label": "Donner du 'Pain Tahde' à l'orphelin."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0017",
+          "type": "info",
+          "title": "Étape 17",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6798,
+              6799,
+              6800
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Fighting with le 'Demolisseur Trool'."
+            },
+            {
+              "kind": "combat",
+              "label": "Fighting with le 'Constructeur Crackler'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0018",
+          "type": "info",
+          "title": "Étape 18",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              3
+            ],
+            [
+              4,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25969,
+              2151
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner de la 'Bière Blanche Légendaire' au Stubbyob."
+            },
+            {
+              "kind": "talk",
+              "label": "Donner un 'Gâteau Rasputin' au Stubbyob."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0019",
+          "type": "info",
+          "title": "Étape 19",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              3
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26059,
+              26061
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner le ballon aux prisonniers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0020",
+          "type": "info",
+          "title": "Étape 20",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2428
+            ],
+            "dungeon": [],
+            "object": [
+              25951
+            ],
+            "monster": [
+              6748,
+              6749,
+              6747,
+              6746
+            ]
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2428,
+              "atlas_occurrences": [],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer le combat 3 vagues avec les Chafers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0021",
+          "type": "info",
+          "title": "Étape 21",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25951,
+              25949
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Double cliquer sur la 'Toile Nightmare'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0022",
+          "type": "info",
+          "title": "Étape 22",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2437
+            ],
+            "dungeon": [
+              136
+            ],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2437,
+              "atlas_occurrences": [],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Horreur de l'Aube."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0023",
+          "type": "info",
+          "title": "Étape 23",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25982
+            ],
+            "monster": [
+              6750
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Collecter 12 'Peur viscérale'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0024",
+          "type": "info",
+          "title": "Étape 24",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ],
+            [
+              43,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Cliquer sur le grand trou."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0025",
+          "type": "info",
+          "title": "Étape 25",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421,
+              2422
+            ],
+            "dungeon": [
+              135
+            ],
+            "object": [
+              25316
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2421,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2421",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2413
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            },
+            {
+              "quest_id": 2422,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2422",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2421
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Na'Hama."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0026",
+          "type": "info",
+          "title": "Étape 26",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6801,
+              6751
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre les Lemures."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0027",
+          "type": "info",
+          "title": "Étape 27",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre le Mane Brutasmodan."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0028",
+          "type": "info",
+          "title": "Étape 28",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Mane des Destroyers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0029",
+          "type": "info",
+          "title": "Étape 29",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17078,
+              7115,
+              23408
+            ],
+            "monster": [
+              6758,
+              6756,
+              6757,
+              6755,
+              6759,
+              6761,
+              6762,
+              6760
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre Helzbeth."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0030",
+          "type": "info",
+          "title": "Étape 30",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Nightmare Destroyers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0031",
+          "type": "info",
+          "title": "Étape 31",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              38,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2422,
+              2423
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2422,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2422",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2421
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            },
+            {
+              "quest_id": 2423,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2138
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2422
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0032",
+          "type": "info",
+          "title": "Étape 32",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -21
+            ],
+            [
+              3,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Rimanda."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0033",
+          "type": "info",
+          "title": "Étape 33",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -21
+            ],
+            [
+              24,
+              -22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              7224,
+              7223,
+              23311,
+              7225,
+              7222
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Magus Ax."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0034",
+          "type": "info",
+          "title": "Étape 34",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              24,
+              -22
+            ],
+            [
+              15,
+              -31
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23342
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "craft",
+              "label": "Fabriquer 5 'Vertus d'Harmonie'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0035",
+          "type": "info",
+          "title": "Étape 35",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              15,
+              -31
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Se diriger vers le temple."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0036",
+          "type": "info",
+          "title": "Étape 36",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26159,
+              1478
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Urazawi."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0037",
+          "type": "info",
+          "title": "Étape 37",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2425
+            ],
+            "dungeon": [
+              68,
+              73,
+              133,
+              76,
+              118,
+              97,
+              134,
+              67,
+              114,
+              87,
+              106,
+              107,
+              98,
+              119
+            ],
+            "object": [
+              26076,
+              26077,
+              26078
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2425,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2425",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Commencer la quête 'Totems de Maimane'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0038",
+          "type": "info",
+          "title": "Étape 38",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              110,
+              120,
+              69,
+              109,
+              103,
+              108,
+              117,
+              99,
+              70,
+              84,
+              95,
+              71,
+              135,
+              111,
+              83
+            ],
+            "object": [
+              26079,
+              26080,
+              26081
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Collecter 6 totems."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0039",
+          "type": "info",
+          "title": "Étape 39",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ],
+            [
+              38,
+              -20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2425
+            ],
+            "dungeon": [],
+            "object": [
+              26058,
+              14635,
+              1538,
+              1535,
+              1537,
+              1536,
+              21966,
+              26159,
+              1478
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2425,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2425",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête 'Totems de Maimane'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0040",
+          "type": "info",
+          "title": "Étape 40",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -20
+            ],
+            [
+              -36,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26058,
+              25809
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "craft",
+              "label": "Créer une rune d'harmonie."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0041",
+          "type": "info",
+          "title": "Étape 41",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -60
+            ],
+            [
+              -24,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Pyramides Prismatiques."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0042",
+          "type": "info",
+          "title": "Étape 42",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -24,
+              39
+            ],
+            [
+              -20,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ilaster Kro'Ly."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0043",
+          "type": "info",
+          "title": "Étape 43",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              39
+            ],
+            [
+              -22,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0044",
+          "type": "info",
+          "title": "Étape 44",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              36
+            ],
+            [
+              -21,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0045",
+          "type": "info",
+          "title": "Étape 45",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -21,
+              36
+            ],
+            [
+              -25,
+              32
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25818
+            ],
+            "monster": [
+              6773,
+              6774
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Convaincre le grimoire démoniaque."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0046",
+          "type": "info",
+          "title": "Étape 46",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              32
+            ],
+            [
+              -27,
+              38
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6763
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0047",
+          "type": "info",
+          "title": "Étape 47",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              38
+            ],
+            [
+              -34,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0048",
+          "type": "info",
+          "title": "Étape 48",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -34,
+              -60
+            ],
+            [
+              -33,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6768
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0049",
+          "type": "info",
+          "title": "Étape 49",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -33,
+              -58
+            ],
+            [
+              -28,
+              -55
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0050",
+          "type": "info",
+          "title": "Étape 50",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -28,
+              -55
+            ],
+            [
+              -36,
+              -54
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0051",
+          "type": "info",
+          "title": "Étape 51",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -54
+            ],
+            [
+              -24,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25819,
+              25820,
+              25818
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Soldat de la Lance Brutale"
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les objets de quête requis"
+            },
+            {
+              "kind": "move",
+              "label": "Aller à [-24,39]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0052",
+          "type": "info",
+          "title": "Étape 52",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -24,
+              39
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              -22,
+              41
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer dans la Bibliothèque"
+            },
+            {
+              "kind": "move",
+              "label": "Monter les escaliers deux fois"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ilaster Kro'Li"
+            },
+            {
+              "kind": "move",
+              "label": "Aller à [4,0] dans la zone de l'Enfer des Destructeurs"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0053",
+          "type": "info",
+          "title": "Étape 53",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 53,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2284
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2420
+            ],
+            "dungeon": [],
+            "object": [
+              26070
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2420,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2420",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 704
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 716
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 938
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1462
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1463
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1464
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1465
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1466
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1467
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1469
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1470
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1471
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1521
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1522
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1523
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1524
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1525
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1526
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1528
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1529
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1615
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1631
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1632
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1634
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1635
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1653
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1654
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1656
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1657
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1658
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1659
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1660
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1661
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1662
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1663
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1677
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1781
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1782
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1784
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1785
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1786
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1787
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1788
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1789
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1791
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1792
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1793
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1841
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1905
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1906
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1907
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1908
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1909
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1911
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1912
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1913
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1914
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1915
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1958
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1959
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1960
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1962
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1963
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1964
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1965
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1966
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1967
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1968
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1969
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1970
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1971
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1972
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1973
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1974
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2004
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2009
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2035
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2036
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2037
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2038
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2039
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2040
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2041
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2042
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2043
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2044
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2048
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2049
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2050
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2138
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2192
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2193
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2194
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2195
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2409
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2442
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2443
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2444
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2445
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2446
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2447
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2448
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2470
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Cliquer sur le trou géant"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à l'Enfer des Destructeurs deux fois"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Servitude"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre les Cavaliers de l'Éliocalypse"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0054",
+          "type": "info",
+          "title": "Étape 54",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 54,
+          "source_page": 2,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Enfer des Destructeurs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Helzbeth, Mère des Destructeurs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Helzbeth, Mère des Destructeurs à nouveau"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros à nouveau"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à lui pour approcher le chronomorph"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0055",
+          "type": "info",
+          "title": "Étape 55",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 55,
+          "source_page": 2,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2423
+            ],
+            "dungeon": [],
+            "object": [
+              26066
+            ],
+            "monster": [
+              6776,
+              6777
+            ]
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 2423,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_du_cauchemar_quest_2423",
+                  "atlas_section_id": "dofus_du_cauchemar_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 2138
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 2422
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            },
+            {
+              "kind": "combat",
+              "label": "Affronter Entropix"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [
+    "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
+    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED"
+  ],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 55,
+  "source_action_candidate_steps": 55,
+  "source_action_candidate_actions": 74
+}

@@ -1,0 +1,4757 @@
+{
+  "schema_version": 1,
+  "id": "dofus_des_veilleurs",
+  "title": "Dofus des Veilleurs",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2209,
+  "source_guide_url": "https://ganymede-app.com/guides/2209",
+  "source_prerequisite_guide_ids": [],
+  "expected_source_step_count": 88,
+  "playable_step_count": 88,
+  "source_link_snapshot": "ganymede_veilleurs_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2209_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2209_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Objectif : obtenir le Dofus des Veilleurs",
+          "content": "Objectif : obtenir le Dofus des Veilleurs",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              -20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16061,
+              8698
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "goal_reward",
+              "label": "Objectif : obtenir le Dofus des Veilleurs",
+              "object_id": 16061
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Prévoir objet nº 15533 ×1",
+          "content": "Prévoir objet nº 15533 ×1\nPrévoir objet nº 15531 ×1\nObtenir objet nº 15730 ×1\nObtenir objet nº 15729 ×1\nObtenir objet nº 15731 ×1\nObtenir objet nº 15728 ×1\nPrévoir objet nº 14946 ×1\nPrévoir objet nº 14509 ×1\nPrévoir objet nº 14516 ×10\nPrévoir objet nº 7906 ×10\nPrévoir objet nº 15416 ×1\nPrévoir objet nº 6961 ×1\nPrévoir objet nº 15990 ×1\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              -20
+            ],
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1532,
+              1572,
+              1610,
+              1611
+            ],
+            "dungeon": [],
+            "object": [
+              15533,
+              15531,
+              15730,
+              15729,
+              15731,
+              15728,
+              14946,
+              14509,
+              14516,
+              7906,
+              15416,
+              6961,
+              15990
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15533 ×1",
+              "object_id": 15533,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15531 ×1",
+              "object_id": 15531,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 15730 ×1",
+              "object_id": 15730,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 15729 ×1",
+              "object_id": 15729,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 15731 ×1",
+              "object_id": 15731,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 15728 ×1",
+              "object_id": 15728,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14946 ×1",
+              "object_id": 14946,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14509 ×1",
+              "object_id": 14509,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14516 ×10",
+              "object_id": 14516,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 7906 ×10",
+              "object_id": 7906,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15416 ×1",
+              "object_id": 15416,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 6961 ×1",
+              "object_id": 6961,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15990 ×1",
+              "object_id": 15990,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Démarrer quête nº 1484",
+          "content": "Démarrer quête nº 1484\nParler à Sergeant Zlatzom\nInteragir : the Voyagers' Tower",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1484
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1484",
+              "quest_id": 1484
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Sergeant Zlatzom"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Tower"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Parler à the Colonel O'Whel",
+          "content": "Parler à the Colonel O'Whel\nParler à the Explorancient",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Colonel O'Whel"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorancient"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Terminer quête nº 1484",
+          "content": "Terminer quête nº 1484\nParler à Gladis\nDémarrer quête nº 1485\nParler à her\nDémarrer quête nº 1487\nEffectuer le combat indiqué\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2237
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1484,
+              1485,
+              1487
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              8173
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1484",
+              "quest_id": 1484
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gladis"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1485",
+              "quest_id": 1485
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1487",
+              "quest_id": 1487
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Parler à the Sergeant Frinklan",
+          "content": "Parler à the Sergeant Frinklan\nTerminer quête nº 1485\nParler à Megistus the Collector\nDémarrer quête nº 1486",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              -1
+            ],
+            [
+              -5,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1485,
+              1486
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Sergeant Frinklan"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1485",
+              "quest_id": 1485
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Megistus the Collector"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1486",
+              "quest_id": 1486
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Parler à Zap Gobdon",
+          "content": "Parler à Zap Gobdon\nParler à the Affectionate Hurtful Locker\nRejoindre [-1,-1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              -1
+            ],
+            [
+              -6,
+              -2
+            ],
+            [
+              -9,
+              -6
+            ],
+            [
+              -5,
+              -5
+            ],
+            [
+              -2,
+              -3
+            ],
+            [
+              3,
+              -5
+            ],
+            [
+              -1,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1486
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Zap Gobdon"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Affectionate Hurtful Locker"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-1,-1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Terminer quête nº 1486",
+          "content": "Terminer quête nº 1486\nParler à Megistus the Collector\nInteragir : the Portal",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2237
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1486
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1486",
+              "quest_id": 1486
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Megistus the Collector"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Portal"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Démarrer quête nº 1530",
+          "content": "Démarrer quête nº 1530\nParler à Gladis\nParler à the Explorancient\nDémarrer quête nº 1533\nRejoindre [1,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2244
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1530,
+              1533
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1530",
+              "quest_id": 1530
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gladis"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorancient"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1533",
+              "quest_id": 1533
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Interagir : a hidden cell behind the roof of the house in the top right like",
+          "content": "Interagir : a hidden cell behind the roof of the house in the top right like\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              0
+            ],
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : a hidden cell behind the roof of the house in the top right like"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Interagir : the Voyagers' Tower",
+          "content": "Interagir : the Voyagers' Tower\nParler à the Explorerwoman\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              8174
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Tower"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorerwoman"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nParler à the Sergeant Resaca to Answer that you're on a special\nRejoindre [5,1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              2
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Sergeant Resaca to Answer that you're on a special"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Terminer quête nº 1530",
+          "content": "Terminer quête nº 1530\nParler à Frank Lee Smisse\nParler à her tostart the quest Clandestine Messenger\nInteragir : the stairs\nRejoindre [5,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              1
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1530,
+              1531
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1530",
+              "quest_id": 1530
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Frank Lee Smisse"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her tostart the quest Clandestine Messenger"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Parler à Mama Fia",
+          "content": "Parler à Mama Fia\nRejoindre [5,-2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              0
+            ],
+            [
+              5,
+              -2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mama Fia"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,-2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Interagir : the skull under the blue Flame on the left below",
+          "content": "Interagir : the skull under the blue Flame on the left below\nParler à Diashin Darkeyes\nInteragir : the stairs\nRejoindre [4,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              -2
+            ],
+            [
+              4,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the skull under the blue Flame on the left below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Diashin Darkeyes"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Parler à Gobikahn",
+          "content": "Parler à Gobikahn\nParler à Zap Gobdon\nRejoindre [5,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              3
+            ],
+            [
+              5,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Gobikahn"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zap Gobdon"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Parler à Madame Hyrda",
+          "content": "Parler à Madame Hyrda",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Madame Hyrda"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Interagir : the Torturer's Tavern",
+          "content": "Interagir : the Torturer's Tavern\nParler à Al Capo\nInteragir : the stairs\nRejoindre [8,4]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              2
+            ],
+            [
+              8,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Torturer's Tavern"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Al Capo"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [8,4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Parler à Rufiette",
+          "content": "Parler à Rufiette\nInteragir : the stairs twice\nInteragir : the stairs\nRejoindre [8,8]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              4
+            ],
+            [
+              8,
+              8
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Rufiette"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [8,8]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Parler à Venimus",
+          "content": "Parler à Venimus\nInteragir : the stairs\nRejoindre [6,7]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              8
+            ],
+            [
+              6,
+              7
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Venimus"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,7]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Interagir : the door at the top left",
+          "content": "Interagir : the door at the top left\nParler à The Butcher\nInteragir : the stairs\nRejoindre [5,1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              7
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the door at the top left"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à The Butcher"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Terminer quête nº 1531",
+          "content": "Terminer quête nº 1531\nParler à Frank Lee Smisse\nRejoindre [5,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              1
+            ],
+            [
+              5,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1531
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1531",
+              "quest_id": 1531
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Frank Lee Smisse"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Interagir : the Torturer's Tavern",
+          "content": "Interagir : the Torturer's Tavern\nDémarrer quête nº 1532\nParler à Zap Gobdon\nParler à Belle Adrenne\nPrévoir objet nº 15533\nRejoindre [6,-2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              2
+            ],
+            [
+              6,
+              -2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1532
+            ],
+            "dungeon": [],
+            "object": [
+              15533,
+              15531
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Torturer's Tavern"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1532",
+              "quest_id": 1532
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zap Gobdon"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Belle Adrenne"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15533",
+              "object_id": 15533
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,-2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Parler à Cut-throat",
+          "content": "Parler à Cut-throat\nInteragir : the door\nInteragir : the chest\nPrévoir objet nº 15530\nInteragir : the stairs\nRejoindre [5,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              -2
+            ],
+            [
+              5,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15530
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Cut-throat"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the door"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the chest"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15530",
+              "object_id": 15530
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Interagir : the Torturer's Tavern",
+          "content": "Interagir : the Torturer's Tavern\nParler à Zap Gobdon\nRejoindre [6,-2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              2
+            ],
+            [
+              6,
+              -2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Torturer's Tavern"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zap Gobdon"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,-2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Parler à Cut-throat",
+          "content": "Parler à Cut-throat\nParler à Frank Lee Smisse\nParler à Belle Adrenne\nParler à the Queen of Thieves\nRejoindre [0,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              -2
+            ],
+            [
+              -22,
+              -24
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2244
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Cut-throat"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Frank Lee Smisse"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Belle Adrenne"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Queen of Thieves"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [0,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Terminer quête nº 1532",
+          "content": "Terminer quête nº 1532\nParler à the Explorancient\nDémarrer quête nº 1571\nParler à the Colonel O'Whel\nParler à Gizmond Quelyn to Announce that the colonel sent\nRejoindre [3,1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1532,
+              1571
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1532",
+              "quest_id": 1532
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorancient"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1571",
+              "quest_id": 1571
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Colonel O'Whel"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gizmond Quelyn to Announce that the colonel sent"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Interagir : the Xelor Temple",
+          "content": "Interagir : the Xelor Temple\nParler à Amine\nParler à to meet the Master of Zaaps\nRejoindre [-46,18]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              -46,
+              18
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Xelor Temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Amine"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à to meet the Master of Zaaps"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-46,18]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Master of Zaaps\nRejoindre [-20,-20]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -46,
+              18
+            ],
+            [
+              -20,
+              -20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-20,-20]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Parler à the Master of Zaaps",
+          "content": "Parler à the Master of Zaaps\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              -20
+            ],
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Interagir : the Voyagers' Tower",
+          "content": "Interagir : the Voyagers' Tower\nParler à the Gizmond Quelyn to Introduce the Master of Zaaps\nParler à Doctor B'boing\nParler à Gizmond Quelyn\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              8175,
+              3854
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Tower"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Gizmond Quelyn to Introduce the Master of Zaaps"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Doctor B'boing"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gizmond Quelyn"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nTerminer quête nº 1571\nParler à the Master of Zaaps to complete the quest Master of Zaaps\nDémarrer quête nº 1572\nParler à Vertime the Collector\nRejoindre [2,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              2,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1571,
+              1572
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1571",
+              "quest_id": 1571
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps to complete the quest Master of Zaaps"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1572",
+              "quest_id": 1572
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Vertime the Collector"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [2,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Interagir : 3 times on the Clock That's 7 Minutes Fast",
+          "content": "Interagir : 3 times on the Clock That's 7 Minutes Fast\nInteragir : ing on these clocks will give you Minute from Xelorium as quest\nRejoindre [6,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              6
+            ],
+            [
+              6,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15855
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : 3 times on the Clock That's 7 Minutes Fast"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : ing on these clocks will give you Minute from Xelorium as quest"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nInteragir : twice on the chest",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              3854,
+              3883
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : twice on the chest"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à Belle Adrenne's Krosmoglob\nPrévoir objet nº 15730 ×1\nPrévoir objet nº 15729 ×1\nPrévoir objet nº 15731 ×1\nPrévoir objet nº 15728 ×1\nRejoindre [1,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              6
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15730,
+              15729,
+              15731,
+              15728
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Belle Adrenne's Krosmoglob"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15730 ×1",
+              "object_id": 15730,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15729 ×1",
+              "object_id": 15729,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15731 ×1",
+              "object_id": 15731,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15728 ×1",
+              "object_id": 15728,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nParler à the Master of Zaaps\nInteragir : the Clockmaker's Workbench\nPrévoir objet nº 15909 ×1\nPrévoir objet nº 15910 ×1\nRejoindre [4,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              4,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15909,
+              15910
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Clockmaker's Workbench"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15909 ×1",
+              "object_id": 15909,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15910 ×1",
+              "object_id": 15910,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Interagir : the temple",
+          "content": "Interagir : the temple\nRejoindre [1,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              2
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nTerminer quête nº 1572\nParler à Doc Ettem Bworn\nDémarrer quête nº 1573\nParler à him\nRejoindre [4,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              4,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1572,
+              1573
+            ],
+            "dungeon": [],
+            "object": [
+              15910
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1572",
+              "quest_id": 1572
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Doc Ettem Bworn"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1573",
+              "quest_id": 1573
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Interagir : the temple",
+          "content": "Interagir : the temple\nInteragir : the Electrobolt\nParler à the Master of Zaaps to Point the electrobolt\nParler à the Doc Ettem Bworn's Krosmoglob\nInteragir : the Chronomagic Hammer\nParler à the clones to Deliver a nice hammer blow",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15860,
+              15886
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Electrobolt"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps to Point the electrobolt"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Doc Ettem Bworn's Krosmoglob"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Chronomagic Hammer"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the clones to Deliver a nice hammer blow"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Parler à the Master of Zaaps",
+          "content": "Parler à the Master of Zaaps\nRejoindre [0,5]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              2
+            ],
+            [
+              -22,
+              -24
+            ],
+            [
+              0,
+              5
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2240
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Master of Zaaps"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [0,5]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Terminer quête nº 1573",
+          "content": "Terminer quête nº 1573\nParler à the Gizmond Quelyn to Give the eternal battery\nRejoindre [-25,-36]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ],
+            [
+              -25,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1573
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1573",
+              "quest_id": 1573
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Gizmond Quelyn to Give the eternal battery"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-25,-36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Interagir : the Treasure Chest",
+          "content": "Interagir : the Treasure Chest\nDémarrer quête nº 1608\nParler à Nova\nInteragir : the stairs\nRejoindre [22,19]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              -36
+            ],
+            [
+              22,
+              19
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1608
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Treasure Chest"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1608",
+              "quest_id": 1608
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nova"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,19]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Parler à Toni Rubbinson",
+          "content": "Parler à Toni Rubbinson\nInteragir : the wooden crate below\nRejoindre [12,24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              19
+            ],
+            [
+              12,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16021
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Toni Rubbinson"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the wooden crate below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [12,24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Interagir : the Ripate Inn",
+          "content": "Interagir : the Ripate Inn\nRejoindre [11,24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              12,
+              24
+            ],
+            [
+              11,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1608
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Ripate Inn"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [11,24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Interagir : the barrel below",
+          "content": "Interagir : the barrel below\nRejoindre [12,24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              11,
+              24
+            ],
+            [
+              12,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the barrel below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [12,24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Interagir : the Ripate Inn",
+          "content": "Interagir : the Ripate Inn\nParler à Captain Wugposh\nRejoindre [7,22]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              12,
+              24
+            ],
+            [
+              7,
+              22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Ripate Inn"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Captain Wugposh"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [7,22]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Parler à Cruel Bootlegger",
+          "content": "Parler à Cruel Bootlegger\nParler à Mary Reankle who just appeared\nObtenir objet nº 16050",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16050
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Cruel Bootlegger"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mary Reankle who just appeared"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 16050",
+              "object_id": 16050
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0048",
+          "type": "info",
+          "title": "Étape 48 — Actions non extraites : contrôler la source",
+          "content": "Actions non extraites : contrôler la source",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              77,
+              85,
+              79,
+              86,
+              82
+            ],
+            "object": [
+              16050,
+              10207
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Actions non extraites : contrôler la source",
+              "requires_manual_review": true
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0049",
+          "type": "info",
+          "title": "Étape 49 — Parler à Mary Reankle",
+          "content": "Parler à Mary Reankle\nInteragir : the building\nRejoindre [22,19]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              22
+            ],
+            [
+              22,
+              19
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mary Reankle"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the building"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,19]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0050",
+          "type": "info",
+          "title": "Étape 50 — Parler à Erika Barley",
+          "content": "Parler à Erika Barley",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              19
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Erika Barley"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0051",
+          "type": "info",
+          "title": "Étape 51 — Parler à Arthur Coward to obtain Arthur Coward as a follower",
+          "content": "Parler à Arthur Coward to obtain Arthur Coward as a follower\nPrévoir objet nº 16044\nParler à Erika Barley to Go back up to the surface\nRejoindre [25,28]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              25,
+              28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16044
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Arthur Coward to obtain Arthur Coward as a follower"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16044",
+              "object_id": 16044
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Erika Barley to Go back up to the surface"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [25,28]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0052",
+          "type": "info",
+          "title": "Étape 52 — Parler à Arthur Coward",
+          "content": "Parler à Arthur Coward\nRejoindre [-25,-36]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              19
+            ],
+            [
+              -25,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Arthur Coward"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-25,-36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0053",
+          "type": "info",
+          "title": "Étape 53 — Interagir : the Treasure Chest",
+          "content": "Interagir : the Treasure Chest\nTerminer quête nº 1608\nParler à Nova\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 53,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              -36
+            ],
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1608
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Treasure Chest"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1608",
+              "quest_id": 1608
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Nova"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0054",
+          "type": "info",
+          "title": "Étape 54 — Démarrer quête nº 1609",
+          "content": "Démarrer quête nº 1609\nRejoindre [-4,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 54,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ],
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1609
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1609",
+              "quest_id": 1609
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-4,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0055",
+          "type": "info",
+          "title": "Étape 55 — Interagir : the Sram Temple",
+          "content": "Interagir : the Sram Temple\nInteragir : the coffin below\nParler à Gein the Silent",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 55,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1610,
+              1611,
+              1612
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Sram Temple"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the coffin below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gein the Silent"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0056",
+          "type": "info",
+          "title": "Étape 56 — Démarrer quête nº 1610",
+          "content": "Démarrer quête nº 1610\nPrévoir objet nº 14946 ×1\nPrévoir objet nº 14509 ×1\nPrévoir objet nº 14516 ×10\nPrévoir objet nº 7906 ×10\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 56,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1610
+            ],
+            "dungeon": [],
+            "object": [
+              14946,
+              14509,
+              14516,
+              7906
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1610",
+              "quest_id": 1610
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14946 ×1",
+              "object_id": 14946,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14509 ×1",
+              "object_id": 14509,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14516 ×10",
+              "object_id": 14516,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 7906 ×10",
+              "object_id": 7906,
+              "quantity": 10
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0057",
+          "type": "info",
+          "title": "Étape 57 — Interagir : the Traveler's Tower",
+          "content": "Interagir : the Traveler's Tower\nParler à Gladis\nInteragir : the console in the middle\nParler à the Agent Bloude's Krosmoglob",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 57,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Traveler's Tower"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gladis"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the console in the middle"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Agent Bloude's Krosmoglob"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0058",
+          "type": "info",
+          "title": "Étape 58 — Interagir : the alembic",
+          "content": "Interagir : the alembic\nParler à the Colonel O'Whel\nRejoindre [-3,9]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 58,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ],
+            [
+              -3,
+              9
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16053
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the alembic"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Colonel O'Whel"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-3,9]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0059",
+          "type": "info",
+          "title": "Étape 59 — Interagir : the Mine",
+          "content": "Interagir : the Mine\nInteragir : the Hidden Portal",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 59,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -3,
+              9
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16053
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Mine"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Hidden Portal"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0060",
+          "type": "info",
+          "title": "Étape 60 — Interagir : the bucket below",
+          "content": "Interagir : the bucket below\nInteragir : the Digicode\nInteragir : the bucket again\nEffectuer le combat indiqué\nInteragir : one of the chests spread throughout the dimension\nPrévoir objet nº 16054\nRejoindre [3,-5]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 60,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -3
+            ],
+            [
+              3,
+              -5
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16054
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the bucket below"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Digicode"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the bucket again"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : one of the chests spread throughout the dimension"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16054",
+              "object_id": 16054
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,-5]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0061",
+          "type": "info",
+          "title": "Étape 61 — Interagir : the Bucket like in the previous step",
+          "content": "Interagir : the Bucket like in the previous step\nInteragir : the Digicode\nParler à Zap Gobdon\nParler à Belle Adrenne\nParler à Strongboxer Guardian\nParler à the King Nidas\nInteragir : the Bucket\nInteragir : the stairs\nRejoindre [0,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 61,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -5
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16054
+            ],
+            "monster": [
+              3962
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Bucket like in the previous step"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Digicode"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zap Gobdon"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Belle Adrenne"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Strongboxer Guardian"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the King Nidas"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Bucket"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [0,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0062",
+          "type": "info",
+          "title": "Étape 62 — Interagir : the Portal",
+          "content": "Interagir : the Portal\nPrévoir objet nº 15416 ×1\nPrévoir objet nº 6961 ×1\nPrévoir objet nº 15990 ×1\nRejoindre [2,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 62,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1611
+            ],
+            "dungeon": [],
+            "object": [
+              15416,
+              6961,
+              15990
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Portal"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15416 ×1",
+              "object_id": 15416,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 6961 ×1",
+              "object_id": 6961,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15990 ×1",
+              "object_id": 15990,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [2,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0063",
+          "type": "info",
+          "title": "Étape 63 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nPrévoir objet nº 15416\nRejoindre [1,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 63,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              2
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15416
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15416",
+              "object_id": 15416
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0064",
+          "type": "info",
+          "title": "Étape 64 — Parler à Anne Saulo",
+          "content": "Parler à Anne Saulo\nRejoindre [4,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 64,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              4,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Anne Saulo"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0065",
+          "type": "info",
+          "title": "Étape 65 — Parler à Arielle",
+          "content": "Parler à Arielle\nInteragir : the stairs\nRejoindre [8,4]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 65,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              3
+            ],
+            [
+              8,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Arielle"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [8,4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0066",
+          "type": "info",
+          "title": "Étape 66 — Parler à Ellie Ksire",
+          "content": "Parler à Ellie Ksire\nInteragir : the stairs\nRejoindre [4,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 66,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              4
+            ],
+            [
+              4,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ellie Ksire"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0067",
+          "type": "info",
+          "title": "Étape 67 — Parler à Arielle",
+          "content": "Parler à Arielle\nInteragir :\nRejoindre [4,1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 67,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              3
+            ],
+            [
+              4,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Arielle"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir :"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0068",
+          "type": "info",
+          "title": "Étape 68 — Interagir : the box below",
+          "content": "Interagir : the box below\nParler à Roy Alpars\nRejoindre [5,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 68,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              1
+            ],
+            [
+              5,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the box below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Roy Alpars"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [5,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0069",
+          "type": "info",
+          "title": "Étape 69 — Interagir : the Torturer's Tavern",
+          "content": "Interagir : the Torturer's Tavern\nParler à the In-Service Malitiaman\nInteragir : the stairs\nRejoindre [7,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 69,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              2
+            ],
+            [
+              7,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Torturer's Tavern"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the In-Service Malitiaman"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [7,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0070",
+          "type": "info",
+          "title": "Étape 70 — Interagir : the passage",
+          "content": "Interagir : the passage\nParler à San Tress\nParler à the Shrouded Canals Jailer to Offer 1000 kamas\nParler à Malitiamen Lookout\nInteragir : the stairs\nRejoindre [7,4]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 70,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              2
+            ],
+            [
+              7,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the passage"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à San Tress"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Shrouded Canals Jailer to Offer 1000 kamas"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Malitiamen Lookout"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [7,4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0071",
+          "type": "info",
+          "title": "Étape 71 — Parler à Valeteen",
+          "content": "Parler à Valeteen\nParler à Grima Fandanga\nInteragir : the stairs twice",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 71,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              4
+            ],
+            [
+              8,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Valeteen"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Grima Fandanga"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0072",
+          "type": "info",
+          "title": "Étape 72 — Parler à Valeteen",
+          "content": "Parler à Valeteen\nInteragir : your Rikiki Wand\nInteragir : the grid below\nParler à Fraktor\nEffectuer le combat indiqué\nParler à Svivomito\nInteragir : the stairs twice\nRejoindre [8,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 72,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              6
+            ],
+            [
+              8,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15990
+            ],
+            "monster": [
+              3966,
+              3967
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Valeteen"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : your Rikiki Wand"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the grid below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fraktor"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Svivomito"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs twice"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [8,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0073",
+          "type": "info",
+          "title": "Étape 73 — Parler à Miss Eloc",
+          "content": "Parler à Miss Eloc\nRejoindre [9,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 73,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              3
+            ],
+            [
+              9,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Miss Eloc"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [9,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0074",
+          "type": "info",
+          "title": "Étape 74 — Parler à Ecaflippy",
+          "content": "Parler à Ecaflippy\nRejoindre [0,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 74,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              9,
+              3
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ecaflippy"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [0,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0075",
+          "type": "info",
+          "title": "Étape 75 — Interagir : the Portal",
+          "content": "Interagir : the Portal\nInteragir : the pedestal in the middle\nRejoindre [3,1]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 75,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1612
+            ],
+            "dungeon": [],
+            "object": [
+              15910
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Portal"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the pedestal in the middle"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0076",
+          "type": "info",
+          "title": "Étape 76 — Interagir : the building",
+          "content": "Interagir : the building\nParler à the Museum Guardian\nInteragir : the book\nRejoindre [1,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 76,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the building"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Museum Guardian"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the book"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0077",
+          "type": "info",
+          "title": "Étape 77 — Parler à the Devourer of Books",
+          "content": "Parler à the Devourer of Books\nRejoindre [1,6]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 77,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              2
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15909
+            ],
+            "monster": [
+              3971
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Devourer of Books"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0078",
+          "type": "info",
+          "title": "Étape 78 — Interagir : the Voyagers' Outpost",
+          "content": "Interagir : the Voyagers' Outpost\nParler à the Corporal Tart\nRejoindre [7,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 78,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Outpost"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Corporal Tart"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [7,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0079",
+          "type": "info",
+          "title": "Étape 79 — Parler à Hyperia Shrik",
+          "content": "Parler à Hyperia Shrik\nRejoindre [6,-4]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 79,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ],
+            [
+              6,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15910
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Hyperia Shrik"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,-4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0080",
+          "type": "info",
+          "title": "Étape 80 — Parler à the Time Hunter",
+          "content": "Parler à the Time Hunter\nRejoindre [3,-4]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 80,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              -4
+            ],
+            [
+              3,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Time Hunter"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,-4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0081",
+          "type": "info",
+          "title": "Étape 81 — Interagir : the building",
+          "content": "Interagir : the building\nEffectuer le combat indiqué\nParler à Time Huntress\nRejoindre [4,2]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 81,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -4
+            ],
+            [
+              4,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the building"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Time Huntress"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,2]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0082",
+          "type": "info",
+          "title": "Étape 82 — Parler à the Time Hunterto start a fightalone",
+          "content": "Parler à the Time Hunterto start a fightalone\nRejoindre [2,5]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 82,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              2
+            ],
+            [
+              2,
+              5
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Time Hunterto start a fightalone"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [2,5]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0083",
+          "type": "info",
+          "title": "Étape 83 — Parler à the Time Huntress",
+          "content": "Parler à the Time Huntress\nRejoindre [7,3]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 83,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              5
+            ],
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Time Huntress"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [7,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0084",
+          "type": "info",
+          "title": "Étape 84 — Parler à Hyperia Shrik",
+          "content": "Parler à Hyperia Shrik\nInteragir : the Roman numeral that corresponds\nParler à Methea\nParler à Olivie Frange to Snatch the page\nRejoindre [-4,0]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 84,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ],
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Hyperia Shrik"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Roman numeral that corresponds"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Methea"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Olivie Frange to Snatch the page"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-4,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0085",
+          "type": "info",
+          "title": "Étape 85 — Interagir : the Sram Temple",
+          "content": "Interagir : the Sram Temple\nParler à Gein the Silent",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 85,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1610,
+              1611,
+              1612,
+              1609
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Sram Temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gein the Silent"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0086",
+          "type": "info",
+          "title": "Étape 86 — Démarrer quête nº 1613",
+          "content": "Démarrer quête nº 1613\nParler à him again\nRejoindre [-22,-24]",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 86,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              0
+            ],
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1613
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer quête nº 1613",
+              "quest_id": 1613
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0087",
+          "type": "info",
+          "title": "Étape 87 — Interagir : the Voyagers' Tower",
+          "content": "Interagir : the Voyagers' Tower\nParler à Colonel O'Whel\nParler à the Explorancient\nParler à Gein the Silent\nParler à everyone in the room\nParler à the Explorancient who becomes Echo\nCombat contre monstre nº 3977\nParler à Echo",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 87,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              3977
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Voyagers' Tower"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Colonel O'Whel"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorancient"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Gein the Silent"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à everyone in the room"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Explorancient who becomes Echo"
+            },
+            {
+              "kind": "combat",
+              "label": "Combat contre monstre nº 3977",
+              "monster_id": 3977
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Echo"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2209_step_0088",
+          "type": "info",
+          "title": "Étape 88 — Prévoir objet nº 7172",
+          "content": "Prévoir objet nº 7172\nTerminer quête nº 1613\nPrévoir objet nº 16061\nRecevoir objet récompense nº 16061",
+          "optional": false,
+          "source_guide_id": 2209,
+          "source_step_number": 88,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1613
+            ],
+            "dungeon": [],
+            "object": [
+              7172,
+              16061
+            ],
+            "monster": [
+              3977,
+              3978
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 7172",
+              "object_id": 7172
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer quête nº 1613",
+              "quest_id": 1613
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16061",
+              "object_id": 16061
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir objet récompense nº 16061",
+              "object_id": 16061
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 88,
+  "source_action_candidate_steps": 88,
+  "source_action_candidate_actions": 328,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 100,
+  "recommended_level_max": 100,
+  "reward_item_id": 16061,
+  "illustration_item_id": 16061,
+  "image": null,
+  "linked_achievement_ids": [
+    1072,
+    1102,
+    1142,
+    1186,
+    1187
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

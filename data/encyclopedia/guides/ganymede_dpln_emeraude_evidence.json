@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2211,
+  "atlas_guide_id": "dofus_emeraude",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/dofus-emeraude.html",
+    "dpln_achievement": "https://www.dofuspourlesnoobs.com/vert-eacutemeraude.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2211"
+  },
+  "main_quests": [
+    {
+      "quest_id": 1463,
+      "name": "Retourner voir le Dark Vlad, toujours sans mourir",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1463",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1464,
+      "name": "Qui botte le cul des Culs Bottés ?",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1464",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1465,
+      "name": "Le voleur d'âmes",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1465",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1466,
+      "name": "L'amour perdu de Nabur",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1466",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1467,
+      "name": "Naissance d'une vocation",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1467",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1469,
+      "name": "Les bandits de Cania",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1469",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1470,
+      "name": "Draconanthropie",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1470",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1471,
+      "name": "Ultime réminiscence",
+      "achievement_group": "Vert émeraude",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1471",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [],
+  "prerequisite_achievement_review": {
+    "title": "Mais où sont les Dofus ?",
+    "source": "DPLN",
+    "achievement_ids_verified": false,
+    "mandatory_quest_expansion_verified": false
+  },
+  "preparation_evidence": {
+    "resources": [
+      {
+        "name": "Plume du Kwak de Vent",
+        "quantity": 10
+      },
+      {
+        "name": "Graine de la Discorde",
+        "quantity": 8
+      },
+      {
+        "name": "Ailes de Scarafeuille Blanc",
+        "quantity": 6
+      },
+      {
+        "name": "Résine",
+        "quantity": 4
+      },
+      {
+        "name": "Pierre d'Émeraude",
+        "quantity": 2
+      }
+    ],
+    "mounts": [
+      "Dragodinde Rousse",
+      "Dragodinde Amande",
+      "Dragodinde Dorée"
+    ],
+    "dungeons": [
+      "Tanière du Meulou"
+    ],
+    "boss_soul_capture_review": "Bosses or purchased captured soul stones, action/quantity not inferred",
+    "combat_review": {
+      "group": 7,
+      "tactical_solo": 1,
+      "solo": 4,
+      "random_additional": true
+    },
+    "requirements_review": [
+      "Succès « Ce n'est qu'un prélèvement »",
+      "Succès « Elle a peut-être trop mangé ? »",
+      "Métier Éleveur niveau 20+",
+      "Au moins un métier niveau 50+",
+      "1 100 kamas"
+    ],
+    "planning_note": "Source-global needs only. Deduplicate against other routes, resolve per-character counts/ownership, gather/drop/craft alternatives, avoid presenting already scheduled resources in À préparer."
+  }
+}

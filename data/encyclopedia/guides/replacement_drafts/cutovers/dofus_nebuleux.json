@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "id": "dofus_nebuleux",
+  "title": "Dofus Nébuleux",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2247,
+  "source_guide_url": "https://ganymede-app.com/guides/2247",
+  "source_prerequisite_guide_ids": [
+    2246,
+    2239,
+    2243
+  ],
+  "expected_source_step_count": 6,
+  "playable_step_count": 6,
+  "source_link_snapshot": "ganymede_2247_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2247_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2247_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Avoir terminé le Dofus des Veilleurs",
+          "content": "Avoir terminé le Dofus des Veilleurs\nAvoir terminé Enutrosor troisième partie\nAvoir terminé Xélorium troisième partie\nAvoir terminé Srambad troisième partie\nRéunir quatre participants ayant lancé ou terminé la quête\nObjectif final : obtenir le Nébuleux",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2209,
+            2239,
+            2243,
+            2246
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              8698
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé le Dofus des Veilleurs",
+              "guide_id": 2209
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Enutrosor troisième partie",
+              "guide_id": 2239
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Xélorium troisième partie",
+              "guide_id": 2243
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Srambad troisième partie",
+              "guide_id": 2246
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Réunir quatre participants ayant lancé ou terminé la quête",
+              "quest_id": 1614,
+              "participants_min": 4
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif final : obtenir le Nébuleux",
+              "object_id": 8698
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Avoir le Dofus des Veilleurs",
+          "content": "Avoir le Dofus des Veilleurs\nPrévoir une montre rapide\nPrévoir une montre lente\nRejoindre Khelebragon à Amakna",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              16061,
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Avoir le Dofus des Veilleurs",
+              "object_id": 16061,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une montre rapide",
+              "object_id": 15910,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une montre lente",
+              "object_id": 15909,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Khelebragon à Amakna"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Parler à Khelebragon pour démarrer la quête",
+          "content": "Parler à Khelebragon pour démarrer la quête\nUtiliser la montre rapide en Xélorium\nUtiliser la montre lente en Xélorium\nRejoindre l'accès au Mégalithe",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Parler à Khelebragon pour démarrer la quête",
+              "quest_id": 1614
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la montre rapide en Xélorium",
+              "object_id": 15910
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la montre lente en Xélorium",
+              "object_id": 15909
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'accès au Mégalithe"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Demander à Hypéria l'accès au Mégalithe",
+          "content": "Demander à Hypéria l'accès au Mégalithe\nSe placer sur la dalle correspondant à l'heure du serveur",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Demander à Hypéria l'accès au Mégalithe"
+            },
+            {
+              "kind": "interact",
+              "label": "Se placer sur la dalle correspondant à l'heure du serveur",
+              "mechanic": "hour_tile",
+              "timezone_warning": true
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Parler à Khelebragon",
+          "content": "Parler à Khelebragon\nEngager le combat contre l'Oiseau du Temps à quatre\nTenir 17 tours, maintenir les quatre survivants et anticiper les retours de position\nUtiliser les glyphes de téléfrag pour limiter la baisse périodique de résistances\nÉquiper le Dokoko pour la survie si disponible\nÉquiper le Dofus Argenté si disponible\nParler à Méthéa puis Khelebragon après le combat\nAlterner les montres rapide et lente pour la sortie\nRejoindre le messager de Xélor",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17078,
+              19629,
+              15910,
+              15909
+            ],
+            "monster": [
+              3970,
+              556
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Khelebragon"
+            },
+            {
+              "kind": "combat",
+              "label": "Engager le combat contre l'Oiseau du Temps à quatre",
+              "monster_id": 3970,
+              "participants_min": 4,
+              "turns_survive": 17,
+              "all_allies_must_survive": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Tenir 17 tours, maintenir les quatre survivants et anticiper les retours de position",
+              "participants_min": 4,
+              "turns_survive": 17
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Utiliser les glyphes de téléfrag pour limiter la baisse périodique de résistances",
+              "monster_id": 3970
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Équiper le Dokoko pour la survie si disponible",
+              "object_id": 17078
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Équiper le Dofus Argenté si disponible",
+              "object_id": 19629
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Méthéa puis Khelebragon après le combat"
+            },
+            {
+              "kind": "interact",
+              "label": "Alterner les montres rapide et lente pour la sortie",
+              "object_ids": [
+                15910,
+                15909
+              ]
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le messager de Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Parler au héraut puis au dieu Xélor",
+          "content": "Parler au héraut puis au dieu Xélor\nReparler à Khelebragon pour terminer la quête\nRecevoir le Dofus Nébuleux",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              8698
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au héraut puis au dieu Xélor"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Reparler à Khelebragon pour terminer la quête",
+              "quest_id": 1614
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir le Dofus Nébuleux",
+              "object_id": 8698
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 6,
+  "source_action_candidate_steps": 6,
+  "source_action_candidate_actions": 28,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 100,
+  "recommended_level_max": 200,
+  "reward_item_id": 8698,
+  "illustration_item_id": 8698,
+  "image": null,
+  "linked_achievement_ids": [
+    1072,
+    1073,
+    1074,
+    1075,
+    1076,
+    1102,
+    1103,
+    1104,
+    1105,
+    1106,
+    1142,
+    1143,
+    1144,
+    1145,
+    1146,
+    1186,
+    1188
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

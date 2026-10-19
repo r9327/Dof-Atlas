@@ -1,0 +1,3413 @@
+{
+  "schema_version": 1,
+  "id": "dorigami",
+  "title": "Dorigami",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2221,
+  "source_guide_url": "https://ganymede-app.com/guides/2221",
+  "source_prerequisite_guide_ids": [
+    2212
+  ],
+  "expected_source_step_count": 64,
+  "playable_step_count": 64,
+  "source_link_snapshot": "ganymede_2221_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2221_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2221_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Terminer le guide préalable nº 2212",
+          "content": "Terminer le guide préalable nº 2212\nTerminer le guide préalable nº 2204\nTerminer le guide préalable nº 2211\nTerminer la quête préalable nº 1465\nRejoindre [20,-29]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -29
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2212,
+            2204,
+            2211
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1465
+            ],
+            "dungeon": [],
+            "object": [
+              23408
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le guide préalable nº 2212",
+              "guide_id": 2212
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le guide préalable nº 2204",
+              "guide_id": 2204
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Terminer le guide préalable nº 2211",
+              "guide_id": 2211
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Terminer la quête préalable nº 1465",
+              "quest_id": 1465
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,-29]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Prévoir objet nº 23094 ×1",
+          "content": "Prévoir objet nº 23094 ×1\nPrévoir objet nº 7384 ×4\nPrévoir objet nº 16385 ×12\nPrévoir objet nº 10831 ×8\nPrévoir objet nº 381 ×3\nPrévoir objet nº 2294 ×3\nPrévoir objet nº 405 ×2\nPrévoir objet nº 16496 ×3\nPrévoir objet nº 315 ×1\nPrévoir objet nº 446 ×5",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2179,
+              2198,
+              2180
+            ],
+            "dungeon": [],
+            "object": [
+              23094,
+              7384,
+              16385,
+              10831,
+              381,
+              2294,
+              405,
+              16496,
+              315,
+              446
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 23094 ×1",
+              "object_id": 23094,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 7384 ×4",
+              "object_id": 7384,
+              "quantity": 4
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 16385 ×12",
+              "object_id": 16385,
+              "quantity": 12
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 10831 ×8",
+              "object_id": 10831,
+              "quantity": 8
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 381 ×3",
+              "object_id": 381,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 2294 ×3",
+              "object_id": 2294,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 405 ×2",
+              "object_id": 405,
+              "quantity": 2
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 16496 ×3",
+              "object_id": 16496,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 315 ×1",
+              "object_id": 315,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 446 ×5",
+              "object_id": 446,
+              "quantity": 5
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Rejoindre [22,-29]",
+          "content": "Rejoindre [22,-29]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -29
+            ],
+            [
+              22,
+              -29
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23180
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-29]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Interagir : the Bamboo Palace",
+          "content": "Interagir : the Bamboo Palace\nParler à the Samurai Holi\nParler à The Grandapan to Drink a tankard of Pandaporo\nRejoindre [22,-29]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -29
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23094
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Bamboo Palace"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Samurai Holi"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à The Grandapan to Drink a tankard of Pandaporo"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-29]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Démarrer la quête nº 2179",
+          "content": "Démarrer la quête nº 2179\nParler à Orukam",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2179
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 2179",
+              "quest_id": 2179
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Orukam"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Parler à Imagiro",
+          "content": "Parler à Imagiro\nRejoindre [22,-28]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              22,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Imagiro"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-28]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Interagir : the house",
+          "content": "Interagir : the house\nInteragir : the stairs\nParler à Ronald the Wise Lenald\nPrévoir objet nº 7384\nRejoindre [36,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -28
+            ],
+            [
+              35,
+              -45
+            ],
+            [
+              36,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              7384
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ronald the Wise Lenald"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 7384",
+              "object_id": 7384
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Interagir : the tent",
+          "content": "Interagir : the tent\nParler à Danaba Retzu to Talk about Ronald's crypt\nRejoindre [35,-45]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -40
+            ],
+            [
+              35,
+              -45
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Danaba Retzu to Talk about Ronald's crypt"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [35,-45]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Interagir : the crypt on the left",
+          "content": "Interagir : the crypt on the left",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              35,
+              -45
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the crypt on the left"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Interagir : the elements below",
+          "content": "Interagir : the elements below\nRejoindre [36,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              35,
+              -45
+            ],
+            [
+              36,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the elements below"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Interagir : the tent",
+          "content": "Interagir : the tent\nParler à Danaba Retzu\nRécolter objet nº 23569 ×1\nRécolter objet nº 23570 ×1\nRécolter objet nº 23571 ×1\nRécolter objet nº 23572 ×1\nRejoindre [36,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              132
+            ],
+            "object": [
+              23569,
+              23570,
+              23571,
+              23572
+            ],
+            "monster": [
+              6383,
+              6384,
+              6385,
+              6386
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Danaba Retzu"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter objet nº 23569 ×1",
+              "object_id": 23569,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter objet nº 23570 ×1",
+              "object_id": 23570,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter objet nº 23571 ×1",
+              "object_id": 23571,
+              "quantity": 1
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter objet nº 23572 ×1",
+              "object_id": 23572,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Interagir : the tent",
+          "content": "Interagir : the tent\nParler à Danaba Retzu to Hand over the\nRejoindre [36,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -40
+            ],
+            [
+              36,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Danaba Retzu to Hand over the"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Terminer le donjon nº 132",
+          "content": "Terminer le donjon nº 132\nParler à the Shogun Tofugawa to Talk about the crypt\nRejoindre [38,-41]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -44
+            ],
+            [
+              38,
+              -41
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              132
+            ],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 132",
+              "dungeon_id": 132
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Shogun Tofugawa to Talk about the crypt"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [38,-41]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à Pandissidora Spectre\nRejoindre [36,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -41
+            ],
+            [
+              36,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6407
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Pandissidora Spectre"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Parler à Yinchika",
+          "content": "Parler à Yinchika\nTerminer la quête nº 2179\nParler à the Shogun Tofugawa to Decry his treachery\nDémarrer la quête nº 2180\nParler à him\nRejoindre [22,-28]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -44
+            ],
+            [
+              22,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2179,
+              2180
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yinchika"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 2179",
+              "quest_id": 2179
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Shogun Tofugawa to Decry his treachery"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 2180",
+              "quest_id": 2180
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-28]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Interagir : the house",
+          "content": "Interagir : the house\nInteragir : the stairs\nParler à Ronald the Wise Lenald\nRejoindre [39,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -28
+            ],
+            [
+              39,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ronald the Wise Lenald"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [39,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Terminer le donjon nº 131",
+          "content": "Terminer le donjon nº 131\nParler à Koumiho to Find out more\nDémarrer la quête nº 2198\nRejoindre [21,-27]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              39,
+              -44
+            ],
+            [
+              21,
+              -27
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2198
+            ],
+            "dungeon": [
+              131
+            ],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 131",
+              "dungeon_id": 131
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Koumiho to Find out more"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 2198",
+              "quest_id": 2198
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,-27]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Interagir : the Library",
+          "content": "Interagir : the Library\nInteragir : the stairs\nInteragir : the pile of red books on the table\nRejoindre [22,-29]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -27
+            ],
+            [
+              22,
+              -29
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Library"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the pile of red books on the table"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-29]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Interagir : the Bamboo Palace",
+          "content": "Interagir : the Bamboo Palace\nParler à Samurai Holi\nParler à Samurai Khou\nPrévoir objet nº 2294 ×3\nPrévoir objet nº 381 ×3\nPrévoir objet nº 10831 ×8\nRejoindre [20,-26]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -29
+            ],
+            [
+              20,
+              -26
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              2294,
+              381,
+              10831
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Bamboo Palace"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Samurai Holi"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Samurai Khou"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2294 ×3",
+              "object_id": 2294,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 381 ×3",
+              "object_id": 381,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 10831 ×8",
+              "object_id": 10831,
+              "quantity": 8
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,-26]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Interagir : the Farmers' Workshop",
+          "content": "Interagir : the Farmers' Workshop\nInteragir : the Workbench\nFabriquer objet nº 23118\nRejoindre [23,-36]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -26
+            ],
+            [
+              23,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23118
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Farmers' Workshop"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Workbench"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer objet nº 23118",
+              "object_id": 23118
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [23,-36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Interagir : the banana basket",
+          "content": "Interagir : the banana basket\nInteragir : the temple\nParler à the Old Kozaru\nRejoindre [22,-35]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              23,
+              -36
+            ],
+            [
+              22,
+              -35
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the banana basket"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Old Kozaru"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-35]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Aerdala Highlander\nRejoindre [34,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -35
+            ],
+            [
+              34,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Aerdala Highlander"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [34,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Parler à the Nolifis Ferryman",
+          "content": "Parler à the Nolifis Ferryman\nFabriquer objet nº 23598",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              34,
+              -40
+            ],
+            [
+              36,
+              -43
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23598
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Nolifis Ferryman"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer objet nº 23598",
+              "object_id": 23598
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Interagir : the Cemetery Inn",
+          "content": "Interagir : the Cemetery Inn\nRejoindre [20,-20]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -43
+            ],
+            [
+              20,
+              -20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23595
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Cemetery Inn"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,-20]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Interagir : the Osakwa Inn",
+          "content": "Interagir : the Osakwa Inn\nParler à the Anonymous Akwaholic\nRejoindre [22,-19]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -20
+            ],
+            [
+              22,
+              -19
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Osakwa Inn"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Anonymous Akwaholic"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [22,-19]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Parler à the Rain Jar to obtain 1 Pandala Rain",
+          "content": "Parler à the Rain Jar to obtain 1 Pandala Rain\nPrévoir objet nº 23593\nRejoindre [20,-21]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              22,
+              -19
+            ],
+            [
+              20,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23593
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Jar to obtain 1 Pandala Rain"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23593",
+              "object_id": 23593
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,-21]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Parler à the Rain Jar to obtain 1 Pandala Rain",
+          "content": "Parler à the Rain Jar to obtain 1 Pandala Rain\nPrévoir objet nº 23593\nRejoindre [18,-23]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -21
+            ],
+            [
+              18,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23593
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Jar to obtain 1 Pandala Rain"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23593",
+              "object_id": 23593
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [18,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Parler à the Rain Jar to obtain 1 Pandala Rain",
+          "content": "Parler à the Rain Jar to obtain 1 Pandala Rain\nPrévoir objet nº 23593\nRejoindre [19,-26]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              18,
+              -23
+            ],
+            [
+              19,
+              -26
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23593
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Jar to obtain 1 Pandala Rain"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23593",
+              "object_id": 23593
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [19,-26]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Parler à the Rain Jar to get 1 Pandala Rain",
+          "content": "Parler à the Rain Jar to get 1 Pandala Rain\nRejoindre [21,-24]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              19,
+              -26
+            ],
+            [
+              21,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23593
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Jar to get 1 Pandala Rain"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,-24]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Parler à the Rain Jar to obtain 1 Pandala Rain",
+          "content": "Parler à the Rain Jar to obtain 1 Pandala Rain\nPrévoir objet nº 23593\nRejoindre [25,-23]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -24
+            ],
+            [
+              25,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23593
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Jar to obtain 1 Pandala Rain"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23593",
+              "object_id": 23593
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [25,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Interagir : the rope",
+          "content": "Interagir : the rope\nInteragir : the geyser in the center\nPrévoir objet nº 23635\nRécolter objet nº 23592\nRejoindre [25,-22]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              25,
+              -23
+            ],
+            [
+              25,
+              -22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23635,
+              23592
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the rope"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the geyser in the center"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23635",
+              "object_id": 23635
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter objet nº 23592",
+              "object_id": 23592
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [25,-22]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Interagir : the mine",
+          "content": "Interagir : the mine\nEffectuer le combat indiqué\nParler à the Tanuki who Died from Exhaustion",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              25,
+              -22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the mine"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Tanuki who Died from Exhaustion"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Parler à Tanuki who Died from Exhaustion",
+          "content": "Parler à Tanuki who Died from Exhaustion\nRejoindre [24,-25]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              25,
+              -22
+            ],
+            [
+              24,
+              -25
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Tanuki who Died from Exhaustion"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [24,-25]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Tanuki who Died from Exhaustion\nRejoindre [26,-26]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              24,
+              -25
+            ],
+            [
+              26,
+              -26
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Tanuki who Died from Exhaustion"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [26,-26]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Tanuki who Died from Exhaustion\nPrévoir objet nº 7384\nPrévoir objet nº 405\nPrévoir objet nº 16385\nFabriquer objet nº 23598\nRejoindre [34,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              26,
+              -26
+            ],
+            [
+              34,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              7384,
+              405,
+              16385,
+              23598
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Tanuki who Died from Exhaustion"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 7384",
+              "object_id": 7384
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 405",
+              "object_id": 405
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16385",
+              "object_id": 16385
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer objet nº 23598",
+              "object_id": 23598
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [34,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Rejoindre [35,-40]",
+          "content": "Rejoindre [35,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              34,
+              -40
+            ],
+            [
+              35,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23598
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Rejoindre [35,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Parler à the Externam Lantern",
+          "content": "Parler à the Externam Lantern\nRejoindre [36,-43]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              35,
+              -40
+            ],
+            [
+              36,
+              -43
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Externam Lantern"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-43]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Rejoindre [37,-44]",
+          "content": "Rejoindre [37,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -43
+            ],
+            [
+              37,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2198
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Interagir : the stairs",
+          "content": "Interagir : the stairs\nRejoindre [37,-46]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -44
+            ],
+            [
+              37,
+              -46
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-46]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Démarrer la quête nº 2173",
+          "content": "Démarrer la quête nº 2173\nParler à the Route of the Dead\nRejoindre [37,-47]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -46
+            ],
+            [
+              37,
+              -47
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2253
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2173
+            ],
+            "dungeon": [],
+            "object": [
+              23408
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 2173",
+              "quest_id": 2173
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Route of the Dead"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-47]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Parler à Karon the Ferrier",
+          "content": "Parler à Karon the Ferrier\nParler à him again to Continue the crossing\nEffectuer le combat indiqué\nParler à him again",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -47
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Karon the Ferrier"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again to Continue the crossing"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him again"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Parler à Karon the Ferrier to Continue the crossing",
+          "content": "Parler à Karon the Ferrier to Continue the crossing\nParler à Passing Visitor\nParler à Karon the Ferrier to Continue the voyage\nEffectuer le combat indiqué\nParler à Errant Guide\nParler à Karon the Ferrier to Go back to Nolifis\nRejoindre [23,-36]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -47
+            ],
+            [
+              23,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Karon the Ferrier to Continue the crossing"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Passing Visitor"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Karon the Ferrier to Continue the voyage"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Errant Guide"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Karon the Ferrier to Go back to Nolifis"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [23,-36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Interagir : the temple",
+          "content": "Interagir : the temple\nParler à the Old Kozaru to Wait\nRejoindre [21,-38]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              23,
+              -36
+            ],
+            [
+              21,
+              -38
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Old Kozaru to Wait"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,-38]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Cloud Kitsou\nRejoindre [19,-35]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -38
+            ],
+            [
+              19,
+              -35
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6434
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Cloud Kitsou"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [19,-35]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Fire Kitsou\nRejoindre [21,-33]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              19,
+              -35
+            ],
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6428
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Fire Kitsou"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,-33]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Rain Kitsou\nRejoindre [23,-33]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              23,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6430
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Rain Kitsou"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [23,-33]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nParler à the Sand Kitsou\nRejoindre [23,-36]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              23,
+              -33
+            ],
+            [
+              23,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6432
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Sand Kitsou"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [23,-36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0048",
+          "type": "info",
+          "title": "Étape 48 — Interagir : the temple",
+          "content": "Interagir : the temple\nParler à the Old Kozaru\nRejoindre [39,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              23,
+              -36
+            ],
+            [
+              39,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Old Kozaru"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [39,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0049",
+          "type": "info",
+          "title": "Étape 49 — Parler à Jibakurei",
+          "content": "Parler à Jibakurei\nParler à Koumiho to Hand over her Hoshinotama\nTerminer la quête nº 2198\nParler à her again\nParler à the Koumiho's Kitsounebi\nRejoindre [36,-44]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              39,
+              -44
+            ],
+            [
+              36,
+              -44
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2198
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Jibakurei"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Koumiho to Hand over her Hoshinotama"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 2198",
+              "quest_id": 2198
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her again"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Koumiho's Kitsounebi"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-44]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0050",
+          "type": "info",
+          "title": "Étape 50 — Parler à Yinchika",
+          "content": "Parler à Yinchika\nParler à the Shogun Tofugawa to Reveal the burning\nInteragir : the stairs\nRejoindre [39,-45]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -44
+            ],
+            [
+              39,
+              -45
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Yinchika"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Shogun Tofugawa to Reveal the burning"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [39,-45]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0051",
+          "type": "info",
+          "title": "Étape 51 — Interagir : the stairs without managing",
+          "content": "Interagir : the stairs without managing\nRejoindre [36,-40]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              39,
+              -45
+            ],
+            [
+              36,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs without managing"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0052",
+          "type": "info",
+          "title": "Étape 52 — Interagir : the tent",
+          "content": "Interagir : the tent\nParler à Danaba Retzu\nRejoindre [37,-42]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -40
+            ],
+            [
+              37,
+              -42
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Danaba Retzu"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-42]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0053",
+          "type": "info",
+          "title": "Étape 53 — Interagir : the cabin",
+          "content": "Interagir : the cabin\nParler à Hakamori\nRejoindre [36,-46]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 53,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -42
+            ],
+            [
+              36,
+              -46
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the cabin"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hakamori"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-46]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0054",
+          "type": "info",
+          "title": "Étape 54 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Halesuhtem\nRejoindre [38,-46]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 54,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -46
+            ],
+            [
+              38,
+              -46
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Halesuhtem"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [38,-46]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0055",
+          "type": "info",
+          "title": "Étape 55 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nInteragir : the grave in the center\nRejoindre [40,-43]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 55,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -46
+            ],
+            [
+              40,
+              -43
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the grave in the center"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [40,-43]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0056",
+          "type": "info",
+          "title": "Étape 56 — Effectuer le combat indiqué",
+          "content": "Effectuer le combat indiqué\nInteragir : the grave on the left\nRejoindre [39,-41]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 56,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              40,
+              -43
+            ],
+            [
+              39,
+              -41
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the grave on the left"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [39,-41]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0057",
+          "type": "info",
+          "title": "Étape 57 — Interagir : the grave on the left",
+          "content": "Interagir : the grave on the left\nParler à the Tortured Spirit of Yor Solismynao\nRejoindre [36,-46]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 57,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              39,
+              -41
+            ],
+            [
+              36,
+              -46
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the grave on the left"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Tortured Spirit of Yor Solismynao"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [36,-46]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0058",
+          "type": "info",
+          "title": "Étape 58 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Halesuhtem\nFabriquer objet nº 23578\nPrévoir objet nº 16496 ×3\nPrévoir objet nº 315 ×1\nPrévoir objet nº 446 ×5",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 58,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -46
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23578,
+              16496,
+              315,
+              446
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Halesuhtem"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer objet nº 23578",
+              "object_id": 23578
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16496 ×3",
+              "object_id": 16496,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 315 ×1",
+              "object_id": 315,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 446 ×5",
+              "object_id": 446,
+              "quantity": 5
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0059",
+          "type": "info",
+          "title": "Étape 59 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Halesuhtem\nRejoindre [34,-43]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 59,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              36,
+              -46
+            ],
+            [
+              34,
+              -43
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Halesuhtem"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [34,-43]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0060",
+          "type": "info",
+          "title": "Étape 60 — Prévoir objet nº 23578",
+          "content": "Prévoir objet nº 23578\nParler à the Unmarked Tomb\nParler à the Yor Solismynao's Appeased Spirit\nRejoindre [21,-27]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 60,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              34,
+              -43
+            ],
+            [
+              21,
+              -27
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23578
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23578",
+              "object_id": 23578
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Unmarked Tomb"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Yor Solismynao's Appeased Spirit"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,-27]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0061",
+          "type": "info",
+          "title": "Étape 61 — Interagir : the Library",
+          "content": "Interagir : the Library\nInteragir : the stairs\nInteragir : the book on the ground\nRejoindre [37,-42]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 61,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -27
+            ],
+            [
+              37,
+              -42
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Library"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the book on the ground"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-42]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0062",
+          "type": "info",
+          "title": "Étape 62 — Interagir : the cabin",
+          "content": "Interagir : the cabin\nParler à Hakamori\nRejoindre [39,-45]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 62,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -42
+            ],
+            [
+              39,
+              -45
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the cabin"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Hakamori"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [39,-45]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0063",
+          "type": "info",
+          "title": "Étape 63 — Interagir : the stairs",
+          "content": "Interagir : the stairs\nInteragir : the skull\nEffectuer le combat indiqué\nParler à the Werepeki\nParler à the Shogun Tofugawa\nParler à Ronald the Wise Lenald\nRejoindre [37,-42]",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 63,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              39,
+              -45
+            ],
+            [
+              37,
+              -42
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6382,
+              6461
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the skull"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat indiqué"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Werepeki"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Shogun Tofugawa"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ronald the Wise Lenald"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [37,-42]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2221_step_0064",
+          "type": "info",
+          "title": "Étape 64 — Parler à Imagiro",
+          "content": "Parler à Imagiro\nParler à Ronald the Wise Lenald\nTerminer la quête nº 2180\nPrévoir objet nº 23408\nRecevoir objet de récompense nº 23408",
+          "optional": false,
+          "source_guide_id": 2221,
+          "source_step_number": 64,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              37,
+              -47
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2180
+            ],
+            "dungeon": [],
+            "object": [
+              23408
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Imagiro"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ronald the Wise Lenald"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 2180",
+              "quest_id": 2180
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 23408",
+              "object_id": 23408
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir objet de récompense nº 23408",
+              "object_id": 23408
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 64,
+  "source_action_candidate_steps": 64,
+  "source_action_candidate_actions": 228,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 30,
+  "recommended_level_max": 170,
+  "reward_item_id": 23408,
+  "illustration_item_id": 23408,
+  "image": null,
+  "linked_achievement_ids": [
+    3078
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}
