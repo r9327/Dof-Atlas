@@ -146,4 +146,30 @@ def prepare_ganymede_plan_input(
     }
 
 
-__all__ = ["prepare_ganymede_plan_input"]
+def preview_ganymede_preparation(
+    audited: Mapping[str, object],
+    character_keys: Iterable[str],
+    *,
+    atlas_guide_ids: Iterable[str] | None = None,
+    known_owned_items: Mapping[str, Mapping[int, int]] | None = None,
+    completed_source_steps: Mapping[str, Mapping[str, set[str] | frozenset[str]]] | None = None,
+) -> dict[str, object]:
+    """Hand verified source *proposals* to the JIT, per-character preview.
+
+    This explicitly does not construct canonical RouteAction instances or
+    claim game completion, and never assumes that missing inventory is zero.
+    """
+    from app.modules.encyclopedia.services.guide_ganymede_preparation import (
+        stage_preparation_preview,
+    )
+
+    plan = prepare_ganymede_plan_input(
+        audited, character_keys, atlas_guide_ids=atlas_guide_ids,
+    )
+    return stage_preparation_preview(
+        plan, known_owned_items=known_owned_items,
+        completed_source_steps=completed_source_steps,
+    )
+
+
+__all__ = ["prepare_ganymede_plan_input", "preview_ganymede_preparation"]
