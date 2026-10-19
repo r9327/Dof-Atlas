@@ -136,6 +136,20 @@ def project_ganymede_continuous_plan(
                 localized = row["localized_name_verified"]
                 references = row["source_references"]
                 optional = row["optional"]
+                details = row["source_details"]
+                tree_predecessor = (
+                    details.get("public_tree_predecessor_verified") is True
+                    if row["kind"] == "guide_dependency" else False
+                )
+                if (classification == "related_guide_reference"
+                        and details.get("public_tree_predecessor_verified") is not False):
+                    raise ValueError("Navigation link cannot block the route")
+                if (row["kind"] == "guide_dependency"
+                        and classification == "prerequisite_candidate"
+                        and details.get("public_tree_predecessor_verified") is not True):
+                    raise ValueError("Only proven Ganymède tree ancestors are predecessors")
+                quantity = row["quantity_candidate"]
+                on_route = classification == "acquire_on_route_candidate"
             else:
                 # Steps with no audited preparation still belong to the route.
                 # Their action references are display-only, not canonical.
@@ -162,6 +176,9 @@ def project_ganymede_continuous_plan(
                 references = reference
                 optional = action.get("optional") is True
                 classification = "source_action_reference"
+                tree_predecessor = False
+                quantity = None
+                on_route = False
             action_rows.append({
                 "source_action_index": index,
                 "kind": action.get("kind"),
@@ -171,6 +188,11 @@ def project_ganymede_continuous_plan(
                 "classification": classification,
                 "source_references": references,
                 "optional": optional,
+                "quantity_candidate": quantity,
+                "obtainable_on_route_candidate": on_route,
+                "public_tree_predecessor_verified": tree_predecessor,
+                "navigation_only": classification == "related_guide_reference",
+                "must_purchase": False,
                 "canonical_objective_verified": False,
                 "auto_completion_allowed": False,
             })
