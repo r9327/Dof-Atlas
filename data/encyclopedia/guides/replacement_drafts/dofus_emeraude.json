@@ -3304,8 +3304,7 @@
   ],
   "cutover_blockers": [
     "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
-    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED",
-    "PER_CHARACTER_PROGRESS_MIGRATION_UNVERIFIED"
+    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED"
   ],
   "source_action_candidate_steps": 52,
   "factual_action_reviewed_step_count": 52,
