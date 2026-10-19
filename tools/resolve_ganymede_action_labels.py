@@ -76,6 +76,7 @@ def render_labels(candidate: dict, names: dict[tuple[str, int], str]) -> dict:
                 if type(value) is int and value > 0:
                     referenced.setdefault(value, set()).add("object")
             resolved = {}
+            resolved_entities = []
             for match in found:
                 identifier = int(match.group(1))
                 linked_types = referenced.get(identifier, set())
@@ -94,6 +95,14 @@ def render_labels(candidate: dict, names: dict[tuple[str, int], str]) -> dict:
                     continue
                 category, name = options[0]
                 resolved[match.start()] = (match.end(), category, name)
+                resolved_entities.append({
+                    "namespace": category,
+                    "source_entity_id": identifier,
+                    "source_name": name,
+                    "name_locale": (
+                        "source_title_original" if category == "guide" else "fr"
+                    ),
+                })
             if not resolved:
                 continue
             updated = []
@@ -111,6 +120,7 @@ def render_labels(candidate: dict, names: dict[tuple[str, int], str]) -> dict:
                 "source_label": label,
                 "display_label": override,
                 "source_review_status": step["review_status"],
+                "resolved_entities": resolved_entities,
                 "canonical_objective_verified": False,
             })
     return {
@@ -222,13 +232,26 @@ def resolve_all(root: Path, *, raw_dir: Path | None = None) -> dict:
     for guide in guides:
         totals["generic_label_actions"] += guide["generic_label_actions"]
         totals["resolved_action_labels"] += guide["resolved_action_labels"]
+    name_rows: dict[str, dict[str, str]] = {
+        namespace: {} for namespace in ("object", "quest", "monster", "dungeon", "guide")
+    }
+    for (namespace, identifier), label in names.items():
+        name_rows[namespace][str(identifier)] = label
+    name_rows = {
+        namespace: dict(sorted(rows.items(), key=lambda entry: int(entry[0])))
+        for namespace, rows in name_rows.items()
+    }
     return {
         "schema_version": 1,
         "status": "REVIEW_NAME_GAPS" if unresolved else "REVIEW_NAMES_RESOLVED",
         "source": "doduda_pinned_french_names_and_ganymede_public_index",
         "pinned_release": lock["tag"],
-        "resolved_namespaces": {k: sum(category == k for category, _ in names)
-                                for k in requested},
+        "resolved_namespaces": {k: len(name_rows[k]) for k in requested},
+        "names_by_namespace": name_rows,
+        "name_locale": {
+            "object": "fr", "quest": "fr", "monster": "fr", "dungeon": "fr",
+            "guide": "source_title_original",
+        },
         "guides": guides,
         "generic_label_actions": totals["generic_label_actions"],
         "resolved_action_labels": totals["resolved_action_labels"],
@@ -244,8 +267,30 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--raw-dir", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--dictionary-output", type=Path,
+                        help="Export a compact source-ID/name dictionary without UI activation")
     args = parser.parse_args()
     result = resolve_all(args.root, raw_dir=args.raw_dir)
+    if args.dictionary_output:
+        selected = {
+            "schema_version": 1,
+            "status": result["status"],
+            "source": result.get("source"),
+            "pinned_release": result.get("pinned_release"),
+            "source_candidate_guides": len(result.get("guides", [])),
+            "generic_label_actions": result.get("generic_label_actions"),
+            "resolved_action_labels": result.get("resolved_action_labels"),
+            "unresolved_reference_count": result.get("unresolved_reference_count"),
+            "name_locale": result.get("name_locale"),
+            "names": result.get("names_by_namespace", {}),
+            "canonical_objectives_verified": 0,
+            "ready_to_replace": False,
+        }
+        args.dictionary_output.parent.mkdir(parents=True, exist_ok=True)
+        args.dictionary_output.write_text(
+            json.dumps(selected, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     text = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
