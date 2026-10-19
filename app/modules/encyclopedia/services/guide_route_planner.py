@@ -250,28 +250,53 @@ class GuideRoutePlanner:
         memberships: Mapping[str, list[tuple[int, str]]],
         engine: AdventureRouteEngine,
     ) -> tuple[str, ...] | None:
-        """Merge per-character itineraries only when their order is compatible.
+        """Merge team actions subject to *real* prerequisites, not visual order.
 
-        Sorting on each action's *earliest* per-character index is not a safe
-        team itinerary: another character might need its predecessor first.
-        Preserve every character's ordered actions (also inside a route step).
-        Contradictory itineraries are reported instead of inventing a global
-        traversal or silently marking one player's prerequisite as complete.
+        Independently optimized player itineraries may legitimately visit
+        unrelated actions in opposite orders. Treating those preferences as
+        hard edges invents conflicts. By contrast, a required quest start or
+        prerequisite action cannot be visited after its dependent action
+        when it is still needed by a selected participant.
         """
         successors: dict[str, set[str]] = {
             action_id: set() for action_id in memberships
         }
         incoming = {action_id: 0 for action_id in memberships}
+
+        def connect(before: str, after: str) -> None:
+            if (before != after and before in successors and after in successors
+                    and after not in successors[before]):
+                successors[before].add(after)
+                incoming[after] += 1
+
+        starts_by_quest: dict[int, set[str]] = defaultdict(set)
+        completions_by_quest: dict[int, set[str]] = defaultdict(set)
+        for action_id in memberships:
+            action = engine.by_id[action_id]
+            if action.activates_quest:
+                starts_by_quest[action.quest_id].add(action_id)
+            if action.completes_quest:
+                completions_by_quest[action.quest_id].add(action_id)
+
         for participant in participant_plans:
-            previous: str | None = None
-            for step in participant.route.steps:
-                for action in step.actions:
-                    action_id = action.action_id
-                    if (previous is not None and previous != action_id
-                            and action_id not in successors[previous]):
-                        successors[previous].add(action_id)
-                        incoming[action_id] += 1
-                    previous = action_id
+            member_ids = {
+                action.action_id
+                for step in participant.route.steps
+                for action in step.actions
+            }
+            for action_id in member_ids:
+                action = engine.by_id[action_id]
+                for prerequisite in action.prerequisites_actions:
+                    if prerequisite in member_ids:
+                        connect(prerequisite, action_id)
+                if action.requires_active_quest and not action.activates_quest:
+                    for start in starts_by_quest.get(action.quest_id, ()):
+                        if start in member_ids:
+                            connect(start, action_id)
+                for quest_id in action.prerequisites_quests:
+                    for completion in completions_by_quest.get(quest_id, ()):
+                        if completion in member_ids:
+                            connect(completion, action_id)
 
         def priority(action_id: str) -> tuple[object, ...]:
             return (
