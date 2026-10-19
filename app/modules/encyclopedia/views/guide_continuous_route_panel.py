@@ -103,6 +103,7 @@ class ContinuousGuideRoutePanel(QWidget):
         detail.addLayout(nav)
         work.addWidget(content, 3)
         layout.addLayout(work, 1)
+        self.navigation.show_actual()
         self.refresh()
 
     @staticmethod
