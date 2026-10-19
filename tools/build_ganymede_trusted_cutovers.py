@@ -111,7 +111,7 @@ def main() -> int:
         "skipped": result["skipped"],
         "unmapped": result["unmapped"],
     }, ensure_ascii=False, indent=2))
-    return 0
+    return 0 if not result["skipped"] and not result["unmapped"] else 2
 
 
 if __name__ == "__main__":
