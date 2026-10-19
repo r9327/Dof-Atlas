@@ -91,6 +91,53 @@ class GanymedeActionNameResolutionTests(unittest.TestCase):
         self.assertEqual(result["unresolved_references"][0]["cause"],
                          "unlinked_or_ambiguous_id")
 
+    def test_source_title_locale_is_not_misreported_as_french(self):
+        result = render_labels(candidate(), {
+            ("guide", 2204): "But Where Are the Dofus?",
+        })
+        guide = next(row for row in result["label_overrides"]
+                     if row["source_label"] == "Guide nº 2204")
+        self.assertEqual(guide["resolved_entities"][0]["namespace"], "guide")
+        self.assertEqual(guide["resolved_entities"][0]["name_locale"],
+                         "source_title_original")
+        self.assertFalse(guide["canonical_objective_verified"])
+
+    def test_all_real_generic_ids_have_one_source_action_namespace(self):
+        root = Path(__file__).resolve().parents[1]
+        directory = root / "data/encyclopedia/guides"
+        fields = {
+            "object_id": "object", "quest_id": "quest",
+            "monster_id": "monster", "dungeon_id": "dungeon",
+            "guide_id": "guide",
+        }
+        paths = sorted(directory.glob("ganymede_*_action_candidates.json"))
+        self.assertEqual(len(paths), 20)
+        generic_occurrences = 0
+        for path in paths:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            for stage in data["steps"]:
+                for action in stage["actions"]:
+                    label = action["label"]
+                    matches = list(PATTERN.finditer(label))
+                    if not matches:
+                        continue
+                    generic_occurrences += 1
+                    references: dict[int, set[str]] = {}
+                    for field, namespace in fields.items():
+                        value = action.get(field)
+                        if type(value) is int:
+                            references.setdefault(value, set()).add(namespace)
+                    for value in action.get("object_ids", []):
+                        if type(value) is int:
+                            references.setdefault(value, set()).add("object")
+                    for match in matches:
+                        identifier = int(match.group(1))
+                        self.assertEqual(
+                            len(references.get(identifier, set())), 1,
+                            f"{path.name}: {stage['source_step_number']}: {label}",
+                        )
+        self.assertEqual(generic_occurrences, 1218)
+
     def test_missing_entity_reference_is_not_resolved_from_unrelated_name(self):
         source = candidate()
         source["steps"][0]["actions"][0].pop("object_id")
