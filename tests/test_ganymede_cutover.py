@@ -45,7 +45,6 @@ class GanymedeCutoverTests(unittest.TestCase):
             "replacement_status": "CERTIFIED_FOR_CUTOVER",
             "replacement_active": True,
             "completeness_status": "complete",
-            "legacy_manual_steps_migration_verified": True,
             "expected_source_step_count": 2,
             "playable_step_count": 2,
             "source_text_copied": False,
@@ -85,7 +84,7 @@ class GanymedeCutoverTests(unittest.TestCase):
             self.guides, {"id": "alignement_bonta", "category": "alignements"}
         ))
 
-    def test_no_progress_migration_required(self) -> None:
+    def test_no_historical_or_legacy_migration_required(self) -> None:
         self.save()
         self.assertEqual(select_verified_replacement_path(self.guides, self.entry),
                          self.drafts / "dofus_cawotte.json")
