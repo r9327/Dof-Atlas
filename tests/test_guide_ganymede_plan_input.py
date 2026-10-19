@@ -101,6 +101,89 @@ class GanymedePlanInputTests(unittest.TestCase):
             for x in unverified
         ))
 
+    def test_pinned_french_names_only_overlay_the_exact_source_action(self):
+        import re
+
+        original = prepare_ganymede_plan_input(
+            self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+        )
+        target = next((
+            row for row in original["source_action_proposals"]
+            if isinstance(row["source_label"], str)
+            and re.search(r"n[º°o]\\s*\\d+", row["source_label"], re.I)
+            and row["source_references"]["object_ids"]
+        ), None)
+        self.assertIsNotNone(target, "Corpus must contain a named object reference")
+        item_id = next(
+            (i for i in target["source_references"]["object_ids"]
+             if re.search(r"n[º°o]\\s*" + str(i) + r"\\b",
+                          target["source_label"], re.I)), None,
+        )
+        self.assertIsNotNone(item_id, "A generic label needs its own referenced ID")
+        translated = re.sub(
+            r"n[º°o]\\s*" + str(item_id) + r"\\b",
+            "«Objet localisé de test»", target["source_label"], count=1, flags=re.I,
+        )
+        override = {
+            "stable_step_id": target["stable_step_id"],
+            "action_index": target["source_action_index"],
+            "source_label": target["source_label"],
+            "display_label": translated,
+            "canonical_objective_verified": False,
+            "resolved_entities": [{
+                "namespace": "object", "source_entity_id": item_id,
+                "source_name": "Objet localisé de test", "name_locale": "fr",
+            }],
+        }
+        evidence = {
+            "schema_version": 1, "status": "REVIEW_NAMES_RESOLVED",
+            "source": "doduda_pinned_french_names_and_ganymede_public_index",
+            "pinned_release": "3.7.10.10",
+            "generic_label_actions": 1, "resolved_action_labels": 1,
+            "unresolved_reference_count": 0,
+            "canonical_objectives_verified": 0, "ready_to_replace": False,
+            "guides": [{
+                "source_guide_id": target["source_guide_id"],
+                "label_overrides": [override],
+            }],
+        }
+        localized = prepare_ganymede_plan_input(
+            self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+            french_label_evidence=evidence,
+        )
+        row = next(p for p in localized["source_action_proposals"]
+                   if p["proposal_id"] == target["proposal_id"])
+        self.assertEqual(row["source_label"], target["source_label"])
+        self.assertEqual(row["display_label"], translated)
+        self.assertTrue(row["localized_name_verified"])
+        self.assertFalse(row["canonical_objective_verified"])
+        self.assertFalse(row["route_planning_ready"])
+        self.assertFalse(next(p for p in localized["source_action_proposals"]
+                              if p["proposal_id"] != target["proposal_id"]
+                              )["localized_name_verified"])
+
+        stale = deepcopy(evidence)
+        stale["guides"][0]["label_overrides"][0]["source_label"] = "Other action"
+        with self.assertRaises(ValueError):
+            prepare_ganymede_plan_input(
+                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                french_label_evidence=stale,
+            )
+        wrong_id = deepcopy(evidence)
+        wrong_id["guides"][0]["label_overrides"][0]["resolved_entities"][0]["source_entity_id"] = 99999999
+        with self.assertRaises(ValueError):
+            prepare_ganymede_plan_input(
+                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                french_label_evidence=wrong_id,
+            )
+        missing_proof = deepcopy(evidence)
+        missing_proof["status"] = "REVIEW_NAME_GAPS"
+        with self.assertRaises(ValueError):
+            prepare_ganymede_plan_input(
+                self.report, ["character:1"], atlas_guide_ids=["dofus_cawotte"],
+                french_label_evidence=missing_proof,
+            )
+
     def test_untrusted_report_or_character_is_rejected(self):
         fake = deepcopy(self.report)
         fake["canonical_requirements_certified"] = 1
