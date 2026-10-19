@@ -81,8 +81,9 @@ class SourceCutoverTests(unittest.TestCase):
                 json.dumps({"schema_version": 1, "guides": {"dofus_cawotte": declaration}}),
                 encoding="utf-8")
             row = {"id": "dofus_cawotte", "category": "dofus"}
-            self.assertEqual(select_verified_replacement_path(root, row),
-                             active / "dofus_cawotte.json")
+            self.assertIsNone(select_verified_replacement_path(root, row))
+            self.assertEqual(select_verified_replacement_path(
+                root, row, allow_source_manual=True), active / "dofus_cawotte.json")
             route["sections"][0]["steps"][0]["content"] = "Altéré"
             (active / "dofus_cawotte.json").write_text(json.dumps(route), encoding="utf-8")
             self.assertIsNone(select_verified_replacement_path(root, row))
