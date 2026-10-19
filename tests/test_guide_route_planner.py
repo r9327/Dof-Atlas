@@ -163,6 +163,33 @@ class GuideRoutePlannerTests(unittest.TestCase):
         self.assertEqual(capture.captures, (requirement,))
         self.assertIsNone(capture.captures[0].consumable_item_id)
 
+    def test_incomplete_stock_never_invents_a_missing_quantity(self) -> None:
+        requirement = GuideCaptureRequirement(
+            "capture:unknown-stock", "quest:capture", CaptureKind.SOUL_STONE,
+            quantity=3, consumable_item_id=500,
+            consumable_name="Pierre d’âme 100", evidence="dataset:test",
+        )
+        plan = GuideRoutePlanner(_engine()).plan(
+            [
+                GuideParticipantState(
+                    "character:1", progress=RouteProgress(owned_items={}),
+                ),
+                GuideParticipantState(
+                    "character:2",
+                    progress=RouteProgress(owned_items={500: 1}),
+                ),
+            ],
+            capture_requirements=[requirement],
+        )
+        stones = next(row for row in plan.stock if row.item_id == 500)
+        self.assertEqual(stones.required_by_character, {
+            "character:1": 3, "character:2": 3,
+        })
+        self.assertEqual(stones.remaining_by_character, {
+            "character:1": None, "character:2": 2,
+        })
+        self.assertIsNone(stones.total_remaining)
+
     def test_soul_stone_stock_is_remaining_per_participant(self) -> None:
         requirement = GuideCaptureRequirement(
             "capture:stone:99",
