@@ -182,7 +182,13 @@ def audit_stage_needs(root: Path) -> dict:
         "status": "FAIL" if problems else "REVIEW_ONLY_NOT_READY_FOR_OPTIMIZATION",
         "source_candidate_guides": len(paths),
         "guides_with_preparation_proposals": sum(
-            bool(row["stages_with_requirements"]) for row in needs.values()
+            any(stage["needs"] or stage["prerequisites"]
+                for stage in row["stages_with_requirements"])
+            for row in needs.values()
+        ),
+        "guides_with_encounter_proposals": sum(
+            any(stage["encounters"] for stage in row["stages_with_requirements"])
+            for row in needs.values()
         ),
         "source_stages": sum(row["source_step_count"] for row in needs.values()),
         "encounter_action_proposals": sum(
