@@ -110,8 +110,9 @@ def stage_preparation_preview(
         due = details.get("needed_at_source_step")
         if due is None:
             due = step
-        if type(step) is not int or step < 1 or type(due) is not int or due < 1:
-            raise ValueError("Invalid source stage position")
+        if (type(step) is not int or step < 1 or type(due) is not int
+                or due < step):
+            raise ValueError("Invalid source stage position or due date")
         window_end = details.get("collection_window_end_candidate")
         if window_end is not None and (type(window_end) is not int or window_end < step):
             raise ValueError("Invalid source collection window")
@@ -119,9 +120,16 @@ def stage_preparation_preview(
         optional = source.get("optional") is True
         on_route = (source["classification"] == "acquire_on_route_candidate"
                     or details.get("obtainable_on_route_candidate") is True)
+        # A preparation mentioned at stage 2 but needed at stage 34 must
+        # survive completion of stage 2. It is obsolete only when stage 34
+        # itself has been completed for this particular character.
+        prefix, _, suffix = source["stable_step_id"].rpartition("_")
+        if not prefix or not suffix.isdigit() or int(suffix) != step:
+            raise ValueError("Preparation has an invalid signed step identity")
+        due_stage_id = f"{prefix}_{due:04d}"
         for item_id in item_ids:
             for character in participants:
-                if source["stable_step_id"] in marks.get(character, {}).get(source["atlas_guide_id"], set()):
+                if due_stage_id in marks.get(character, {}).get(source["atlas_guide_id"], set()):
                     continue
                 owned = inventory.get(character, {}).get(item_id)
                 remaining = (max(0, quantity - owned)
