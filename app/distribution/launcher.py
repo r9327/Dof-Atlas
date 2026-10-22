@@ -303,6 +303,7 @@ def main() -> int:
     tk.Label(window, textvariable=numeric, bg="#101826", fg="#8fa5bd",
              font=("Segoe UI", 9)).pack()
     finished = False
+    succeeded = False
 
     def report(message: str, value: int):
         events.put(("progress", (message, value)))
@@ -329,7 +330,7 @@ def main() -> int:
             events.put(("error", str(exc)))
 
     def poll():
-        nonlocal finished
+        nonlocal finished, succeeded
         try:
             while True:
                 kind, payload = events.get_nowait()
@@ -340,9 +341,11 @@ def main() -> int:
                     numeric.set(f"{percent.get()} %")
                 elif kind == "done":
                     finished = True
+                    succeeded = True
                     window.after(550, window.destroy)
                 elif kind == "error":
                     finished = True
+                    succeeded = False
                     status.set("Echec : " + str(payload))
                     numeric.set("Journal : DofusAtlas/logs/updater.log")
         except queue.Empty:
@@ -362,7 +365,8 @@ def main() -> int:
         threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
     window.after(70, poll)
     window.mainloop()
-    return 0 if percent.get() == 100 else 1
+    # Migration can reach 100% before a later launch failure: only "done" is success.
+    return 0 if succeeded else 1
 
 
 if __name__ == "__main__":
