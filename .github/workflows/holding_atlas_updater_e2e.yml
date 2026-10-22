@@ -40,6 +40,7 @@ jobs:
           from holding.update_download import download_staged_artifact
           from app.distribution.data_pack_plan import DataPack, plan_pack_updates
           from app.distribution.data_pack_verify import verify_staged_pack, InvalidDataPack
+          from app.distribution.data_pack_store import install_pack, active_pack, rollback_pack
 
           content = b'[{"id":42,"kind":"quest","label":"test"}]'
           digest = hashlib.sha256(content).hexdigest()
@@ -79,6 +80,15 @@ jobs:
                   verified = verify_staged_pack(pack, root)
                   assert verified.status == "VERIFIED_BLOB_ONLY"
                   assert verified.sha256 == digest
+                  install_root = root / "atlas-install"
+                  user_file = install_root / "user" / "characters.json"
+                  user_file.parent.mkdir(parents=True)
+                  user_file.write_text('{"favorite":"Panda"}', encoding="utf-8")
+                  assert install_pack(install_root, root, pack) == "INSTALLED"
+                  assert active_pack(install_root, "quests").read_bytes() == content
+                  assert rollback_pack(install_root, "quests")
+                  assert active_pack(install_root, "quests") is None
+                  assert user_file.read_text(encoding="utf-8") == '{"favorite":"Panda"}'
                   downloaded.write_bytes(content + b"tamper")
                   try:
                       verify_staged_pack(pack, root)
@@ -86,7 +96,7 @@ jobs:
                       pass
                   else:
                       raise AssertionError("tampered Atlas data pack accepted")
-                  print("Holding downloader -> Atlas pack verifier PASS (no installation)")
+                  print("Holding downloader -> Atlas atomic pack store + rollback PASS (runtime not swapped)")
           finally:
               server.shutdown()
               server.server_close()
