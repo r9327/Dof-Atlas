@@ -88,7 +88,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertEqual(view.current_guide_id, "dofus_sylvestre")
             service = view._catalog_manual_services["dofus_sylvestre"]
             self.assertEqual(service.guide_id, "dofus_sylvestre")
-            self.assertEqual(service.guide_title, "Lanyel Sylvestre")
+            self.assertEqual(service.guide_title, "Sylvestre Opti")
             self.assertEqual(service.manual_audit_data["quest_count"], 198)
             self.assertEqual(service.manual_audit_data["route_model"], "map_segments")
             self.assertGreater(len(service.cards), 0)
@@ -120,6 +120,34 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsInstance(success_view, SharedGuideManualView)
             self.assertIsNot(lanyel_view, success_view)
 
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_rapid_navigation_detaches_old_sheets_before_deferred_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            for guide_id in ("dofus_sylvestre", "guide_complet"):
+                self.assertTrue(view.select_guide(guide_id))
+                manual = view.stack.currentWidget()
+                self.assertIsInstance(manual, SharedGuideManualView)
+                previous = manual.findChild(QFrame, "GuideManualSheet")
+                self.assertIsNotNone(previous)
+                for index in (1, 2, 0, 1, 0):
+                    manual._show_index(index)
+                    # Deliberately no QApplication.processEvents(): the previous
+                    # widget must be detached before Qt processes DeferredDelete.
+                    sheets = manual.findChildren(QFrame, "GuideManualSheet")
+                    self.assertEqual(
+                        len(sheets), 1,
+                        f"{guide_id}: old GuideManualSheet still attached at page {index}",
+                    )
+                    if previous is not None:
+                        self.assertIsNone(
+                            previous.parentWidget(),
+                            f"{guide_id}: previous sheet was left as a child",
+                        )
+                    previous = sheets[0]
+                self.app.processEvents()
             view.deleteLater()
             self.app.processEvents()
 
@@ -197,6 +225,17 @@ class LanyelSharedManualUiTests(unittest.TestCase):
 
             combat_checks = card.findChildren(QCheckBox, "GuideManualCombatCheck")
             self.assertTrue(combat_checks)
+            headings = card.findChildren(QLabel, "GuideManualCombatTargetsTitle")
+            self.assertTrue(headings)
+            self.assertTrue(all(heading.text() == "Faire les combats :" for heading in headings))
+            self.assertTrue(
+                all(
+                    checkbox.text().startswith("×")
+                    and " — " not in checkbox.text()
+                    and checkbox.toolTip()
+                    for checkbox in combat_checks
+                )
+            )
             self.assertTrue(
                 all(
                     checkbox.parentWidget() is not None

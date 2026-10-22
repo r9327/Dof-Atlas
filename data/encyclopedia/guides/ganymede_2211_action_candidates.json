@@ -1,0 +1,1749 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_emeraude",
+  "source_guide_id": 2211,
+  "source_url": "https://ganymede-app.com/guides/2211",
+  "reviewed_on": "2026-10-18",
+  "source_step_count": 52,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2211_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Vérifier l'accès au parcours des six Dofus",
+          "guide_id": 2204
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Prévoir un métier de niveau 50"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Les mécanismes déjà maîtrisés permettent de rejoindre directement l'étape 5",
+          "optional_branch": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2211_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Réserver une petite pierre d'âme",
+          "object_id": 9686,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Réserver quatre pierres d'âme moyennes",
+          "object_id": 9687,
+          "quantity": 4
+        },
+        {
+          "kind": "dungeon",
+          "label": "Apprendre le sort de capture au Nid du Kwakwa",
+          "dungeon_id": 32
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2211_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "group_mechanic",
+          "label": "Rechercher neuf avis de recherche selon leurs zones et délais"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Ramener chaque cible à la milice d'origine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2211_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "group_mechanic",
+          "label": "Atteindre le niveau 20 du métier Éleveur et les succès de capture et de naissance"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Disposer d'une dragodinde dorée",
+          "object_id": 7817,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Disposer d'une dragodinde rousse",
+          "object_id": 7811,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Disposer d'une dragodinde amande",
+          "object_id": 7819,
+          "quantity": 1
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Préparer trois filets si la capture sauvage est choisie",
+          "object_id": 32521,
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2211_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Plumes de Kwak de Vent",
+          "object_id": 416,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Graines de discorde",
+          "object_id": 13730,
+          "quantity": 8
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Ailes de Scarafeuille blanc",
+          "object_id": 1456,
+          "quantity": 6
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Résines",
+          "object_id": 1985,
+          "quantity": 4
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Pierres d'émeraude",
+          "object_id": 544,
+          "quantity": 2
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Anticiper les captures des cinq boss ou les pierres requises"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre les marécages nauséabonds"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2211_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -7,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Lancer la recherche de Dark Vlad auprès de Mériana",
+          "quest_id": 1463
+        },
+        {
+          "kind": "move",
+          "label": "Sortir vers les plantes du marais"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2211_step_0007",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -7,
+        -3
+      ],
+      "next": [
+        -9,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Cueillir les trèfles putrides",
+          "object_id": 14970,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter le Crocodaïl uniquement s'il surgit",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la prochaine récolte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2211_step_0008",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -9,
+        -3
+      ],
+      "next": [
+        -9,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Prélever les racines sanguines",
+          "object_id": 14971,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Se défendre en cas de Crocodaïl agressif",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre dans le marais"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2211_step_0009",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -9,
+        0
+      ],
+      "next": [
+        -8,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Cueillir les campanules odoriférantes",
+          "object_id": 14974,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Gérer l'agression éventuelle d'un Crocodaïl",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Atteindre la prochaine plante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2211_step_0010",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -8,
+        -4
+      ],
+      "next": [
+        -5,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Ramasser la plante des marais",
+          "object_id": 14973,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Combattre seulement si la récolte déclenche une attaque",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Traverser vers le sud"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2211_step_0011",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        -2
+      ],
+      "next": [
+        -5,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Cueillir la fleur des marais",
+          "object_id": 14969,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Crocodaïl s'il apparaît",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la pierre du marais"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2211_step_0012",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        0
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récupérer la pierre visqueuse",
+          "object_id": 14972,
+          "quantity": 1
+        },
+        {
+          "kind": "combat",
+          "label": "Gérer le combat optionnel du marais",
+          "monster_id": 3601,
+          "conditional": "may_trigger"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2211_step_0013",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Confier à Mériana tous les ingrédients"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser le chaudron"
+        },
+        {
+          "kind": "talk",
+          "label": "Terminer le dialogue pour être transporté"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2211_step_0014",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        17
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Remporter le duel contre Hell Mina",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "interact",
+          "label": "Lire la lettre de Dark Vlad",
+          "object_id": 14959
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Hell Mina"
+        },
+        {
+          "kind": "move",
+          "label": "Revenir chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2211_step_0015",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        5,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Montrer la lettre de Dark Vlad à Mériana"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la boussole de Mériana",
+          "object_id": 14978
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'atelier des cordonniers"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2211_step_0016",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        1
+      ],
+      "next": [
+        8,
+        10
+      ],
+      "actions": [
+        {
+          "kind": "group_mechanic",
+          "label": "Présenter un métier niveau 50 à Bowisse"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la première mission auprès de Bowisse",
+          "quest_id": 1463
+        },
+        {
+          "kind": "quest_start",
+          "label": "Accepter la mission de confection",
+          "quest_id": 1464
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la clairière"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2211_step_0017",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        10
+      ],
+      "next": [
+        14,
+        17
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récupérer dix champignons ligneux",
+          "object_id": 14960,
+          "quantity": 10
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le cordonnier sombre"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2211_step_0018",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        17
+      ],
+      "next": [
+        5,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Vaincre le cordonnier sombre (combat de groupe possible)",
+          "group_mode": "group"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les plumes",
+          "object_id": 416,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les graines",
+          "object_id": 13730,
+          "quantity": 8
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les ailes",
+          "object_id": 1456,
+          "quantity": 6
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les résines",
+          "object_id": 1985,
+          "quantity": 4
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les pierres d'émeraude",
+          "object_id": 544,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Retourner voir Bowisse"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2211_step_0019",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        1
+      ],
+      "next": [
+        27,
+        -28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Rendre compte à Bowisse"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer les bottes demandées à l'établi",
+          "object_id": 14980
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre les bottes à Bowisse"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la boussole de Mériana",
+          "object_id": 14978
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Tungussi"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2211_step_0020",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        -28
+      ],
+      "next": [
+        27,
+        -28
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Clore la quête de confection avec Tungussi",
+          "quest_id": 1464
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la mission des captures d'âmes",
+          "quest_id": 1465
+        },
+        {
+          "kind": "combat",
+          "label": "Capturer Boostache avec une petite pierre",
+          "monster_id": 2975,
+          "object_id": 9686,
+          "capture_required": true
+        },
+        {
+          "kind": "combat",
+          "label": "Capturer Kanniboul Ebil",
+          "monster_id": 2960,
+          "object_id": 9687,
+          "capture_required": true
+        },
+        {
+          "kind": "combat",
+          "label": "Capturer Draegnerys",
+          "monster_id": 5823,
+          "object_id": 9687,
+          "capture_required": true
+        },
+        {
+          "kind": "combat",
+          "label": "Capturer le Wa Wobot",
+          "monster_id": 3460,
+          "object_id": 9687,
+          "capture_required": true
+        },
+        {
+          "kind": "combat",
+          "label": "Capturer Nelween",
+          "monster_id": 3100,
+          "object_id": 9687,
+          "capture_required": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2211_step_0021",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        -28
+      ],
+      "next": [
+        -20,
+        -58
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger deux fois avec Tungussi"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le fantôme de Yor Solismynao",
+          "group_mode": "group"
+        },
+        {
+          "kind": "talk",
+          "label": "Lui reparler après le combat"
+        },
+        {
+          "kind": "interact",
+          "label": "Consulter la boussole",
+          "object_id": 14978
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le cimetière"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2211_step_0022",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -20,
+        -58
+      ],
+      "next": [
+        3,
+        -17
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Inspecter la tombe indiquée"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer les captures auprès de Fiuna Ramarch",
+          "quest_id": 1465
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la recherche de Nabur",
+          "quest_id": 1466
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Kérubim Crépin"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2211_step_0023",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -17
+      ],
+      "next": [
+        -4,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger Kérubim à l'étage"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Maître Nabur"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2211_step_0024",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        25
+      ],
+      "next": [
+        -3,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Rencontrer Maître Nabur"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le dresseur de Dragoeufs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2211_step_0025",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -3,
+        24
+      ],
+      "next": [
+        -4,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger le dresseur sur Nabura et Dulcinée"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre à l'ancien Kanojedo"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2211_step_0026",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        24
+      ],
+      "next": [
+        -4,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Demander à Ziho des renseignements sur le village disparu"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner auprès de Maître Nabur"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2211_step_0027",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        25
+      ],
+      "next": [
+        4,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Maître Nabur"
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter le chef pillard en duel",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "talk",
+          "label": "Confirmer la victoire à Maître Nabur"
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver Maître Nabur comme suiveur",
+          "object_id": 14968,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le château d'Amakna"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2211_step_0028",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -6
+      ],
+      "next": [
+        11,
+        16
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner George Segrob"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner la pile de livres"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la crypte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2211_step_0029",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        16
+      ],
+      "next": [
+        -32,
+        -57
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Présenter Maître Nabur à Oona"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Maître Nabur"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la boussole",
+          "object_id": 14978
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la milice de Bonta"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2211_step_0030",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -32,
+        -57
+      ],
+      "next": [
+        -32,
+        -56
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Conclure l'enquête avec le capitaine Starky",
+          "quest_id": 1466
+        },
+        {
+          "kind": "quest_start",
+          "label": "Accepter la nouvelle mission",
+          "quest_id": 1467
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Riko Noklast"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2211_step_0031",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -32,
+        -56
+      ],
+      "next": [
+        -32,
+        -57
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Affronter Riko Noklast (groupe possible)",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à la milice"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2211_step_0032",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -32,
+        -57
+      ],
+      "next": [
+        -30,
+        -58
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Remettre le document au capitaine Starky"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'atelier des éleveurs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2211_step_0033",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -30,
+        -58
+      ],
+      "next": [
+        -30,
+        -60
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Oggius puis Edemaga"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Valider les deux succès d'élevage et le métier niveau 20"
+        },
+        {
+          "kind": "check_object",
+          "label": "Présenter la dragodinde rousse",
+          "object_id": 7811,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Présenter la dragodinde amande",
+          "object_id": 7819,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Présenter la dragodinde dorée",
+          "object_id": 7817,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'arche"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2211_step_0034",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -30,
+        -60
+      ],
+      "next": [
+        2,
+        -14
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Activer l'arche"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Nistracolamus"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2211_step_0035",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        -14
+      ],
+      "next": [
+        -4,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger Nistracolamus sur Dark Vlad"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le lieu de rencontre"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2211_step_0036",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -4,
+        -9
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Rencontrer Dark Vlad et passer par le Phénix"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la boussole",
+          "object_id": 14978
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Mériana dans le marais"
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2211_step_0037",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        5,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Clore la mission chez Mériana",
+          "quest_id": 1467
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la chasse aux bandits de Cania",
+          "quest_id": 1469
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la milice d'Amakna"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2211_step_0038",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        -6
+      ],
+      "next": [
+        -25,
+        -36
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au chasseur de primes"
+        },
+        {
+          "kind": "check_object",
+          "label": "Réunir neuf jetons de prime",
+          "object_id": 23746,
+          "quantity": 9
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir la première carte",
+          "object_id": 23740,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir la deuxième carte",
+          "object_id": 23741,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir la troisième carte",
+          "object_id": 23742,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la salle du trésor"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2211_step_0039",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        -36
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Assembler les fragments de la carte",
+          "object_id": 23743
+        },
+        {
+          "kind": "interact",
+          "label": "Terminer la chasse au trésor légendaire"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre les bandits, groupe conseillé",
+          "group_mode": "group"
+        },
+        {
+          "kind": "interact",
+          "label": "Ouvrir le coffre gagné",
+          "object_id": 23744
+        },
+        {
+          "kind": "move",
+          "label": "Revenir chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2211_step_0040",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la chasse aux bandits",
+          "quest_id": 1469
+        },
+        {
+          "kind": "quest_start",
+          "label": "Lancer Dracontropie",
+          "quest_id": 1470
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la potion de Gisgoul",
+          "object_id": 17766
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2211_step_0041",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -16,
+        17
+      ],
+      "next": [
+        -14,
+        36
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Monter dans la tour de Gisgoul"
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter Rasuman le Vert en groupe possible",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la fleur tourmentée"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2211_step_0042",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -14,
+        36
+      ],
+      "next": [
+        -23,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récolter la fleur des tourmentés",
+          "object_id": 15002,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'antre du Meulou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2211_step_0043",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -23,
+        0
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer l'antre du Meulou",
+          "dungeon_id": 15
+        },
+        {
+          "kind": "combat",
+          "label": "Battre le Meulou",
+          "monster_id": 232
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer l'anneau enchanté du Meulou",
+          "object_id": 15001,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner voir Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2211_step_0044",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        0,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer Dracontropie",
+          "quest_id": 1470
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer le voyage dans le temps",
+          "quest_id": 1471
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge d'Incarnam"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2211_step_0045",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        -3
+      ],
+      "next": [
+        0,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Commander une limonade à Fattumy"
+        },
+        {
+          "kind": "talk",
+          "label": "Interroger l'habitué de l'auberge"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la milice d'Incarnam"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2211_step_0046",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        -4
+      ],
+      "next": [
+        3,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger le capitaine Kerub"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le milicien Hatten"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2211_step_0047",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        0
+      ],
+      "next": [
+        3,
+        1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au milicien Hatten"
+        },
+        {
+          "kind": "move",
+          "label": "Aller vers le bandit Chafer"
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2211_step_0048",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        1
+      ],
+      "next": [
+        3,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Vaincre le bandit Chafer",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la statue au crâne"
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2211_step_0049",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -1
+      ],
+      "next": [
+        0,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Activer la statue au crâne"
+        },
+        {
+          "kind": "combat",
+          "label": "Terminer le combat déclenché",
+          "group_mode": "group"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ed Tremble"
+        },
+        {
+          "kind": "move",
+          "label": "Revenir à la milice"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2211_step_0050",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        -4
+      ],
+      "next": [
+        -2,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner le capitaine Kerub"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner le tapis et l'Orbalantyr"
+        },
+        {
+          "kind": "interact",
+          "label": "Régler le mécanisme en respectant la séquence de figurines"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler au capitaine à l'étage"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'étrangère mystérieuse"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2211_step_0051",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -4
+      ],
+      "next": [
+        4,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Choisir les bonnes répliques pour conserver le sort bonus"
+        },
+        {
+          "kind": "interact",
+          "label": "Accepter la boîte et placer la quatrième écaille"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wedhig"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2211_step_0052",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -4
+      ],
+      "next": [
+        4,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Wedhig et suivre le transfert"
+        },
+        {
+          "kind": "combat",
+          "label": "Gagner le combat tactique final",
+          "group_mode": "tactical"
+        },
+        {
+          "kind": "talk",
+          "label": "Échanger avec Goultard puis Mériana"
+        },
+        {
+          "kind": "interact",
+          "label": "Récupérer le Dofus Émeraude",
+          "object_id": 737
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Achever la dernière quête",
+          "quest_id": 1471
+        }
+      ]
+    }
+  ]
+}

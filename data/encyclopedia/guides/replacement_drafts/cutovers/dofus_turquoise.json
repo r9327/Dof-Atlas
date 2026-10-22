@@ -1,0 +1,5147 @@
+{
+  "schema_version": 1,
+  "id": "dofus_turquoise",
+  "title": "Dofus Turquoise",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2217,
+  "source_guide_url": "https://ganymede-app.com/guides/2217",
+  "source_prerequisite_guide_ids": [
+    2204
+  ],
+  "expected_source_step_count": 87,
+  "playable_step_count": 87,
+  "source_link_snapshot": "ganymede_turquoise_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2217_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2217_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Prévoir objet nº 739",
+          "content": "Prévoir objet nº 739\nAvoir terminé la quête préalable nº 1462",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1462
+            ],
+            "dungeon": [],
+            "object": [
+              739
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 739",
+              "object_id": 739
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Avoir terminé la quête préalable nº 1462",
+              "quest_id": 1462
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Prévoir objet nº 7024 ×5",
+          "content": "Prévoir objet nº 7024 ×5\nPrévoir objet nº 11249 ×1\nPrévoir objet nº 15460 ×15\nPrévoir objet nº 11231 ×1\nPrévoir objet nº 8784 ×1\nPrévoir objet nº 15168 ×10\nPrévoir objet nº 12744 ×5\nPrévoir objet nº 14512 ×10\nPrévoir objet nº 14518 ×1\nPrévoir objet nº 8349 ×3\nPrévoir objet nº 8392 ×10\nPrévoir objet nº 750 ×5\nPrévoir objet nº 439 ×10\nPrévoir objet nº 8348 ×10\nPrévoir objet nº 8383 ×1\nPrévoir objet nº 14469 ×8\nPrévoir objet nº 749 ×5\nPrévoir objet nº 18371 ×1\nPrévoir objet nº 16217 ×3\nPrévoir objet nº 1682 ×3",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1656,
+              1660
+            ],
+            "dungeon": [],
+            "object": [
+              7024,
+              11249,
+              15460,
+              11231,
+              8784,
+              15168,
+              12744,
+              14512,
+              14518,
+              8349,
+              8392,
+              750,
+              439,
+              8348,
+              8383,
+              14469,
+              749,
+              18371,
+              16217,
+              1682
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 7024 ×5",
+              "object_id": 7024,
+              "quantity": 5
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 11249 ×1",
+              "object_id": 11249,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15460 ×15",
+              "object_id": 15460,
+              "quantity": 15
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 11231 ×1",
+              "object_id": 11231,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 8784 ×1",
+              "object_id": 8784,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 15168 ×10",
+              "object_id": 15168,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 12744 ×5",
+              "object_id": 12744,
+              "quantity": 5
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14512 ×10",
+              "object_id": 14512,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14518 ×1",
+              "object_id": 14518,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 8349 ×3",
+              "object_id": 8349,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 8392 ×10",
+              "object_id": 8392,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 750 ×5",
+              "object_id": 750,
+              "quantity": 5
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 439 ×10",
+              "object_id": 439,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 8348 ×10",
+              "object_id": 8348,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 8383 ×1",
+              "object_id": 8383,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 14469 ×8",
+              "object_id": 14469,
+              "quantity": 8
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 749 ×5",
+              "object_id": 749,
+              "quantity": 5
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 18371 ×1",
+              "object_id": 18371,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 16217 ×3",
+              "object_id": 16217,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir objet nº 1682 ×3",
+              "object_id": 1682,
+              "quantity": 3
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Prévoir objet nº 748 ×5",
+          "content": "Prévoir objet nº 748 ×5\nPrévoir objet nº 2588 ×10\nPrévoir objet nº 8481 ×10\nPrévoir objet nº 9381 ×10\nPrévoir objet nº 11695 ×1\nPrévoir objet nº 750 ×5\nPrévoir objet nº 8391 ×10\nPrévoir objet nº 8763 ×10\nPrévoir objet nº 14516 ×10\nPrévoir objet nº 14518 ×1\nPrévoir objet nº 6457 ×5\nPrévoir objet nº 8803 ×3\nPrévoir objet nº 13725 ×3\nPrévoir objet nº 14635 ×200\nPrévoir objet nº 9389 ×1\nPrévoir objet nº 15075 ×10\nPrévoir objet nº 746 ×5\nPrévoir objet nº 1002 ×10\nPrévoir objet nº 2619 ×5\nPrévoir objet nº 6475 ×10\nPrévoir objet nº 12016 ×1",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1661
+            ],
+            "dungeon": [],
+            "object": [
+              748,
+              2588,
+              8481,
+              9381,
+              11695,
+              750,
+              8391,
+              8763,
+              14516,
+              14518,
+              6457,
+              8803,
+              13725,
+              14635,
+              9389,
+              15075,
+              746,
+              1002,
+              2619,
+              6475,
+              12016
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 748 ×5",
+              "object_id": 748,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2588 ×10",
+              "object_id": 2588,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8481 ×10",
+              "object_id": 8481,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 9381 ×10",
+              "object_id": 9381,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11695 ×1",
+              "object_id": 11695,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 750 ×5",
+              "object_id": 750,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8391 ×10",
+              "object_id": 8391,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8763 ×10",
+              "object_id": 8763,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14516 ×10",
+              "object_id": 14516,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14518 ×1",
+              "object_id": 14518,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6457 ×5",
+              "object_id": 6457,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8803 ×3",
+              "object_id": 8803,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13725 ×3",
+              "object_id": 13725,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14635 ×200",
+              "object_id": 14635,
+              "quantity": 200
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 9389 ×1",
+              "object_id": 9389,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15075 ×10",
+              "object_id": 15075,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 746 ×5",
+              "object_id": 746,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 1002 ×10",
+              "object_id": 1002,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2619 ×5",
+              "object_id": 2619,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6475 ×10",
+              "object_id": 6475,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 12016 ×1",
+              "object_id": 12016,
+              "quantity": 1
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Prévoir objet nº 8346 ×3",
+          "content": "Prévoir objet nº 8346 ×3\nPrévoir objet nº 14515 ×3\nPrévoir objet nº 2543 ×5\nPrévoir objet nº 2645 ×1\nPrévoir objet nº 14513 ×3\nPrévoir objet nº 11241 ×10\nPrévoir objet nº 8779 ×10\nPrévoir objet nº 15069 ×10\nPrévoir objet nº 6457 ×5\nPrévoir objet nº 11221 ×1\nPrévoir objet nº 16212 ×5\nPrévoir objet nº 13503 ×10\nPrévoir objet nº 15072 ×3\nPrévoir objet nº 11228 ×3\nPrévoir objet nº 15727 ×1\nPrévoir objet nº 14635 ×400",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1662
+            ],
+            "dungeon": [],
+            "object": [
+              8346,
+              14515,
+              2543,
+              2645,
+              14513,
+              11241,
+              8779,
+              15069,
+              6457,
+              11221,
+              16212,
+              13503,
+              15072,
+              11228,
+              15727,
+              14635
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8346 ×3",
+              "object_id": 8346,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14515 ×3",
+              "object_id": 14515,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2543 ×5",
+              "object_id": 2543,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2645 ×1",
+              "object_id": 2645,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14513 ×3",
+              "object_id": 14513,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11241 ×10",
+              "object_id": 11241,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8779 ×10",
+              "object_id": 8779,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15069 ×10",
+              "object_id": 15069,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6457 ×5",
+              "object_id": 6457,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11221 ×1",
+              "object_id": 11221,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16212 ×5",
+              "object_id": 16212,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13503 ×10",
+              "object_id": 13503,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15072 ×3",
+              "object_id": 15072,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11228 ×3",
+              "object_id": 11228,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15727 ×1",
+              "object_id": 15727,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14635 ×400",
+              "object_id": 14635,
+              "quantity": 400
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Interagir : the house",
+          "content": "Interagir : the house\nDémarrer la quête nº 1653\nParler à Meriana\nRejoindre [-1,33]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -1,
+              33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1653
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1653",
+              "quest_id": 1653
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-1,33]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Interagir : the blue portal",
+          "content": "Interagir : the blue portal\nParler à Fwed to Dangle the key in front of him\nParler à Fwed",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              33
+            ],
+            [
+              4,
+              35
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the blue portal"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fwed to Dangle the key in front of him"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fwed"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Terminer le donjon nº 6",
+          "content": "Terminer le donjon nº 6\nInteragir : the pedestal below\nPrévoir objet nº 16899\nRejoindre [-14,-13]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              33
+            ],
+            [
+              -14,
+              -13
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              6
+            ],
+            "object": [
+              16899
+            ],
+            "monster": [
+              113
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 6",
+              "dungeon_id": 6
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the pedestal below"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16899",
+              "object_id": 16899
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-14,-13]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Terminer le donjon nº 10",
+          "content": "Terminer le donjon nº 10\nEffectuer le combat de l'étape\nParler à the Thicket Tree\nInteragir : the stele in the center\nPrévoir objet nº 16898\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -14,
+              -13
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              10
+            ],
+            "object": [
+              16898
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 10",
+              "dungeon_id": 10
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Thicket Tree"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the stele in the center"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16898",
+              "object_id": 16898
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Parler à Mama Ayuto",
+          "content": "Parler à Mama Ayuto\nInteragir : the ladder in the center\nParler à Girle Pylote\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mama Ayuto"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Girle Pylote"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Interagir : the 2 pedestals",
+          "content": "Interagir : the 2 pedestals\nInteragir : the temple\nInteragir : the waterin the center of the map\nParler à Aguabrial\nParler à Ereziah Melkewel",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              25,
+              26
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the 2 pedestals"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the temple"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the waterin the center of the map"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Aguabrial"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ereziah Melkewel"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1653\nParler à Meriana\nDémarrer la quête nº 1654\nParler à her to startthe quest Fire Extinction\nRejoindre [3,-21]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              3,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1653,
+              1654
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1653",
+              "quest_id": 1653
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1654",
+              "quest_id": 1654
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her to startthe quest Fire Extinction"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,-21]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Interagir : the Alchemists' Workshop",
+          "content": "Interagir : the Alchemists' Workshop\nParler à the Magus Ax\nRejoindre [6,13]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -21
+            ],
+            [
+              6,
+              13
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Alchemists' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Magus Ax"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,13]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Parler à Geo Screwloose",
+          "content": "Parler à Geo Screwloose\nRejoindre [-1,-12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              13
+            ],
+            [
+              -1,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Geo Screwloose"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-1,-12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Interagir : the grave below",
+          "content": "Interagir : the grave below\nParler à Snuffles\nRejoindre [-3,-12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              -12
+            ],
+            [
+              -3,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the grave below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Snuffles"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-3,-12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Interagir : the grave with the coconuts below",
+          "content": "Interagir : the grave with the coconuts below\nEffectuer le combat de l'étape\nParler à the Wrathful Fire\nRejoindre [-4,0]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -3,
+              -12
+            ],
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the grave with the coconuts below"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Wrathful Fire"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-4,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Parler à the Amaknian Guard",
+          "content": "Parler à the Amaknian Guard\nInteragir : the Sram Temple",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Amaknian Guard"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Sram Temple"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Interagir : the hanging lantern below",
+          "content": "Interagir : the hanging lantern below\nParler à the Solitary Obscurantus\nRejoindre [3,-21]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              0
+            ],
+            [
+              3,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the hanging lantern below"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Solitary Obscurantus"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,-21]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Interagir : the Alchemists' Workshop",
+          "content": "Interagir : the Alchemists' Workshop\nParler à the Magus Ax\nRejoindre [-76,-40]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -21
+            ],
+            [
+              -76,
+              -40
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Alchemists' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Magus Ax"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-76,-40]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Interagir : the Tailors' Workshop",
+          "content": "Interagir : the Tailors' Workshop\nParler à Drachir Garfield\nRejoindre [20,-27]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -76,
+              -40
+            ],
+            [
+              20,
+              -27
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Tailors' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Drachir Garfield"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [20,-27]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Interagir : the house on the right",
+          "content": "Interagir : the house on the right\nParler à Surivitna\nRejoindre [3,-21]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              20,
+              -27
+            ],
+            [
+              3,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house on the right"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Surivitna"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [3,-21]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Interagir : the Alchemists' Workshop",
+          "content": "Interagir : the Alchemists' Workshop\nParler à the Magus Ax",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -21
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Alchemists' Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Magus Ax"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Meriana\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Parler à Mama Ayuto",
+          "content": "Parler à Mama Ayuto\nInteragir : the ladder in the center\nEffectuer le combat de l'étape\nParler à Girle Pylote\nInteragir : the arch\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17080,
+              17081
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Mama Ayuto"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Girle Pylote"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the arch"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Effectuer le combat de l'étape",
+          "content": "Effectuer le combat de l'étape\nParler à the Bolgrot's Spirit",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              26,
+              28
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Bolgrot's Spirit"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1654\nParler à Meriana\nDémarrer la quête nº 1656\nParler à her\nRejoindre [-35,-56]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -35,
+              -56
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1654,
+              1656
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1654",
+              "quest_id": 1654
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1656",
+              "quest_id": 1656
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-35,-56]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Interagir : the Feubuk Inn",
+          "content": "Interagir : the Feubuk Inn\nEffectuer le combat de l'étape\nParler à Rium\nPrévoir objet nº 7024 ×5\nPrévoir objet nº 11249 ×1\nPrévoir objet nº 15460 ×15\nPrévoir objet nº 11231 ×1\nPrévoir objet nº 8784 ×1\nRejoindre [-30,-56]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -35,
+              -56
+            ],
+            [
+              -30,
+              -56
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              1895,
+              7024,
+              11249,
+              15460,
+              11231,
+              8784
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Feubuk Inn"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Rium"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 7024 ×5",
+              "object_id": 7024,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11249 ×1",
+              "object_id": 11249,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15460 ×15",
+              "object_id": 15460,
+              "quantity": 15
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11231 ×1",
+              "object_id": 11231,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8784 ×1",
+              "object_id": 8784,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-30,-56]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Interagir : the Smiths' Workshop",
+          "content": "Interagir : the Smiths' Workshop\nEffectuer le combat de l'étape\nParler à Rium\nRejoindre [-32,-55]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -30,
+              -56
+            ],
+            [
+              -32,
+              -55
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Smiths' Workshop"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Rium"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-32,-55]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Parler à the Fleeflee to Keep following the flea",
+          "content": "Parler à the Fleeflee to Keep following the flea\nRejoindre [-35,-57]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -55
+            ],
+            [
+              -35,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Fleeflee to Keep following the flea"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-35,-57]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Parler à the Fleeflee to Follow the flea again",
+          "content": "Parler à the Fleeflee to Follow the flea again\nRejoindre [-36,-60]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -35,
+              -57
+            ],
+            [
+              -36,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Fleeflee to Follow the flea again"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-36,-60]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Parler à Joris Jurgen to Bid him farewell",
+          "content": "Parler à Joris Jurgen to Bid him farewell",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -60
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Joris Jurgen to Bid him farewell"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Meriana\nRejoindre [1,34]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              1,
+              34
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [1,34]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Parler à the Disciple of Pytch",
+          "content": "Parler à the Disciple of Pytch\nRejoindre [-1,34]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              34
+            ],
+            [
+              -1,
+              34
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Disciple of Pytch"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-1,34]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Interagir : the Terra Clan Shovel in your equipment",
+          "content": "Interagir : the Terra Clan Shovel in your equipment\nInteragir : the bush under the tree below",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              34
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16953
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Terra Clan Shovel in your equipment"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the bush under the tree below"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1656\nParler à Meriana\nDémarrer la quête nº 1657\nParler à her\nRejoindre [-54,-76]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -54,
+              -76
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1656,
+              1657
+            ],
+            "dungeon": [],
+            "object": [
+              11994
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1656",
+              "quest_id": 1656
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1657",
+              "quest_id": 1657
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-54,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Interagir : the buried barrel",
+          "content": "Interagir : the buried barrel\nParler à Badmorva's Ghost\nTerminer le donjon nº 56\nRejoindre [-54,-76]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -54,
+              -76
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              56
+            ],
+            "object": [],
+            "monster": [
+              2878,
+              2876,
+              2875,
+              2874,
+              2880,
+              2881
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the buried barrel"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Badmorva's Ghost"
+            },
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 56",
+              "dungeon_id": 56
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-54,-76]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Parler à Badmorva's Ghost",
+          "content": "Parler à Badmorva's Ghost\nRejoindre [27,-30]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -54,
+              -76
+            ],
+            [
+              27,
+              -30
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Badmorva's Ghost"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [27,-30]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Démarrer la quête nº 1660",
+          "content": "Démarrer la quête nº 1660\nParler à the Disciple of Vini\nPrévoir objet nº 15168 ×10\nPrévoir objet nº 12744 ×5\nPrévoir objet nº 14512 ×10\nPrévoir objet nº 14518 ×1\nPrévoir objet nº 8349 ×3\nPrévoir objet nº 8392 ×10\nPrévoir objet nº 750 ×5\nPrévoir objet nº 439 ×10\nPrévoir objet nº 8348 ×10\nPrévoir objet nº 8383 ×1\nPrévoir objet nº 14469 ×8\nPrévoir objet nº 749 ×5\nPrévoir objet nº 18371 ×1\nPrévoir objet nº 16217 ×3\nPrévoir objet nº 1682 ×3\nRejoindre [6,3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              27,
+              -30
+            ],
+            [
+              6,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1660
+            ],
+            "dungeon": [],
+            "object": [
+              15168,
+              12744,
+              14512,
+              14518,
+              8349,
+              8392,
+              750,
+              439,
+              8348,
+              8383,
+              14469,
+              749,
+              18371,
+              16217,
+              1682
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1660",
+              "quest_id": 1660
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Disciple of Vini"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15168 ×10",
+              "object_id": 15168,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 12744 ×5",
+              "object_id": 12744,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14512 ×10",
+              "object_id": 14512,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14518 ×1",
+              "object_id": 14518,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8349 ×3",
+              "object_id": 8349,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8392 ×10",
+              "object_id": 8392,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 750 ×5",
+              "object_id": 750,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 439 ×10",
+              "object_id": 439,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8348 ×10",
+              "object_id": 8348,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8383 ×1",
+              "object_id": 8383,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14469 ×8",
+              "object_id": 14469,
+              "quantity": 8
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 749 ×5",
+              "object_id": 749,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 18371 ×1",
+              "object_id": 18371,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16217 ×3",
+              "object_id": 16217,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 1682 ×3",
+              "object_id": 1682,
+              "quantity": 3
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Interagir : the Workshop",
+          "content": "Interagir : the Workshop",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              3
+            ],
+            [
+              27,
+              -30
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              124,
+              55,
+              51
+            ],
+            "object": [
+              28444,
+              28447,
+              28448
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Workshop"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Terminer le donjon nº 124",
+          "content": "Terminer le donjon nº 124\nRejoindre [14,-32]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              14,
+              -32
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              124
+            ],
+            "object": [
+              28444
+            ],
+            "monster": [
+              6249
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 124",
+              "dungeon_id": 124
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [14,-32]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Terminer le donjon nº 55",
+          "content": "Terminer le donjon nº 55\nRejoindre [-64,-55]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -64,
+              -55
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              55
+            ],
+            "object": [
+              28448
+            ],
+            "monster": [
+              2848
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 55",
+              "dungeon_id": 55
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-64,-55]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Terminer le donjon nº 51",
+          "content": "Terminer le donjon nº 51\nRejoindre [-53,20]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -53,
+              20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              51
+            ],
+            "object": [
+              28447
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 51",
+              "dungeon_id": 51
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-53,20]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Terminer la quête nº 1660",
+          "content": "Terminer la quête nº 1660\nParler à the Disciple of Vini\nParler à him to get the Viti's Blessing\nInteragir : your Terra Clan Shovel\nRejoindre [11,-13]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              27,
+              -30
+            ],
+            [
+              11,
+              -13
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1660
+            ],
+            "dungeon": [],
+            "object": [
+              17067,
+              16953
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1660",
+              "quest_id": 1660
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Disciple of Vini"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him to get the Viti's Blessing"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : your Terra Clan Shovel"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [11,-13]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Interagir : the Rock below",
+          "content": "Interagir : the Rock below",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              11,
+              -13
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Rock below"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1657\nParler à Meriana\nDémarrer la quête nº 1658\nParler à her\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1657,
+              1658
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1657",
+              "quest_id": 1657
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1658",
+              "quest_id": 1658
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Interagir : the ladder",
+          "content": "Interagir : the ladder\nParler à Drillbit\nInteragir : the ladder in the center\nInteragir : the tent\nRejoindre [-29,36]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ],
+            [
+              -29,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Drillbit"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-29,36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Interagir : the Handymen's Workshop",
+          "content": "Interagir : the Handymen's Workshop\nParler à Fidji Merline\nRejoindre [-27,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -29,
+              36
+            ],
+            [
+              -27,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Handymen's Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fidji Merline"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-27,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Parler à Nobir",
+          "content": "Parler à Nobir\nRejoindre [-25,-6]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              -3
+            ],
+            [
+              -25,
+              -6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Nobir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-25,-6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0048",
+          "type": "info",
+          "title": "Étape 48 — Parler à the Miniature Automaton",
+          "content": "Parler à the Miniature Automaton\nRejoindre [-27,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              -6
+            ],
+            [
+              -27,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Miniature Automaton"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-27,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0049",
+          "type": "info",
+          "title": "Étape 49 — Parler à Nobir",
+          "content": "Parler à Nobir\nRejoindre [-22,-4]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              -3
+            ],
+            [
+              -22,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Nobir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-22,-4]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0050",
+          "type": "info",
+          "title": "Étape 50 — Parler à the Miniature Automaton",
+          "content": "Parler à the Miniature Automaton\nRejoindre [-27,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              -4
+            ],
+            [
+              -27,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Miniature Automaton"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-27,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0051",
+          "type": "info",
+          "title": "Étape 51 — Parler à Nobir",
+          "content": "Parler à Nobir\nRejoindre [-24,-1]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              -3
+            ],
+            [
+              -24,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Nobir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-24,-1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0052",
+          "type": "info",
+          "title": "Étape 52 — Parler à the Miniature Automaton",
+          "content": "Parler à the Miniature Automaton\nRejoindre [-27,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -24,
+              -1
+            ],
+            [
+              -27,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Miniature Automaton"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-27,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0053",
+          "type": "info",
+          "title": "Étape 53 — Parler à Nobir",
+          "content": "Parler à Nobir\nRejoindre [-26,0]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 53,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              -3
+            ],
+            [
+              -26,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Nobir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-26,0]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0054",
+          "type": "info",
+          "title": "Étape 54 — Parler à the Miniature Automaton",
+          "content": "Parler à the Miniature Automaton\nRejoindre [-27,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 54,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -26,
+              0
+            ],
+            [
+              -27,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Miniature Automaton"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-27,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0055",
+          "type": "info",
+          "title": "Étape 55 — Parler à Nobir",
+          "content": "Parler à Nobir\nRejoindre [-29,36]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 55,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              -3
+            ],
+            [
+              -29,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Nobir"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-29,36]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0056",
+          "type": "info",
+          "title": "Étape 56 — Interagir : the Handymen's Workshop",
+          "content": "Interagir : the Handymen's Workshop\nParler à Fidji Merline to Announce that\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 56,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -29,
+              36
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Handymen's Workshop"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Fidji Merline to Announce that"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0057",
+          "type": "info",
+          "title": "Étape 57 — Interagir : the ladder",
+          "content": "Interagir : the ladder\nInteragir : the ladder in the center\nInteragir : the tent\nEffectuer le combat de l'étape\nParler à Drillbit\nParler à Mama Ayuto\nRejoindre [-69,-88]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 57,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ],
+            [
+              -69,
+              -88
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              11994
+            ],
+            "monster": [
+              4138
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the tent"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Drillbit"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mama Ayuto"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-69,-88]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0058",
+          "type": "info",
+          "title": "Étape 58 — Démarrer la quête nº 1661",
+          "content": "Démarrer la quête nº 1661\nParler à the Thomahon's Disciple\nPrévoir objet nº 748 ×5\nPrévoir objet nº 2588 ×10\nPrévoir objet nº 8481 ×10\nPrévoir objet nº 9381 ×10\nPrévoir objet nº 11695 ×1\nPrévoir objet nº 750 ×5\nPrévoir objet nº 8391 ×10\nPrévoir objet nº 8763 ×10\nPrévoir objet nº 14516 ×10\nPrévoir objet nº 14518 ×1\nPrévoir objet nº 6457 ×5\nPrévoir objet nº 8803 ×3\nPrévoir objet nº 13725 ×3\nPrévoir objet nº 14635 ×200\nPrévoir objet nº 9389 ×1\nPrévoir objet nº 15075 ×10\nPrévoir objet nº 746 ×5\nPrévoir objet nº 1002 ×10\nPrévoir objet nº 2619 ×5\nPrévoir objet nº 6475 ×10\nPrévoir objet nº 12016 ×1\nRejoindre [6,3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 58,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -69,
+              -88
+            ],
+            [
+              6,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1661
+            ],
+            "dungeon": [],
+            "object": [
+              748,
+              2588,
+              8481,
+              9381,
+              11695,
+              750,
+              8391,
+              8763,
+              14516,
+              14518,
+              6457,
+              8803,
+              13725,
+              14635,
+              9389,
+              15075,
+              746,
+              1002,
+              2619,
+              6475,
+              12016
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1661",
+              "quest_id": 1661
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Thomahon's Disciple"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 748 ×5",
+              "object_id": 748,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2588 ×10",
+              "object_id": 2588,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8481 ×10",
+              "object_id": 8481,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 9381 ×10",
+              "object_id": 9381,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11695 ×1",
+              "object_id": 11695,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 750 ×5",
+              "object_id": 750,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8391 ×10",
+              "object_id": 8391,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8763 ×10",
+              "object_id": 8763,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14516 ×10",
+              "object_id": 14516,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14518 ×1",
+              "object_id": 14518,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6457 ×5",
+              "object_id": 6457,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8803 ×3",
+              "object_id": 8803,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13725 ×3",
+              "object_id": 13725,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14635 ×200",
+              "object_id": 14635,
+              "quantity": 200
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 9389 ×1",
+              "object_id": 9389,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15075 ×10",
+              "object_id": 15075,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 746 ×5",
+              "object_id": 746,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 1002 ×10",
+              "object_id": 1002,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2619 ×5",
+              "object_id": 2619,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6475 ×10",
+              "object_id": 6475,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 12016 ×1",
+              "object_id": 12016,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0059",
+          "type": "info",
+          "title": "Étape 59 — Interagir : the Workshop",
+          "content": "Interagir : the Workshop",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 59,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              3
+            ],
+            [
+              -69,
+              -88
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              44,
+              28,
+              56,
+              57
+            ],
+            "object": [
+              28445,
+              28449,
+              28450,
+              28451
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Workshop"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0060",
+          "type": "info",
+          "title": "Étape 60 — Terminer le donjon nº 44",
+          "content": "Terminer le donjon nº 44\nRejoindre [4,-6]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 60,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              -6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              44
+            ],
+            "object": [
+              28445
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 44",
+              "dungeon_id": 44
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [4,-6]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0061",
+          "type": "info",
+          "title": "Étape 61 — Terminer le donjon nº 28",
+          "content": "Terminer le donjon nº 28\nRejoindre [-54,16]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 61,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -54,
+              16
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              28
+            ],
+            "object": [
+              28450
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 28",
+              "dungeon_id": 28
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-54,16]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0062",
+          "type": "info",
+          "title": "Étape 62 — Terminer le donjon nº 56",
+          "content": "Terminer le donjon nº 56\nRejoindre [-60,-84]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 62,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -60,
+              -84
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              56
+            ],
+            "object": [
+              28449
+            ],
+            "monster": [
+              2877,
+              2955
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 56",
+              "dungeon_id": 56
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-60,-84]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0063",
+          "type": "info",
+          "title": "Étape 63 — Terminer le donjon nº 57",
+          "content": "Terminer le donjon nº 57\nRejoindre [-71,-83]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 63,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -71,
+              -83
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              57
+            ],
+            "object": [
+              28451
+            ],
+            "monster": [
+              2924,
+              2951
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 57",
+              "dungeon_id": 57
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-71,-83]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0064",
+          "type": "info",
+          "title": "Étape 64 — Terminer la quête nº 1661",
+          "content": "Terminer la quête nº 1661\nParler à the Thomahon's Disciple\nPrévoir objet nº 17068\nInteragir : the Terra Clan Shovel in your equipment\nRejoindre [-13,-62]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 64,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -69,
+              -88
+            ],
+            [
+              -13,
+              -62
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1661
+            ],
+            "dungeon": [],
+            "object": [
+              17068,
+              16953
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1661",
+              "quest_id": 1661
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Thomahon's Disciple"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 17068",
+              "object_id": 17068
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Terra Clan Shovel in your equipment"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-13,-62]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0065",
+          "type": "info",
+          "title": "Étape 65 — Interagir : the bones below",
+          "content": "Interagir : the bones below",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 65,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -13,
+              -62
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the bones below"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0066",
+          "type": "info",
+          "title": "Étape 66 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1658\nParler à Meriana\nDémarrer la quête nº 1659\nParler à her\nRejoindre [-57,12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 66,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -57,
+              12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1658,
+              1659
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1658",
+              "quest_id": 1658
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1659",
+              "quest_id": 1659
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à her"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0067",
+          "type": "info",
+          "title": "Étape 67 — Démarrer la quête nº 1662",
+          "content": "Démarrer la quête nº 1662\nParler à the Disciple of Foluk twice\nPrévoir objet nº 8346 ×3\nPrévoir objet nº 14515 ×3\nPrévoir objet nº 2543 ×5\nPrévoir objet nº 2645 ×1\nPrévoir objet nº 14513 ×3\nPrévoir objet nº 11241 ×10\nPrévoir objet nº 8779 ×10\nPrévoir objet nº 14635 ×400\nPrévoir objet nº 15069 ×10\nPrévoir objet nº 6457 ×5\nPrévoir objet nº 11221 ×1\nPrévoir objet nº 16212 ×5\nPrévoir objet nº 13503 ×10\nPrévoir objet nº 15072 ×3\nPrévoir objet nº 11228 ×3\nPrévoir objet nº 15727 ×1\nRejoindre [6,3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 67,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -57,
+              12
+            ],
+            [
+              6,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1662
+            ],
+            "dungeon": [],
+            "object": [
+              8346,
+              14515,
+              2543,
+              2645,
+              14513,
+              11241,
+              8779,
+              14635,
+              15069,
+              6457,
+              11221,
+              16212,
+              13503,
+              15072,
+              11228,
+              15727
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1662",
+              "quest_id": 1662
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Disciple of Foluk twice"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8346 ×3",
+              "object_id": 8346,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14515 ×3",
+              "object_id": 14515,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2543 ×5",
+              "object_id": 2543,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 2645 ×1",
+              "object_id": 2645,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14513 ×3",
+              "object_id": 14513,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11241 ×10",
+              "object_id": 11241,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 8779 ×10",
+              "object_id": 8779,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 14635 ×400",
+              "object_id": 14635,
+              "quantity": 400
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15069 ×10",
+              "object_id": 15069,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 6457 ×5",
+              "object_id": 6457,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11221 ×1",
+              "object_id": 11221,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16212 ×5",
+              "object_id": 16212,
+              "quantity": 5
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 13503 ×10",
+              "object_id": 13503,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15072 ×3",
+              "object_id": 15072,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 11228 ×3",
+              "object_id": 11228,
+              "quantity": 3
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 15727 ×1",
+              "object_id": 15727,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0068",
+          "type": "info",
+          "title": "Étape 68 — Interagir : the Workshop",
+          "content": "Interagir : the Workshop",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 68,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              3
+            ],
+            [
+              -57,
+              12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              79,
+              59,
+              75
+            ],
+            "object": [
+              28446,
+              28452,
+              28453
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the Workshop"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0069",
+          "type": "info",
+          "title": "Étape 69 — Terminer le donjon nº 79",
+          "content": "Terminer le donjon nº 79\nRejoindre [-2,-3]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 69,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -2,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              79
+            ],
+            "object": [
+              28446
+            ],
+            "monster": [
+              3651
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 79",
+              "dungeon_id": 79
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-2,-3]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0070",
+          "type": "info",
+          "title": "Étape 70 — Terminer le donjon nº 59",
+          "content": "Terminer le donjon nº 59\nRejoindre [-73,-69]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 70,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -73,
+              -69
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              59
+            ],
+            "object": [
+              28453
+            ],
+            "monster": [
+              2900
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 59",
+              "dungeon_id": 59
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-73,-69]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0071",
+          "type": "info",
+          "title": "Étape 71 — Terminer le donjon nº 75",
+          "content": "Terminer le donjon nº 75\nRejoindre [-5,-54]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 71,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              -54
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              75
+            ],
+            "object": [
+              28452
+            ],
+            "monster": [
+              3556
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer le donjon nº 75",
+              "dungeon_id": 75
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-5,-54]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0072",
+          "type": "info",
+          "title": "Étape 72 — Terminer la quête nº 1662",
+          "content": "Terminer la quête nº 1662\nParler à Disciple of Foluk\nParler à him to update the questOnce Upon a Time in the West\nInteragir : the Temple of the Twelve\nRejoindre [-1,-1]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 72,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -57,
+              12
+            ],
+            [
+              -1,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1662,
+              1659
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1662",
+              "quest_id": 1662
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Disciple of Foluk"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à him to update the questOnce Upon a Time in the West"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the Temple of the Twelve"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-1,-1]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0073",
+          "type": "info",
+          "title": "Étape 73 — Parler à the Goblin Fisherman",
+          "content": "Parler à the Goblin Fisherman\nRejoindre [-57,12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 73,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              -1
+            ],
+            [
+              -57,
+              12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Goblin Fisherman"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-57,12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0074",
+          "type": "info",
+          "title": "Étape 74 — Parler à the Disciple of Foluk",
+          "content": "Parler à the Disciple of Foluk\nRejoindre [-32,-12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 74,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -57,
+              12
+            ],
+            [
+              -32,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à the Disciple of Foluk"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-32,-12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0075",
+          "type": "info",
+          "title": "Étape 75 — Effectuer le combat de l'étape",
+          "content": "Effectuer le combat de l'étape\nParler à the Amakna Rock",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 75,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -12
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à the Amakna Rock"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0076",
+          "type": "info",
+          "title": "Étape 76 — Interagir : the house",
+          "content": "Interagir : the house\nTerminer la quête nº 1659\nParler à Meriana\nDémarrer la quête nº 1663\nRejoindre [-78,-70]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 76,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -78,
+              -70
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1659,
+              1663
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1659",
+              "quest_id": 1659
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la quête nº 1663",
+              "quest_id": 1663
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-78,-70]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0077",
+          "type": "info",
+          "title": "Étape 77 — Obtenir objet nº 16900",
+          "content": "Obtenir objet nº 16900",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 77,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -78,
+              -70
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16900
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "drop_object",
+              "label": "Obtenir objet nº 16900",
+              "object_id": 16900
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0078",
+          "type": "info",
+          "title": "Étape 78 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Meriana\nRejoindre [11,-28]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 78,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              11,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [11,-28]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0079",
+          "type": "info",
+          "title": "Étape 79 — Parler à Verdekelp",
+          "content": "Parler à Verdekelp\nPrévoir objet nº 16904\nRejoindre [11,-5]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 79,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              11,
+              -28
+            ],
+            [
+              11,
+              -5
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16904
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Verdekelp"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 16904",
+              "object_id": 16904
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [11,-5]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0080",
+          "type": "info",
+          "title": "Étape 80 — Parler à Kelp",
+          "content": "Parler à Kelp\nRejoindre [6,28]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 80,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              11,
+              -5
+            ],
+            [
+              6,
+              28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16903
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Kelp"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [6,28]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0081",
+          "type": "info",
+          "title": "Étape 81 — Parler à Wruckus",
+          "content": "Parler à Wruckus\nRejoindre [21,22]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 81,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              6,
+              28
+            ],
+            [
+              21,
+              22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16901
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Wruckus"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [21,22]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0082",
+          "type": "info",
+          "title": "Étape 82 — Parler à Norie",
+          "content": "Parler à Norie\nRejoindre [-33,-12]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 82,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              22
+            ],
+            [
+              -33,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16902
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Norie"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-33,-12]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0083",
+          "type": "info",
+          "title": "Étape 83 — Parler à Cyanoph",
+          "content": "Parler à Cyanoph\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 83,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -33,
+              -12
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              16905
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Cyanoph"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0084",
+          "type": "info",
+          "title": "Étape 84 — Interagir : the ladder",
+          "content": "Interagir : the ladder\nParler à Mama Ayuto\nInteragir : the ladder in the center\nParler à Girle Pylote\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 84,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Mama Ayuto"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Girle Pylote"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0085",
+          "type": "info",
+          "title": "Étape 85 — Interagir : the stairs",
+          "content": "Interagir : the stairs\nInteragir : the 4 pillars\nEffectuer le combat de l'étape\nParler à Furye",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 85,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              26,
+              28
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17074
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the stairs"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the 4 pillars"
+            },
+            {
+              "kind": "combat",
+              "label": "Effectuer le combat de l'étape"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Furye"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0086",
+          "type": "info",
+          "title": "Étape 86 — Interagir : the house",
+          "content": "Interagir : the house\nParler à Meriana to Announce that the soul of Furye\nRejoindre [-19,-23]",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 86,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the house"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Meriana to Announce that the soul of Furye"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2217_step_0087",
+          "type": "info",
+          "title": "Étape 87 — Interagir : the ladder",
+          "content": "Interagir : the ladder\nInteragir : the ladder in the center\nParler à Girle Pylote\nInteragir : the water circle in the middle\nTerminer la quête nº 1663\nParler à Aguabrial\nPrévoir objet nº 739\nRejoindre [-19,-23]\nRecevoir objet de récompense nº 739",
+          "optional": false,
+          "source_guide_id": 2217,
+          "source_step_number": 87,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -19,
+              -23
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1663
+            ],
+            "dungeon": [],
+            "object": [
+              739
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the ladder in the center"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Girle Pylote"
+            },
+            {
+              "kind": "interact",
+              "label": "Interagir : the water circle in the middle"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête nº 1663",
+              "quest_id": 1663
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Aguabrial"
+            },
+            {
+              "kind": "check_object",
+              "label": "Prévoir objet nº 739",
+              "object_id": 739
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre [-19,-23]"
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir objet de récompense nº 739",
+              "object_id": 739
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 87,
+  "source_action_candidate_steps": 87,
+  "source_action_candidate_actions": 369,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 160,
+  "recommended_level_max": 200,
+  "reward_item_id": 739,
+  "illustration_item_id": 739,
+  "image": null,
+  "linked_achievement_ids": [
+    1385
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

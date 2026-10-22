@@ -220,13 +220,20 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertFalse(hasattr(view, "category_buttons"))
             self.assertFalse(hasattr(view, "set_category"))
             self.assertFalse(hasattr(view, "hide_completed"))
+            # The repaired home splits the old single model into two columns.
+            # Keep checking every category in its actual destination model.
             groups = [
                 view.result_model.data(view.result_model.index(row, 0), GUIDE_GROUP_ROLE)
                 for row in range(view.result_model.rowCount())
+                if view.result_model.data(view.result_model.index(row, 0), GUIDE_GROUP_ROLE)
             ]
-            self.assertIn("AVENTURE", groups)
-            self.assertIn("DOFUS", groups)
-            self.assertIn("ALIGNEMENTS", groups)
+            dofus_groups = [
+                view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
+                for row in range(view.home_dofus_model.rowCount())
+                if view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
+            ]
+            self.assertEqual(groups, ["GUIDE SUCCÈS", "GUIDES OPTIMISÉS", "ALIGNEMENTS"])
+            self.assertEqual(dofus_groups, ["DOFUS"])
 
             open_content_width = 900 - 190
             closed_content_width = 900 - 44

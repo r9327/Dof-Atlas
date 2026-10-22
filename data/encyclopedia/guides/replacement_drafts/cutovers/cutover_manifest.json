@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "guides": {
+    "dofus_abyssal": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2269,
+      "source_step_count": 174,
+      "fingerprint": "7a8a1668d6503eb4ad27bf0f60a1ce966580a3df5b1647adb899467256dc79f0",
+      "payload_sha256": "aede874c7205ff9bf21fc746e3eae9a5ac7e3d20ddbbfeba9305aded2780e02b"
+    },
+    "dofus_argente": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2203,
+      "source_step_count": 237,
+      "fingerprint": "d6c75035be7dfd9afdd8b575276cd3fcf86944e4e6d39c3ab6505a659987a047",
+      "payload_sha256": "17946a574c282f23923a186f6f8657516a56e6bd908844973aa5fb96767559d7"
+    },
+    "dofus_cawotte": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2205,
+      "source_step_count": 64,
+      "fingerprint": "22c48544aa1e97e00cc61eac3cad187d856a04070c43c21d999b9b0ac72b21fa",
+      "payload_sha256": "8c49388e9db9f8e327a99d32dbc980a5e5c9d0723cf5c1479571838fec774920"
+    },
+    "dofus_des_glaces": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2216,
+      "source_step_count": 121,
+      "fingerprint": "156aebd6ea2754ec01d79d5f25c78fb4481a53f369eb6b3fa2a8236b6456d2b6",
+      "payload_sha256": "1ddd1d9b70aec33f799dbc018b9be4a78e40b259921227ac70b91915963c10e2"
+    },
+    "dofus_des_veilleurs": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2209,
+      "source_step_count": 88,
+      "fingerprint": "9ce39c973b0134a30de2247474b0eb4755cbe19e8f9387a8628e4ebac2be9f43",
+      "payload_sha256": "a402994949e61e65c7337e00aa2e22d37b3108ab63a423b19fc50640ce19cdff"
+    },
+    "dofus_dom_de_pin": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2285,
+      "source_step_count": 4,
+      "fingerprint": "4e2cdd972b292bea7bc143bab873bdf52ddca43658b75a37134ad9de68758be7",
+      "payload_sha256": "c386faf3457ebbd5e48a6ff78bea5c362db86c6f3c9cdb61912899b3a455a6a7"
+    },
+    "dofus_du_cauchemar": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2283,
+      "source_step_count": 55,
+      "fingerprint": "a0c3fedb9cf42c0f54b69a7f41c03e2cf7344392b924025cd55b6a2623e84c78",
+      "payload_sha256": "f68f3734d00ffd6828110242442df7b4a35748fa28de41d05609d3015e898a6b"
+    },
+    "dofus_ebene": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2261,
+      "source_step_count": 142,
+      "fingerprint": "41147153dac7a948b2f49753cc6db324c3c0fb567ee6fdee391a8f693782dedc",
+      "payload_sha256": "2578fdb4252ec730ffd6918c252e104f7ed3b9af058ef36e2f520b1bd13fbda3"
+    },
+    "dofus_emeraude": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2211,
+      "source_step_count": 52,
+      "fingerprint": "7e6a883463d080fa91a02cd6e200bd1eff88310392393824c29db693144c342c",
+      "payload_sha256": "0bbf838bf249acb6eef23c84b985cfb9ee16a3e06ee7b7fd031efce95cfa71ae"
+    },
+    "dofus_forgelave": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2287,
+      "source_step_count": 150,
+      "fingerprint": "9f1ffad2678d0f727e7fc8897423a3c58b7b0b14646f8110b0debec6da0f1582",
+      "payload_sha256": "62d0001fc4c43894a5b803a4104eb8dcd4f5bbf6b9358e0ebb5f5f2672c92949"
+    },
+    "dofus_ivoire": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2256,
+      "source_step_count": 118,
+      "fingerprint": "bf97ddc0a8000c518a7656d69604f13ef59f1343595a370dc2805767d0c1b3a4",
+      "payload_sha256": "32843258d1c21b7b010ccecc55c713e6c010da39fe60e1f755a05d1a1c171973"
+    },
+    "dofus_nebuleux": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2247,
+      "source_step_count": 6,
+      "fingerprint": "db78bba82804d617461e9d1f59b56170d08e4db87ff41b0f4b764035d8b19201",
+      "payload_sha256": "90942d3827fa80be3ed3c9a9f7b6ddb0c20f72866f7a93fc6158332beecfee1b"
+    },
+    "dofus_pourpre": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2276,
+      "source_step_count": 45,
+      "fingerprint": "5c6e72c97f3711174d0fe7aefb05e3adca1acd297cd5643c6bfcc14b857683a7",
+      "payload_sha256": "16e22a30d22e553ddd20fe4e40320225d605c68854f849aef38094d4e7c9442d"
+    },
+    "dofus_tachete": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2271,
+      "source_step_count": 62,
+      "fingerprint": "cafccbf3ccd412d9cb86277da99b57f938c95c8df8369f528bf05359319336c4",
+      "payload_sha256": "2979938688bc047b29d84dc9a8e7b67411731743148916779740d8086b079b40"
+    },
+    "dofus_turquoise": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2217,
+      "source_step_count": 87,
+      "fingerprint": "dac427a8bdaf2a12a8d8cbb3e5f6f250155b1f1abfdf52f0370e5b67da21b363",
+      "payload_sha256": "293f942a801985fc307923e71353e0b47fc1d25cea27e5aaf231c348f5a798ab"
+    },
+    "dofus_vulbis": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2260,
+      "source_step_count": 47,
+      "fingerprint": "e1519b4a84830b3cea0401048cda232377adc82ef8b4d8d184394b36883340d8",
+      "payload_sha256": "1d11d9254acf7d93b44a9ec11b6c8db2773e821e0c781334aa275f7a9e0d268e"
+    },
+    "dokoko": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2208,
+      "source_step_count": 49,
+      "fingerprint": "0477da6a4057e82e36c5646a98e5ab7d4b2c794766e25f3ba6dff1ec5417ceb6",
+      "payload_sha256": "04e4fab852bbf63f5fb18705f6550d6bc3f4cb3bdd8c020a0c1e51cea61f791d"
+    },
+    "dolmanax": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2248,
+      "source_step_count": 9,
+      "fingerprint": "8b0358b193e4b30400f08fffa8644aa303cba3342c169f8a40e475440aa830e8",
+      "payload_sha256": "8e0e0b51c8cd96cabf8bbb33223579a34a54e6b5f16d5b0b4a2e4379b5c11bca"
+    },
+    "domakuro": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2212,
+      "source_step_count": 120,
+      "fingerprint": "1fc93234cc12bdc6b8671a59e8cf7af491de4981a9a68e240f2449de5190b7ea",
+      "payload_sha256": "f2f28f4ddae70ff2e835f8721e7c045b36423280d0563f922c3226476f200987"
+    },
+    "dorigami": {
+      "enabled": true,
+      "status": "TRUSTED_SOURCE_STEPS",
+      "source_guide_id": 2221,
+      "source_step_count": 64,
+      "fingerprint": "d2209f8f035677448daead976e50d900ed7c26b0c7180fb42271a6bb2cc86959",
+      "payload_sha256": "9dadd7c5ad8bb58de2ea8c398f91c4d46eb8349bf97163507e2c946560ab26e3"
+    }
+  }
+}

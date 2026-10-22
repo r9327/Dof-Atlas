@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "id": "dolmanax",
+  "title": "Dolmanax",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2248,
+  "source_guide_url": "https://ganymede-app.com/guides/2248",
+  "source_prerequisite_guide_ids": [],
+  "expected_source_step_count": 9,
+  "playable_step_count": 9,
+  "source_link_snapshot": "ganymede_dolmanax_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2248_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2248_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Vérifier le niveau 20 avant le premier Almanax",
+          "content": "Vérifier le niveau 20 avant le premier Almanax\nObjectif à long terme : obtenir le Dolmanax\nGarder une potion de téléportation vers le sanctuaire",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13344,
+              13442,
+              13330
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Vérifier le niveau 20 avant le premier Almanax",
+              "required_level": 20
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif à long terme : obtenir le Dolmanax",
+              "object_id": 13344
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Garder une potion de téléportation vers le sanctuaire",
+              "object_id": 13442,
+              "quantity": 1,
+              "optional": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Activer la quête annuelle auprès d'Antyklime Ax",
+          "content": "Activer la quête annuelle auprès d'Antyklime Ax\nEffectuer au maximum une offrande journalière et collecter une page par jour\nApporter l'offrande du jour à Antyklime Ax\nRejoindre l'autel de la saison en cours\nParler à l'esprit du jour, puis revenir valider l'offrande\nConserver la page du calendrier obtenue\nLa quête annuelle reste ouverte pendant le suivi des 365 pages",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              954
+            ],
+            "dungeon": [],
+            "object": [
+              13345,
+              13344,
+              13330
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Activer la quête annuelle auprès d'Antyklime Ax",
+              "quest_id": 954
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Effectuer au maximum une offrande journalière et collecter une page par jour",
+              "repetition": "daily",
+              "max_daily_completions": 1,
+              "target_pages": 365
+            },
+            {
+              "kind": "talk",
+              "label": "Apporter l'offrande du jour à Antyklime Ax",
+              "requires_daily_item_unknown": true
+            },
+            {
+              "kind": "interact",
+              "label": "Rejoindre l'autel de la saison en cours"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à l'esprit du jour, puis revenir valider l'offrande"
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Conserver la page du calendrier obtenue",
+              "object_id": 13345,
+              "quantity": 1
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "La quête annuelle reste ouverte pendant le suivi des 365 pages",
+              "quest_id": 954
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Utiliser les Almatons comme monnaie auprès de Xanamla",
+          "content": "Utiliser les Almatons comme monnaie auprès de Xanamla\nSort d'invocation d'Arakne, achat facultatif\nCompagnon Kubitus, achat facultatif\nCompagnon Logram, achat facultatif\nMontilier Codex d'Almanax, achat facultatif\nGalets saisonniers, lunaires et solaires selon besoin",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13330,
+              721,
+              28285,
+              27982,
+              29735,
+              13365,
+              13366,
+              13367
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Utiliser les Almatons comme monnaie auprès de Xanamla",
+              "object_id": 13330
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Sort d'invocation d'Arakne, achat facultatif",
+              "object_id": 721,
+              "optional": true
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Compagnon Kubitus, achat facultatif",
+              "object_id": 28285,
+              "optional": true
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Compagnon Logram, achat facultatif",
+              "object_id": 27982,
+              "optional": true
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Montilier Codex d'Almanax, achat facultatif",
+              "object_id": 29735,
+              "optional": true
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Galets saisonniers, lunaires et solaires selon besoin",
+              "object_ids": [
+                13365,
+                13366,
+                13367
+              ],
+              "optional": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Préparer quelques offrandes à l'avance, sans imposer de stock fixe",
+          "content": "Préparer quelques offrandes à l'avance, sans imposer de stock fixe\nUtiliser une potion de sanctuaire si cela réduit le trajet",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              13442
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Préparer quelques offrandes à l'avance, sans imposer de stock fixe"
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Utiliser une potion de sanctuaire si cela réduit le trajet",
+              "object_id": 13442,
+              "quantity": 1,
+              "optional": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Consulter le calendrier du bonus d'économie d'ingrédients",
+          "content": "Consulter le calendrier du bonus d'économie d'ingrédients",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Consulter le calendrier du bonus d'économie d'ingrédients",
+              "optional": true,
+              "requires_current_calendar": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Consulter les dates de bonus d'expérience des métiers",
+          "content": "Consulter les dates de bonus d'expérience des métiers",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Consulter les dates de bonus d'expérience des métiers",
+              "optional": true,
+              "requires_current_calendar": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Consulter les journées améliorant la forgemagie",
+          "content": "Consulter les journées améliorant la forgemagie",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Consulter les journées améliorant la forgemagie",
+              "optional": true,
+              "requires_current_calendar": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Consulter les journées de duplication d'objets",
+          "content": "Consulter les journées de duplication d'objets",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Consulter les journées de duplication d'objets",
+              "optional": true,
+              "requires_current_calendar": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2248_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Consulter les journées de qualité de fabrication par ville",
+          "content": "Consulter les journées de qualité de fabrication par ville",
+          "optional": false,
+          "source_guide_id": 2248,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Consulter les journées de qualité de fabrication par ville",
+              "optional": true,
+              "requires_current_calendar": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "source_action_candidate_steps": 9,
+  "factual_action_reviewed_step_count": 9,
+  "source_action_candidate_actions": 23,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 20,
+  "recommended_level_max": 100,
+  "reward_item_id": 13344,
+  "illustration_item_id": 13344,
+  "image": null,
+  "linked_achievement_ids": [
+    568
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

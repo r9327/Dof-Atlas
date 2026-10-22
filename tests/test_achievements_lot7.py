@@ -504,6 +504,56 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_user_click_reveals_visible_success_detail_not_only_callback(self):
+        """A real viewport click must display a legible third-column detail."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            view = AchievementsView(
+                lambda _text: None,
+                provider=self.provider,
+                progress_service=AchievementProgressService(root / "achievement_progress.json"),
+                quest_progress_service=QuestProgressService(root / "quest_progress.json"),
+            )
+            view.resize(1000, 650)
+            view.show()
+            self.app.processEvents()
+            try:
+                for _ in range(4):
+                    if view.list_widget.count():
+                        break
+                    self.app.processEvents()
+                item = view.list_widget.item(0)
+                self.assertIsNotNone(item, "No achievement is selectable after loading")
+                assert item is not None
+                target_id = int(item.data(Qt.UserRole))
+                target = view.provider.get_detail_by_id(target_id)
+                self.assertIsNotNone(target)
+
+                rect = view.list_widget.visualItemRect(item)
+                self.assertGreater(rect.height(), 0)
+                QTest.mouseClick(
+                    view.list_widget.viewport(), Qt.LeftButton, pos=rect.center()
+                )
+                self.app.processEvents()
+
+                self.assertTrue(view._detail_open, "Achievement click did not open detail")
+                self.assertEqual(view.current_achievement_id, target_id)
+                detail = view.findChild(AchievementDetailWidget, "AchievementDetailBody")
+                self.assertIsNotNone(detail, "Detail widget missing after real click")
+                assert detail is not None
+                self.assertTrue(detail.isVisibleTo(view), "Detail widget exists but is hidden")
+                self.assertGreater(view.detail_stack.width(), 150, "Detail column collapsed")
+                self.assertGreater(detail.width(), 150, "Detail content has no usable width")
+                title = detail.findChild(QLabel, "AchievementDetailTitle")
+                self.assertIsNotNone(title, "No visible success title")
+                assert title is not None
+                self.assertTrue(title.isVisibleTo(view))
+                self.assertEqual(title.text(), target.name)
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_excluded_achievement_cannot_be_reintroduced_by_navigation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

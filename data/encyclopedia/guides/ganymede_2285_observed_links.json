@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Ganymède",
+    "guide_id": 2285,
+    "source_url": "https://ganymede-app.com/guides/2285",
+    "checked_on": "2026-10-18",
+    "page_count": 1,
+    "steps_per_page": 50,
+    "route_role": "specialized_guide",
+    "extraction_scope": "factual_link_occurrences_only",
+    "editorial_text_imported": false,
+    "notice": "Unclassified factual links only; not verified objectives, mandatory actions or optimized routes."
+  },
+  "coverage": {
+    "observed_steps": 4,
+    "distinct_linked_guide_ids": 4,
+    "linked_main_index_guide_ids": 4,
+    "linked_outside_main_index_guide_ids": [],
+    "step_guide_links": 4,
+    "dofusdb_step_link_counts": {
+      "quest": 0,
+      "dungeon": 1,
+      "object": 8,
+      "monster": 0
+    },
+    "coordinate_mentions": 4,
+    "quest_objective_mapping_verified": 0,
+    "route_order_certified": false
+  },
+  "steps": [
+    {
+      "source_step_number": 1,
+      "source_page": 1,
+      "linked_guide_ids": [
+        2284,
+        2206,
+        2265,
+        2288
+      ],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          27803
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": []
+    },
+    {
+      "source_step_number": 2,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          737,
+          694,
+          739,
+          7754,
+          7115,
+          7114
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -5,
+          3
+        ]
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [
+          138
+        ],
+        "object": [],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          -5,
+          3
+        ],
+        [
+          38,
+          -80
+        ]
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          27803
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          38,
+          -80
+        ]
+      ]
+    }
+  ]
+}

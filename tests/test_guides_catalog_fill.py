@@ -69,7 +69,16 @@ class GuideCatalogFillTests(unittest.TestCase):
                 view.result_model.data(view.result_model.index(row, 0), GUIDE_GROUP_ROLE)
                 for row in range(view.result_model.rowCount())
             ]
-            self.assertEqual([group for group in groups if group], ["AVENTURE", "DOFUS", "ALIGNEMENTS"])
+            self.assertEqual(
+                [group for group in groups if group],
+                ["GUIDE SUCCÈS", "GUIDES OPTIMISÉS", "ALIGNEMENTS"],
+            )
+            dofus_groups = [
+                view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
+                for row in range(view.home_dofus_model.rowCount())
+            ]
+            self.assertEqual([group for group in dofus_groups if group], ["DOFUS"])
+            self.assertTrue(all(guide.category == "dofus" for guide in view.home_dofus_model.guides))
             view.select_guide("dofus_turquoise")
             self.app.processEvents()
             self.assertEqual(view.splitter.count(), 3)
@@ -92,7 +101,7 @@ class GuideCatalogFillTests(unittest.TestCase):
     def test_lanyel_sylvestre_reuses_the_adventure_guide_engine(self):
         guide = self.by_id["dofus_sylvestre"]
         self.assertEqual(guide.id, "dofus_sylvestre")
-        self.assertEqual(guide.title, "Lanyel Sylvestre")
+        self.assertEqual(guide.title, "Sylvestre Opti")
         self.assertEqual(guide.category, "aventure")
         self.assertEqual(len(guide.steps), 218)
         self.assertEqual(len(guide.required_steps), 198)
@@ -104,7 +113,7 @@ class GuideCatalogFillTests(unittest.TestCase):
 
         result = self._shared_generated_build()
         rebuilt = result.guides["dofus_sylvestre"]
-        self.assertEqual(rebuilt["title"], "Lanyel Sylvestre")
+        self.assertEqual(rebuilt["title"], "Sylvestre Opti")
         self.assertEqual(rebuilt["category"], "aventure")
         catalog_row = next(
             row for row in result.catalog["guides"]
@@ -170,7 +179,16 @@ class GuideCatalogFillTests(unittest.TestCase):
                 view.result_model.data(view.result_model.index(row, 0), GUIDE_GROUP_ROLE)
                 for row in range(view.result_model.rowCount())
             ]
-            self.assertEqual([group for group in groups if group], ["AVENTURE", "DOFUS", "ALIGNEMENTS"])
+            self.assertEqual(
+                [group for group in groups if group],
+                ["GUIDE SUCCÈS", "GUIDES OPTIMISÉS", "ALIGNEMENTS"],
+            )
+            dofus_groups = [
+                view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
+                for row in range(view.home_dofus_model.rowCount())
+            ]
+            self.assertEqual([group for group in dofus_groups if group], ["DOFUS"])
+            self.assertTrue(all(guide.category == "dofus" for guide in view.home_dofus_model.guides))
             view.set_search_text("incarnam")
             self.assertTrue(any(guide.id == "guide_complet" for guide in view.visible_guides))
             view.set_search_text("plongeon et dragon")

@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_dom_de_pin",
+  "source_guide_id": 2285,
+  "source_url": "https://ganymede-app.com/guides/2285",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 4,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2285_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Terminer le prologue des secrets des Dofus",
+          "guide_id": 2284
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Terminer Valonia première partie",
+          "guide_id": 2206
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Terminer Valonia deuxième partie",
+          "guide_id": 2265
+        },
+        {
+          "kind": "guide_dependency",
+          "label": "Terminer Valonia troisième partie",
+          "guide_id": 2288
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif final : obtenir le Dom de Pin",
+          "object_id": 27803
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2285_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        3
+      ],
+      "next": [
+        -5,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Émeraude",
+          "object_id": 737,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Pourpre",
+          "object_id": 694,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Turquoise",
+          "object_id": 739,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Ocre",
+          "object_id": 7754,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Ivoire",
+          "object_id": 7115,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Disposer du Dofus Ébène",
+          "object_id": 7114,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la Bworkette académique"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2285_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -5,
+        3
+      ],
+      "next": [
+        38,
+        -80
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer l'Académie des Gobelins sans quitter la salle finale",
+          "dungeon_id": 138,
+          "stay_at_end": true
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gobalden et attester posséder les six Dofus primordiaux"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Goblinecone dans la Forêt enneigée"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2285_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        38,
+        -80
+      ],
+      "next": [
+        38,
+        -80
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Vérifier les six Dofus précédemment préparés",
+          "references_previous_stage": 2
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Goblinecone et lui présenter les six Dofus"
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Recevoir le Dom de Pin",
+          "object_id": 27803
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2779 @@
+{
+  "schema_version": 1,
+  "id": "dofus_vulbis",
+  "title": "Dofus Vulbis",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2260,
+  "source_guide_url": "https://ganymede-app.com/guides/2260",
+  "source_prerequisite_guide_ids": [],
+  "expected_source_step_count": 47,
+  "playable_step_count": 47,
+  "source_link_snapshot": "ganymede_2260_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2260_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2260_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Terminer la quête préalable des anomalies",
+          "content": "Terminer la quête préalable des anomalies\nTerminer la quête préalable du temps\nTerminer la quête préalable du sacrifice\nPrévoir Alchimiste ou Paysan niveau 200\nAvoir terminé Dragon des Forêts pour simplifier l'accès",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2268,
+            2264,
+            2270
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2064,
+              2085,
+              2087,
+              1791,
+              2078,
+              2079,
+              2080,
+              2081,
+              2082,
+              2083
+            ],
+            "dungeon": [],
+            "object": [
+              21186,
+              21189
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_prerequisite",
+              "label": "Terminer la quête préalable des anomalies",
+              "quest_id": 2064
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Terminer la quête préalable du temps",
+              "quest_id": 2085
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Terminer la quête préalable du sacrifice",
+              "quest_id": 2087
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Prévoir Alchimiste ou Paysan niveau 200",
+              "alternative_group": "vulbis_professions",
+              "professions": [
+                "alchemist",
+                "farmer"
+              ],
+              "level": 200
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Avoir terminé Dragon des Forêts pour simplifier l'accès",
+              "quest_id": 1791,
+              "optional": true
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Reporter les achats jusqu'à la récupération du Parangon",
+          "content": "Reporter les achats jusqu'à la récupération du Parangon\nPrévoir dix Quisnoa\nPrévoir dix Salikronia\nPrévoir deux charognes savoureuses\nPrévoir 789 pépites\nPrévoir 500 reflets oniriques\nPrévoir 42 sabliers miniatures\nPrévoir trois galets solaires\nPrévoir deux yeux de verre\nPrévoir la corne de Crocabulia\nSe rendre auprès de l'émissaire de Xélor",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2081,
+              2083
+            ],
+            "dungeon": [],
+            "object": [
+              21189,
+              17993,
+              17992,
+              17161,
+              14635,
+              32079,
+              15733,
+              13367,
+              14145,
+              8365,
+              14705,
+              15734
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "optional_preparation",
+              "label": "Reporter les achats jusqu'à la récupération du Parangon",
+              "object_id": 21189
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir dix Quisnoa",
+              "object_id": 17993,
+              "quantity": 10,
+              "quest_id": 2081
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir dix Salikronia",
+              "object_id": 17992,
+              "quantity": 10,
+              "quest_id": 2081
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir deux charognes savoureuses",
+              "object_id": 17161,
+              "quantity": 2,
+              "quest_id": 2081
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 789 pépites",
+              "object_id": 14635,
+              "quantity": 789,
+              "quest_id": 2083
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 500 reflets oniriques",
+              "object_id": 32079,
+              "quantity": 500,
+              "quest_id": 2083
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 42 sabliers miniatures",
+              "object_id": 15733,
+              "quantity": 42,
+              "quest_id": 2083
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir trois galets solaires",
+              "object_id": 13367,
+              "quantity": 3,
+              "quest_id": 2083
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir deux yeux de verre",
+              "object_id": 14145,
+              "quantity": 2,
+              "quest_id": 2083
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir la corne de Crocabulia",
+              "object_id": 8365,
+              "quantity": 1,
+              "quest_id": 2083
+            },
+            {
+              "kind": "move",
+              "label": "Se rendre auprès de l'émissaire de Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Parler à l'émissaire de Xélor pour lancer l'anomalie",
+          "content": "Parler à l'émissaire de Xélor pour lancer l'anomalie\nAvoir terminé les prérequis d'accès\nRejoindre la faille",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              1
+            ],
+            [
+              -1,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2268
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2078,
+              2064
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Parler à l'émissaire de Xélor pour lancer l'anomalie",
+              "quest_id": 2078
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Avoir terminé les prérequis d'accès",
+              "quest_id": 2064
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la faille"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Entrer dans l'anomalie par le Zaap",
+          "content": "Entrer dans l'anomalie par le Zaap\nParler à Grasmera\nRemporter le combat individuel avec compagnon\nExploiter les états vulnérables de Grozilla et Grasmera\nPrendre le compagnon Photo-Signal si disponible",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14961,
+              14963
+            ],
+            "monster": [
+              3142,
+              3143
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer dans l'anomalie par le Zaap"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Grasmera"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le combat individuel avec compagnon",
+              "monster_id": 3143,
+              "group_mode": "solo_with_sidekick"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Exploiter les états vulnérables de Grozilla et Grasmera",
+              "monster_id": 3142
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Prendre le compagnon Photo-Signal si disponible",
+              "object_id": 14961
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Entrer dans la maison",
+          "content": "Entrer dans la maison\nParler au chef du village\nTerminer le combat individuel\nÉquiper le faux Vulbis obtenu dans la scène\nQuitter l'anomalie\nRetourner à l'émissaire",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              26
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21186
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer dans la maison"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler au chef du village"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "equip",
+              "label": "Équiper le faux Vulbis obtenu dans la scène",
+              "object_id": 21186
+            },
+            {
+              "kind": "interact",
+              "label": "Quitter l'anomalie"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à l'émissaire"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Présenter le Vulbis à l'émissaire",
+          "content": "Présenter le Vulbis à l'émissaire\nTerminer le combat solo déclenché\nReparler à l'émissaire\nRejoindre l'avant-poste en Xélorium",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              1
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Présenter le Vulbis à l'émissaire"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat solo déclenché",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à l'émissaire"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'avant-poste en Xélorium"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Entrer dans l'avant-poste des voyageurs",
+          "content": "Entrer dans l'avant-poste des voyageurs\nParler à Doc Ettem Bworn\nVaincre la surcharge d'énergie en combat solo\nNeutraliser l'invocation dangereuse",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              5902,
+              5873
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer dans l'avant-poste des voyageurs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Doc Ettem Bworn"
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre la surcharge d'énergie en combat solo",
+              "monster_id": 5902,
+              "group_mode": "solo"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Neutraliser l'invocation dangereuse",
+              "monster_id": 5873
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Emprunter la porte de gauche",
+          "content": "Emprunter la porte de gauche\nRemporter le deuxième combat contre l'énergie\nParler à Doc Ettem Bworn pour terminer l'anomalie\nCommencer la quête de la mère des Dragœufs\nRejoindre le temple Osamodas",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              6
+            ],
+            [
+              8,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2078,
+              2079
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Emprunter la porte de gauche"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le deuxième combat contre l'énergie",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Parler à Doc Ettem Bworn pour terminer l'anomalie",
+              "quest_id": 2078
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer la quête de la mère des Dragœufs",
+              "quest_id": 2079
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le temple Osamodas"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Entrer au temple Osamodas",
+          "content": "Entrer au temple Osamodas\nRéussir le combat solo avec compagnon\nSurveiller le Dragœuf lacustre et sa ligne de vue\nParler à Zeurg après la victoire",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14961,
+              14963
+            ],
+            "monster": [
+              5871
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer au temple Osamodas"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat solo avec compagnon",
+              "group_mode": "solo_with_sidekick"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Surveiller le Dragœuf lacustre et sa ligne de vue",
+              "monster_id": 5871
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Zeurg après la victoire"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Obtenir le Parangon de puissance sur les boss 200",
+          "content": "Obtenir le Parangon de puissance sur les boss 200\nOption A : farmer les donjons les plus rapides\nOption B : obtenir le Parangon pendant les autres donjons 200\nExemple de donjon pour le drop, non obligatoire",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              73
+            ],
+            "object": [
+              21189
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Obtenir le Parangon de puissance sur les boss 200",
+              "object_id": 21189,
+              "quantity": 1,
+              "drop_rate_percent": 0.7
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Option A : farmer les donjons les plus rapides",
+              "alternative_group": "parangon_acquisition"
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Option B : obtenir le Parangon pendant les autres donjons 200",
+              "alternative_group": "parangon_acquisition"
+            },
+            {
+              "kind": "dungeon",
+              "label": "Exemple de donjon pour le drop, non obligatoire",
+              "dungeon_id": 73,
+              "optional": true,
+              "alternative_group": "parangon_acquisition"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Rejoindre la statue Osamodas du temple",
+          "content": "Rejoindre la statue Osamodas du temple\nFaire l'offrande au dieu Osamodas\nRejoindre Dicton Karly",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              2
+            ],
+            [
+              -4,
+              29
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Rejoindre la statue Osamodas du temple"
+            },
+            {
+              "kind": "interact",
+              "label": "Faire l'offrande au dieu Osamodas"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Dicton Karly"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Parler à Dicton Karly",
+          "content": "Parler à Dicton Karly\nRéussir le combat individuel\nReparler à Dicton puis Draegnerys\nRejoindre le sanctuaire des Dragœufs",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              29
+            ],
+            [
+              -2,
+              26
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Dicton Karly"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Dicton puis Draegnerys"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le sanctuaire des Dragœufs"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Parler à l'Écaflip malchanceux",
+          "content": "Parler à l'Écaflip malchanceux\nRéussir le combat de groupe\nRejoindre le Crâ rapide",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -2,
+              26
+            ],
+            [
+              -4,
+              27
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Écaflip malchanceux"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Crâ rapide"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Parler au Crâ rapide",
+          "content": "Parler au Crâ rapide\nRéussir le combat de groupe\nRejoindre l'Éniripsa hyperactif",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              27
+            ],
+            [
+              -5,
+              27
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Crâ rapide"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'Éniripsa hyperactif"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Parler à l'Éniripsa hyperactif",
+          "content": "Parler à l'Éniripsa hyperactif\nRéussir le combat de groupe\nRejoindre le Iop simple",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              27
+            ],
+            [
+              -6,
+              28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Éniripsa hyperactif"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le Iop simple"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Parler au Iop simple",
+          "content": "Parler au Iop simple\nRéussir le combat de groupe\nRevenir en surface",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              28
+            ],
+            [
+              -4,
+              29
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Iop simple"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat de groupe",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir en surface"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Parler à Dicton Karly puis Draegnerys",
+          "content": "Parler à Dicton Karly puis Draegnerys\nVérifier la quête perdue dans le temps\nRejoindre Crocuzko par bateau",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              29
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2264
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2085
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Dicton Karly puis Draegnerys"
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Vérifier la quête perdue dans le temps",
+              "quest_id": 2085,
+              "guide_id": 2264
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Crocuzko par bateau"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Parler au Dragœuf forestier",
+          "content": "Parler au Dragœuf forestier\nRemporter le combat solo avec compagnon\nSurveiller la portée du Dragœuf lacustre\nEntrer dans la grotte\nParler à la Mort Rouge, puis à Tylezia\nTerminer la quête de la mère des Dragœufs\nContinuer vers le Cauchemar infini",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2079,
+              2080
+            ],
+            "dungeon": [],
+            "object": [
+              14961,
+              14963
+            ],
+            "monster": [
+              5871
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Dragœuf forestier"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le combat solo avec compagnon",
+              "group_mode": "solo_with_sidekick"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Surveiller la portée du Dragœuf lacustre",
+              "monster_id": 5871
+            },
+            {
+              "kind": "interact",
+              "label": "Entrer dans la grotte"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à la Mort Rouge, puis à Tylezia"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête de la mère des Dragœufs",
+              "quest_id": 2079
+            },
+            {
+              "kind": "quest_start",
+              "label": "Continuer vers le Cauchemar infini",
+              "quest_id": 2080
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Parler à Draconiros dans les Songes",
+          "content": "Parler à Draconiros dans les Songes\nRécolter une griffe de Meaguar\nRécolter une ombre prédatrice\nRécolter un rugissement nocturne\nRemettre les ressources à Draconiros",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21190,
+              21191,
+              21192
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros dans les Songes"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter une griffe de Meaguar",
+              "object_id": 21190,
+              "quantity": 1,
+              "source": "infinite_dreams"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter une ombre prédatrice",
+              "object_id": 21191,
+              "quantity": 1,
+              "source": "infinite_dreams"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récolter un rugissement nocturne",
+              "object_id": 21192,
+              "quantity": 1,
+              "source": "infinite_dreams"
+            },
+            {
+              "kind": "talk",
+              "label": "Remettre les ressources à Draconiros"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Trouver la proie d'Oyukipoca dans les Songes",
+          "content": "Trouver la proie d'Oyukipoca dans les Songes\nRemporter le combat solo et protéger Oyukipoca\nUtiliser les Octolithes contre le cauchemar\nRetirer les résistances du cauchemar rocheux\nRejoindre le lieu des autels à Crocuzko",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ],
+            [
+              -79,
+              -11
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              5863,
+              5825,
+              5862
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Trouver la proie d'Oyukipoca dans les Songes"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le combat solo et protéger Oyukipoca",
+              "monster_id": 5863,
+              "group_mode": "solo",
+              "ally_must_survive": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Utiliser les Octolithes contre le cauchemar",
+              "monster_id": 5862
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Retirer les résistances du cauchemar rocheux",
+              "monster_id": 5825
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le lieu des autels à Crocuzko"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Parler à l'Araignée pâle",
+          "content": "Parler à l'Araignée pâle\nGagner le combat individuel\nExaminer l'autel\nRetourner voir Tylezia",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -79,
+              -11
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Araignée pâle"
+            },
+            {
+              "kind": "combat",
+              "label": "Gagner le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner l'autel"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner voir Tylezia"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Parler à Tylezia pour terminer le Cauchemar infini",
+          "content": "Parler à Tylezia pour terminer le Cauchemar infini\nCommencer la Nuit qui rugit\nVérifier le sens du sacrifice\nRejoindre le chambellan",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ],
+            [
+              -84,
+              -16
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2264
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2080,
+              2081,
+              2087
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Parler à Tylezia pour terminer le Cauchemar infini",
+              "quest_id": 2080
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer la Nuit qui rugit",
+              "quest_id": 2081
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Vérifier le sens du sacrifice",
+              "quest_id": 2087,
+              "guide_id": 2264
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le chambellan"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Questionner le chambellan des Tortelonias",
+          "content": "Questionner le chambellan des Tortelonias\nExaminer l'anneau central\nParler à Ixchelonia\nRejoindre les ruines",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -84,
+              -16
+            ],
+            [
+              -83,
+              -15
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner le chambellan des Tortelonias"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner l'anneau central"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ixchelonia"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre les ruines"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Examiner la muraille éboulée puis le récipient",
+          "content": "Examiner la muraille éboulée puis le récipient\nParler à Kinichinti\nRécupérer le feu de Kinichinti\nGarder le lézard de Kinichinti comme suiveur\nUtiliser le feu de Kinichinti",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -83,
+              -15
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21267,
+              21245
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner la muraille éboulée puis le récipient"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Kinichinti"
+            },
+            {
+              "kind": "drop_object",
+              "label": "Récupérer le feu de Kinichinti",
+              "object_id": 21267,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Garder le lézard de Kinichinti comme suiveur",
+              "object_id": 21245
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser le feu de Kinichinti",
+              "object_id": 21267
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Examiner le mur effondré",
+          "content": "Examiner le mur effondré\nReparler à Kinichinti\nRejoindre le puits rouge",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -83,
+              -15
+            ],
+            [
+              -83,
+              -17
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le mur effondré"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Kinichinti"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le puits rouge"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Activer le puits rouge",
+          "content": "Activer le puits rouge\nParler à Chaklaplok\nRécolter vingt anémones de sang\nConserver dix Quisnoa\nConserver dix Salikronia\nRejoindre le dévot crocuzko",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -83,
+              -17
+            ],
+            [
+              -82,
+              -15
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21196,
+              17993,
+              17992
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer le puits rouge"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Chaklaplok"
+            },
+            {
+              "kind": "collect_object",
+              "label": "Récolter vingt anémones de sang",
+              "object_id": 21196,
+              "quantity": 20,
+              "alternative_group": "vulbis_harvest",
+              "professions": [
+                "alchemist_200",
+                "farmer_200"
+              ]
+            },
+            {
+              "kind": "check_object",
+              "label": "Conserver dix Quisnoa",
+              "object_id": 17993,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Conserver dix Salikronia",
+              "object_id": 17992,
+              "quantity": 10
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le dévot crocuzko"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Parler au dévot de Crocuzko",
+          "content": "Parler au dévot de Crocuzko\nObtenir le dévot comme suiveur\nVérifier dix Quisnoa\nVérifier dix Salikronia\nAller vers le sanctuaire",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -82,
+              -15
+            ],
+            [
+              -79,
+              -11
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21247,
+              17993,
+              17992
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au dévot de Crocuzko"
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir le dévot comme suiveur",
+              "object_id": 21247
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier dix Quisnoa",
+              "object_id": 17993,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier dix Salikronia",
+              "object_id": 17992,
+              "quantity": 10
+            },
+            {
+              "kind": "move",
+              "label": "Aller vers le sanctuaire"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Passer à droite et déclencher la mise à jour de quête",
+          "content": "Passer à droite et déclencher la mise à jour de quête\nVérifier les deux charognes savoureuses\nRejoindre l'arbre",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -79,
+              -11
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17161
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Passer à droite et déclencher la mise à jour de quête"
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les deux charognes savoureuses",
+              "object_id": 17161,
+              "quantity": 2
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'arbre"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Examiner l'arbre",
+          "content": "Examiner l'arbre\nParler aux Meaguars\nGagner le combat individuel\nRecruter les Meaguars comme suiveurs\nRetourner à l'autel",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ],
+            [
+              -79,
+              -11
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              21246
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner l'arbre"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler aux Meaguars"
+            },
+            {
+              "kind": "combat",
+              "label": "Gagner le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "check_object",
+              "label": "Recruter les Meaguars comme suiveurs",
+              "object_id": 21246
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à l'autel"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Activer l'autel",
+          "content": "Activer l'autel\nParler à Oyukipoca\nRetourner voir Tylezia",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -79,
+              -11
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer l'autel"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Oyukipoca"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner voir Tylezia"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Parler alternativement à Oyukipoca et Tylezia",
+          "content": "Parler alternativement à Oyukipoca et Tylezia\nTerminer la Nuit qui rugit\nDémarrer les Raisons de la colère\nVoie A : avoir terminé Dragon des Forêts\nVoie B : payer un million de kamas au marchand de sable\nRejoindre Terrakourial par la voie choisie",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ],
+            [
+              -57,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2270
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2081,
+              2082,
+              1791
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler alternativement à Oyukipoca et Tylezia"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la Nuit qui rugit",
+              "quest_id": 2081
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer les Raisons de la colère",
+              "quest_id": 2082
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Voie A : avoir terminé Dragon des Forêts",
+              "quest_id": 1791,
+              "guide_id": 2270,
+              "alternative_group": "terrakourial_access",
+              "branch": "forest_dragon"
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Voie B : payer un million de kamas au marchand de sable",
+              "alternative_group": "terrakourial_access",
+              "branch": "dreams",
+              "kamas": 1000000
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Terrakourial par la voie choisie"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Demander au gardien Polter de présenter Terrakourial",
+          "content": "Demander au gardien Polter de présenter Terrakourial\nParler à Terrakourial\nExaminer la colère de Terrakourial par le dialogue\nRepartir vers les Songes",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -57,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Demander au gardien Polter de présenter Terrakourial"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Terrakourial"
+            },
+            {
+              "kind": "talk",
+              "label": "Examiner la colère de Terrakourial par le dialogue"
+            },
+            {
+              "kind": "move",
+              "label": "Repartir vers les Songes"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Parler à Draconiros dans les Songes",
+          "content": "Parler à Draconiros dans les Songes\nRejoindre le temple Sadida",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ],
+            [
+              -1,
+              9
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros dans les Songes"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le temple Sadida"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Examiner le tronc abattu dans le temple",
+          "content": "Examiner le tronc abattu dans le temple\nTerminer le combat individuel\nRejoindre la maison d'Otomaï",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -1,
+              9
+            ],
+            [
+              -55,
+              15
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Examiner le tronc abattu dans le temple"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la maison d'Otomaï"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Parler à Otomaï au sujet du Dofus Ocre et Terrakourial",
+          "content": "Parler à Otomaï au sujet du Dofus Ocre et Terrakourial\nRejoindre l'arbre de la Canopée",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -55,
+              15
+            ],
+            [
+              -52,
+              15
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Otomaï au sujet du Dofus Ocre et Terrakourial"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'arbre de la Canopée"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Parler au maître de l'arbre Keeholo",
+          "content": "Parler au maître de l'arbre Keeholo\nRemporter le combat individuel\nRetourner à la grotte de Crocuzko",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -52,
+              15
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au maître de l'arbre Keeholo"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à la grotte de Crocuzko"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Reparler à Tylezia dans la grotte",
+          "content": "Reparler à Tylezia dans la grotte\nRejoindre le temple Osamodas",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ],
+            [
+              8,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Reparler à Tylezia dans la grotte"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le temple Osamodas"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Activer le brasero du temple Osamodas",
+          "content": "Activer le brasero du temple Osamodas\nVoie A : Dragon des Forêts terminé\nVoie B : passer par les Songes et le marchand de sable\nRejoindre Terrakourial",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              2
+            ],
+            [
+              -57,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2270
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1791
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer le brasero du temple Osamodas"
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Voie A : Dragon des Forêts terminé",
+              "quest_id": 1791,
+              "guide_id": 2270,
+              "alternative_group": "terrakourial_access",
+              "branch": "forest_dragon"
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Voie B : passer par les Songes et le marchand de sable",
+              "alternative_group": "terrakourial_access",
+              "branch": "dreams"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Terrakourial"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Parler au gardien Polter",
+          "content": "Parler au gardien Polter\nPrésenter les ressources à Terrakourial\nRetourner voir Tylezia",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -57,
+              -1
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au gardien Polter"
+            },
+            {
+              "kind": "talk",
+              "label": "Présenter les ressources à Terrakourial"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner voir Tylezia"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Terminer les Raisons de la colère",
+          "content": "Terminer les Raisons de la colère\nCommencer le Temps des secrets\nRetourner chez l'émissaire de Xélor",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2082,
+              2083
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer les Raisons de la colère",
+              "quest_id": 2082
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer le Temps des secrets",
+              "quest_id": 2083
+            },
+            {
+              "kind": "move",
+              "label": "Retourner chez l'émissaire de Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Questionner l'émissaire sur l'âme du dragon",
+          "content": "Questionner l'émissaire sur l'âme du dragon\nRejoindre le sanctuaire de l'Almanax",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              1
+            ],
+            [
+              -4,
+              -24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner l'émissaire sur l'âme du dragon"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le sanctuaire de l'Almanax"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Parler à Aster Ax",
+          "content": "Parler à Aster Ax\nExaminer la pile de livres du sanctuaire\nRejoindre l'émissaire de Xélor",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              -24
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Aster Ax"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner la pile de livres du sanctuaire"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'émissaire de Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Annoncer à l'émissaire la date trouvée",
+          "content": "Annoncer à l'émissaire la date trouvée\nRejoindre Martalo",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              1
+            ],
+            [
+              -83,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Annoncer à l'émissaire la date trouvée"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Martalo"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Parler à Martalo",
+          "content": "Parler à Martalo\nRemporter le combat individuel\nReparler à Martalo\nRejoindre le temple Xélor",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -83,
+              -60
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              5887
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Martalo"
+            },
+            {
+              "kind": "combat",
+              "label": "Remporter le combat individuel",
+              "monster_id": 5887,
+              "group_mode": "solo"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Martalo"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le temple Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Parler à Martalo puis Frauguctor",
+          "content": "Parler à Martalo puis Frauguctor\nExaminer l'horloge du temple\nPrévoir la corne de Crocabulia\nFaire fabriquer les lunettes du Grand Chronomètre\nPrévoir 789 pépites\nPrévoir 500 reflets oniriques\nPrévoir 42 petits sabliers\nPrévoir trois galets solaires\nPrévoir deux yeux de verre\nPrévoir une essence du comte\nPrévoir une essence du Vortex",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              -67,
+              -77
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              8365,
+              21205,
+              14635,
+              32079,
+              15733,
+              13367,
+              14145,
+              14705,
+              15734
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Martalo puis Frauguctor"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner l'horloge du temple"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir la corne de Crocabulia",
+              "object_id": 8365,
+              "quantity": 1
+            },
+            {
+              "kind": "craft",
+              "label": "Faire fabriquer les lunettes du Grand Chronomètre",
+              "object_id": 21205,
+              "quantity": 1,
+              "profession": "handyman",
+              "level": 200
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 789 pépites",
+              "object_id": 14635,
+              "quantity": 789
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 500 reflets oniriques",
+              "object_id": 32079,
+              "quantity": 500
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir 42 petits sabliers",
+              "object_id": 15733,
+              "quantity": 42
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir trois galets solaires",
+              "object_id": 13367,
+              "quantity": 3
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir deux yeux de verre",
+              "object_id": 14145,
+              "quantity": 2
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une essence du comte",
+              "object_id": 14705,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une essence du Vortex",
+              "object_id": 15734,
+              "quantity": 1
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Remettre les lunettes et la corne à Frauguctor",
+          "content": "Remettre les lunettes et la corne à Frauguctor\nRéussir le combat individuel\nParler à Frauguctor, Tyzérion et Osamodas à tour de rôle\nRejoindre la grotte de Tylezia",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Remettre les lunettes et la corne à Frauguctor"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat individuel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Frauguctor, Tyzérion et Osamodas à tour de rôle"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la grotte de Tylezia"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2260_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Parler à Tylezia puis au dieu Osamodas",
+          "content": "Parler à Tylezia puis au dieu Osamodas\nRéussir le combat tactique individuel\nUtiliser les quatre sorts pour découvrir la combinaison élémentaire\nExploiter Tylezia comme alliée durant l'épreuve\nReparler au dieu puis à Tylezia\nTerminer le Temps des secrets\nRécupérer le véritable Dofus Vulbis",
+          "optional": false,
+          "source_guide_id": 2260,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -80,
+              -12
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2083
+            ],
+            "dungeon": [],
+            "object": [
+              6980
+            ],
+            "monster": [
+              5866,
+              5842
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Tylezia puis au dieu Osamodas"
+            },
+            {
+              "kind": "combat",
+              "label": "Réussir le combat tactique individuel",
+              "monster_id": 5842,
+              "group_mode": "solo_tactical",
+              "ally_must_survive": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Utiliser les quatre sorts pour découvrir la combinaison élémentaire",
+              "monster_id": 5842,
+              "mechanic": "mastermind",
+              "four_spells": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Exploiter Tylezia comme alliée durant l'épreuve",
+              "monster_id": 5866
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler au dieu puis à Tylezia"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer le Temps des secrets",
+              "quest_id": 2083
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Récupérer le véritable Dofus Vulbis",
+              "object_id": 6980
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "source_action_candidate_steps": 47,
+  "factual_action_reviewed_step_count": 47,
+  "source_action_candidate_actions": 197,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 50,
+  "recommended_level_max": 200,
+  "reward_item_id": 6980,
+  "illustration_item_id": 6980,
+  "image": null,
+  "linked_achievement_ids": [
+    2198
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

@@ -26,6 +26,9 @@ from app.modules.encyclopedia.providers.achievement_provider import AchievementP
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON, DofusItemProvider
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.core.text import normalize_key as normalize_text
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    select_verified_replacement_path,
+)
 
 LOGGER = logging.getLogger(__name__)
 GUIDES_DIR = DATA_DIR / "encyclopedia" / "guides"
@@ -226,7 +229,14 @@ class GuideProvider:
                 self.validation_errors.append(f"catalog.json: categorie non autorisee: {row.get('category')}")
             path = self._safe_guide_path(file_name)
             if path is not None:
-                entries.append((path, dict(row)))
+                # Preserve legacy quest behavior until a Ganymède manual-step UI
+                # is actually integrated and the catalogue explicitly opts in.
+                # Never add a second route beside the first.
+                replacement = select_verified_replacement_path(
+                    self.guides_dir, row,
+                    allow_source_manual=row.get("ganymede_manual_ui_ready") is True,
+                )
+                entries.append((replacement or path, dict(row)))
         return sorted(entries, key=lambda item: (self._category_sort_key(str(item[1].get("category") or "")), safe_int(item[1].get("order"), 9999) or 9999, item[0].name))
 
     def _load_catalog_categories(self, rows: Any) -> None:

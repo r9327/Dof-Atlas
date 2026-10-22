@@ -63,7 +63,7 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             "from tools.atlas_integrity import changed_files, classify_risk",
             "name: Materialize Doctor quest catalog",
             "steps.doctor_risk.outputs.risk != 'LOW' && !(",
-            "startsWith(github.event.pull_request.title, 'Phase ')",
+            "needs.doctor-plan.outputs.phase == 'true'",
             'git lfs pull --include="tools/doduda/doduda.exe"',
             "QuestCatalog.load()",
             "count < 1900",
@@ -134,12 +134,20 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         )
 
     def test_phase_preflight_is_bound_to_full_certification_trigger(self) -> None:
-        self.assertIn("ATLAS_PHASE_PR_PREFLIGHT:", self.source)
-        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
-        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.source)
+        # The independent FULL route is selected from the exact diff, not
+        # from a manually editable pull request title.
+        route = "needs.doctor-plan.outputs.phase == 'true'"
+        self.assertIn(
+            "ATLAS_PHASE_PR_PREFLIGHT: ${{ " + route
+            + " && github.event.pull_request.head.repo.full_name == github.repository"
+            + " && '1' || '0' }}",
+            self.source,
+        )
+        self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
         certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
-        self.assertIn("startsWith(github.event.pull_request.title, 'Phase ')", certification)
+        self.assertIn("if: " + route, certification)
         self.assertIn("name: Phase Certification / Full Validation", certification)
+        self.assertIn("tools.atlas_integrity full", certification)
 
     def test_phase_changed_tests_are_never_omitted_from_full_certification(self) -> None:
         cert = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")

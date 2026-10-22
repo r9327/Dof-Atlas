@@ -23,7 +23,7 @@ from tools.atlas_doctor_lib.doctor_ui_qt import (
     first_achievement_layout_failure, achievement_title_contrast,
     achievement_readable_text_observations, detailed_achievement_oracle,
     completion_transition_failure, bottom_guide_observations,
-    geometry_observations, settle,
+    first_quest_link_page, geometry_observations, settle,
     quest_outcome, sheet_observations, widget_tree, glyph_legibility_probe,
 )
 
@@ -133,6 +133,14 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(sheet_observations(self.view, self.service.cards[1])["stale_or_duplicate_lines"], [])
         click_target(self.view, self.view.prev_button)
         self.assertEqual(self.view.view_index, 0)
+
+    def test_quest_scenario_finds_first_page_with_a_real_link(self):
+        self.service.cards[0]["manual_quest_ids"] = []
+        self.service.cards[1]["manual_quest_ids"] = [321]
+        index, sheet, buttons = first_quest_link_page(self.view)
+        self.assertEqual(index, 1)
+        self.assertEqual(sheet.card["manual_stage_id"], "TEST-B")
+        self.assertEqual(len(buttons), 1)
 
     def test_duplicate_sheet_and_stale_line_detected_from_real_qt_tree(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
@@ -566,6 +574,10 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         title = QLabel("Premier temps")
         title.setObjectName("AchievementDetailTitle")
         title.setFont(QFont("Arial", 15))
+        # Point-size metrics vary with the Windows runner DPI and installed
+        # font fallback. Keep enough real pixels for the contrast oracle to
+        # exercise its ink threshold instead of blocking on fixture geometry.
+        title.setMinimumHeight(32)
         title.setStyleSheet("color: #f5f7f2; background-color: transparent;")
         inner.addWidget(title)
         inner.addStretch(1)
@@ -580,6 +592,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             self.assertGreaterEqual(good["above_minimum_ratio_pixels"],
                                     good["required_ink_pixels"])
             self.assertEqual(good["widget"], "AchievementDetailTitle")
+            self.assertLess(good["crop"][2], title.width())
 
             title.setStyleSheet("color: #182123; background-color: transparent;")
             title.repaint()
