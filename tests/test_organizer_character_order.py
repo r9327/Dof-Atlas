@@ -284,6 +284,35 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     "character:77",
                 )
 
+    def test_reused_pid_cannot_bind_primary_to_another_character(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps({
+                    "characters": {
+                        "77": {
+                            "name": "Beta", "class_key": "cra", "pid": 111,
+                            "source": "verified_network_identity",
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, _profile, _client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alpha - Iop", "hwnd": 909, "pid": 111}]
+                )
+                # Stale Beta PID must not silently select Beta for Alpha.
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]), ""
+                )
+                page.set_primary_window(page.sessions[0])
+                self.assertEqual(
+                    page.profiles[KEY_PRIMARY_WINDOW], "name-class:alpha:iop"
+                )
+
     def test_primary_character_fails_closed_for_ambiguous_name_and_class(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -443,15 +443,18 @@ class CharacterSessionsMixin:
                 row_pid = int(row.get("pid") or 0)
             except (TypeError, ValueError):
                 row_pid = 0
-            if pid > 0 and row_pid == pid:
-                pid_matches.append(token)
-            if (
+            # A Windows PID can be reused after restart. Never trust it
+            # without matching the verified character name AND class.
+            verified_identity_matches = (
                 name_key
                 and class_key
                 and normalize_key(row.get("name")) == name_key
                 and normalize_key(row.get("class_key")) == class_key
-            ):
+            )
+            if verified_identity_matches:
                 name_class_matches.append(token)
+                if pid > 0 and row_pid == pid:
+                    pid_matches.append(token)
         unique_pid = tuple(dict.fromkeys(pid_matches))
         if len(unique_pid) == 1:
             return unique_pid[0]
