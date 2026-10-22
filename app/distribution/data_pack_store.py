@@ -153,6 +153,34 @@ def active_pack(root: Path, kind: str) -> Path | None:
     return path
 
 
+
+def accepted_pack(root: Path, kind: str) -> Path | None:
+    """Only expose acknowledged, checksum-verified pack bytes to app readers.
+
+    A newly downloaded or staged pack is NOT an active catalog merely because
+    its blob exists. Readers cannot see pending updates awaiting smoke tests.
+    """
+    if kind not in _KINDS:
+        raise InvalidDataPack("unknown pack kind")
+    if not isinstance(root, Path) or root.is_symlink():
+        raise InvalidDataPack("unsafe pack store root")
+    directory = root / "data-pack-store"
+    if directory.is_symlink():
+        raise InvalidDataPack("unsafe pack store directory")
+    if not (directory / "state.json").exists():
+        return None
+    doc = _read(directory)
+    row = doc["packs"].get(kind)
+    if not row or row["pending"] or row["active"] is None:
+        return None
+    record = _state(row["active"])
+    assert record is not None
+    blob = _blob(directory, kind, record)
+    if not _check_blob(blob, record):
+        raise InvalidDataPack("acknowledged data pack is corrupt")
+    return blob
+
+
 def install_pack(root: Path, staging_root: Path, pack: DataPack) -> str:
     """Copy verified bytes into an immutable version, then atomically switch.
 
