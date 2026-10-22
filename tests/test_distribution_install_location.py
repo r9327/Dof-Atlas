@@ -80,6 +80,70 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertTrue(executable.exists(), "Previous working version must remain available")
                 self.assertTrue(updates)
 
+    def test_interrupted_migration_preserves_previous_installation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp) / "Data"
+            source = user / "runtime"
+            executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+            executable.parent.mkdir(parents=True)
+            binary = b"MZ!previous"
+            executable.write_bytes(binary)
+            (source / "state.json").write_text(json.dumps({
+                "active": "v1", "previous": None, "pending": False,
+                "entrypoint": "AtlasApp/AtlasApp.exe",
+                "entrypoint_size": len(binary),
+                "entrypoint_sha256": hashlib.sha256(binary).hexdigest(),
+                "source_sha": "a" * 40,
+            }), encoding="utf-8")
+            target = Path(temp) / "OtherDisk" / "DofusAtlas" / "runtime"
+            with (patch.object(loc, "APP_DATA", user),
+                  patch.object(loc, "_SETTINGS", user / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", source)):
+                loc.set_runtime_root(source)
+                with patch("shutil.copytree", side_effect=OSError("Interrupted payload copy")):
+                    with self.assertRaisesRegex(OSError, "Interrupted payload copy"):
+                        loc.relocate_runtime(target)
+                self.assertEqual(loc.runtime_root(), source.resolve())
+                self.assertEqual(executable.read_bytes(), binary)
+                self.assertFalse(target.exists())
+                self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
+
+    def test_corrupt_migration_staging_fails_without_switching_drives(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp) / "Data"
+            source = user / "runtime"
+            executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+            executable.parent.mkdir(parents=True)
+            binary = b"MZ!previous"
+            executable.write_bytes(binary)
+            (source / "state.json").write_text(json.dumps({
+                "active": "v1", "previous": None, "pending": False,
+                "entrypoint": "AtlasApp/AtlasApp.exe",
+                "entrypoint_size": len(binary),
+                "entrypoint_sha256": hashlib.sha256(binary).hexdigest(),
+                "source_sha": "a" * 40,
+            }), encoding="utf-8")
+            target = Path(temp) / "OtherDisk" / "DofusAtlas" / "runtime"
+            original_copytree = shutil.copytree
+
+            def corrupt_staged_copy(src, dst, **kwargs):
+                result = original_copytree(src, dst, **kwargs)
+                (Path(dst) / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe").write_bytes(b"MZ!CORRUPT")
+                return result
+
+            with (patch.object(loc, "APP_DATA", user),
+                  patch.object(loc, "_SETTINGS", user / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", source)):
+                loc.set_runtime_root(source)
+                with patch("shutil.copytree", side_effect=corrupt_staged_copy):
+                    with self.assertRaises(UpdateError):
+                        loc.relocate_runtime(target)
+                self.assertEqual(loc.runtime_root(), source.resolve())
+                self.assertEqual(executable.read_bytes(), binary)
+                self.assertFalse(target.exists())
+                self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
+
     def test_destination_collision_does_not_discard_current_installation(self):
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "current" / "runtime"
