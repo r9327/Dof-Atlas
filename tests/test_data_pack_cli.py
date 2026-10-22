@@ -60,6 +60,29 @@ class PackCliTests(unittest.TestCase):
         self.assertEqual(json.loads(self.cli("status").stdout)["status"], "NOT_INSTALLED")
         self.assertEqual(self.user.read_text(), '{"fav":"Eca"}')
 
+    def test_launcher_can_recover_interrupted_pending_pack(self):
+        self.assertEqual(self.install().returncode, 0)
+        recovery = subprocess.run(
+            [sys.executable, "-m", "app.distribution.data_pack_cli",
+             "recover", "--root", str(self.root)],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(recovery.returncode, 0, recovery.stderr)
+        self.assertEqual(json.loads(recovery.stdout), {
+            "status": "ROLLED_BACK_PENDING", "recovered": ["quests"],
+        })
+        self.assertEqual(json.loads(self.cli("status").stdout)["status"], "NOT_INSTALLED")
+        self.assertEqual(self.user.read_text(), '{"fav":"Eca"}')
+
+    def test_recovery_is_idempotent(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "app.distribution.data_pack_cli",
+             "recover", "--root", str(self.root)],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["status"], "NO_PENDING")
+
     def test_bad_stage_hash_never_installs(self):
         result = self.install(sha256="f"*64)
         self.assertEqual(result.returncode, 2)
