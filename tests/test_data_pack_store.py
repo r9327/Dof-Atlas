@@ -8,6 +8,7 @@ from unittest.mock import patch
 from app.distribution.data_pack_plan import DataPack, InvalidDataPack
 from app.distribution.data_pack_store import (
     acknowledge_pack, active_pack, install_pack, rollback_pack,
+    recover_pending_packs,
 )
 
 
@@ -118,6 +119,46 @@ class DataPackStoreTests(unittest.TestCase):
         rollback_pack(self.root, "guides")
         self.assertIsNone(active_pack(self.root, "guides"))
         self.assertEqual(active_pack(self.root, "quests").read_bytes(), b"quest")
+
+    def test_recover_multiple_pending_packs_atomically(self):
+        old_q = self.artifact(1, b"original-quests", "quests")
+        old_g = self.artifact(1, b"original-guides", "guides")
+        for pack in (old_q, old_g):
+            install_pack(self.root, self.staging, pack)
+            acknowledge_pack(self.root, pack.kind)
+        new_q = self.artifact(2, b"new-quests", "quests")
+        new_g = self.artifact(2, b"new-guides", "guides")
+        for pack in (new_q, new_g):
+            install_pack(self.root, self.staging, pack)
+        self.assertEqual(recover_pending_packs(self.root), ("guides", "quests"))
+        self.assertEqual(active_pack(self.root, "quests").read_bytes(), b"original-quests")
+        self.assertEqual(active_pack(self.root, "guides").read_bytes(), b"original-guides")
+        self.assertEqual(recover_pending_packs(self.root), ())
+        self.assertEqual(self.user.read_text(encoding="utf-8"), '{"favorite":"Panda"}')
+
+    def test_recovery_fails_closed_if_any_previous_pack_corrupt(self):
+        old_q = self.artifact(1, b"old-quests", "quests")
+        old_g = self.artifact(1, b"old-guides", "guides")
+        for pack in (old_q, old_g):
+            install_pack(self.root, self.staging, pack)
+            acknowledge_pack(self.root, pack.kind)
+        for pack in (self.artifact(2, b"new-quests", "quests"),
+                     self.artifact(2, b"new-guides", "guides")):
+            install_pack(self.root, self.staging, pack)
+        baseline = self.root / "data-pack-store" / "versions" / "guides" / f"1-{old_g.sha256}.blob"
+        baseline.write_bytes(b"tampered previous")
+        with self.assertRaisesRegex(InvalidDataPack, "previous pack"):
+            recover_pending_packs(self.root)
+        # A failed multi-pack recovery must never switch only one pack.
+        self.assertEqual(active_pack(self.root, "quests").read_bytes(), b"new-quests")
+        self.assertEqual(active_pack(self.root, "guides").read_bytes(), b"new-guides")
+
+    def test_initial_unacknowledged_install_is_removed_from_active_store(self):
+        pack = self.artifact(1, b"unacknowledged")
+        install_pack(self.root, self.staging, pack)
+        self.assertEqual(recover_pending_packs(self.root), ("quests",))
+        self.assertIsNone(active_pack(self.root, "quests"))
+        self.assertEqual(self.user.read_text(encoding="utf-8"), '{"favorite":"Panda"}')
 
     def test_corrupted_index_refused_without_reset(self):
         pack = self.artifact(1, b"good")
