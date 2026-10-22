@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: r9327/Dof-Atlas
-          ref: 0b34f7f7288bfd2d938819ea8283f4543a206ebe
+          ref: 8eebcc6a1c4c858a33b74ae7fe627e5e9aec09cd
           path: atlas-runtime-source
           persist-credentials: false
       - uses: actions/setup-python@v5
@@ -96,6 +96,8 @@ jobs:
               install_pack, accepted_pack, acknowledge_pack,
           )
           from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+          from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+          from app.modules.encyclopedia.models.entity_ref import EntityRef
           from app.constants import RAW_QUEST_DATA_DIR
 
           stage = Path("runtime-stage")
@@ -113,8 +115,19 @@ jobs:
           with patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": str(root.resolve())}):
               provider = QuestProvider(catalog=fake_catalog, data_dir=RAW_QUEST_DATA_DIR)
               result = provider.guide_evidence(1)
+              successes = AchievementProvider(data_dir=RAW_QUEST_DATA_DIR,
+                                              quest_provider=provider)
+              successes._loaded = True  # bounded fixture, not a fake loader
+              successes._by_id = {
+                  2: SimpleNamespace(resolved_linked_quests=(
+                      EntityRef("quest", 1, "Quête 1"),), linked_quests=())
+              }
+              preparation = successes.get_quest_preparation(2)
+          assert len(preparation) == 1, preparation
+          assert preparation[0]["items"][0]["quantity"] == 3, preparation
+          assert preparation[0]["combats"][0]["monster"] == "Gobelin", preparation
           assert result["items"][0] == {"item_id": 77, "name": "Pierre", "quantity": 3}, result
           assert result["combats"][0]["monster"] == "Gobelin", result
           assert not (root / "user").exists(), "User data mutated by pack integration"
-          print("Holding OFFLINE -> Atlas typed pack -> acknowledged QuestProvider PASS")
+          print("Holding OFFLINE -> Atlas typed pack -> QuestProvider + SuccessProvider PASS")
           PY
