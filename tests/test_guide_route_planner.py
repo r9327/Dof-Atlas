@@ -16,6 +16,8 @@ from app.modules.encyclopedia.services.guide_route_planner import (
     GuideRoutePlanner,
     TravelMode,
     VerifiedZaapRoute,
+    GuideTravelPlan,
+    unbound_direct_travel_payload,
     schedule_success_passes,
 )
 
@@ -85,6 +87,58 @@ class GuideRoutePlannerTests(unittest.TestCase):
         )
         self.assertEqual(plan.stock[0].required_by_character, {"character:1": 2})
         self.assertEqual(plan.stock[0].remaining_by_character, {"character:1": 1})
+
+    def test_missing_doduda_coordinate_never_generates_travel_command(self) -> None:
+        missing = -(2**31)
+        for destination in (
+            RouteLocation(map_id=20, x=missing, y=6),
+            RouteLocation(map_id=20, x=6, y=missing),
+            RouteLocation(map_id=20, x=6, y=None),
+        ):
+            with self.subTest(destination=destination):
+                self.assertEqual(
+                    unbound_direct_travel_payload(destination)["status"],
+                    "unavailable",
+                )
+                with self.assertRaisesRegex(ValueError, "exact coordinates"):
+                    GuideTravelPlan(TravelMode.DIRECT, destination, ("character:1",))
+
+        self.assertEqual(
+            unbound_direct_travel_payload(RouteLocation(x=-32, y=-56))["status"],
+            "template",
+        )
+
+    def test_verified_zaap_rejects_sentinel_coordinates(self) -> None:
+        missing = -(2**31)
+        for destination, zaap in (
+            (RouteLocation(map_id=10, x=missing, y=0), DESTINATION),
+            (DESTINATION, RouteLocation(map_id=3, x=0, y=missing)),
+        ):
+            with self.subTest(destination=destination, zaap=zaap):
+                with self.assertRaisesRegex(ValueError, "exact coordinates"):
+                    VerifiedZaapRoute(
+                        destination=destination, zaap=zaap,
+                        world="Monde des Douze",
+                        eligible_character_keys=frozenset({"character:1"}),
+                        evidence="test:verified",
+                    )
+
+    def test_guide_plan_reports_unresolved_sentinel_without_route(self) -> None:
+        missing = -(2**31)
+        engine = AdventureRouteEngine([
+            RouteAction(
+                "quest:start", 1, "Prendre la quête", "start",
+                location=RouteLocation(map_id=20, x=missing, y=0),
+                activates_quest=True,
+            )
+        ])
+        plan = GuideRoutePlanner(engine).plan([GuideParticipantState("character:1")])
+        self.assertEqual(len(plan.activities), 1)
+        self.assertIsNone(plan.activities[0].travel_plan)
+        self.assertIn(
+            "transport_destination_unresolved",
+            [issue.code for issue in plan.issues],
+        )
 
     def test_zaap_requires_verified_route_and_every_participant(self) -> None:
         participants = [

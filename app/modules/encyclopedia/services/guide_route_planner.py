@@ -38,6 +38,20 @@ class CaptureKind(StrEnum):
     DROP = "drop"
 
 
+# Doduda uses INT32_MIN as an absent coordinate.  A manual Ganymede hint
+# must not become a /travel command just because both fields are integers.
+_MISSING_GAME_COORDINATE = -(2**31)
+
+
+def _has_exact_game_coordinates(location: RouteLocation) -> bool:
+    return (
+        type(location.x) is int
+        and type(location.y) is int
+        and location.x != _MISSING_GAME_COORDINATE
+        and location.y != _MISSING_GAME_COORDINATE
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class GuideParticipantState:
     character_key: str
@@ -59,9 +73,9 @@ class VerifiedZaapRoute:
     evidence: str
 
     def __post_init__(self) -> None:
-        if self.destination.x is None or self.destination.y is None:
+        if not _has_exact_game_coordinates(self.destination):
             raise ValueError("verified Zaap destination requires exact coordinates")
-        if self.zaap.x is None or self.zaap.y is None:
+        if not _has_exact_game_coordinates(self.zaap):
             raise ValueError("verified Zaap location requires exact coordinates")
         if not self.world.strip() or not self.evidence.strip():
             raise ValueError("verified Zaap route requires world and evidence")
@@ -81,14 +95,14 @@ class GuideTravelPlan:
     evidence: str = "exact_destination_coordinates"
 
     def __post_init__(self) -> None:
-        if self.destination.x is None or self.destination.y is None:
+        if not _has_exact_game_coordinates(self.destination):
             raise ValueError("travel destination requires exact coordinates")
         keys = tuple(require_character_key(key) for key in self.participant_keys)
         if not keys or len(keys) != len(set(keys)):
             raise ValueError("travel plan requires unique explicit participant keys")
         object.__setattr__(self, "participant_keys", keys)
         if self.mode is TravelMode.ZAAP_THEN_TRAVEL:
-            if self.zaap is None or self.zaap.x is None or self.zaap.y is None:
+            if self.zaap is None or not _has_exact_game_coordinates(self.zaap):
                 raise ValueError("zaap_then_travel requires exact Zaap coordinates")
             if not self.world.strip() or not self.evidence.strip():
                 raise ValueError("zaap_then_travel requires world and evidence")
@@ -123,7 +137,7 @@ class GuideTravelPlan:
 def unbound_direct_travel_payload(destination: RouteLocation) -> dict[str, object]:
     """Describe a static direct route without inventing runtime participants."""
 
-    if destination.x is None or destination.y is None:
+    if not _has_exact_game_coordinates(destination):
         return {
             "status": "unavailable",
             "reason": "destination_without_exact_coordinates",
@@ -458,7 +472,7 @@ class GuideRoutePlanner:
         projected_locations: Mapping[str, RouteLocation | None],
     ) -> GuideTravelPlan | None:
         destination = action.location
-        if destination.x is None or destination.y is None:
+        if not _has_exact_game_coordinates(destination):
             issues.append(
                 GuidePlanningIssue(
                     "transport_destination_unresolved",
