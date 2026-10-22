@@ -54,3 +54,5 @@ python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase
 ```
 
 Le JSON contient les 5 domaines, les cinq retours Home, les RSS de l'application/arbre de processus, les threads et les widgets Qt, ainsi que la dérive RSS entre le premier et le dernier cycle de chaque domaine. Le mode accepte 2 à 10 cycles ; refaire les mesures sur une **même machine**, à SHA exact, avant d'attribuer une fuite au code. Les valeurs ne sont pas encore mesurées ni certifiées ici.
+
+Le même scénario peut aussi être lancé manuellement dans **GitHub Actions > Phase 8 Memory Benchmark > Run workflow**, en choisissant `lifecycle_cycles=5` sur la branche PR. L'appel standard par la certification conserve `2` et les budgets existants. Il s'agit d'un mode de preuve sur runner Windows, pas d'un test sur le PC utilisateur.

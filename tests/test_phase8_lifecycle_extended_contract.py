@@ -42,6 +42,17 @@ class ExtendedNavigationEvidenceTests(unittest.TestCase):
             {"tree_rss_mb": None}, {"tree_rss_mb": 100.0}
         ]))
 
+    def test_extended_windows_job_requires_manual_dispatch(self):
+        workflow = (ROOT / ".github/workflows/phase8-memory-benchmark.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('lifecycle_cycles:', workflow)
+        self.assertIn('default: "2"', workflow)
+        self.assertIn('if ("${{ github.event_name }}" -eq "workflow_dispatch"', workflow)
+        self.assertIn('--include-heavy-views', workflow)
+        self.assertIn('python -X faulthandler tools/benchmark_phase8_memory.py', workflow)
+        self.assertIn('peak_tree > 220.0', workflow)
+
     def test_longer_cycles_are_optional_without_changing_legacy_gates(self):
         source = BENCHMARK.read_text(encoding="utf-8")
         for evidence in (

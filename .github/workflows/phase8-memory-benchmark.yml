@@ -3,6 +3,15 @@ name: Phase 8 Memory Benchmark
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      lifecycle_cycles:
+        description: "Navigation RAM Windows : 2 cycles normaux ou 5 cycles et vues lourdes"
+        type: choice
+        required: true
+        default: "2"
+        options:
+          - "2"
+          - "5"
 
 permissions:
   contents: read
@@ -92,7 +101,13 @@ jobs:
           # both run concurrently and must count towards the same peak budget.
           $env:DOFUS_ATLAS_WARMUP_PID = [string]$warmup.Id
 
-          python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/memory.json
+          # Manual extended mode only. Reused workflow_call / certification
+          # retain the unchanged two-cycle baseline and all hard RSS gates.
+          $lifecycleArgs = @()
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ inputs.lifecycle_cycles }}" -eq "5") {
+            $lifecycleArgs = @("--navigation-cycles", "5", "--include-heavy-views")
+          }
+          python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/memory.json @lifecycleArgs
           $code = $LASTEXITCODE
 
           if (-not $warmup.HasExited) {
