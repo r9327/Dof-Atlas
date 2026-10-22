@@ -143,12 +143,12 @@ class AchievementDetailWidget(QFrame):
                             descriptions.append(title + " : " + " · ".join(requirements))
                     message = ("\n".join(descriptions) if descriptions else
                                "Aucune préparation matérielle identifiée.")
-                except (OSError, ValueError, RuntimeError) as exc:
+                    preparation_loaded = True
+                except (OSError, ValueError, RuntimeError):
                     # Unsupported or corrupt optional data must not affect
                     # achievement progress or prevent opening the detail.
                     message = "Préparation indisponible. Réessayez après vérification des données."
                 preparation_details.setText(message)
-                preparation_loaded = True
                 preparation_details.show()
 
             preparation_button.clicked.connect(toggle_preparation)
