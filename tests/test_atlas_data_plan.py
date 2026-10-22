@@ -24,7 +24,7 @@ class DataImportPlanTests(unittest.TestCase):
             [DataRecord("quest", "42", A)],
             [DataRecord("guide", "g", B, (("quest", "42"),))],
         )
-        self.assertEqual(result[-1].action, "add")
+        self.assertEqual({(row.kind, row.identifier): row.action for row in result}[("guide", "g")], "add")
 
     def test_unknown_reference_fails(self):
         with self.assertRaises(AtlasDataPlanError):
