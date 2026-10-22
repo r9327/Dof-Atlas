@@ -21,6 +21,8 @@ from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 from .install_location import runtime_root, set_runtime_root
 from .manifest import verify_file
+from .data_pack_plan import InvalidDataPack
+from .launch_pack_recovery import recover_data_packs_on_launch
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = runtime_root()
@@ -105,6 +107,13 @@ def run_update(report) -> None:
     log = _logger()
     _run_handle = _run_lock()
     try:
+        # Recover only an existing, unacknowledged data pack. Normal boots do
+        # no pack scans or hashes and never import the game data stack.
+        try:
+            recover_data_packs_on_launch(ROOT, report)
+        except (InvalidDataPack, OSError) as exc:
+            log.error("Pending Atlas data-pack recovery refused: %s", exc)
+            raise UpdateError("Recuperation des donnees non validees impossible") from exc
         # An interrupted first boot should never strand the user on the new version.
         if read_state(ROOT).get("pending"):
             rollback_pending(ROOT)
