@@ -9,12 +9,15 @@ from collections.abc import Iterable, Mapping
 
 from PySide6.QtCore import Qt, QStringListModel, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
+)
+from app.modules.encyclopedia.services.guide_continuous_preparation import (
+    visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 
@@ -44,6 +47,7 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         self._character_actions = {}
         self._summary_open = False
+        self._preparation_open = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
@@ -112,6 +116,27 @@ class ContinuousGuideRoutePanel(QWidget):
         self.body_label.setTextFormat(Qt.PlainText)
         self.body_label.setWordWrap(True)
         detail.addWidget(self.body_label)
+        # Bounded, optional view: even a guide with dozens of object hints
+        # must not push step navigation out of the visible window.
+        self.preparation_toggle = self._button(
+            "À préparer", "GuideContinuousPreparationToggle"
+        )
+        self.preparation_toggle.setToolTip(
+            "Références d'objets à vérifier — quantités et achats non certifiés"
+        )
+        self.preparation_toggle.clicked.connect(self.toggle_preparation)
+        detail.addWidget(self.preparation_toggle)
+        self.preparation_scroll = QScrollArea()
+        self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
+        self.preparation_scroll.setWidgetResizable(True)
+        self.preparation_scroll.setMaximumHeight(136)
+        self.preparation_label = QLabel()
+        self.preparation_label.setObjectName("GuideContinuousPreparationItems")
+        self.preparation_label.setTextFormat(Qt.PlainText)
+        self.preparation_label.setWordWrap(True)
+        self.preparation_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.preparation_scroll.setWidget(self.preparation_label)
+        detail.addWidget(self.preparation_scroll)
         self.progress_label = QLabel()
         self.progress_label.setObjectName("GuideContinuousProgress")
         self.progress_label.setWordWrap(True)
@@ -151,6 +176,12 @@ class ContinuousGuideRoutePanel(QWidget):
     def toggle_summary(self) -> None:
         self._summary_open = not self._summary_open
         self.summary.setVisible(self._summary_open)
+
+    def toggle_preparation(self) -> None:
+        self._preparation_open = not self._preparation_open
+        self.preparation_scroll.setVisible(
+            self._preparation_open and self.preparation_toggle.isVisibleTo(self)
+        )
 
     def set_characters(self, character_keys: Iterable[str]) -> None:
         self.navigation.select_characters(character_keys)
@@ -226,6 +257,23 @@ class ContinuousGuideRoutePanel(QWidget):
             self.title_label.setText(str(row.get("title") or f"Fiche {index + 1}"))
             self.body_label.setText(str(row.get("content") or
                                         "Actions de cette étape non renseignées."))
+        references = (
+            visible_object_references(self.route, current) if current else ()
+        )
+        self.preparation_toggle.setText(f"À préparer ({len(references)})")
+        self.preparation_toggle.setVisible(bool(references))
+        self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
+        self.preparation_label.setText(
+            "Références à vérifier (aucun achat présumé) :\n"
+            + "\n".join(
+                "• " + item.label
+                + (" · facultatif" if item.optional_or_conditional else "")
+                + (" · sur le trajet" if item.obtainable_on_route else "")
+                + (f" · étape {item.needed_at_step}"
+                   if item.needed_at_step != index + 1 else "")
+                for item in references
+            ) if references else ""
+        )
         self.position_label.setText(
             f"FICHE {index + 1}/{position.total_steps}" if index >= 0
             else "PARCOURS CONTINU"

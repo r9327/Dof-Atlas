@@ -136,6 +136,35 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.panel.validate_button.isEnabled())
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
 
+    def test_preparation_is_compact_read_only_and_due_step_scoped(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_action_candidates"] = [
+            {"kind": "optional_preparation", "object_id": 361,
+             "label": "Cawottes facultatives", "needed_at_source_step": 3},
+            {"kind": "prepare_object", "object_id": 969,
+             "label": "Couronne du Wa"},
+            {"kind": "quest_start", "quest_id": 123, "label": "Une quête"},
+        ]
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+        )
+        self.addCleanup(panel.deleteLater)
+        self.assertEqual(panel.preparation_toggle.text(), "À préparer (2)")
+        self.assertFalse(panel.preparation_scroll.isVisible())
+        panel.preparation_toggle.click()
+        self.assertIn("Cawottes facultatives", panel.preparation_label.text())
+        self.assertIn("étape 3", panel.preparation_label.text())
+        self.assertIn("aucun achat présumé", panel.preparation_label.text())
+        self.assertNotIn("Une quête", panel.preparation_label.text())
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+        panel.next_step()
+        self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
+        self.assertIn("Cawottes facultatives", panel.preparation_label.text())
+        panel.next_step()
+        self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
+
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())
         self.assertFalse(self.panel.actual_button.isEnabled())
