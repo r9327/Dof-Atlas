@@ -726,6 +726,12 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument('--run-tests', action='store_true', help='Autoriser les tests cibles pour check.')
     agent.add_argument('--max-tests', type=int, choices=range(1, 9), default=8)
     agent.add_argument('--timeout-seconds', type=int, choices=range(10, 181), default=90)
+    advisory = sub.add_parser('local-ai', help='Diagnostic IA locale facultatif, sans certification ni modification.')
+    advisory.add_argument('evidence', type=Path, help='Enveloppe Doctor ADVISORY_ONLY')
+    advisory.add_argument('--model', required=True, help='Nom du modele Ollama local')
+    advisory.add_argument('--local-url', default='http://127.0.0.1:11434')
+    advisory.add_argument('--timeout', type=float, default=30.0)
+    advisory.add_argument('--validate-only', action='store_true')
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
     it.add_argument('--limit', type=int, default=5)
@@ -955,6 +961,16 @@ def main(argv: list[str] | None = None) -> int:
     raw_argv = [item for item in raw_argv if item != '--json']
     args = parser.parse_args(raw_argv)
     args.json = json_requested
+    if args.command == 'local-ai':
+        # Reuse the isolated, advisory-only adapter: no Doctor verdict is changed.
+        from tools.atlas_doctor_lib.local_ai_cli import main as local_ai_main
+        advisory_args = [
+            str(args.evidence), '--model', args.model,
+            '--local-url', args.local_url, '--timeout', str(args.timeout),
+        ]
+        if args.validate_only:
+            advisory_args.append('--validate-only')
+        return local_ai_main(advisory_args)
     root = project_root(Path(__file__))
     if not args.command:
         return menu(root)
