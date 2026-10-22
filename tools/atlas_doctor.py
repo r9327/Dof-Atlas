@@ -732,6 +732,13 @@ def build_parser() -> argparse.ArgumentParser:
     advisory.add_argument('--local-url', default='http://127.0.0.1:11434')
     advisory.add_argument('--timeout', type=float, default=30.0)
     advisory.add_argument('--validate-only', action='store_true')
+    ui_advisory = sub.add_parser(
+        'local-ai-ui-evidence',
+        help='Extraire uniquement les identifiants des eches UI reellement verifies pour Doctor IA.')
+    ui_advisory.add_argument('session', type=Path)
+    ui_advisory.add_argument('--candidate-sha', required=True)
+    ui_advisory.add_argument('--out', type=Path, required=True)
+    ui_advisory.add_argument('--affected-path', action='append', default=[])
     sub.add_parser('file-coverage', help='Inventaire Git Python vs fichiers presents dans Graphify.')
     it = sub.add_parser('isolate-triage', help='Investiguer jusqu a 10 fichiers isoles en preservant leurs consommateurs.')
     it.add_argument('--limit', type=int, default=5)
@@ -961,6 +968,13 @@ def main(argv: list[str] | None = None) -> int:
     raw_argv = [item for item in raw_argv if item != '--json']
     args = parser.parse_args(raw_argv)
     args.json = json_requested
+    if args.command == 'local-ai-ui-evidence':
+        from tools.atlas_doctor_lib.local_ai_ui import main as ui_evidence_main
+        args_for_ui = [str(args.session), '--candidate-sha', args.candidate_sha,
+                       '--out', str(args.out)]
+        for affected in args.affected_path:
+            args_for_ui.extend(['--affected-path', affected])
+        return ui_evidence_main(args_for_ui)
     if args.command == 'local-ai':
         # Reuse the isolated, advisory-only adapter: no Doctor verdict is changed.
         from tools.atlas_doctor_lib.local_ai_cli import main as local_ai_main
