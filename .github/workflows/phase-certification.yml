@@ -11,14 +11,15 @@ on:
   push:
     branches:
       - main
+  # Every PR is developed as Draft. Certify once its complete candidate is
+  # explicitly marked Ready for review, never on every intermediate commit.
+  # Fixes after a failed final certification require manual workflow_dispatch
+  # on the updated branch/SHA. Keep main push certification unchanged.
   pull_request:
     branches:
       - main
       - phase8/peak250-guide-worker-v1
     types:
-      - opened
-      - reopened
-      - synchronize
       - ready_for_review
 
 permissions:
@@ -327,6 +328,49 @@ jobs:
               raise SystemExit(f"Quest catalog incomplete after Doduda materialization: {count}")
           '@ | python - 2>&1 | Tee-Object -FilePath $log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Export Ganymede French label evidence (PR 229)
+        if: ${{ github.event.pull_request.number == 229 && steps.route.outputs.run_full == 'true' }}
+        shell: pwsh
+        run: |
+          $report = "artifacts/phase_certification/ganymede_french_label_evidence.json"
+          $dictionary = "artifacts/phase_certification/ganymede_pinned_name_dictionary_v1.json"
+          python -m tools.resolve_ganymede_action_labels --output $report --dictionary-output $dictionary
+          if ($LASTEXITCODE -ne 0) { throw "Ganymede name evidence cannot be resolved from pinned sources" }
+          $evidence = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          $compact = Get-Content -LiteralPath $dictionary -Raw | ConvertFrom-Json
+          if ($evidence.status -ne "REVIEW_NAMES_RESOLVED" -or
+              $evidence.generic_label_actions -ne 1218 -or
+              $evidence.resolved_action_labels -ne 1218 -or
+              $evidence.unresolved_reference_count -ne 0 -or
+              $compact.status -ne "REVIEW_NAMES_RESOLVED" -or
+              $compact.source_candidate_guides -ne 20 -or
+              $compact.resolved_action_labels -ne 1218 -or
+              $compact.ready_to_replace -ne $false -or
+              $compact.canonical_objectives_verified -ne 0) {
+            throw "Ganymede pinned French label coverage differs from certified source expectations"
+          }
+          Write-Host "Ganymede action labels resolved from pinned French data: 1218/1218"
+
+      - name: Export all 95 Ganymede source-stage references (PR 229)
+        if: ${{ github.event.pull_request.number == 229 && steps.route.outputs.run_full == 'true' }}
+        shell: pwsh
+        run: |
+          $report = "artifacts/phase_certification/ganymede_all_guide_stage_refs.json"
+          python -m tools.build_ganymede_all_guide_stages --output $report
+          if ($LASTEXITCODE -ne 0) { throw "Ganymede 95-guide source references could not be exported" }
+          $source = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          if ($source.status -ne "REVIEW_PUBLIC_REFERENCES_ONLY" -or
+              $source.source_guides -ne 95 -or
+              $source.source_steps -ne 7705 -or
+              $source.playable_guides -ne 0 -or
+              $source.canonical_objectives_verified -ne 0 -or
+              $source.ready_to_replace -ne $false -or
+              $source.localized_reference_occurrences -le 0) {
+            throw "Ganymede source-stage export differs from audited public tree"
+          }
+          Write-Host "Ganymede source stages: 95 guides / 7705 stages"
+          Write-Host "Named source references: $($source.localized_reference_occurrences) / $($source.reference_occurrences)"
 
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
@@ -652,9 +696,9 @@ jobs:
           "risk=$risk" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Materialize Doctor quest catalog
-        # Phase PR FAST no longer invokes data-heavy flows. An independent,
-        # required exact-SHA Phase Certification materializes this catalog.
-        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
+        # A phase-routed PR receives an independent exact-SHA FULL gate;
+        # only ordinary FAST PRs need this local catalog fixture.
+        if: ${{ steps.doctor_risk.outputs.risk != 'LOW' && !(needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         shell: pwsh
         run: |
           git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
@@ -678,9 +722,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize CRITICAL Doctor fixtures
-        # Required for the risk-expanded ordinary FAST; Phase PR FULL retains
-        # the heavy fixtures in its own exact-SHA certification job.
-        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) && needs.doctor-plan.outputs.phase == 'true' }}
+        # Required for risk-expanded ordinary FAST; the mandatory exact-SHA
+        # FULL gate handles these fixtures for phase-routed PRs.
+        if: ${{ steps.doctor_risk.outputs.risk == 'CRITICAL' && !(needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository) && !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         shell: pwsh
         run: |
           git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
@@ -692,10 +736,10 @@ jobs:
         if: ${{ !(github.event.pull_request.number == 123 && github.event.pull_request.head.ref == 'phase8/graphify-staged-cleanup-v1' && github.event.pull_request.head.repo.full_name == github.repository) }}
         id: doctor
         shell: pwsh
-        # The independent exact-SHA FULL certification covers risk-expanded
-        # groups on Phase PRs. Ordinary PRs retain their full FAST scope.
+        # Doctor CI's exact-diff phase route also owns an independent mandatory
+        # FULL certification. Do not infer preflight scope from the PR title.
         env:
-          ATLAS_PHASE_PR_PREFLIGHT: ${{ startsWith(github.event.pull_request.title, 'Phase ') && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}
+          ATLAS_PHASE_PR_PREFLIGHT: ${{ needs.doctor-plan.outputs.phase == 'true' && github.event.pull_request.head.repo.full_name == github.repository && '1' || '0' }}
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/pr_doctor" | Out-Null
           $report = "artifacts/pr_doctor/doctor-fast.json"
@@ -755,6 +799,13 @@ jobs:
             tests.test_repository_git_hooks `
             tests.test_public_pr_ci_guardrails `
             tests.test_security_hardening_guardrails
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check Ganymede name and need provenance (PR 229)
+        if: ${{ github.event.pull_request.number == 229 }}
+        shell: pwsh
+        run: |
+          python -m unittest -v tests.test_ganymede_action_name_resolution tests.test_ganymede_stage_needs tests.test_ganymede_all_guide_stages
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Doctor merge evidence

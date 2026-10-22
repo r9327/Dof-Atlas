@@ -1,0 +1,1864 @@
+{
+  "schema_version": 1,
+  "id": "dofus_nebuleux",
+  "title": "Dofus Nébuleux",
+  "category": "dofus",
+  "completeness_status": "draft",
+  "description": "Prévisualisation technique des étapes Ganymède (références uniquement).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "DRAFT_NOT_PLAYABLE",
+  "replacement_active": false,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2247,
+  "source_guide_url": "https://ganymede-app.com/guides/2247",
+  "source_prerequisite_guide_ids": [
+    2246,
+    2239,
+    2243
+  ],
+  "expected_source_step_count": 6,
+  "playable_step_count": 0,
+  "source_link_snapshot": "ganymede_2247_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2247_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2247_step_0001",
+          "type": "info",
+          "title": "Étape 1",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2209,
+            2239,
+            2243,
+            2246
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              8698
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 1614,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_nebuleux_quest_1614",
+                  "atlas_section_id": "dofus_nebuleux_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 1487
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1488
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1489
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1490
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1491
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1492
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1493
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1494
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1495
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1496
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1497
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1498
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1499
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1500
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1501
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1502
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1503
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1504
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1505
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1506
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1507
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1508
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1509
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1510
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1511
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1512
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1513
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1514
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1515
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1516
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1533
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1534
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1535
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1536
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1537
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1538
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1539
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1540
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1541
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1542
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1543
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1544
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1545
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1546
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1547
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1548
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1549
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1550
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1551
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1552
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1553
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1554
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1555
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1556
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1557
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1558
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1559
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1560
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1561
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1562
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1575
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1577
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1579
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1580
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1581
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1582
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1583
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1584
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1585
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1586
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1588
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1589
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1590
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1591
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1592
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1593
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1594
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1595
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1596
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1597
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1598
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1599
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1600
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1601
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1602
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1613
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé le Dofus des Veilleurs",
+              "guide_id": 2209
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Enutrosor troisième partie",
+              "guide_id": 2239
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Xélorium troisième partie",
+              "guide_id": 2243
+            },
+            {
+              "kind": "guide_dependency",
+              "label": "Avoir terminé Srambad troisième partie",
+              "guide_id": 2246
+            },
+            {
+              "kind": "quest_prerequisite",
+              "label": "Réunir quatre participants ayant lancé ou terminé la quête",
+              "quest_id": 1614,
+              "participants_min": 4
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Objectif final : obtenir le Nébuleux",
+              "object_id": 8698
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0002",
+          "type": "info",
+          "title": "Étape 2",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              16061,
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 1614,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_nebuleux_quest_1614",
+                  "atlas_section_id": "dofus_nebuleux_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 1487
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1488
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1489
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1490
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1491
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1492
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1493
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1494
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1495
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1496
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1497
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1498
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1499
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1500
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1501
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1502
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1503
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1504
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1505
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1506
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1507
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1508
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1509
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1510
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1511
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1512
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1513
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1514
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1515
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1516
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1533
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1534
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1535
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1536
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1537
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1538
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1539
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1540
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1541
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1542
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1543
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1544
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1545
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1546
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1547
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1548
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1549
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1550
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1551
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1552
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1553
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1554
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1555
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1556
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1557
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1558
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1559
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1560
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1561
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1562
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1575
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1577
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1579
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1580
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1581
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1582
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1583
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1584
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1585
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1586
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1588
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1589
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1590
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1591
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1592
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1593
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1594
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1595
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1596
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1597
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1598
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1599
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1600
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1601
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1602
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1613
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Avoir le Dofus des Veilleurs",
+              "object_id": 16061,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une montre rapide",
+              "object_id": 15910,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Prévoir une montre lente",
+              "object_id": 15909,
+              "quantity": 1,
+              "quest_id": 1614
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Khelebragon à Amakna"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0003",
+          "type": "info",
+          "title": "Étape 3",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              15910,
+              15909
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 1614,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_nebuleux_quest_1614",
+                  "atlas_section_id": "dofus_nebuleux_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 1487
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1488
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1489
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1490
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1491
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1492
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1493
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1494
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1495
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1496
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1497
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1498
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1499
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1500
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1501
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1502
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1503
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1504
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1505
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1506
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1507
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1508
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1509
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1510
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1511
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1512
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1513
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1514
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1515
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1516
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1533
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1534
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1535
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1536
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1537
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1538
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1539
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1540
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1541
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1542
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1543
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1544
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1545
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1546
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1547
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1548
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1549
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1550
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1551
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1552
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1553
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1554
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1555
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1556
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1557
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1558
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1559
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1560
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1561
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1562
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1575
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1577
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1579
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1580
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1581
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1582
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1583
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1584
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1585
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1586
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1588
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1589
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1590
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1591
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1592
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1593
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1594
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1595
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1596
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1597
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1598
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1599
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1600
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1601
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1602
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1613
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Parler à Khelebragon pour démarrer la quête",
+              "quest_id": 1614
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la montre rapide en Xélorium",
+              "object_id": 15910
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la montre lente en Xélorium",
+              "object_id": 15909
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'accès au Mégalithe"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0004",
+          "type": "info",
+          "title": "Étape 4",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Demander à Hypéria l'accès au Mégalithe"
+            },
+            {
+              "kind": "interact",
+              "label": "Se placer sur la dalle correspondant à l'heure du serveur",
+              "mechanic": "hour_tile",
+              "timezone_warning": true
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0005",
+          "type": "info",
+          "title": "Étape 5",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              7,
+              3
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17078,
+              19629,
+              15910,
+              15909
+            ],
+            "monster": [
+              3970,
+              556
+            ]
+          },
+          "atlas_quest_candidates": [],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Khelebragon"
+            },
+            {
+              "kind": "combat",
+              "label": "Engager le combat contre l'Oiseau du Temps à quatre",
+              "monster_id": 3970,
+              "participants_min": 4,
+              "turns_survive": 17,
+              "all_allies_must_survive": true
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Tenir 17 tours, maintenir les quatre survivants et anticiper les retours de position",
+              "participants_min": 4,
+              "turns_survive": 17
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Utiliser les glyphes de téléfrag pour limiter la baisse périodique de résistances",
+              "monster_id": 3970
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Équiper le Dokoko pour la survie si disponible",
+              "object_id": 17078
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Équiper le Dofus Argenté si disponible",
+              "object_id": 19629
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Méthéa puis Khelebragon après le combat"
+            },
+            {
+              "kind": "interact",
+              "label": "Alterner les montres rapide et lente pour la sortie",
+              "object_ids": [
+                15910,
+                15909
+              ]
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le messager de Xélor"
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2247_step_0006",
+          "type": "info",
+          "title": "Étape 6",
+          "content": "",
+          "optional": false,
+          "source_guide_id": 2247,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1614
+            ],
+            "dungeon": [],
+            "object": [
+              8698
+            ],
+            "monster": []
+          },
+          "atlas_quest_candidates": [
+            {
+              "quest_id": 1614,
+              "atlas_occurrences": [
+                {
+                  "atlas_step_id": "dofus_nebuleux_quest_1614",
+                  "atlas_section_id": "dofus_nebuleux_v4_route",
+                  "local_optional": false,
+                  "local_relation": "mandatory",
+                  "local_declared_prerequisites": [
+                    {
+                      "type": "quest",
+                      "entity_id": 1487
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1488
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1489
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1490
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1491
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1492
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1493
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1494
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1495
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1496
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1497
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1498
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1499
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1500
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1501
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1502
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1503
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1504
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1505
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1506
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1507
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1508
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1509
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1510
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1511
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1512
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1513
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1514
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1515
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1516
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1533
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1534
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1535
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1536
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1537
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1538
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1539
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1540
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1541
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1542
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1543
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1544
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1545
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1546
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1547
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1548
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1549
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1550
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1551
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1552
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1553
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1554
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1555
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1556
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1557
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1558
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1559
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1560
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1561
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1562
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1575
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1577
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1579
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1580
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1581
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1582
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1583
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1584
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1585
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1586
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1588
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1589
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1590
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1591
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1592
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1593
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1594
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1595
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1596
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1597
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1598
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1599
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1600
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1601
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1602
+                    },
+                    {
+                      "type": "quest",
+                      "entity_id": 1613
+                    }
+                  ],
+                  "local_alternative_groups": []
+                }
+              ],
+              "identity_certified": false,
+              "is_step_action_certified": false
+            }
+          ],
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": false,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au héraut puis au dieu Xélor"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Reparler à Khelebragon pour terminer la quête",
+              "quest_id": 1614
+            },
+            {
+              "kind": "goal_reward",
+              "label": "Recevoir le Dofus Nébuleux",
+              "object_id": 8698
+            }
+          ],
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [
+    "EACH_SOURCE_STEP_NEEDS_ORIGINAL_CANONICAL_ACTION",
+    "OBJECTIVES_AND_PREREQUISITES_UNVERIFIED"
+  ],
+  "factual_action_reviewed_step_count": 6,
+  "source_action_candidate_steps": 6,
+  "source_action_candidate_actions": 28
+}

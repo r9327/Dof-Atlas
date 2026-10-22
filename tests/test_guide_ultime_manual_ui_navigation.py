@@ -267,13 +267,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         try:
             checkbox = card.findChild(QCheckBox, "GuideManualCombatCheck")
             self.assertIsNotNone(checkbox)
-            self.assertEqual(checkbox.text(), "3 × Bouftou — Combat test")
+            self.assertEqual(checkbox.text(), "×3 Bouftou")
             self.assertEqual(checkbox.minimumWidth(), 0)
             self.assertEqual(
                 checkbox.sizePolicy().horizontalPolicy(),
                 QSizePolicy.Ignored,
             )
-            self.assertIn(checkbox.text(), checkbox.toolTip())
+            self.assertIn("×3 Bouftou — Combat test", checkbox.toolTip())
             self.assertEqual(len(card.findChildren(QCheckBox, "GuideManualCombatCheck")), 1)
             self.assertTrue(checkbox.isEnabled())
             checkbox.click()
@@ -283,7 +283,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
-    def test_inline_quest_overlay_is_deduplicated_per_quest_and_map(self) -> None:
+    def test_inline_quest_overlay_is_deduplicated_per_quest_and_sheet(self) -> None:
         service = _FakeManualUiService()
         service.quest_provider = _FakeQuestProvider()
         card_data = dict(service.cards[0])
@@ -297,7 +297,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         card = SharedGuideManualCard(service, "character:1", card_data, 0)
         try:
             buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
-            self.assertEqual(len(buttons), 2)
+            self.assertEqual(len(buttons), 1)
             self.assertTrue(all(button.toolTip() == "Combat test" for button in buttons))
         finally:
             card.page_check.deleteLater()

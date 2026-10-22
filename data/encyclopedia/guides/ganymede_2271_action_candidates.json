@@ -1,0 +1,2390 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_tachete",
+  "source_guide_id": 2271,
+  "source_url": "https://ganymede-app.com/guides/2271",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 62,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2271_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Avoir terminé le guide Dorigami",
+          "guide_id": 2221
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Posséder le métier paysan au niveau 20",
+          "profession": "farmer",
+          "level": 20
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif : récupérer le Dofus Tacheté",
+          "object_id": 7112
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2271_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir le Domakuro",
+          "object_id": 23237,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir le Dorigami",
+          "object_id": 23408,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir les épices",
+          "object_id": 1977,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Préparer les autres ressources de l'étape",
+          "object_ids": [
+            13729,
+            23950,
+            23951,
+            23311,
+            7225,
+            7222,
+            7223,
+            7224,
+            23957,
+            23965,
+            7014,
+            7018
+          ],
+          "quantities_to_verify": true
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre les dragons en Pandala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2271_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        21,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Vérifier le Domakuro et le Dorigami",
+          "object_ids": [
+            23237,
+            23408
+          ]
+        },
+        {
+          "kind": "interact",
+          "label": "Traverser la cascade et monter l'escalier"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Imagiro puis Orukam"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête de réunion des dragons",
+          "quest_id": 2200
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la garde de l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2271_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -30
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au gardien de l'auberge interdite"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'atelier des forgerons"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2271_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        21,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Anatakwa"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat collectif visant à soigner le Yokaï",
+          "monster_id": 6570,
+          "group_mode": "group",
+          "mechanic": "heal_enemy"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Utiliser une invocation Cawotte pour le soin",
+          "monster_id": 556
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Alternative de soin avec une baguette",
+          "object_id": 7110
+        },
+        {
+          "kind": "move",
+          "label": "Revenir auprès du gardien"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2271_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -30
+      ],
+      "next": [
+        21,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au gardien pour débloquer l'accès"
+        },
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge interdite"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Grandapan puis au prêtre Pandawa"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner derrière la cascade"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2271_step_0007",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        36,
+        -43
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser la cascade"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Grandapan de la mission des prêtres"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge du cimetière"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2271_step_0008",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        36,
+        -43
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la boisson de Grobe numéro un",
+          "object_id": 23731,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la boisson de Grobe numéro deux",
+          "object_id": 23806,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2271_step_0009",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge interdite"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au prêtre Pandawa, puis au Grandapan, puis au prêtre"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2271_step_0010",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage secret"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel contre Sumowa",
+          "monster_id": 6515,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Se placer sur les glyphes blancs pour diminuer les résistances"
+        },
+        {
+          "kind": "interact",
+          "label": "Activer la machine puis le tuyau"
+        },
+        {
+          "kind": "move",
+          "label": "Sortir de la salle secrète"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2271_step_0011",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Suivre les indications de la tortue Ninjawa"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter deux Pizwa",
+          "object_id": 23972,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter un Pandazahi",
+          "object_id": 23179,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter cinq bières Tsingtawo",
+          "object_id": 24007,
+          "quantity": 5
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'interlocuteur suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2271_step_0012",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -32
+      ],
+      "next": [
+        23,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à la tortue Ninjawa"
+        },
+        {
+          "kind": "talk",
+          "label": "Confronter l'individu suspect"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel déclenché",
+          "group_mode": "solo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Zangzang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2271_step_0013",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -30
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à la machine de l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2271_step_0014",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage caché"
+        },
+        {
+          "kind": "interact",
+          "label": "Actionner la machine au centre"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge Pandazaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2271_step_0015",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        18,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Acheter une bière Pandneken",
+          "object_id": 7055,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter une bouteille d'alcool à 99 %",
+          "object_id": 23482,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Contrôler les consommables nécessaires",
+          "object_ids": [
+            7055,
+            23482,
+            23179,
+            1977
+          ]
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'éleveur de dragodindes"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2271_step_0016",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -29
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à l'éleveur de dragodindes"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir Wanglong comme suiveur",
+          "object_id": 23724
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2271_step_0017",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Passer par le mécanisme secret"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer une bière forte",
+          "object_id": 23733
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer les Deux Souffles",
+          "quest_id": 2201
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2271_step_0018",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Emprunter le passage vers Shufamukin"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shufamukin"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Acheter la bière spéciale",
+          "object_id": 24021
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2271_step_0019",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        23,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Monter à la bibliothèque"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Chochi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Zangzang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2271_step_0020",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -29
+      ],
+      "next": [
+        25,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Conserver Wanglong comme compagnon",
+          "object_id": 23724
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir Zangzang comme compagnon",
+          "object_id": 23725
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2271_step_0021",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        25,
+        -34
+      ],
+      "next": [
+        38,
+        -40
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner l'enseigne du temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la crypte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2271_step_0022",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        38,
+        -40
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tareo Dokodo"
+        },
+        {
+          "kind": "combat",
+          "label": "Survivre à quatre vagues et protéger Tareo",
+          "monster_id": 6545,
+          "group_mode": "solo",
+          "waves": 4,
+          "ally_must_survive": true
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Éviter les renvois de dégâts",
+          "monster_id": 6546
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Tareo après le combat"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2271_step_0023",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        25,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage caché de l'auberge"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shufamukin"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au temple"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2271_step_0024",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        25,
+        -34
+      ],
+      "next": [
+        23,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Retrouver Wanglong et Zangzang"
+        },
+        {
+          "kind": "interact",
+          "label": "Ouvrir la trappe derrière l'enseigne"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat collectif en protégeant Zangzang",
+          "monster_id": 6308,
+          "group_mode": "group",
+          "ally_must_survive": true
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shun Gokong"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le nouveau groupe de compagnons",
+          "object_id": 23726
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2271_step_0025",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        23,
+        -35
+      ],
+      "next": [
+        19,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Shun Gokong"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer le moine et sa garde",
+          "object_id": 23726
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Porco"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2271_step_0026",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        19,
+        -23
+      ],
+      "next": [
+        24,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Aider le Porco de Pandala"
+        },
+        {
+          "kind": "combat",
+          "label": "Gagner le combat de groupe en protégeant Porco",
+          "monster_id": 6620,
+          "group_mode": "group"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Zangzang puis Zhuba Jin"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir les trois compagnons",
+          "object_id": 23727
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Tanuha Ping"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2271_step_0027",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        24,
+        -24
+      ],
+      "next": [
+        23,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuha Ping"
+        },
+        {
+          "kind": "interact",
+          "label": "Inspecter le vase antique"
+        },
+        {
+          "kind": "combat",
+          "label": "Voie A : combattre immédiatement",
+          "monster_id": 6550,
+          "alternative_group": "vase_fleur",
+          "branch": "combat"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Voie B : avoir fini la quête des fleurs",
+          "quest_id": 2164,
+          "alternative_group": "vase_fleur",
+          "branch": "fleur"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Voie B : obtenir une campanule timide",
+          "object_id": 23983,
+          "alternative_group": "vase_fleur",
+          "branch": "fleur"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2271_step_0028",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": true,
+      "at": [
+        23,
+        -29
+      ],
+      "next": [
+        24,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Voie fleur : ouvrir la grille"
+        },
+        {
+          "kind": "talk",
+          "label": "Demander une campanule à l'apprentie Fleurawa"
+        },
+        {
+          "kind": "check_object",
+          "label": "Obtenir la campanule timide",
+          "object_id": 23983,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au vase"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2271_step_0029",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        24,
+        -24
+      ],
+      "next": [
+        23,
+        -25
+      ],
+      "actions": [
+        {
+          "kind": "optional_delivery",
+          "label": "Utiliser la campanule si choisie",
+          "object_id": 23983,
+          "alternative_group": "vase_fleur",
+          "branch": "fleur"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner le vase antique"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre les shinobis dans le combat individuel",
+          "monster_id": 6552,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wujinsha"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2271_step_0030",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        23,
+        -25
+      ],
+      "next": [
+        19,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Vérifier les compagnons requis",
+          "object_id": 23727
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Wujinsha"
+        },
+        {
+          "kind": "combat",
+          "label": "Combattre en protégeant Shun Gokong",
+          "monster_id": 6307,
+          "group_mode": "solo",
+          "ally_must_survive": true
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Wujinsha et Zangzang"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner aux inscriptions"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2271_step_0031",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        23,
+        -25
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner les inscriptions anciennes"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Wujinsha puis Zangzang"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer les quatre voyageurs extraordinaires",
+          "object_id": 23728
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2271_step_0032",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "optional_completion": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le passage caché"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shufamukin"
+        },
+        {
+          "kind": "move",
+          "label": "Aller au palais de bambou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2271_step_0033",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        15,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer au palais de Bambou"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au samouraï Holi puis à la Daimya Hikomi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple Wukin/Wukang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2271_step_0034",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -31
+      ],
+      "next": [
+        2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser la grotte et entrer dans la dimension"
+        },
+        {
+          "kind": "talk",
+          "label": "Lors du premier passage, répondre aux questions de Daoh",
+          "conditional": "first_visit"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Choisir le feu associé à sa classe, puis le dragon de Pandala",
+          "conditional": "first_visit"
+        },
+        {
+          "kind": "move",
+          "label": "Suivre le passage au sud-ouest et rejoindre Zangzang"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2271_step_0035",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        -1
+      ],
+      "next": [
+        2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Zangzang et au gardien Mabram"
+        },
+        {
+          "kind": "combat",
+          "label": "Tenir dix tours dans le combat solo en protégeant Zangzang",
+          "monster_id": 6308,
+          "group_mode": "solo",
+          "waves": 3,
+          "turns_survive": 10,
+          "ally_must_survive": true
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Éloigner les ennemis de Zangzang"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à la porte de Padambhalla"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2271_step_0036",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        -1
+      ],
+      "next": [
+        -1,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger Puddah, Zhuba Jin, Wujinsha, Shun Gokong et Wanglong"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Zangzang"
+        },
+        {
+          "kind": "move",
+          "label": "Choisir l'une des sorties de la dimension",
+          "alternative_group": "wukin_exit",
+          "destinations": [
+            [
+              0,
+              2
+            ],
+            [
+              -1,
+              -3
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2271_step_0037",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        2
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans le temple de sortie"
+        },
+        {
+          "kind": "talk",
+          "label": "Demander à Daoh le retour vers Pandala"
+        },
+        {
+          "kind": "interact",
+          "label": "Passer par le passage sud-ouest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le palais de bambou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2271_step_0038",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        15,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Parler à la Daimya Hikomi pour terminer la saga du moine",
+          "quest_id": 2158
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Choisir quatre ressources identiques ou deux lots de deux",
+          "alternative_group": "wukin_offering_bundle"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les cinq bières Tsingtawo",
+          "object_id": 24007,
+          "quantity": 5
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les dix Habapandero",
+          "object_id": 24056,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les pétales de papier et d'encre",
+          "object_ids": [
+            23957,
+            23965
+          ]
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les vingt bois sacrés de bambou",
+          "object_id": 7014,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les cent unités de riz",
+          "object_id": 7018,
+          "quantity": 100
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au temple"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2271_step_0039",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -31
+      ],
+      "next": [
+        -1,
+        4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger les ressources auprès de Daoh"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer deux offrandes aux esprits célestes",
+          "object_id": 24102,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'autel des récoltes"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2271_step_0040",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        4
+      ],
+      "next": [
+        1,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Effectuer l'offrande à l'autel des récoltes"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le puits de feu blanc"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2271_step_0041",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        2
+      ],
+      "next": [
+        -1,
+        -5
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner le puits de feu blanc"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le deuxième autel"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2271_step_0042",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        -5
+      ],
+      "next": [
+        -1,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Effectuer l'offrande au deuxième autel"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Option A : récolter des ressources si métiers adaptés",
+          "alternative_group": "harvest_or_buy"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Option B : acheter les six lots de ressources",
+          "alternative_group": "harvest_or_buy"
+        },
+        {
+          "kind": "check_object",
+          "label": "Poisson encreur, récoltable pêcheur niveau 200",
+          "object_id": 23825,
+          "quantity": 5,
+          "conditional": "harvest_choice"
+        },
+        {
+          "kind": "check_object",
+          "label": "Tulipe de papier, récoltable alchimiste niveau 200",
+          "object_id": 23824,
+          "quantity": 5,
+          "conditional": "harvest_choice"
+        },
+        {
+          "kind": "check_object",
+          "label": "Cristaux récoltables mineur niveau 200",
+          "object_ids": [
+            23903,
+            23902
+          ],
+          "conditional": "harvest_choice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Daoh par le temple"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2271_step_0043",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -1,
+        -3
+      ],
+      "next": [
+        20,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans le temple de retour"
+        },
+        {
+          "kind": "talk",
+          "label": "Demander à Daoh le retour à Pandala"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'atelier des paysans"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2271_step_0044",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -26
+      ],
+      "next": [
+        22,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "craft",
+          "label": "Fabriquer l'offrande Wukang au four avec Paysan 20",
+          "object_id": 23794,
+          "quantity": 1,
+          "profession": "farmer",
+          "level": 20
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Acheter les lots non récoltés",
+          "alternative_group": "harvest_or_buy"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la clé du souvenir d'Orukam",
+          "object_id": 23950,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la clé du souvenir d'Imagiro",
+          "object_id": 23951,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les artefacts de bois et de feu",
+          "object_ids": [
+            23311,
+            7225
+          ]
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier les artefacts d'eau, de vent et de roche",
+          "object_ids": [
+            7222,
+            7223,
+            7224
+          ]
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge Fermintée"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2271_step_0045",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -27
+      ],
+      "next": [
+        15,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Acheter un Umeshushu à Chonayu",
+          "object_id": 23150,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la grotte dimensionnelle"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2271_step_0046",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -31
+      ],
+      "next": [
+        1,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans la grotte puis le temple"
+        },
+        {
+          "kind": "interact",
+          "label": "Emprunter le passage inférieur gauche"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le puits de feu blanc"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2271_step_0047",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        2
+      ],
+      "next": [
+        -2,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Offrir la préparation au puits de feu blanc"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Yokianzhi de Wukang"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le puits de feu noir"
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2271_step_0048",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -3
+      ],
+      "next": [
+        -3,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Activer le puits de feu noir"
+        },
+        {
+          "kind": "interact",
+          "label": "Remettre les six lots de récoltes"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat solo auprès du Yokianzhi de Wukin",
+          "monster_id": 6557,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Combattre avec la téléportation et les déplacements des esprits",
+          "monster_id": 6556
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Protéger l'esprit lié lorsque son double devient invulnérable",
+          "monster_id": 6554
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Effectuer les deux donjons de mémoire dans l'ordre choisi",
+          "required_dungeons": [
+            133,
+            134
+          ],
+          "order": "any"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le premier donjon"
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2271_step_0049",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -3,
+        -1
+      ],
+      "next": [
+        -3,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Accepter la quête facultative de Pandala 3 uniquement si souhaité",
+          "quest_id": 2203,
+          "guide_id": 2293,
+          "optional": true
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir la clé du souvenir d'Orukam",
+          "object_id": 23950,
+          "quantity": 1
+        },
+        {
+          "kind": "talk",
+          "label": "Parler aux six esprits de la première salle"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer le Souvenir d'Orukam sans quitter la salle finale",
+          "dungeon_id": 133,
+          "stay_at_end": true,
+          "waves": 3
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le roi Imagami",
+          "monster_id": 6472
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Utiliser la reine Amirukam lors des phases d'invulnérabilité",
+          "monster_id": 6478
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer l'origami Wukin",
+          "object_id": 23814
+        },
+        {
+          "kind": "move",
+          "label": "Revenir au point de départ des mémoires"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2271_step_0050",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        0
+      ],
+      "next": [
+        2,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Accepter la quête facultative de Pandala 3 uniquement si souhaité",
+          "quest_id": 2203,
+          "guide_id": 2293,
+          "optional": true
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir la clé du souvenir d'Imagiro",
+          "object_id": 23951,
+          "quantity": 1
+        },
+        {
+          "kind": "talk",
+          "label": "Parler aux esprits de la première salle"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer le Souvenir d'Imagiro sans quitter la salle finale",
+          "dungeon_id": 134,
+          "stay_at_end": true,
+          "waves": 3
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre la reine Amirukam",
+          "monster_id": 6478
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Utiliser le roi Imagami dans les phases d'invulnérabilité",
+          "monster_id": 6472
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la silhouette Wukang",
+          "object_id": 23818
+        },
+        {
+          "kind": "move",
+          "label": "Revenir au point de départ des mémoires"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2271_step_0051",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -3,
+        2
+      ],
+      "next": [
+        2,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Emprunter la porte à gauche"
+        },
+        {
+          "kind": "talk",
+          "label": "Présenter à Orukam les trois formes rencontrées"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Imagiro"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2271_step_0052",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        -3
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Présenter les trois formes à Imagiro"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de bois",
+          "object_id": 23311,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de feu",
+          "object_id": 7225,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts d'eau",
+          "object_id": 7222,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de vent",
+          "object_id": 7223,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix artefacts de roche",
+          "object_id": 7224,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la bière légère",
+          "object_id": 24021
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier l'Umeshushu",
+          "object_id": 23150
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la gnôle de Grobe",
+          "object_id": 23806
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la salle de combat"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2271_step_0053",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        0
+      ],
+      "next": [
+        0,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Gagner le combat individuel déclenché",
+          "monster_id": 6558,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Gérer les glyphes noirs et l'invisibilité des ennemis"
+        },
+        {
+          "kind": "interact",
+          "label": "Monter puis actionner la coupe d'offrande en papier"
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre après la téléportation"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2271_step_0054",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Obtenir les votes de Tensojobo, Tanu, Wapishikami et Akwanokima"
+        },
+        {
+          "kind": "talk",
+          "label": "Interroger les Akaitei puis Tensojobo"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier trois votes positifs",
+          "object_id": 24018,
+          "quantity": 3
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier deux votes négatifs",
+          "object_id": 24019,
+          "quantity": 2
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre l'Umeshushu à Urazim",
+          "object_id": 23150
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre la gnôle à Urazawi",
+          "object_id": 23806
+        },
+        {
+          "kind": "talk",
+          "label": "Remettre la bière légère à Urazaki",
+          "object_id": 24021
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Urazawi pour revenir au rêve"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Éviter les mauvais dialogues : attente possible de dix à soixante minutes"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2271_step_0055",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        4
+      ],
+      "next": [
+        0,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kian Zhi"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre Doshidorobo dans le combat individuel",
+          "monster_id": 6559,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Laisser Pwapwapwa détourner l'attention",
+          "monster_id": 6595
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au Maître des Rêves après le combat"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple de retour"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2271_step_0056",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        2
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans le temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Demander à Daoh de retourner en Pandala"
+        },
+        {
+          "kind": "interact",
+          "label": "Prendre le passage au sud-ouest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'auberge interdite"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2271_step_0057",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer dans l'auberge et prendre le passage de droite"
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Shufamukin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le palais de bambou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2271_step_0058",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        23,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au samouraï Holi puis à la Daimya Hikomi"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat individuel tactique",
+          "monster_id": 6560,
+          "group_mode": "solo",
+          "objective": "Wulan_kills_Wukurigi"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Permettre à Wulan de vaincre Wukurigi",
+          "monster_id": 6563
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Laisser les samouraïs mourir pour déclencher les phases",
+          "monster_id": 6562
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Renforcer Wulan en éliminant le shinobi",
+          "monster_id": 6561
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à l'auberge"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2271_step_0059",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -32
+      ],
+      "next": [
+        4,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer les Deux Souffles auprès du Grandapan",
+          "quest_id": 2201
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à la déesse Pandawa et à Keltra Ekazumi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête Main dans la main",
+          "quest_id": 2200
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer le Jardin de l'union",
+          "quest_id": 2202
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le temple Pandawa"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2271_step_0060",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -2
+      ],
+      "next": [
+        4,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer au temple Pandawa et examiner le verre puis le livre"
+        },
+        {
+          "kind": "interact",
+          "label": "Prier devant la statue de classe"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre Torakhan dans le combat individuel",
+          "monster_id": 6565,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "group_mechanic",
+          "label": "Gérer les téléportations de Keltra Ekazumi",
+          "monster_id": 6564
+        },
+        {
+          "kind": "interact",
+          "label": "Prier une seconde fois pour obtenir la volonté de l'Ourse"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Pandiwan Kenobi"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2271_step_0061",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -2
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Pandiwan Kenobi"
+        },
+        {
+          "kind": "interact",
+          "label": "Se placer devant le gong et accomplir le dialogue guidé"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la main de Pandawa",
+          "object_id": 24101,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Pandala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2271_step_0062",
+      "source_page": 2,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Utiliser la main de Pandawa",
+          "object_id": 24101
+        },
+        {
+          "kind": "talk",
+          "label": "Parler successivement à Imagiro puis Orukam"
+        },
+        {
+          "kind": "equip",
+          "label": "Équiper le Domakuro",
+          "object_id": 23237
+        },
+        {
+          "kind": "equip",
+          "label": "Équiper le Dorigami",
+          "object_id": 23408
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la roche"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Keltra puis Imagirorukam"
+        },
+        {
+          "kind": "combat",
+          "label": "Terminer le combat tactique en solitaire",
+          "monster_id": 6314,
+          "group_mode": "solo_tactical"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer le Jardin de l'union",
+          "quest_id": 2202
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Recevoir le Dofus Tacheté",
+          "object_id": 7112
+        }
+      ]
+    }
+  ]
+}

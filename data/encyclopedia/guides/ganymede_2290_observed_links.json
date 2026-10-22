@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Ganymède",
+    "guide_id": 2290,
+    "source_url": "https://ganymede-app.com/guides/2290",
+    "checked_on": "2026-10-18",
+    "page_count": 1,
+    "steps_per_page": 50,
+    "route_role": "specialized_guide",
+    "extraction_scope": "factual_link_occurrences_only",
+    "editorial_text_imported": false,
+    "notice": "Unclassified factual links only; not verified objectives, mandatory actions or optimized routes."
+  },
+  "coverage": {
+    "observed_steps": 2,
+    "distinct_linked_guide_ids": 3,
+    "linked_main_index_guide_ids": 3,
+    "linked_outside_main_index_guide_ids": [],
+    "step_guide_links": 3,
+    "dofusdb_step_link_counts": {
+      "quest": 0,
+      "dungeon": 0,
+      "object": 2,
+      "monster": 0
+    },
+    "coordinate_mentions": 2,
+    "quest_objective_mapping_verified": 0,
+    "route_order_certified": false
+  },
+  "steps": [
+    {
+      "source_step_number": 1,
+      "source_page": 1,
+      "linked_guide_ids": [
+        2284,
+        2285,
+        2289
+      ],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          29134
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          40,
+          -84
+        ]
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "source_page": 1,
+      "linked_guide_ids": [],
+      "external_dofusdb_ids": {
+        "quest": [],
+        "dungeon": [],
+        "object": [
+          29134
+        ],
+        "monster": []
+      },
+      "coordinate_mentions": [
+        [
+          40,
+          -84
+        ]
+      ]
+    }
+  ]
+}

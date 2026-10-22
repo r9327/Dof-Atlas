@@ -1,0 +1,2878 @@
+{
+  "schema_version": 1,
+  "id": "dofus_emeraude",
+  "title": "Dofus Émeraude",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2211,
+  "source_guide_url": "https://ganymede-app.com/guides/2211",
+  "source_prerequisite_guide_ids": [
+    2204
+  ],
+  "expected_source_step_count": 52,
+  "playable_step_count": 52,
+  "source_link_snapshot": "ganymede_emeraude_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2211_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2211_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Vérifier l'accès au parcours des six Dofus",
+          "content": "Vérifier l'accès au parcours des six Dofus\nPrévoir un métier de niveau 50\nLes mécanismes déjà maîtrisés permettent de rejoindre directement l'étape 5",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2204
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              737
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "guide_dependency",
+              "label": "Vérifier l'accès au parcours des six Dofus",
+              "guide_id": 2204
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Prévoir un métier de niveau 50"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Les mécanismes déjà maîtrisés permettent de rejoindre directement l'étape 5",
+              "optional_branch": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Réserver une petite pierre d'âme",
+          "content": "Réserver une petite pierre d'âme\nRéserver quatre pierres d'âme moyennes\nApprendre le sort de capture au Nid du Kwakwa",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1465
+            ],
+            "dungeon": [
+              32
+            ],
+            "object": [
+              9686,
+              9687,
+              10417
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Réserver une petite pierre d'âme",
+              "object_id": 9686,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Réserver quatre pierres d'âme moyennes",
+              "object_id": 9687,
+              "quantity": 4
+            },
+            {
+              "kind": "dungeon",
+              "label": "Apprendre le sort de capture au Nid du Kwakwa",
+              "dungeon_id": 32
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Rechercher neuf avis de recherche selon leurs zones et délais",
+          "content": "Rechercher neuf avis de recherche selon leurs zones et délais\nRamener chaque cible à la milice d'origine",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Rechercher neuf avis de recherche selon leurs zones et délais"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Ramener chaque cible à la milice d'origine"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Atteindre le niveau 20 du métier Éleveur et les succès de capture et de naissance",
+          "content": "Atteindre le niveau 20 du métier Éleveur et les succès de capture et de naissance\nDisposer d'une dragodinde dorée\nDisposer d'une dragodinde rousse\nDisposer d'une dragodinde amande\nPréparer trois filets si la capture sauvage est choisie",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              737,
+              7817,
+              7811,
+              7819,
+              32521,
+              34203
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Atteindre le niveau 20 du métier Éleveur et les succès de capture et de naissance"
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Disposer d'une dragodinde dorée",
+              "object_id": 7817,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Disposer d'une dragodinde rousse",
+              "object_id": 7811,
+              "quantity": 1
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Disposer d'une dragodinde amande",
+              "object_id": 7819,
+              "quantity": 1
+            },
+            {
+              "kind": "optional_preparation",
+              "label": "Préparer trois filets si la capture sauvage est choisie",
+              "object_id": 32521,
+              "quantity": 3
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Plumes de Kwak de Vent",
+          "content": "Plumes de Kwak de Vent\nGraines de discorde\nAiles de Scarafeuille blanc\nRésines\nPierres d'émeraude\nAnticiper les captures des cinq boss ou les pierres requises\nRejoindre les marécages nauséabonds",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1464,
+              1465
+            ],
+            "dungeon": [],
+            "object": [
+              416,
+              13730,
+              1456,
+              1985,
+              544,
+              9686,
+              9687
+            ],
+            "monster": [
+              2975,
+              5823,
+              3100,
+              3460,
+              2960
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Plumes de Kwak de Vent",
+              "object_id": 416,
+              "quantity": 10
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Graines de discorde",
+              "object_id": 13730,
+              "quantity": 8
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Ailes de Scarafeuille blanc",
+              "object_id": 1456,
+              "quantity": 6
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Résines",
+              "object_id": 1985,
+              "quantity": 4
+            },
+            {
+              "kind": "prepare_object",
+              "label": "Pierres d'émeraude",
+              "object_id": 544,
+              "quantity": 2
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Anticiper les captures des cinq boss ou les pierres requises"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre les marécages nauséabonds"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Lancer la recherche de Dark Vlad auprès de Mériana",
+          "content": "Lancer la recherche de Dark Vlad auprès de Mériana\nSortir vers les plantes du marais",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              -7,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1463
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Lancer la recherche de Dark Vlad auprès de Mériana",
+              "quest_id": 1463
+            },
+            {
+              "kind": "move",
+              "label": "Sortir vers les plantes du marais"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Cueillir les trèfles putrides",
+          "content": "Cueillir les trèfles putrides\nAffronter le Crocodaïl uniquement s'il surgit\nRejoindre la prochaine récolte",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -7,
+              -3
+            ],
+            [
+              -9,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14970
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Cueillir les trèfles putrides",
+              "object_id": 14970,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Affronter le Crocodaïl uniquement s'il surgit",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la prochaine récolte"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Prélever les racines sanguines",
+          "content": "Prélever les racines sanguines\nSe défendre en cas de Crocodaïl agressif\nPoursuivre dans le marais",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -9,
+              -3
+            ],
+            [
+              -9,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14971
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Prélever les racines sanguines",
+              "object_id": 14971,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Se défendre en cas de Crocodaïl agressif",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Poursuivre dans le marais"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Cueillir les campanules odoriférantes",
+          "content": "Cueillir les campanules odoriférantes\nGérer l'agression éventuelle d'un Crocodaïl\nAtteindre la prochaine plante",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -9,
+              0
+            ],
+            [
+              -8,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14974
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Cueillir les campanules odoriférantes",
+              "object_id": 14974,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Gérer l'agression éventuelle d'un Crocodaïl",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Atteindre la prochaine plante"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Ramasser la plante des marais",
+          "content": "Ramasser la plante des marais\nCombattre seulement si la récolte déclenche une attaque\nTraverser vers le sud",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -8,
+              -4
+            ],
+            [
+              -5,
+              -2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14973
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Ramasser la plante des marais",
+              "object_id": 14973,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre seulement si la récolte déclenche une attaque",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Traverser vers le sud"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Cueillir la fleur des marais",
+          "content": "Cueillir la fleur des marais\nVaincre le Crocodaïl s'il apparaît\nRejoindre la pierre du marais",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              -2
+            ],
+            [
+              -5,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14969
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Cueillir la fleur des marais",
+              "object_id": 14969,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre le Crocodaïl s'il apparaît",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la pierre du marais"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Récupérer la pierre visqueuse",
+          "content": "Récupérer la pierre visqueuse\nGérer le combat optionnel du marais\nRetourner chez Mériana",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              0
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14972
+            ],
+            "monster": [
+              3601
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Récupérer la pierre visqueuse",
+              "object_id": 14972,
+              "quantity": 1
+            },
+            {
+              "kind": "combat",
+              "label": "Gérer le combat optionnel du marais",
+              "monster_id": 3601,
+              "conditional": "may_trigger"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner chez Mériana"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Confier à Mériana tous les ingrédients",
+          "content": "Confier à Mériana tous les ingrédients\nUtiliser le chaudron\nTerminer le dialogue pour être transporté",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Confier à Mériana tous les ingrédients"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser le chaudron"
+            },
+            {
+              "kind": "talk",
+              "label": "Terminer le dialogue pour être transporté"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Remporter le duel contre Hell Mina",
+          "content": "Remporter le duel contre Hell Mina\nLire la lettre de Dark Vlad\nReparler à Hell Mina\nRevenir chez Mériana",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -5,
+              17
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14959
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Remporter le duel contre Hell Mina",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "interact",
+              "label": "Lire la lettre de Dark Vlad",
+              "object_id": 14959
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Hell Mina"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir chez Mériana"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Montrer la lettre de Dark Vlad à Mériana",
+          "content": "Montrer la lettre de Dark Vlad à Mériana\nUtiliser la boussole de Mériana\nRejoindre l'atelier des cordonniers",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14978
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Montrer la lettre de Dark Vlad à Mériana"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la boussole de Mériana",
+              "object_id": 14978
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'atelier des cordonniers"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Présenter un métier niveau 50 à Bowisse",
+          "content": "Présenter un métier niveau 50 à Bowisse\nTerminer la première mission auprès de Bowisse\nAccepter la mission de confection\nRejoindre la clairière",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              1
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1463,
+              1464
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Présenter un métier niveau 50 à Bowisse"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la première mission auprès de Bowisse",
+              "quest_id": 1463
+            },
+            {
+              "kind": "quest_start",
+              "label": "Accepter la mission de confection",
+              "quest_id": 1464
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la clairière"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Récupérer dix champignons ligneux",
+          "content": "Récupérer dix champignons ligneux\nRejoindre le cordonnier sombre",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              8,
+              10
+            ],
+            [
+              14,
+              17
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14960
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Récupérer dix champignons ligneux",
+              "object_id": 14960,
+              "quantity": 10
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le cordonnier sombre"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Vaincre le cordonnier sombre (combat de groupe possible)",
+          "content": "Vaincre le cordonnier sombre (combat de groupe possible)\nVérifier les plumes\nVérifier les graines\nVérifier les ailes\nVérifier les résines\nVérifier les pierres d'émeraude\nRetourner voir Bowisse",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              14,
+              17
+            ],
+            [
+              5,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              416,
+              13730,
+              1456,
+              1985,
+              544
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Vaincre le cordonnier sombre (combat de groupe possible)",
+              "group_mode": "group"
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les plumes",
+              "object_id": 416,
+              "quantity": 10
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les graines",
+              "object_id": 13730,
+              "quantity": 8
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les ailes",
+              "object_id": 1456,
+              "quantity": 6
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les résines",
+              "object_id": 1985,
+              "quantity": 4
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les pierres d'émeraude",
+              "object_id": 544,
+              "quantity": 2
+            },
+            {
+              "kind": "move",
+              "label": "Retourner voir Bowisse"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Rendre compte à Bowisse",
+          "content": "Rendre compte à Bowisse\nFabriquer les bottes demandées à l'établi\nRemettre les bottes à Bowisse\nUtiliser la boussole de Mériana\nRejoindre Tungussi",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              1
+            ],
+            [
+              27,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14980,
+              14978
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Rendre compte à Bowisse"
+            },
+            {
+              "kind": "craft",
+              "label": "Fabriquer les bottes demandées à l'établi",
+              "object_id": 14980
+            },
+            {
+              "kind": "talk",
+              "label": "Remettre les bottes à Bowisse"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la boussole de Mériana",
+              "object_id": 14978
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Tungussi"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Clore la quête de confection avec Tungussi",
+          "content": "Clore la quête de confection avec Tungussi\nDémarrer la mission des captures d'âmes\nCapturer Boostache avec une petite pierre\nCapturer Kanniboul Ebil\nCapturer Draegnerys\nCapturer le Wa Wobot\nCapturer Nelween",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              27,
+              -28
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1464,
+              1465
+            ],
+            "dungeon": [],
+            "object": [
+              9686,
+              9687
+            ],
+            "monster": [
+              2975,
+              2960,
+              5823,
+              3460,
+              3100
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Clore la quête de confection avec Tungussi",
+              "quest_id": 1464
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la mission des captures d'âmes",
+              "quest_id": 1465
+            },
+            {
+              "kind": "combat",
+              "label": "Capturer Boostache avec une petite pierre",
+              "monster_id": 2975,
+              "object_id": 9686,
+              "capture_required": true
+            },
+            {
+              "kind": "combat",
+              "label": "Capturer Kanniboul Ebil",
+              "monster_id": 2960,
+              "object_id": 9687,
+              "capture_required": true
+            },
+            {
+              "kind": "combat",
+              "label": "Capturer Draegnerys",
+              "monster_id": 5823,
+              "object_id": 9687,
+              "capture_required": true
+            },
+            {
+              "kind": "combat",
+              "label": "Capturer le Wa Wobot",
+              "monster_id": 3460,
+              "object_id": 9687,
+              "capture_required": true
+            },
+            {
+              "kind": "combat",
+              "label": "Capturer Nelween",
+              "monster_id": 3100,
+              "object_id": 9687,
+              "capture_required": true
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Échanger deux fois avec Tungussi",
+          "content": "Échanger deux fois avec Tungussi\nVaincre le fantôme de Yor Solismynao\nLui reparler après le combat\nConsulter la boussole\nRejoindre le cimetière",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              27,
+              -28
+            ],
+            [
+              -20,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14978
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Échanger deux fois avec Tungussi"
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre le fantôme de Yor Solismynao",
+              "group_mode": "group"
+            },
+            {
+              "kind": "talk",
+              "label": "Lui reparler après le combat"
+            },
+            {
+              "kind": "interact",
+              "label": "Consulter la boussole",
+              "object_id": 14978
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le cimetière"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Inspecter la tombe indiquée",
+          "content": "Inspecter la tombe indiquée\nTerminer les captures auprès de Fiuna Ramarch\nDémarrer la recherche de Nabur\nRejoindre Kérubim Crépin",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              -58
+            ],
+            [
+              3,
+              -17
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1465,
+              1466
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Inspecter la tombe indiquée"
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Terminer les captures auprès de Fiuna Ramarch",
+              "quest_id": 1465
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la recherche de Nabur",
+              "quest_id": 1466
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Kérubim Crépin"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Interroger Kérubim à l'étage",
+          "content": "Interroger Kérubim à l'étage\nRejoindre Maître Nabur",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -17
+            ],
+            [
+              -4,
+              25
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger Kérubim à l'étage"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Maître Nabur"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Rencontrer Maître Nabur",
+          "content": "Rencontrer Maître Nabur\nRejoindre le dresseur de Dragoeufs",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              25
+            ],
+            [
+              -3,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Rencontrer Maître Nabur"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le dresseur de Dragoeufs"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Interroger le dresseur sur Nabura et Dulcinée",
+          "content": "Interroger le dresseur sur Nabura et Dulcinée\nSe rendre à l'ancien Kanojedo",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -3,
+              24
+            ],
+            [
+              -4,
+              24
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger le dresseur sur Nabura et Dulcinée"
+            },
+            {
+              "kind": "move",
+              "label": "Se rendre à l'ancien Kanojedo"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Demander à Ziho des renseignements sur le village disparu",
+          "content": "Demander à Ziho des renseignements sur le village disparu\nRetourner auprès de Maître Nabur",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              24
+            ],
+            [
+              -4,
+              25
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Demander à Ziho des renseignements sur le village disparu"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner auprès de Maître Nabur"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Parler à Maître Nabur",
+          "content": "Parler à Maître Nabur\nAffronter le chef pillard en duel\nConfirmer la victoire à Maître Nabur\nConserver Maître Nabur comme suiveur\nRejoindre le château d'Amakna",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              25
+            ],
+            [
+              4,
+              -6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14968
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Maître Nabur"
+            },
+            {
+              "kind": "combat",
+              "label": "Affronter le chef pillard en duel",
+              "group_mode": "solo"
+            },
+            {
+              "kind": "talk",
+              "label": "Confirmer la victoire à Maître Nabur"
+            },
+            {
+              "kind": "check_object",
+              "label": "Conserver Maître Nabur comme suiveur",
+              "object_id": 14968,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le château d'Amakna"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Questionner George Segrob",
+          "content": "Questionner George Segrob\nExaminer la pile de livres\nRejoindre la crypte",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              -6
+            ],
+            [
+              11,
+              16
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner George Segrob"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner la pile de livres"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la crypte"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Présenter Maître Nabur à Oona",
+          "content": "Présenter Maître Nabur à Oona\nReparler à Maître Nabur\nUtiliser la boussole\nRejoindre la milice de Bonta",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              11,
+              16
+            ],
+            [
+              -32,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14978
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Présenter Maître Nabur à Oona"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler à Maître Nabur"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la boussole",
+              "object_id": 14978
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la milice de Bonta"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Conclure l'enquête avec le capitaine Starky",
+          "content": "Conclure l'enquête avec le capitaine Starky\nAccepter la nouvelle mission\nRejoindre Riko Noklast",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -57
+            ],
+            [
+              -32,
+              -56
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1466,
+              1467
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Conclure l'enquête avec le capitaine Starky",
+              "quest_id": 1466
+            },
+            {
+              "kind": "quest_start",
+              "label": "Accepter la nouvelle mission",
+              "quest_id": 1467
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Riko Noklast"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Affronter Riko Noklast (groupe possible)",
+          "content": "Affronter Riko Noklast (groupe possible)\nRetourner à la milice",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -56
+            ],
+            [
+              -32,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Affronter Riko Noklast (groupe possible)",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Retourner à la milice"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Remettre le document au capitaine Starky",
+          "content": "Remettre le document au capitaine Starky\nRejoindre l'atelier des éleveurs",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -57
+            ],
+            [
+              -30,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Remettre le document au capitaine Starky"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'atelier des éleveurs"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Parler à Oggius puis Edemaga",
+          "content": "Parler à Oggius puis Edemaga\nValider les deux succès d'élevage et le métier niveau 20\nPrésenter la dragodinde rousse\nPrésenter la dragodinde amande\nPrésenter la dragodinde dorée\nRejoindre l'arche",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -30,
+              -58
+            ],
+            [
+              -30,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              7811,
+              7819,
+              7817
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Oggius puis Edemaga"
+            },
+            {
+              "kind": "group_mechanic",
+              "label": "Valider les deux succès d'élevage et le métier niveau 20"
+            },
+            {
+              "kind": "check_object",
+              "label": "Présenter la dragodinde rousse",
+              "object_id": 7811,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Présenter la dragodinde amande",
+              "object_id": 7819,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Présenter la dragodinde dorée",
+              "object_id": 7817,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'arche"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Activer l'arche",
+          "content": "Activer l'arche\nRejoindre Nistracolamus",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -30,
+              -60
+            ],
+            [
+              2,
+              -14
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer l'arche"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Nistracolamus"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Interroger Nistracolamus sur Dark Vlad",
+          "content": "Interroger Nistracolamus sur Dark Vlad\nRejoindre le lieu de rencontre",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              -14
+            ],
+            [
+              -4,
+              -9
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger Nistracolamus sur Dark Vlad"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le lieu de rencontre"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Rencontrer Dark Vlad et passer par le Phénix",
+          "content": "Rencontrer Dark Vlad et passer par le Phénix\nUtiliser la boussole\nRejoindre Mériana dans le marais",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -4,
+              -9
+            ],
+            [
+              2,
+              -14
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              14978
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Rencontrer Dark Vlad et passer par le Phénix"
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la boussole",
+              "object_id": 14978
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Mériana dans le marais"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Clore la mission chez Mériana",
+          "content": "Clore la mission chez Mériana\nDémarrer la chasse aux bandits de Cania\nRejoindre la milice d'Amakna",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              5,
+              -6
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1467,
+              1469
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Clore la mission chez Mériana",
+              "quest_id": 1467
+            },
+            {
+              "kind": "quest_start",
+              "label": "Démarrer la chasse aux bandits de Cania",
+              "quest_id": 1469
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la milice d'Amakna"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Parler au chasseur de primes",
+          "content": "Parler au chasseur de primes\nRéunir neuf jetons de prime\nObtenir la première carte\nObtenir la deuxième carte\nObtenir la troisième carte\nRejoindre la salle du trésor",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              5,
+              -6
+            ],
+            [
+              -25,
+              -36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23746,
+              23740,
+              23741,
+              23742
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au chasseur de primes"
+            },
+            {
+              "kind": "check_object",
+              "label": "Réunir neuf jetons de prime",
+              "object_id": 23746,
+              "quantity": 9
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir la première carte",
+              "object_id": 23740,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir la deuxième carte",
+              "object_id": 23741,
+              "quantity": 1
+            },
+            {
+              "kind": "check_object",
+              "label": "Obtenir la troisième carte",
+              "object_id": 23742,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la salle du trésor"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Assembler les fragments de la carte",
+          "content": "Assembler les fragments de la carte\nTerminer la chasse au trésor légendaire\nVaincre les bandits, groupe conseillé\nOuvrir le coffre gagné\nRevenir chez Mériana",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              -36
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23743,
+              23744
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Assembler les fragments de la carte",
+              "object_id": 23743
+            },
+            {
+              "kind": "interact",
+              "label": "Terminer la chasse au trésor légendaire"
+            },
+            {
+              "kind": "combat",
+              "label": "Vaincre les bandits, groupe conseillé",
+              "group_mode": "group"
+            },
+            {
+              "kind": "interact",
+              "label": "Ouvrir le coffre gagné",
+              "object_id": 23744
+            },
+            {
+              "kind": "move",
+              "label": "Revenir chez Mériana"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Terminer la chasse aux bandits",
+          "content": "Terminer la chasse aux bandits\nLancer Dracontropie\nUtiliser la potion de Gisgoul",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1469,
+              1470
+            ],
+            "dungeon": [],
+            "object": [
+              17766
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la chasse aux bandits",
+              "quest_id": 1469
+            },
+            {
+              "kind": "quest_start",
+              "label": "Lancer Dracontropie",
+              "quest_id": 1470
+            },
+            {
+              "kind": "interact",
+              "label": "Utiliser la potion de Gisgoul",
+              "object_id": 17766
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Monter dans la tour de Gisgoul",
+          "content": "Monter dans la tour de Gisgoul\nAffronter Rasuman le Vert en groupe possible\nRejoindre la fleur tourmentée",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -16,
+              17
+            ],
+            [
+              -14,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Monter dans la tour de Gisgoul"
+            },
+            {
+              "kind": "combat",
+              "label": "Affronter Rasuman le Vert en groupe possible",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la fleur tourmentée"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Récolter la fleur des tourmentés",
+          "content": "Récolter la fleur des tourmentés\nRejoindre l'antre du Meulou",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -14,
+              36
+            ],
+            [
+              -23,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              15002
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Récolter la fleur des tourmentés",
+              "object_id": 15002,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'antre du Meulou"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Terminer l'antre du Meulou",
+          "content": "Terminer l'antre du Meulou\nBattre le Meulou\nRécupérer l'anneau enchanté du Meulou\nRetourner voir Mériana",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -23,
+              0
+            ],
+            [
+              -6,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              15
+            ],
+            "object": [
+              15001
+            ],
+            "monster": [
+              232
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "dungeon",
+              "label": "Terminer l'antre du Meulou",
+              "dungeon_id": 15
+            },
+            {
+              "kind": "combat",
+              "label": "Battre le Meulou",
+              "monster_id": 232
+            },
+            {
+              "kind": "check_object",
+              "label": "Récupérer l'anneau enchanté du Meulou",
+              "object_id": 15001,
+              "quantity": 1
+            },
+            {
+              "kind": "move",
+              "label": "Retourner voir Mériana"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Terminer Dracontropie",
+          "content": "Terminer Dracontropie\nCommencer le voyage dans le temps\nRejoindre l'auberge d'Incarnam",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -6,
+              -3
+            ],
+            [
+              0,
+              -3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1470,
+              1471
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer Dracontropie",
+              "quest_id": 1470
+            },
+            {
+              "kind": "quest_start",
+              "label": "Commencer le voyage dans le temps",
+              "quest_id": 1471
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'auberge d'Incarnam"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Commander une limonade à Fattumy",
+          "content": "Commander une limonade à Fattumy\nInterroger l'habitué de l'auberge\nRejoindre la milice d'Incarnam",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              -3
+            ],
+            [
+              0,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Commander une limonade à Fattumy"
+            },
+            {
+              "kind": "talk",
+              "label": "Interroger l'habitué de l'auberge"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la milice d'Incarnam"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Interroger le capitaine Kerub",
+          "content": "Interroger le capitaine Kerub\nRejoindre le milicien Hatten",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              -4
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Interroger le capitaine Kerub"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre le milicien Hatten"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Parler au milicien Hatten",
+          "content": "Parler au milicien Hatten\nAller vers le bandit Chafer",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              0
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au milicien Hatten"
+            },
+            {
+              "kind": "move",
+              "label": "Aller vers le bandit Chafer"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0048",
+          "type": "info",
+          "title": "Étape 48 — Vaincre le bandit Chafer",
+          "content": "Vaincre le bandit Chafer\nRejoindre la statue au crâne",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              3,
+              -1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Vaincre le bandit Chafer",
+              "group_mode": "group"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre la statue au crâne"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0049",
+          "type": "info",
+          "title": "Étape 49 — Activer la statue au crâne",
+          "content": "Activer la statue au crâne\nTerminer le combat déclenché\nParler à Ed Tremble\nRevenir à la milice",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -1
+            ],
+            [
+              0,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Activer la statue au crâne"
+            },
+            {
+              "kind": "combat",
+              "label": "Terminer le combat déclenché",
+              "group_mode": "group"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ed Tremble"
+            },
+            {
+              "kind": "move",
+              "label": "Revenir à la milice"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0050",
+          "type": "info",
+          "title": "Étape 50 — Questionner le capitaine Kerub",
+          "content": "Questionner le capitaine Kerub\nExaminer le tapis et l'Orbalantyr\nRégler le mécanisme en respectant la séquence de figurines\nReparler au capitaine à l'étage\nRejoindre l'étrangère mystérieuse",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              -4
+            ],
+            [
+              -2,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Questionner le capitaine Kerub"
+            },
+            {
+              "kind": "interact",
+              "label": "Examiner le tapis et l'Orbalantyr"
+            },
+            {
+              "kind": "interact",
+              "label": "Régler le mécanisme en respectant la séquence de figurines"
+            },
+            {
+              "kind": "talk",
+              "label": "Reparler au capitaine à l'étage"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre l'étrangère mystérieuse"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0051",
+          "type": "info",
+          "title": "Étape 51 — Choisir les bonnes répliques pour conserver le sort bonus",
+          "content": "Choisir les bonnes répliques pour conserver le sort bonus\nAccepter la boîte et placer la quatrième écaille\nRejoindre Wedhig",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -2,
+              -4
+            ],
+            [
+              4,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Choisir les bonnes répliques pour conserver le sort bonus"
+            },
+            {
+              "kind": "interact",
+              "label": "Accepter la boîte et placer la quatrième écaille"
+            },
+            {
+              "kind": "move",
+              "label": "Rejoindre Wedhig"
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        },
+        {
+          "id": "ganymede_2211_step_0052",
+          "type": "info",
+          "title": "Étape 52 — Parler à Wedhig et suivre le transfert",
+          "content": "Parler à Wedhig et suivre le transfert\nGagner le combat tactique final\nÉchanger avec Goultard puis Mériana\nRécupérer le Dofus Émeraude\nAchever la dernière quête",
+          "optional": false,
+          "source_guide_id": 2211,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              -4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              1471
+            ],
+            "dungeon": [],
+            "object": [
+              737
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Wedhig et suivre le transfert"
+            },
+            {
+              "kind": "combat",
+              "label": "Gagner le combat tactique final",
+              "group_mode": "tactical"
+            },
+            {
+              "kind": "talk",
+              "label": "Échanger avec Goultard puis Mériana"
+            },
+            {
+              "kind": "interact",
+              "label": "Récupérer le Dofus Émeraude",
+              "object_id": 737
+            },
+            {
+              "kind": "quest_finish",
+              "label": "Achever la dernière quête",
+              "quest_id": 1471
+            }
+          ],
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
+          "source_action_review_status": "REVIEW_SOURCE_ACTION"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "source_action_candidate_steps": 52,
+  "factual_action_reviewed_step_count": 52,
+  "source_action_candidate_actions": 179,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 12,
+  "recommended_level_max": 120,
+  "reward_item_id": 737,
+  "illustration_item_id": 737,
+  "image": null,
+  "linked_achievement_ids": [
+    1048
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}

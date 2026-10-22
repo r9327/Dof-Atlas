@@ -756,14 +756,21 @@ class GuidePhase3Tests(unittest.TestCase):
                 if not isinstance(entry, str)
             ]
             model_ids = {guide.id for guide in model_guides}
+            dofus_ids = {guide.id for guide in view.home_dofus_model.guides}
 
-            self.assertTrue(expected_dofus_ids.issubset(model_ids))
+            self.assertTrue(expected_dofus_ids)
+            self.assertEqual(dofus_ids, expected_dofus_ids)
+            self.assertTrue(model_ids.isdisjoint(dofus_ids))
+            self.assertEqual(model_ids | dofus_ids, {guide.id for guide in self.guides})
             self.assertTrue({"alignement_bonta", "alignement_brakmar"}.issubset(model_ids))
             self.assertIs(view.home_list.model(), view.result_model)
-            self.assertEqual(view.home_list.itemDelegate().__class__.__name__, "GuideCardDelegate")
+            self.assertIs(view.home_dofus_list.model(), view.home_dofus_model)
+            for home_list in (view.home_list, view.home_dofus_list):
+                self.assertEqual(home_list.itemDelegate().__class__.__name__, "GuideCardDelegate")
+                self.assertTrue(home_list.isVisibleTo(view))
+                self.assertEqual(home_list.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
             self.assertFalse(view.findChildren(GuideHomeCard))
             self.assertFalse(view.home_empty.isVisible())
-            self.assertEqual(view.home_list.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
             view.deleteLater()
             self.app.processEvents()
 

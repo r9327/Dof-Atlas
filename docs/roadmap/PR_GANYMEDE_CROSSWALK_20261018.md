@@ -1,0 +1,971 @@
+# Ganymède first — catalogue de références et futurs guides Atlas originaux
+
+État (2026-10-18) : **premier inventaire de métadonnées et contrôle automatisable uniquement**.
+Ce chantier est indépendant du moteur de la PR #226 et ne certifie encore **aucun**
+itinéraire ni aucune fiche générée.
+
+## Décision de conception
+
+- **Ganymède = référence principale de l'ordonnancement et de la progression.**
+  Le guide complet est un orchestrateur de guides spécialisés : ne pas confondre
+  ces deux niveaux, ni concaténer naïvement toutes les fiches externes.
+- **Atlas / données Doduda = source de vérité des ID canoniques et états réels.**
+  Ne jamais identifier une quête ou un objectif seulement par un titre.
+- **DPLN = référence prioritaire du détail des actions et prérequis** ;
+  Tougli, JOL, Skyzio et autres = recoupement indépendant et détection des écarts.
+- Conserver les guides Atlas actuels : ils ont leurs IDs de progression,
+  guides de Dofus, alignements, succès et variantes de classes ; les nouveaux
+  itinéraires doivent **réutiliser** ces ID et non créer des sauvegardes parallèles.
+- Ne pas reproduire les textes, captures ou le contenu éditorial complet d'un
+  service tiers sans permission. Établir un graphe de faits vérifiés et produire
+  des fiches de conception et rédaction **originales** dans Atlas ; conserver
+  les liens, dates, sources et autorisations.
+
+## Premières références confirmées
+
+Catalogue original : https://ganymede-app.com/tree?view=list
+
+La page publique annonçait **95 guides** au moment de l'inventaire. Les
+**95 fiches de métadonnées** publiques (noms, liens, niveaux affichés) sont
+maintenant inventoriées dans data/encyclopedia/guides/ganymede_main_index.json.
+En revanche, **24 correspondances** avec des guides Atlas (13 liens initiaux et **11 candidats thématiques** sans rapprochement des quêtes)
+existants sont établies dans data/encyclopedia/guides/ganymede_source_crosswalk.json.
+**Aucun des 95 parcours ni texte d'étape n'est importé ou certifié.**
+
+### Avancement vérifié : graphe public des guides (18/10/2026)
+
+- Les 95 fiches de l'arbre public contiennent désormais un `listed_step_count`
+  et la liste `public_tree_prerequisite_guide_ids` (identifiants Ganymède,
+  **pas** identifiants de quêtes Atlas).
+- **57 liens de prérequis entre guides**, répartis sur **40 guides**, ont été
+  rapprochés aux 95 IDs du même arbre. Aucun ID externe orphelin ni cycle
+  détecté au moment de cette collecte.
+- Traçabilité : `snapshot.public_tree_prerequisite_graph` avec URL, date,
+  volume de données et marqueur impératif `SOURCE_METADATA_ONLY`.
+- L'audit contrôle : nombre d'étapes positif, existence et unicité des guides
+  prérequis, absence de dépendance à soi-même, absence de cycle, cohérence des
+  totaux et **interdiction de certifier des itinéraires depuis les métadonnées**.
+- Le rapport JSON expose désormais `guide_coverage` pour les 95 entrées,
+  `unmapped_guide_ids` (actuellement **71**), et
+  `tree_prerequisite_edges` (57) pour piloter l'enrichissement par guide.
+
+Les **11 correspondances thématiques candidates** portent sur Pourpre, Domakuro,
+Dorigami, Turquoise, Nébuleux, Abyssal, Vulbis, Tacheté, Dom de Pin,
+Cauchemar et Forgelave. Elles rapprochent les identités de guides existants
+du catalogue Atlas et les références de l'arbre Ganymède, **sans** comparaison
+d'IDs de quêtes/étapes. Le rapport distingue `CANDIDATE_METADATA_ONLY`
+de `CROSSWALK_METADATA_ONLY` et `UNMAPPED`. **Sylvestre Opti** reste
+un guide Atlas distinct : ne pas le confondre avec le « Sylvan Dofus » de l'arbre.
+
+**Limite importante :** le graphe de l'arbre Ganymède est un graphe de
+**prérequis de guides**. Il ne démontre pas les prérequis **de quêtes**,
+l'exactitude de chaque étape, les positions ou la pertinence d'un trajet.
+L'étape suivante reste l'analyse factuelle des étapes du guide complet
+(MG0) et des sous-guides, le rapprochement par IDs canoniques Atlas et le
+recoupement DPLN/Tougli/JOL. Aucun guide Atlas n'a encore été remplacé.
+
+Source publique des liens/compteurs :
+https://ganymede-app.com/tree?view=list (instantané du 18 octobre 2026).
+
+Exemples : guide complet, Incarnam/Astrub (Argenté), Cawotte, Émeraude,
+Dokoko, Dolmanax, Veilleurs, Glaces, Ébène, Ivoire, introduction
+Bonta/Brâkmar et guides d'alignement Bonta/Brâkmar. Le site courant utilise
+parfois des identifiants et versions localisées (par ex. MG0/GP0) :
+conserver l'ID de page exact et éviter de supposer l'équivalence entre éditions.
+
+Commande hors réseau, depuis la racine :
+
+    py -3.13 -m tools.audit_ganymede_crosswalk --output artifacts/guides/ganymede_crosswalk_audit.json
+
+Cette commande vérifie les domaines/IDs d'URL, les doublons et l'existence des
+guides Atlas cibles. PASS_METADATA_ONLY **ne signifie PAS** que le contenu,
+les prérequis ni l'ordre des étapes de Ganymède sont vérifiés.
+
+## Feuille de route — livrables bloquants
+
+1. **Inventaire complet.** Identifier toutes les entrées du parcours principal
+   actuel (titre, langue/version, ID de guide, URL, niveau, prérequis externes,
+   guide maître ou sous-guide, date) ; distinguer les guides principaux de la
+   communauté et les variantes obsolètes. Générer un rapport de couverture
+   24/N puis N/N, pas un faux PASS.
+2. **Graphe inter-guides.** Représenter les renvois du guide complet vers les
+   guides détaillés : prérequis, tranches d'étapes, étapes optionnelles, ordres,
+   alignements et choix mutuellement exclusifs. Détecter les cycles et les
+   étapes inaccessibles. Les changements externes ne deviennent pas
+   automatiquement des changements certifiés.
+3. **Correspondances quêtes/objectifs.** Faire correspondre par **IDs Atlas**
+   chaque obligation utile, combat, PNJ, carte, succès, donjon, capture, clé,
+   pierre, ressource et jalon de progression. Chaque correspondance a une
+   preuve et une confiance ; ambigu/absent => REVIEW. Les faits sont
+   revalidés DPLN, Tougli et JOL si nécessaire.
+4. **Optimisation globale dans #226.** Comparer des itinéraires qui respectent
+   le graphe de dépendances ; prendre toutes les quêtes avant de combattre
+   ou d'entrer en donjon, grouper les combats et succès compatibles, limiter
+   les passages de zone/PNJ, prévoir les captures et ressources au bon moment,
+   et choisir les trajets réellement éligibles. Optimiser par personnage ET
+   pour le groupe sans briser leurs dépendances respectives.
+5. **Nouveaux parcours thématiques Atlas.** Proposer un guide aventure complet
+   et des parcours Dofus, alignements Bonta/Brâkmar, régions, donjons et succès.
+   Générer un contenu Atlas ORIGINAL à partir des faits vérifiés, avec
+   variantes intégrées aux catégories existantes, références visibles en audit,
+   ID de progression uniques et migration testée des sauvegardes.
+6. **Preuves de qualité.** Comparatifs reproductibles sur mêmes données
+   (route héritée Atlas, route originale Atlas améliorée et jalons Ganymède) :
+   couverture d'objectifs, prérequis, allers-retours, donjons, cartes, captures,
+   matériaux et temps/RAM de génération. Exiger zéro perte d'objectifs,
+   zéro saut de prérequis, tests multi-personnages 0/1/2/5, tests d'intégration
+   UI #225 et Organizer #227, Doctor/Graphify/Windows, FULL vert au SHA final.
+
+Le rapprochement des métadonnées appartient à cette PR indépendante ; la
+génération V2 et la validation bout en bout restent dans **#226**.
+Ne pas fusionner ce registre avec une promesse implicite de guides terminés.
+
+
+## Graphe de renvois du guide maître Ganymède MG0 — données observées
+
+Le guide complet public `https://ganymede-app.com/guides/2251` a été lu
+sur **4 pages** de 50 étapes (dernière page : 6). Son index contient **156
+étapes numérotées, sans trou**. Le fichier
+`data/encyclopedia/guides/ganymede_master_observed_links.json` enregistre
+uniquement des faits structurés observables, sans reproduire la rédaction :
+
+- étape source, page de provenance, IDs des autres guides liés ;
+- IDs de liens DOFUSDB identifiés par type (quête/donjon/objet/monstre) ;
+- coordonnées mentionnées comme **données non interprétées**, pas comme
+  commandes Travel ni positions certifiées d'actions.
+
+Mesures de cet instantané : **234 occurrences de liens de guides**, **91
+guides liés distincts**, dont **89 dans l'arbre principal** ; les IDs
+**3238** et **3768** sont des liens hors de ses 95 entrées et restent à
+qualifier. Le guide contient également **84 occurrences d'IDs de quêtes**,
+**123 donjons**, **359 objets**, **110 monstres** et **81 mentions de
+coordonnées**. Les comptages sont par étape après déduplication **dans
+chaque étape**, pas des objectifs de jeu uniques.
+
+Audit dédié :
+
+    py -3.13 -m tools.audit_ganymede_master_refs --output artifacts/guides/ganymede_master_refs_audit.json
+
+La vérification impose : couverture 1→156, ordre et pagination exacts,
+références numériques valides, absence de duplications au sein d'une étape,
+totaux cohérents, et traçabilité des IDs hors index. Le statut positif
+`PASS_OBSERVED_LINKS_ONLY` **ne certifie ni prérequis de quête ni
+itinéraire**. Les liens peuvent correspondre à des conseils, exemples,
+options, étapes futures ou contenus requis : aucun automatisme ne les
+transforme en actions obligatoires avant analyse sémantique contrôlée.
+DofusDB n'est pas traité comme preuve que son ID est identique à l'ID
+canonique Atlas : le rapprochement reste à effectuer et vérifier.
+
+**Prochain verrou de #229** : qualifier chaque liaison du guide maître
+(obligatoire / optionnelle / information), extraire les intervalles
+d'étapes des sous-guides et rattacher les actions aux véritables
+`quest_id` / `objective_id` d'Atlas, avec provenance et validation DPLN.
+Le moteur #226 ne doit pas optimiser sur des liens encore non qualifiés.
+
+
+## Premiers sous-guides détaillés — couverture source 13 / 95
+
+Trois sous-guides prioritaires ont été parcourus sur les pages publiques du
+18 octobre 2026, en complément du guide complet MG0 :
+
+| Guide source | ID Ganymède | Étapes publiques | Fichier instantané |
+| --- | ---: | ---: | --- |
+| Guide complet MG0 | 2251 | 156 | `ganymede_master_observed_links.json` |
+| Dofus Argenté | 2203 | 237 | `ganymede_argente_observed_links.json` |
+| Dofus Cawotte | 2205 | 64 | `ganymede_cawotte_observed_links.json` |
+| Dofus Émeraude | 2211 | 52 | `ganymede_emeraude_observed_links.json` |
+
+Premier lot : **509 étapes sur 4 guides**. Au total, **1 103 étapes sur 13 / 95 guides** documentés
+au niveau des liens factuels. Les titres d'étapes pouvant comporter des
+coordonnées, l'inventaire prend en compte **les coordonnées du titre ET du
+corps**, avec déduplication sur une même étape.
+
+La commande d'audit s'applique à chaque fichier via `--snapshot` :
+
+    py -3.13 -m tools.audit_ganymede_master_refs --snapshot data/encyclopedia/guides/ganymede_argente_observed_links.json
+
+`tools.audit_ganymede_crosswalk` agrège désormais automatiquement les
+fichiers nommés `ganymede_*_observed_links.json` et indique pour
+chacun des 95 guides `OBSERVED_UNCLASSIFIED` ou `NOT_INGESTED`,
+avec un total `observed_source_steps`. Une source incohérente bloque
+l'audit global. **Il ne reste pas « 91 guides terminés » : il reste
+82 / 95 guides non inventoriés à ce niveau de détail.**
+
+Ces liens sont des observations non interprétées. L'analyse des quêtes
+avec DPLN/Tougli/JOL, les véritables `quest_id` et `objective_id`
+d'Atlas, les intervalles de sous-guides, les consommables exacts et
+l'optimisation de route restent à réaliser.
+
+
+### Deuxième lot — cinq autres guides collectés
+
+| Guide public | ID Ganymède | Étapes |
+| --- | ---: | ---: |
+| Dolmanax | 2248 | 9 |
+| Où sont les Dofus ? | 2204 | 26 |
+| Dokoko | 2208 | 49 |
+| Dofus Pourpre | 2276 | 45 |
+| Dofus des Veilleurs | 2209 | 88 |
+
+Les 217 étapes de ce deuxième lot complètent les 509 du premier.
+Toutes sont numérotées et rattachées à leur guide/page source. Le
+rapprochement des **quêtes et objectifs canoniques Atlas n'est pas encore
+fait** et aucun trajet généré ne peut utiliser ces liens comme consignes
+certifiées.
+
+### Collecteur HTML contrôlé pour la suite
+
+`tools.ganymede_source_link_ingest` est le collecteur reproductible.
+Il utilise exclusivement les articles d'étapes des pages publiques et
+ne sauvegarde **ni rédaction, ni HTML, ni illustration externe**. Il
+conserve les ID de liens et les coordonnées mentionnées, sans les
+transformer en objectifs ou en commandes.
+
+Exemple, sans écriture :
+
+    py -3.13 -m tools.ganymede_source_link_ingest --guide-id 2248 --fetch --checked-on 2026-10-18
+
+Pour créer explicitement un instantané vérifié après contrôle :
+
+    py -3.13 -m tools.ganymede_source_link_ingest --guide-id 2248 --fetch --checked-on 2026-10-18 --apply
+
+Pour travailler sans réseau, remplacer `--fetch` par
+`--html-dir <dossier>` (fichiers locaux `2248-1.html`, etc.).
+Les téléchargements échoués, pages renvoyant un autre numéro,
+pagination tronquée ou guide absent de l'index interrompent la
+collecte **avant toute modification du JSON final**. À ce stade,
+l'outil prend volontairement **un seul guide explicite à la fois** ;
+pas de parcours silencieux des 95 pages source, ni de modification
+de la progression Atlas.
+
+Les instantanés déjà présents restent la source versionnée utilisée
+par Doctor ; aucune récupération réseau au démarrage d'Atlas.
+
+
+### Troisième lot — quatre guides prioritaires supplémentaires
+
+| Guide public | ID Ganymède | Étapes |
+| --- | ---: | ---: |
+| Krosmoz | 2230 | 51 |
+| Dofus Turquoise | 2217 | 87 |
+| Dofus Ivoire | 2256 | 118 |
+| Frigost 3 / Dofus des Glaces | 2216 | 121 |
+
+Cette vague ajoute **377 étapes**, portant la couverture des liens
+factuels à **13 guides / 1 103 étapes**. Restent **82 guides
+sans inventaire détaillé**. L'index général reste à 95 références et
+les correspondances guide→Atlas à 24 (dont 11 candidates) : ces nombres
+mesurent des opérations différentes et ne doivent jamais être additionnés.
+
+Les sources sont des pages publiques d'octobre 2026 ; les instantanés
+conservent leur URL et date. La correspondance vers les IDs de quêtes
+et d'objectifs Atlas, le statut des actions obligatoires, les besoins
+et la route générée ne sont **pas certifiés**.
+
+### Quatrième lot — premiers parcours de progression (18/10/2026)
+
+Six guides d'aventure supplémentaires sont inventoriés : **Campements Bwork/Gobelins** (34), **Otomaï 1** (7), **Sufokia** (39), **Valonia 1** (30), **Sidimote 1** (25) et **Koalaks** (9). Soit **144 étapes** supplémentaires.
+
+**Couverture cumulée : 19/95 guides, 1247 étapes de liens factuels**, 76 guides restant sans instantané d'étapes. Ce n'est ni une reprise des textes Ganymède, ni la preuve d'une équivalence avec les ID de quêtes Atlas ; génération et optimisation restent bloquées tant que les liens ne sont pas qualifiés et recoupés.
+
+
+### Rapprochement des IDs de quêtes — audit préliminaire
+
+Le nouvel outil `tools.audit_ganymede_quest_candidates` compare, guide par
+guide, les IDs de quêtes cités dans les liens DOFUSDB publics à ceux des
+étapes `type=quest` des guides Atlas actuellement versionnés.
+
+    py -3.13 -m tools.audit_ganymede_quest_candidates --output artifacts/guides/ganymede_quest_candidates.json
+
+Il fournit pour chaque guide : les IDs externes observés et les numéros
+d'étapes où ils apparaissent, les IDs de quêtes présents dans ses guides
+Atlas associés, les intersections numériques, les références citées
+seulement par la source et celles présentes seulement dans Atlas.
+
+**Un identifiant numérique identique ne prouve pas encore une identité
+de quête vérifiée** : l'intersection est étiquetée
+`REVIEW_NUMERIC_ID_ONLY`, avec
+`quest_identity_confirmed=false` et
+`required_objective_confirmed=false`. Les références absentes du guide
+Atlas local ne sont pas présumées absentes du catalogue global Doduda.
+Les renvois Ganymède non rapprochés à un guide Atlas sont distingués
+par `GUIDE_UNMAPPED`. Aucune donnée n'est écrite dans les guides,
+aucune progression n'est modifiée et aucun prérequis/itinéraire n'est
+déduit de ces liens.
+
+La **prochaine validation** doit relier les candidats aux fiches de
+quête canoniques Atlas/Doduda et vérifier nom, version et objectifs
+contre DPLN et si besoin Tougli/JOL. En cas de divergence :
+`REVIEW` ou `BLOCKED`, sans basculer la nouvelle route #226.
+
+
+### Cinquième lot — premières dimensions, Île d'Otomaï et Ecaflipus
+
+Cinq guides supplémentaires ont leurs étapes et références structurées :
+**Enudorado 1** (29), **Ecaflipus 1** (48), **Otomaï 2** (7),
+**Xélorium 1** (27) et **Otomaï 3** (13).
+
+Le total passe à **24 guides sur 95**, pour **1 371 étapes sources
+inventoriées**. **71 guides** restent à inventorier. La vérification
+des correspondances de quêtes (nouvel audit) conserve tous ses résultats
+au statut `REVIEW_NUMERIC_ID_ONLY` tant que les données canoniques et
+les détails DPLN n'ont pas été recoupés. Aucun nouvel itinéraire Atlas
+n'est activé.
+
+
+### Premier rapprochement indépendant : Dofus Cawotte
+
+Recoupement effectué le 18 octobre 2026 sur les 11 quêtes principales du
+[Dofus Cawotte selon DPLN](https://www.dofuspourlesnoobs.com/dofus-cawotte.html).
+
+- **11/11 quêtes nommées** ont été rapprochées par leurs IDs de quêtes dans
+  DofusDB, par leur apparition dans les 64 étapes du guide Ganymède 2205,
+  et par leur présence dans les étapes du guide Atlas `dofus_cawotte`.
+- Les huit quêtes du succès « Rusé comme une Lenalde » correspondent aux
+  IDs 836 à 843 ; les trois du succès « Un Wa de pacotille » aux IDs
+  833 à 835. C'est une correspondance **nom + ID candidat** et non la
+  certification d'un ordre d'exécution ou des objectifs de ces quêtes.
+- Les quêtes 2193 (Un sage parmi les sages, prérequis) et 827
+  (Intrusion chez les wabbits, accès à l'île) sont distinguées des
+  **11 quêtes principales**.
+- Les références des deux donjons, des trois équipements du Wa et des
+  ressources DPLN sont conservées dans
+  `ganymede_dpln_cawotte_evidence.json` comme besoins de source,
+  **pas** comme courses immédiates de « À préparer ». Leur planification
+  dépendra de l'itinéraire et du nombre de personnages.
+- Atlas contient 39 étapes sur ce guide, avec des alternatives et du
+  contexte supplémentaire. Ce total ne peut être comparé directement
+  aux 11 quêtes du cœur du parcours ni aux 64 étapes éditoriales de Ganymède.
+
+L'audit `tools.audit_ganymede_quest_candidates` utilise automatiquement
+ces preuves et les distingue des autres intersections numériques sous le
+statut `REVIEW_TRIANGULATED_SOURCES`. Une source manquante, un ID absent
+du guide Atlas/Ganymède ou une prétention de certification erronée font
+échouer le contrôle. Les compteurs `certified_quest_mappings` et
+`certified_quest_objectives` restent à **0**.
+
+Étape encore requise pour l'exploitation par #226 : associer chaque
+quête à ses véritables objectifs Atlas/Doduda, leurs prérequis réels,
+les consommables utiles et leur étape d'acquisition, puis vérifier les
+branches facultatives et les déplacements multi-personnages.
+
+
+### Deuxième rapprochement indépendant : Dolmanax
+
+Les données publiques **DPLN / DofusDB / Ganymède / Atlas** concordent sur
+la quête **L'année du dragon**, ID 954. Le guide Atlas Dolmanax contient
+une étape de quête ID 954, citée dans l'étape source 2 de Ganymède 2248.
+
+La particularité du Dolmanax est documentée dans
+`ganymede_dpln_dolmanax_evidence.json` avec provenance et contraintes
+temporelles : **365 pages de calendrier**, au maximum **une offrande par jour**.
+Son statut de planification est
+`NON_BLOCKING_LONG_TERM_GOAL` : ne pas forcer 365 jours d'attente
+avant les autres guides, ne pas acheter automatiquement 365 offrandes
+sans calendrier, et suivre l'avancement **par personnage**.
+
+L'audit produit désormais **12 correspondances de noms/IDs recoupées**
+sur Cawotte et Dolmanax, toutes au statut
+`REVIEW_TRIANGULATED_SOURCES`. Il valide la forme des informations
+temporelles mais ne valide pas encore les objectifs précis ni le trajet.
+Le moteur #226 devra tenir compte de la limite journalière et du
+calendrier réel ; il ne doit pas déduire un nombre de jours restant
+depuis cette seule donnée.
+
+Références : [quête](https://www.dofuspourlesnoobs.com/lanneacutee-du-dragon.html),
+[calendrier](https://www.dofuspourlesnoobs.com/calendrier-de-lalmanax.html),
+[DofusDB quête 954](https://dofusdb.fr/fr/database/quest/954).
+
+### Sixième lot — neuf guides courts (18/10/2026)
+
+Inventaire des étapes factuelles et des liens sur les guides Ganymède : Sylvan Dofus (ID 2290, 2 étapes), Pine Done (2285, 4), Cloudy/Nébuleux (2247, 6), Argenté scintillant (2273, 15), Al Howin (2590, 16), Secret of the Dofus : Prologue (2284, 21), Sidimote 5 (2259, 25), Albatrocious Rock (2274, 26) et Srambad 1 (2244, 29).
+
+**Couverture : 33/95 guides, 1 515 étapes observées, 62 guides encore sans instantané d'étapes.** Les fichiers `ganymede_<ID>_observed_links.json` sont datés, validés sur le compteur d'étapes et non certifiés comme trajets. **Sylvan Dofus n'est pas le guide Atlas « Sylvestre Opti »** : aucune équivalence ne doit être déduite de la ressemblance de leurs noms.
+
+### Septième lot — neuf guides (18/10/2026)
+
+Servitude (2278, 29 étapes), Amber Ochre (2214, 30), Sidimote 3 (2235, 31), Valonia 2 (2265, 32), Destroyed (2282, 32), Dofus Ocre (2218, 33), Ecaflipus 3 (2258, 39), Corruption (2280, 40) et Crocuzko (2264, 40). **9 nouveaux guides / 306 étapes**, pour 42 guides et 1 821 étapes cumulées.
+
+### Huitième lot — huit guides (18/10/2026)
+
+Atoll of the Possessed (2291, 41), Evil Forest (2255, 43), Misery (2279, 43), Cania 2 (2232, 44), Vigilantes (2236, 45), Vulbis Dofus (2260, 47), Enudorado 2 (2238, 50), Sidimote 4 (2254, 52). **8 nouveaux guides / 365 étapes**, pour **50 guides sur 95, 2 186 étapes observées**, **45 guides sans instantané détaillé**. Les 52 étapes de Sidimote 4 ont été vérifiées sur deux pages sans trou. Les instantanés ne contiennent ni textes éditoriaux ni statut de quête certifié. L'audit des 12 correspondances nommées Cawotte/Dolmanax demeure distinct de ces observations.
+
+### Neuvième lot — huit guides avec pagination (18/10/2026)
+
+**Tous les guides suivants ont été parcourus sur deux pages, avec vérification continue de la numérotation :** War (2277, 53 étapes), Sidimote 2 (2225, 54), Bonta / Brakmar *introduction* (2226, 54), Future Fantastic (2275, 54), Dofus du Cauchemar (2283, 55), Six sur Six (2272, 56), Pandala 2 (2253, 59) et Cania 1 (2223, 60).
+
+**Couverture cumulée : 58/95 guides et 2 631 étapes de références**, 37 guides restant à inventorier en détail. Bonta/Brakmar 2226 est l'introduction et **ne remplace pas** les parcours d'alignement complets 2249 (774 étapes) et 2263 (696 étapes), qui nécessiteront leur propre couverture. Tous les nouveaux instantanés restent `OBSERVED_UNCLASSIFIED` ; les étapes et prérequis Atlas ne sont pas encore certifiés.
+
+### Dixième lot — huit autres guides sur deux pages (18/10/2026)
+
+Xélorium 2 (2241, 61), Dofus Tacheté (2271, 62), Dorigami (2221, 64), Royaume d'Amakna (2231, 65), Aube Pourpre / Crimson Dawn (2286, 65), Enudorado 3 (2239, 65), Nimaltopia (2229, 67) et Fleaster (2595, 67). **8 guides, 516 étapes**, chacune rattachée à la page et au numéro source.
+
+La couverture factuelle atteint **66/95 guides, 3 147 étapes observées**, avec **29 guides restant à parcourir en détail**. Les autres travaux (qualification des 12 noms de quêtes Cawotte/Dolmanax, prérequis, ID/objectifs canoniques Atlas, vérification DPLN et génération #226) demeurent des verrous indépendants. Ne pas convertir ces observations en ordre de trajet ni déduire leur caractère obligatoire.
+
+### Onzième lot — 17 guides de progression (18/10/2026)
+
+Toutes les étapes des guides suivants ont été relevées sur deux ou trois pages avec contrôle de continuité : After the Rain (2281, 69), Srambad 2 (2245, 71), Ohwymi 3 (2266, 71), Kingdom of Freezammer (2292, 72), Srambad 3 (2246, 73), Xélorium 3 (2243, 73), Ohwymi 2 (2222, 74), Ohwymi 1 (2210, 76), Cania 3 (2262, 79), Valonia 3 (2288, 79), Brotherhood of the Forgotten (2233, 87), Ecaflipus 2 (2257, 91), Osavora (3738, 97), Frigost 2 (2215, 101), Eliocalypse: Resonance (2268, 101), Kwismas (3795, 103) et Tree Hiding the Forest (2289, 112).
+
+**1 429 étapes observées supplémentaires, couverture cumulée 83/95 guides et 4 576 étapes**, restant 12 guides sources à inventorier. Le guide Eliocalypse a été relu entièrement après une limite de requêtes sur l'une de ses pages ; aucun instantané tronqué n'a été enregistré. Les grandes séries restantes comprennent notamment les alignements complets Bonta et Brâkmar. Aucune de ces observations n'est une validation de parcours ni un remplacement des guides Atlas.
+
+### Onzième lot — Vulkania (18/10/2026)
+
+Vulkania, guide source Ganymède 3737, a été parcouru sur **3 pages** avec **113 étapes numérotées sans trou**, liens factuels et mentions de coordonnées conservés sans rédaction externe. **Couverture cumulée : 84 guides sur 95, 4 689 étapes observées ; 11 guides restant sans instantané détaillé**. Domakuro et Pandala 3 n'ont pas été intégrés lors de cette collecte : consultation limitée ou première page vide. Aucun prérequis ni objectif Atlas n'est certifié par le simple référencement.
+
+### Douzième lot — Domakuro (18/10/2026)
+
+Le guide source Domakuro 2212 a été observé en entier : **120 étapes continues** sur **trois pages**. Liens publics et mentions de coordonnées sont archivés comme faits non classifiés, sans texte éditorial. **85 guides sur 95, 4 809 étapes observées, 10 guides non détaillés**. Les consultations d'Ébène et Forgelave ont été limitées ; aucun instantané partiel n'a été ajouté. Aucun objectif Atlas n'est certifié.
+
+### Treizième lot — Dofus Ébène (18/10/2026)
+
+Ganymède guide **2261 / Ébène : 142 étapes** publiques successives sur 3 pages. Fichier de références factuelles, aucune reproduction éditoriale et zéro certification d'objectif/route. Le lot porte l'inventaire à **86/95 guides / 4 951 étapes**, 9 guides restant à inventorier. Forgelave reste non détaillé : la consultation de sa deuxième page a été bloquée, et aucun instantané incomplet n'a été enregistré.
+
+### Quatorzième lot — Abyssal et Frigost 1 (18/10/2026)
+
+Le guide Ganymède **Dofus Abyssal 2269** est collecté sur 4 pages, **174 étapes** numérotées sans trou ; **Frigost 1 2213**, également sur 4 pages, **181 étapes**. Deux nouveaux instantanés de références factuelles non interprétées. **88/95 guides, 5 306 étapes** de liens sources observés, **7 guides non détaillés**. Le simple référencement d'une quête ne justifie ni son caractère obligatoire, ni ses prérequis, ni l'ordre du parcours ; la certification Atlas/DPLN reste distincte.
+
+### Quinzième lot — Quatre sur cinq (18/10/2026)
+
+Le guide Ganymède 2270 « Four Over Five » est observé sur **trois pages, 141 étapes** sans lacune. **89/95 guides, 5 447 étapes** de références factuelles ; **six guides** restent à détailler. Pandala 3 n'a pas été ajouté : la troisième page de source a été bloquée à la consultation, aucune donnée partielle n'étant considérée suffisante. Zéro itinéraire ou objectif Atlas certifié depuis ces simples liens.
+
+### Seizième lot — Pandala 1 (18/10/2026)
+
+Le guide public Ganymède **Pandala 1 / ID 2234** est documenté sur **5 pages, 212 étapes** numérotées sans trou. Couverture cumulée : **90 des 95 guides**, **5 659 étapes** de références observées, **5 guides** sans instantané : Pandala 3, Forgelave, Frigost complémentaire et les deux alignements Bonta/Brâkmar. Les descriptions externes ne sont pas importées et les actions ne sont pas classifiées comme objectives de quête certifiées.
+
+### Collecte des 95 guides terminée au niveau des références publiques — 18/10/2026
+
+Le corpus de références structurées couvre **95/95 guides, 7 705/7 705 étapes numérotées**. Le travail déjà intégré en parallèle a apporté Vulkania (113), Domakuro (120), Ébène (142), Abyssal (174), Frigost 1 (181) et Quatre sur cinq (141). Le dernier lot contient Forgelave (150), Pandala 3 (138), Pandala 1 (212), Frigost complémentaire (288), **Alignement Bonta complet (774)** et **Alignement Brâkmar complet (696)**. Les deux alignements sont distincts du guide d'introduction Bonta/Brâkmar ID 2226.
+
+Les gros guides ont été lus avec `stepsPerPage=250` ; l'outil de collecte supporte désormais explicitement `--steps-per-page 250` (50 par défaut) et ses tests couvrent ce choix. Chaque instantané contient uniquement les identifiants de liens, les coordonnées mentionnées, la provenance page/étape et la date, **jamais les textes éditoriaux ni des actions automatiquement obligatoires**.
+
+L'audit de couverture doit confirmer **95 sources et 7 705 étapes** au SHA final. Les contrôles d'identité des quêtes, d'objectifs, de prérequis, de branchement Bonta/Brâkmar et de ressources par personnage restent à réaliser avec Atlas/Doduda, DPLN et les sources croisées. Les **12 rapprochements nom/ID** Cawotte/Dolmanax restent en revue. Le planificateur #226 et la nouvelle interface #225 ne doivent pas consommer ces références comme des parcours certifiés. Garder la PR #229 en brouillon avant validation FULL.
+
+
+### Rapprochement avec les véritables données Doduda — outil CLI indépendant
+
+Le nouvel audit **`tools.audit_ganymede_doduda_ids`** parcourt les 95
+instantanés de références de quêtes et confronte chaque **ID numérique**
+à la table `RefIds` de `quests.json` issue de **l'installation canonique
+Doduda d'Atlas**. Il réutilise `QuestSources` et ses index sur disque avec
+répertoire temporaire libéré à la fin : pas d'importation des 72 Mo
+d'enrichissements dans la mémoire principale et aucune modification
+des quêtes, guides ni sauvegardes.
+
+Sur une installation disposant des données runtime :
+
+    python -m tools.audit_ganymede_doduda_ids --raw-quests CHEMIN/quests.json --output artifacts/guides/doduda_id_review.json
+
+Résultats strictement différenciés :
+
+- `PASS_RAW_ID_EXISTENCE_ONLY` : les numéros cités sont présents parmi
+  les `RefIds` canoniques ; **cela ne confirme aucun nom, aucune étape ni
+  aucun objectif**.
+- `REVIEW_RAW_ID_GAPS` : des références externes ne figurent pas dans
+  la version installée de Doduda ; investigation de version/correspondance
+  nécessaire.
+- `BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` : `quests.json` manque, donc
+  **aucune absence de quête n'est déduite** (code de sortie 2).
+- `FAIL` : index/snapshot invalide ou source canonique corrompue.
+
+Le dépôt source ne distribue pas `data/cache/dofus_maps/raw/doduda_cli/quests.json` ;
+une CI sans installation runtime ne peut **pas** déclarer le recoupement
+avec les données du jeu effectué. Les 7 tests utilisent une petite source
+Doduda factice pour prouver le classement, l'absence de fausse
+certification et le comportement en cas de fichier manquant.
+
+**Prochaine couche** : noms localisés via `languages/fr.json`, objectifs
+réels depuis `quest_steps.json` / `quest_objectives.json`, critères de
+lancement, branches OR, nombre de personnages, ressources et combats.
+Sans ces preuves, #226 ne doit pas réordonner les étapes.
+
+### Troisième rapprochement nominatif : Dokoko (5 quêtes)
+
+DPLN cite les cinq quêtes du succès **Koko Boy** ;
+DofusDB fournit les IDs 1666 à 1670. Les cinq références apparaissent
+également dans le guide Ganymède 2208 et dans les 5 quêtes du
+guide Atlas `dokoko`.
+
+Le nouvel inventaire `ganymede_dpln_dokoko_evidence.json` associe
+ces cinq noms et URLs à **`REVIEW_TRIANGULATED_SOURCES`** sans certifier
+les actions. Il conserve explicitement la variante de nom de l'ID
+1669 : DPLN « Squelettes et amulettes » / DofusDB
+« Squelettes et amulette » ; la version localisée Doduda reste à contrôler.
+Les préparations DPLN (1 Casque, 1 Ailes en bois, donjons Village
+Kanniboul / Bateau du Chouque / Arbre de Moon, combats) sont listées
+comme besoins de source **et non comme achats ou combats à programmer
+sans contrôle**.
+
+Cela porte à **17** le nombre de références nominatives recoupées :
+11 Cawotte, 1 Dolmanax, 5 Dokoko ; zéro objectif ni itinéraire certifié.
+
+Références : [quêtes du Dokoko](https://www.dofuspourlesnoobs.com/quecirctes-du-dokoko.html),
+[succès Koko Boy](https://www.dofuspourlesnoobs.com/koko-boy.html),
+[guide public Ganymède 2208](https://ganymede-app.com/guides/2208).
+
+
+### Quatrième rapprochement nominatif : Dofus Émeraude (8 quêtes)
+
+DPLN liste **huit quêtes** du succès « Vert émeraude ».
+Les IDs DofusDB **1463, 1464, 1465, 1466, 1467, 1469, 1470, 1471**
+ont été recoupés par nom et numéro avec les 52 étapes Ganymède 2211
+et le guide Atlas `dofus_emeraude`. Les huit quêtes figurent dans
+les deux collections d'IDs ; le guide Atlas demeure « partial »
+car il inclut d'autres contextes et alternatives.
+
+Le fichier `ganymede_dpln_emeraude_evidence.json` conserve séparément
+les **ressources**, **dragodindes**, **donjon**, **captures d'âmes**,
+**succès préalables**, **métiers** et les classes de combats
+(**7 en groupe**, **1 tactique seul**, **4 seuls**, autres aléatoires)
+indiquées dans le récapitulatif de DPLN. Les prérequis du succès
+« Mais où sont les Dofus ? » restent à développer en quêtes
+canoniques vérifiées.
+
+Ces informations de source ne sont pas une liste d'achats, ne
+valident pas les objectifs et ne prennent pas encore en charge les
+quantités par personnage. Le futur #226 devra dédupliquer et
+positionner les préparations au bon moment avant l'UI #225.
+
+Cela porte à **25 correspondances de noms/IDs recensées** :
+11 Cawotte, 1 Dolmanax, 5 Dokoko et 8 Émeraude,
+**aucun objectif ni route certifié**.
+
+Sources : [Dofus Émeraude DPLN](https://www.dofuspourlesnoobs.com/dofus-emeraude.html),
+[Vert émeraude](https://www.dofuspourlesnoobs.com/vert-eacutemeraude.html),
+[guide Ganymède 2211](https://ganymede-app.com/guides/2211).
+
+
+### Cinquième rapprochement nominatif : Dofus Pourpre (8 quêtes principales)
+
+La page DPLN « Quêtes du Dofus Pourpre » distingue **huit quêtes**
+du succès « Pourpre profond ». Les IDs DofusDB **1521, 1522, 1523,
+1524, 1525, 1526, 1528 et 1529** sont tous présents dans les
+**45 étapes observées** de Ganymède 2276 et dans le guide Atlas
+`dofus_pourpre`. Les noms ont été confrontés avec DofusDB.
+
+**Ne pas confondre les références avec les obligations :**
+Ganymède 2276 cite aussi l'ID 1527 « Comment perdre ses plumes »,
+quête annexe listée séparément dans DPLN, ainsi que l'ID 2538
+« Chasse au trésor archéologique ». Ce dernier n'est pas présent dans
+les quêtes actuellement positionnées par le guide Atlas Pourpre et sa
+place réelle dans le parcours principal reste **non vérifiée**.
+Le fichier `ganymede_dpln_pourpre_evidence.json` les conserve
+dans `non_main_references` avec les statuts
+`SIDE_QUEST_NOT_IN_EIGHT_DPLN` et `CONTEXT_UNCLASSIFIED`.
+
+Le validateur `tools.audit_ganymede_quest_candidates` exige que ces
+références soient réellement observées dans la source, signale
+séparément leurs numéros d'étapes et leur éventuelle présence dans
+le guide Atlas, et **refuse** tout classement simultané comme quête
+principale. Les quêtes annexes et de contexte ne sont pas
+converties en prérequis obligatoires ni ajoutées au guide.
+
+Les besoins DPLN sont consignés **hors actions de guide** :
+1 Tige de Bambouto, 1 Tête de mort ; trois combats solo,
+deux combats réalisables en groupe, un combat tactique solo,
+et les cinq donjons cités par DPLN. L'affichage « À préparer »
+de #225 ne devra présenter que les besoins non déjà planifiés
+dans l'itinéraire #226, avec les quantités adaptées aux personnages.
+
+**Rapprochement cumulé : 33 noms/IDs candidats** (Cawotte 11,
+Dolmanax 1, Dokoko 5, Émeraude 8, Pourpre 8) ;
+**zéro objectif, prérequis de quête ou trajet certifié**.
+
+Sources : [DPLN : quêtes du Pourpre](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-pourpre.html),
+[Pourpre profond](https://www.dofuspourlesnoobs.com/pourpre-profond.html),
+[guide Ganymède 2276](https://ganymede-app.com/guides/2276).
+
+
+### Vérification des noms français dans la source canonique Doduda
+
+Nouvel audit **en lecture seule** `tools.audit_ganymede_canonical_names` :
+il prend uniquement les correspondances de quêtes déjà qualifiées
+`REVIEW_TRIANGULATED_SOURCES` et compare leur nom DPLN au nom
+français effectivement disponible dans **l'installation Doduda d'Atlas**.
+Les noms sont lus depuis `quests.json/RefIds/nameId` et
+`languages/fr.json/entries` via le lecteur à index sur disque
+`QuestSources` déjà utilisé par Atlas. Cette opération ne charge
+pas les données enrichies de 72 Mo, ne modifie pas les données du jeu,
+ni la progression ni le moteur des guides.
+
+Commande avec des données Doduda installées :
+
+    python -m tools.audit_ganymede_canonical_names --raw-quests CHEMIN/quests.json --french-language CHEMIN/languages/fr.json --output artifacts/guides/canonical_name_review.json
+
+États autorisés : `PASS_CANONICAL_NAMES_ONLY` lorsque tous les
+**noms** correspondent (et seulement les noms), `REVIEW_CANONICAL_NAME_GAPS`
+lorsqu'un nom diffère ou reste indisponible,
+`BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` si la source locale n'est
+pas présente (code 2, **pas** considéré comme absence de quête),
+ou `FAIL` pour des données illisibles/non certifiées en amont.
+
+Dans tous les états :
+`candidate_identity_confirmed=false`,
+`required_quest_objectives_confirmed=false` et
+`certified_routes=0`. Un nom identique ne garantit pas que les
+objectifs, critères d'accès, coordonnées ou besoins matériels soient
+corrects ; ces vérifications sont indispensables pour l'optimiseur #226.
+Six nouveaux tests avec des données Doduda factices couvrent l'égalité
+des noms, variantes, absence de localisation/source, conflit d'ID
+canonique et le refus des instantanés non validés.
+
+Le dépôt GitHub ne contient pas les fichiers bruts Doduda installés :
+il serait **trompeur** d'affirmer les 33 noms confirmés par le jeu tant
+que cet audit n'a pas été exécuté avec les fichiers runtime réels.
+
+
+### Sixième rapprochement nominatif : Dofus Turquoise (10 quêtes)
+
+Le succès DPLN **Bleu turquoise** comporte **10 quêtes
+principales**. Les quêtes ayant les IDs DofusDB 1653, 1654,
+1656, 1657, 1658, 1659, 1660, 1661, 1662 et 1663
+sont toutes référencées dans les 87 étapes Ganymède 2217
+et présentes comme étapes de quêtes dans le guide Atlas
+`dofus_turquoise`. Les noms DPLN et DofusDB ont été recoupés.
+
+La source Ganymède contient aussi le lien vers la quête 1462
+« La magicienne des marécages » : ce lien est aussi présent
+dans le guide Atlas, mais il ne figure **pas** parmi les dix
+quêtes du succès Bleu turquoise. Il est donc déclaré
+`CONTEXT_UNCLASSIFIED`, pas « objectif obligatoire ».
+La quête spéciale « L'ombre et la proie » est également
+mentionnée séparément par DPLN et ne doit pas être assimilée
+à une onzième quête du succès sans vérification d'identité.
+
+Dans `ganymede_dpln_turquoise_evidence.json` sont consignés
+à titre de **données de source non activées** les besoins
+globaux DPLN (notamment 600 Pépites, 15 Os de Sramouraï,
+10 Plumes de Gobvious), les types de combats (3 seuls,
+6 possibles en groupe, 2 tactiques seuls, autres aléatoires)
+et les **12 passages de donjon** mentionnés par DPLN.
+Les altérations/anciennes appellations « idoles »
+nécessitent une validation de version avant toute
+automatisation dans #226. Aucun achat automatique ni
+multiplication des ressources par personnage sans évaluation
+des objectifs réels n'est autorisé.
+
+**Total des noms/IDs candidats recoupés : 43**
+(Cawotte 11, Dolmanax 1, Dokoko 5, Émeraude 8,
+Pourpre 8, Turquoise 10). Aucune de ces égalités ne constitue
+une certification des objectifs ou des itinéraires.
+
+Sources : [DPLN Turquoise](https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-turquoise.html),
+[Bleu turquoise](https://www.dofuspourlesnoobs.com/bleu-turquoise.html),
+[guide Ganymède 2217](https://ganymede-app.com/guides/2217).
+
+
+### Contrôle indépendant des liens Doduda quête → étape → objectif (18/10/2026)
+
+`tools/audit_ganymede_doduda_objective_links.py` inspecte, **en lecture seule**,
+les IDs des quêtes nominativement recoupées, leurs `stepIds` depuis
+`quests.json`, les lignes de `quest_steps.json` et les IDs/types d'objectifs
+associés via `quest_objectives.json`. L'outil conserve uniquement les
+références brutes, les IDs des types de combat utilisés par Atlas et le
+`startCriterion` **non interprété**. Les données source Doduda ne figurent
+pas dans le dépôt public et doivent être présentes dans une installation réelle.
+
+Commande avec Doduda installé :
+
+    python -m tools.audit_ganymede_doduda_objective_links --raw-dir CHEMIN/doduda_cli --output artifacts/guides/doduda_objective_review.json
+
+Il réutilise `QuestSources` avec des index temporaires sur disque, hors
+interface et hors lancement d'Atlas. Le résultat est classé
+`PASS_RAW_STRUCTURE_ONLY`, `REVIEW_RAW_STRUCTURE_GAPS`,
+`BLOCKED_CANONICAL_SOURCE_UNAVAILABLE` (code de sortie 2) ou `FAIL`.
+**Même PASS ne certifie ni obligations, ni quantités d'objets, ni
+conditions `Qf/Qa/Sc/OR`, ni ordre optimisé, ni progression réelle.**
+
+Neuf tests ciblés couvrent les sources absentes/corrompues, quêtes et
+étapes manquantes, objectifs manquants, types de combat bruts, références
+invalides et refus de transformer une quête extérieure en obligation.
+
+Le moteur #226 reste bloqué jusqu'au recoupement des prérequis et
+objectifs réellement interprétés ; la présentation #225 ne doit pas
+convertir ces constats d'audit en tâches « À préparer ».
+
+
+### Registre unique par IDs — Ganymède + Atlas + DPLN (18/10/2026)
+
+La commande `tools.build_ganymede_id_registry` rassemble **toutes les
+références d'IDs typés** des 95 instantanés Ganymède, des **26 guides
+Atlas** listés dans `catalog.json`, et de chaque dossier de preuves DPLN.
+
+    python -m tools.build_ganymede_id_registry --output artifacts/guides/by_id_review.json
+
+Le rapport regroupe séparément sous `quest_by_id`, `dungeon_by_id`,
+`object_by_id` et `monster_by_id` : un ID de monstre ne peut jamais
+devenir un ID de quête/objet, même si sa valeur numérique est la même.
+
+Chaque quête conserve **toutes** les apparitions Ganymède (guide,
+étape et page), **toutes** les occurrences Atlas (guide, section, étape,
+caractère facultatif, dépendances déclarées, groupes `OR`) ainsi que
+les preuves DPLN (quête principale, prérequis d'accès ou référence
+annexe/contextuelle). Les liens guide Ganymède → guide Atlas sont
+identifiés comme **indices** de correspondance, pas comme équivalences
+de quêtes certifiées.
+
+Les besoins matériels, combats, donjons, métiers, montures et contraintes
+de calendrier de DPLN sont conservés **au niveau de leur guide source**.
+Une référence Ganymède à une quête ne les attribue pas automatiquement
+à cette quête. Aucun approvisionnement « À préparer » automatique,
+aucune multiplication par personnage, aucune progression ni donnée
+utilisateur modifiée.
+
+Huit tests ciblés couvrent les collisions de nombres entre types
+d'entités, les occurrences répétées, les références entre guides,
+le maintien du `optional/OR`, les données malformées, les besoins au bon
+niveau et la couverture complète du dépôt réel. Le statut est
+`REVIEW_REQUIRED` ou `FAIL`, jamais « route certifiée ».
+
+**Prochaine couche :** confronter chaque déclaration de prérequis Atlas,
+ses groupes alternatifs et le `startCriterion` canonique Doduda, en
+respectant les expressions `AND/OR` plutôt que d'exiger toutes les
+branches.
+
+
+### Dépendances et prérequis par ID — audit non destructif
+
+Outil `tools.audit_ganymede_prerequisites` : part du registre unique
+par ID, puis regroupe **pour chaque quête** ses déclarations de prérequis
+provenant des 26 guides Atlas (en conservant le guide, l'étape,
+`optional`, `relation`, les groupes `OR` et le type `quest` ou
+`achievement` de chaque référence). Conserve séparément **les
+prérequis d'un guide Ganymède** : une dépendance *entre guides*
+ne peut devenir une quête à faire par chaque personnage.
+
+Avec les véritables données runtime Doduda, le même outil lit
+`startCriterion` via l'index disque d'Atlas et produit les **branches
+alternatives** de l'expression : `A&(B|C)` donne exactement
+`[A,B]` **ou** `[A,C]`, et jamais trois tâches obligatoires.
+Les atomes `Qf`, `Qa`, `Sc` et `PL` sont étiquetés pour
+contrôle ; les autres restent `OPAQUE_UNINTERPRETED`, sans
+déduction. Les expressions invalides, imbriquées abusivement ou
+dépassant 64 branches sont classées `REVIEW_UNPARSED`.
+C'est une lecture des **conditions** et non leur satisfaction
+chez un personnage.
+
+    python -m tools.audit_ganymede_prerequisites --output artifacts/guides/prerequisites_by_id.json
+    python -m tools.audit_ganymede_prerequisites --raw-quests CHEMIN/doduda_cli/quests.json --output artifacts/guides/prerequisites_doduda_review.json
+
+Sans `quests.json`, le rapport indique
+`REVIEW_ATLAS_ONLY_CANONICAL_UNAVAILABLE` et conserve
+l'audit Atlas ; avec les données, il indique
+`REVIEW_RAW_AND_ATLAS_PREREQUISITES`. Les références locales
+vers des quêtes non présentes dans le registre sont listées
+comme lacunes à investiguer, **pas créées fictivement**.
+Les `13 tests` contrôlent la priorité de `&`/`|`, les
+parenthèses, les branches alternatives, les jetons inconnus,
+les fichiers manquants/corrompus et le caractère non obligatoire
+des alternatives.
+
+Les champs `verified_required_quests`,
+`verified_required_achievements`, `verified_required_objects`
+restent vides ; `satisfied_for_any_character` reste `null`.
+La certification des vrais objectifs, des ressources et des
+préparations multi-personnages requiert toujours la vérification
+de la sémantique jeu/version, des consommations effectives,
+des objets déjà possédés et des combats. Il est interdit
+de brancher directement les résultats non vérifiés à la
+liste « À préparer » ou d'activer l'optimiseur #226.
+
+
+### Remplacement des parcours Dofus — contrat corrigé (18/10/2026)
+
+**BUT : vider les anciens parcours Dofus visibles et les remplacer par le suivi CONTINU de chaque étape Ganymède**, et non fusionner l'ancien parcours V4 avec une liste de nouvelles quêtes. La séquence source fait référence, Atlas fournit les véritables actions et le suivi par personnage. Chaque occurrence numérotée conserve son identité `ganymede_guide_id + source_step_number`, même lorsqu'elle évoque plusieurs fois la même quête. Aucun texte éditorial Ganymède n'est reproduit sans autorisation.
+
+**État exact du corpus :** 95/95 guides sources, 7 705 étapes numérotées de liens/coordonnées, mais zéro ensemble de fiches d'actions reconstruites et prouvées. Les sources manquent encore des actions concrètes vérifiées dans Doduda/DPLN ; les snapshots ne sont PAS des remplacements complets. La priorité #229 consiste désormais à construire ces fiches originales, ensuite #226 substituera les étapes actives et #225 les affichera.
+
+**Couverture de remplacement actuelle :** catalogue Atlas = 22 guides de catégorie `dofus`, dont 20 ont une correspondance Ganymède directe dans le crosswalk `metadata_only` ; `dofoozbz` et `dokille` n'en ont pas et requièrent recherche avant toute suppression. Le guide aventure **Sylvestre Opti** est distinct : conserver son identité et son parcours tant qu'aucune transformation explicite n'est certifiée.
+
+Un contrôle de non-effacement `tools.audit_ganymede_replacement_readiness` inventorie par ID les 22 guides, les fichiers historiques et sources, et met `ready_to_replace=false` pour tout contenu ne possédant que des références :
+
+    python -m tools.audit_ganymede_replacement_readiness --output artifacts/guides/replacement_readiness.json
+
+**Conditions de bascule future par guide :** N/N étapes complètes dans l'ordre source, actions Atlas originales avec ID de quête/objectif valide, prérequis et choix vérifiés, sauvegarde/rollback de l'ancien guide, migration explicite des `manual_steps` par personnage, suivi Actuelle/Suivant/Précédent jusqu'à la dernière étape, tests offline et multi-personnages. Ne pas supprimer `sections[].steps` tant que toutes ces garanties ne sont pas démontrées. Après bascule, ne plus montrer les anciens pas dans l'UI.
+
+Les tests `tests/test_ganymede_replacement_readiness.py` contrôlent l'interdiction de remplacer avec des snapshots partiels, les guides sans correspondance, la conservation des sauvegardes et le cas d'un ancien guide invalide.
+
+
+### Remplacement continu : 20 nouveaux parcours Dofus préparés (18/10/2026)
+
+Le générateur `tools.build_ganymede_replacement_previews` fournit
+**20 guides Dofus reconstruits en séquences numérotées Ganymède**,
+soit **1 694 fiches de suivi stables**. Les fichiers de prévisualisation
+versionnés se trouvent dans
+`data/encyclopedia/guides/replacement_drafts/<atlas_guide_id>.json`.
+Chaque guide conserve son **ID Atlas** mais ses fiches internes
+suivent seulement les étapes Ganymède
+`ganymede_<source_guide_id>_step_<nnnn>` de 1 à N ;
+aucune ancienne fiche Atlas n'est recopiée dans la nouvelle
+séquence. Les coordonnées, IDs DofusDB (quête / donjon / objet /
+monstre), pages sources, références de quêtes locales, dépendances
+déclarées et alternatives sont conservés **avec leur provenance**.
+
+Les **22 guides Dofus actuels** sont tous conservés à l'identique en
+production ; **20** disposent d'une source Ganymède directe et
+**2** (`dofoozbz`, `dokille`) n'ont pas encore de parcours direct.
+Ces deux guides ne sont pas désactivés et aucun guide n'est vidé
+avant certification et bascule atomique.
+
+**Limitation explicite non négociable :** les 1 694 fiches sont des
+ébauches structurelles, **pas 1 694 actions jouables**. Les fichiers
+sources Ganymède collectés contiennent les liens/coordonnées
+observés, mais **pas leurs consignes éditoriales ni les objectifs
+canoniques de chaque action**. On ne peut pas déduire « Parler à X »,
+« Faire le combat Y » ou « Acheter Z » d'un simple lien de quête.
+Ainsi, chaque fiche possède `verified_actions=[]`,
+`manual_completion_allowed=false`, `auto_completion_allowed=false`,
+et chaque guide `replacement_status=DRAFT_NOT_PLAYABLE` /
+`replacement_active=false`. Les fichiers vivent dans
+`replacement_drafts/` et ne sont **pas** dans le catalogue actif.
+
+Reproduire / inspecter le résultat sans écraser les anciens guides :
+
+    python -m tools.build_ganymede_replacement_previews --output-dir artifacts/guides/replacement_drafts --report artifacts/guides/replacement_preview_report.json
+
+Les tests `test_ganymede_replacement_previews.py` vérifient la
+numérotation continue, les IDs stables, les 20 guides / 1 694 fiches,
+les références canoniques locales, l'exclusion des deux guides sans
+source, le maintien des progressions et le refus d'une source invalide
+ou d'une écriture dans le répertoire actif.
+
+**Pour activer une bascule :** (1) reconstituer **chaque action
+originale** à partir des données de jeu/Doduda/Atlas recoupées,
+sans reprendre le texte éditorial tiers ; (2) vérifier les
+prérequis et branches OR par ID, les combats, objets et itinéraires
+dans le contexte des personnages ; (3) intégrer les fiches au
+moteur #226 et la navigation/progression #225 ; (4) assurer
+une migration des validations existantes, par personnage, qui ne
+transforme jamais une ancienne validation en nouvelle fiche achevée
+sans preuve ; (5) certifier toutes les étapes et faire **une seule
+bascule réversible** par guide. Ne jamais afficher une fiche vide
+ou un parcours parallèle à l'ancien guide comme s'il était prêt.
+
+
+### Bascule atomique côté GuideProvider — une seule séquence (18/10/2026)
+
+Le chargeur de guides Atlas dispose maintenant d'un sélecteur
+`guide_ganymede_cutover.select_verified_replacement_path` : sur
+une entrée du catalogue Dofus, il conserve l'ancien fichier ou
+sélectionne **à la place** le nouveau fichier correspondant
+dans `replacement_drafts`. Il ne charge jamais les deux
+séquences comme deux guides pour un même ID.
+
+La bascule est **désactivée par défaut** et échoue en mode
+fermé : aucun `replacement_drafts/cutover_manifest.json` n'est
+livré. Une déclaration future doit porter
+`CERTIFIED_FOR_CUTOVER`, l'ID de guide source, le compte exact
+des étapes, l'empreinte du parcours et une migration de
+progression **par personnage** explicitement vérifiée.
+
+Avant toute activation, le sélecteur impose aussi une fiche
+canonique **exécutable et vérifiée pour chacune des étapes** :
+ID source stable et consécutif, `verified_actions` non vide,
+preuve d'action, progressions vérifiées, même ID du guide Atlas,
+et aucune copie du texte éditorial Ganymède. Les ébauches
+actuelles `DRAFT_NOT_PLAYABLE` échouent volontairement à
+ce contrôle, donc la nouvelle UI n'affichera pas de fausses
+actions.
+
+Dix tests indépendants couvrent le retour à l'ancien guide,
+la migration absente, les fiches vides, l'ordre incorrect,
+l'empreinte incompatible, la non-réécriture du progrès et
+l'interdiction des chemins de fichiers dangereux.
+
+**L'objectif final reste le remplacement total des anciens
+parcours Dofus**, pas une coexistence ou un catalogue de
+squelettes. Il reste à reconstruire et certifier les consignes
+de jeu originales de chaque étape grâce à nos données et à
+la source Ganymède, puis à activer le suivi continu #226/#225
+à mesure que chaque guide devient vraiment jouable.
+
+
+### Connexion des actions Cawotte au nouveau parcours continu (18/10/2026)
+
+Les **20 premières étapes Cawotte (Ganymède 2205)** ont
+un dossier séparé de **53 actions factuelles candidates** :
+`ganymede_2205_action_candidates.json`. Le générateur
+`tools.build_ganymede_replacement_previews` l'intègre
+désormais dans les **mêmes fiches stables**,
+`ganymede_2205_step_0001` à `0020`, aux champs
+`source_action_candidates` et `source_action_candidate_status`.
+Les **44 suivantes** gardent la séquence mais restent à
+reconstruire. Le fichier de prévisualisation
+`replacement_drafts/dofus_cawotte.json` est synchronisé avec
+ces 20 fiches.
+
+Avant l'intégration, le générateur exécute l'audit
+`tools.audit_ganymede_step_actions` : les liens de quêtes,
+d'objets, de guides et coordonnées doivent exister dans l'étape
+source et ne peuvent être inventés. Les libellés français
+de ces actions sont originaux et devront être recoupés aux
+objectifs réels Doduda / Atlas, dont certains diffèrent selon
+la version.
+
+**Aucune de ces 29 actions n'est certifiée** : leurs fiches
+gardent `verified_actions=[]`,
+`manual_completion_allowed=false` et
+`replacement_active=false`. Cette source de review
+ne satisfait pas les conditions de bascule atomique.
+Les tests du générateur vérifient explicitement les
+**20 étapes candidates / 53 actions / 44 étapes restantes**
+et l'absence de validation de progression induite.
+
+### Synchronisation Cawotte, Émeraude et Dolmanax — 125 fiches (18/10/2026)
+
+Le générateur n'utilise plus qu'un seul ensemble d'actions candidates par étape, audité par `tools.audit_ganymede_step_actions` avec contrôle des IDs DofusDB et des coordonnées de source. Les trois routes Dofus stockées dans `replacement_drafts` sont à jour : **Cawotte 64 étapes / 191 actions candidates**, **Émeraude 52 / 179**, **Dolmanax 9 / 23**, soit **125 étapes et 393 actions candidates**. Le test de parité régénère chaque parcours depuis les données sources et interdit toute divergence du nombre d'étapes, de leur identité, de leurs actions ou de leur statut de validation. Les objectifs canoniques Doduda et les prérequis réels restent non certifiés ; aucun ancien parcours ou état des personnages n'a été effacé, `replacement_active=false` dans tous les fichiers.
+
+
+### Consolidation du corpus Dofus Ganymède — 19 octobre 2026
+
+Les 20 brouillons Dofus directement appariés à Ganymède disposent
+désormais chacun d'un fichier `ganymede_<id>_action_candidates.json`.
+Les **1 694 étapes sur 1 694** ont des propositions d'actions associées et
+une séquence numérotée intégrée aux brouillons
+`replacement_drafts/<atlas_guide_id>.json`. Aucun ancien guide actif
+n'a été supprimé et la progression par personnage n'a pas été migrée.
+
+Deux degrés de preuve **distincts** sont enregistrés :
+
+* **338 étapes examinées comme faits de source** : Cawotte, Émeraude,
+  Dolmanax, Dokoko, Pourpre, Vulbis, Tacheté, Nébuleux et Dom de Pin.
+  Les actions sont des candidats factuels, **pas** des objectifs Doduda certifiés.
+* **1 356 étapes avec indices extraits automatiquement** : Argenté,
+  Veilleurs, Domakuro, Turquoise, Dorigami, Dofus des Glaces, Ivoire,
+  Ébène, Abyssal, Forgelave et Cauchemar. Elles sont marquées
+  `AUTO_EXTRACTED_NEEDS_REVIEW` : descriptions incomplètes ou mal
+  classées possibles, certaines fiches contenant un signal explicite
+  `requires_manual_review`. Une extraction n'équivaut jamais à une revue.
+
+Le contrôle `tests/test_ganymede_all_dofus_draft_action_parity.py` exige
+un nombre identique d'étapes/IDs/actions dans les preuves sources, les
+brouillons stockés et le générateur, tout en interdisant la validation
+manuelle, l'achèvement automatique et l'activation du remplacement.
+
+**Ce qui reste obligatoirement à faire avant toute bascule** : vérifier
+chaque action et son lien réel aux quêtes, étapes et objectifs Doduda ;
+corriger les actions auto-extraites, distinguer combats optionnels,
+sources alternatives et conditions AND/OR ; certifier ressources,
+quantités et transitions, puis migration sûre des progressions
+multi-personnages. `dofoozbz` et `dokille` restent sans correspondance
+Ganymède directe. Les vérifications runtime Doduda exigent ses fichiers
+bruts installés, non présents dans le dépôt.
+
+La séquence de travail reste **#229 → #226 → #225**, sans fusion ni
+remplacement des anciennes fiches avant une vraie certification au SHA.
+Le fait d'avoir 100 % des positions sources **ne signifie pas** disposer
+de 100 % des fiches jouables.
+
+### Sécurité effective de la bascule — contrôle du 19/10/2026
+
+Le générateur de cutover ne peut plus convertir de simples `source_action_candidates`, y compris les indices extraits automatiquement, en guide jouable : un libellé ou une position ne prouve ni l'objectif Doduda ni le prérequis. **Chaque étape** doit maintenant disposer de `verified_actions` non vides, d'une preuve associée, de `source_action_review_status = CERTIFIED_CANONICAL_ACTIONS`, et le guide doit présenter `legacy_manual_steps_migration_verified = true`, `guide_progress_id_unchanged = true` et **zéro** `cutover_blockers`. Le sélecteur runtime refuse les anciens manifests `TRUSTED_SOURCE_CUTOVER` capables de contourner cette preuve et exige `CERTIFIED_FOR_CUTOVER` avec empreinte du payload.
+
+**État : zéro guide déclaré jouable par ces seuls brouillons.** Les fichiers `replacement_drafts` sont des outils de travail pour reconstituer, croiser et tester les actions, pas des commandes de jeu. L'activation future est soumise à la vérification des 1 694 étapes des 20 guides Dofus correspondants, aux prérequis/alternatives, à la migration de progression par personnage, puis aux tests UI et CI. Ne pas contourner le contrôle pour afficher prématurément les 95 guides dans #225.
+
+
+### Accueil Atlas — inventaire classé de 95 sources sans fausses fiches (19/10/2026)
+
+Le fichier généré `data/encyclopedia/guides/ganymede_home_catalog.json` classe **une seule fois** chacun des 95 IDs publics Ganymède et conserve son titre, URL réelle, niveau, nombre d'étapes, prérequis inter-guides et éventuel(s) ID(s) Atlas apparentés. Générateur `python -m tools.build_ganymede_home_catalog --check` ; tests `tests.test_ganymede_home_catalog` pour couverture 95/95, absence de doublon, cohérence du catalogue et catégorie unique.
+
+**Disposition approuvée pour #225, sans déplacer les blocs existants** : optimisés puis alignements à gauche, Dofus à droite ; trois paires de sous-menus sous les blocs : Dimensions divines/Eliocalypse, Zones et régions/Événements, Autres aventures/Îles et territoires. Chaque paire garde ses deux colonnes alignées lors de l'ouverture indépendante des sous-menus.
+
+Les **7 705 étapes dénombrées restent des étapes SOURCES répertoriées**, et `source_status=metadata_only`, `playable=false`, `launch_enabled=false` s'appliquent sans exception aux 95 entrées. **Ce générateur ne remplace aucune fiche et n'active aucun bouton de lancement.** La #225 devra ouvrir uniquement une vraie fiche Atlas validée par le moteur, après #229 (preuves d'actions/prérequis, migration de progression par personnage) et #226 (chemins optimisés), sans doublonner les guides Dofus/Alignements déjà visibles en haut.

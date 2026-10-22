@@ -58,7 +58,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.card = card
         self.index = index
         self._quest_rows = self._canonical_quest_rows()
-        self._shown_quest_map_links: set[tuple[int, str]] = set()
+        # One visible quest shortcut per quest and per rendered guide sheet.
+        self._shown_quest_ids: set[int] = set()
         self._resource_names = self._clickable_resource_names(service, card)
         self._combat_targets: list[dict[str, Any]] = []
         self._rendered_combat_keys: set[tuple[int, int]] = set()
@@ -273,6 +274,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         heading.setObjectName("GuideManualSectionTitle")
         layout.addWidget(heading)
 
+        combat_heading_added = False
         for row in visible:
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
@@ -329,7 +331,13 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 self._add_inline_quest_links(row_layout, row)
             layout.addWidget(row_widget)
 
-            for target in self._combat_targets_for_row(row, section_key):
+            combat_targets = self._combat_targets_for_row(row, section_key)
+            if combat_targets and not combat_heading_added:
+                combat_heading = QLabel("Faire les combats :")
+                combat_heading.setObjectName("GuideManualCombatTargetsTitle")
+                layout.addWidget(combat_heading)
+                combat_heading_added = True
+            for target in combat_targets:
                 self._add_combat_target(layout, target)
 
         root.addWidget(frame)
@@ -553,13 +561,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         quantity = int(target["quantity"])
         monster = str(target["monster"])
         quest_name = str(target["quest_name"])
-        text = f"{quantity} × {monster}"
-        if quest_name:
-            text += f" — {quest_name}"
-        checkbox = QCheckBox(text)
+        # The source objective supplies the quantity and monster identity.
+        # Keep the action legible: quest identity belongs in the tooltip.
+        checkbox = QCheckBox(f"×{quantity} {monster}")
         checkbox.setObjectName("GuideManualCombatCheck")
-        # Long quest names must not impose their unbounded sizeHint on the
-        # complete route sheet. The full label remains available as text and
+        # Long monster names must not impose their unbounded sizeHint on the
+        # complete route sheet. The full context remains available in the
         # tooltip while the row follows the viewport width.
         checkbox.setMinimumWidth(0)
         checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
@@ -578,8 +585,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         )
         checkbox.setChecked(checked)
         checkbox.setProperty("state", "done" if checked else "todo")
+        tooltip = f"×{quantity} {monster}"
+        if quest_name:
+            tooltip += f" — {quest_name}"
         checkbox.setToolTip(
-            f"{text}\nProgression partagée avec l’objectif de la fiche Quête."
+            f"{tooltip}\nProgression partagée avec l’objectif de la fiche Quête."
         )
         checkbox.toggled.connect(
             lambda value, qid=quest_id, oid=objective_id, box=checkbox: self._combat_toggled(
@@ -597,6 +607,22 @@ class SharedGuideManualView(GuideUltimeManualView):
     """Canonical manual road-book renderer reusable by Guide Succès and Lanyel."""
 
     ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
+
+    def _clear_cards(self) -> None:
+        """Detach prior sheets immediately; Qt may defer their destruction.
+
+        Removing the layout item alone leaves the old sheet as a visible child
+        until DeferredDelete is processed. Rapid page changes then temporarily
+        paint both old and new guide pages.
+        """
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        self.rendered_card_count = 0
 
     def _build_ui(self) -> None:
         self.filter_mode = "Tout"

@@ -1,0 +1,1983 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_cawotte",
+  "source_guide_id": 2205,
+  "source_url": "https://ganymede-app.com/guides/2205",
+  "reviewed_on": "2026-10-18",
+  "source_step_count": 64,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2205_step_0001",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        25,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "guide_id": 2204,
+          "label": "Contrôler le parcours d'accès aux Dofus"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "quest_id": 827,
+          "label": "Contrôler l'accès aux Wabbits"
+        },
+        {
+          "kind": "quest_prerequisite",
+          "quest_id": 2193,
+          "label": "Contrôler le préalable du sage"
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2205_step_0002",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "object_id": 361,
+          "quantity": 1,
+          "label": "Cawotte pour la quête gastronomique",
+          "quest_id": 840,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 969,
+          "quantity": 1,
+          "label": "Couronne du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 970,
+          "quantity": 1,
+          "label": "Bâton du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "object_id": 971,
+          "quantity": 1,
+          "label": "Cape du Wa Wabbit",
+          "quest_id": 835,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "optional_preparation",
+          "object_id": 361,
+          "quantity": 100,
+          "needed_at_source_step": 34,
+          "conditional": "sort_cawotte",
+          "label": "Cawottes supplémentaires pour le sort facultatif"
+        },
+        {
+          "kind": "optional_preparation",
+          "object_id": 9687,
+          "quantity": 2,
+          "conditional": "parcours_ocre_et_emeraude",
+          "label": "Pierres d'âme pour parcours parallèles"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le PNJ au sud du Zaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2205_step_0003",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 836,
+          "label": "Commencer Sauvegarder l'espèce avec Lilou la Lenalde"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 828,
+          "label": "Ouvrir Timassacre entre wabbits avec Logel le Lenald"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre chez le capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2205_step_0004",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -2
+      ],
+      "next": [
+        23,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 952,
+          "label": "Démarrer La chasse de Lily auprès du capitaine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wanald"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2205_step_0005",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -4
+      ],
+      "next": [
+        24,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 833,
+          "label": "Interroger Wanald et ouvrir Jamais deux sans trois"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre à la maison Wabbit"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2205_step_0006",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -6
+      ],
+      "next": [
+        24,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger avec le Wabbit du Midi Wayonnant"
+        },
+        {
+          "kind": "interact",
+          "label": "Entrer dans la maison et examiner le tapis"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone du bois"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2205_step_0007",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -7
+      ],
+      "next": [
+        26,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner l'un des tas de bois"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone de la plante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2205_step_0008",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -9
+      ],
+      "next": [
+        24,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la plante rose"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers le point suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2205_step_0009",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -10
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner le trou dans le sol"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Lilou la Lenalde"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2205_step_0010",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 836,
+          "label": "Terminer Sauvegarder l'espèce avec Lilou la Lenalde"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 837,
+          "label": "Démarrer Faites l'amour, pas la guerre avec Lilou"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers l'étape suivante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2205_step_0011",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -4
+      ],
+      "next": [
+        24,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Parler à Wawitna et récupérer son prélèvement",
+          "object_id": 13205
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir un Wabbit Noir aplati en combattant un Wabbit Noir",
+          "object_id": 12878,
+          "monster_id": 65,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Aller vers les plantations"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2205_step_0012",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -8
+      ],
+      "next": [
+        26,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner les Cawottes présentes sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Passer par les souterrains vers le prochain point"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2205_step_0013",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -11
+      ],
+      "next": [
+        27,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Inspecter le récipient et récupérer le jus de Cawotte râpée",
+          "object_id": 12877
+        },
+        {
+          "kind": "move",
+          "label": "Sortir vers l'est"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2205_step_0014",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        -11
+      ],
+      "next": [
+        22,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Wabbit rencontré sur cette carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'entrée souterraine via le Zaap"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2205_step_0015",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -7
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Entrer puis utiliser le passage souterrain"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner le tableau et récupérer l'œuf Wabbit",
+          "object_id": 12874
+        },
+        {
+          "kind": "drop_object",
+          "label": "Vérifier la récupération d'un Wabbit Noir aplati",
+          "object_id": 12878,
+          "monster_id": 65,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Lilou la Lenalde"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2205_step_0016",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer Faites l'amour, pas la guerre auprès de Lilou",
+          "quest_id": 837
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer Ça sent la cawotte auprès de Lilou",
+          "quest_id": 838
+        },
+        {
+          "kind": "move",
+          "label": "Repartir vers les points de collecte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2205_step_0017",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -6
+      ],
+      "next": [
+        24,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la Cawotte suivante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2205_step_0018",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -8
+      ],
+      "next": [
+        24,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Continuer vers le nord"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2205_step_0019",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -9
+      ],
+      "next": [
+        25,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la position suivante"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2205_step_0020",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -7
+      ],
+      "next": [
+        25,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à la dernière étape de cette séquence"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2205_step_0021",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -8
+      ],
+      "next": [
+        23,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone des maisons"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2205_step_0022",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -9
+      ],
+      "next": [
+        23,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte"
+        },
+        {
+          "kind": "interact",
+          "label": "Descendre dans les souterrains d'une maison"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2205_step_0023",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -8
+      ],
+      "next": [
+        23,
+        -8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser les dalles sûres en évitant les trous"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2205_step_0024",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -7
+      ],
+      "next": [
+        22,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Suivre le passage souterrain et prendre la sortie"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre les Cawottes en surface"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2205_step_0025",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -6
+      ],
+      "next": [
+        22,
+        -5
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la Cawotte"
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre vers le prochain PNJ"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2205_step_0026",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -5
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Wabbit présent sur cette carte"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner voir Lilou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2205_step_0027",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        22,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 838,
+          "label": "Terminer Ça sent la cawotte"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 839,
+          "label": "Démarrer Il y a un os, de Wabbit"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Prévoir 100 Cawottes pour le sort facultatif",
+          "object_id": 361,
+          "quantity": 100,
+          "conditional": "sort_cawotte",
+          "needed_at_source_step": 34
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'entrée du terrier"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2205_step_0028",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -7
+      ],
+      "next": [
+        21,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Passer par les tunnels jusqu'à l'île des tombeaux"
+        },
+        {
+          "kind": "interact",
+          "label": "Éviter les trous dans la zone des tombeaux"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le PNJ de l'île"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2205_step_0029",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -12
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger avec le PNJ de l'île des tombeaux"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner vers Lilou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2205_step_0030",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        25,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Lilou la Lenalde"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Lenald suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2205_step_0031",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        24,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au vieux Lenald"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2205_step_0032",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -2
+      ],
+      "next": [
+        23,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner le capitaine Lily sur le Wabbit retenu prisonnier"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner aux souterrains"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2205_step_0033",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -9
+      ],
+      "next": [
+        23,
+        -9
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Traverser le couloir à trous pour rejoindre le passage suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2205_step_0034",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -7
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Suivre le passage et parler au Wabbit à la sortie"
+        },
+        {
+          "kind": "optional_delivery",
+          "label": "Échanger 100 Cawottes contre le sort facultatif",
+          "object_id": 361,
+          "quantity": 100,
+          "conditional": "sort_cawotte"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Lilou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2205_step_0035",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 839,
+          "label": "Terminer Il y a un os, de Wabbit"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 840,
+          "label": "Démarrer Art gastronomique"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2205_step_0036",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -2
+      ],
+      "next": [
+        24,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger le capitaine Lily puis le Tiwabbit capturé"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier la disponibilité d'une Cawotte",
+          "object_id": 361,
+          "quantity": 1,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le PNJ suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2205_step_0037",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -4
+      ],
+      "next": [
+        24,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Wabbit indiqué"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone de récolte"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2205_step_0038",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -6
+      ],
+      "next": [
+        28,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récupérer les herbes près du Wabbit",
+          "object_id": 14482,
+          "quantity": 1
+        },
+        {
+          "kind": "collect_object",
+          "label": "Récupérer le champignon local",
+          "object_id": 14481,
+          "quantity": 1
+        },
+        {
+          "kind": "collect_object",
+          "label": "Récupérer la Cawotte locale",
+          "object_id": 14480,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Passer par les souterrains vers le point de cuisson"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2205_step_0039",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        28,
+        -12
+      ],
+      "next": [
+        28,
+        -13
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Utiliser le barbecue pour préparer la patte de Wabbit"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer une patte de Wabbit grillée",
+          "object_id": 14483,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre vers le laboratoire"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2205_step_0040",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        28,
+        -13
+      ],
+      "next": [
+        24,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Passer par la porte du haut et activer le Zaap du laboratoire abandonné"
+        },
+        {
+          "kind": "move",
+          "label": "Revenir vers le PNJ"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2205_step_0041",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -4
+      ],
+      "next": [
+        21,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler au Wabbit sur la carte"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'île des tombeaux"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2205_step_0042",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -12
+      ],
+      "next": [
+        23,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 840,
+          "label": "Terminer Art gastronomique"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 841,
+          "label": "Commencer Expédition culinaire"
+        },
+        {
+          "kind": "interact",
+          "label": "Prendre le passage vers la zone des squelettes"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre au combat suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2205_step_0043",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -12
+      ],
+      "next": [
+        22,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Affronter le Wabbit squelette agressif avec le groupe",
+          "group_fight": true
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser le journal de voyage abîmé",
+          "object_id": 14486
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 841,
+          "label": "Terminer Expédition culinaire"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 842,
+          "label": "Démarrer Voyage au centre du Wabbit"
+        },
+        {
+          "kind": "move",
+          "label": "Atteindre le passage secret"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2205_step_0044",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -10
+      ],
+      "next": [
+        22,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Activer la statue Wabbit et parler au PNJ apparu"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la Cawotte pour descendre dans le passage"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2205_step_0045",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -10
+      ],
+      "next": [
+        22,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "group_mechanic",
+          "label": "Positionner trois personnages pour ouvrir la grille",
+          "participants_min": 3
+        },
+        {
+          "kind": "interact",
+          "label": "Traverser la grille avant sa fermeture"
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 842,
+          "label": "Terminer Voyage au centre du Wabbit"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2205_step_0046",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -10
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 843,
+          "label": "Commencer Des pwinces pas très charmants"
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter les trois princes en groupe",
+          "group_fight": true
+        },
+        {
+          "kind": "talk",
+          "label": "Parler au PNJ après le combat"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner vers Lilou"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2205_step_0047",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -13
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 843,
+          "label": "Terminer Des pwinces pas très charmants"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 844,
+          "label": "Démarrer la quête du succès des Wabbits"
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre au château"
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2205_step_0048",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -13
+      ],
+      "next": [
+        24,
+        -13
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 833,
+          "label": "Terminer Jamais deux sans trois"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Entrer au Château du Wa Wabbit",
+          "dungeon_id": 52
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 834,
+          "label": "Lancer Le château du Wa"
+        },
+        {
+          "kind": "optional_capture",
+          "label": "Prévoir une capture du boss pour la quête du Dofus Ocre",
+          "conditional": "dofus_ocre"
+        },
+        {
+          "kind": "optional_drop",
+          "label": "Cartes en bois récupérables pendant les combats",
+          "object_ids": [
+            14453,
+            14454,
+            14455
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2205_step_0049",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -13
+      ],
+      "next": [
+        23,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Demander à Logel de retourner au village"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wanald"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2205_step_0050",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -4
+      ],
+      "next": [
+        28,
+        -12
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 834,
+          "label": "Terminer Le château du Wa"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 835,
+          "label": "Démarrer L'œuf ou la cawotte ?"
+        },
+        {
+          "kind": "check_equipment",
+          "label": "Vérifier les trois éléments de la panoplie Wa",
+          "object_ids": [
+            969,
+            970,
+            971
+          ],
+          "quantity_per_character": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le terrier du Wa"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2205_step_0051",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        28,
+        -12
+      ],
+      "next": [
+        23,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "equip",
+          "label": "Équiper la panoplie du Wa Wabbit"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Lancer le Terrier du Wa Wabbit",
+          "dungeon_id": 17
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Wa Wobot",
+          "monster_id": 3460
+        },
+        {
+          "kind": "optional_capture",
+          "label": "Capturer le Wa Wobot pour le parcours Émeraude",
+          "monster_id": 3460,
+          "conditional": "dofus_emeraude"
+        },
+        {
+          "kind": "interact",
+          "label": "Rééquiper la panoplie puis récupérer le Dofus Cawotte",
+          "object_id": 972
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Wanald"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2205_step_0052",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -4
+      ],
+      "next": [
+        23,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 835,
+          "label": "Terminer L'œuf ou la cawotte ? auprès de Wanald"
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Vérifier la récupération du Dofus Cawotte",
+          "object_id": 972
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2205_step_0053",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -4
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récolter les Cawottes fraîches sur l'île",
+          "object_id": 14503,
+          "quantity": 10,
+          "cumulative_target": true
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits noirs",
+          "monster_id": 68,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits",
+          "monster_id": 96,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits affamés",
+          "monster_id": 72,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Logel"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2205_step_0054",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        22,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 828,
+          "label": "Terminer Timassacre entre wabbits"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 829,
+          "label": "Démarrer la quête du vieux Wabbit"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Wabbits noirs",
+          "monster_id": 65,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Wabbits",
+          "monster_id": 64,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 829,
+          "label": "Terminer la quête du vieux Wabbit après les combats"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 830,
+          "label": "Commencer le retour des Wabbits"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le passage secret"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2205_step_0055",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -10
+      ],
+      "next": [
+        22,
+        -10
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Ouvrir le passage secret et franchir la grille"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 845,
+          "label": "Démarrer Les pwinces déchus"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2205_step_0056",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -12
+      ],
+      "next": [
+        21,
+        -11
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Affronter les trois princes en groupe",
+          "group_fight": true
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 845,
+          "label": "Terminer Les pwinces déchus après le dialogue"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone des Wabbits squelettes"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2205_step_0057",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -11
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Wabbits squelettes",
+          "monster_id": 179,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Wabbits noirs squelettes",
+          "monster_id": 3469,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au village"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2205_step_0058",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        28,
+        -13
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 830,
+          "label": "Terminer le retour des Wabbits"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 831,
+          "label": "Démarrer la chasse aux Wabbits"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la zone de chasse"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2205_step_0059",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        28,
+        -13
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq grands Wabbits",
+          "monster_id": 99,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Wabbits anciens",
+          "monster_id": 97,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner auprès de Logel"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2205_step_0060",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -5
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 831,
+          "label": "Terminer la chasse aux Wabbits"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 832,
+          "label": "Démarrer la quête supplémentaire"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la prochaine zone de chasse"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2205_step_0061",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -5
+      ],
+      "next": [
+        24,
+        -3
+      ],
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Atteindre un total de dix Cawottes fraîches",
+          "object_id": 14503,
+          "quantity": 10,
+          "cumulative_target": true
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits",
+          "monster_id": 96,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre trois Wabbits",
+          "monster_id": 64,
+          "quantity": 3,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits noirs",
+          "monster_id": 68,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre cinq Tiwabbits affamés",
+          "monster_id": 72,
+          "quantity": 5,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre trois Wabbits noirs",
+          "monster_id": 65,
+          "quantity": 3,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre deux grands Wabbits",
+          "monster_id": 99,
+          "quantity": 2,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre deux Wabbits anciens",
+          "monster_id": 97,
+          "quantity": 2,
+          "counter_scope": "SOURCE_STEP_GOAL_REVIEW"
+        },
+        {
+          "kind": "move",
+          "label": "Revenir au village"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2205_step_0062",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -3
+      ],
+      "next": [
+        24,
+        -2
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 844,
+          "label": "Terminer la quête du succès Wabbit"
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 832,
+          "label": "Terminer la quête supplémentaire"
+        },
+        {
+          "kind": "move",
+          "label": "Aller voir le capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "stable_step_id": "ganymede_2205_step_0063",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -2
+      ],
+      "next": [
+        25,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "quest_id": 952,
+          "label": "Terminer La chasse de Lily"
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier dix cartes pierre, papier et ciseaux",
+          "object_ids": [
+            14453,
+            14454,
+            14455
+          ],
+          "quantity": 10,
+          "quantity_scope": "each_item"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au vieux Lenald"
+        }
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "stable_step_id": "ganymede_2205_step_0064",
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -4
+      ],
+      "next": [
+        25,
+        -4
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "quest_id": 846,
+          "label": "Démarrer la quête des cartes stratégiques"
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 846,
+          "label": "Remettre les cartes et terminer cette quête"
+        },
+        {
+          "kind": "quest_start",
+          "quest_id": 847,
+          "label": "Démarrer les jeux Lenald"
+        },
+        {
+          "kind": "repeat_interaction",
+          "label": "Jouer trois manches de cartes et demander le résultat",
+          "repeat_count": 3
+        },
+        {
+          "kind": "quest_finish",
+          "quest_id": 847,
+          "label": "Terminer les jeux Lenald"
+        }
+      ]
+    }
+  ]
+}
