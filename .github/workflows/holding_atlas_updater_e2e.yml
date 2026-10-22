@@ -1,0 +1,94 @@
+name: Holding → Atlas staged updater cross-repo (opt-in)
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+jobs:
+  staged-pack-smoke:
+    if: github.event.label.name == 'ci:updater-e2e'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: r9327/Atlas-Holding
+          ref: bf93d30c4335c5aba19274caecad7507baa5b7bb
+          path: holding-source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Real loopback download, Atlas staged SHA gate and tamper rejection
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          from pathlib import Path
+          import sys
+          import tempfile
+          import threading
+
+          sys.path.insert(0, str(Path("holding-source").resolve()))
+          from holding.update_download import download_staged_artifact
+          from app.distribution.data_pack_plan import DataPack, plan_pack_updates
+          from app.distribution.data_pack_verify import verify_staged_pack, InvalidDataPack
+
+          content = b'[{"id":42,"kind":"quest","label":"test"}]'
+          digest = hashlib.sha256(content).hexdigest()
+          class TestServer(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  self.send_response(200)
+                  self.send_header("Content-Type", "application/octet-stream")
+                  self.send_header("Content-Length", str(len(content)))
+                  self.send_header("ETag", '"v2"')
+                  self.end_headers()
+                  self.wfile.write(content)
+              def log_message(self, *args):
+                  pass
+
+          server = ThreadingHTTPServer(("127.0.0.1", 0), TestServer)
+          worker = threading.Thread(target=server.serve_forever, daemon=True)
+          worker.start()
+          try:
+              with tempfile.TemporaryDirectory() as temporary:
+                  root = Path(temporary)
+                  pack = DataPack("quests", 2, 1, digest, "data/quests/v2.json")
+                  plan = plan_pack_updates({}, [pack])
+                  assert plan[0].action == "download", plan
+                  target = root / pack.artifact_path
+                  progress = []
+                  downloaded = download_staged_artifact(
+                      f"http://127.0.0.1:{server.server_port}/quest-pack",
+                      target,
+                      expected_sha256=digest,
+                      expected_size=len(content),
+                      allow_test_loopback=True,
+                      chunk_bytes=4096,
+                      on_progress=lambda received, total: progress.append((received, total)),
+                  )
+                  assert downloaded == target and downloaded.read_bytes() == content
+                  assert progress[-1] == (len(content), len(content))
+                  verified = verify_staged_pack(pack, root)
+                  assert verified.status == "VERIFIED_BLOB_ONLY"
+                  assert verified.sha256 == digest
+                  downloaded.write_bytes(content + b"tamper")
+                  try:
+                      verify_staged_pack(pack, root)
+                  except InvalidDataPack:
+                      pass
+                  else:
+                      raise AssertionError("tampered Atlas data pack accepted")
+                  print("Holding downloader -> Atlas pack verifier PASS (no installation)")
+          finally:
+              server.shutdown()
+              server.server_close()
+              worker.join(timeout=5)
+          PY
