@@ -1,0 +1,57 @@
+name: Documentalist → Atlas cross-repo contract (opt-in)
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+jobs:
+  real-exchange:
+    if: github.event.label.name == 'ci:documentalist-e2e'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: r9327/Atlas-Holding
+          ref: 29795de25b16857c0a70636c0c9fe5f17db07b1b
+          path: holding-source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Export actual Documentalist batches then preview with actual Atlas adapter
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          old = [{"id": 1, "kind": "quest", "label": "Old"}]
+          incoming = [
+              {"id": 1, "kind": "quest", "label": "New"},
+              {"id": 2, "kind": "success", "references": [{"kind": "quest", "id": 1}]},
+          ]
+          Path("old.json").write_text(json.dumps(old), encoding="utf-8")
+          Path("incoming.json").write_text(json.dumps(incoming), encoding="utf-8")
+          PY
+          (cd holding-source && python -m holding.documentalist_cli --file ../old.json --format json --out ../old.exchange.json)
+          (cd holding-source && python -m holding.documentalist_cli --file ../incoming.json --format json --out ../incoming.exchange.json)
+          python -m tools.atlas_data_exchange_cli old.exchange.json incoming.exchange.json --json > preview.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("preview.json").read_text(encoding="utf-8"))
+          assert report["status"] == "PREVIEW_ONLY", report
+          assert report["counts"] == {
+              "add": 1, "update": 1, "keep": 0, "absent_in_batch": 0
+          }, report
+          assert [(r["kind"], r["id"], r["action"]) for r in report["changes"]] == [
+              ("quest", "1", "update"), ("success", "2", "add"),
+          ], report
+          print("Cross-repo Documentalist -> Atlas exact-SHA contract PASS", report["counts"])
+          PY
