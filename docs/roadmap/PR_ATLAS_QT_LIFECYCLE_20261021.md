@@ -44,3 +44,13 @@ refactor structurel. Coordonner la validation finale avec #225/#226. Pas de
 nouveau système de monitoring ; réutiliser `benchmark_phase8_memory.py`
 et les tests du cycle de vie existants. Draft jusqu'à correctif démontré.
 **État initial : spécification uniquement.**
+
+## Mode diagnostic Windows supplémentaire (22/10/2026)
+
+Le benchmark existant conserve **par défaut** exactement deux cycles et tous les jalons/seuils CI ; aucune preuve historique n'est remplacée. Pour une mesure dédiée à la PR, après installation de la même version et préparation des mêmes caches :
+
+```powershell
+python -X faulthandler tools/benchmark_phase8_memory.py --output artifacts/phase8_memory/lifecycle-5cycles.json --navigation-cycles 5 --include-heavy-views
+```
+
+Le JSON contient les 5 domaines, les cinq retours Home, les RSS de l'application/arbre de processus, les threads et les widgets Qt, ainsi que la dérive RSS entre le premier et le dernier cycle de chaque domaine. Le mode accepte 2 à 10 cycles ; refaire les mesures sur une **même machine**, à SHA exact, avant d'attribuer une fuite au code. Les valeurs ne sont pas encore mesurées ni certifiées ici.
