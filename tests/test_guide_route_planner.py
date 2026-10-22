@@ -140,6 +140,33 @@ class GuideRoutePlannerTests(unittest.TestCase):
             [issue.code for issue in plan.issues],
         )
 
+    def test_optimizer_export_matches_organizer_two_command_protocol(self) -> None:
+        direct = GuideTravelPlan(
+            TravelMode.DIRECT, DESTINATION, ("character:2",)
+        )
+        self.assertEqual(direct.to_chat_command(), "/travel 5,-2")
+        self.assertEqual(direct.to_payload()["participant_keys"], ["character:2"])
+        combined = GuideTravelPlan(
+            TravelMode.ZAAP_THEN_TRAVEL,
+            DESTINATION,
+            ("character:1", "character:2"),
+            world="Monde des Douze",
+            zaap=RouteLocation(map_id=2, x=-32, y=-56),
+            evidence="verified:zaap:atlas",
+        )
+        self.assertEqual(
+            combined.to_chat_command(),
+            "/zaap -32,-56 ; /travel 5,-2",
+        )
+        self.assertEqual(
+            combined.to_payload()["participant_keys"],
+            ["character:1", "character:2"],
+        )
+
+    def test_invalid_travel_mode_must_not_degrade_to_direct(self) -> None:
+        with self.assertRaisesRegex(ValueError, "travel mode"):
+            GuideTravelPlan("zaap_then_travel", DESTINATION, ("character:1",))
+
     def test_zaap_requires_verified_route_and_every_participant(self) -> None:
         participants = [
             GuideParticipantState("character:1", world="Monde des Douze"),

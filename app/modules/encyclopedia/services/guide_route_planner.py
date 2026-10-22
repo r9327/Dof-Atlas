@@ -95,6 +95,8 @@ class GuideTravelPlan:
     evidence: str = "exact_destination_coordinates"
 
     def __post_init__(self) -> None:
+        if not isinstance(self.mode, TravelMode):
+            raise ValueError("travel mode must be explicitly verified")
         if not _has_exact_game_coordinates(self.destination):
             raise ValueError("travel destination requires exact coordinates")
         keys = tuple(require_character_key(key) for key in self.participant_keys)
@@ -108,6 +110,18 @@ class GuideTravelPlan:
                 raise ValueError("zaap_then_travel requires world and evidence")
         elif self.zaap is not None:
             raise ValueError("direct travel cannot carry a Zaap")
+
+    def to_chat_command(self) -> str:
+        """Explicit two-command protocol consumed by Organizer's TravelMacro.
+
+        Creating a plan does not dispatch any macro. The caller must still
+        enforce the exact participant_keys when the user clicks to travel.
+        """
+        destination = f"/travel {self.destination.x},{self.destination.y}"
+        if self.mode is TravelMode.DIRECT:
+            return destination
+        assert self.zaap is not None  # Guaranteed by __post_init__
+        return f"/zaap {self.zaap.x},{self.zaap.y} ; {destination}"
 
     def to_payload(self) -> dict[str, object]:
         payload: dict[str, object] = {
