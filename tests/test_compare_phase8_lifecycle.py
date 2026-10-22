@@ -21,6 +21,8 @@ class LifecycleComparisonTests(unittest.TestCase):
             "environment": {"platform": platform, "python": "3.13.0",
                             "qt_qpa_platform": "offscreen"},
             "metrics": {"git_head": sha, "navigation_cycles": cycles,
+                        "peak_process_rss_mb": 120.0,
+                        "peak_tree_rss_mb": 180.0,
                         "include_heavy_views": True,
                         "round_trip_home": {
                             name: [{"tree_rss_mb": 125 + i * 2,
@@ -39,6 +41,7 @@ class LifecycleComparisonTests(unittest.TestCase):
             measured = module.compare(before, after)
             self.assertEqual(measured["status"], "MEASUREMENT_ONLY_NOT_CERTIFIED")
             self.assertEqual(len(measured["domains"]), 5)
+            self.assertEqual(measured["peak_comparison"]["peak_tree_rss_mb"]["before_mb"], 180.0)
             self.assertEqual(measured["domains"]["guide"]["tree_rss_mb"]["before_drift_mb"], 8.0)
 
     def test_rejects_linux_and_different_cycle_counts(self):
@@ -66,6 +69,17 @@ class LifecycleComparisonTests(unittest.TestCase):
                 {"tree_rss_mb": 130, "process_rss_mb": True})
             after.write_text(json.dumps(data), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "numeric RSS"):
+                module.compare(before, after)
+
+    def test_rejects_unmeasured_process_tree_peak(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            before = self.make_probe(root, "before.json")
+            after = self.make_probe(root, "after.json")
+            data = json.loads(after.read_text())
+            data["metrics"].pop("peak_tree_rss_mb")
+            after.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "missing numeric measured peak"):
                 module.compare(before, after)
 
     def test_requires_verified_sha_and_same_python_environment(self):

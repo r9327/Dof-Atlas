@@ -46,7 +46,16 @@ def _probe(path: Path, min_cycles: int) -> dict:
                     raise ValueError(f"{domain}[{i}].{metric}: invalid RSS")
                 numbers.append(float(value))
             readings[domain][metric] = numbers
-    return {"environment": env, "sha": sha, "cycles": cycles, "readings": readings}
+    peaks = {}
+    for metric in ("peak_process_rss_mb", "peak_tree_rss_mb"):
+        value = metrics.get(metric)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{metric}: missing numeric measured peak")
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{metric}: invalid measured peak")
+        peaks[metric] = float(value)
+    return {"environment": env, "sha": sha, "cycles": cycles,
+            "readings": readings, "peaks": peaks}
 
 
 def compare(before: Path, after: Path, *, min_cycles: int = 5) -> dict:
@@ -69,7 +78,16 @@ def compare(before: Path, after: Path, *, min_cycles: int = 5) -> dict:
                 "after_drift_mb": round(b[-1] - b[0], 2),
                 "drift_change_mb": round((b[-1] - b[0]) - (a[-1] - a[0]), 2),
             }
+    peak_deltas = {
+        name: {
+            "before_mb": old["peaks"][name],
+            "after_mb": new["peaks"][name],
+            "change_mb": round(new["peaks"][name] - old["peaks"][name], 2),
+        }
+        for name in ("peak_process_rss_mb", "peak_tree_rss_mb")
+    }
     return {
+        "peak_comparison": peak_deltas,
         "status": "MEASUREMENT_ONLY_NOT_CERTIFIED",
         "before_sha": old["sha"], "after_sha": new["sha"],
         "navigation_cycles": old["cycles"], "domains": result,
