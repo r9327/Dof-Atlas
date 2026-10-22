@@ -1158,6 +1158,8 @@ class GuidesView(QWidget):
         self.current_character_key = character_key or ""
         self._continuous_route_panel = None
         self._continuous_selected_character_keys: tuple[str, ...] | None = None
+        self._continuous_profile_path = profile_path
+        self._continuous_client_index_path = client_index_path
         self.quest_progress = self.quest_progress_service.progress
         self.quest_catalog = None
         self.progress_calculator = None
@@ -1707,13 +1709,29 @@ class GuidesView(QWidget):
         if keys is None:
             keys = ((self.current_character_key,)
                     if is_character_key(self.current_character_key) else ())
+        from app.constants import (
+            CLIENT_INDEX_JSON, NETWORK_CHARACTER_BINDINGS_FILE, PROFILE_FILE,
+        )
+        from app.quest_catalog import load_quest_characters
+
+        characters = load_quest_characters(
+            profile_path=self._continuous_profile_path or PROFILE_FILE,
+            client_index_path=self._continuous_client_index_path or CLIENT_INDEX_JSON,
+            binding_path=NETWORK_CHARACTER_BINDINGS_FILE,
+            connected_only=False,
+        )
         panel = ContinuousGuideRoutePanel(
             guide.raw, self.guide_progress_service, keys,
+            available_characters=characters,
         )
+        panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
+
+    def _remember_continuous_characters(self, character_keys: tuple[str, ...]) -> None:
+        self._continuous_selected_character_keys = tuple(character_keys)
 
     def set_continuous_route_characters(self, character_keys: Iterable[str]) -> bool:
         """Explicit multi-character choice used by the Guide's character picker."""

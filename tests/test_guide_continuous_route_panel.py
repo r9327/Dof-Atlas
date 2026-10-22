@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -39,6 +40,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "ganymede_2205_step_0001",
         )
         self.assertEqual(self.panel.title_label.text(), "Fiche 1")
+        self.assertFalse(self.panel.summary.isVisible())
+        self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
         self.panel.next_button.click()
         self.assertEqual(
@@ -75,6 +78,51 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
+
+    def test_character_picker_switches_real_keys_without_changing_manual_progress(self):
+        characters = [
+            SimpleNamespace(key="character:1", label="Alpha - Féca", connected=True),
+            SimpleNamespace(key="character:2", label="Beta - Pandawa", connected=False),
+            SimpleNamespace(key="slot:3", label="Unsafe slot", connected=True),
+        ]
+        extra = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",),
+            available_characters=characters,
+        )
+        self.addCleanup(extra.deleteLater)
+        self.assertEqual(set(extra._character_actions), {"character:1", "character:2"})
+        self.assertIn("hors ligne", extra._character_actions["character:2"].text())
+        updates = []
+        extra.selectedCharactersChanged.connect(updates.append)
+        extra._character_actions["character:2"].trigger()
+        self.assertEqual(
+            extra.navigation.selected_character_keys,
+            ("character:1", "character:2"),
+        )
+        self.assertEqual(updates[-1], ("character:1", "character:2"))
+        self.assertEqual(extra.participants_button.text(), "Mes personnages (2)")
+        self.assertEqual(extra.navigation.position().completed_by_character,
+                         {"character:1": 0, "character:2": 0})
+        extra._character_actions["character:1"].trigger()
+        self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_external_selection_updates_picker_without_false_signal(self):
+        characters = [
+            SimpleNamespace(key="character:1", label="Alpha", connected=True),
+            SimpleNamespace(key="character:2", label="Beta", connected=True),
+        ]
+        extra = ContinuousGuideRoutePanel(
+            _source_route(), self.store, (), available_characters=characters,
+        )
+        self.addCleanup(extra.deleteLater)
+        received = []
+        extra.selectedCharactersChanged.connect(received.append)
+        extra.set_characters(("character:2",))
+        self.assertTrue(extra._character_actions["character:2"].isChecked())
+        self.assertFalse(extra._character_actions["character:1"].isChecked())
+        self.assertEqual(received, [])
+        self.assertEqual(extra.navigation.position().actual_step_id, "ganymede_2205_step_0001")
 
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())

@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from PySide6.QtCore import Qt, QStringListModel
+from PySide6.QtCore import Qt, QStringListModel, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QToolButton, QVBoxLayout, QWidget,
 )
 
+from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
 )
@@ -19,19 +20,30 @@ from app.modules.encyclopedia.services.guide_progress_service import GuideProgre
 
 
 class ContinuousGuideRoutePanel(QWidget):
+    selectedCharactersChanged = Signal(tuple)
+
     def __init__(
         self,
         route: Mapping[str, object],
         progress: GuideProgressService,
         character_keys: Iterable[str] = (),
         parent: QWidget | None = None,
+        *,
+        available_characters: Iterable[object] = (),
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuideContinuousRoutePanel")
         self.route = route
         self.navigation = ContinuousGuideNavigation(route, progress, character_keys)
         self.rows = route["sections"][0]["steps"]
-        self._summary_open = True
+        # Only expose registered stable Atlas characters, including offline
+        # ones. A removed window must not silently deselect its character.
+        self.available_characters = tuple(
+            row for row in available_characters
+            if is_character_key(getattr(row, "key", ""))
+        )
+        self._character_actions = {}
+        self._summary_open = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
@@ -40,6 +52,28 @@ class ContinuousGuideRoutePanel(QWidget):
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         head.addWidget(self.position_label, 1)
+        self.participants_button = QToolButton()
+        self.participants_button.setObjectName("GuideContinuousCharactersButton")
+        self.participants_button.setPopupMode(QToolButton.InstantPopup)
+        self.participants_button.setCursor(Qt.PointingHandCursor)
+        self._characters_menu = QMenu(self.participants_button)
+        self.participants_button.setMenu(self._characters_menu)
+        for character in self.available_characters:
+            if character.key in self._character_actions:
+                continue
+            title = str(getattr(character, "label", "") or character.key)
+            if getattr(character, "connected", False) is False:
+                title += " (hors ligne)"
+            action = self._characters_menu.addAction(title)
+            action.setCheckable(True)
+            action.toggled.connect(
+                lambda checked, key=character.key: self._character_toggled(key, checked)
+            )
+            self._character_actions[character.key] = action
+        if not self._character_actions:
+            empty = self._characters_menu.addAction("Aucun personnage identifié")
+            empty.setEnabled(False)
+        head.addWidget(self.participants_button)
         self.summary_toggle = QToolButton()
         self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
         self.summary_toggle.setText("Sommaire")
@@ -122,6 +156,17 @@ class ContinuousGuideRoutePanel(QWidget):
         self.navigation.select_characters(character_keys)
         self.refresh()
 
+    def _character_toggled(self, character_key: str, checked: bool) -> None:
+        if character_key not in self._character_actions:
+            return
+        keys = list(self.navigation.selected_character_keys)
+        if checked and character_key not in keys:
+            keys.append(character_key)
+        elif not checked:
+            keys = [key for key in keys if key != character_key]
+        self.set_characters(keys)
+        self.selectedCharactersChanged.emit(self.navigation.selected_character_keys)
+
     def show_step(self, step_id: str) -> None:
         self.navigation.show_step(step_id)
         self.refresh()
@@ -152,6 +197,14 @@ class ContinuousGuideRoutePanel(QWidget):
 
     def refresh(self) -> None:
         position = self.navigation.position()
+        selected = set(position.selected_character_keys)
+        self.participants_button.setText(f"Mes personnages ({len(selected)})")
+        for key, action in self._character_actions.items():
+            was_blocked = action.blockSignals(True)
+            try:
+                action.setChecked(key in selected)
+            finally:
+                action.blockSignals(was_blocked)
         current = position.viewed_step_id
         actual = position.actual_step_id
         self.actual_button.setEnabled(actual is not None)
