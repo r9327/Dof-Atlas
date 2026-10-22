@@ -78,6 +78,8 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
     env = os.environ.copy()
     env["DOFUS_ATLAS_HEALTH_FILE"] = str(ready)
     env["DOFUS_ATLAS_USER_ROOT"] = str(USER_DIR)
+    # Read-only, acknowledged data packs; the live QuestProvider loads on demand.
+    env["DOFUS_ATLAS_PACK_ROOT"] = str(ROOT)
     report("Lancement de Dofus Atlas...", 98)
     try:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
