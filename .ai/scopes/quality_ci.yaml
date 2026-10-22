@@ -13,6 +13,7 @@ working_set:
   - tools/tool_catalog.py
   - tools/tool_audit.py
   - tools/ai_context.py
+  - .ai/context_index.json
   - tools/atlas_integrity.py
   - tools/atlas_integrity_policy.json
   - tools/atlas_lifecycle_soak.py
