@@ -201,6 +201,39 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         self.assertEqual(send.call_args.args[0], "/zaap 1,2")
         self.assertIn("0 participant", statuses[-1])
 
+    def test_guide_movement_never_broadcasts_an_empty_participant_selection(self) -> None:
+        statuses: list[str] = []
+        clients = [AtlasClient(1, "A", "Alpha", 101, character_key="character:1")]
+        runtime = self._travel_runtime(clients, statuses)
+        with (
+            patch("app.macros.travel.activate_window") as activate,
+            patch("app.macros.travel.send_chat_command") as send,
+        ):
+            TravelMacro(runtime).run_async("/travel 5,6", ())
+        activate.assert_not_called()
+        send.assert_not_called()
+        self.assertIn("aucun participant", statuses[-1])
+
+    def test_guide_emergency_stop_between_zaap_and_travel_skips_second_command(self) -> None:
+        statuses: list[str] = []
+        clients = [AtlasClient(1, "A", "Alpha", 101, character_key="character:1")]
+        runtime = self._travel_runtime(clients, statuses)
+        state = {"stop": False}
+        runtime.macro_lock.should_stop = lambda: state["stop"]
+
+        def send_first(_command, *_args, **_kwargs):
+            state["stop"] = True
+            return True
+
+        with (
+            patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.activate_window", return_value=True),
+            patch("app.macros.travel.send_chat_command", side_effect=send_first) as send,
+        ):
+            TravelMacro(runtime).run_async("/zaap 1,2 ; /travel 3,4", ("character:1",))
+        self.assertEqual(send.call_count, 1)
+        self.assertEqual(send.call_args.args[0], "/zaap 1,2")
+
     def test_guide_travel_fails_closed_for_ambiguous_identity(self) -> None:
         statuses: list[str] = []
         clients = [
