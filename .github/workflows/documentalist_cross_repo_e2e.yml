@@ -22,6 +22,12 @@ jobs:
           ref: b7d900e00ec6f6c25846f773f49917247badf1a3
           path: holding-source
           persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: r9327/Dof-Atlas
+          ref: 0b34f7f7288bfd2d938819ea8283f4543a206ebe
+          path: atlas-runtime-source
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -33,7 +39,9 @@ jobs:
           from pathlib import Path
           old = [{"id": 1, "kind": "quest", "label": "Old"}]
           incoming = [
-              {"id": 1, "kind": "quest", "label": "New"},
+              {"id": 1, "kind": "quest", "label": "New",
+               "preparation": {"items": [{"item_id": 77, "name": "Pierre", "quantity": 3}],
+                               "combats": [{"objective_id": 91, "monster": "Gobelin", "quantity": 2}]}},
               {"id": 2, "kind": "success", "references": [{"kind": "quest", "id": 1}]},
           ]
           Path("old.json").write_text(json.dumps(old), encoding="utf-8")
@@ -71,4 +79,42 @@ jobs:
           assert offline["status"] == "PREVIEW_ONLY" and offline["counts"] == report["counts"], offline
           assert offline["source"] == "https://example.org/quests.json", offline
           print("Cross-repo online-format + OFFLINE cached Documentalist -> Atlas PASS", report["counts"])
+          PY
+          mkdir -p runtime-stage/data/quests
+          python -m tools.atlas_quest_evidence_builder offline.exchange.json --out runtime-stage/data/quests/v1.json
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import os
+          import sys
+          from types import SimpleNamespace
+          from unittest.mock import patch
+          # All runtime consumer code is loaded from the explicit, separate Atlas updater SHA.
+          sys.path.insert(0, str(Path("atlas-runtime-source").resolve()))
+          from app.distribution.data_pack_plan import DataPack
+          from app.distribution.data_pack_store import (
+              install_pack, accepted_pack, acknowledge_pack,
+          )
+          from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+          from app.constants import RAW_QUEST_DATA_DIR
+
+          stage = Path("runtime-stage")
+          blob = stage / "data/quests/v1.json"
+          pack = DataPack("quests", 1, 1, sha256(blob.read_bytes()).hexdigest(),
+                          "data/quests/v1.json")
+          root = Path("runtime-install")
+          assert install_pack(root, stage, pack) == "INSTALLED"
+          assert accepted_pack(root, "quests") is None, "Unacknowledged pack became visible"
+          assert acknowledge_pack(root, "quests")
+          fake_catalog = SimpleNamespace(
+              by_id={1: object()},
+              guide_evidence=lambda ident: {"items": [], "combats": []},
+          )
+          with patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": str(root.resolve())}):
+              provider = QuestProvider(catalog=fake_catalog, data_dir=RAW_QUEST_DATA_DIR)
+              result = provider.guide_evidence(1)
+          assert result["items"][0] == {"item_id": 77, "name": "Pierre", "quantity": 3}, result
+          assert result["combats"][0]["monster"] == "Gobelin", result
+          assert not (root / "user").exists(), "User data mutated by pack integration"
+          print("Holding OFFLINE -> Atlas typed pack -> acknowledged QuestProvider PASS")
           PY
