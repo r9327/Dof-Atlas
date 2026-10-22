@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2208,
+  "atlas_guide_id": "dokoko",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/quecirctes-du-dokoko.html",
+    "dpln_achievement": "https://www.dofuspourlesnoobs.com/koko-boy.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2208"
+  },
+  "main_quests": [
+    {
+      "quest_id": 1666,
+      "name": "Partir un jour sans retour",
+      "achievement_group": "Koko Boy",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1666",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1667,
+      "name": "Un parfum de vacances",
+      "achievement_group": "Koko Boy",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1667",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1668,
+      "name": "Un indigeste chez les indigènes",
+      "achievement_group": "Koko Boy",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1668",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1669,
+      "name": "Squelettes et amulettes",
+      "achievement_group": "Koko Boy",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1669",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME",
+      "name_variant_note": "DPLN: Squelettes et amulettes ; DofusDB: Squelettes et amulette. Alias à confirmer dans le catalogue Atlas/Doduda."
+    },
+    {
+      "quest_id": 1670,
+      "name": "Rendez-vous avec la lune",
+      "achievement_group": "Koko Boy",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1670",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [],
+  "preparation_evidence": {
+    "resources": [
+      {
+        "name": "Casque",
+        "quantity": 1
+      },
+      {
+        "name": "Ailes en bois",
+        "quantity": 1
+      }
+    ],
+    "dungeons": [
+      "Village Kanniboul",
+      "Bateau du Chouque",
+      "Arbre de Moon"
+    ],
+    "combat_requirements": "At least one separate group combat and other fighting; no per-step quest objective verified",
+    "planning_note": "No automatic pre-shopping. Respect ownership, group vs solo combats, quest order and route-aware preparations for each character."
+  }
+}

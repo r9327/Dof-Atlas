@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import subprocess
 import unittest
 from contextlib import redirect_stdout
@@ -28,6 +29,8 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
                 MemoryBoundAchievementProvider._load_from_compact_subprocess(object())
 
         self.assertNotEqual(start.call_args.kwargs["stderr"], subprocess.PIPE)
+        self.assertEqual(start.call_args.kwargs["env"]["PYTHONUTF8"], "1")
+        self.assertEqual(start.call_args.kwargs["env"]["PYTHONIOENCODING"], "utf-8")
         self.assertTrue(process.stdout.closed)
         process.kill.assert_called_once()
         process.wait.assert_called_once_with(timeout=5)
@@ -54,6 +57,26 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
         self.assertTrue(process.stdout.closed)
         process.kill.assert_not_called()
+
+    def test_worker_overrides_ambient_legacy_stdout_encoding(self) -> None:
+        process = Mock()
+        process.stdout = io.StringIO("")
+        process.poll.return_value = 2
+        process.wait.return_value = 2
+
+        with (
+            patch.dict(os.environ, {"PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.Popen",
+                return_value=process,
+            ) as start,
+        ):
+            with self.assertRaises(RuntimeError):
+                MemoryBoundAchievementProvider._load_from_compact_subprocess(object())
+
+        child_env = start.call_args.kwargs["env"]
+        self.assertEqual(child_env["PYTHONIOENCODING"], "utf-8")
+        self.assertEqual(child_env["PYTHONUTF8"], "1")
 
 
 class AchievementDetailWorkerFastPathTests(unittest.TestCase):

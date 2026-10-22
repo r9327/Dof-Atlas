@@ -1,0 +1,3926 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "domakuro",
+  "source_guide_id": 2212,
+  "source_url": "https://ganymede-app.com/guides/2212",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 120,
+  "evidence_level": "AUTOMATED_SOURCE_ACTION_HINTS_UNVERIFIED",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "manual_review_pending": 120,
+  "auto_extraction_unresolved_steps": 1,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2212_step_0001",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23237",
+          "object_id": 23237
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2149",
+          "quest_id": 2149
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2212_step_0002",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        3,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 381 ×20",
+          "object_id": 381,
+          "quantity": 20
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 400 ×10",
+          "object_id": 400,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17140 ×3",
+          "object_id": 17140,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 287 ×5",
+          "object_id": 287,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2253 ×4",
+          "object_id": 2253,
+          "quantity": 4
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 390 ×1",
+          "object_id": 390,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1736 ×2",
+          "object_id": 1736,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2331 ×3",
+          "object_id": 2331,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 537 ×5",
+          "object_id": 537,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1974 ×3",
+          "object_id": 1974,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1975 ×4",
+          "object_id": 1975,
+          "quantity": 4
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 598 ×8",
+          "object_id": 598,
+          "quantity": 8
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 600 ×15",
+          "object_id": 600,
+          "quantity": 15
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17181 ×2",
+          "object_id": 17181,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7046 ×1",
+          "object_id": 7046,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7149 ×10",
+          "object_id": 7149,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7013 ×20",
+          "object_id": 7013,
+          "quantity": 20
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7222 ×2",
+          "object_id": 7222,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 23311 ×2",
+          "object_id": 23311,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7223 ×2",
+          "object_id": 7223,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7224 ×2",
+          "object_id": 7224,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7225 ×2",
+          "object_id": 7225,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7305 ×3",
+          "object_id": 7305,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 23480 ×1",
+          "object_id": 23480,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 287 ×100",
+          "object_id": 287,
+          "quantity": 100
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7018 ×100",
+          "object_id": 7018,
+          "quantity": 100
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6671 ×50",
+          "object_id": 6671,
+          "quantity": 50
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 311 ×20",
+          "object_id": 311,
+          "quantity": 20
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 10831 ×8",
+          "object_id": 10831,
+          "quantity": 8
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 381 ×3",
+          "object_id": 381,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2294 ×3",
+          "object_id": 2294,
+          "quantity": 3
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [3,-6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2212_step_0003",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -6
+      ],
+      "next": [
+        6,
+        -7
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 158",
+          "quest_id": 158
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mr Elto Offer to set off"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mrs El"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,-7]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2212_step_0004",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        -7
+      ],
+      "next": [
+        4,
+        -6
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Marie Zoto"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [4,-6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2212_step_0005",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        -6
+      ],
+      "next": [
+        1,
+        0
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Fred Austere"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [1,0]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2212_step_0006",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        1,
+        0
+      ],
+      "next": [
+        -12,
+        8
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Jorg Dy"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-12,8]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2212_step_0007",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -12,
+        8
+      ],
+      "next": [
+        -2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Paindep"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-2,-1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2212_step_0008",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -1
+      ],
+      "next": [
+        -31,
+        -52
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the restaurant"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gordo McRamsay"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-31,-52]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2212_step_0009",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -31,
+        -52
+      ],
+      "next": [
+        -2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mouss Bouff"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 381 ×20",
+          "object_id": 381,
+          "quantity": 20
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 400 ×10",
+          "object_id": 400,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17140 ×3",
+          "object_id": 17140,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 287 ×5",
+          "object_id": 287,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2253 ×4",
+          "object_id": 2253,
+          "quantity": 4
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 390 ×1",
+          "object_id": 390,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1736 ×2",
+          "object_id": 1736,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2331 ×3",
+          "object_id": 2331,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 537 ×5",
+          "object_id": 537,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1974 ×3",
+          "object_id": 1974,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 1975 ×4",
+          "object_id": 1975,
+          "quantity": 4
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 598 ×8",
+          "object_id": 598,
+          "quantity": 8
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 600 ×15",
+          "object_id": 600,
+          "quantity": 15
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17181 ×2",
+          "object_id": 17181,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7046 ×1",
+          "object_id": 7046,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7149 ×10",
+          "object_id": 7149,
+          "quantity": 10
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-2,-1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2212_step_0010",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -1
+      ],
+      "next": [
+        -31,
+        -52
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the restaurant"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gordo McRamsay"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-31,-52]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2212_step_0011",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -31,
+        -52
+      ],
+      "next": [
+        -2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mouss Bouff"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-2,-1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2212_step_0012",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -1
+      ],
+      "next": [
+        -12,
+        8
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the restaurant"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gordo McRamsay"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-12,8]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2212_step_0013",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -12,
+        8
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 158",
+          "quest_id": 158
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Paindep to complete the quest That Be Frugal"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2212_step_0014",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2150",
+          "quest_id": 2150
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the jar below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2212_step_0015",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -33
+      ],
+      "next": [
+        20,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à The Grandapan"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2212_step_0016",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -27
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house on the right"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Surivitna to Talk about your vision"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2212_step_0017",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        21,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pandarin Sudopong"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2212_step_0018",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -29
+      ],
+      "next": [
+        -2,
+        -1
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ghao Zuo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-2,-1]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2212_step_0019",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -2,
+        -1
+      ],
+      "next": [
+        21,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the restaurant"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gordo McRamsay"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2212_step_0020",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -29
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ghao Zuo"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Voracious Yokai"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2212_step_0021",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Noisy Yokai"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2212_step_0022",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Étape non reconstruite : consulter la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2212_step_0023",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        20,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dick Kerboo Brandtawa"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2212_step_0024",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -30
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : thebasement below"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Suggestible Yokai to Take a kama"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bank"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Yendong"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2212_step_0025",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        20,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pandarin Sudopong"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2212_step_0026",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -31
+      ],
+      "next": [
+        23,
+        -28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Dojo"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Master Kwatimbe"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7013 ×20",
+          "object_id": 7013,
+          "quantity": 20
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7222 ×2",
+          "object_id": 7222,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 23311 ×2",
+          "object_id": 23311,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7223 ×2",
+          "object_id": 7223,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7224 ×2",
+          "object_id": 7224,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7225 ×2",
+          "object_id": 7225,
+          "quantity": 2
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7045 ×1",
+          "object_id": 7045,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2212_step_0027",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -28
+      ],
+      "next": [
+        20,
+        -31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Artificers' Workshop"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 23094",
+          "object_id": 23094
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 18676",
+          "object_id": 18676
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 18714",
+          "object_id": 18714
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Panduckler"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2212_step_0028",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -31
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Dojo"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Master Kwatimbe"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23180",
+          "object_id": 23180
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2212_step_0029",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Samurai Holi"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Daimya Hikomi"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23094",
+          "object_id": 23094
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : like this"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à The Grandapan to Bow before the"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2212_step_0030",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        24,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Imagiro"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Orukam"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2150",
+          "quest_id": 2150
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Daimya Hikomi"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2151",
+          "quest_id": 2151
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2212_step_0031",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -29
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kykori"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2212_step_0032",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        24,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the pile of books below"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Chochi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2212_step_0033",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -29
+      ],
+      "next": [
+        26,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Takeono"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2212_step_0034",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -30
+      ],
+      "next": [
+        18,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Vusi to Learn more about the harvesting"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the skeleton under the tent below"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : on the Page from the Bamboo Grove Harvesting Register in your q"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Damadrya to Find out more about her"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2212_step_0035",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -29
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kykori"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Amaknian Dealer"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2212_step_0036",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        26,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Servant of Daimya"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2212_step_0037",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -30
+      ],
+      "next": [
+        26,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Vusi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2212_step_0038",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -32
+      ],
+      "next": [
+        26,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Goroku Tree Fruit"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : on the Spirit Seeds"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2212_step_0039",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        10,
+        10
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Wood Spirit"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2212_step_0040",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2151",
+          "quest_id": 2151
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2152",
+          "quest_id": 2152
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2212_step_0041",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        24,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Smiths' Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Anatakwa"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mira Hagata"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2212_step_0042",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -24
+      ],
+      "next": [
+        26,
+        -25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuha Ping"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2212_step_0043",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -25
+      ],
+      "next": [
+        24,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanutoki"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-23]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2212_step_0044",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -23
+      ],
+      "next": [
+        26,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanukas Trates"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2212_step_0045",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -24
+      ],
+      "next": [
+        23,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 126",
+          "dungeon_id": 126
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Tanukouï San to Talk about the Kizmiases"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2212_step_0046",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -26
+      ],
+      "next": [
+        25,
+        -25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanukai Kiyay"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,-25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2212_step_0047",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -25
+      ],
+      "next": [
+        20,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the stone tower in the middle below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2212_step_0048",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -29
+      ],
+      "next": [
+        23,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7305 ×3",
+          "object_id": 7305,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 23480 ×1",
+          "object_id": 23480,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 23481 ×2",
+          "object_id": 23481,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2212_step_0049",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -29
+      ],
+      "next": [
+        23,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Alchemists' Workshop"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : an Alembic"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 23098",
+          "object_id": 23098
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2212_step_0050",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -26
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanukai Kiyay"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2212_step_0051",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        24,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dick Kerboo Brandtawa"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2212_step_0052",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -27
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the small circle in the center below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2212_step_0053",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        24,
+        -25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the small circle in the center below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2212_step_0054",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -25
+      ],
+      "next": [
+        27,
+        -28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the small circle in the center below"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,-28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2212_step_0055",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        -28
+      ],
+      "next": [
+        25,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the In-Service Kizmias"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2212_step_0056",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -24
+      ],
+      "next": [
+        25,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the In-Service Kizmias"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2212_step_0057",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -22
+      ],
+      "next": [
+        26,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the mine"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuwang Yuanzhong"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Whaska"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuwang Yuanzhong again"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2212_step_0058",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -27
+      ],
+      "next": [
+        25,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuki Bonurki"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuwang Yuanzhong"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2212_step_0059",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -26
+      ],
+      "next": [
+        26,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanugui Met to Choose the quick solution"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2212_step_0060",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        -27
+      ],
+      "next": [
+        25,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Tanuwang Yuanzhong"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2212_step_0061",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        -26
+      ],
+      "next": [
+        24,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Whaska"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Rock Spirit to Try"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2212_step_0062",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -22
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mira Hagata"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "stable_step_id": "ganymede_2212_step_0063",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        20,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2152",
+          "quest_id": 2152
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2153",
+          "quest_id": 2153
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "stable_step_id": "ganymede_2212_step_0064",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -26
+      ],
+      "next": [
+        18,
+        -25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Lenald Farmer"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 65,
+      "stable_step_id": "ganymede_2212_step_0065",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -25
+      ],
+      "next": [
+        20,
+        -20
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Yuminh"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-20]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 66,
+      "stable_step_id": "ganymede_2212_step_0066",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -20
+      ],
+      "next": [
+        20,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Osakwa Inn"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sakwaba"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sai Keirei"
+        }
+      ]
+    },
+    {
+      "source_step_number": 67,
+      "stable_step_id": "ganymede_2212_step_0067",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -24
+      ],
+      "next": [
+        18,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Enutrof Hunter"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kwatalo to Bow politely in greeting"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 68,
+      "stable_step_id": "ganymede_2212_step_0068",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -24
+      ],
+      "next": [
+        18,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 69,
+      "stable_step_id": "ganymede_2212_step_0069",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -22
+      ],
+      "next": [
+        21,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 70,
+      "stable_step_id": "ganymede_2212_step_0070",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -22
+      ],
+      "next": [
+        23,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-23]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 71,
+      "stable_step_id": "ganymede_2212_step_0071",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -23
+      ],
+      "next": [
+        22,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-23]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 72,
+      "stable_step_id": "ganymede_2212_step_0072",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -23
+      ],
+      "next": [
+        20,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-23]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 73,
+      "stable_step_id": "ganymede_2212_step_0073",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -23
+      ],
+      "next": [
+        20,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Wild Cucumber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 74,
+      "stable_step_id": "ganymede_2212_step_0074",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -24
+      ],
+      "next": [
+        22,
+        -24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kwatalo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 75,
+      "stable_step_id": "ganymede_2212_step_0075",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -24
+      ],
+      "next": [
+        23,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Little Pandawa"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 123",
+          "dungeon_id": 123
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Lady of the Water Nagate to Find out more about her"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kwatalo"
+        }
+      ]
+    },
+    {
+      "source_step_number": 76,
+      "stable_step_id": "ganymede_2212_step_0076",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -22
+      ],
+      "next": [
+        23,
+        -22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Froog in the following order"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kwatalo twice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 77,
+      "stable_step_id": "ganymede_2212_step_0077",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -22
+      ],
+      "next": [
+        20,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Akwanokima the Water Spirit to Feel the melancholy"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23234",
+          "object_id": 23234
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 78,
+      "stable_step_id": "ganymede_2212_step_0078",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -26
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Lenald Farmer"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 79,
+      "stable_step_id": "ganymede_2212_step_0079",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        18,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2153",
+          "quest_id": 2153
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2154",
+          "quest_id": 2154
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 80,
+      "stable_step_id": "ganymede_2212_step_0080",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -30
+      ],
+      "next": [
+        23,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Feudala Guard"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 81,
+      "stable_step_id": "ganymede_2212_step_0081",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -29
+      ],
+      "next": [
+        24,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Alchemists' Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Phang"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 82,
+      "stable_step_id": "ganymede_2212_step_0082",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        -29
+      ],
+      "next": [
+        18,
+        -30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Takeono to obtain 1 Supple Bamboo Wood"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23145",
+          "object_id": 23145
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 83,
+      "stable_step_id": "ganymede_2212_step_0083",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -30
+      ],
+      "next": [
+        17,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : through the small door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Workbench"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Feudala Guard"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [17,-32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 84,
+      "stable_step_id": "ganymede_2212_step_0084",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        17,
+        -32
+      ],
+      "next": [
+        15,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Primordial Lantern"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à one of the Will-o'-the-Wisp"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 85,
+      "stable_step_id": "ganymede_2212_step_0085",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -35
+      ],
+      "next": [
+        18,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ozulan"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 86,
+      "stable_step_id": "ganymede_2212_step_0086",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -34
+      ],
+      "next": [
+        18,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Gift Wrapping Station"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pandako Shazaki to Offer to help"
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 23166",
+          "object_id": 23166
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 87,
+      "stable_step_id": "ganymede_2212_step_0087",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -34
+      ],
+      "next": [
+        17,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Gift Wrapping Station"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pandako Shazaki to Return the talismans"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [17,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 88,
+      "stable_step_id": "ganymede_2212_step_0088",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        17,
+        -35
+      ],
+      "next": [
+        16,
+        -36
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [16,-36]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 89,
+      "stable_step_id": "ganymede_2212_step_0089",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        16,
+        -36
+      ],
+      "next": [
+        16,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [16,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 90,
+      "stable_step_id": "ganymede_2212_step_0090",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        16,
+        -34
+      ],
+      "next": [
+        15,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 91,
+      "stable_step_id": "ganymede_2212_step_0091",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -34
+      ],
+      "next": [
+        14,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [14,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 92,
+      "stable_step_id": "ganymede_2212_step_0092",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        -34
+      ],
+      "next": [
+        15,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,-33]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 93,
+      "stable_step_id": "ganymede_2212_step_0093",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -33
+      ],
+      "next": [
+        16,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern-Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [16,-32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 94,
+      "stable_step_id": "ganymede_2212_step_0094",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        16,
+        -32
+      ],
+      "next": [
+        18,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern Tree"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-33]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 95,
+      "stable_step_id": "ganymede_2212_step_0095",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -33
+      ],
+      "next": [
+        23,
+        -27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lantern Tree"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 287 ×100",
+          "object_id": 287,
+          "quantity": 100
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7018 ×100",
+          "object_id": 7018,
+          "quantity": 100
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6671 ×50",
+          "object_id": 6671,
+          "quantity": 50
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 311 ×20",
+          "object_id": 311,
+          "quantity": 20
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,-27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 96,
+      "stable_step_id": "ganymede_2212_step_0096",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        -27
+      ],
+      "next": [
+        15,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the chocolate shop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Stayfun Bonnawa"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Workshop"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23167 ×10",
+          "object_id": 23167,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23175 ×10",
+          "object_id": 23175,
+          "quantity": 10
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 97,
+      "stable_step_id": "ganymede_2212_step_0097",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -35
+      ],
+      "next": [
+        18,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ozulan"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [18,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 98,
+      "stable_step_id": "ganymede_2212_step_0098",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        18,
+        -34
+      ],
+      "next": [
+        14,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Gift Wrapping Station"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pandako Shazaki"
+        }
+      ]
+    },
+    {
+      "source_step_number": 99,
+      "stable_step_id": "ganymede_2212_step_0099",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        -32
+      ],
+      "next": [
+        17,
+        -36
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Hinaba to Offer to help"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 124",
+          "dungeon_id": 124
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Founoroshi to Order him to stop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again to Choose him to meet"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [17,-36]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 100,
+      "stable_step_id": "ganymede_2212_step_0100",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        17,
+        -36
+      ],
+      "next": [
+        15,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the cave"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Fire Spirit"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the mountain"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 101,
+      "stable_step_id": "ganymede_2212_step_0101",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        -35
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ozulan"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 102,
+      "stable_step_id": "ganymede_2212_step_0102",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        20,
+        -26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2154",
+          "quest_id": 2154
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2155",
+          "quest_id": 2155
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her to startthe quest The Balance of Power"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 10831 ×8",
+          "object_id": 10831,
+          "quantity": 8
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 381 ×3",
+          "object_id": 381,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 2294 ×3",
+          "object_id": 2294,
+          "quantity": 3
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 103,
+      "stable_step_id": "ganymede_2212_step_0103",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -26
+      ],
+      "next": [
+        21,
+        -39
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Farmers' Workshop"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 23118",
+          "object_id": 23118
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-39]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 104,
+      "stable_step_id": "ganymede_2212_step_0104",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -39
+      ],
+      "next": [
+        22,
+        -37
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the banana basket"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Wind Spirit"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Yokaikido"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-37]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 105,
+      "stable_step_id": "ganymede_2212_step_0105",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -37
+      ],
+      "next": [
+        21,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Yung Pandawane"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 106,
+      "stable_step_id": "ganymede_2212_step_0106",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -35
+      ],
+      "next": [
+        19,
+        -33
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Captain of the Kozaru Guard"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ten Rowa"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Yokaikido"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,-33]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 107,
+      "stable_step_id": "ganymede_2212_step_0107",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        -33
+      ],
+      "next": [
+        19,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Pandissident Bomber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,-32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 108,
+      "stable_step_id": "ganymede_2212_step_0108",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        -32
+      ],
+      "next": [
+        20,
+        -37
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Pandissident Bomber"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,-37]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 109,
+      "stable_step_id": "ganymede_2212_step_0109",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -37
+      ],
+      "next": [
+        20,
+        -37
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 122",
+          "dungeon_id": 122
+        }
+      ]
+    },
+    {
+      "source_step_number": 110,
+      "stable_step_id": "ganymede_2212_step_0110",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -37
+      ],
+      "next": [
+        21,
+        -35
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Hanshi"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-35]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 111,
+      "stable_step_id": "ganymede_2212_step_0111",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -35
+      ],
+      "next": [
+        22,
+        -37
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain of the Kozaru Guard"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-37]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 112,
+      "stable_step_id": "ganymede_2212_step_0112",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -37
+      ],
+      "next": [
+        21,
+        -39
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Yung Pandawane"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,-39]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 113,
+      "stable_step_id": "ganymede_2212_step_0113",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -39
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Yokaikido"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Wind Spirit"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 114,
+      "stable_step_id": "ganymede_2212_step_0114",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        19,
+        -32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2155",
+          "quest_id": 2155
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête nº 2197",
+          "quest_id": 2197
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her to startthe quest Bleeding Ink"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,-32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 115,
+      "stable_step_id": "ganymede_2212_step_0115",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        -32
+      ],
+      "next": [
+        19,
+        -34
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Aerdalan Merchant to Buy a 1"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,-34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 116,
+      "stable_step_id": "ganymede_2212_step_0116",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        -34
+      ],
+      "next": [
+        22,
+        -37
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the bamboo"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à a Pandikaze Assassin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-37]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 117,
+      "stable_step_id": "ganymede_2212_step_0117",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -37
+      ],
+      "next": [
+        22,
+        -38
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : on the Concealment Flask in your quest items"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Pandissident Guardian to Speak loudly"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-38]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 118,
+      "stable_step_id": "ganymede_2212_step_0118",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -38
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Pandora Master"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 119,
+      "stable_step_id": "ganymede_2212_step_0119",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Bamboo Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Samurai Holi"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : your Panduckler"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,-29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 120,
+      "stable_step_id": "ganymede_2212_step_0120",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -29
+      ],
+      "next": [
+        22,
+        -29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the carpet as at step 29"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à The Grandapan to Drink a tankard of Pandaporo"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête nº 2197",
+          "quest_id": 2197
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Orukam"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 23237",
+          "object_id": 23237
+        }
+      ]
+    }
+  ]
+}

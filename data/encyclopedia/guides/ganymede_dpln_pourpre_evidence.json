@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2276,
+  "atlas_guide_id": "dofus_pourpre",
+  "checked_on": "2026-10-18",
+  "evidence_level": "NAMED_QUEST_CANDIDATES_ONLY",
+  "quest_objectives_verified": false,
+  "route_verified": false,
+  "sources": {
+    "dpln_quest_list": "https://www.dofuspourlesnoobs.com/quecirctes-du-dofus-pourpre.html",
+    "dpln_achievement": "https://www.dofuspourlesnoobs.com/pourpre-profond.html",
+    "ganymede_guide": "https://ganymede-app.com/guides/2276"
+  },
+  "main_quests": [
+    {
+      "quest_id": 1521,
+      "name": "Le livre des Taures",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1521",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1522,
+      "name": "Taures et détours",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1522",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1523,
+      "name": "Le trésor de Totankama",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1523",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1524,
+      "name": "Il faut battre le lait quand il est chaud",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1524",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1525,
+      "name": "Regrets d'éternailes",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1525",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1526,
+      "name": "L'anneau de Tot",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1526",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1528,
+      "name": "Une âme en peine",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1528",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    },
+    {
+      "quest_id": 1529,
+      "name": "Le pouvoir derrière le trône",
+      "achievement_group": "Pourpre profond",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1529",
+      "identity_status": "REVIEW_TRIANGULATED_ID_NAME"
+    }
+  ],
+  "access_and_prerequisites": [],
+  "non_main_references": [
+    {
+      "quest_id": 1527,
+      "name": "Comment perdre ses plumes",
+      "status": "SIDE_QUEST_NOT_IN_EIGHT_DPLN",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/1527",
+      "reason": "Mentioned separately in DPLN; not one of the 8 main success quests."
+    },
+    {
+      "quest_id": 2538,
+      "name": "Chasse au trésor archéologique",
+      "status": "CONTEXT_UNCLASSIFIED",
+      "dofusdb_url": "https://dofusdb.fr/fr/database/quest/2538",
+      "reason": "Referenced by Ganymède but absent from Atlas Pourpre guide; mandatory role unverified."
+    }
+  ],
+  "preparation_evidence": {
+    "resources": [
+      {
+        "name": "Tige de Bambouto",
+        "quantity": 1
+      },
+      {
+        "name": "Tête de mort",
+        "quantity": 1
+      }
+    ],
+    "combat_review": {
+      "solo": 3,
+      "group_possible": 2,
+      "tactical_solo": 1
+    },
+    "dungeons": [
+      "Bibliothèque du Maître Corbac",
+      "Labyrinthe du Minotoror",
+      "Serre du Royalmouth",
+      "Ring du Capitaine Ekarlatte",
+      "Antre du Blop Multicolore Royal"
+    ],
+    "planning_note": "Global DPLN source summary only; cannot be used as a per-step requirement or immediate shopping list. Deduplicate and schedule after canonical quest-objective checks per character."
+  }
+}

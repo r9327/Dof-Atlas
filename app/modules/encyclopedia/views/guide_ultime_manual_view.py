@@ -5,7 +5,7 @@ import re
 from typing import Any
 from urllib.parse import quote, unquote
 
-from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtCore import QSize, QTimer, Signal, Qt
 from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QProgressBar,
     QPushButton,
+    QStyle,
     QToolButton,
     QToolTip,
     QVBoxLayout,
@@ -199,30 +200,43 @@ class GuideUltimeManualCard(QFrame):
         waypoint_ids = self._waypoint_quest_ids_for_row(row)
         if waypoint_ids:
             return waypoint_ids
-        return [quest_id for quest_id, _name in self._quest_rows]
+        # Without waypoint evidence, a multi-quest page must not attach every
+        # quest to an unrelated action. Use the quest explicitly named here.
+        text = self._quest_name_key(row.get("text") or "")
+        named_ids = [
+            quest_id
+            for quest_id, name in self._quest_rows
+            if name and self._quest_name_key(name) in text
+        ]
+        if named_ids:
+            return named_ids
+        # A single-quest page still needs one accessible shortcut even when
+        # its action says only "Parler au PNJ".
+        return [self._quest_rows[0][0]] if len(self._quest_rows) == 1 else []
 
     def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
         if not self._quest_rows:
             return
-        position = str(row.get("position") or self.card.get("destination") or "").strip()
-        map_key = self._position_key(position) or "__stage__"
         names = {quest_id: name for quest_id, name in self._quest_rows}
         stage_id = str(self.card.get("manual_stage_id") or "")
         for quest_id in self._quest_ids_for_row(row):
-            dedupe_key = (int(quest_id), map_key)
-            if dedupe_key in self._shown_quest_map_links:
+            if int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))
             if not name:
                 continue
-            self._shown_quest_map_links.add(dedupe_key)
+            self._shown_quest_ids.add(int(quest_id))
             button = QToolButton()
             button.setObjectName("GuideManualQuestInlineButton")
-            button.setText("↗")
+            # Use an actual Qt icon, never a text glyph which may be invisible
+            # with the packaged Windows font.
+            button.setIcon(button.style().standardIcon(QStyle.SP_FileIcon))
+            button.setIconSize(QSize(16, 16))
             button.setAutoRaise(True)
             button.setCursor(Qt.PointingHandCursor)
-            button.setFixedSize(18, 18)
+            button.setFixedSize(24, 24)
             button.setToolTip(name)
+            button.setAccessibleName(name)
             button.clicked.connect(
                 lambda _checked=False, qid=quest_id, sid=stage_id: self.questRequested.emit(
                     int(qid), sid, self.index

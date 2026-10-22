@@ -1,0 +1,158 @@
+from __future__ import annotations
+
+import unittest
+import tempfile
+from copy import deepcopy
+from pathlib import Path
+
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    certified_payload_sha256, route_fingerprint, select_verified_replacement_path,
+)
+from tools.build_ganymede_trusted_cutovers import (
+    assert_reviewed_source_parity, prepare_trusted_cutover, write_trusted_cutovers,
+)
+
+
+class TrustedCutoverBuilderTests(unittest.TestCase):
+    def setUp(self):
+        self.preview = {
+            "schema_version": 1,
+            "id": "dofus_cawotte",
+            "category": "dofus",
+            "source_guide_id": 2205,
+            "expected_source_step_count": 1,
+            "source_link_snapshot": "ganymede_cawotte_observed_links.json",
+            "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+            "source_text_copied": False,
+            "guide_progress_id_unchanged": True,
+            "legacy_manual_steps_migration_verified": True,
+            "cutover_blockers": [],
+            "sections": [{
+                "id": "ganymede_2205_continuous",
+                "steps": [{
+                    "id": "ganymede_2205_step_0001",
+                    "source_guide_id": 2205,
+                    "source_step_number": 1,
+                    "source_page": 1,
+                    "source_coordinates_mentioned": [[25, -4]],
+                    "source_linked_guide_ids": [2204],
+                    "external_dofusdb_ids": {
+                        "quest": [827], "dungeon": [], "object": [], "monster": [],
+                    },
+                    "manual_completion_allowed": False,
+                    "original_prose_imported": False,
+                    "source_action_review_status": "CERTIFIED_CANONICAL_ACTIONS",
+                    "verified_actions": [{
+                        "kind": "prepare",
+                        "text": "Préparer une Cawotte",
+                        "verified": True,
+                        "evidence": [{"type": "doduda_object", "id": 361}],
+                    }],
+                    "source_action_candidates": [{
+                        "kind": "prepare_object",
+                        "label": "Préparer une Cawotte",
+                        "object_id": 361,
+                        "quantity": 1,
+                    }],
+                }],
+            }],
+        }
+
+    def test_converts_actions_without_losing_ids_or_quantities(self):
+        result = prepare_trusted_cutover(self.preview)
+        step = result["sections"][0]["steps"][0]
+        self.assertTrue(step["manual_completion_allowed"])
+        self.assertEqual(step["content"], "Préparer une Cawotte")
+        self.assertEqual(step["source_action_candidates"][0]["object_id"], 361)
+        self.assertEqual(step["source_action_candidates"][0]["quantity"], 1)
+        self.assertEqual(result["playable_step_count"], 1)
+        self.assertFalse(self.preview["sections"][0]["steps"][0]["manual_completion_allowed"])
+        self.assertEqual(len(certified_payload_sha256(result)), 64)
+        self.assertEqual(len(route_fingerprint(2205, [step["id"]])), 64)
+
+    def test_generated_manifest_selects_trusted_route(self):
+        payload = prepare_trusted_cutover(self.preview)
+        source_id = payload["source_guide_id"]
+        step_ids = [step["id"] for step in payload["sections"][0]["steps"]]
+        result = {
+            "payloads": {"dofus_cawotte": payload},
+            "manifest": {"schema_version": 1, "guides": {"dofus_cawotte": {
+                "enabled": True,
+                "status": "CERTIFIED_FOR_CUTOVER",
+                "source_guide_id": source_id,
+                "source_step_count": len(step_ids),
+                "fingerprint": route_fingerprint(source_id, step_ids),
+                "payload_sha256": certified_payload_sha256(payload),
+            }}},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            guides = Path(tmp) / "guides"
+            output = guides / "replacement_drafts"
+            write_trusted_cutovers(result, output)
+            self.assertEqual(
+                select_verified_replacement_path(guides, {"id": "dofus_cawotte", "category": "dofus"}),
+                output / "dofus_cawotte.json",
+            )
+
+    def test_reviewed_actions_preserve_source_fact_parity(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["verified_actions"][0]["text"] = "Préparer la ressource canonique"
+        assert_reviewed_source_parity(reviewed, fresh)
+
+    def test_reviewed_step_cannot_rewrite_source_coordinates_or_ids(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["source_coordinates_mentioned"] = [[1, 1]]
+        with self.assertRaisesRegex(ValueError, "source_coordinates_mentioned"):
+            assert_reviewed_source_parity(reviewed, fresh)
+        reviewed = deepcopy(self.preview)
+        reviewed["sections"][0]["steps"][0]["external_dofusdb_ids"]["quest"] = [999]
+        with self.assertRaisesRegex(ValueError, "external_dofusdb_ids"):
+            assert_reviewed_source_parity(reviewed, fresh)
+
+    def test_reviewed_route_cannot_point_at_another_source(self):
+        fresh = deepcopy(self.preview)
+        reviewed = deepcopy(self.preview)
+        reviewed["source_guide_id"] = 999
+        with self.assertRaisesRegex(ValueError, "source_guide_id"):
+            assert_reviewed_source_parity(reviewed, fresh)
+
+    def test_source_count_mismatch_rejected(self):
+        self.preview["expected_source_step_count"] = 2
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unstable_step_order_rejected(self):
+        self.preview["sections"][0]["steps"][0]["source_step_number"] = 2
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_missing_actions_never_activates(self):
+        self.preview["sections"][0]["steps"][0]["verified_actions"] = []
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_candidate_labels_are_not_canonical_evidence(self):
+        self.preview["sections"][0]["steps"][0]["verified_actions"] = []
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unreviewed_automatic_actions_cannot_be_activated(self):
+        self.preview["sections"][0]["steps"][0]["source_action_review_status"] = "AUTO_EXTRACTED_NEEDS_REVIEW"
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_unverified_progress_migration_cannot_be_activated(self):
+        self.preview["legacy_manual_steps_migration_verified"] = False
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+    def test_empty_action_label_never_activates(self):
+        self.preview["sections"][0]["steps"][0]["verified_actions"][0]["text"] = " "
+        with self.assertRaises(ValueError):
+            prepare_trusted_cutover(self.preview)
+
+
+if __name__ == "__main__":
+    unittest.main()

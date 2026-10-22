@@ -1,0 +1,1684 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_pourpre",
+  "source_guide_id": 2276,
+  "source_url": "https://ganymede-app.com/guides/2276",
+  "reviewed_on": "2026-10-18",
+  "source_step_count": 45,
+  "evidence_level": "FACTUAL_ACTION_CANDIDATES_NEED_CANONICAL_OBJECTIVE_VERIFICATION",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2276_step_0001",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "guide_dependency",
+          "label": "Vérifier la fin du parcours « Mais où sont les Dofus ? »",
+          "guide_id": 2204
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Objectif : obtenir le Dofus Pourpre",
+          "object_id": 694
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2276_step_0002",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir une tige de Bambouto pour la quête des regrets",
+          "object_id": 7290,
+          "quest_id": 1525,
+          "quantity": 1,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir la clé de l'anneau du capitaine",
+          "object_id": 15477,
+          "quest_id": 1526,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir un emblème pirate",
+          "object_id": 15444,
+          "quest_id": 1526,
+          "quantity": 1,
+          "can_obtain_on_route": true
+        },
+        {
+          "kind": "move",
+          "label": "Se rendre dans les marécages nauséabonds"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2276_step_0003",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -35,
+        -57
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Demander à Mériana les informations sur le Dofus Pourpre",
+          "quest_id": 1521
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque de Bonta"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2276_step_0004",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -35,
+        -57
+      ],
+      "next": [
+        -24,
+        39
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner Becky Stein sur l'ouvrage recherché"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à la bibliothèque de Brâkmar"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2276_step_0005",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -24,
+        39
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger Liam Nesswiltee à l'étage"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque de Sufokia"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2276_step_0006",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        4,
+        1
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger le Docteur Hoo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque près du Coin des Bouftous"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2276_step_0007",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        4,
+        1
+      ],
+      "next": [
+        21,
+        -27
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner Harry Stottel"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque de Pandala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2276_step_0008",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        -27
+      ],
+      "next": [
+        7,
+        -19
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger le bibliothécaire de Pandala"
+        },
+        {
+          "kind": "move",
+          "label": "Aller à la bibliothèque d'Astrub"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2276_step_0009",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        -19
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Parler à Oz Dralett et lancer le combat en groupe",
+          "group_mode": "group",
+          "quest_update_even_if_lost": true
+        },
+        {
+          "kind": "move",
+          "label": "Retourner voir Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2276_step_0010",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -15,
+        -62
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mériana et rapporter les informations sur le Corbac"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la bibliothèque du Maître Corbac"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2276_step_0011",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -15,
+        -62
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer la bibliothèque du Maître Corbac",
+          "dungeon_id": 3
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le premier Corbac requis",
+          "monster_id": 823
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le deuxième Corbac requis",
+          "monster_id": 824
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le troisième Corbac requis",
+          "monster_id": 825
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre Capsaaloock pour accéder au boss",
+          "monster_id": 4572
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Maître Corbac",
+          "monster_id": 289
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer le livre des Taures",
+          "object_id": 15417
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver un os de Maître Corbac",
+          "object_id": 15596
+        },
+        {
+          "kind": "move",
+          "label": "Retourner chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2276_step_0012",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Remettre le livre à Mériana",
+          "quest_id": 1521
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer le parcours du Minotoror",
+          "quest_id": 1522
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre l'île du Minotoror"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2276_step_0013",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Demander l'accès au labyrinthe à Lorkos"
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser le flacon pour accéder au refuge"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Apisaph"
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver la potion d'Apisaph pour revenir au refuge",
+          "object_id": 15413
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2276_step_0014",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer le labyrinthe du Minotoror en restant dans la dernière salle",
+          "dungeon_id": 4,
+          "stay_at_end": true
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Déminoboule",
+          "monster_id": 832
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Mominotor",
+          "monster_id": 831
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la relique du Mominotor",
+          "object_id": 8305
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la relique du Déminoboule",
+          "object_id": 8306
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Minotoror",
+          "monster_id": 121
+        },
+        {
+          "kind": "interact",
+          "label": "Activer le trône après la victoire"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Parler au Minotot pour terminer la quête",
+          "quest_id": 1522
+        },
+        {
+          "kind": "quest_start",
+          "label": "Lancer la quête du trésor de Totankama",
+          "quest_id": 1523
+        },
+        {
+          "kind": "move",
+          "label": "Retourner aux marécages"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2276_step_0015",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -10,
+        -43
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Faire le point avec Mériana"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer la quête secondaire de recherche d'œufs",
+          "quest_id": 1527,
+          "relation": "side_required_for_progression"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la volière"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2276_step_0016",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -10,
+        -43
+      ],
+      "next": [
+        -10,
+        -43
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer la volière de la Haute Truche sans quitter la salle finale",
+          "dungeon_id": 80,
+          "stay_at_end": true
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Janseb puis sortir vers les escaliers"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2276_step_0017",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -11,
+        -44
+      ],
+      "next": [
+        9,
+        21
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe avec Elbert Weskabb",
+          "monster_id": 3727,
+          "group_mode": "group",
+          "mechanic": "heal_target_to_1000"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Vidda B. Ginwate"
+        },
+        {
+          "kind": "move",
+          "label": "Aller chercher les œufs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2276_step_0018",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        9,
+        21
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Examiner la cage pour récupérer l'œuf surprenant",
+          "object_id": 15427
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer la Grotte de Bworker ? Non : le Goulet du Rasboul",
+          "dungeon_id": 41
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer l'œuf végétal",
+          "object_id": 15426
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer la Maison du Tofu Royal",
+          "dungeon_id": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer l'œuf monarchique",
+          "object_id": 15425
+        },
+        {
+          "kind": "move",
+          "label": "Retourner chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2276_step_0019",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -25,
+        -36
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Montrer les œufs à Mériana"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Remettre les informations à Ener Brelloq",
+          "quest_id": 1527
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le coffre de Cania"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2276_step_0020",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        -36
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Lancer une chasse archéologique quotidienne",
+          "quest_id": 2538,
+          "relation": "repeatable_support",
+          "daily_reset": true
+        },
+        {
+          "kind": "interact",
+          "label": "Démarrer la chasse au trésor depuis le bureau"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre seul le trésor de la chasse",
+          "monster_id": 3724,
+          "group_mode": "solo"
+        },
+        {
+          "kind": "interact",
+          "label": "Ouvrir le coffre d'archéologue",
+          "object_id": 32379
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer cinq trésors archéologiques",
+          "object_id": 32378,
+          "quantity": 5
+        },
+        {
+          "kind": "interact",
+          "label": "Utiliser la potion d'Apisaph si disponible",
+          "object_id": 15413
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le refuge des Cent Détours"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2276_step_0021",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        -7,
+        -43
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Questionner Apisaph sur le lait doré",
+          "quest_id": 1524
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner le seau"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le repaire du Blop"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2276_step_0022",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -7,
+        -43
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Aider Gavroch pendant le combat individuel",
+          "monster_id": 3793,
+          "group_mode": "solo",
+          "ally_must_survive": true
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer l'antre du Blop Multicolore Royal",
+          "dungeon_id": 49
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Blop Multicolore Royal",
+          "monster_id": 1188
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer son globule",
+          "object_id": 15421
+        },
+        {
+          "kind": "move",
+          "label": "Retourner chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2276_step_0023",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        3,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Interroger Mériana puis Arlo"
+        },
+        {
+          "kind": "interact",
+          "label": "Faire cristalliser la perle auprès de Lired",
+          "cooldown_if_failed_seconds": 60
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la perle de lait doré",
+          "object_id": 15418
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête du lait doré",
+          "quest_id": 1524
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Kérubim Crépin"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2276_step_0024",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        3,
+        -17
+      ],
+      "next": [
+        11,
+        -1
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Parler à Kérubim Crépin pour démarrer la recherche de l'anneau",
+          "quest_id": 1526
+        },
+        {
+          "kind": "move",
+          "label": "Aller à la zone de Nanoc Elyod"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2276_step_0025",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        -1
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner Nanoc Elyod"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le refuge du Minotoror"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2276_step_0026",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        5,
+        2
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Lorkos puis Kard"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir la clé du capitaine",
+          "object_id": 15477,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir l'emblème pirate",
+          "object_id": 15444,
+          "quantity": 1
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer les regrets de l'Infini-Aile",
+          "quest_id": 1525
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la taverne du Srambad"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2276_step_0027",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        5,
+        2
+      ],
+      "next": [
+        6,
+        3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Acheter la boisson au tortionnaire Sevrain"
+        },
+        {
+          "kind": "combat",
+          "label": "Affronter Abecombe Smisse en groupe",
+          "group_mode": "group"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le donjon du capitaine"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2276_step_0028",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        3
+      ],
+      "next": [
+        22,
+        -28
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer l'anneau du Capitaine Ekarlatte",
+          "dungeon_id": 81,
+          "stay_at_end": true
+        },
+        {
+          "kind": "talk",
+          "label": "Interroger le capitaine dans la salle finale"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer l'anneau de Tot",
+          "object_id": 15420
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête de l'anneau",
+          "quest_id": 1526
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Plantala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2276_step_0029",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -28
+      ],
+      "next": [
+        20,
+        -27
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Dleam Katchel"
+        },
+        {
+          "kind": "optional_drop",
+          "label": "Récolter la tige de Bambouto si nécessaire",
+          "object_id": 7290,
+          "monster_id": 6318,
+          "conditional": "missing_object"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la maison de Feudala"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2276_step_0030",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        -27
+      ],
+      "next": [
+        22,
+        -28
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Ouvrir le coffre brisé"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe déclenché",
+          "group_mode": "group"
+        },
+        {
+          "kind": "check_object",
+          "label": "Récupérer la toile spirituelle",
+          "object_id": 15424
+        },
+        {
+          "kind": "drop_object",
+          "label": "Rassembler treize totems Firefoux",
+          "object_id": 15423,
+          "quantity": 13,
+          "monster_id": 6254,
+          "alternative_monster_ids": [
+            6251,
+            6253,
+            6252
+          ]
+        },
+        {
+          "kind": "move",
+          "label": "Retourner à Dleam Katchel"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2276_step_0031",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        -28
+      ],
+      "next": [
+        -41,
+        -16
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Remettre les éléments à Dleam Katchel"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le rivage de l'île du Minotoror"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2276_step_0032",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -41,
+        -16
+      ],
+      "next": [
+        -40,
+        -18
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "equip",
+          "label": "Équiper le plumeau",
+          "object_id": 15422
+        },
+        {
+          "kind": "collect_object",
+          "label": "Inspecter le crabe pour obtenir une poudre",
+          "object_id": 15419,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Aller au pilier"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2276_step_0033",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -40,
+        -18
+      ],
+      "next": [
+        -43,
+        -19
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Examiner le pilier pour la deuxième poudre",
+          "object_id": 15419,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le coquillage suivant"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2276_step_0034",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -43,
+        -19
+      ],
+      "next": [
+        -43,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Inspecter le coquillage pour la troisième poudre",
+          "object_id": 15419,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Poursuivre vers le littoral"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2276_step_0035",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -43,
+        -17
+      ],
+      "next": [
+        -41,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Inspecter le coquillage pour la quatrième poudre",
+          "object_id": 15419,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre la dernière poudre"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2276_step_0036",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -41,
+        -17
+      ],
+      "next": [
+        -41,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "collect_object",
+          "label": "Récupérer la cinquième poudre",
+          "object_id": 15419,
+          "quantity": 1
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Clore les regrets de l'Infini-Aile",
+          "quest_id": 1525
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2276_step_0037",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -24,
+        -36
+      ],
+      "next": [
+        -24,
+        -36
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Rassembler 25 trésors archéologiques au total",
+          "object_id": 32378,
+          "quantity": 25,
+          "alternative_group": "archaeological_treasure_sources"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Répéter la chasse quotidienne autant que nécessaire",
+          "quest_id": 2538,
+          "relation": "optional_method",
+          "alternative_group": "archaeological_treasure_sources"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : labyrinthe du Minotoror pour un trésor",
+          "dungeon_id": 4,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : maison du Tofu Royal",
+          "dungeon_id": 50,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : Repaire du Skeunk",
+          "dungeon_id": 46,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : antre du Crocabulia",
+          "dungeon_id": 7,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : Blop Multicolore Royal",
+          "dungeon_id": 49,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : serre du Royalmouth",
+          "dungeon_id": 54,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : volière de la Haute Truche",
+          "dungeon_id": 80,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : anneau du capitaine",
+          "dungeon_id": 81,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : Mégalithe de Fraktale",
+          "dungeon_id": 85,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : caverne d'El Piko",
+          "dungeon_id": 101,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : atelier de Tanukouï San",
+          "dungeon_id": 126,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "dungeon",
+          "label": "Alternative : vallée de la Dame de l'Eau",
+          "dungeon_id": 123,
+          "relation": "alternative_source"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre Ener Brelloq après obtention des trésors"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2276_step_0038",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -24,
+        -36
+      ],
+      "next": [
+        -6,
+        -3
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Échanger les trésors contre cinq morceaux distincts de tablette",
+          "object_id": 32378,
+          "quantity": 25
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le fragment un",
+          "object_id": 15394
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le fragment deux",
+          "object_id": 15395
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le fragment trois",
+          "object_id": 15396
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le fragment quatre",
+          "object_id": 15397
+        },
+        {
+          "kind": "check_object",
+          "label": "Vérifier le fragment cinq",
+          "object_id": 15398
+        },
+        {
+          "kind": "craft",
+          "label": "Assembler la tablette de Totankama au bureau",
+          "object_id": 15391
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver l'anneau de Tot",
+          "object_id": 15420
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver les cinq poudres d'Infini-Aile",
+          "object_id": 15419,
+          "quantity": 5
+        },
+        {
+          "kind": "check_object",
+          "label": "Conserver la perle de lait doré",
+          "object_id": 15418
+        },
+        {
+          "kind": "quest_prerequisite",
+          "label": "Avoir terminé la quête d'accès aux échanges",
+          "quest_id": 1527,
+          "relation": "side_required_for_exchange"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner chez Mériana"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2276_step_0039",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -6,
+        -3
+      ],
+      "next": [
+        -25,
+        -36
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Présenter les composants à Mériana"
+        },
+        {
+          "kind": "interact",
+          "label": "Examiner la pierre au milieu de la salle"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner au coffre de Cania"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2276_step_0040",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -25,
+        -36
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Démarrer la chasse au trésor de Totankama"
+        },
+        {
+          "kind": "combat",
+          "label": "Réussir le combat de groupe contre Momie Nova",
+          "monster_id": 404,
+          "group_mode": "group"
+        },
+        {
+          "kind": "interact",
+          "label": "Ouvrir le coffre de Totankama",
+          "object_id": 15399
+        },
+        {
+          "kind": "move",
+          "label": "Retourner dans le refuge du Minotoror"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2276_step_0041",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Parler au Minotot puis toucher le Dofus Pourpre",
+          "quest_id": 1523
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer la quête de l'âme égarée",
+          "quest_id": 1528
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2276_step_0042",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -39,
+        -11
+      ],
+      "next": [
+        -7,
+        -43
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Vaincre le Minigolem antique en combat tactique individuel",
+          "monster_id": 3740,
+          "group_mode": "solo_tactical"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Parler à Lorkos puis Apisaph pour terminer l'âme égarée",
+          "quest_id": 1528
+        },
+        {
+          "kind": "quest_start",
+          "label": "Commencer la quête du trône",
+          "quest_id": 1529
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le repaire des Blops"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2276_step_0043",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -7,
+        -43
+      ],
+      "next": [
+        -84,
+        -49
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Questionner Bibiblop sur le Minotot"
+        },
+        {
+          "kind": "optional_preparation",
+          "label": "Utiliser des skis jetables vers Frigost selon le trajet",
+          "object_id": 11995,
+          "conditional": "route_ski"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre le Royalmouth"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2276_step_0044",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -84,
+        -49
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Atteindre la sixième salle de la serre du Royalmouth",
+          "dungeon_id": 54
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gavroch avant le combat"
+        },
+        {
+          "kind": "combat",
+          "label": "Vaincre le Royalmouth",
+          "monster_id": 2854
+        },
+        {
+          "kind": "talk",
+          "label": "Reparler à Gavroch avant de sortir"
+        },
+        {
+          "kind": "move",
+          "label": "Retourner sur l'île du Minotoror"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2276_step_0045",
+      "source_page": 1,
+      "review_status": "REVIEW_SOURCE_ACTION",
+      "quest_objectives_verified": false,
+      "at": [
+        -42,
+        -17
+      ],
+      "next": [
+        -42,
+        -17
+      ],
+      "coordinate_provenance": "source_observed_mentions_unverified_routes",
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Lorkos puis à Gavroch"
+        },
+        {
+          "kind": "combat",
+          "label": "Remporter le combat individuel en protégeant Gavroch",
+          "monster_id": 3793,
+          "group_mode": "solo",
+          "ally_must_survive": true
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer la quête du trône en activant le Dofus",
+          "quest_id": 1529
+        },
+        {
+          "kind": "goal_reward",
+          "label": "Récupérer le Dofus Pourpre",
+          "object_id": 694
+        }
+      ]
+    }
+  ]
+}

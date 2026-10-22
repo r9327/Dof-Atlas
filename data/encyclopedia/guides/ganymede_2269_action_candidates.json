@@ -1,0 +1,6370 @@
+{
+  "schema_version": 1,
+  "atlas_guide_id": "dofus_abyssal",
+  "source_guide_id": 2269,
+  "source_url": "https://ganymede-app.com/guides/2269",
+  "reviewed_on": "2026-10-19",
+  "source_step_count": 174,
+  "evidence_level": "AUTOMATED_SOURCE_ACTION_HINTS_UNVERIFIED",
+  "editorial_text_copied": false,
+  "certified_actions": 0,
+  "ready_to_replace": false,
+  "manual_review_pending": 174,
+  "auto_extraction_unresolved_steps": 4,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "stable_step_id": "ganymede_2269_step_0001",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": null,
+      "next": null,
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18043",
+          "object_id": 18043
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "stable_step_id": "ganymede_2269_step_0002",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        22
+      ],
+      "next": [
+        14,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17983 ×1",
+          "object_id": 17983,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17977 ×1",
+          "object_id": 17977,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17971 ×1",
+          "object_id": 17971,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17970 ×1",
+          "object_id": 17970,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17978 ×1",
+          "object_id": 17978,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17975 ×1",
+          "object_id": 17975,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17972 ×1",
+          "object_id": 17972,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17986 ×1",
+          "object_id": 17986,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17994 ×3",
+          "object_id": 17994,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17991 ×3",
+          "object_id": 17991,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17160 ×3",
+          "object_id": 17160,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17993 ×3",
+          "object_id": 17993,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17995 ×3",
+          "object_id": 17995,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17992 ×3",
+          "object_id": 17992,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15170 ×1",
+          "object_id": 15170,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14635 ×200",
+          "object_id": 14635,
+          "quantity": 200
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6458 ×5",
+          "object_id": 6458,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7298 ×10",
+          "object_id": 7298,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 8772 ×3",
+          "object_id": 8772,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 11316 ×3",
+          "object_id": 11316,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17983 ×5",
+          "object_id": 17983,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17986 ×5",
+          "object_id": 17986,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17984 ×5",
+          "object_id": 17984,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17985 ×5",
+          "object_id": 17985,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17987 ×5",
+          "object_id": 17987,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17205 ×5",
+          "object_id": 17205,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17981 ×1",
+          "object_id": 17981,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17974 ×1",
+          "object_id": 17974,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17984 ×1",
+          "object_id": 17984,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14795 ×11",
+          "object_id": 14795,
+          "quantity": 11
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [14,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "stable_step_id": "ganymede_2269_step_0003",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        22
+      ],
+      "next": [
+        15,
+        21
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1732",
+          "quest_id": 1732
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,21]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "stable_step_id": "ganymede_2269_step_0004",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        21
+      ],
+      "next": [
+        14,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the wreck"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the rock furthest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [14,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "stable_step_id": "ganymede_2269_step_0005",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        22
+      ],
+      "next": [
+        11,
+        20
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [11,20]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "stable_step_id": "ganymede_2269_step_0006",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        20
+      ],
+      "next": [
+        15,
+        18
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sassine the Sourdine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,18]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "stable_step_id": "ganymede_2269_step_0007",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        18
+      ],
+      "next": [
+        14,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kaulk"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [14,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "stable_step_id": "ganymede_2269_step_0008",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        14,
+        22
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "stable_step_id": "ganymede_2269_step_0009",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        21,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1752",
+          "quest_id": 1752
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Petra Fika"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "stable_step_id": "ganymede_2269_step_0010",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        24
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1753",
+          "quest_id": 1753
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Jett Sait"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "stable_step_id": "ganymede_2269_step_0011",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1731",
+          "quest_id": 1731
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Perkin"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Kia Byssal"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "stable_step_id": "ganymede_2269_step_0012",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1755",
+          "quest_id": 1755
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ankgear Marine"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well to Wait while Polly carries out her interview"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Perkin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "stable_step_id": "ganymede_2269_step_0013",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        20,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning to Wait while Polly carries out her interview"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Perkin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "stable_step_id": "ganymede_2269_step_0014",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        27
+      ],
+      "next": [
+        25,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1750",
+          "quest_id": 1750
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Freddyglb Derargit"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "stable_step_id": "ganymede_2269_step_0015",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        26
+      ],
+      "next": [
+        25,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Mysterious Merchant"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "stable_step_id": "ganymede_2269_step_0016",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        27
+      ],
+      "next": [
+        27,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1749",
+          "quest_id": 1749
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "stable_step_id": "ganymede_2269_step_0017",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        27
+      ],
+      "next": [
+        26,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Melancholy Ghost"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sered"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1732",
+          "quest_id": 1732
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "stable_step_id": "ganymede_2269_step_0018",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        26
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1751",
+          "quest_id": 1751
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Umra Tawil"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "stable_step_id": "ganymede_2269_step_0019",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "stable_step_id": "ganymede_2269_step_0020",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        13,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1731",
+          "quest_id": 1731
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Perkin"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1745",
+          "quest_id": 1745
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : on the Soggy Book"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Deks's Assistant"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "stable_step_id": "ganymede_2269_step_0021",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        13,
+        25
+      ],
+      "next": [
+        10,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ferdi McGellan to Talk about Markaris's amnesia problem"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again to Talk about the Silver Key"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [10,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "stable_step_id": "ganymede_2269_step_0022",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        10,
+        25
+      ],
+      "next": [
+        9,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Fessyou"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [9,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "stable_step_id": "ganymede_2269_step_0023",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        9,
+        26
+      ],
+      "next": [
+        16,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mousse Taffa"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [16,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "stable_step_id": "ganymede_2269_step_0024",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        16,
+        28
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Benny Zaim"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "stable_step_id": "ganymede_2269_step_0025",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Doctor Hoo"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the red book turned over on the crate"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "stable_step_id": "ganymede_2269_step_0026",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        7,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the door"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "stable_step_id": "ganymede_2269_step_0027",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        25
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Handymen's Workshop"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the tool box"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "stable_step_id": "ganymede_2269_step_0028",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the basin"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "stable_step_id": "ganymede_2269_step_0029",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pink Tada"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17967",
+          "object_id": 17967
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17983 ×50",
+          "object_id": 17983,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17984 ×50",
+          "object_id": 17984,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17986 ×50",
+          "object_id": 17986,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17994 ×20",
+          "object_id": 17994,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17995 ×20",
+          "object_id": 17995,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17991 ×10",
+          "object_id": 17991,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17869 ×1",
+          "object_id": 17869,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×1",
+          "object_id": 17864,
+          "quantity": 1
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "stable_step_id": "ganymede_2269_step_0030",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        23,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1733",
+          "quest_id": 1733
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ankgear Marine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "stable_step_id": "ganymede_2269_step_0031",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        28
+      ],
+      "next": [
+        23,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the machine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "stable_step_id": "ganymede_2269_step_0032",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        27
+      ],
+      "next": [
+        22,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Kaje"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Supercharged Mantaze"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "stable_step_id": "ganymede_2269_step_0033",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        27
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the machine"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Sharky"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "stable_step_id": "ganymede_2269_step_0034",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        20,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1737",
+          "quest_id": 1737
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Rokafe Guard"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "stable_step_id": "ganymede_2269_step_0035",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        27
+      ],
+      "next": [
+        22,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Deks's Assistant"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "stable_step_id": "ganymede_2269_step_0036",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        26
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Supercharged Mantaze"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "stable_step_id": "ganymede_2269_step_0037",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        24,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Pink Tada"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "stable_step_id": "ganymede_2269_step_0038",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        26
+      ],
+      "next": [
+        24,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Zular"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "stable_step_id": "ganymede_2269_step_0039",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        27
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the metal pole"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "stable_step_id": "ganymede_2269_step_0040",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        20,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ankgear Marine"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "stable_step_id": "ganymede_2269_step_0041",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        27
+      ],
+      "next": [
+        26,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Deks's Assistant"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1750",
+          "quest_id": 1750
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Freddyglb Derargit to complete the quest Who's Got the Big"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "stable_step_id": "ganymede_2269_step_0042",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        28
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Misqua"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the black stone in the center"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Violent Spookkoth"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the black stone in the center again"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Surface"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "stable_step_id": "ganymede_2269_step_0043",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Pink Tada"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Deks"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "stable_step_id": "ganymede_2269_step_0044",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the basin"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Justine Smouf"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "stable_step_id": "ganymede_2269_step_0045",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        12,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Doctor Hoo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [12,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "stable_step_id": "ganymede_2269_step_0046",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        12,
+        24
+      ],
+      "next": [
+        10,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Ripate Inn"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Ripate Inkeeper"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [10,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "stable_step_id": "ganymede_2269_step_0047",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        10,
+        29
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Colonel Riklo to Talk about his relationship with the"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "stable_step_id": "ganymede_2269_step_0048",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1752",
+          "quest_id": 1752
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Petra Fika"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "stable_step_id": "ganymede_2269_step_0049",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1433",
+          "quest_id": 1433
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Grog"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : through the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairstwice"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1748",
+          "quest_id": 1748
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Jaime Swatt"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1439",
+          "quest_id": 1439
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1438",
+          "quest_id": 1438
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Rooky's Apprentice"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "stable_step_id": "ganymede_2269_step_0050",
+      "source_page": 1,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        19
+      ],
+      "next": [
+        17,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Toni Rubbinson to Find out more about the acts of sabotage"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1442",
+          "quest_id": 1442
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her again"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Erika Barley"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [17,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 51,
+      "stable_step_id": "ganymede_2269_step_0051",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        17,
+        29
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Maxime Laubuf to Talk about the explosion in the repair sh"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "stable_step_id": "ganymede_2269_step_0052",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Toni Rubbinson to Repeat what Maxime Laubuf said"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "stable_step_id": "ganymede_2269_step_0053",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1745",
+          "quest_id": 1745
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Kice to complete the quest What Gurgles in the"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1746",
+          "quest_id": 1746
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : into the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "stable_step_id": "ganymede_2269_step_0054",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        19,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1733",
+          "quest_id": 1733
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ankgear Marine"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1734",
+          "quest_id": 1734
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again to Talk about the risks to the expedition"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "stable_step_id": "ganymede_2269_step_0055",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        26
+      ],
+      "next": [
+        26,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 99",
+          "dungeon_id": 99
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dantinea"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "stable_step_id": "ganymede_2269_step_0056",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        26
+      ],
+      "next": [
+        25,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Umra Tawil"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17983 ×1",
+          "object_id": 17983,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17977 ×1",
+          "object_id": 17977,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17971 ×1",
+          "object_id": 17971,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17970 ×1",
+          "object_id": 17970,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17978 ×1",
+          "object_id": 17978,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17975 ×1",
+          "object_id": 17975,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17972 ×1",
+          "object_id": 17972,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17986 ×1",
+          "object_id": 17986,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17994 ×3",
+          "object_id": 17994,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17991 ×3",
+          "object_id": 17991,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17160 ×3",
+          "object_id": 17160,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17993 ×3",
+          "object_id": 17993,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17995 ×3",
+          "object_id": 17995,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17992 ×3",
+          "object_id": 17992,
+          "quantity": 3
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Unspeakable Workshop"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 18082",
+          "object_id": 18082
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 18083",
+          "object_id": 18083
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 18084",
+          "object_id": 18084
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1751",
+          "quest_id": 1751
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "stable_step_id": "ganymede_2269_step_0057",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        28
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1754",
+          "quest_id": 1754
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dan Wich"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18071",
+          "object_id": 18071
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the square below"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the trio of jars"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Surface"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "stable_step_id": "ganymede_2269_step_0058",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        -81,
+        -41
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dreggs"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1737",
+          "quest_id": 1737
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Queen Viktoria"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1738",
+          "quest_id": 1738
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her again"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Nicole Portson"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-81,-41]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "stable_step_id": "ganymede_2269_step_0059",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -81,
+        -41
+      ],
+      "next": [
+        6,
+        -15
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Lisa Kaya's Tavern"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Quentin Flush"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 595",
+          "quest_id": 595
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Narouto Heczexekse"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,-15]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "stable_step_id": "ganymede_2269_step_0060",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        -15
+      ],
+      "next": [
+        0,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Jewellers' Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Shani Sings"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "stable_step_id": "ganymede_2269_step_0061",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        2
+      ],
+      "next": [
+        2,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Jewellers' Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Azra Lazarus"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [2,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "stable_step_id": "ganymede_2269_step_0062",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        2,
+        29
+      ],
+      "next": [
+        0,
+        32
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Jewellers' Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Gaul Smith"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [0,32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "stable_step_id": "ganymede_2269_step_0063",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        0,
+        32
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Jewellers' Workshop"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Porco Smuggler"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "stable_step_id": "ganymede_2269_step_0064",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        12,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the big door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Toni Rubbinson"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Vasca Degamo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [12,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 65,
+      "stable_step_id": "ganymede_2269_step_0065",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        12,
+        24
+      ],
+      "next": [
+        11,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Ripate Inn"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Ripate Inkeeper"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Captain Wugposh"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [11,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 66,
+      "stable_step_id": "ganymede_2269_step_0066",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        25
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Kice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 67,
+      "stable_step_id": "ganymede_2269_step_0067",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        11,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Giles Vern to Mention the mysterious cult"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [11,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 68,
+      "stable_step_id": "ganymede_2269_step_0068",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        25
+      ],
+      "next": [
+        13,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Kice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 69,
+      "stable_step_id": "ganymede_2269_step_0069",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        13,
+        25
+      ],
+      "next": [
+        13,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ferdi McGellan"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Sufokian Guard Sergeant to Give up"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1746",
+          "quest_id": 1746
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1747",
+          "quest_id": 1747
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Follower of the Depths to Take out the statuette"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 70,
+      "stable_step_id": "ganymede_2269_step_0070",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        26
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Famished Skt-Zo"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Surface"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 71,
+      "stable_step_id": "ganymede_2269_step_0071",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        23,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Nicole Portson"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17963",
+          "object_id": 17963
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17970 ×50",
+          "object_id": 17970,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17971 ×50",
+          "object_id": 17971,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17972 ×50",
+          "object_id": 17972,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17995 ×10",
+          "object_id": 17995,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17994 ×20",
+          "object_id": 17994,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17993 ×20",
+          "object_id": 17993,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17865 ×1",
+          "object_id": 17865,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×1",
+          "object_id": 17864,
+          "quantity": 1
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 72,
+      "stable_step_id": "ganymede_2269_step_0072",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        26
+      ],
+      "next": [
+        25,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Narouto Heczexekse"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 73,
+      "stable_step_id": "ganymede_2269_step_0073",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        28
+      ],
+      "next": [
+        25,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the square like at Step 57"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 74,
+      "stable_step_id": "ganymede_2269_step_0074",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        27
+      ],
+      "next": [
+        25,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 75,
+      "stable_step_id": "ganymede_2269_step_0075",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        28
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the square as at Step 57"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 76,
+      "stable_step_id": "ganymede_2269_step_0076",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        23,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1748",
+          "quest_id": 1748
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Ankgear Marine to complete the quest The Seven Merkaptans"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her again to Introduce Markaris"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Doctor Liz Merryl to Introduce Markaris"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Jack Mouldon"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 77,
+      "stable_step_id": "ganymede_2269_step_0077",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        28
+      ],
+      "next": [
+        22,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the elevator"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17963",
+          "object_id": 17963
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 78,
+      "stable_step_id": "ganymede_2269_step_0078",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        30
+      ],
+      "next": [
+        22,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1764",
+          "quest_id": 1764
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Santiagob"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 79,
+      "stable_step_id": "ganymede_2269_step_0079",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        29
+      ],
+      "next": [
+        24,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Topo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 80,
+      "stable_step_id": "ganymede_2269_step_0080",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        29
+      ],
+      "next": [
+        23,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 81,
+      "stable_step_id": "ganymede_2269_step_0081",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        30
+      ],
+      "next": [
+        23,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 82,
+      "stable_step_id": "ganymede_2269_step_0082",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        31
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Topo a fourth time"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the cell behind the tank below"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the writings"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Topo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 83,
+      "stable_step_id": "ganymede_2269_step_0083",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        23,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1734",
+          "quest_id": 1734
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1735",
+          "quest_id": 1735
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him to startthe quest Crystal Trap"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 84,
+      "stable_step_id": "ganymede_2269_step_0084",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        27
+      ],
+      "next": [
+        24,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Deks"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 85,
+      "stable_step_id": "ganymede_2269_step_0085",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        27
+      ],
+      "next": [
+        27,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 97",
+          "dungeon_id": 97
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1735",
+          "quest_id": 1735
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Meno"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1736",
+          "quest_id": 1736
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 86,
+      "stable_step_id": "ganymede_2269_step_0086",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        27
+      ],
+      "next": [
+        27,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Jack Mouldon"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Damaged Turret"
+        }
+      ]
+    },
+    {
+      "source_step_number": 87,
+      "stable_step_id": "ganymede_2269_step_0087",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        27
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 88,
+      "stable_step_id": "ganymede_2269_step_0088",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        19,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Doctor Liz Merryl"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1749",
+          "quest_id": 1749
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 89,
+      "stable_step_id": "ganymede_2269_step_0089",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        26
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Cretula"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dantinea"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 90,
+      "stable_step_id": "ganymede_2269_step_0090",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1738",
+          "quest_id": 1738
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Lieutenant Rayner"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1739",
+          "quest_id": 1739
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1739",
+          "quest_id": 1739
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1740",
+          "quest_id": 1740
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him again"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : to the Surface"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 91,
+      "stable_step_id": "ganymede_2269_step_0091",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Pink Tada to Talk about getting to the Tritun Rift"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Deks"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 92,
+      "stable_step_id": "ganymede_2269_step_0092",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        11,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Doctor Hoo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [11,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 93,
+      "stable_step_id": "ganymede_2269_step_0093",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        11,
+        25
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Kice"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 94,
+      "stable_step_id": "ganymede_2269_step_0094",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        13,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1747",
+          "quest_id": 1747
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Queen Viktoria"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1756",
+          "quest_id": 1756
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 95,
+      "stable_step_id": "ganymede_2269_step_0095",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        13,
+        25
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ferdi McGellan"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 96,
+      "stable_step_id": "ganymede_2269_step_0096",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        -19,
+        -23
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the books on the right at the bottom of the library"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [-19,-23]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 97,
+      "stable_step_id": "ganymede_2269_step_0097",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        -19,
+        -23
+      ],
+      "next": [
+        8,
+        2
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mama Ayuto to Bring up the storm of the year 492"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [8,2]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 98,
+      "stable_step_id": "ganymede_2269_step_0098",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        8,
+        2
+      ],
+      "next": [
+        20,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Osamodas Temple"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Zeurg"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 99,
+      "stable_step_id": "ganymede_2269_step_0099",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        25
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Library"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the books at the topleft"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 100,
+      "stable_step_id": "ganymede_2269_step_0100",
+      "source_page": 2,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the basin"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the tile"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 101,
+      "stable_step_id": "ganymede_2269_step_0101",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 14795",
+          "object_id": 14795
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs twice"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the ladder"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 14808 ×10",
+          "object_id": 14808,
+          "quantity": 10
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 14818 ×5",
+          "object_id": 14818,
+          "quantity": 5
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 14816 ×4",
+          "object_id": 14816,
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "source_step_number": 102,
+      "stable_step_id": "ganymede_2269_step_0102",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        21
+      ],
+      "next": [
+        22,
+        21
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the door in the top left"
+        }
+      ]
+    },
+    {
+      "source_step_number": 103,
+      "stable_step_id": "ganymede_2269_step_0103",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        21
+      ],
+      "next": [
+        21,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à for help from a character with access to the Undertow Room"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1441",
+          "quest_id": 1441
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14795",
+          "object_id": 14795
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the 2 levers"
+        }
+      ]
+    },
+    {
+      "source_step_number": 104,
+      "stable_step_id": "ganymede_2269_step_0104",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        18
+      ],
+      "next": [
+        21,
+        18
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 14808",
+          "object_id": 14808
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever"
+        }
+      ]
+    },
+    {
+      "source_step_number": 105,
+      "stable_step_id": "ganymede_2269_step_0105",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        20
+      ],
+      "next": [
+        23,
+        20
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Étape non détaillée : vérifier la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 106,
+      "stable_step_id": "ganymede_2269_step_0106",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        20
+      ],
+      "next": [
+        23,
+        20
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Armagudgeon"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1441",
+          "quest_id": 1441
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the 2 levers"
+        }
+      ]
+    },
+    {
+      "source_step_number": 107,
+      "stable_step_id": "ganymede_2269_step_0107",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        25
+      ],
+      "next": [
+        22,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Étape non détaillée : vérifier la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 108,
+      "stable_step_id": "ganymede_2269_step_0108",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        25
+      ],
+      "next": [
+        21,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Étape non détaillée : vérifier la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 109,
+      "stable_step_id": "ganymede_2269_step_0109",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Stim Power to Discuss how you could"
+        }
+      ]
+    },
+    {
+      "source_step_number": 110,
+      "stable_step_id": "ganymede_2269_step_0110",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        26
+      ],
+      "next": [
+        21,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever"
+        }
+      ]
+    },
+    {
+      "source_step_number": 111,
+      "stable_step_id": "ganymede_2269_step_0111",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        30
+      ],
+      "next": [
+        23,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Quartermaster Biscotti"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1440",
+          "quest_id": 1440
+        }
+      ]
+    },
+    {
+      "source_step_number": 112,
+      "stable_step_id": "ganymede_2269_step_0112",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        31
+      ],
+      "next": [
+        22,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Étape non détaillée : vérifier la source",
+          "requires_manual_review": true
+        }
+      ]
+    },
+    {
+      "source_step_number": 113,
+      "stable_step_id": "ganymede_2269_step_0113",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        34
+      ],
+      "next": [
+        22,
+        34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever in the top left"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the lever at the bottom"
+        }
+      ]
+    },
+    {
+      "source_step_number": 114,
+      "stable_step_id": "ganymede_2269_step_0114",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        30
+      ],
+      "next": [
+        22,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1442",
+          "quest_id": 1442
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Theo Dolite"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1443",
+          "quest_id": 1443
+        },
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 73",
+          "dungeon_id": 73
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 14820",
+          "object_id": 14820
+        }
+      ]
+    },
+    {
+      "source_step_number": 115,
+      "stable_step_id": "ganymede_2269_step_0115",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        30
+      ],
+      "next": [
+        22,
+        14
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 14808 ×10",
+          "object_id": 14808,
+          "quantity": 10
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 14818 ×5",
+          "object_id": 14818,
+          "quantity": 5
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 14816 ×4",
+          "object_id": 14816,
+          "quantity": 4
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the ladder"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,14]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 116,
+      "stable_step_id": "ganymede_2269_step_0116",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        14
+      ],
+      "next": [
+        22,
+        14
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1438",
+          "quest_id": 1438
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Rooky's Apprentice to complete the quest Merkaptans Ar"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1439",
+          "quest_id": 1439
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Jaime Swatt to complete the quest Fishing for Steamcrab"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1443",
+          "quest_id": 1443
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Toni Rubbinson to complete the quest Gathering Information"
+        }
+      ]
+    },
+    {
+      "source_step_number": 117,
+      "stable_step_id": "ganymede_2269_step_0117",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        19
+      ],
+      "next": [
+        22,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Foggernaut Submarine"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Giles Vern to Congratulate him for the whole of his litera"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17965",
+          "object_id": 17965
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17975 ×50",
+          "object_id": 17975,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17977 ×50",
+          "object_id": 17977,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17978 ×50",
+          "object_id": 17978,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17994 ×20",
+          "object_id": 17994,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17991 ×20",
+          "object_id": 17991,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17995 ×10",
+          "object_id": 17995,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17867 ×1",
+          "object_id": 17867,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×1",
+          "object_id": 17864,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 118,
+      "stable_step_id": "ganymede_2269_step_0118",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        18
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Stim Power"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 119,
+      "stable_step_id": "ganymede_2269_step_0119",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        21,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Pink Tada to Find out about the Snedon Statuette"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17968",
+          "object_id": 17968
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17985 ×50",
+          "object_id": 17985,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17995 ×20",
+          "object_id": 17995,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17992 ×20",
+          "object_id": 17992,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17988 ×10",
+          "object_id": 17988,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17993 ×10",
+          "object_id": 17993,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17870 ×1",
+          "object_id": 17870,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×2",
+          "object_id": 17864,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 120,
+      "stable_step_id": "ganymede_2269_step_0120",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        22
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the basin"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the tile"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Skt-Zo Collector"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 121,
+      "stable_step_id": "ganymede_2269_step_0121",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        24,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Queen Viktoria"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Deks"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1756",
+          "quest_id": 1756
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Professor Nomis to complete the quest When the Stars W"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1758",
+          "quest_id": 1758
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him to startthe quest Give Me a Sign"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [24,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 122,
+      "stable_step_id": "ganymede_2269_step_0122",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        24,
+        27
+      ],
+      "next": [
+        22,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Meno's Kloon Snapper"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Meno"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Unknown to the Watch"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 123,
+      "stable_step_id": "ganymede_2269_step_0123",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        28
+      ],
+      "next": [
+        21,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the house"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1736",
+          "quest_id": 1736
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well to complete the quest His Name is Nobody"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1743",
+          "quest_id": 1743
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 124,
+      "stable_step_id": "ganymede_2269_step_0124",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        28
+      ],
+      "next": [
+        19,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the whirlpool"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17965",
+          "object_id": 17965
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 125,
+      "stable_step_id": "ganymede_2269_step_0125",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        31
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Oktiplas"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 126,
+      "stable_step_id": "ganymede_2269_step_0126",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        20,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Lieutenant Rayner"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1740",
+          "quest_id": 1740
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1741",
+          "quest_id": 1741
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 127,
+      "stable_step_id": "ganymede_2269_step_0127",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        29
+      ],
+      "next": [
+        21,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Oktiplas"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the seaweed at"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the machine at [21"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Oktiplas to obtain the Toxic Liver"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17950",
+          "object_id": 17950
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 128,
+      "stable_step_id": "ganymede_2269_step_0128",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        31
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Carpausania"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 129,
+      "stable_step_id": "ganymede_2269_step_0129",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        26,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Johan Gusstafen"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 130,
+      "stable_step_id": "ganymede_2269_step_0130",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        29
+      ],
+      "next": [
+        25,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18087",
+          "object_id": 18087
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 131,
+      "stable_step_id": "ganymede_2269_step_0131",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        34
+      ],
+      "next": [
+        27,
+        34
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Venerable Starfish"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 132,
+      "stable_step_id": "ganymede_2269_step_0132",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        34
+      ],
+      "next": [
+        6,
+        3
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1765",
+          "quest_id": 1765
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Pacific Flauticultist"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the bones at"
+        },
+        {
+          "kind": "combat",
+          "label": "Combattre monstre nº 4452",
+          "monster_id": 4452
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 18109",
+          "object_id": 18109
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 18108",
+          "object_id": 18108
+        },
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 18110",
+          "object_id": 18110
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1765",
+          "quest_id": 1765
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Pacific Flauticultist andGive the Flauticultist"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15170 ×1",
+          "object_id": 15170,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14635 ×200",
+          "object_id": 14635,
+          "quantity": 200
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6458 ×5",
+          "object_id": 6458,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7298 ×10",
+          "object_id": 7298,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 8772 ×3",
+          "object_id": 8772,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 11316 ×3",
+          "object_id": 11316,
+          "quantity": 3
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [6,3]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 133,
+      "stable_step_id": "ganymede_2269_step_0133",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        6,
+        3
+      ],
+      "next": [
+        16,
+        32
+      ],
+      "actions": [
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 28455",
+          "object_id": 28455
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 15170 ×1",
+          "object_id": 15170,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 14635 ×200",
+          "object_id": 14635,
+          "quantity": 200
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 6458 ×5",
+          "object_id": 6458,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 7298 ×10",
+          "object_id": 7298,
+          "quantity": 10
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 8772 ×3",
+          "object_id": 8772,
+          "quantity": 3
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 11316 ×3",
+          "object_id": 11316,
+          "quantity": 3
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [16,32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 134,
+      "stable_step_id": "ganymede_2269_step_0134",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        16,
+        32
+      ],
+      "next": [
+        13,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Aurelia"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17964",
+          "object_id": 17964
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17973 ×50",
+          "object_id": 17973,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17974 ×10",
+          "object_id": 17974,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17993 ×20",
+          "object_id": 17993,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17992 ×20",
+          "object_id": 17992,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17991 ×10",
+          "object_id": 17991,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17866 ×1",
+          "object_id": 17866,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×2",
+          "object_id": 17864,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 135,
+      "stable_step_id": "ganymede_2269_step_0135",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        13,
+        25
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Ferdi McGellan"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17983 ×5",
+          "object_id": 17983,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17984 ×5",
+          "object_id": 17984,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17986 ×5",
+          "object_id": 17986,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17985 ×5",
+          "object_id": 17985,
+          "quantity": 5
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17987 ×5",
+          "object_id": 17987,
+          "quantity": 5
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 136,
+      "stable_step_id": "ganymede_2269_step_0136",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        23,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Sufokia Palace"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Professor Nomis"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1758",
+          "quest_id": 1758
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Queen Viktoria"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1759",
+          "quest_id": 1759
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 137,
+      "stable_step_id": "ganymede_2269_step_0137",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        29
+      ],
+      "next": [
+        22,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 138,
+      "stable_step_id": "ganymede_2269_step_0138",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        30
+      ],
+      "next": [
+        22,
+        32
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Santiagob"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the blue"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : as follows"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Old Seemyool"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1764",
+          "quest_id": 1764
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17964",
+          "object_id": 17964
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 139,
+      "stable_step_id": "ganymede_2269_step_0139",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        32
+      ],
+      "next": [
+        27,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "drop_object",
+          "label": "Obtenir objet nº 17952",
+          "object_id": 17952
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17954",
+          "object_id": 17954
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 140,
+      "stable_step_id": "ganymede_2269_step_0140",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        26
+      ],
+      "next": [
+        27,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "dungeon",
+          "label": "Terminer donjon nº 98",
+          "dungeon_id": 98
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Kice"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Yellow Priest"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 141,
+      "stable_step_id": "ganymede_2269_step_0141",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        28
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the cell below"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Ansoh Chaplain"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 28455",
+          "object_id": 28455
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 142,
+      "stable_step_id": "ganymede_2269_step_0142",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        7,
+        25
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1741",
+          "quest_id": 1741
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1742",
+          "quest_id": 1742
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Lieutenant Rayner"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [7,25]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 143,
+      "stable_step_id": "ganymede_2269_step_0143",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        7,
+        25
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Handymen's Workshop"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Rooky Rolscuba to Talk about Leanor's Key"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17205",
+          "object_id": 17205
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 144,
+      "stable_step_id": "ganymede_2269_step_0144",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1433",
+          "quest_id": 1433
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Captain Grog"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the large door"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Erika Barley to Offer some Smoked Sausages"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 17966",
+          "object_id": 17966
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17979 ×50",
+          "object_id": 17979,
+          "quantity": 50
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17991 ×20",
+          "object_id": 17991,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17992 ×20",
+          "object_id": 17992,
+          "quantity": 20
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17981 ×10",
+          "object_id": 17981,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17993 ×10",
+          "object_id": 17993,
+          "quantity": 10
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17868 ×1",
+          "object_id": 17868,
+          "quantity": 1
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 17864 ×2",
+          "object_id": 17864,
+          "quantity": 2
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 145,
+      "stable_step_id": "ganymede_2269_step_0145",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        23,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1759",
+          "quest_id": 1759
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Queen Viktoria"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 146,
+      "stable_step_id": "ganymede_2269_step_0146",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        31
+      ],
+      "next": [
+        23,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the square as shown at step 82"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1743",
+          "quest_id": 1743
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well to complete the quest The Key to the Mystery"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1744",
+          "quest_id": 1744
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à him"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the hole in the wall on the left"
+        }
+      ]
+    },
+    {
+      "source_step_number": 147,
+      "stable_step_id": "ganymede_2269_step_0147",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        31
+      ],
+      "next": [
+        19,
+        32
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Isolation Helmet"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Willpower Annihilator"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mel Well"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,32]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 148,
+      "stable_step_id": "ganymede_2269_step_0148",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        32
+      ],
+      "next": [
+        21,
+        33
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Little Leviatun"
+        },
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Loton"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1757",
+          "quest_id": 1757
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Curious Crabtun"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,33]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 149,
+      "stable_step_id": "ganymede_2269_step_0149",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        33
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Divers of the Black Star"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 150,
+      "stable_step_id": "ganymede_2269_step_0150",
+      "source_page": 3,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        21,
+        27
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : through the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1744",
+          "quest_id": 1744
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Giles Vern to Talk about what happened"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,27]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 151,
+      "stable_step_id": "ganymede_2269_step_0151",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        27
+      ],
+      "next": [
+        21,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Lieutenant Rayner"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Dame Askning"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 152,
+      "stable_step_id": "ganymede_2269_step_0152",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        31
+      ],
+      "next": [
+        9,
+        28
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Intriguing Silyrus"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [9,28]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 153,
+      "stable_step_id": "ganymede_2269_step_0153",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        9,
+        28
+      ],
+      "next": [
+        23,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Victor Schubert"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [23,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 154,
+      "stable_step_id": "ganymede_2269_step_0154",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        23,
+        24
+      ],
+      "next": [
+        20,
+        34
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Palace of Sufokia"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1742",
+          "quest_id": 1742
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Queen Viktoria"
+        },
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1760",
+          "quest_id": 1760
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à her again"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the King Talas"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : in the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 155,
+      "stable_step_id": "ganymede_2269_step_0155",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        34
+      ],
+      "next": [
+        19,
+        34
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Emissary Nea to Explain the threat looming over Neptoo"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [19,34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 156,
+      "stable_step_id": "ganymede_2269_step_0156",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        19,
+        34
+      ],
+      "next": [
+        20,
+        34
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Intriguing Silyrus"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,34]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 157,
+      "stable_step_id": "ganymede_2269_step_0157",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        20,
+        34
+      ],
+      "next": [
+        26,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1757",
+          "quest_id": 1757
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à the Emissary Nea to Report the presence of enemies"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 158,
+      "stable_step_id": "ganymede_2269_step_0158",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        30
+      ],
+      "next": [
+        27,
+        31
+      ],
+      "actions": [
+        {
+          "kind": "quest_start",
+          "label": "Démarrer quête nº 1766",
+          "quest_id": 1766
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Calamarcus Delfion"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,31]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 159,
+      "stable_step_id": "ganymede_2269_step_0159",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        31
+      ],
+      "next": [
+        27,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Black Star Diver"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 160,
+      "stable_step_id": "ganymede_2269_step_0160",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        26
+      ],
+      "next": [
+        15,
+        21
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Black Star Diver"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [15,21]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 161,
+      "stable_step_id": "ganymede_2269_step_0161",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        15,
+        21
+      ],
+      "next": [
+        33,
+        12
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the wreck"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Victor Schubert"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [33,12]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 162,
+      "stable_step_id": "ganymede_2269_step_0162",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        33,
+        12
+      ],
+      "next": [
+        26,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à the Black Star Henchman"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : into the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 163,
+      "stable_step_id": "ganymede_2269_step_0163",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        30
+      ],
+      "next": [
+        25,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Calamarcus Delfion"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 164,
+      "stable_step_id": "ganymede_2269_step_0164",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        29
+      ],
+      "next": [
+        13,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17983 ×1",
+          "object_id": 17983,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17984 ×1",
+          "object_id": 17984,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17986 ×1",
+          "object_id": 17986,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17981 ×1",
+          "object_id": 17981,
+          "quantity": 1
+        },
+        {
+          "kind": "prepare_object",
+          "label": "Prévoir objet nº 17974 ×1",
+          "object_id": 17974,
+          "quantity": 1
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [13,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 165,
+      "stable_step_id": "ganymede_2269_step_0165",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        13,
+        24
+      ],
+      "next": [
+        27,
+        26
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : the Smithmagi's Workshop"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the Crusher"
+        },
+        {
+          "kind": "craft",
+          "label": "Fabriquer objet nº 18113",
+          "object_id": 18113
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : into the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [27,26]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 166,
+      "stable_step_id": "ganymede_2269_step_0166",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        27,
+        26
+      ],
+      "next": [
+        25,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 167,
+      "stable_step_id": "ganymede_2269_step_0167",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        29
+      ],
+      "next": [
+        26,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 168,
+      "stable_step_id": "ganymede_2269_step_0168",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        30
+      ],
+      "next": [
+        20,
+        8
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Calamarcus Delfion"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [20,8]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 169,
+      "stable_step_id": "ganymede_2269_step_0169",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        8
+      ],
+      "next": [
+        22,
+        6
+      ],
+      "actions": [
+        {
+          "kind": "combat",
+          "label": "Effectuer le combat indiqué"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Reece"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,6]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 170,
+      "stable_step_id": "ganymede_2269_step_0170",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        6
+      ],
+      "next": [
+        26,
+        30
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Polly Reece to Demand that Markaris be freed"
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Markaris"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : into the Depths of Sufokia"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [26,30]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 171,
+      "stable_step_id": "ganymede_2269_step_0171",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        26,
+        30
+      ],
+      "next": [
+        25,
+        29
+      ],
+      "actions": [
+        {
+          "kind": "talk",
+          "label": "Parler à Calamarcus Delfion to Reveal Polly Reece's identity"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [25,29]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 172,
+      "stable_step_id": "ganymede_2269_step_0172",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        25,
+        29
+      ],
+      "next": [
+        21,
+        24
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1766",
+          "quest_id": 1766
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Mi-To"
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18076 ×40",
+          "object_id": 18076,
+          "quantity": 40
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18074 ×40",
+          "object_id": 18074,
+          "quantity": 40
+        },
+        {
+          "kind": "check_object",
+          "label": "Prévoir objet nº 18075 ×40",
+          "object_id": 18075,
+          "quantity": 40
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1754",
+          "quest_id": 1754
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1755",
+          "quest_id": 1755
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [21,24]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 173,
+      "stable_step_id": "ganymede_2269_step_0173",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        21,
+        24
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1753",
+          "quest_id": 1753
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Jette Saite"
+        },
+        {
+          "kind": "move",
+          "label": "Rejoindre [22,22]"
+        }
+      ]
+    },
+    {
+      "source_step_number": 174,
+      "stable_step_id": "ganymede_2269_step_0174",
+      "source_page": 4,
+      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "quest_objectives_verified": false,
+      "at": [
+        22,
+        22
+      ],
+      "next": [
+        22,
+        22
+      ],
+      "actions": [
+        {
+          "kind": "interact",
+          "label": "Interagir : through the large door"
+        },
+        {
+          "kind": "interact",
+          "label": "Interagir : the stairs"
+        },
+        {
+          "kind": "quest_finish",
+          "label": "Terminer quête nº 1760",
+          "quest_id": 1760
+        },
+        {
+          "kind": "talk",
+          "label": "Parler à Giles Vern"
+        }
+      ]
+    }
+  ]
+}

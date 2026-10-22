@@ -332,7 +332,6 @@ class UiSession:
         write_json(self.folder / "actions.json", self.journal)
 
 
-
 def configure_validation_fonts(app) -> dict:
     """Register Windows fonts for Qt's isolated offscreen scene, without app changes."""
     from PySide6.QtGui import QFont, QFontDatabase
@@ -400,6 +399,7 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
     from tools.atlas_doctor_lib.ui_raster_oracle import detect_replacement_squares
 
     files = list(dict.fromkeys(Path(name) for name in screenshots))
+    has_stored_captures = bool(files)
     # Exactly the PNGs actually attached to all prior assertions: a clean
     # final screen must not hide an earlier unreadable capture.
     if not files:
@@ -419,6 +419,9 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
         raster_checks.append({"capture": name, **raster})
     failed_captures = [row for row in raster_checks if row["status"] != "PASS"]
     font_passed = bool(results) and all(r["passed"] for r in results)
+    square_font_glyphs = any(
+        row["unique_raster_glyphs"] < len(samples) for row in results
+    )
     passed = font_passed and not failed_captures
     raster = {"status": "FAIL" if failed_captures else "PASS",
               "captures_checked": len(raster_checks),
@@ -426,9 +429,12 @@ def glyph_legibility_probe(page, *, screenshots=()) -> dict:
               "bad_captures": failed_captures[:20],
               "captures": raster_checks}
     return {"status": "PASS" if passed else "FAIL",
-            "reason": ("REPEATED_SCREENSHOT_TOFU" if raster["status"] != "PASS"
-                       else "FONT_RASTER_OK" if font_passed
-                       else "MISSING_OR_SQUARE_FONT_GLYPHS"),
+            "reason": ("REPEATED_SCREENSHOT_TOFU"
+                       if raster["status"] != "PASS"
+                       and (has_stored_captures or not square_font_glyphs)
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS" if square_font_glyphs
+                       else "MISSING_OR_SQUARE_FONT_GLYPHS" if not font_passed
+                       else "FONT_RASTER_OK"),
             "sample_chars": list(samples), "labels": results,
             "screenshot_raster": raster,
             "limits": "Actual rendered raster plus sampled Qt font glyphs; not OCR or full visual/contrast certification."}
@@ -806,18 +812,26 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                     sheet._rendered_combat_keys.update(sheet._combat_key(target) for target in found)
             sheet._rendered_combat_keys = rendered_keys
             expected_labels = []
+            expected_tooltips = []
             for target in targets:
-                text = f"{int(target['quantity'])} × {target['monster']}"
+                text = f"×{int(target['quantity'])} {target['monster']}"
+                tooltip = text
                 if target.get("quest_name"):
-                    text += " — " + target["quest_name"]
+                    tooltip += " — " + target["quest_name"]
                 expected_labels.append(text)
+                expected_tooltips.append(
+                    tooltip + "\nProgression partagée avec l’objectif de la fiche Quête."
+                )
             observed_labels = [box.text() for box in checks]
+            observed_tooltips = [box.toolTip() for box in checks]
             # Two distinct objectives may legitimately have the same label.
             # Canonical allocation order + objective keys is the oracle, not
             # text uniqueness or a guessed callback target.
-            if not targets or observed_labels != expected_labels:
+            if (not targets or observed_labels != expected_labels
+                    or observed_tooltips != expected_tooltips):
                 session.check("combat", "Resolve rendered combat objective provenance", "One canonical objective",
                               {"expected_labels": expected_labels, "observed_labels": observed_labels,
+                               "expected_tooltips": expected_tooltips, "observed_tooltips": observed_tooltips,
                                "rendered_targets": targets}, False, page, status="REVIEW")
                 for missing in ("combat-character", "combat-restore"):
                     session.check(missing, "Combat provenance mismatch",
@@ -980,19 +994,28 @@ def first_quest_failure(observed: dict) -> str | None:
     return next((label for ok, label in checks if not ok), None)
 
 
+def first_quest_link_page(view, max_pages: int = 64):
+    """Return the first bounded canonical page that actually renders a quest link."""
+    from PySide6.QtWidgets import QFrame, QToolButton
+
+    page_count = min(len(view.service.cards), max_pages)
+    for index in range(page_count):
+        view._show_index(index)
+        settle()
+        sheet = view.findChild(QFrame, "GuideManualSheet")
+        buttons = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")
+        if buttons:
+            return index, sheet, buttons
+    raise RuntimeError("Required canonical guide has no quest link")
+
+
 def exercise_quest_links(session, page, owner):
     from PySide6.QtTest import QSignalSpy
-    from PySide6.QtWidgets import QFrame, QToolButton
 
     for guide_id in ("guide_complet", "dofus_sylvestre"):
         session.guide_id = guide_id
         view = open_guide(page, owner, guide_id)
-        view._show_index(0)
-        settle()
-        sheet = view.findChild(QFrame, "GuideManualSheet")
-        buttons = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")
-        if not buttons:
-            raise RuntimeError("Required canonical page has no quest link")
+        link_index, sheet, buttons = first_quest_link_page(view)
         button = buttons[0]
         candidates = [int(qid) for qid in sheet.card.get("manual_quest_ids", [])
                       if (quest := page.quest_provider.get_quest(int(qid))) is not None
@@ -1002,10 +1025,10 @@ def exercise_quest_links(session, page, owner):
         quest_id = candidates[0]
         session.card_id = str(sheet.card.get("manual_stage_id"))
         for iteration in range(2):
-            view._show_index(0)
+            view._show_index(link_index)
             settle()
-            sheet = view.findChild(QFrame, "GuideManualSheet")
-            button = sheet.findChildren(QToolButton, "GuideManualQuestInlineButton")[0]
+            _, sheet, buttons = first_quest_link_page(view, max_pages=link_index + 1)
+            button = buttons[0]
             spy = QSignalSpy(sheet.questRequested)
             click = click_target(page, button, view.scroll)
             settle(lambda: first_quest_failure(quest_outcome(
@@ -1191,9 +1214,14 @@ def achievement_title_contrast(page, view) -> dict:
     scale_x = image.width() / page.width()
     scale_y = image.height() / page.height()
     # Never accidentally certify other widgets/borders behind this title.
+    # QLabel expands with its layout, but a short title does not paint across
+    # that whole width. Limit the evidence crop to the measured text extent so
+    # blank layout space cannot inflate the required-ink threshold.
+    text_width = label.fontMetrics().horizontalAdvance(label.text())
+    crop_width = min(label.width() - 2, text_width + 8, 500)
     x0 = max(0, int((top.x() + 2) * scale_x))
     y0 = max(0, int((top.y() + 1) * scale_y))
-    x1 = min(image.width(), int((top.x() + min(label.width() - 2, 500)) * scale_x))
+    x1 = min(image.width(), int((top.x() + crop_width) * scale_x))
     y1 = min(image.height(), int((top.y() + min(label.height() - 1, 100)) * scale_y))
     if x1 - x0 < 40 or y1 - y0 < 12:
         return {"status": "BLOCKED", "reason": "TITLE_CROP_TOO_SMALL",
@@ -1657,8 +1685,8 @@ def worker(folder: Path) -> int:
                         qt_platform=app.platformName(), dpi=screen.logicalDotsPerInch(),
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
-                        progress_source="temporary isolated canonical services",
-                        validation_fonts=getattr(app, "_doctor_font_registration", {}))
+                        validation_fonts=getattr(app, "_doctor_font_registration", {}),
+                        progress_source="temporary isolated canonical services")
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
             session.scenario = name
@@ -1684,8 +1712,8 @@ def worker(folder: Path) -> int:
                 screenshots=[folder / name for name in session.evidence
                              if name.endswith(".png") and not name.endswith("-blocks.png")],
             )
-            session.check("glyph-rendering", "Render live Qt font samples",
-                          "ASCII and French glyphs distinct, without tofu squares",
+            session.check("glyph-rendering", "Inspect live Windows Qt rendered glyphs and all evidence PNGs",
+                          "Distinct ASCII/French glyphs and no repeated tofu rectangles in captures",
                           typography, typography["status"] == "PASS", page)
         page.close()
         page.deleteLater()

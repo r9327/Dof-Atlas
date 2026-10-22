@@ -15,6 +15,8 @@ class _QuestProvider:
     def get_quest(self, quest_id: int):
         if int(quest_id) == 321:
             return SimpleNamespace(id=321, name="Quête de test")
+        if int(quest_id) == 654:
+            return SimpleNamespace(id=654, name="Deuxième quête")
         raise KeyError(quest_id)
 
 
@@ -88,8 +90,10 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
             self.assertEqual(view.findChildren(QPushButton, "GuideManualQuestLink"), [])
             buttons = view.findChildren(QToolButton, "GuideManualQuestInlineButton")
             self.assertEqual(len(buttons), 1)
-            self.assertEqual(buttons[0].text(), "↗")
+            self.assertEqual(buttons[0].text(), "")
+            self.assertFalse(buttons[0].icon().isNull())
             self.assertEqual(buttons[0].toolTip(), "Quête de test")
+            self.assertEqual(buttons[0].accessibleName(), "Quête de test")
 
             buttons[0].click()
             QApplication.processEvents()
@@ -107,6 +111,51 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
                         },
                     )
                 ],
+            )
+        finally:
+            view.close()
+
+
+    def test_one_shortcut_per_quest_per_page_even_across_different_maps(self) -> None:
+        service = _ManualQuestLinkService()
+        service.cards[0]["manual_lines"] = [
+            {"kind": "action", "position": "[5,-3]", "text": "Parler au PNJ."},
+            {"kind": "action", "position": "[6,-3]", "text": "Continuer la quête."},
+        ]
+        view = GuideUltimeManualView(service, character_key="character:1")
+        view.show()
+        QApplication.processEvents()
+        try:
+            buttons = view.findChildren(QToolButton, "GuideManualQuestInlineButton")
+            self.assertEqual(len(buttons), 1)
+            self.assertEqual(buttons[0].toolTip(), "Quête de test")
+            self.assertFalse(buttons[0].icon().isNull())
+        finally:
+            view.close()
+
+    def test_multiple_quests_do_not_attach_to_unrelated_actions(self) -> None:
+        service = _ManualQuestLinkService()
+        service.cards[0]["manual_quest_ids"] = [321, 654]
+        service.cards[0]["manual_lines"] = [
+            {"kind": "action", "position": "[5,-3]", "text": "Parler au PNJ."},
+            {"kind": "action", "position": "[6,-3]", "text": "Accepter la Quête de test."},
+            {"kind": "action", "position": "[7,-3]", "text": "Commencer Deuxième quête."},
+            {"kind": "action", "position": "[8,-3]", "text": "Poursuivre Deuxième quête."},
+        ]
+        view = GuideUltimeManualView(service, character_key="character:1")
+        view.show()
+        QApplication.processEvents()
+        try:
+            rows = view.findChildren(QFrame, "GuideManualLineRow")
+            self.assertEqual(len(rows), 4)
+            links = [
+                row.findChildren(QToolButton, "GuideManualQuestInlineButton")
+                for row in rows
+            ]
+            self.assertEqual([len(group) for group in links], [0, 1, 1, 0])
+            self.assertEqual(
+                [button.toolTip() for group in links for button in group],
+                ["Quête de test", "Deuxième quête"],
             )
         finally:
             view.close()

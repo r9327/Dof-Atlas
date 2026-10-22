@@ -1,0 +1,2509 @@
+{
+  "schema_version": 1,
+  "id": "dofus_du_cauchemar",
+  "title": "Dofus du Cauchemar",
+  "category": "dofus",
+  "completeness_status": "complete",
+  "description": "Étapes Ganymède en suivi continu (validation manuelle ; objectifs non certifiés).",
+  "route_origin": "GANYMEDE_CONTINUOUS_STEP_ORDER",
+  "replacement_status": "TRUSTED_SOURCE_STEPS",
+  "replacement_active": true,
+  "guide_progress_id_unchanged": true,
+  "legacy_manual_steps_migration_verified": false,
+  "source_guide_id": 2283,
+  "source_guide_url": "https://ganymede-app.com/guides/2283",
+  "source_prerequisite_guide_ids": [
+    2275,
+    2282
+  ],
+  "expected_source_step_count": 55,
+  "playable_step_count": 55,
+  "source_link_snapshot": "ganymede_2283_observed_links.json",
+  "source_text_copied": false,
+  "sections": [
+    {
+      "id": "ganymede_2283_continuous",
+      "title": "Suivi continu Ganymède",
+      "steps": [
+        {
+          "id": "ganymede_2283_step_0001",
+          "type": "info",
+          "title": "Étape 1 — Avoir le métier de mineur niveau 10.",
+          "content": "Avoir le métier de mineur niveau 10.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 1,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [
+            2282,
+            2275,
+            2280
+          ],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26066
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_prerequisite",
+              "label": "Avoir le métier de mineur niveau 10."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0002",
+          "type": "info",
+          "title": "Étape 2 — Planifier les ressources nécessaires.",
+          "content": "Planifier les ressources nécessaires.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 2,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421,
+              2423
+            ],
+            "dungeon": [],
+            "object": [
+              11503,
+              2636,
+              311,
+              6765,
+              14635,
+              7224,
+              7223,
+              23311,
+              7225,
+              7222,
+              1538,
+              1535,
+              1537,
+              1536,
+              21966
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "prepare_object",
+              "label": "Planifier les ressources nécessaires."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0003",
+          "type": "info",
+          "title": "Étape 3 — Parler à Draconiros.",
+          "content": "Parler à Draconiros.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 3,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              38,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0004",
+          "type": "info",
+          "title": "Étape 4 — Parler à Rimanda.",
+          "content": "Parler à Rimanda.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 4,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -21
+            ],
+            [
+              41,
+              -56
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Rimanda."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0005",
+          "type": "info",
+          "title": "Étape 5 — Parler au Pandamonium Guardian.",
+          "content": "Parler au Pandamonium Guardian.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 5,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              41,
+              -56
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2424
+            ],
+            "dungeon": [],
+            "object": [
+              25907
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Pandamonium Guardian."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0006",
+          "type": "info",
+          "title": "Étape 6 — Positionner 12 classes sur le pentacle.",
+          "content": "Positionner 12 classes sur le pentacle.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 6,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -59
+            ],
+            [
+              40,
+              -56
+            ],
+            [
+              39,
+              -55
+            ],
+            [
+              42,
+              -57
+            ],
+            [
+              43,
+              -56
+            ],
+            [
+              43,
+              -55
+            ],
+            [
+              42,
+              -54
+            ],
+            [
+              43,
+              -54
+            ],
+            [
+              42,
+              -53
+            ],
+            [
+              41,
+              -53
+            ],
+            [
+              40,
+              -53
+            ],
+            [
+              41,
+              -59
+            ],
+            [
+              42,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "group_mechanic",
+              "label": "Positionner 12 classes sur le pentacle."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0007",
+          "type": "info",
+          "title": "Étape 7 — Vérifier si vous avez le 'Rêve d'Harmonie'.",
+          "content": "Vérifier si vous avez le 'Rêve d'Harmonie'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 7,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -59
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2424
+            ],
+            "dungeon": [],
+            "object": [
+              25907
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "check_object",
+              "label": "Vérifier si vous avez le 'Rêve d'Harmonie'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0008",
+          "type": "info",
+          "title": "Étape 8 — Parler à Hogion.",
+          "content": "Parler à Hogion.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 8,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              3
+            ],
+            [
+              -25,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Hogion."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0009",
+          "type": "info",
+          "title": "Étape 9 — Acheter un 'Ballon de Gobbowl de Brakmar'.",
+          "content": "Acheter un 'Ballon de Gobbowl de Brakmar'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 9,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              36
+            ],
+            [
+              -32,
+              -59
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26061
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Acheter un 'Ballon de Gobbowl de Brakmar'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0010",
+          "type": "info",
+          "title": "Étape 10 — Acheter un 'Ballon de Gobbowl de Bonta'.",
+          "content": "Acheter un 'Ballon de Gobbowl de Bonta'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 10,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -32,
+              -59
+            ],
+            [
+              -29,
+              -59
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26059
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Acheter un 'Ballon de Gobbowl de Bonta'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0011",
+          "type": "info",
+          "title": "Étape 11 — Parler à Bagrutta Stonestomach.",
+          "content": "Parler à Bagrutta Stonestomach.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 11,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -29,
+              -59
+            ],
+            [
+              -33,
+              -57
+            ],
+            [
+              -36,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25969,
+              2151,
+              2150,
+              1732,
+              1773,
+              1734,
+              11503,
+              2636,
+              311,
+              6765
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Bagrutta Stonestomach."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0012",
+          "type": "info",
+          "title": "Étape 12 — Parler aux Pyramides Prismatiques.",
+          "content": "Parler aux Pyramides Prismatiques.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 12,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -60
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26038
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Pyramides Prismatiques."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0013",
+          "type": "info",
+          "title": "Étape 13 — Parler au Roi Grimaçant.",
+          "content": "Parler au Roi Grimaçant.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 13,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Roi Grimaçant."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0014",
+          "type": "info",
+          "title": "Étape 14 — Parler à Julith le Boucher.",
+          "content": "Parler à Julith le Boucher.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 14,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              1
+            ],
+            [
+              1,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Julith le Boucher."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0015",
+          "type": "info",
+          "title": "Étape 15 — Parler au Grand Krackal.",
+          "content": "Parler au Grand Krackal.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 15,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Grand Krackal."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0016",
+          "type": "info",
+          "title": "Étape 16 — Donner de la 'Mimilk' à l'orphelin.",
+          "content": "Donner de la 'Mimilk' à l'orphelin.\nDonner du 'Pain Tahde' à l'orphelin.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 16,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              6765,
+              311,
+              2636,
+              11503
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner de la 'Mimilk' à l'orphelin."
+            },
+            {
+              "kind": "talk",
+              "label": "Donner du 'Pain Tahde' à l'orphelin."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0017",
+          "type": "info",
+          "title": "Étape 17 — Fighting with le 'Demolisseur Trool'.",
+          "content": "Fighting with le 'Demolisseur Trool'.\nFighting with le 'Constructeur Crackler'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 17,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6798,
+              6799,
+              6800
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Fighting with le 'Demolisseur Trool'."
+            },
+            {
+              "kind": "combat",
+              "label": "Fighting with le 'Constructeur Crackler'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0018",
+          "type": "info",
+          "title": "Étape 18 — Donner de la 'Bière Blanche Légendaire' au Stubbyob.",
+          "content": "Donner de la 'Bière Blanche Légendaire' au Stubbyob.\nDonner un 'Gâteau Rasputin' au Stubbyob.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 18,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              3
+            ],
+            [
+              4,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25969,
+              2151
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner de la 'Bière Blanche Légendaire' au Stubbyob."
+            },
+            {
+              "kind": "talk",
+              "label": "Donner un 'Gâteau Rasputin' au Stubbyob."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0019",
+          "type": "info",
+          "title": "Étape 19 — Donner le ballon aux prisonniers.",
+          "content": "Donner le ballon aux prisonniers.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 19,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              3
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26059,
+              26061
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Donner le ballon aux prisonniers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0020",
+          "type": "info",
+          "title": "Étape 20 — Lancer le combat 3 vagues avec les Chafers.",
+          "content": "Lancer le combat 3 vagues avec les Chafers.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 20,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              1
+            ],
+            [
+              0,
+              3
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2428
+            ],
+            "dungeon": [],
+            "object": [
+              25951
+            ],
+            "monster": [
+              6748,
+              6749,
+              6747,
+              6746
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer le combat 3 vagues avec les Chafers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0021",
+          "type": "info",
+          "title": "Étape 21 — Double cliquer sur la 'Toile Nightmare'.",
+          "content": "Double cliquer sur la 'Toile Nightmare'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 21,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25951,
+              25949
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Double cliquer sur la 'Toile Nightmare'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0022",
+          "type": "info",
+          "title": "Étape 22 — Parler à l'Horreur de l'Aube.",
+          "content": "Parler à l'Horreur de l'Aube.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 22,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2286
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2437
+            ],
+            "dungeon": [
+              136
+            ],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Horreur de l'Aube."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0023",
+          "type": "info",
+          "title": "Étape 23 — Collecter 12 'Peur viscérale'.",
+          "content": "Collecter 12 'Peur viscérale'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 23,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25982
+            ],
+            "monster": [
+              6750
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Collecter 12 'Peur viscérale'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0024",
+          "type": "info",
+          "title": "Étape 24 — Cliquer sur le grand trou.",
+          "content": "Cliquer sur le grand trou.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 24,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ],
+            [
+              43,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Cliquer sur le grand trou."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0025",
+          "type": "info",
+          "title": "Étape 25 — Parler à Na'Hama.",
+          "content": "Parler à Na'Hama.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 25,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              43,
+              -57
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2421,
+              2422
+            ],
+            "dungeon": [
+              135
+            ],
+            "object": [
+              25316
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Na'Hama."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0026",
+          "type": "info",
+          "title": "Étape 26 — Combat contre les Lemures.",
+          "content": "Combat contre les Lemures.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 26,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6801,
+              6751
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre les Lemures."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0027",
+          "type": "info",
+          "title": "Étape 27 — Combat contre le Mane Brutasmodan.",
+          "content": "Combat contre le Mane Brutasmodan.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 27,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre le Mane Brutasmodan."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0028",
+          "type": "info",
+          "title": "Étape 28 — Parler aux Mane des Destroyers.",
+          "content": "Parler aux Mane des Destroyers.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 28,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Mane des Destroyers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0029",
+          "type": "info",
+          "title": "Étape 29 — Combat contre Helzbeth.",
+          "content": "Combat contre Helzbeth.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 29,
+          "source_page": 1,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              17078,
+              7115,
+              23408
+            ],
+            "monster": [
+              6758,
+              6756,
+              6757,
+              6755,
+              6759,
+              6761,
+              6762,
+              6760
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Combat contre Helzbeth."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0030",
+          "type": "info",
+          "title": "Étape 30 — Parler aux Nightmare Destroyers.",
+          "content": "Parler aux Nightmare Destroyers.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 30,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Nightmare Destroyers."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0031",
+          "type": "info",
+          "title": "Étape 31 — Parler à Draconiros.",
+          "content": "Parler à Draconiros.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 31,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              21,
+              -33
+            ],
+            [
+              38,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2422,
+              2423
+            ],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0032",
+          "type": "info",
+          "title": "Étape 32 — Parler à Rimanda.",
+          "content": "Parler à Rimanda.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 32,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -21
+            ],
+            [
+              3,
+              -21
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Rimanda."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0033",
+          "type": "info",
+          "title": "Étape 33 — Parler à Magus Ax.",
+          "content": "Parler à Magus Ax.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 33,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              3,
+              -21
+            ],
+            [
+              24,
+              -22
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              7224,
+              7223,
+              23311,
+              7225,
+              7222
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Magus Ax."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0034",
+          "type": "info",
+          "title": "Étape 34 — Fabriquer 5 'Vertus d'Harmonie'.",
+          "content": "Fabriquer 5 'Vertus d'Harmonie'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 34,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              24,
+              -22
+            ],
+            [
+              15,
+              -31
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              23342
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "craft",
+              "label": "Fabriquer 5 'Vertus d'Harmonie'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0035",
+          "type": "info",
+          "title": "Étape 35 — Se diriger vers le temple.",
+          "content": "Se diriger vers le temple.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 35,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              15,
+              -31
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "move",
+              "label": "Se diriger vers le temple."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0036",
+          "type": "info",
+          "title": "Étape 36 — Parler à Urazawi.",
+          "content": "Parler à Urazawi.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 36,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26159,
+              1478
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Urazawi."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0037",
+          "type": "info",
+          "title": "Étape 37 — Commencer la quête 'Totems de Maimane'.",
+          "content": "Commencer la quête 'Totems de Maimane'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 37,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2425
+            ],
+            "dungeon": [
+              68,
+              73,
+              133,
+              76,
+              118,
+              97,
+              134,
+              67,
+              114,
+              87,
+              106,
+              107,
+              98,
+              119
+            ],
+            "object": [
+              26076,
+              26077,
+              26078
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_start",
+              "label": "Commencer la quête 'Totems de Maimane'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0038",
+          "type": "info",
+          "title": "Étape 38 — Collecter 6 totems.",
+          "content": "Collecter 6 totems.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 38,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [
+              110,
+              120,
+              69,
+              109,
+              103,
+              108,
+              117,
+              99,
+              70,
+              84,
+              95,
+              71,
+              135,
+              111,
+              83
+            ],
+            "object": [
+              26079,
+              26080,
+              26081
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "collect_object",
+              "label": "Collecter 6 totems."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0039",
+          "type": "info",
+          "title": "Étape 39 — Terminer la quête 'Totems de Maimane'.",
+          "content": "Terminer la quête 'Totems de Maimane'.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 39,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              2,
+              4
+            ],
+            [
+              38,
+              -20
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2425
+            ],
+            "dungeon": [],
+            "object": [
+              26058,
+              14635,
+              1538,
+              1535,
+              1537,
+              1536,
+              21966,
+              26159,
+              1478
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "quest_finish",
+              "label": "Terminer la quête 'Totems de Maimane'."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0040",
+          "type": "info",
+          "title": "Étape 40 — Créer une rune d'harmonie.",
+          "content": "Créer une rune d'harmonie.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 40,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              38,
+              -20
+            ],
+            [
+              -36,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              26058,
+              25809
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "craft",
+              "label": "Créer une rune d'harmonie."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0041",
+          "type": "info",
+          "title": "Étape 41 — Parler aux Pyramides Prismatiques.",
+          "content": "Parler aux Pyramides Prismatiques.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 41,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -60
+            ],
+            [
+              -24,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler aux Pyramides Prismatiques."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0042",
+          "type": "info",
+          "title": "Étape 42 — Parler à Ilaster Kro'Ly.",
+          "content": "Parler à Ilaster Kro'Ly.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 42,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -24,
+              39
+            ],
+            [
+              -20,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Ilaster Kro'Ly."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0043",
+          "type": "info",
+          "title": "Étape 43 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 43,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -20,
+              39
+            ],
+            [
+              -22,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0044",
+          "type": "info",
+          "title": "Étape 44 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 44,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -22,
+              36
+            ],
+            [
+              -21,
+              36
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0045",
+          "type": "info",
+          "title": "Étape 45 — Convaincre le grimoire démoniaque.",
+          "content": "Convaincre le grimoire démoniaque.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 45,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -21,
+              36
+            ],
+            [
+              -25,
+              32
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25818
+            ],
+            "monster": [
+              6773,
+              6774
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Convaincre le grimoire démoniaque."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0046",
+          "type": "info",
+          "title": "Étape 46 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 46,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -25,
+              32
+            ],
+            [
+              -27,
+              38
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6763
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0047",
+          "type": "info",
+          "title": "Étape 47 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 47,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -27,
+              38
+            ],
+            [
+              -34,
+              -60
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0048",
+          "type": "info",
+          "title": "Étape 48 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 48,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -34,
+              -60
+            ],
+            [
+              -33,
+              -58
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": [
+              6768
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0049",
+          "type": "info",
+          "title": "Étape 49 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 49,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -33,
+              -58
+            ],
+            [
+              -28,
+              -55
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0050",
+          "type": "info",
+          "title": "Étape 50 — Lancer un combat de groupe.",
+          "content": "Lancer un combat de groupe.",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 50,
+          "source_page": 1,
+          "source_coordinates_mentioned": [
+            [
+              -28,
+              -55
+            ],
+            [
+              -36,
+              -54
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "combat",
+              "label": "Lancer un combat de groupe."
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0051",
+          "type": "info",
+          "title": "Étape 51 — Parler au Soldat de la Lance Brutale",
+          "content": "Parler au Soldat de la Lance Brutale\nVérifier les objets de quête requis\nAller à [-24,39]",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 51,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -36,
+              -54
+            ],
+            [
+              -24,
+              39
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [
+              25819,
+              25820,
+              25818
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler au Soldat de la Lance Brutale"
+            },
+            {
+              "kind": "check_object",
+              "label": "Vérifier les objets de quête requis"
+            },
+            {
+              "kind": "move",
+              "label": "Aller à [-24,39]"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0052",
+          "type": "info",
+          "title": "Étape 52 — Entrer dans la Bibliothèque",
+          "content": "Entrer dans la Bibliothèque\nMonter les escaliers deux fois\nParler à Ilaster Kro'Li\nAller à [4,0] dans la zone de l'Enfer des Destructeurs",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 52,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              -24,
+              39
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              -22,
+              41
+            ]
+          ],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Entrer dans la Bibliothèque"
+            },
+            {
+              "kind": "move",
+              "label": "Monter les escaliers deux fois"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Ilaster Kro'Li"
+            },
+            {
+              "kind": "move",
+              "label": "Aller à [4,0] dans la zone de l'Enfer des Destructeurs"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0053",
+          "type": "info",
+          "title": "Étape 53 — Cliquer sur le trou géant",
+          "content": "Cliquer sur le trou géant\nParler à l'Enfer des Destructeurs deux fois\nParler à Servitude\nParler à Entropix\nCombattre les Cavaliers de l'Éliocalypse",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 53,
+          "source_page": 2,
+          "source_coordinates_mentioned": [
+            [
+              4,
+              0
+            ]
+          ],
+          "source_linked_guide_ids": [
+            2284
+          ],
+          "external_dofusdb_ids": {
+            "quest": [
+              2420
+            ],
+            "dungeon": [],
+            "object": [
+              26070
+            ],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "interact",
+              "label": "Cliquer sur le trou géant"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à l'Enfer des Destructeurs deux fois"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Servitude"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            },
+            {
+              "kind": "combat",
+              "label": "Combattre les Cavaliers de l'Éliocalypse"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0054",
+          "type": "info",
+          "title": "Étape 54 — Parler à l'Enfer des Destructeurs",
+          "content": "Parler à l'Enfer des Destructeurs\nParler à Helzbeth, Mère des Destructeurs\nParler à Draconiros\nParler à Helzbeth, Mère des Destructeurs à nouveau\nParler à Draconiros à nouveau\nParler à lui pour approcher le chronomorph\nParler à Entropix",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 54,
+          "source_page": 2,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [],
+            "dungeon": [],
+            "object": [],
+            "monster": []
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à l'Enfer des Destructeurs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Helzbeth, Mère des Destructeurs"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Helzbeth, Mère des Destructeurs à nouveau"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Draconiros à nouveau"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à lui pour approcher le chronomorph"
+            },
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        },
+        {
+          "id": "ganymede_2283_step_0055",
+          "type": "info",
+          "title": "Étape 55 — Parler à Entropix",
+          "content": "Parler à Entropix\nAffronter Entropix",
+          "optional": false,
+          "source_guide_id": 2283,
+          "source_step_number": 55,
+          "source_page": 2,
+          "source_coordinates_mentioned": [],
+          "source_linked_guide_ids": [],
+          "external_dofusdb_ids": {
+            "quest": [
+              2423
+            ],
+            "dungeon": [],
+            "object": [
+              26066
+            ],
+            "monster": [
+              6776,
+              6777
+            ]
+          },
+          "verified_actions": [],
+          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "manual_completion_allowed": true,
+          "auto_completion_allowed": false,
+          "original_prose_imported": false,
+          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidates": [
+            {
+              "kind": "talk",
+              "label": "Parler à Entropix"
+            },
+            {
+              "kind": "combat",
+              "label": "Affronter Entropix"
+            }
+          ],
+          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+        }
+      ]
+    }
+  ],
+  "cutover_blockers": [],
+  "factual_action_reviewed_step_count": 0,
+  "auto_extracted_step_count": 55,
+  "source_action_candidate_steps": 55,
+  "source_action_candidate_actions": 74,
+  "progress_migration_not_required": true,
+  "canonical_objectives_certified": false,
+  "auto_completion_allowed": false,
+  "recommended_level_min": 30,
+  "recommended_level_max": 200,
+  "reward_item_id": 26066,
+  "illustration_item_id": 26066,
+  "image": null,
+  "linked_achievement_ids": [
+    5162
+  ],
+  "display_metadata_source": "ATLAS_LEGACY_CATALOGUE"
+}
