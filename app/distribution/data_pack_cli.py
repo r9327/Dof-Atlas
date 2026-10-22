@@ -12,7 +12,7 @@ from pathlib import Path
 import sys
 
 from .data_pack_plan import DataPack, InvalidDataPack
-from .data_pack_store import acknowledge_pack, active_pack, install_pack, rollback_pack
+from .data_pack_store import acknowledge_pack, active_pack, install_pack, rollback_pack, recover_pending_packs
 
 _KINDS = ("quests", "successes", "guides", "items", "equipment")
 
@@ -30,9 +30,14 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--schema-version", type=int, required=True)
             sub.add_argument("--sha256", required=True)
             sub.add_argument("--artifact-path", required=True)
+    recovery = actions.add_parser("recover")
+    recovery.add_argument("--root", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "install":
+        if args.command == "recover":
+            recovered = recover_pending_packs(args.root)
+            status = "ROLLED_BACK_PENDING" if recovered else "NO_PENDING"
+        elif args.command == "install":
             pack = DataPack(args.kind, args.revision, args.schema_version,
                             args.sha256, args.artifact_path)
             status = install_pack(args.root, args.staging_root, pack)
@@ -47,7 +52,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)}, ensure_ascii=False),
               file=sys.stderr)
         return 2
-    print(json.dumps({"status": status, "kind": args.kind}, sort_keys=True))
+    payload = {"status": status}
+    if args.command == "recover":
+        payload["recovered"] = list(recovered)
+    else:
+        payload["kind"] = args.kind
+    print(json.dumps(payload, sort_keys=True))
     return 0
 
 
