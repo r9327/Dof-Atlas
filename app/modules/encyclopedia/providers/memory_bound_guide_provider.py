@@ -272,11 +272,16 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             with path.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
                     line = raw_line.strip()
-                    if not line or ('"kind":"guide"' not in line
-                                    and '"kind":"entity_index"' not in line):
+                    if not line:
                         continue
+                    # Validate *every* JSONL row. A truncated or corrupt row
+                    # must not make an incomplete relation lookup look valid.
                     row = json.loads(line)
-                    if not isinstance(row, dict) or not isinstance(row.get("value"), dict):
+                    if not isinstance(row, dict):
+                        return None
+                    if row.get("kind") not in ("guide", "entity_index"):
+                        continue
+                    if not isinstance(row.get("value"), dict):
                         return None
                     value = row["value"]
                     if row.get("kind") == "guide":
