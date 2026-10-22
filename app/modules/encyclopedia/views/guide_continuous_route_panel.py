@@ -7,11 +7,13 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from PySide6.QtCore import Qt, QStringListModel, Signal
+from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
 
+from app.constants import DATA_DIR
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
@@ -46,6 +48,7 @@ class ContinuousGuideRoutePanel(QWidget):
             if is_character_key(getattr(row, "key", ""))
         )
         self._character_actions = {}
+        self.character_icon_buttons = {}
         self._summary_open = False
         self._preparation_open = False
 
@@ -84,6 +87,35 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.clicked.connect(self.toggle_summary)
         head.addWidget(self.summary_toggle)
         layout.addLayout(head)
+        portraits = QHBoxLayout()
+        portraits.setSpacing(4)
+        for character in self.available_characters:
+            if character.key in self.character_icon_buttons:
+                continue
+            button = QToolButton()
+            button.setObjectName("GuideContinuousCharacterPortrait")
+            button.setCheckable(True)
+            button.setFixedSize(34, 34)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setToolTip(str(getattr(character, "label", "") or character.key))
+            class_key = str(getattr(character, "class_key", "") or "").strip().lower()
+            if class_key.isascii() and class_key.isalpha():
+                image_path = DATA_DIR / "images" / "classes" / f"{class_key}.png"
+                icon = QIcon(str(image_path))
+                if not icon.isNull():
+                    button.setIcon(icon)
+                    button.setIconSize(QSize(27, 27))
+                    button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+            if button.icon().isNull():
+                button.setText(button.toolTip()[:1].upper() or "?")
+            button.toggled.connect(
+                lambda checked, key=character.key: self._character_toggled(key, checked)
+            )
+            self.character_icon_buttons[character.key] = button
+            portraits.addWidget(button)
+        if self.character_icon_buttons:
+            portraits.addStretch(1)
+            layout.addLayout(portraits)
         self.route_progress = QProgressBar()
         self.route_progress.setObjectName("GuideContinuousRouteProgress")
         self.route_progress.setRange(0, 100)
@@ -250,6 +282,12 @@ class ContinuousGuideRoutePanel(QWidget):
                 action.setChecked(key in selected)
             finally:
                 action.blockSignals(was_blocked)
+        for key, button in self.character_icon_buttons.items():
+            was_blocked = button.blockSignals(True)
+            try:
+                button.setChecked(key in selected)
+            finally:
+                button.blockSignals(was_blocked)
         current = position.viewed_step_id
         actual = position.actual_step_id
         self.actual_button.setEnabled(actual is not None)

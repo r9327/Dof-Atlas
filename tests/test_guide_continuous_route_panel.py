@@ -107,6 +107,28 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
 
+    def test_class_portraits_are_clickable_and_follow_stable_character_keys(self):
+        characters = [
+            SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key="feca"),
+            SimpleNamespace(key="character:2", label="Beta", connected=False, class_key=""),
+        ]
+        extra = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",),
+            available_characters=characters,
+        )
+        self.addCleanup(extra.deleteLater)
+        self.assertEqual(len(extra.character_icon_buttons), 2)
+        self.assertTrue(extra.character_icon_buttons["character:1"].isChecked())
+        self.assertEqual(extra.character_icon_buttons["character:2"].toolTip(), "Beta")
+        received = []
+        extra.selectedCharactersChanged.connect(received.append)
+        extra.character_icon_buttons["character:2"].click()
+        self.assertEqual(received[-1], ("character:1", "character:2"))
+        self.assertTrue(extra._character_actions["character:2"].isChecked())
+        extra._character_actions["character:1"].trigger()
+        self.assertFalse(extra.character_icon_buttons["character:1"].isChecked())
+        self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
+
     def test_external_selection_updates_picker_without_false_signal(self):
         characters = [
             SimpleNamespace(key="character:1", label="Alpha", connected=True),
