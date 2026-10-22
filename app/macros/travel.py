@@ -90,6 +90,9 @@ class TravelMacro:
         if not clients:
             self.runtime.logger.info("Travel ignore: aucune fenetre chargee.")
             return
+        # Commands accepted by normalize_guide_travel_command form one or two
+        # distinct chat submissions. The game does not receive shell syntax.
+        steps = tuple(part.strip() for part in command.split(" ; "))
         timings = self.runtime.settings.timings
         sent = 0
         for client in clients:
@@ -107,19 +110,25 @@ class TravelMacro:
                 "Travel",
                 should_stop=self.runtime.macro_lock.should_stop,
             ):
-                if not send_chat_command(
-                    command,
-                    self.runtime.logger,
-                    submit_twice=True,
-                    chat_open_ms=timings.auto_group_chat_open_ms,
-                    key_step_ms=timings.auto_group_key_step_ms,
-                    paste_settle_ms=timings.auto_group_paste_settle_ms,
-                    should_stop=self.runtime.macro_lock.should_stop,
-                ):
+                completed = True
+                for step in steps:
                     if self.runtime.macro_lock.should_stop():
                         return
-                    continue
-                sent += 1
+                    if not send_chat_command(
+                        step,
+                        self.runtime.logger,
+                        submit_twice=True,
+                        chat_open_ms=timings.auto_group_chat_open_ms,
+                        key_step_ms=timings.auto_group_key_step_ms,
+                        paste_settle_ms=timings.auto_group_paste_settle_ms,
+                        should_stop=self.runtime.macro_lock.should_stop,
+                    ):
+                        if self.runtime.macro_lock.should_stop():
+                            return
+                        completed = False
+                        break
+                if completed:
+                    sent += 1
         self.runtime.switch_character.restore_preferred_client("Travel")
         self.runtime.logger.info("Travel termine: envoyes=%s/%s", sent, len(clients))
         if character_keys is not None:

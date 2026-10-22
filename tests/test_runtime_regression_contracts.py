@@ -162,6 +162,45 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         self.assertEqual(send.call_args.args[0], "/travel 5,-18")
         self.assertIn("1 hors ligne", statuses[-1])
 
+    def test_guide_combo_submits_two_separate_commands_to_selected_character(self) -> None:
+        statuses: list[str] = []
+        clients = [
+            AtlasClient(1, "A", "Alpha", 101, character_key="character:1"),
+            AtlasClient(2, "B", "Beta", 202, character_key="character:2"),
+        ]
+        runtime = self._travel_runtime(clients, statuses)
+        with (
+            patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.activate_window", return_value=True) as activate,
+            patch("app.macros.travel.send_chat_command", return_value=True) as send,
+        ):
+            TravelMacro(runtime).run_async(
+                "/zaap -32, -56 ; /travel 5, 6", ("character:2",)
+            )
+        self.assertEqual(
+            [call.args[0] for call in send.call_args_list],
+            ["/zaap -32,-56", "/travel 5,6"],
+        )
+        self.assertEqual(activate.call_count, 1)
+        self.assertEqual(activate.call_args.args[0], 202)
+        self.assertIn("1 participant", statuses[-1])
+
+    def test_guide_combo_stops_if_zaap_submission_fails(self) -> None:
+        statuses: list[str] = []
+        clients = [AtlasClient(1, "A", "Alpha", 101, character_key="character:1")]
+        runtime = self._travel_runtime(clients, statuses)
+        with (
+            patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.activate_window", return_value=True),
+            patch("app.macros.travel.send_chat_command", return_value=False) as send,
+        ):
+            TravelMacro(runtime).run_async(
+                "/zaap 1,2 ; /travel 3,4", ("character:1",)
+            )
+        self.assertEqual(send.call_count, 1)
+        self.assertEqual(send.call_args.args[0], "/zaap 1,2")
+        self.assertIn("0 participant", statuses[-1])
+
     def test_guide_travel_fails_closed_for_ambiguous_identity(self) -> None:
         statuses: list[str] = []
         clients = [
