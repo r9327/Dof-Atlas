@@ -165,6 +165,19 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
 
+    def test_route_progress_reports_only_manual_selected_checks(self):
+        self.assertEqual(self.panel.route_progress.value(), 0)
+        self.assertIn("0/6", self.panel.route_progress.format())
+        self.panel.validate_button.click()
+        self.assertEqual(self.panel.route_progress.value(), 33)
+        self.assertIn("2/6", self.panel.route_progress.format())
+        self.panel.set_characters(("character:1",))
+        self.assertEqual(self.panel.route_progress.value(), 33)
+        self.assertIn("1/3", self.panel.route_progress.format())
+        self.panel.set_characters(())
+        self.assertEqual(self.panel.route_progress.value(), 0)
+        self.assertIn("aucun personnage", self.panel.route_progress.format())
+
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())
         self.assertFalse(self.panel.actual_button.isEnabled())

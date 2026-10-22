@@ -9,7 +9,7 @@ from collections.abc import Iterable, Mapping
 
 from PySide6.QtCore import Qt, QStringListModel, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.core.character_identity import is_character_key
@@ -84,6 +84,11 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.clicked.connect(self.toggle_summary)
         head.addWidget(self.summary_toggle)
         layout.addLayout(head)
+        self.route_progress = QProgressBar()
+        self.route_progress.setObjectName("GuideContinuousRouteProgress")
+        self.route_progress.setRange(0, 100)
+        self.route_progress.setTextVisible(True)
+        layout.addWidget(self.route_progress)
 
         work = QHBoxLayout()
         work.setSpacing(9)
@@ -228,6 +233,15 @@ class ContinuousGuideRoutePanel(QWidget):
 
     def refresh(self) -> None:
         position = self.navigation.position()
+        total_checks = position.total_steps * len(position.selected_character_keys)
+        completed_checks = sum(position.completed_by_character.values())
+        self.route_progress.setValue(
+            round(100 * completed_checks / total_checks) if total_checks else 0
+        )
+        self.route_progress.setFormat(
+            f"Route · {completed_checks}/{total_checks} étapes validées"
+            if total_checks else "Route · aucun personnage sélectionné"
+        )
         selected = set(position.selected_character_keys)
         self.participants_button.setText(f"Mes personnages ({len(selected)})")
         for key, action in self._character_actions.items():
