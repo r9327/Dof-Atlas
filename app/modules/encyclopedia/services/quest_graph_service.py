@@ -231,6 +231,11 @@ class QuestGraphService:
             return sorted(self.guide_ids_by_quest.get(quest_id, set()))
         if self.guide_provider is None:
             return []
+        fast_lookup = getattr(self.guide_provider, "guide_ids_for_quest_fast", None)
+        if callable(fast_lookup):
+            fast_ids = fast_lookup(quest_id)
+            if fast_ids is not None:
+                return sorted({str(guide_id) for guide_id in fast_ids if guide_id})
         getter = getattr(self.guide_provider, "get_guides_for_entity", None)
         if callable(getter):
             return sorted(
