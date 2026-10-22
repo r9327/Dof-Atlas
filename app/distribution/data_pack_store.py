@@ -243,3 +243,33 @@ def rollback_pack(root: Path, kind: str) -> bool:
         entry["pending"] = False
         _write(directory, doc)
         return True
+
+
+
+def recover_pending_packs(root: Path) -> tuple[str, ...]:
+    """Rollback all unacknowledged data-pack updates after interrupted startup.
+
+    Validate *every* previous blob before changing the index, so one corrupt
+    baseline cannot silently leave a partially recovered pack collection.
+    This is an explicit launcher recovery operation, not an implicit UI import.
+    """
+    directory = _dir(root)
+    with _locked(directory):
+        doc = _read(directory)
+        pending = tuple(sorted(
+            kind for kind, entry in doc["packs"].items() if entry["pending"]
+        ))
+        if not pending:
+            return ()
+        for kind in pending:
+            old = _state(doc["packs"][kind]["previous"])
+            if old is not None and not _check_blob(_blob(directory, kind, old), old):
+                raise InvalidDataPack(f"cannot recover {kind}: previous pack is missing or corrupt")
+        for kind in pending:
+            entry = doc["packs"][kind]
+            old = _state(entry["previous"])
+            entry["active"] = _identity(old) if old is not None else None
+            entry["previous"] = None
+            entry["pending"] = False
+        _write(directory, doc)
+        return pending
