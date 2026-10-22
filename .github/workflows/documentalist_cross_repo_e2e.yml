@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: r9327/Atlas-Holding
-          ref: 29795de25b16857c0a70636c0c9fe5f17db07b1b
+          ref: b7d900e00ec6f6c25846f773f49917247badf1a3
           path: holding-source
           persist-credentials: false
       - uses: actions/setup-python@v5
@@ -43,6 +43,20 @@ jobs:
           (cd holding-source && python -m holding.documentalist_cli --file ../incoming.json --format json --out ../incoming.exchange.json)
           python -m tools.atlas_data_exchange_cli old.exchange.json incoming.exchange.json --json > preview.json
           python - <<'PY'
+          # Seed a verified offline cache: this exercise MUST NOT access the network.
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("holding-source").resolve()))
+          from holding.document_cache import store_batch
+          from holding.document_intake import ingest_json_records
+          raw = Path("incoming.json").read_bytes()
+          batch = ingest_json_records(raw, source="https://example.org/quests.json",
+                                     collected_at="2026-10-22T18:00:00Z")
+          store_batch(Path("source-cache"), batch, format="json")
+          PY
+          (cd holding-source && python -m holding.documentalist_cli --url https://example.org/quests.json --allow-host example.org --format json --cache-dir ../source-cache --offline --out ../offline.exchange.json)
+          python -m tools.atlas_data_exchange_cli old.exchange.json offline.exchange.json --json > offline.preview.json
+          python - <<'PY'
           import json
           from pathlib import Path
           report = json.loads(Path("preview.json").read_text(encoding="utf-8"))
@@ -53,5 +67,8 @@ jobs:
           assert [(r["kind"], r["id"], r["action"]) for r in report["changes"]] == [
               ("quest", "1", "update"), ("success", "2", "add"),
           ], report
-          print("Cross-repo Documentalist -> Atlas exact-SHA contract PASS", report["counts"])
+          offline = json.loads(Path("offline.preview.json").read_text(encoding="utf-8"))
+          assert offline["status"] == "PREVIEW_ONLY" and offline["counts"] == report["counts"], offline
+          assert offline["source"] == "https://example.org/quests.json", offline
+          print("Cross-repo online-format + OFFLINE cached Documentalist -> Atlas PASS", report["counts"])
           PY
