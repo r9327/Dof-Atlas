@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zlib
 
+from tools.atlas_doctor import main as doctor_main
 from tools.atlas_doctor_lib.local_ai_evidence import InvalidDiagnostic
 from tools.atlas_doctor_lib.local_ai_ui import from_verified_ui_session, main
 
@@ -125,6 +126,21 @@ class DoctorLocalUiTests(unittest.TestCase):
             self.assertEqual(main([str(self.folder), "--candidate-sha", SHA,
                                    "--out", str(out)]), 2)
         self.assertEqual(out.read_bytes(), before)
+
+    def test_canonical_doctor_entrypoint_builds_real_ui_advisory(self):
+        out = Path(self.tmp.name) / "doctor-ui-advisory.json"
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = doctor_main([
+                "local-ai-ui-evidence", str(self.folder),
+                "--candidate-sha", SHA, "--out", str(out),
+                "--affected-path", "app/modules/encyclopedia/views/guides_view.py",
+            ])
+        self.assertEqual(result, 0)
+        payload = json.loads(out.read_text(encoding="utf-8"))
+        self.assertEqual(payload["status"], "ADVISORY_ONLY")
+        self.assertEqual(payload["source_sha"], SHA)
+        self.assertEqual(payload["failing_test_ids"], ["guides-success/layout-960"])
 
     def test_refuse_diagnostics_when_worker_never_ran(self):
         self.report["tests_executed"] = False
