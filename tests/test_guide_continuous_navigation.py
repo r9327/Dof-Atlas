@@ -73,6 +73,16 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
         self.assertEqual(nav.position().actual_step_id, "ganymede_2205_step_0002")
         self.assertEqual(nav.show_actual(), "ganymede_2205_step_0002")
 
+    def test_zero_selected_can_browse_without_creating_progress(self):
+        nav = self._navigator()
+        self.assertIsNone(nav.position().actual_step_id)
+        self.assertEqual(nav.next_step(), "ganymede_2205_step_0001")
+        self.assertEqual(nav.next_step(), "ganymede_2205_step_0002")
+        self.assertEqual(nav.previous_step(), "ganymede_2205_step_0001")
+        self.assertIsNone(nav.position().actual_step_id)
+        self.assertFalse(nav.mark_manual_step("ganymede_2205_step_0001", True))
+        self.assertFalse(self.path.exists())
+
     def test_next_previous_do_not_modify_progress_or_actual(self):
         nav = self._navigator("character:1")
         self.assertEqual(nav.next_step(), "ganymede_2205_step_0001")

@@ -124,6 +124,18 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(received, [])
         self.assertEqual(extra.navigation.position().actual_step_id, "ganymede_2205_step_0001")
 
+    def test_no_character_can_browse_source_without_checking_steps(self):
+        self.panel.set_characters(())
+        self.assertTrue(self.panel.next_button.isEnabled())
+        self.panel.next_button.click()
+        self.assertEqual(
+            self.panel.navigation.position().viewed_step_id,
+            "ganymede_2205_step_0002",
+        )
+        self.assertIsNone(self.panel.navigation.position().actual_step_id)
+        self.assertFalse(self.panel.validate_button.isEnabled())
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())
         self.assertFalse(self.panel.actual_button.isEnabled())

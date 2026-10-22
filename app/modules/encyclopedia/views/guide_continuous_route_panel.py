@@ -231,7 +231,7 @@ class ContinuousGuideRoutePanel(QWidget):
             else "PARCOURS CONTINU"
         )
         self.previous_button.setEnabled(index > 0)
-        self.next_button.setEnabled(0 <= index < position.total_steps - 1)
+        self.next_button.setEnabled(index < position.total_steps - 1)
         self.progress_label.setText(
             "Suivi manuel : "
             + " · ".join(

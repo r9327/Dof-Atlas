@@ -127,7 +127,10 @@ class ContinuousGuideNavigation:
 
     def next_step(self) -> str | None:
         if self.viewed_step_id is None:
-            return self.show_actual()
+            # Browsing source sheets never certifies a character's position.
+            # With no selected character there is no "Actuelle", but the
+            # user must still be able to inspect the full manual guide.
+            return self.show_actual() or self.show_step(self.step_ids[0])
         index = self.step_ids.index(self.viewed_step_id)
         if index + 1 >= len(self.step_ids):
             return None
