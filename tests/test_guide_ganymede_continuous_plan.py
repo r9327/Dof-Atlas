@@ -93,7 +93,7 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
     def test_reviewed_canonical_start_can_produce_exact_direct_travel(self):
         travel = _reviewed_start_travel(
             self._signed_candidate_step(), self._canonical_quest_start(),
-            ["character:1", "character:2"],
+            ["character:1", "character:2"], {123: (5, -18)},
         )
         self.assertEqual(travel.to_chat_command(), "/travel 5,-18")
         self.assertEqual(travel.participant_keys, ("character:1", "character:2"))
@@ -120,7 +120,30 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         ]
         for source, candidate in variants:
             with self.subTest(source=source, action=candidate), self.assertRaises(ValueError):
-                _reviewed_start_travel(source, candidate, ["character:1"])
+                _reviewed_start_travel(
+                    source, candidate, ["character:1"], {123: (5, -18)},
+                )
+
+    def test_quest_start_needs_an_independent_canonical_map_record(self):
+        step = self._signed_candidate_step()
+        action = self._canonical_quest_start()
+        invalid = (
+            {}, {999: (5, -18)}, {123: (5, -19)},
+            {123: [5, -18]}, {123: (True, -18)},
+            {123: (-(2**31), -18)}, {123: ("5", -18)},
+        )
+        for positions in invalid:
+            with self.subTest(positions=positions), self.assertRaisesRegex(
+                ValueError, "Atlas map record"
+            ):
+                _reviewed_start_travel(step, action, ["character:1"], positions)
+
+    def test_real_source_binding_needs_explicit_map_registry(self):
+        action = self._canonical_quest_start()
+        with self.assertRaisesRegex(ValueError, "Atlas map records"):
+            self.build(reviewed_start_action_bindings={
+                "ganymede_2205_step_0001": action,
+            })
 
     def test_reviewed_bindings_refuse_reused_actions_and_empty_participants(self):
         action = self._canonical_quest_start()
@@ -145,9 +168,12 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         # alone cannot prove which action is the destination.
         action = self._canonical_quest_start(quest_id=845, x=22, y=-10)
         with self.assertRaisesRegex(ValueError, "ambiguous"):
-            self.build(reviewed_start_action_bindings={
-                "ganymede_2205_step_0055": action,
-            })
+            self.build(
+                reviewed_start_action_bindings={
+                    "ganymede_2205_step_0055": action,
+                },
+                canonical_map_positions={123: (22, -10)},
+            )
         with self.assertRaisesRegex(ValueError, "unknown signed step"):
             self.build(reviewed_start_action_bindings={
                 "ganymede_999_step_0001": action,

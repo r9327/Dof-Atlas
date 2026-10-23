@@ -68,13 +68,15 @@ def _reviewed_start_travel(
     step: Mapping[str, object],
     action: RouteAction,
     participant_keys: list[str],
+    canonical_map_positions: Mapping[int, tuple[int, int]],
 ) -> GuideTravelPlan:
     """Check an explicitly reviewed source-to-canonical binding before travel.
 
     This only verifies a direct location, not the quest completion or Zaap
     eligibility. A Ganymède quest ID or observed coordinate alone cannot
     produce a command: the caller must supply the independently mapped Atlas
-    start action, and both sources must agree without ambiguity.
+    start action, and both sources must agree without ambiguity. The map ID
+    must also exist in an independent Atlas map-information snapshot.
     """
     if not isinstance(action, RouteAction):
         raise ValueError("Reviewed binding must provide a canonical RouteAction")
@@ -110,6 +112,16 @@ def _reviewed_start_travel(
             or abs(location.x) > 10000 or abs(location.y) > 10000
             or observed[0] != [location.x, location.y]):
         raise ValueError("Canonical map coordinates do not corroborate source")
+    # The route adapter may supply an action with a map ID but without a
+    # resolved maps_information record. A positive map ID alone is not proof.
+    if not isinstance(canonical_map_positions, Mapping):
+        raise ValueError("Atlas map registry must be explicitly supplied")
+    atlas_position = canonical_map_positions.get(location.map_id)
+    if (not isinstance(atlas_position, tuple) or len(atlas_position) != 2
+            or any(type(coord) is not int for coord in atlas_position)
+            or -(2**31) in atlas_position
+            or atlas_position != (location.x, location.y)):
+        raise ValueError("Atlas map record does not corroborate quest start")
     return GuideTravelPlan(
         TravelMode.DIRECT, location, tuple(participant_keys),
         evidence=f"atlas:reviewed-quest-start:{quest_id}:map:{location.map_id}",
@@ -128,6 +140,7 @@ def project_ganymede_continuous_plan(
     quest_provider: object | None = None,
     verified_stage_travel: Mapping[str, GuideTravelPlan] | None = None,
     reviewed_start_action_bindings: Mapping[str, RouteAction] | None = None,
+    canonical_map_positions: Mapping[int, tuple[int, int]] | None = None,
 ) -> dict[str, object]:
     """Join all signed source steps and audited needs without losing empty stages.
 
@@ -182,6 +195,8 @@ def project_ganymede_continuous_plan(
         raise ValueError("Reviewed start binding refers to an unknown signed step")
     if start_bindings and not selected:
         raise ValueError("Reviewed start bindings need explicit participants")
+    if start_bindings and not isinstance(canonical_map_positions, Mapping):
+        raise ValueError("Reviewed start bindings need Atlas map records")
     if any(not isinstance(action, RouteAction) for action in start_bindings.values()):
         raise ValueError("Reviewed binding must be a canonical RouteAction")
     action_ids = [action.action_id for action in start_bindings.values()]
@@ -364,7 +379,9 @@ def project_ganymede_continuous_plan(
                 # needed by only a subset of the selected team.
                 travel = None
             else:
-                travel = _reviewed_start_travel(step, start_bindings[sid], pending)
+                travel = _reviewed_start_travel(
+                    step, start_bindings[sid], pending, canonical_map_positions,
+                )
         if travel is not None:
             # This is a transient result from the canonical planner, not a
             # property read from (or written back into) the source JSON.
