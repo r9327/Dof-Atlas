@@ -125,12 +125,20 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         update_failure: UpdateError | OSError | None = None
         try:
             report("Verification des mises a jour...", 5)
-            remote = latest_release()
             try:
                 current_exe = active_executable(ROOT)
             except UpdateError:
                 current_exe = None
-            if (verify_installation and current_exe is not None
+            # A matching stable tag lets a healthy existing install launch
+            # without downloading the multi-megabyte release manifest.
+            # Invalid/unknown tags always take the full verification path.
+            installed_sha = (
+                prior.get("source_sha")
+                if current_exe is not None and not verify_installation and not prior.get("pending")
+                else None
+            )
+            remote = latest_release(installed_source_sha=installed_sha)
+            if (remote is not None and verify_installation and current_exe is not None
                     and prior.get("source_sha") == remote.manifest.source_sha):
                 report("Verification complete de l'installation...", 7)
                 installed = slot_path(ROOT, prior["active"])
@@ -138,9 +146,11 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                        for entry in remote.manifest.files):
                     current_exe = None
                     report("Installation endommagee — reparation...", 9)
-            if prior.get("blocked_source_sha") == remote.manifest.source_sha:
+            if remote is not None and prior.get("blocked_source_sha") == remote.manifest.source_sha:
                 report("Mise a jour en attente de correction", 10)
-            elif prior.get("source_sha") != remote.manifest.source_sha or current_exe is None:
+            elif remote is not None and (
+                prior.get("source_sha") != remote.manifest.source_sha or current_exe is None
+            ):
                 delta_installed = False
                 can_delta = (
                     remote.manifest.delta is not None

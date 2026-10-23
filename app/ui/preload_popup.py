@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from time import monotonic
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -40,6 +40,8 @@ class PreloadProgressPopup(QDialog):
     Qt keeps processing events while Atlas preload workers/processes run, so the
     window stays responsive without letting the user enter half-hydrated modules.
     """
+
+    readyForMainWindow = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -230,6 +232,13 @@ class PreloadProgressPopup(QDialog):
         self.adjustSize()
         if parent is not None and parent.isVisible():
             center = parent.mapToGlobal(parent.rect().center())
+        else:
+            # The main Atlas window deliberately stays hidden during preload.
+            from PySide6.QtWidgets import QApplication
+
+            screen = QApplication.primaryScreen()
+            center = screen.availableGeometry().center() if screen else None
+        if center is not None:
             self.move(
                 center.x() - self.width() // 2,
                 center.y() - self.height() // 2,
@@ -250,9 +259,12 @@ class PreloadProgressPopup(QDialog):
         event.ignore()
 
     def _hide_if_current(self, generation: int) -> None:
-        if generation != self._hide_generation:
+        if generation != self._hide_generation or not self._finished:
             return
+        # Consume this generation: a queued timer must not reveal twice.
+        self._hide_generation += 1
         self.hide()
+        self.readyForMainWindow.emit()
 
 
 __all__ = [
