@@ -91,6 +91,24 @@ class GanymedeTravelReviewTests(unittest.TestCase):
                    if x["source_step_id"] == "ganymede_2205_step_0055")
         self.assertEqual(row["status"], "BLOCKED_ATLAS_AMBIGUOUS")
 
+    def test_cli_uses_exact_signed_quest_ids_without_guessing_from_labels(self):
+        from tools.audit_ganymede_travel_candidates import signed_quest_start_ids
+
+        cutover = GUIDES / "replacement_drafts/cutovers/dofus_cawotte.json"
+        source = json.loads(cutover.read_text(encoding="utf-8"))
+        ids = signed_quest_start_ids(source["sections"][0]["steps"])
+        self.assertIn(845, ids)
+        self.assertIn(836, ids)
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertNotIn(True, ids)
+        self.assertEqual(signed_quest_start_ids([{
+            "source_action_candidates": [
+                {"kind": "quest_start", "quest_id": True},
+                {"kind": "quest_start", "quest_id": "845"},
+                {"kind": "move", "quest_id": 845},
+            ],
+        }]), ())
+
     def test_invalid_participants_and_untyped_actions_fail_closed(self):
         with self.assertRaises(ValueError):
             review_signed_ganymede_start_candidates(
