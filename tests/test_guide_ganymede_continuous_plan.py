@@ -11,6 +11,10 @@ import unittest
 from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
     project_ganymede_continuous_plan,
 )
+from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+from app.modules.encyclopedia.services.guide_route_planner import (
+    GuideTravelPlan, TravelMode,
+)
 from tools.audit_ganymede_stage_needs import audit_stage_needs
 
 
@@ -67,6 +71,66 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                 actions_total += plan["source_action_count"]
         self.assertEqual(total, 1694)
         self.assertEqual(actions_total, 6166)
+
+    def test_runtime_travel_overlay_is_step_and_character_scoped(self):
+        first_id = "ganymede_2205_step_0001"
+        travel = GuideTravelPlan(
+            TravelMode.DIRECT, RouteLocation(x=5, y=-18),
+            ("character:1",), evidence="atlas:validated-canonical-action:quest-835",
+        )
+        projected = self.build(verified_stage_travel={first_id: travel})
+        overlay = projected["runtime_verified_travel_plans"]
+        self.assertEqual(list(overlay), [first_id])
+        self.assertEqual(overlay[first_id]["atlas_guide_id"], "dofus_cawotte")
+        self.assertEqual(overlay[first_id]["source_step_id"], first_id)
+        self.assertEqual(overlay[first_id]["participant_keys"], ["character:1"])
+        self.assertEqual(overlay[first_id]["destination"]["x"], 5)
+        self.assertEqual(overlay[first_id]["destination"]["y"], -18)
+        self.assertIs(projected["stages"][0]["verified_travel_plan"], overlay[first_id])
+        self.assertIsNone(projected["stages"][1]["verified_travel_plan"])
+        self.assertFalse(projected["auto_completion_allowed"])
+
+    def test_runtime_travel_rejects_foreign_steps_and_unscoped_plans(self):
+        direct = GuideTravelPlan(
+            TravelMode.DIRECT, RouteLocation(x=1, y=2), ("character:1",),
+            evidence="atlas:validated-canonical-action",
+        )
+        unproven = GuideTravelPlan(
+            TravelMode.DIRECT, RouteLocation(x=1, y=2), ("character:1",),
+        )
+        wrong_member = GuideTravelPlan(
+            TravelMode.DIRECT, RouteLocation(x=1, y=2), ("character:2",),
+            evidence="atlas:validated-canonical-action",
+        )
+        first = "ganymede_2205_step_0001"
+        for plan in (
+            {"ganymede_999_step_0001": direct},
+            {first: unproven},
+            {first: wrong_member},
+            {first: {"mode": "direct", "destination": {"x": 1, "y": 2}}},
+        ):
+            with self.subTest(plan=plan), self.assertRaises(ValueError):
+                self.build(verified_stage_travel=plan)
+        with self.assertRaises(ValueError):
+            self.build(characters=(), verified_stage_travel={first: direct})
+
+    def test_runtime_zaap_overlay_preserves_two_command_contract(self):
+        step_id = "ganymede_2205_step_0001"
+        travel = GuideTravelPlan(
+            TravelMode.ZAAP_THEN_TRAVEL,
+            RouteLocation(x=5, y=-18), ("character:1",),
+            world="Monde des Douze",
+            zaap=RouteLocation(x=-32, y=-56),
+            evidence="atlas:verified-zaap-route",
+        )
+        overlay = self.build(verified_stage_travel={step_id: travel})[
+            "runtime_verified_travel_plans"
+        ][step_id]
+        self.assertEqual(overlay["mode"], "zaap_then_travel")
+        self.assertEqual(overlay["zaap"]["x"], -32)
+        self.assertEqual(overlay["zaap"]["y"], -56)
+        self.assertEqual(overlay["world"], "Monde des Douze")
+        self.assertEqual(overlay["participant_keys"], ["character:1"])
 
     def test_actual_stage_uses_first_unfinished_for_selected_characters(self):
         baseline = self.build()

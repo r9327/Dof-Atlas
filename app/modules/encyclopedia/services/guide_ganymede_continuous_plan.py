@@ -26,6 +26,7 @@ from app.modules.encyclopedia.services.guide_ganymede_preparation import (
 from app.modules.encyclopedia.services.guide_route_naming import (
     title_for_ganymede_step,
 )
+from app.modules.encyclopedia.services.guide_route_planner import GuideTravelPlan
 
 
 def _quest_link_by_id(
@@ -72,13 +73,15 @@ def project_ganymede_continuous_plan(
     known_owned_items: Mapping[str, Mapping[int, int]] | None = None,
     french_label_evidence: Mapping[str, object] | None = None,
     quest_provider: object | None = None,
+    verified_stage_travel: Mapping[str, GuideTravelPlan] | None = None,
 ) -> dict[str, object]:
     """Join all signed source steps and audited needs without losing empty stages.
 
     `completed_source_steps` is *manual*, scoped by stable character key to
     step IDs for this one guide. It cannot certify linked quests or items.
-    Positions are observational hints only; Organizer needs an independently
-    verified travel command and explicit live participants.
+    Positions are observational hints only. An optional, independent Atlas
+    planner overlay may carry typed travel commands; source JSON cannot enable
+    game input and no coordinates or eligibility are inferred here.
     """
     source = prepare_ganymede_plan_input(
         audited_needs, character_keys,
@@ -118,6 +121,16 @@ def project_ganymede_continuous_plan(
     ):
         raise ValueError("Manual progress must belong to a selected character")
     valid_ids = {step["id"] for step in steps}
+    travel_by_step = verified_stage_travel if verified_stage_travel is not None else {}
+    if (not isinstance(travel_by_step, Mapping)
+            or any(step_id not in valid_ids for step_id in travel_by_step)):
+        raise ValueError("Verified travel must reference a signed source step")
+    # Do not turn an unbound or stale planner export into a source route command.
+    for step_id, travel in travel_by_step.items():
+        if (not isinstance(travel, GuideTravelPlan)
+                or tuple(travel.participant_keys) != tuple(selected)
+                or travel.evidence == "exact_destination_coordinates"):
+            raise ValueError("Verified travel needs an explicit scoped Atlas plan")
     marks: dict[str, frozenset[str]] = {}
     for key in selected:
         values = manual_marks.get(key, ())
@@ -150,6 +163,7 @@ def project_ganymede_continuous_plan(
     labels = _localized_labels(french_label_evidence)
     quest_names: dict[int, str | None] = {}
     stages = []
+    runtime_travel_plans: dict[str, dict[str, object]] = {}
     covered = set()
     for number, step in enumerate(steps, 1):
         sid = f"ganymede_{guide_id}_step_{number:04d}"
@@ -275,6 +289,15 @@ def project_ganymede_continuous_plan(
         ) for p in positions):
             raise ValueError("Invalid observed Ganymède coordinates")
         title = title_for_ganymede_step(step["title"], number)
+        travel = travel_by_step.get(sid)
+        if travel is not None:
+            # This is a transient result from the canonical planner, not a
+            # property read from (or written back into) the source JSON.
+            runtime_travel_plans[sid] = {
+                "atlas_guide_id": atlas_guide_id,
+                "source_step_id": sid,
+                **travel.to_payload(),
+            }
         stages.append({
             "id": sid,
             "source_step_number": number,
@@ -283,7 +306,7 @@ def project_ganymede_continuous_plan(
             "short_title": title.text,
             "title_review_required": title.review_required,
             "source_coordinates_mentioned": positions,
-            "verified_travel_plan": None,
+            "verified_travel_plan": runtime_travel_plans.get(sid),
             "action_rows": action_rows,
             "linked_quests": linked_quests,
             "preparation_rows": preparation_by_step.get(sid, []),
@@ -310,6 +333,7 @@ def project_ganymede_continuous_plan(
         "source_guide_id": guide_id,
         "source_payload_sha256": record["payload_sha256"],
         "selected_character_keys": selected,
+        "runtime_verified_travel_plans": runtime_travel_plans,
         "source_step_count": len(stages),
         "source_action_count": sum(len(step["action_rows"]) for step in stages),
         "audited_action_count": len(covered),
