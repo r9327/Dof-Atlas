@@ -20,6 +20,16 @@ class StableReleaseShortcutTests(unittest.TestCase):
              patch.object(release_client, "_latest_release_api", side_effect=AssertionError("manifest downloaded")):
             self.assertIsNone(release_client.latest_release(installed_source_sha=sha))
 
+    def test_launcher_digest_mismatch_keeps_self_update_path(self) -> None:
+        sha = "a" * 40
+        doc = {"tag_name": "sha-" + sha[:12], "draft": False, "prerelease": False}
+        candidate = object()
+        with patch.object(release_client, "_read_limited", return_value=json.dumps(doc).encode()), \
+             patch.object(release_client, "_current_launcher_matches_asset", return_value=False), \
+             patch.object(release_client, "_latest_release_api", return_value=candidate) as full:
+            self.assertIs(release_client.latest_release(installed_source_sha=sha), candidate)
+            full.assert_called_once()
+
     def test_changed_tag_requires_full_manifest_validation(self) -> None:
         sha = "a" * 40
         doc = {"tag_name": "sha-" + "b" * 12, "draft": False, "prerelease": False}
