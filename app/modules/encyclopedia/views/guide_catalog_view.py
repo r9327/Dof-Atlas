@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QHBoxLayout, QLabel, QLineEdit, QListView, QListWidget,
-    QListWidgetItem, QVBoxLayout, QWidget,
+    QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QListView, QListWidget,
+    QListWidgetItem, QScrollArea, QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
 from app.modules.encyclopedia.views.guide_featured_home import (
@@ -74,9 +74,21 @@ class GuideCatalogView(QWidget):
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
 
-        root = QVBoxLayout(self)
+        # Outer scrolling is only for genuinely small windows; each catalogue
+        # view keeps its own scrolling for large inventories.
+        shell = QVBoxLayout(self)
+        shell.setContentsMargins(0, 0, 0, 0)
+        shell.setSpacing(0)
+        self.home_scroll = QScrollArea(self)
+        self.home_scroll.setWidgetResizable(True)
+        self.home_scroll.setFrameShape(QFrame.NoFrame)
+        self.home_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        content = QWidget(self.home_scroll)
+        root = QVBoxLayout(content)
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
+        self.home_scroll.setWidget(content)
+        shell.addWidget(self.home_scroll, 1)
 
         def heading(text: str) -> QLabel:
             label = QLabel(text)
