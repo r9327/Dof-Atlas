@@ -135,7 +135,6 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.setText("Sommaire")
         self.summary_toggle.clicked.connect(self.toggle_summary)
         head.addWidget(self.summary_toggle)
-        layout.addLayout(head)
         portraits = QHBoxLayout()
         portraits.setSpacing(4)
         for character in self.available_characters:
@@ -192,6 +191,7 @@ class ContinuousGuideRoutePanel(QWidget):
         detail = QVBoxLayout(content)
         detail.setContentsMargins(8, 8, 8, 8)
         detail.setSpacing(6)
+        detail.addLayout(head)
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideContinuousTitle")
         self.title_label.setTextFormat(Qt.PlainText)
@@ -483,7 +483,7 @@ class ContinuousGuideRoutePanel(QWidget):
             ) if references else ""
         )
         self.position_label.setText(
-            f"FICHE {index + 1}/{position.total_steps}" if index >= 0
+            f"FICHE {index + 1}" if index >= 0
             else "PARCOURS CONTINU"
         )
         self.previous_button.setEnabled(index > 0)

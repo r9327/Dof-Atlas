@@ -67,6 +67,32 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
 
+    def test_character_and_summary_controls_belong_to_the_active_card_header(self):
+        card = self.panel.title_label.parentWidget()
+        self.assertEqual(card.objectName(), "GuideContinuousCard")
+        for control in (
+            self.panel.position_label, self.panel.participants_button,
+            self.panel.summary_toggle,
+        ):
+            self.assertIs(control.parentWidget(), card)
+        self.assertEqual(self.panel.position_label.text(), "FICHE 1")
+        self.assertFalse(self.panel._characters_menu.isVisible())
+        self.addCleanup(self.panel.hide)
+        self.panel.show()
+        for width in (900, 1200):
+            with self.subTest(width=width):
+                self.panel.resize(width, 600)
+                self.panel.summary.setVisible(True)
+                self.app.processEvents()
+                self.assertFalse(self.panel.participants_button.geometry().intersects(
+                    self.panel.summary_toggle.geometry(),
+                ))
+                self.assertLess(
+                    self.panel.participants_button.geometry().bottom(),
+                    self.panel.title_label.geometry().top(),
+                )
+                self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"

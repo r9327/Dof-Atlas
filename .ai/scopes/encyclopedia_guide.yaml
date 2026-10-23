@@ -2,6 +2,8 @@ schema_version: 1
 scope: encyclopedia_guide
 kind: feature
 working_set:
+  - app/modules/encyclopedia/views/guide_continuous_route_panel.py
+  - tests/test_guide_continuous_route_panel.py
   - app/modules/encyclopedia/views/guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py
   - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py
