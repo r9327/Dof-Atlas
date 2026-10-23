@@ -276,6 +276,57 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(events, [])
 
+    def test_forged_source_travel_plan_never_enables_game_command(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["verified_travel_plan"] = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": "ganymede_2205_step_0001",
+            "evidence": "fake:source-metadata",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append((command, keys)))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
+
+    def test_runtime_plan_rejects_foreign_guide_or_source_step(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        step_id = "ganymede_2205_step_0001"
+        plan = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "another_guide",
+            "source_step_id": step_id,
+            "evidence": "canonical:contract-test",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            verified_travel_plans={step_id: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        self.assertFalse(panel.travel_button.isEnabled())
+        plan["atlas_guide_id"] = "dofus_cawotte"
+        plan["source_step_id"] = "ganymede_2205_step_0002"
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        plan["source_step_id"] = step_id
+        panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.set_verified_travel_plans({})
+        self.assertFalse(panel.travel_button.isEnabled())
+
     def test_verified_direct_travel_emits_only_selected_registered_character(self):
         from copy import deepcopy
 
@@ -284,6 +335,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "mode": "direct", "participant_keys": ["character:2"],
             "destination": {"x": 5, "y": -18},
             "evidence": "canonical:verified-coordinates",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": "ganymede_2205_step_0001",
         }
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:2",),
@@ -291,6 +344,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 SimpleNamespace(key="character:1", connected=True),
                 SimpleNamespace(key="character:2", connected=True),
             ],
+            verified_travel_plans={
+                "ganymede_2205_step_0001": route["sections"][0]["steps"][0]["verified_travel_plan"],
+            },
         )
         self.addCleanup(panel.deleteLater)
         events = []
@@ -314,6 +370,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "zaap": {"x": -32, "y": -56},
             "world": "Monde des Douze",
             "evidence": "canonical:verified-route",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": "ganymede_2205_step_0001",
         }
         route["sections"][0]["steps"][0]["verified_travel_plan"] = plan
         panel = ContinuousGuideRoutePanel(
@@ -322,6 +380,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 SimpleNamespace(key="character:1", connected=True),
                 SimpleNamespace(key="character:2", connected=False),
             ],
+            verified_travel_plans={"ganymede_2205_step_0001": plan},
         )
         self.addCleanup(panel.deleteLater)
         events = []

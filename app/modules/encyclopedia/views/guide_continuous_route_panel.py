@@ -74,12 +74,16 @@ class ContinuousGuideRoutePanel(QWidget):
         parent: QWidget | None = None,
         *,
         available_characters: Iterable[object] = (),
+        verified_travel_plans: Mapping[str, Mapping[str, object]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuideContinuousRoutePanel")
         self.route = route
         self.navigation = ContinuousGuideNavigation(route, progress, character_keys)
         self.rows = route["sections"][0]["steps"]
+        # Runtime-only planner overlay. Never trust a similarly named field
+        # inside Ganymède's imported/signed source JSON.
+        self._verified_travel_plans = dict(verified_travel_plans or {})
         # Only expose registered stable Atlas characters, including offline
         # ones. A removed window must not silently deselect its character.
         self.available_characters = tuple(
@@ -320,16 +324,28 @@ class ContinuousGuideRoutePanel(QWidget):
             return None
         return x, y
 
+    def set_verified_travel_plans(
+        self, plans: Mapping[str, Mapping[str, object]],
+    ) -> None:
+        """Replace only the in-memory Atlas planner overlay, then refresh."""
+        if not isinstance(plans, Mapping):
+            raise ValueError("Verified travel plans must be a mapping")
+        self._verified_travel_plans = dict(plans)
+        self.refresh()
+
     def _current_verified_travel(self) -> tuple[str, tuple[str, ...]] | None:
-        """Accept only a planner-produced step plan, never Ganymède location hints."""
+        """Only an explicitly supplied runtime planner overlay may dispatch."""
         step_id = self.navigation.viewed_step_id
         selected = self.navigation.selected_character_keys
         registered = {row.key for row in self.available_characters}
         if not step_id or not selected or any(key not in registered for key in selected):
             return None
-        step = self.rows[self.navigation.step_ids.index(step_id)]
-        plan = step.get("verified_travel_plan")
-        if not isinstance(plan, Mapping):
+        # Source step dicts can contain arbitrary imported metadata. They must
+        # never enable game input without an independently supplied runtime plan.
+        plan = self._verified_travel_plans.get(step_id)
+        if (not isinstance(plan, Mapping)
+                or plan.get("atlas_guide_id") != self.navigation.guide_id
+                or plan.get("source_step_id") != step_id):
             return None
         keys = plan.get("participant_keys")
         if (not isinstance(keys, (list, tuple))
