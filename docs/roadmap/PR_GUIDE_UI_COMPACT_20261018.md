@@ -391,7 +391,12 @@ EXPLORER LES GUIDES                                  [Rechercher un guide]
 
 ### Validation et politique CI demandée (23/10)
 
-- **Cette mise à jour est UNIQUEMENT UNE SPÉCIFICATION DOCUMENTAIRE, pas une implémentation ni une certification produit.** Maintenir la PR en **Draft**. Ne pas lancer de grosse CI, FULL / Phase Certification, benchmark RAM, distribution Windows ou audit intégral pour ce seul ajout documentaire.
+- **Cette décision est désormais accompagnée d'une implémentation UI dans la PR #240, mais aucun test Windows ni certification produit n'est acquis.** Garder la PR **Draft** pendant les modifications et exécuter les tests ciblés avant de demander l'unique certification finale. Pas de FULL / Phase Certification / benchmark RAM / distribution Windows répétés pour de simples commits intermédiaires.
 - **Ne pas utiliser \`[skip ci]\` pour contourner les règles du dépôt** : la cadence officielle de \`AGENTS.md\` réserve la certification lourde au passage en « Ready for review » du candidat d'implémentation terminé. Si GitHub lance automatiquement un contrôle indépendant, ne jamais l'interpréter comme une certification de l'UI.
 - Lors de la future implémentation, faire seulement les contrôles ciblés nécessaires pendant le développement (sélection/navigation/reprise, persistance, source 95/95, unicité, icônes, accessibilité, redimensionnement et captures Doctor UI **du vrai rendu**), puis **une seule certification finale du SHA complet**, suivant les garde-fous universels d'Atlas. Aucune CI lourde pour chaque petit commit.
 - **Critère d'acceptation visuel :** l'accueil commence par deux grandes cartes Guide Succès + Sylvestre Opti, puis deux grandes cartes Bonta + Brâkmar, puis une bibliothèque latérale Dofus/Ganymède. L'ancien accueil à accordéons 2 × 3 sous une grille Dofus en haut est obsolète et ne doit pas être présenté comme la dernière version approuvée.
+
+
+### État de réalisation du suivi #240 (23/10/2026)
+
+Code proposé (à valider sur Windows) : `guide_featured_home.py` (quatre cartes seulement), `guide_library_sources.py` (95 métadonnées source, 7 sections incluant Dofus), `guide_catalog_view.py` (bibliothèque par catégorie, recherche, filtre de progression réellement sourcée, carte compacte Qt, déduplication des Dofus et alignements déjà disponibles). **Les 95 titres ne sont pas 95 routes jouables** : l'index #229 dit `metadata_only`; ces entrées restent désactivées jusqu'à ce que les étapes soient livrées et certifiées. Ne pas activer artificiellement les parcours pour passer les tests.
