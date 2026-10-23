@@ -284,6 +284,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertEqual(page.current_tab_label(), GUIDES_TAB)
             self.assertEqual(view.current_guide_id, TURQUOISE_GUIDE_ID)
 
+            # Closing is the lifecycle boundary that joins background Guide /
+            # Success workers before TemporaryDirectory removes progress files.
+            page.close()
             page.deleteLater()
             self.app.processEvents()
 
