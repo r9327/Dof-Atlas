@@ -21,6 +21,7 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 from app.modules.encyclopedia.views.guide_continuous_route_panel import (
     ContinuousGuideRoutePanel,
 )
+from app.modules.encyclopedia.views.guides_view import GuidesView
 from tests.test_guide_continuous_navigation import _source_route
 
 
@@ -452,6 +453,46 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(panel.apply_projected_runtime_plan(projection))
         panel.set_characters(("character:1",))
         self.assertFalse(panel.travel_button.isEnabled())
+
+    def test_guides_view_receives_only_its_current_continuous_route_plan(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        source_sha = certified_payload_sha256(route)
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        view = SimpleNamespace(
+            _continuous_route_panel=panel,
+            current_guide=lambda: SimpleNamespace(id="dofus_cawotte"),
+        )
+        projection = {
+            "status": "TRUSTED_SOURCE_STEPS_MANUAL_ONLY",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_payload_sha256": source_sha,
+            "selected_character_keys": ["character:1"],
+            "runtime_verified_travel_plans": {
+                step_id: {
+                    "atlas_guide_id": "dofus_cawotte",
+                    "source_step_id": step_id,
+                    "source_payload_sha256": source_sha,
+                    "participant_keys": ["character:1"],
+                    "mode": "direct",
+                    "destination": {"x": 5, "y": -18},
+                    "evidence": "atlas:reviewed-start",
+                },
+            },
+        }
+        self.assertTrue(GuidesView.apply_continuous_travel_projection(view, projection))
+        self.assertTrue(panel.travel_button.isEnabled())
+        view.current_guide = lambda: SimpleNamespace(id="dofus_ocre")
+        self.assertFalse(GuidesView.apply_continuous_travel_projection(view, projection))
+        self.assertFalse(panel.travel_button.isEnabled())
+        view.current_guide = lambda: SimpleNamespace(id="dofus_cawotte")
+        self.assertFalse(panel.travel_button.isEnabled())
+        view._continuous_route_panel = None
+        self.assertFalse(GuidesView.apply_continuous_travel_projection(view, projection))
 
     def test_changing_team_invalidates_even_a_previously_matching_projection(self):
         route = _source_route()

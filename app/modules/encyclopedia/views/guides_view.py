@@ -5,7 +5,7 @@ import re
 import logging
 import time
 import weakref
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
@@ -1735,6 +1735,24 @@ class GuidesView(QWidget):
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
+
+    def apply_continuous_travel_projection(
+        self, projection: Mapping[str, object],
+    ) -> bool:
+        """Apply a matching planner projection to the currently visible guide.
+
+        Must be called on the Qt UI thread. An absent or different guide must
+        never inherit travel commands from a previously displayed route.
+        """
+        panel = self._continuous_route_panel
+        if panel is None or not isValid(panel):
+            return False
+        current = self.current_guide()
+        if (current is None or current.id != panel.navigation.guide_id
+                or not isinstance(projection, Mapping)):
+            panel.set_verified_travel_plans({})
+            return False
+        return panel.apply_projected_runtime_plan(projection)
 
     def _remember_continuous_characters(self, character_keys: tuple[str, ...]) -> None:
         # Shared store with Organizer: stable identities persist across app
