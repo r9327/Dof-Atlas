@@ -25,7 +25,25 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import subprocess, sys
-          candidates = ("test_atlas_data_plan.py", "test_doctor_local_ai_evidence.py", "test_data_pack_plan.py", "test_data_pack_verify.py", "test_data_pack_store.py", "test_data_pack_cli.py", "test_launch_pack_recovery.py", "test_runtime_quest_evidence_pack.py", "test_success_pack_preparation.py", "test_success_pack_view_contract.py")
+          candidates = (
+              "test_atlas_data_plan.py",
+              "test_doctor_local_ai_evidence.py",
+              "test_data_pack_plan.py",
+              "test_doctor_local_ai_client.py",
+              "test_doctor_local_ai_cli.py",
+              "test_doctor_local_integration.py",
+              "test_doctor_local_ai_ui.py",
+              "test_atlas_data_exchange.py",
+              "test_atlas_data_exchange_cli.py",
+              "test_atlas_quest_evidence_builder.py",
+              "test_data_pack_verify.py",
+              "test_data_pack_store.py",
+              "test_data_pack_cli.py",
+              "test_launch_pack_recovery.py",
+              "test_runtime_quest_evidence_pack.py",
+              "test_success_pack_preparation.py",
+              "test_success_pack_view_contract.py",
+          )
           present = [name for name in candidates if (Path("tests") / name).is_file()]
           if not present:
               raise SystemExit("No new feature tests in this branch")
