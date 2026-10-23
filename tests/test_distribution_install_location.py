@@ -129,7 +129,7 @@ class RuntimeLocationTests(unittest.TestCase):
 
             def corrupt_staged_copy(src, dst, *args, **kwargs):
                 result = original_copytree(src, dst, *args, **kwargs)
-                if Path(src) == source:
+                if Path(src).samefile(source):
                     copied_executable = Path(dst) / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
                     copied_executable.write_bytes(b"MZ!CORRUPT!")
                     self.assertEqual(copied_executable.stat().st_size, len(binary))
