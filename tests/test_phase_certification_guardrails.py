@@ -497,6 +497,20 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         )
         self.assertIn("if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", catalog)
 
+    def test_validators_use_the_same_locked_inputs_as_the_distributed_app(self) -> None:
+        workflows = ROOT / ".github" / "workflows"
+        for name in (
+            "app-ci.yml", "deep-validation.yml", "doctor-certification.yml",
+            "doctor-runtime-perf.yml", "doctor-ui.yml", "phase-certification.yml",
+            "phase8-memory-benchmark.yml", "phase8-preload-benchmark.yml",
+            "atlas-windows-distribution.yml",
+        ):
+            with self.subTest(workflow=name):
+                source = (workflows / name).read_text(encoding="utf-8")
+                self.assertIn("python -m scripts.windows.quest_assets --download", source)
+                self.assertIn("python -m scripts.windows.craft_seed --download", source)
+                self.assertNotIn('doduda.exe" --headless', source)
+
     def test_phase_certification_is_exact_head_full_gate_for_phase_prs_and_main(self) -> None:
         source = self.certification_workflow
         self.assertIn("workflow_dispatch:", source)
