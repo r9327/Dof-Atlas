@@ -19,7 +19,7 @@ from .release_client import UpdateError, download_archive, latest_release
 from .disk_space import ensure_space
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
-from .install_location import runtime_root, set_runtime_root
+from .install_location import runtime_root, set_runtime_root, relocate_runtime, has_saved_location
 from .manifest import verify_file
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
@@ -101,7 +101,7 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
         ready.unlink(missing_ok=True)
 
 
-def run_update(report) -> None:
+def run_update(report, *, verify_installation: bool = False) -> None:
     log = _logger()
     _run_handle = _run_lock()
     try:
@@ -119,8 +119,9 @@ def run_update(report) -> None:
                 current_exe = active_executable(ROOT)
             except UpdateError:
                 current_exe = None
-            if current_exe is not None and prior.get("source_sha") == remote.manifest.source_sha:
-                report("Verification de l'installation...", 7)
+            if (verify_installation and current_exe is not None
+                    and prior.get("source_sha") == remote.manifest.source_sha):
+                report("Verification complete de l'installation...", 7)
                 installed = slot_path(ROOT, prior["active"])
                 if any(not verify_file(installed / entry.path, entry)
                        for entry in remote.manifest.files):
@@ -242,7 +243,12 @@ def main() -> int:
             return 1
 
     window.title("Dofus Atlas — Mise a jour")
-    choosing_install = not read_state(ROOT).get("active") and "--atlas-auto-install" not in sys.argv
+    # Existing installations made before the picker was introduced get one
+    # opportunity to select a drive; normal subsequent launches stay automatic.
+    installed = bool(read_state(ROOT).get("active"))
+    choosing_install = ("--atlas-auto-install" not in sys.argv and (
+        "--atlas-configure" in sys.argv or not installed or not has_saved_location()))
+    chosen_root = {"path": ROOT}
     window.geometry("590x370" if choosing_install else "510x260")
     window.resizable(False, False)
     window.configure(bg="#101826")
@@ -265,7 +271,6 @@ def main() -> int:
                  fg="#8fa5bd", font=("Segoe UI", 9), wraplength=545).pack()
 
         def choose_install_folder():
-            global ROOT
             from tkinter import filedialog, messagebox
             folder = filedialog.askdirectory(parent=window, title="Choisir le disque / dossier Atlas",
                                              initialdir=str(ROOT.parent))
@@ -273,15 +278,15 @@ def main() -> int:
                 return
             target = Path(folder) / "DofusAtlas" / "runtime"
             try:
-                if read_state(target).get("active"):
-                    raise UpdateError("Ce dossier contient deja une installation Atlas")
-                ROOT = set_runtime_root(target)
-                chosen.set(str(ROOT))
+                if target != ROOT and target.exists():
+                    raise UpdateError("Dossier de destination deja utilise")
+                chosen_root["path"] = target
+                chosen.set(str(target))
             except (OSError, UpdateError) as exc:
                 messagebox.showerror("Emplacement Atlas", str(exc), parent=window)
 
         tk.Button(selection, text="Changer de dossier...", command=choose_install_folder).pack(pady=5)
-    status = tk.StringVar(value="Choisissez le dossier puis lancez l'installation."
+    status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
     tk.Label(window, textvariable=status, bg="#101826", fg="#d2deeb",
              font=("Segoe UI", 10), wraplength=475, justify="center").pack(pady=(19, 7))
@@ -298,20 +303,34 @@ def main() -> int:
     tk.Label(window, textvariable=numeric, bg="#101826", fg="#8fa5bd",
              font=("Segoe UI", 9)).pack()
     finished = False
+    succeeded = False
 
     def report(message: str, value: int):
         events.put(("progress", (message, value)))
 
     def worker():
+        global ROOT
         try:
-            run_update(report)
+            if choosing_install:
+                target = chosen_root["path"]
+                if target != ROOT:
+                    last_pct = [-1]
+                    def moved(done, total):
+                        pct = int(100 * done / max(total, 1))
+                        if pct != last_pct[0]:
+                            last_pct[0] = pct
+                            report(f"Copie vers le nouveau disque : {pct} %", pct)
+                    ROOT = relocate_runtime(target, progress=moved)
+                else:
+                    set_runtime_root(ROOT)
+            run_update(report, verify_installation="--atlas-verify-install" in sys.argv)
             events.put(("done", 0))
         except Exception as exc:
             _logger().exception("Updater failed")
             events.put(("error", str(exc)))
 
     def poll():
-        nonlocal finished
+        nonlocal finished, succeeded
         try:
             while True:
                 kind, payload = events.get_nowait()
@@ -322,9 +341,11 @@ def main() -> int:
                     numeric.set(f"{percent.get()} %")
                 elif kind == "done":
                     finished = True
+                    succeeded = True
                     window.after(550, window.destroy)
                 elif kind == "error":
                     finished = True
+                    succeeded = False
                     status.set("Echec : " + str(payload))
                     numeric.set("Journal : DofusAtlas/logs/updater.log")
         except queue.Empty:
@@ -337,13 +358,15 @@ def main() -> int:
             start_button.configure(state="disabled")
             status.set("Installation en cours...")
             threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
-        start_button = tk.Button(window, text="Installer et lancer", command=begin_install)
+        start_button = tk.Button(window, text="Continuer et lancer" if installed else "Installer et lancer",
+                                 command=begin_install)
         start_button.pack(pady=(2, 4))
     else:
         threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
     window.after(70, poll)
     window.mainloop()
-    return 0 if percent.get() == 100 else 1
+    # Migration can reach 100% before a later launch failure: only "done" is success.
+    return 0 if succeeded else 1
 
 
 if __name__ == "__main__":
