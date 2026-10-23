@@ -12,6 +12,17 @@ class DeferredAchievementGuidesView(_OptimizedGuidesView):
     """Paint Guide content before the rich Success runtime is required."""
 
     achievementRuntimeRequested = Signal()
+    catalogRequested = Signal()
+
+    def show_home(self) -> None:
+        """Return to the canonical lightweight library, not the legacy grid.
+
+        Standalone detail views keep their ordinary home fallback. The owner
+        EncyclopediaPage listens to catalogRequested to switch out this heavy
+        guide detail widget for the approved compact catalogue.
+        """
+        super().show_home()
+        self.catalogRequested.emit()
 
     def __init__(self, *args, **kwargs) -> None:
         self._deferred_guide_id = ""

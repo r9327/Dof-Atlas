@@ -334,3 +334,69 @@ Le dessin ci-dessus décrit la HIÉRARCHIE des éléments, **pas un redesign gra
 **NON NÉGOCIABLE : les sous-menus ne sont pas décoratifs.** Utiliser l'inventaire canonique `data/encyclopedia/guides/ganymede_main_index.json` de la PR #229 : **95 vrais guides identifiés par `ganymede_guide_id`**, titre, niveau, nombre d'étapes, URL source et prérequis. Chaque ligne doit être alimentée par une entrée réelle et ouvrir une vraie fiche de guide Atlas, avec les étapes ordonnées, leurs actions, coordonnées et prérequis lorsque ces données sont disponibles. Les parcours sont fournis par la #229, puis optimisés par la #226 ; la #225 consomme ces données, sans créer de guides fictifs ni de faux boutons. Ne jamais assimiler `metadata_only` à un parcours jouable. Si une fiche n'a encore que des métadonnées, afficher explicitement son état non disponible (sans action de lancement), et faire échouer la certification de couverture fonctionnelle tant que les guides promis ne sont pas réellement intégrés.
 
 **Contrôles de certification** : vérifier automatiquement que les 95 IDs source ont chacun une entrée de catalogue unique, que toutes les entrées sont classées (aucun guide oublié), qu'aucun guide existant n'est dupliqué, que chaque entrée jouable charge des étapes réelles et que l'ouverture/progression/persistance fonctionne. Tester les accordéons côte à côte (états fermé/ouvert indépendants, fenêtre réduite, scroll, thème), les liens vers les vraies fiches, et l'absence de contenu de remplissage. Le statut de cette section reste **À IMPLÉMENTER / À CERTIFIER** tant que les tests et les captures Doctor UI ne prouvent pas le résultat.
+
+
+---
+
+## DÉCISION UI PLUS RÉCENTE — ACCUEIL GUIDES MIS EN AVANT / BIBLIOTHÈQUE (23/10/2026)
+
+**VALIDÉE PAR L'UTILISATEUR — REMPLACE UNIQUEMENT LA DISPOSITION « Accueil des guides — ajout des 95 guides Ganymède » ci-dessus, ainsi que toute consigne antérieure d'accueil en deux colonnes fixes avec six accordéons directement sous les guides.** Ce changement ne remplace **PAS** les spécifications du détail des guides, de la fiche, du Sommaire, des personnages, de la préparation ou des déplacements. La PR #225 étant déjà fusionnée, cette décision est portée par une PR de suivi UI indépendante.
+
+### Schéma cible, sans gros en-tête supplémentaire
+
+L'onglet Guides s'ouvre **directement sur les cartes importantes**, sous la navigation standard de l'application / l'Encyclopédie. Pas de panneau « MES PARCOURS », pas de grand bandeau « REPRENDRE », pas de titre général « ACCUEIL DES GUIDES » consommant une rangée entière ni de dashboard de statistiques avant les cartes.
+
+~~~text
+GUIDES OPTIMISÉS
+┌──────────────────────────────────┐ ┌──────────────────────────────────┐
+│ GUIDE SUCCÈS                     │ │ SYLVESTRE OPTI                   │
+│ Description courte               │ │ Description courte               │
+│ Progression réelle               │ │ Progression réelle               │
+│ [Ouvrir / Continuer →]           │ │ [Ouvrir / Continuer →]           │
+└──────────────────────────────────┘ └──────────────────────────────────┘
+
+ALIGNEMENTS
+┌──────────────────────────────────┐ ┌──────────────────────────────────┐
+│ BONTA                            │ │ BRÂKMAR                          │
+│ Progression réelle               │ │ Progression réelle               │
+│ [Ouvrir / Continuer →]           │ │ [Ouvrir / Continuer →]           │
+└──────────────────────────────────┘ └──────────────────────────────────┘
+
+EXPLORER LES GUIDES                                  [Rechercher un guide]
+┌───────────────────────┬───────────────────────────────────────────────┐
+│ CATÉGORIES            │ DOFUS                                         │
+│                       │ [Tous] [En cours] [Terminés]                  │
+│ > Dofus (sélectionné) │                                               │
+│                       │ [Argenté] [Cawotte]  [Émeraude]               │
+│ GANYMÈDE              │ [Pourpre] [Turquoise] [Ivoire]                │
+│ > Dimensions divines  │ [Ébène]  [Nébuleux]  [Abyssal]                │
+│ > Eliocalypse         │ ...                                           │
+│ > Zones et régions    │                                               │
+│ > Événements          │ Cartes compactes, icônes réelles, progression │
+│ > Autres aventures    │ issue des vraies données, scroll contenu     │
+│ > Îles et territoires │                                               │
+└───────────────────────┴───────────────────────────────────────────────┘
+~~~
+
+### Hiérarchie et comportement requis
+
+1. **Priorité visuelle absolue aux quatre parcours phares.** Première rangée : « GUIDES OPTIMISÉS » avec exactement **Guide Succès** et **Sylvestre Opti** côte à côte, présentés comme deux cartes principales larges. Deuxième rangée : « ALIGNEMENTS » avec **Bonta** et **Brâkmar**, de même importance visuelle et placés immédiatement sous les guides optimisés. Ces deux sections précèdent obligatoirement la bibliothèque, restent directement visibles et ne deviennent **ni sous-menus latéraux, ni accordéons repliés par défaut**. « Guide Succès » fait dorénavant partie du bloc visuel Guides optimisés à l'accueil ; aucune carte de Guide Succès en double.
+2. **Style Atlas existant.** Conserver vrais pictogrammes/portraits disponibles, fond presque noir, texte clair, liserés vert olive, marges et style des composants Qt existants. Les cartes phares doivent être sensiblement plus grandes que les cartes du catalogue. Bonta/Brâkmar peuvent avoir un discret repère bleu/rouge si compatible avec le thème ; éviter un redesign autonome.
+3. **Contenu utile et véridique.** Titre réel, courte description sourcée si disponible, progression individuelle ou par équipe déterminée depuis la sauvegarde/moteur existant ; « Ouvrir » si non commencé, « Continuer » seulement si une reprise réelle est déterminable. Aucune progression, pourcentage, chapitre, nombre de guides, niveau ou étape fictifs. Cliquer sur une carte doit ouvrir le bon guide et préserver l'état du joueur.
+4. **Bibliothèque sous les quatre cartes, sans répétition.** Section secondaire « Explorer les guides » avec recherche compacte en haut et **navigation par catégories à gauche** / **cartes de la catégorie à droite**. La catégorie Dofus est ouverte par défaut. Afficher les Dofus sous forme de grille compacte avec vraies icônes et, uniquement si fiables, niveaux et progressions. On ne recrée pas les quatre cartes phares dans la grille.
+5. **Catégories Ganymède dans la navigation latérale :** Dimensions divines ; Eliocalypse ; Zones et régions ; Événements ; Autres aventures ; Îles et territoires. Sélectionner une catégorie actualise uniquement le panneau de droite, sans afficher d'immense liste de catégories imbriquées sur tout l'écran. Le reclassement exact doit couvrir les **95 IDs Ganymède** de l'inventaire canonique #229, une seule entrée par parcours, en conservant leur titre, source, niveau, nombre d'étapes et prérequis lorsqu'ils existent. Ne pas afficher deux fois les Dofus/Alignements déjà couverts. Ne jamais promettre un guide jouable à partir de simples métadonnées ; absence de parcours prouvé => entrée indiquée indisponible, non lançable.
+6. **Recherche et filtres.** La recherche réduit les résultats du panneau catalogue sans détruire ni masquer les quatre cartes phares. Les filtres « Tous / En cours / Terminés » n'apparaissent que s'ils se fondent sur une progression fiable ; aucun statut inventé. La sélection de catégorie et l'ouverture de guide sont accessibles au clavier et à la souris ; garder le scroll dans le panneau qui déborde quand c'est utile.
+7. **Responsive.** Sur grande fenêtre : deux cartes phares par rangée, bibliothèque avec gauche étroite et droite large. Sur petite fenêtre : adapter proprement les cartes et le menu, éventuellement empiler les cartes ou replier la navigation secondaire, sans chevauchements, coupures ou scroll horizontal involontaire. Ne pas masquer l'accès aux quatre parcours principaux.
+8. **Portée inchangée sur les détails.** Le choix d'une fiche conserve tous les contrats de la #225 déjà fusionnée : étape consultée distincte de la réelle, persistance par personnage, Sommaire, actions fiables, liens Quêtes, préparation et validations, sans créer une deuxième implémentation du guide.
+
+### Validation et politique CI demandée (23/10)
+
+- **Cette décision est désormais accompagnée d'une implémentation UI dans la PR #240, mais aucun test Windows ni certification produit n'est acquis.** Garder la PR **Draft** pendant les modifications et exécuter les tests ciblés avant de demander l'unique certification finale. Pas de FULL / Phase Certification / benchmark RAM / distribution Windows répétés pour de simples commits intermédiaires.
+- **Ne pas utiliser \`[skip ci]\` pour contourner les règles du dépôt** : la cadence officielle de \`AGENTS.md\` réserve la certification lourde au passage en « Ready for review » du candidat d'implémentation terminé. Si GitHub lance automatiquement un contrôle indépendant, ne jamais l'interpréter comme une certification de l'UI.
+- Lors de la future implémentation, faire seulement les contrôles ciblés nécessaires pendant le développement (sélection/navigation/reprise, persistance, source 95/95, unicité, icônes, accessibilité, redimensionnement et captures Doctor UI **du vrai rendu**), puis **une seule certification finale du SHA complet**, suivant les garde-fous universels d'Atlas. Aucune CI lourde pour chaque petit commit.
+- **Critère d'acceptation visuel :** l'accueil commence par deux grandes cartes Guide Succès + Sylvestre Opti, puis deux grandes cartes Bonta + Brâkmar, puis une bibliothèque latérale Dofus/Ganymède. L'ancien accueil à accordéons 2 × 3 sous une grille Dofus en haut est obsolète et ne doit pas être présenté comme la dernière version approuvée.
+
+
+### État de réalisation du suivi #240 (23/10/2026)
+
+Code proposé (à valider sur Windows) : `guide_featured_home.py` (quatre cartes seulement), `guide_library_sources.py` (95 métadonnées source, 7 sections incluant Dofus), `guide_catalog_view.py` (bibliothèque par catégorie, recherche, filtre de progression réellement sourcée, carte compacte Qt, déduplication des Dofus et alignements déjà disponibles). **Les 95 titres ne sont pas 95 routes jouables** : l'index #229 dit `metadata_only`; ces entrées restent désactivées jusqu'à ce que les étapes soient livrées et certifiées. Ne pas activer artificiellement les parcours pour passer les tests.

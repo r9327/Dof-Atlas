@@ -494,12 +494,18 @@ def build_scene(temp: Path):
 def open_guide(page, owner, guide_id):
     from app.modules.encyclopedia.constants import GUIDES_TAB
     from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+    from shiboken6 import isValid
 
     page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
-    if not owner.select_guide(guide_id):
+    live_owner = owner
+    if not isValid(owner) or page.guides_view is not owner:
+        live_owner = page.ensure_full_guides_view()
+        if not live_owner.select_guide(guide_id):
+            raise RuntimeError("Guide cannot be opened: " + guide_id)
+    elif not owner.select_guide(guide_id):
         raise RuntimeError("Guide cannot be opened: " + guide_id)
     settle()
-    view = owner.stack.currentWidget()
+    view = live_owner.stack.currentWidget()
     if not isinstance(view, SharedGuideManualView) or not view.service.cards:
         raise RuntimeError("Real SharedGuideManualView unavailable")
     return view
@@ -953,18 +959,26 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     view.go_active()
     settle()
     click = click_target(page, view.guide_button)
-    catalog_visible = owner.stack.currentWidget() is not view
+    catalog_visible = page.guides_view is not owner
     reopened = open_guide(page, owner, guide_id)
     session.check("home-reopen", "QTest Guide then reopen canonical guide", "Catalog reached and real guide restored",
-                  {"click": click, "catalog": catalog_visible, "same_view": reopened is view},
-                  click["accessible"] and catalog_visible and reopened is view, page)
+                  {"click": click, "catalog": catalog_visible,
+                   "fresh_view": reopened is not view},
+                  click["accessible"] and catalog_visible and reopened is not view, page)
     if not smoke:
+        from shiboken6 import isValid
+
         other_id = "dofus_sylvestre" if guide_id == "guide_complet" else "guide_complet"
         other = open_guide(page, owner, other_id)
         returned = open_guide(page, owner, guide_id)
+        other_visible = isValid(other) and other.isVisible()
         session.check("guide-return", "Change guide then return", "Correct renderer visible; other guide hidden",
-                      {"current": returned is view, "other_visible": other.isVisible()},
-                      returned is view and not other.isVisible(), page)
+                      {"current_guide": returned.service.guide_id,
+                       "other_alive": isValid(other), "other_visible": other_visible},
+                      returned.service.guide_id == guide_id and not other_visible, page)
+        view = returned
+    else:
+        view = reopened
     check_sheet(session, page, view, "final-sheet")
 
 
