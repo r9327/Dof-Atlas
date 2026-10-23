@@ -195,13 +195,13 @@ def project_ganymede_continuous_plan(
         raise ValueError("Reviewed start binding refers to an unknown signed step")
     if start_bindings and not selected:
         raise ValueError("Reviewed start bindings need explicit participants")
-    if start_bindings and not isinstance(canonical_map_positions, Mapping):
-        raise ValueError("Reviewed start bindings need Atlas map records")
     if any(not isinstance(action, RouteAction) for action in start_bindings.values()):
         raise ValueError("Reviewed binding must be a canonical RouteAction")
     action_ids = [action.action_id for action in start_bindings.values()]
     if len(action_ids) != len(set(action_ids)):
         raise ValueError("One canonical start action cannot bind multiple source steps")
+    if start_bindings and not isinstance(canonical_map_positions, Mapping):
+        raise ValueError("Reviewed start bindings need Atlas map records")
     travel_by_step = verified_stage_travel if verified_stage_travel is not None else {}
     if (not isinstance(travel_by_step, Mapping)
             or any(step_id not in valid_ids for step_id in travel_by_step)):
