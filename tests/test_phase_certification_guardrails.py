@@ -484,6 +484,19 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("NOT PHASE CERTIFICATION", self.public_pr)
         self.assertIn("tests.test_phase_certification_guardrails", self.public_pr)
 
+    def test_full_catalog_uses_locked_sources_before_provenance_snapshot(self) -> None:
+        source = self.certification_workflow
+        catalog_marker = "      - name: Materialize local Dofus catalog\n"
+        catalog = source.split(catalog_marker, 1)[1].split("\n      - name:", 1)[0]
+        self.assertIn("python -m scripts.windows.quest_assets --download", catalog)
+        self.assertIn("python -m scripts.windows.craft_seed --download", catalog)
+        self.assertNotIn('doduda.exe" --headless', catalog)
+        self.assertLess(
+            source.index(catalog_marker),
+            source.index("      - name: Capture exact public dataset inputs before validation"),
+        )
+        self.assertIn("if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", catalog)
+
     def test_phase_certification_is_exact_head_full_gate_for_phase_prs_and_main(self) -> None:
         source = self.certification_workflow
         self.assertIn("workflow_dispatch:", source)

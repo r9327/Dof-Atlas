@@ -2,6 +2,7 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - .github/workflows/phase-certification.yml
   - .ai/scopes/
   - .ai/context_index.json
   - tests/test_phase_certification_guardrails.py

@@ -316,9 +316,12 @@ jobs:
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
           }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*" 2>&1 | Tee-Object -FilePath $log
-          $code = $LASTEXITCODE
-          if ($code -ne 0) { exit $code }
+          # Certify the same reviewed bytes that Quest/Craft provenance checks.
+          # A live Doduda download may advance beyond the committed release pins.
+          python -m scripts.windows.quest_assets --download 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           @'
           from app.quest_catalog import QuestCatalog
