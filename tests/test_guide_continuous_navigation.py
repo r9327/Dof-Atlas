@@ -121,6 +121,32 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             nav.completed_count("slot:1")
 
+    def test_multi_character_manual_check_uses_one_atomic_write(self):
+        from unittest.mock import patch
+
+        nav = self._navigator("character:1", "character:2", "character:3")
+        with patch.object(self.progress, "_save_unlocked", wraps=self.progress._save_unlocked) as save:
+            self.assertTrue(nav.mark_manual_step("ganymede_2205_step_0001", True))
+            self.assertEqual(save.call_count, 1)
+        reopened = GuideProgressService(self.path)
+        for key in ("character:1", "character:2", "character:3"):
+            self.assertTrue(reopened.is_manual_step_completed(
+                key, "dofus_cawotte", "ganymede_2205_step_0001",
+            ))
+
+    def test_failed_multi_character_save_does_not_partially_persist(self):
+        from unittest.mock import patch
+
+        nav = self._navigator("character:1", "character:2")
+        with patch.object(self.progress, "_save_unlocked", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                nav.mark_manual_step("ganymede_2205_step_0001", True)
+        reopened = GuideProgressService(self.path)
+        for key in ("character:1", "character:2"):
+            self.assertFalse(reopened.is_manual_step_completed(
+                key, "dofus_cawotte", "ganymede_2205_step_0001",
+            ))
+
     def test_selected_characters_validate_and_uncheck_independently(self):
         nav = self._navigator("character:1", "character:2")
         first = "ganymede_2205_step_0001"

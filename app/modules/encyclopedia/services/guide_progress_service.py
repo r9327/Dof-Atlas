@@ -103,6 +103,44 @@ class GuideProgressService:
     def is_manual_step_completed(self, character_key: str, guide_id: str, step_id: str) -> bool:
         return str(step_id) in self._manual_steps_snapshot(character_key, guide_id)
 
+    def set_manual_steps_for_characters(
+        self, character_keys, guide_id: str, step_id: str, completed: bool,
+    ) -> bool:
+        """Apply one explicit multi-character check in a single atomic write."""
+        keys = tuple(require_character_key(key) for key in character_keys)
+        if len(set(keys)) != len(keys):
+            raise ValueError("duplicate character in manual progress selection")
+        if not keys:
+            return False
+        with self._coordinator.lock:
+            self.progress = self._load()
+            self._disk_signature = self._current_disk_signature()
+            changed = False
+            for key in keys:
+                guide_steps = self._manual_steps_map(key)
+                raw = guide_steps.get(str(guide_id), [])
+                previous = {str(value) for value in raw if str(value)} if isinstance(raw, list) else set()
+                updated = set(previous)
+                if completed:
+                    updated.add(str(step_id))
+                else:
+                    updated.discard(str(step_id))
+                if updated == previous:
+                    continue
+                changed = True
+                if updated:
+                    guide_steps[str(guide_id)] = sorted(updated)
+                else:
+                    guide_steps.pop(str(guide_id), None)
+            if changed:
+                self._save_unlocked()
+                self._seen_generation = self._coordinator.mark_changed()
+            else:
+                self._seen_generation = self._coordinator.generation
+            self._disk_signature = self._current_disk_signature()
+            self._clear_manual_steps_cache()
+            return changed
+
     def set_manual_step_completed(
         self,
         character_key: str,

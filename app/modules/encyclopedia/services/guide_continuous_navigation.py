@@ -176,12 +176,9 @@ class ContinuousGuideNavigation:
             raise ValueError("step not in this guide")
         if not self.selected_character_keys:
             return False
-        changed = False
-        for character_key in self.selected_character_keys:
-            changed = self.progress.set_manual_step_completed(
-                character_key, self.guide_id, step_id, bool(completed),
-            ) or changed
-        return changed
+        return self.progress.set_manual_steps_for_characters(
+            self.selected_character_keys, self.guide_id, step_id, bool(completed),
+        )
 
 
 __all__ = [
