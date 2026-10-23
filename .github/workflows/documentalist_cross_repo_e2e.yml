@@ -1,0 +1,133 @@
+name: Documentalist → Atlas cross-repo contract (opt-in)
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+jobs:
+  real-exchange:
+    if: github.event.label.name == 'ci:documentalist-e2e'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: r9327/Atlas-Holding
+          ref: b7d900e00ec6f6c25846f773f49917247badf1a3
+          path: holding-source
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: r9327/Dof-Atlas
+          ref: 8eebcc6a1c4c858a33b74ae7fe627e5e9aec09cd
+          path: atlas-runtime-source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Export actual Documentalist batches then preview with actual Atlas adapter
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          old = [{"id": 1, "kind": "quest", "label": "Old"}]
+          incoming = [
+              {"id": 1, "kind": "quest", "label": "New",
+               "preparation": {"items": [{"item_id": 77, "name": "Pierre", "quantity": 3}],
+                               "combats": [{"objective_id": 91, "monster": "Gobelin", "quantity": 2}]}},
+              {"id": 2, "kind": "success", "references": [{"kind": "quest", "id": 1}]},
+          ]
+          Path("old.json").write_text(json.dumps(old), encoding="utf-8")
+          Path("incoming.json").write_text(json.dumps(incoming), encoding="utf-8")
+          PY
+          (cd holding-source && python -m holding.documentalist_cli --file ../old.json --format json --out ../old.exchange.json)
+          (cd holding-source && python -m holding.documentalist_cli --file ../incoming.json --format json --out ../incoming.exchange.json)
+          python -m tools.atlas_data_exchange_cli old.exchange.json incoming.exchange.json --json > preview.json
+          python - <<'PY'
+          # Seed a verified offline cache: this exercise MUST NOT access the network.
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("holding-source").resolve()))
+          from holding.document_cache import store_batch
+          from holding.document_intake import ingest_json_records
+          raw = Path("incoming.json").read_bytes()
+          batch = ingest_json_records(raw, source="https://example.org/quests.json",
+                                     collected_at="2026-10-22T18:00:00Z")
+          store_batch(Path("source-cache"), batch, format="json")
+          PY
+          (cd holding-source && python -m holding.documentalist_cli --url https://example.org/quests.json --allow-host example.org --format json --cache-dir ../source-cache --offline --out ../offline.exchange.json)
+          python -m tools.atlas_data_exchange_cli old.exchange.json offline.exchange.json --json > offline.preview.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("preview.json").read_text(encoding="utf-8"))
+          assert report["status"] == "PREVIEW_ONLY", report
+          assert report["counts"] == {
+              "add": 1, "update": 1, "keep": 0, "absent_in_batch": 0
+          }, report
+          assert [(r["kind"], r["id"], r["action"]) for r in report["changes"]] == [
+              ("quest", "1", "update"), ("success", "2", "add"),
+          ], report
+          offline = json.loads(Path("offline.preview.json").read_text(encoding="utf-8"))
+          assert offline["status"] == "PREVIEW_ONLY" and offline["counts"] == report["counts"], offline
+          assert offline["source"] == "https://example.org/quests.json", offline
+          print("Cross-repo online-format + OFFLINE cached Documentalist -> Atlas PASS", report["counts"])
+          PY
+          mkdir -p runtime-stage/data/quests
+          python -m tools.atlas_quest_evidence_builder offline.exchange.json --out runtime-stage/data/quests/v1.json
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import os
+          import sys
+          from types import SimpleNamespace
+          from unittest.mock import patch
+          # All runtime consumer code is loaded from the explicit, separate Atlas updater SHA.
+          sys.path.insert(0, str(Path("atlas-runtime-source").resolve()))
+          from app.distribution.data_pack_plan import DataPack
+          from app.distribution.data_pack_store import (
+              install_pack, accepted_pack, acknowledge_pack,
+          )
+          from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+          from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+          from app.modules.encyclopedia.models.entity_ref import EntityRef
+          from app.constants import RAW_QUEST_DATA_DIR
+
+          stage = Path("runtime-stage")
+          blob = stage / "data/quests/v1.json"
+          pack = DataPack("quests", 1, 1, sha256(blob.read_bytes()).hexdigest(),
+                          "data/quests/v1.json")
+          root = Path("runtime-install")
+          assert install_pack(root, stage, pack) == "INSTALLED"
+          assert accepted_pack(root, "quests") is None, "Unacknowledged pack became visible"
+          assert acknowledge_pack(root, "quests")
+          fake_catalog = SimpleNamespace(
+              by_id={1: object()},
+              guide_evidence=lambda ident: {"items": [], "combats": []},
+          )
+          with patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": str(root.resolve())}):
+              provider = QuestProvider(catalog=fake_catalog, data_dir=RAW_QUEST_DATA_DIR)
+              result = provider.guide_evidence(1)
+              successes = AchievementProvider(data_dir=RAW_QUEST_DATA_DIR,
+                                              quest_provider=provider)
+              successes._loaded = True  # bounded fixture, not a fake loader
+              successes._by_id = {
+                  2: SimpleNamespace(resolved_linked_quests=(
+                      EntityRef("quest", 1, "Quête 1"),), linked_quests=())
+              }
+              preparation = successes.get_quest_preparation(2)
+          assert len(preparation) == 1, preparation
+          assert preparation[0]["items"][0]["quantity"] == 3, preparation
+          assert preparation[0]["combats"][0]["monster"] == "Gobelin", preparation
+          assert result["items"][0] == {"item_id": 77, "name": "Pierre", "quantity": 3}, result
+          assert result["combats"][0]["monster"] == "Gobelin", result
+          assert not (root / "user").exists(), "User data mutated by pack integration"
+          print("Holding OFFLINE -> Atlas typed pack -> QuestProvider + SuccessProvider PASS")
+          PY

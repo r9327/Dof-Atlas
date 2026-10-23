@@ -228,6 +228,7 @@ class QuestCharacter:
     label: str
     slot: int
     connected: bool = False
+    class_key: str = ""  # Only an explicitly verified identity may populate this.
 
 
 @dataclass(frozen=True, slots=True)
@@ -1450,6 +1451,14 @@ def load_quest_characters(
                 label=label,
                 slot=slot,
                 connected=connected is not None,
+                class_key=(
+                    str(row.get("class_key") or "").strip().lower()
+                    if row.get("source") == "verified_network_identity"
+                    and isinstance(row.get("class_key"), str)
+                    and str(row.get("class_key")).isascii()
+                    and str(row.get("class_key")).isalpha()
+                    else ""
+                ),
             )
         )
     return sorted(
