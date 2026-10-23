@@ -254,6 +254,69 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._ensure_loaded()
         return self._progress_quest_ids_by_guide.get(str(guide_id), ())
 
+    def guide_ids_for_quest_fast(self, quest_id: int) -> tuple[str, ...] | None:
+        """Resolve one quest from the validated compact index, without loading Guides.
+
+        None means the index cannot be trusted and the caller must fall back.
+        An empty tuple means a valid index explicitly contains no relation.
+        """
+        if self._loaded or self.include_drafts:
+            return None
+        path = GUIDE_COMPACT_CACHE
+        if not _guide_compact_cache_valid(path, guides_dir=self.guides_dir):
+            return None
+        wanted_id = int(quest_id)
+        available: set[str] = set()
+        indexed: set[str] = set()
+        matches: set[str] = set()
+        try:
+            with path.open("r", encoding="utf-8") as stream:
+                for raw_line in stream:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    # Validate *every* JSONL row. A truncated or corrupt row
+                    # must not make an incomplete relation lookup look valid.
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        return None
+                    if row.get("kind") not in ("guide", "entity_index"):
+                        continue
+                    if not isinstance(row.get("value"), dict):
+                        return None
+                    value = row["value"]
+                    if row.get("kind") == "guide":
+                        guide_id = value.get("id")
+                        if not isinstance(guide_id, str) or not guide_id or guide_id in available:
+                            return None
+                        available.add(guide_id)
+                        continue
+                    if row.get("kind") != "entity_index":
+                        return None
+                    guide_id = value.get("guide_id")
+                    keys = value.get("entity_keys")
+                    if (not isinstance(guide_id, str) or not guide_id
+                            or guide_id in indexed or not isinstance(keys, list)):
+                        return None
+                    indexed.add(guide_id)
+                    if any(
+                        not isinstance(key, list) or len(key) != 2
+                        or not isinstance(key[0], str) or not key[0]
+                        or type(key[1]) is not int or key[1] <= 0
+                        for key in keys
+                    ):
+                        return None
+                    if any(
+                        key[0] == "quest" and key[1] == wanted_id
+                        for key in keys
+                    ):
+                        matches.add(guide_id)
+        except (OSError, UnicodeError, ValueError, TypeError):
+            return None
+        if not available or not indexed.issubset(available):
+            return None
+        return tuple(sorted(matches))
+
     def get_guides_for_entity(self, entity_type: str, entity_id: int) -> list[Guide]:
         self._ensure_loaded()
         wanted_type = str(entity_type)

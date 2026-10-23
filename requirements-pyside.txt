@@ -15,8 +15,8 @@ PySide6_Pdf==6.12.0.140 \
     --hash=sha256:4971ba1a0ca15e7c29cfd808e9600aeb46b2305dad01456eb09fa3197166268e
 shiboken6==6.12.0 \
     --hash=sha256:a1906cb8116869178c64b6bab52623bbc8b4ceed7b30bfc3c9aa0f6e67f6438e
-Pillow==12.3.0 \
-    --hash=sha256:1cca606cd25738df4ed873d5ad46bbdb3d83b5cbca291f6b4ff13a4df6b0bbe8
+Pillow==13.0.0 \
+    --hash=sha256:9dda0788a9932776a75d8bcc020076edc308ce2508b51f6739a45e3158b3fc42
 pywin32==312; platform_system == "Windows" \
     --hash=sha256:c53e878d15a1c44788082bfe712a905433473aa38f86375b7cf8b45e3acbaaf9
 pyautogui==0.9.54; platform_system == "Windows" \
