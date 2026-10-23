@@ -20,6 +20,37 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 )
 
 
+def signed_source_start_ids(
+    steps: Iterable[Mapping[str, object]], *, strict: bool = True,
+) -> tuple[int, ...]:
+    """Extract only typed source quest-start IDs in one shared audit contract.
+
+    Interactive previews can use strict=False to skip malformed suggestions,
+    but both full CLI audits MUST use the strict default. No text inference.
+    """
+    unique: set[int] = set()
+    for step in steps:
+        if not isinstance(step, Mapping):
+            raise ValueError("Malformed signed Ganymède step")
+        actions = step.get("source_action_candidates")
+        if not isinstance(actions, list):
+            raise ValueError("Signed step lacks structured source actions")
+        for row in actions:
+            if not isinstance(row, Mapping):
+                if strict:
+                    raise ValueError("Malformed signed source action")
+                continue
+            if row.get("kind") != "quest_start":
+                continue
+            quest_id = row.get("quest_id")
+            if type(quest_id) is not int or quest_id <= 0:
+                if strict:
+                    raise ValueError("Malformed signed quest start ID")
+                continue
+            unique.add(quest_id)
+    return tuple(sorted(unique))
+
+
 def review_signed_ganymede_start_candidates(
     guides_dir: Path,
     atlas_guide_id: str,
@@ -135,4 +166,4 @@ def review_signed_ganymede_start_candidates(
     }
 
 
-__all__ = ["review_signed_ganymede_start_candidates"]
+__all__ = ["review_signed_ganymede_start_candidates", "signed_source_start_ids"]

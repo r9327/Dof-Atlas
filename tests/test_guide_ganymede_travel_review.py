@@ -91,6 +91,26 @@ class GanymedeTravelReviewTests(unittest.TestCase):
                    if x["source_step_id"] == "ganymede_2205_step_0055")
         self.assertEqual(row["status"], "BLOCKED_ATLAS_AMBIGUOUS")
 
+    def test_full_cli_requires_strict_source_quest_ids(self):
+        from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
+            signed_source_start_ids,
+        )
+        for bad in (False, "845", 0, -1, None):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                signed_source_start_ids([{
+                    "source_action_candidates": [
+                        {"kind": "quest_start", "quest_id": bad},
+                    ],
+                }])
+        self.assertEqual(
+            signed_source_start_ids([{
+                "source_action_candidates": [
+                    {"kind": "quest_start", "quest_id": 845},
+                    {"kind": "move", "quest_id": 999},
+                ],
+            }]), (845,),
+        )
+
     def test_cli_uses_exact_signed_quest_ids_without_guessing_from_labels(self):
         from tools.audit_ganymede_travel_candidates import signed_quest_start_ids
 

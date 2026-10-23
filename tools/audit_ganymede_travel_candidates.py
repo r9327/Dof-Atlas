@@ -23,6 +23,7 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 )
 from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
     review_signed_ganymede_start_candidates,
+    signed_source_start_ids,
 )
 from app.modules.encyclopedia.services.guide_ultime_route_adapter import (
     GuideUltimeRouteAdapter,
@@ -31,14 +32,7 @@ from app.modules.encyclopedia.services.guide_ultime_route_adapter import (
 
 def signed_quest_start_ids(steps: list[dict]) -> tuple[int, ...]:
     """Extract exact source IDs for a read-only Atlas catalogue lookup."""
-    ids: set[int] = set()
-    for step in steps:
-        for row in step.get("source_action_candidates", ()):
-            if (isinstance(row, dict) and row.get("kind") == "quest_start"
-                    and type(row.get("quest_id")) is int
-                    and row["quest_id"] > 0):
-                ids.add(row["quest_id"])
-    return tuple(sorted(ids))
+    return signed_source_start_ids(steps, strict=False)
 
 
 def build_report(
@@ -53,7 +47,9 @@ def build_report(
     if signed is None:
         raise ValueError("Guide absent or Ganymède source signature invalid")
     source = json.loads(signed.read_text(encoding="utf-8"))
-    ids = signed_quest_start_ids(source["sections"][0]["steps"])
+    # Full audits fail closed on malformed starts; only the standalone
+    # compatibility preview helper may skip incomplete suggestions.
+    ids = signed_source_start_ids(source["sections"][0]["steps"])
     provider = QuestProvider(data_dir=raw_data_dir)
     catalog = provider.get_catalog()
     adapter = GuideUltimeRouteAdapter(

@@ -33,6 +33,33 @@ class GanymedeStartReviewCliTests(unittest.TestCase):
         self.assertIsNone(unavailable.y)
         self.assertEqual(adapter._location_from_map(124, None, zone="").x, 5)
 
+    def test_both_cli_extractors_share_strict_source_identity(self):
+        from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
+            signed_source_start_ids,
+        )
+        from tools.audit_ganymede_travel_candidates import signed_quest_start_ids
+
+        candidates = [{
+            "source_action_candidates": [
+                {"kind": "quest_start", "quest_id": 42},
+                {"kind": "quest_start", "quest_id": 42},
+                {"kind": "move", "quest_id": 77},
+            ],
+        }]
+        self.assertEqual(signed_source_start_ids(candidates), (42,))
+        self.assertEqual(signed_quest_start_ids(candidates), (42,))
+        invalid = [{
+            "source_action_candidates": [
+                {"kind": "quest_start", "quest_id": True},
+                {"kind": "quest_start", "quest_id": "42"},
+            ],
+        }]
+        with self.assertRaisesRegex(ValueError, "Malformed signed quest start"):
+            signed_source_start_ids(invalid)
+        self.assertEqual(signed_quest_start_ids(invalid), ())
+        with self.assertRaisesRegex(ValueError, "structured source actions"):
+            signed_source_start_ids([{"source_action_candidates": None}])
+
     def test_cli_writes_only_explicit_review_output(self):
         example = {
             "status": "REVIEW_ONLY_NO_AUTOMATIC_TRAVEL",

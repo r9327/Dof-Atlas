@@ -22,6 +22,9 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 from app.modules.encyclopedia.services.guide_ganymede_start_review import (
     review_ganymede_start_correspondences,
 )
+from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
+    signed_source_start_ids,
+)
 
 GUIDES = DATA_DIR / "encyclopedia/guides"
 
@@ -39,13 +42,10 @@ def signed_source_quest_ids(
         if path is None:
             raise ValueError(f"Untrusted signed guide: {guide_id}")
         route = json.loads(path.read_text(encoding="utf-8"))
-        for step in route["sections"][0]["steps"]:
-            for candidate in step["source_action_candidates"]:
-                if candidate.get("kind") == "quest_start":
-                    quest_id = candidate.get("quest_id")
-                    if type(quest_id) is not int or quest_id <= 0:
-                        raise ValueError(f"Malformed quest start: {guide_id}")
-                    ids.add(quest_id)
+        try:
+            ids.update(signed_source_start_ids(route["sections"][0]["steps"]))
+        except (TypeError, KeyError, ValueError) as exc:
+            raise ValueError(f"Malformed quest start: {guide_id}") from exc
     return tuple(sorted(ids))
 
 
