@@ -70,6 +70,58 @@ def _create_shortcut(target: Path) -> None:
         )
 
 
+def choose_runtime_before_setup() -> None:
+    """Let the user select the large AtlasApp drive before installing anything."""
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, ttk
+    from .install_location import runtime_root, relocate_runtime
+
+    window = tk.Tk()
+    window.withdraw()
+    try:
+        current = runtime_root()
+        if not messagebox.askyesno(
+            "Dofus Atlas - emplacement",
+            "Les fichiers du jeu (~3 Go) peuvent etre installes sur le disque "
+            "de votre choix. Le petit lanceur reste dans AppData.\n\n"
+            f"Emplacement actuel :\n{current}\n\n"
+            "Choisir un autre disque ou dossier ?",
+            parent=window,
+        ):
+            return
+        folder = filedialog.askdirectory(
+            parent=window, title="Choisir le disque ou dossier des fichiers Atlas",
+            initialdir=str(current.parent if current.parent.exists() else Path.home()),
+        )
+        if not folder:
+            return
+        target = Path(folder) / "DofusAtlas" / "runtime"
+        if target == current:
+            return
+        progress_window = tk.Toplevel(window)
+        progress_window.title("Deplacement Dofus Atlas")
+        progress_window.geometry("460x140")
+        progress_window.resizable(False, False)
+        tk.Label(progress_window, text="Preparation du disque choisi...").pack(pady=(14, 8))
+        bar = ttk.Progressbar(progress_window, length=400, maximum=100)
+        bar.pack(pady=4)
+        note = tk.Label(progress_window, text="L'ancienne installation est preservee par securite.")
+        note.pack(pady=6)
+        progress_window.protocol("WM_DELETE_WINDOW", lambda: None)
+        progress_window.update()
+
+        def update_progress(done, total):
+            bar["value"] = int(done * 100 / max(total, 1))
+            progress_window.update()
+
+        try:
+            relocate_runtime(target, progress=update_progress)
+        finally:
+            progress_window.destroy()
+    finally:
+        window.destroy()
+
+
 def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     """Copy launcher atomically and create exactly one Desktop shortcut.
 
@@ -238,6 +290,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("Incomplete maintenance request")
             finish_launcher_upgrade(args.candidate, args.sha256, args.parent_pid)
             return 0
+        if not args.no_launch:
+            choose_runtime_before_setup()
         launcher = install_launcher(embedded_launcher())
         install_maintenance_helper(Path(sys.executable), launcher.parent)
         legacy = args.legacy_root
