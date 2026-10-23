@@ -262,6 +262,29 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         send.assert_not_called()
         self.assertIn("ambiguë", statuses[-1])
 
+    def test_guide_travel_rejects_shared_window_between_character_ids(self) -> None:
+        for selected in (("character:1",), ("character:1", "character:2")):
+            with self.subTest(selected=selected):
+                statuses: list[str] = []
+                clients = [
+                    AtlasClient(1, "A", "Alpha", 101, character_key="character:1"),
+                    AtlasClient(2, "B", "Beta", 101, character_key="character:2"),
+                ]
+                runtime = self._travel_runtime(clients, statuses)
+                with patch("app.macros.travel.send_chat_command") as send:
+                    TravelMacro(runtime).run_async("/travel 5,-18", selected)
+                send.assert_not_called()
+                self.assertIn("ambiguë", statuses[-1])
+
+    def test_guide_travel_rejects_missing_window_handle(self) -> None:
+        statuses: list[str] = []
+        client = AtlasClient(1, "A", "Alpha", 0, character_key="character:1")
+        runtime = self._travel_runtime([client], statuses)
+        with patch("app.macros.travel.send_chat_command") as send:
+            TravelMacro(runtime).run_async("/travel 5,-18", ("character:1",))
+        send.assert_not_called()
+        self.assertIn("ambiguë", statuses[-1])
+
     def test_lookup_refuses_ambiguous_partial_match(self) -> None:
         oak = {"name": "Bois de Chêne"}
         soft_oak = {"name": "Bois de Chêne Mou"}

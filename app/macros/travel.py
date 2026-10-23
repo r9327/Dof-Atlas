@@ -72,6 +72,19 @@ class TravelMacro:
             self.runtime._emit_status("Déplacement ignoré : identité de participant ambiguë.")
             return None
         clients = [buckets[key][0] for key in character_keys if len(buckets[key]) == 1]
+        # One HWND must not impersonate two verified characters, including
+        # when the other character is not in this Guide's selection.
+        identities_by_handle: dict[int, set[str]] = {}
+        for client in self.runtime.settings.clients:
+            identities_by_handle.setdefault(client.handle, set()).add(client.character_key)
+        if any(
+            type(client.handle) is not int or client.handle <= 0
+            or len(identities_by_handle[client.handle]) != 1
+            for client in clients
+        ):
+            self.runtime.logger.warning("Travel guide ignore: fenetre associee a plusieurs identites.")
+            self.runtime._emit_status("Déplacement ignoré : identité de fenêtre ambiguë.")
+            return None
         offline = sum(1 for key in character_keys if not buckets[key])
         if not clients:
             self.runtime.logger.info("Travel guide ignore: tous les participants sont hors ligne.")
