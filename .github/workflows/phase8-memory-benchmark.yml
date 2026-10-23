@@ -58,7 +58,9 @@ jobs:
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
           }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           @'
           from app.quest_catalog import QuestCatalog

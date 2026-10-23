@@ -56,3 +56,87 @@ def set_runtime_root(root: Path) -> Path:
     finally:
         Path(name).unlink(missing_ok=True)
     return location
+
+
+def has_saved_location() -> bool:
+    """Was the install location explicitly selected or confirmed?"""
+    return _SETTINGS.is_file()
+
+
+def relocate_runtime(target: Path, progress=None) -> Path:
+    """Switch the payload drive without downloading again.
+
+    Copy into a temporary sibling, validate the active executable, then
+    switch installation.json atomically. Keep the previous runtime as a
+    recovery copy; it can be deleted once the new installation is confirmed.
+    """
+    import shutil
+    from .install import active_executable, read_state
+
+    destination = _valid_root(target)
+    source = _valid_root(runtime_root())
+    if destination == source:
+        return source
+    if source in destination.parents or destination in source.parents:
+        raise UpdateError("Choisissez un dossier en dehors de l'installation actuelle")
+    if destination.exists():
+        raise UpdateError("Le dossier de destination existe deja; choisissez un dossier vide")
+
+    state = read_state(source)
+    if not state.get("active"):
+        # First installation: no multi-gigabyte payload to migrate.
+        return set_runtime_root(destination)
+    if active_executable(source) is None:
+        raise UpdateError("Installation existante incomplete; reparation necessaire")
+
+    total = 0
+    for base, directories, names in os.walk(source, followlinks=False):
+        where = Path(base)
+        directories[:] = [name for name in directories
+                          if not (where == source and name == ".health")]
+        if any((where / name).is_symlink() for name in directories):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
+        for name in names:
+            if where == source and name == ".launcher.lock":
+                continue
+            entry = where / name
+            if entry.is_symlink():
+                raise UpdateError("Impossible de deplacer une installation contenant des liens")
+            total += entry.stat().st_size
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if shutil.disk_usage(destination.parent).free < total + 256 * 1024**2:
+        raise UpdateError("Espace insuffisant sur le disque choisi pour copier Atlas")
+
+    stage = Path(tempfile.mkdtemp(prefix=".atlas-move-", dir=destination.parent))
+    copied = 0
+
+    def ignore(directory, names):
+        if Path(directory) == source:
+            return {name for name in names if name in (".health", ".launcher.lock")}
+        return set()
+
+    def copy_checked(src, dst):
+        nonlocal copied
+        shutil.copy2(src, dst)
+        size = Path(src).stat().st_size
+        if Path(dst).stat().st_size != size:
+            raise UpdateError("Copie Atlas incomplete; ancien disque preserve")
+        copied += size
+        if progress:
+            progress(copied, max(total, 1))
+
+    try:
+        shutil.copytree(source, stage, dirs_exist_ok=True, symlinks=True,
+                        ignore=ignore, copy_function=copy_checked)
+        if read_state(stage) != state or active_executable(stage) is None:
+            raise UpdateError("La copie Atlas n'a pas pu etre validee")
+        os.replace(stage, destination)
+        try:
+            set_runtime_root(destination)
+        except Exception:
+            os.replace(destination, stage)
+            raise
+        return destination
+    finally:
+        if stage.exists():
+            shutil.rmtree(stage)
