@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
+    known_guide_participants,
 )
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -46,6 +48,21 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
 
     def _navigator(self, *keys: str) -> ContinuousGuideNavigation:
         return ContinuousGuideNavigation(self.route, self.progress, keys)
+
+    def test_only_registered_characters_can_be_selected_for_live_guides(self):
+        characters = (
+            SimpleNamespace(key="character:1", connected=True),
+            SimpleNamespace(key="character:2", connected=False),
+            SimpleNamespace(key="slot:3", connected=True),
+        )
+        self.assertEqual(
+            known_guide_participants(
+                ("character:2", "character:999", "slot:3", "character:1"),
+                characters,
+            ),
+            ("character:2", "character:1"),
+        )
+        self.assertEqual(known_guide_participants(("character:1",), ()), ())
 
     def test_no_selected_character_means_no_imaginary_actual_step(self):
         nav = self._navigator()

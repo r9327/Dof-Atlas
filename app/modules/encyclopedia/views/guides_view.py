@@ -1718,6 +1718,10 @@ class GuidesView(QWidget):
             # or progress validation just because an Organizer slot is active.
             keys = self.guide_participant_service.selected_keys()
         characters = self.guide_participant_service.available_characters()
+        from app.modules.encyclopedia.services.guide_continuous_navigation import (
+            known_guide_participants,
+        )
+        keys = known_guide_participants(keys, characters)
         panel = ContinuousGuideRoutePanel(
             guide.raw, self.guide_progress_service, keys,
             available_characters=characters,
@@ -1739,8 +1743,17 @@ class GuidesView(QWidget):
         if self._continuous_route_panel is None:
             return False
         keys = tuple(character_keys)
-        self._continuous_route_panel.set_characters(keys)
-        self._remember_continuous_characters(keys)
+        from app.modules.encyclopedia.services.guide_continuous_navigation import (
+            known_guide_participants,
+        )
+        # Do not permit a caller to forge a stable-looking but unregistered ID.
+        allowed = known_guide_participants(
+            keys, self._continuous_route_panel.available_characters,
+        )
+        if len(allowed) != len(keys):
+            return False
+        self._continuous_route_panel.set_characters(allowed)
+        self._remember_continuous_characters(allowed)
         return True
 
     def show_quest_detail(self, quest_id: int, preserve_scroll: bool = False) -> bool:

@@ -10,8 +10,25 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from app.core.character_identity import require_character_key
+from app.core.character_identity import is_character_key, require_character_key
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+
+
+def known_guide_participants(
+    selected_keys: Iterable[str], available_characters: Iterable[object],
+) -> tuple[str, ...]:
+    """Never enable route progress for an absent/unverified identity.
+
+    Offline characters are still known when they remain in the verified
+    binding registry. Unknown/stale IDs are not silently treated as players.
+    """
+    available = {
+        key for row in available_characters
+        if is_character_key(key := getattr(row, "key", ""))
+    }
+    return tuple(
+        key for key in selected_keys if is_character_key(key) and key in available
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,4 +184,7 @@ class ContinuousGuideNavigation:
         return changed
 
 
-__all__ = ["ContinuousGuideNavigation", "ContinuousGuidePosition"]
+__all__ = [
+    "ContinuousGuideNavigation", "ContinuousGuidePosition",
+    "known_guide_participants",
+]
