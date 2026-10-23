@@ -46,6 +46,19 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
             popup.deleteLater()
             self.app.processEvents()
 
+    def test_nonessential_services_start_after_preload_not_during_it(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        window = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "AtlasWindow")
+        constructor = next(n for n in window.body if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+        reveal = next(n for n in window.body if isinstance(n, ast.FunctionDef) and n.name == "_reveal_after_preload")
+        ctor_body = ast.get_source_segment(source, constructor) or ""
+        reveal_body = ast.get_source_segment(source, reveal) or ""
+        for token in ("self.start_runtime", "self.prepare_network_capture", "self.preload_equipment_page"):
+            self.assertNotIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", ctor_body)
+        self.assertIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", reveal_body)
+        self.assertIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)", reveal_body)
+
     def test_bootstrap_never_shows_main_before_preload(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
