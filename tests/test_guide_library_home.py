@@ -67,6 +67,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
         self.assertNotIn(2205, {entry.source_id for entry in merged})
         self.assertIn(2203, {entry.source_id for entry in merged})
         self.assertEqual(ATLAS_EQUIVALENTS[2205], "dofus_cawotte")
+        aliases = {"dofus_nebuleux", "dofus_dom_de_pin", "dofus_sylvestre"}
+        selected = displayable_listings(records, aliases, "dofus")
+        visible_ids = {entry.source_id for entry in selected}
+        self.assertTrue({2247, 2285, 2290}.isdisjoint(visible_ids))
 
     def test_top_four_cards_remain_visible_with_library_search(self):
         provider = _Provider()
