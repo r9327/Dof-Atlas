@@ -54,8 +54,9 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
         reveal = next(n for n in window.body if isinstance(n, ast.FunctionDef) and n.name == "_reveal_after_preload")
         ctor_body = ast.get_source_segment(source, constructor) or ""
         reveal_body = ast.get_source_segment(source, reveal) or ""
-        for token in ("self.start_runtime", "self.prepare_network_capture", "self.preload_equipment_page"):
-            self.assertNotIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", ctor_body)
+        self.assertNotIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", ctor_body)
+        self.assertNotIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)", ctor_body)
+        self.assertNotIn("self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)", ctor_body)
         self.assertIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", reveal_body)
         self.assertIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)", reveal_body)
 
@@ -64,7 +65,9 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
         tree = ast.parse(source)
         entry = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")
         body = ast.get_source_segment(source, entry) or ""
+        self.assertIn("app.setQuitOnLastWindowClosed(False)", body)
         self.assertIn("window.preload_popup.begin(dict(window.preload_states))", body)
+        self.assertIn("app.setQuitOnLastWindowClosed(True)", source)
         self.assertNotIn("window.show()", body)
         self.assertNotIn("splash.finish(window)", body)
         self.assertIn("window.preload_popup.readyForMainWindow.connect(self._reveal_after_preload)", source)
