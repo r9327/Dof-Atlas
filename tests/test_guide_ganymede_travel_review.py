@@ -109,6 +109,50 @@ class GanymedeTravelReviewTests(unittest.TestCase):
             ],
         }]), ())
 
+    def test_all_signed_dofus_guides_are_reviewable_without_auto_travel(self):
+        manifest_path = GUIDES / "replacement_drafts/cutovers/cutover_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        guide_ids = sorted(
+            guide_id for guide_id, row in manifest["guides"].items()
+            if row.get("status") == "TRUSTED_SOURCE_STEPS"
+        )
+        self.assertEqual(len(guide_ids), 20)
+        covered_steps = 0
+        for guide_id in guide_ids:
+            with self.subTest(guide=guide_id):
+                report = review_signed_ganymede_start_candidates(
+                    GUIDES, guide_id, (), {}, ("character:1",),
+                )
+                self.assertEqual(report["candidate_count"], 0)
+                self.assertEqual(report["verified_stage_travel"], {})
+                self.assertFalse(report["ready_for_automatic_planning"])
+                self.assertEqual(report["blocked_count"], len(report["entries"]))
+                self.assertEqual(
+                    report["source_payload_sha256"],
+                    manifest["guides"][guide_id]["payload_sha256"],
+                )
+                covered_steps += report["source_step_count"]
+        self.assertEqual(covered_steps, 1694)
+
+    def test_tampered_source_is_rejected_before_comparison(self):
+        with TemporaryDirectory(prefix="atlas-review-tamper-") as tmp:
+            root = Path(tmp)
+            dest = root / "replacement_drafts/cutovers"
+            dest.mkdir(parents=True)
+            signed = GUIDES / "replacement_drafts/cutovers"
+            payload = json.loads((signed / "dofus_cawotte.json").read_text(encoding="utf-8"))
+            payload["sections"][0]["steps"][0]["title"] = "TAMPERED"
+            (dest / "dofus_cawotte.json").write_text(
+                json.dumps(payload, ensure_ascii=False), encoding="utf-8",
+            )
+            (dest / "cutover_manifest.json").write_bytes(
+                (signed / "cutover_manifest.json").read_bytes(),
+            )
+            with self.assertRaisesRegex(ValueError, "No signed"):
+                review_signed_ganymede_start_candidates(
+                    root, "dofus_cawotte", (), {}, ("character:1",),
+                )
+
     def test_invalid_participants_and_untyped_actions_fail_closed(self):
         with self.assertRaises(ValueError):
             review_signed_ganymede_start_candidates(
