@@ -394,7 +394,11 @@ class GuideRoutePlanner:
                 )
 
         capture_by_action: dict[str, list[GuideCaptureRequirement]] = defaultdict(list)
+        seen_capture_requirements: set[str] = set()
         for requirement in capture_requirements:
+            if requirement.requirement_id in seen_capture_requirements:
+                raise ValueError("duplicate capture requirement_id")
+            seen_capture_requirements.add(requirement.requirement_id)
             if requirement.action_id not in self.engine.by_id:
                 issues.append(
                     GuidePlanningIssue(

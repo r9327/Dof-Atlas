@@ -303,6 +303,35 @@ class GuideRoutePlannerTests(unittest.TestCase):
                     evidence=evidence,
                 )
 
+    def test_duplicate_capture_requirement_cannot_double_count_stones(self) -> None:
+        stone = GuideCaptureRequirement(
+            "capture:stone:99", "quest:capture", CaptureKind.SOUL_STONE,
+            quantity=2, consumable_item_id=500,
+            consumable_name="Pierre d’âme 100", evidence="dataset:test",
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate capture requirement_id"):
+            GuideRoutePlanner(_engine()).plan(
+                [GuideParticipantState(
+                    "character:1", progress=RouteProgress(owned_items={500: 1}),
+                )],
+                capture_requirements=[stone, stone],
+            )
+
+    def test_duplicate_capture_id_across_actions_is_rejected(self) -> None:
+        first = GuideCaptureRequirement(
+            "capture:same-source", "quest:start", CaptureKind.DROP,
+            evidence="dataset:test",
+        )
+        second = GuideCaptureRequirement(
+            "capture:same-source", "quest:capture", CaptureKind.ZONE_SPECIAL,
+            evidence="dataset:test",
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate capture requirement_id"):
+            GuideRoutePlanner(_engine()).plan(
+                [GuideParticipantState("character:1")],
+                capture_requirements=(first, second),
+            )
+
     def test_incomplete_stock_never_invents_a_missing_quantity(self) -> None:
         requirement = GuideCaptureRequirement(
             "capture:unknown-stock", "quest:capture", CaptureKind.SOUL_STONE,
