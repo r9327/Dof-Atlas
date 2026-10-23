@@ -94,6 +94,46 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertEqual(graph.guide_ids(2464), ["legacy-guide"])
                 provider.get_guides_for_entity.assert_called_once_with("quest", 2464)
 
+    def test_malformed_index_never_becomes_an_empty_valid_relation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            provider = self._provider(guides)
+            variants = (
+                {"guide_id": "guide-b", "entity_keys": [["quest"]]},
+                {"guide_id": "guide-b", "entity_keys": [["quest", "2464"]]},
+                {"guide_id": "guide-b", "entity_keys": [["quest", True]]},
+                {"guide_id": "guide-b", "entity_keys": [["quest", 0]]},
+                {"guide_id": "guide-b", "entity_keys": [[{}, 2464]]},
+                {"guide_id": "foreign-guide", "entity_keys": [["quest", 42]]},
+                {"guide_id": 123, "entity_keys": [["quest", 42]]},
+            )
+            for value in variants:
+                self._write_cache(cache, guides)
+                rows = [json.loads(line) for line in cache.read_text().splitlines()]
+                rows[2]["value"] = value
+                cache.write_text("\n".join(map(json.dumps, rows)) + "\n", encoding="utf-8")
+                with self.subTest(value=value), patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                    self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
+                    self.assertIsNone(provider.guide_ids_for_quest_fast(99999))
+            provider._ensure_loaded.assert_not_called()
+
+    def test_duplicate_entity_index_requires_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            lines = cache.read_text().splitlines()
+            cache.write_text("\n".join([*lines, lines[2]]) + "\n", encoding="utf-8")
+            provider = self._provider(guides)
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
+            provider._ensure_loaded.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

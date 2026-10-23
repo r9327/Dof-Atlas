@@ -267,6 +267,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             return None
         wanted_id = int(quest_id)
         available: set[str] = set()
+        indexed: set[str] = set()
         matches: set[str] = set()
         try:
             with path.open("r", encoding="utf-8") as stream:
@@ -285,26 +286,34 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         return None
                     value = row["value"]
                     if row.get("kind") == "guide":
-                        guide_id = str(value.get("id") or "")
-                        if not guide_id or guide_id in available:
+                        guide_id = value.get("id")
+                        if not isinstance(guide_id, str) or not guide_id or guide_id in available:
                             return None
                         available.add(guide_id)
                         continue
                     if row.get("kind") != "entity_index":
                         return None
-                    guide_id = str(value.get("guide_id") or "")
+                    guide_id = value.get("guide_id")
                     keys = value.get("entity_keys")
-                    if not guide_id or not isinstance(keys, list):
+                    if (not isinstance(guide_id, str) or not guide_id
+                            or guide_id in indexed or not isinstance(keys, list)):
+                        return None
+                    indexed.add(guide_id)
+                    if any(
+                        not isinstance(key, list) or len(key) != 2
+                        or not isinstance(key[0], str) or not key[0]
+                        or type(key[1]) is not int or key[1] <= 0
+                        for key in keys
+                    ):
                         return None
                     if any(
-                        isinstance(key, list) and len(key) == 2
-                        and str(key[0]) == "quest" and safe_int(key[1]) == wanted_id
+                        key[0] == "quest" and key[1] == wanted_id
                         for key in keys
                     ):
                         matches.add(guide_id)
         except (OSError, UnicodeError, ValueError, TypeError):
             return None
-        if not available or not matches.issubset(available):
+        if not available or not indexed.issubset(available):
             return None
         return tuple(sorted(matches))
 
