@@ -31,6 +31,8 @@ ATLAS_EQUIVALENTS = {
     2209: "dofus_des_veilleurs", 2212: "domakuro", 2221: "dorigami",
     2248: "dolmanax", 2283: "dofus_du_cauchemar",
     2287: "dofus_forgelave", 2271: "dofus_tachete",
+    2247: "dofus_nebuleux", 2285: "dofus_dom_de_pin",
+    2290: "dofus_sylvestre",
     2249: "alignement_bonta", 2263: "alignement_brakmar",
 }
 
