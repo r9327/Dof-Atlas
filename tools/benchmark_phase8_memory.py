@@ -499,7 +499,20 @@ def _open_rich_guide_with_probe(
             manual_core.load_manual_chapter = original_manual_loader
 
 
-def measure() -> dict[str, Any]:
+def _home_rss_drift(samples: list[dict[str, Any]]) -> float | None:
+    """Change in post-Home process-tree RSS between first and last same-domain cycle."""
+    if len(samples) < 2:
+        return None
+    first = samples[0].get("tree_rss_mb")
+    last = samples[-1].get("tree_rss_mb")
+    if first is None or last is None:
+        return None
+    return round(float(last) - float(first), 2)
+
+
+def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) -> dict[str, Any]:
+    if not 2 <= navigation_cycles <= 10:
+        raise ValueError("navigation_cycles must be between 2 and 10")
     app = QApplication.instance() or QApplication([])
     stages: list[dict[str, Any]] = []
     timings: dict[str, float] = {}
@@ -667,6 +680,8 @@ def measure() -> dict[str, Any]:
         "achievements": [],
         "guide": [],
     }
+    if include_heavy_views:
+        round_trip_home_samples.update({"craft": [], "equipment": []})
     for cycle in range(1, 3):
         for domain, tab in (
             ("quests", QUESTS_TAB),
@@ -686,6 +701,41 @@ def measure() -> dict[str, Any]:
         round_trip_home_samples["guide"].append(
             _capture(app, stages, f"repeat_{cycle}_guide_home", 1.50)
         )
+
+        if include_heavy_views:
+            for domain, page_name in (("craft", "Craft"), ("equipment", "Equipement")):
+                sampler.set_phase(f"repeat_{cycle}_{domain}")
+                open_page(app, window, page_name, timeout=60.0)
+                window.show_page("Home")
+                round_trip_home_samples[domain].append(
+                    _capture(app, stages, f"repeat_{cycle}_{domain}_home", 1.50)
+                )
+
+    # Optional investigation mode: keep the two canonical CI cycles intact.
+    # Longer sequences are only requested on Windows for a specific RAM probe.
+    for cycle in range(3, navigation_cycles + 1):
+        for domain, tab in (("quests", QUESTS_TAB), ("achievements", ACHIEVEMENTS_TAB)):
+            sampler.set_phase(f"repeat_{cycle}_{domain}")
+            open_encyclopedia(app, window, tab)
+            window.show_page("Home")
+            round_trip_home_samples[domain].append(
+                _capture(app, stages, f"repeat_{cycle}_{domain}_home", 0.75)
+            )
+        sampler.set_phase(f"repeat_{cycle}_guide")
+        _open_guide_with_probe(app, window, stages)
+        _open_rich_guide_with_probe(app, window, stages)
+        window.show_page("Home")
+        round_trip_home_samples["guide"].append(
+            _capture(app, stages, f"repeat_{cycle}_guide_home", 1.50)
+        )
+        if include_heavy_views:
+            for domain, page_name in (("craft", "Craft"), ("equipment", "Equipement")):
+                sampler.set_phase(f"repeat_{cycle}_{domain}")
+                open_page(app, window, page_name, timeout=60.0)
+                window.show_page("Home")
+                round_trip_home_samples[domain].append(
+                    _capture(app, stages, f"repeat_{cycle}_{domain}_home", 1.50)
+                )
 
     sampler.stop()
     if (
@@ -720,6 +770,12 @@ def measure() -> dict[str, Any]:
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
         "peak_tree_sample": sampler.peak_tree_sample,
+        "navigation_cycles": navigation_cycles,
+        "include_heavy_views": include_heavy_views,
+        "round_trip_home_drift_mb": {
+            domain: _home_rss_drift(samples)
+            for domain, samples in round_trip_home_samples.items()
+        },
         "round_trip_home": {
             domain: [
                 {
@@ -771,6 +827,12 @@ def measure() -> dict[str, Any]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Phase 8 staged memory benchmark")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--navigation-cycles", type=int, default=2,
+                        choices=range(2, 11),
+                        metavar="{2..10}",
+                        help="2 canonical CI cycles; use 5-10 for manual Windows retention probes")
+    parser.add_argument("--include-heavy-views", action="store_true",
+                        help="also repeat Craft and Equipment within each navigation cycle")
     return parser.parse_args()
 
 
@@ -783,7 +845,8 @@ def main() -> int:
             "python": sys.version.split()[0],
             "qt_qpa_platform": os.environ.get("QT_QPA_PLATFORM", ""),
         },
-        "metrics": measure(),
+        "metrics": measure(navigation_cycles=args.navigation_cycles,
+                           include_heavy_views=args.include_heavy_views),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
