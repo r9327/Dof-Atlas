@@ -5,7 +5,7 @@ import re
 import logging
 import time
 import weakref
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
@@ -152,7 +152,7 @@ def item_row(*args, **kwargs):
 
 
 Navigator = Callable[..., bool]
-TravelLauncher = Callable[[str], None]
+TravelLauncher = Callable[[str, tuple[str, ...]], None]
 LOGGER = logging.getLogger("dofus_atlas.encyclopedia.images")
 
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
@@ -1157,6 +1157,17 @@ class GuidesView(QWidget):
         self.link_service = LinkService(navigate_callback)
         self.launch_travel_callback = launch_travel_callback
         self.current_character_key = character_key or ""
+        from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE
+        from app.services.guide_participant_service import GuideParticipantService
+
+        self.guide_participant_service = GuideParticipantService(
+            profile_path=profile_path or PROFILE_FILE,
+            client_index_path=client_index_path or CLIENT_INDEX_JSON,
+        )
+        self._continuous_route_panel = None
+        self._continuous_selected_character_keys: tuple[str, ...] | None = None
+        self._continuous_profile_path = profile_path
+        self._continuous_client_index_path = client_index_path
         self.quest_progress = self.quest_progress_service.progress
         self.quest_catalog = None
         self.progress_calculator = None
@@ -1692,6 +1703,11 @@ class GuidesView(QWidget):
         self.detail_header.setVisible(True)
         self._render_header(guide)
         self._render_breadcrumb(guide)
+        if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS":
+            self._render_continuous_source_guide(guide)
+            self.stack.setCurrentWidget(self.detail_page)
+            return
+        self._continuous_route_panel = None
         if self._guide_uses_steps_column(guide):
             self._populate_guide_left(guide)
         else:
@@ -1704,6 +1720,83 @@ class GuidesView(QWidget):
             0,
             lambda value=previous_position: self.center_scroll.verticalScrollBar().setValue(value),
         )
+
+    def _render_continuous_source_guide(self, guide: Guide) -> None:
+        """Render verified source steps without mixing in legacy quest series."""
+        from app.modules.encyclopedia.views.guide_continuous_route_panel import (
+            ContinuousGuideRoutePanel,
+        )
+        from app.modules.encyclopedia.services.guide_continuous_navigation import (
+            known_guide_participants,
+        )
+
+        clear_layout(self.left_layout)
+        clear_layout(self.center_layout)
+        clear_layout(self.right_layout)
+        self.left_panel.setVisible(False)
+        self.right_panel.setVisible(False)
+        self.center_panel.setVisible(True)
+        self.center_panel.setMinimumWidth(340)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([0, 700, 0])
+        keys = self._continuous_selected_character_keys
+        if keys is None:
+            keys = self.guide_participant_service.selected_keys()
+        characters = self.guide_participant_service.available_characters()
+        keys = known_guide_participants(keys, characters)
+        panel = ContinuousGuideRoutePanel(
+            guide.raw,
+            self.guide_progress_service,
+            keys,
+            available_characters=characters,
+        )
+        panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
+        if self.launch_travel_callback is not None:
+            panel.travelRequested.connect(self.launch_travel_callback)
+        self.center_layout.addWidget(panel)
+        self._continuous_route_panel = panel
+        self.detail_header_progress.setVisible(False)
+        self.detail_header_done_button.setVisible(False)
+
+    def apply_continuous_travel_projection(
+        self, projection: Mapping[str, object],
+    ) -> bool:
+        """Apply a matching verified planner projection to the visible guide."""
+        panel = self._continuous_route_panel
+        if panel is None or not isValid(panel):
+            return False
+        current = self.current_guide()
+        if (current is None or current.id != panel.navigation.guide_id
+                or not isinstance(projection, Mapping)):
+            panel.set_verified_travel_plans({})
+            return False
+        return panel.apply_projected_runtime_plan(projection)
+
+    def _remember_continuous_characters(
+        self, character_keys: tuple[str, ...],
+    ) -> None:
+        selected = self.guide_participant_service.save_selected_keys(character_keys)
+        self._continuous_selected_character_keys = tuple(selected)
+
+    def set_continuous_route_characters(
+        self, character_keys: Iterable[str],
+    ) -> bool:
+        """Set the explicit multi-character selection for the source route."""
+        if self._continuous_route_panel is None:
+            return False
+        keys = tuple(character_keys)
+        from app.modules.encyclopedia.services.guide_continuous_navigation import (
+            known_guide_participants,
+        )
+
+        allowed = known_guide_participants(
+            keys, self._continuous_route_panel.available_characters,
+        )
+        if len(allowed) != len(keys):
+            return False
+        self._continuous_route_panel.set_characters(allowed)
+        self._remember_continuous_characters(allowed)
+        return True
 
     def show_quest_detail(self, quest_id: int, preserve_scroll: bool = False) -> bool:
         guide = self.current_guide()
