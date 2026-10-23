@@ -18,7 +18,10 @@ def parse_zaap_command(value: str) -> tuple[int, int] | None:
     match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
     if match is None:
         return None
-    return int(match.group(1)), int(match.group(2))
+    coords = int(match.group(1)), int(match.group(2))
+    if -(2**31) in coords:
+        return None
+    return coords
 
 
 def zaap_command(x: int, y: int) -> str:

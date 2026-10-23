@@ -17,19 +17,26 @@ _GUIDE_SEQUENCE_RE = re.compile(
     r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)\s*;\s*/travel\s+(-?\d+)\s*,\s*(-?\d+)$",
     re.IGNORECASE,
 )
+_MISSING_GAME_COORDINATE = -(2**31)
 
 
 def normalize_guide_travel_command(value: str) -> str | None:
     text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
     match = _TRAVEL_RE.fullmatch(text)
     if match is not None:
-        return f"/travel {int(match.group(1))},{int(match.group(2))}"
+        coords = tuple(int(value) for value in match.groups())
+        if _MISSING_GAME_COORDINATE in coords:
+            return None
+        return f"/travel {coords[0]},{coords[1]}"
     match = _GUIDE_SEQUENCE_RE.fullmatch(text)
     if match is None:
         return None
+    coords = tuple(int(value) for value in match.groups())
+    if _MISSING_GAME_COORDINATE in coords:
+        return None
     return (
-        f"/zaap {int(match.group(1))},{int(match.group(2))} ; "
-        f"/travel {int(match.group(3))},{int(match.group(4))}"
+        f"/zaap {coords[0]},{coords[1]} ; "
+        f"/travel {coords[2]},{coords[3]}"
     )
 
 

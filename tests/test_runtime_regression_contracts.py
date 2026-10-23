@@ -110,6 +110,21 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         self.assertEqual(normalize_guide_travel_command("/travel 1,2"), "/travel 1,2")
         self.assertIsNone(normalize_guide_travel_command("/travel 1,2 ; /travel 3,4"))
 
+    def test_missing_game_coordinates_never_reach_a_chat_command(self) -> None:
+        missing = -(2**31)
+        for command in (
+            f"/travel {missing},0",
+            f"/travel 0,{missing}",
+            f"/zaap {missing},0 ; /travel 2,3",
+            f"/zaap 1,2 ; /travel 3,{missing}",
+        ):
+            with self.subTest(command=command):
+                self.assertIsNone(normalize_guide_travel_command(command))
+        self.assertIsNone(parse_zaap_command(f"/zaap {missing},0"))
+        self.assertIsNone(parse_zaap_command(f"/zaap 0,{missing}"))
+        self.assertEqual(normalize_guide_travel_command("/travel -32,-56"), "/travel -32,-56")
+        self.assertEqual(parse_zaap_command("/zaap -32,-56"), (-32, -56))
+
     @staticmethod
     def _travel_runtime(clients, statuses):
         timings = SimpleNamespace(
