@@ -2096,6 +2096,10 @@ class AtlasWindow(QMainWindow):
         if not self.preload_finished:
             return
         self.show()
+        app = QApplication.instance()
+        if app is not None:
+            # Once the main window exists, normal close-to-quit semantics resume.
+            app.setQuitOnLastWindowClosed(True)
         if self.topmost_enabled:
             self.apply_topmost_state(True)
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
@@ -2652,6 +2656,9 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        # The only visible window during preload is a transient QDialog;
+        # hiding it must never quit Qt before revealing AtlasWindow.
+        app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
         app.setWindowIcon(atlas_application_icon())
         splash = None
