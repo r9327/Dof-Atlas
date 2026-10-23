@@ -93,6 +93,17 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
         self.assertEqual(nav.position().actual_step_id, "ganymede_2205_step_0001")
         self.assertEqual(nav.position().completed_by_character, {"character:1": 0})
 
+    def test_offline_or_deselected_character_keeps_its_manual_ring_count(self):
+        nav = self._navigator("character:1")
+        first = "ganymede_2205_step_0001"
+        self.assertTrue(nav.mark_manual_step(first, True))
+        nav.select_characters(())
+        self.assertEqual(nav.completed_count("character:1"), 1)
+        self.assertEqual(nav.completed_count("character:2"), 0)
+        self.assertEqual(nav.position().completed_by_character, {})
+        with self.assertRaises(ValueError):
+            nav.completed_count("slot:1")
+
     def test_selected_characters_validate_and_uncheck_independently(self):
         nav = self._navigator("character:1", "character:2")
         first = "ganymede_2205_step_0001"

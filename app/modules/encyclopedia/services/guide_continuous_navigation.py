@@ -89,6 +89,15 @@ class ContinuousGuideNavigation:
             for key in self.selected_character_keys
         }
 
+    def completed_count(self, character_key: str) -> int:
+        """Manual step count for any verified stable key, selected or not.
+
+        The portrait ring stays truthful for an offline/deselected character;
+        it never changes or infers quest/achievement completion.
+        """
+        key = require_character_key(character_key)
+        return len(self.progress.manual_steps(key, self.guide_id) & self._step_set)
+
     def position(self) -> ContinuousGuidePosition:
         completed = self._completion()
         if not completed:

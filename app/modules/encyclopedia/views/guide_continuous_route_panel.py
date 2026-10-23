@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
@@ -22,6 +22,44 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+
+
+class _GuideCharacterProgressButton(QToolButton):
+    """Lightweight circular progress over a normal, clickable class portrait."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.progress_checked = 0
+        self.progress_total = 0
+
+    def set_progress(self, completed: int, total: int) -> None:
+        if not (type(completed) is int and type(total) is int
+                and total >= 0 and 0 <= completed <= total):
+            raise ValueError("Invalid manual portrait progress")
+        if (completed, total) == (self.progress_checked, self.progress_total):
+            return
+        self.progress_checked, self.progress_total = completed, total
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        ring = self.rect().adjusted(2, 2, -3, -3)
+        pen = QPen(self.palette().mid().color())
+        pen.setWidthF(2.5)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawEllipse(ring)
+        if self.progress_total and self.progress_checked:
+            pen.setColor(self.palette().highlight().color())
+            painter.setPen(pen)
+            painter.drawArc(
+                ring, 90 * 16,
+                -round(360 * 16 * self.progress_checked / self.progress_total),
+            )
+        painter.end()
 
 
 class ContinuousGuideRoutePanel(QWidget):
@@ -92,7 +130,7 @@ class ContinuousGuideRoutePanel(QWidget):
         for character in self.available_characters:
             if character.key in self.character_icon_buttons:
                 continue
-            button = QToolButton()
+            button = _GuideCharacterProgressButton()
             button.setObjectName("GuideContinuousCharacterPortrait")
             button.setCheckable(True)
             button.setFixedSize(34, 34)
@@ -104,7 +142,7 @@ class ContinuousGuideRoutePanel(QWidget):
                 icon = QIcon(str(image_path))
                 if not icon.isNull():
                     button.setIcon(icon)
-                    button.setIconSize(QSize(27, 27))
+                    button.setIconSize(QSize(21, 21))
                     button.setToolButtonStyle(Qt.ToolButtonIconOnly)
             if button.icon().isNull():
                 button.setText(button.toolTip()[:1].upper() or "?")
@@ -283,6 +321,9 @@ class ContinuousGuideRoutePanel(QWidget):
             finally:
                 action.blockSignals(was_blocked)
         for key, button in self.character_icon_buttons.items():
+            button.set_progress(
+                self.navigation.completed_count(key), position.total_steps
+            )
             was_blocked = button.blockSignals(True)
             try:
                 button.setChecked(key in selected)

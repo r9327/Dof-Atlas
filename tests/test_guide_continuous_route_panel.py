@@ -129,6 +129,32 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(extra.character_icon_buttons["character:1"].isChecked())
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
 
+    def test_portrait_ring_tracks_manual_progress_even_when_deselected(self):
+        characters = [
+            SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key=""),
+            SimpleNamespace(key="character:2", label="Beta", connected=False, class_key=""),
+        ]
+        other_step = "ganymede_2205_step_0001"
+        self.store.set_manual_step_completed(
+            "character:2", "dofus_cawotte", other_step, True,
+        )
+        extra = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",),
+            available_characters=characters,
+        )
+        self.addCleanup(extra.deleteLater)
+        one = extra.character_icon_buttons["character:1"]
+        two = extra.character_icon_buttons["character:2"]
+        self.assertEqual((one.progress_checked, one.progress_total), (0, 3))
+        self.assertEqual((two.progress_checked, two.progress_total), (1, 3))
+        extra.validate_button.click()
+        self.assertEqual((one.progress_checked, one.progress_total), (1, 3))
+        extra.set_characters(())
+        self.assertEqual((one.progress_checked, one.progress_total), (1, 3))
+        self.assertEqual((two.progress_checked, two.progress_total), (1, 3))
+        self.assertIsNone(extra.navigation.position().actual_step_id)
+        self.assertEqual(extra.route_progress.value(), 0)
+
     def test_external_selection_updates_picker_without_false_signal(self):
         characters = [
             SimpleNamespace(key="character:1", label="Alpha", connected=True),
