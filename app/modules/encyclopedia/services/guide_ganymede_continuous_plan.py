@@ -405,6 +405,11 @@ def project_ganymede_continuous_plan(
             raise ValueError("Invalid observed Ganymède coordinates")
         title = title_for_ganymede_step(step["title"], number)
         travel = travel_by_step.get(sid)
+        if travel is not None and tuple(pending) != tuple(selected):
+            # A plan prepared for the entire original team is no longer valid
+            # after one participant completes this step. Never move someone
+            # who has already checked this source stage.
+            travel = None
         if sid in start_bindings and pending:
             if len(pending) != len(selected):
                 # Completed characters must not be dragged back to a stage

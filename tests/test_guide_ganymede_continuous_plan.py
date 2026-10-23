@@ -262,6 +262,34 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.build(characters=(), verified_stage_travel={first: direct})
 
+    def test_completed_character_disables_stale_whole_team_travel_plan(self):
+        first_id = "ganymede_2205_step_0001"
+        team = ("character:1", "character:2")
+        travel = GuideTravelPlan(
+            TravelMode.DIRECT, RouteLocation(x=5, y=-18),
+            team, evidence="atlas:validated-canonical-action",
+        )
+        baseline = self.build(characters=team, verified_stage_travel={first_id: travel})
+        self.assertIn(first_id, baseline["runtime_verified_travel_plans"])
+        partly_done = self.build(
+            characters=team,
+            verified_stage_travel={first_id: travel},
+            completed_source_steps={"character:1": {first_id}},
+        )
+        self.assertNotIn(first_id, partly_done["runtime_verified_travel_plans"])
+        self.assertIsNone(partly_done["stages"][0]["verified_travel_plan"])
+        self.assertEqual(partly_done["stages"][0]["pending_character_keys"],
+                         ["character:2"])
+        all_done = self.build(
+            characters=team,
+            verified_stage_travel={first_id: travel},
+            completed_source_steps={
+                "character:1": {first_id}, "character:2": {first_id},
+            },
+        )
+        self.assertNotIn(first_id, all_done["runtime_verified_travel_plans"])
+        self.assertFalse(all_done["auto_completion_allowed"])
+
     def test_runtime_zaap_overlay_preserves_two_command_contract(self):
         step_id = "ganymede_2205_step_0001"
         travel = GuideTravelPlan(
