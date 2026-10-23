@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Callable
 
-from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QSizePolicy, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout
 
 from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
 from app.modules.encyclopedia.models.entity_ref import EntityRef
@@ -32,6 +33,7 @@ class AchievementDetailWidget(QFrame):
         objective_text_overrides: Mapping[int, str] | None = None,
         completion_changed_callback: Callable[[bool], None] | None = None,
         parent=None,
+        preparation_callback: Callable[[], tuple[dict[str, object], ...]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("AchievementDetailBody")
@@ -104,6 +106,54 @@ class AchievementDetailWidget(QFrame):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(percent)
         layout.addWidget(self.progress_bar)
+
+        # Success preparation can traverse multiple Quest details. Never do
+        # that during Success preload or when opening a detail: opt in on click.
+        if preparation_callback is not None:
+            preparation_button = QPushButton("À préparer")
+            preparation_button.setObjectName("AchievementPreparationToggle")
+            preparation_details = QLabel()
+            preparation_details.setObjectName("AchievementPreparationDetails")
+            preparation_details.setWordWrap(True)
+            preparation_details.setTextFormat(Qt.PlainText)
+            preparation_details.hide()
+            preparation_loaded = False
+
+            def toggle_preparation() -> None:
+                nonlocal preparation_loaded
+                if preparation_loaded:
+                    preparation_details.setVisible(not preparation_details.isVisible())
+                    return
+                try:
+                    batches = preparation_callback()
+                    descriptions = []
+                    for batch in batches:
+                        title = str(batch.get("quest_name") or f"Quête {batch.get('quest_id')}")
+                        requirements = [
+                            f"{row['quantity']} × {row['name']}"
+                            for row in batch.get("items", ())
+                            if isinstance(row, dict) and all(key in row for key in ("quantity", "name"))
+                        ]
+                        requirements.extend(
+                            f"{row['quantity']} × {row['monster']} (combat)"
+                            for row in batch.get("combats", ())
+                            if isinstance(row, dict) and all(key in row for key in ("quantity", "monster"))
+                        )
+                        if requirements:
+                            descriptions.append(title + " : " + " · ".join(requirements))
+                    message = ("\n".join(descriptions) if descriptions else
+                               "Aucune préparation matérielle identifiée.")
+                    preparation_loaded = True
+                except (OSError, ValueError, RuntimeError):
+                    # Unsupported or corrupt optional data must not affect
+                    # achievement progress or prevent opening the detail.
+                    message = "Préparation indisponible. Réessayez après vérification des données."
+                preparation_details.setText(message)
+                preparation_details.show()
+
+            preparation_button.clicked.connect(toggle_preparation)
+            layout.addWidget(preparation_button)
+            layout.addWidget(preparation_details)
 
         visible_objectives = tuple(
             objective

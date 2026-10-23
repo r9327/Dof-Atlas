@@ -36,6 +36,13 @@ jobs:
               "test_atlas_data_exchange.py",
               "test_atlas_data_exchange_cli.py",
               "test_atlas_quest_evidence_builder.py",
+              "test_data_pack_verify.py",
+              "test_data_pack_store.py",
+              "test_data_pack_cli.py",
+              "test_launch_pack_recovery.py",
+              "test_runtime_quest_evidence_pack.py",
+              "test_success_pack_preparation.py",
+              "test_success_pack_view_contract.py",
           )
           present = [name for name in candidates if (Path("tests") / name).is_file()]
           if not present:

@@ -470,6 +470,11 @@ class AchievementsView(QWidget):
                 completion_changed_callback=lambda completed, achievement_id=achievement.id: self.on_achievement_completion_changed(
                     achievement_id, completed
                 ),
+                preparation_callback=(
+                    (lambda achievement_id=achievement.id:
+                     self.provider.get_quest_preparation(achievement_id))
+                    if achievement.resolved_linked_quests or achievement.linked_quests else None
+                ),
             )
         )
         self.detail_layout.addStretch(1)
