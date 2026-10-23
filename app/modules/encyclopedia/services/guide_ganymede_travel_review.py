@@ -1,0 +1,136 @@
+"""Read-only candidate review for signed Ganymède and Atlas quest-start maps.
+
+A matching quest ID and location are NOT permission to issue game commands.
+"""
+from __future__ import annotations
+
+import json
+from collections import Counter, defaultdict
+from collections.abc import Iterable, Mapping
+from pathlib import Path
+
+from app.core.character_identity import require_character_key
+from app.modules.encyclopedia.services.adventure_route_engine import RouteAction
+from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
+    _reviewed_start_travel,
+)
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    certified_payload_sha256,
+    select_verified_replacement_path,
+)
+
+
+def review_signed_ganymede_start_candidates(
+    guides_dir: Path,
+    atlas_guide_id: str,
+    actions: Iterable[RouteAction],
+    canonical_map_positions: Mapping[int, tuple[int, int]],
+    character_keys: Iterable[str],
+) -> dict[str, object]:
+    """Find exact candidates, always requiring a separate explicit approval."""
+    keys = tuple(require_character_key(key) for key in character_keys)
+    if not keys or len(keys) != len(set(keys)):
+        raise ValueError("Review requires unique explicit participants")
+    if not isinstance(canonical_map_positions, Mapping):
+        raise ValueError("Atlas map registry must be supplied independently")
+    path = select_verified_replacement_path(
+        Path(guides_dir), {"id": atlas_guide_id, "category": "dofus"},
+        allow_source_manual=True,
+    )
+    if path is None:
+        raise ValueError("No signed Ganymède source route available")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    manifest = json.loads((path.parent / "cutover_manifest.json").read_text(encoding="utf-8"))
+    record = manifest.get("guides", {}).get(atlas_guide_id)
+    sha = certified_payload_sha256(payload)
+    if (not isinstance(record, dict)
+            or record.get("status") != "TRUSTED_SOURCE_STEPS"
+            or record.get("payload_sha256") != sha
+            or payload.get("id") != atlas_guide_id):
+        raise ValueError("Ganymède cutover signature mismatch")
+    steps = payload["sections"][0]["steps"]
+    if len(steps) != record["source_step_count"]:
+        raise ValueError("Signed source stage count mismatch")
+
+    by_quest: dict[int, list[RouteAction]] = defaultdict(list)
+    for action in actions:
+        if not isinstance(action, RouteAction):
+            raise ValueError("Atlas review requires typed canonical RouteAction")
+        if (type(action.quest_id) is int and action.quest_id > 0
+                and action.kind == "start"
+                and action.action_id == f"quest:{action.quest_id}:start"
+                and action.activates_quest is True):
+            by_quest[action.quest_id].append(action)
+    source_starts: Counter[int] = Counter(
+        row["quest_id"]
+        for step in steps
+        for row in step["source_action_candidates"]
+        if isinstance(row, Mapping) and row.get("kind") == "quest_start"
+        and type(row.get("quest_id")) is int
+    )
+
+    entries: list[dict[str, object]] = []
+    for step in steps:
+        starts = [
+            row for row in step["source_action_candidates"]
+            if isinstance(row, Mapping) and row.get("kind") == "quest_start"
+        ]
+        if not starts:
+            continue
+        quest_id = starts[0].get("quest_id") if len(starts) == 1 else None
+        action_id: str | None = None
+        map_id: int | None = None
+        if len(starts) != 1:
+            status, reason = "BLOCKED_SOURCE_AMBIGUOUS", "Multiple quest starts in source stage"
+        elif type(quest_id) is not int or quest_id <= 0:
+            status, reason = "BLOCKED_QUEST_ID", "Source quest start lacks positive integer ID"
+        elif source_starts[quest_id] != 1:
+            status, reason = "BLOCKED_SOURCE_REPEATED", "Quest start repeats across stages"
+        else:
+            matches = by_quest.get(quest_id, ())
+            if not matches:
+                status, reason = "BLOCKED_ATLAS_MISSING", "No canonical start for this quest ID"
+            elif len(matches) != 1:
+                status, reason = "BLOCKED_ATLAS_AMBIGUOUS", "Canonical quest has duplicate starts"
+            else:
+                action = matches[0]
+                action_id = action.action_id
+                map_id = action.location.map_id
+                try:
+                    _reviewed_start_travel(
+                        step, action, list(keys), canonical_map_positions,
+                    )
+                except ValueError as exc:
+                    status, reason = "BLOCKED_LOCATION_UNVERIFIED", str(exc)
+                else:
+                    status = "CANDIDATE_REQUIRES_APPROVAL"
+                    reason = "Exact quest, single source action and Atlas map agree"
+        entries.append({
+            "source_step_id": step["id"],
+            "quest_id": quest_id,
+            "canonical_action_id": action_id,
+            "canonical_map_id": map_id,
+            "status": status,
+            "reason": reason,
+        })
+    return {
+        "schema_version": 1,
+        "status": "REVIEW_ONLY_NO_AUTOMATIC_TRAVEL",
+        "atlas_guide_id": atlas_guide_id,
+        "source_guide_id": payload["source_guide_id"],
+        "source_payload_sha256": sha,
+        "selected_character_keys": list(keys),
+        "source_step_count": len(steps),
+        "candidate_count": sum(
+            row["status"] == "CANDIDATE_REQUIRES_APPROVAL" for row in entries
+        ),
+        "blocked_count": sum(
+            row["status"] != "CANDIDATE_REQUIRES_APPROVAL" for row in entries
+        ),
+        "entries": entries,
+        "verified_stage_travel": {},
+        "ready_for_automatic_planning": False,
+    }
+
+
+__all__ = ["review_signed_ganymede_start_candidates"]
