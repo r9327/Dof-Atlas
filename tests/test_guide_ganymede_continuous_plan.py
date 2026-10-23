@@ -9,9 +9,10 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
+    _reviewed_start_travel,
     project_ganymede_continuous_plan,
 )
-from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+from app.modules.encyclopedia.services.adventure_route_engine import RouteAction, RouteLocation
 from app.modules.encyclopedia.services.guide_route_planner import (
     GuideTravelPlan, TravelMode,
 )
@@ -71,6 +72,68 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                 actions_total += plan["source_action_count"]
         self.assertEqual(total, 1694)
         self.assertEqual(actions_total, 6166)
+
+    @staticmethod
+    def _canonical_quest_start(quest_id=835, x=5, y=-18, map_id=123):
+        return RouteAction(
+            f"quest:{quest_id}:start", quest_id, "Prendre la quête", "start",
+            location=RouteLocation(map_id=map_id, x=x, y=y),
+            activates_quest=True, requires_active_quest=False,
+        )
+
+    @staticmethod
+    def _signed_candidate_step():
+        return {
+            "source_action_candidates": [
+                {"kind": "quest_start", "quest_id": 835},
+            ],
+            "source_coordinates_mentioned": [[5, -18]],
+        }
+
+    def test_reviewed_canonical_start_can_produce_exact_direct_travel(self):
+        travel = _reviewed_start_travel(
+            self._signed_candidate_step(), self._canonical_quest_start(),
+            ["character:1", "character:2"],
+        )
+        self.assertEqual(travel.to_chat_command(), "/travel 5,-18")
+        self.assertEqual(travel.participant_keys, ("character:1", "character:2"))
+        self.assertIn("quest-start:835:map:123", travel.evidence)
+        self.assertEqual(travel.to_payload()["destination"]["map_id"], 123)
+
+    def test_reviewed_start_rejects_ambiguous_or_fabricated_coordinates(self):
+        step = self._signed_candidate_step()
+        action = self._canonical_quest_start()
+        variants = [
+            (step, self._canonical_quest_start(quest_id=836)),
+            (step, self._canonical_quest_start(x=6)),
+            (step, self._canonical_quest_start(map_id=0)),
+            (step, self._canonical_quest_start(x=-(2**31))),
+            (dict(step, source_coordinates_mentioned=[[5, -18], [6, -18]]), action),
+            (dict(step, source_action_candidates=[
+                {"kind": "quest_start", "quest_id": 835},
+                {"kind": "move", "label": "Another destination"},
+            ]), action),
+            (dict(step, source_action_candidates=[
+                {"kind": "quest_start", "quest_id": 835},
+                {"kind": "quest_start", "quest_id": 836},
+            ]), action),
+        ]
+        for source, candidate in variants:
+            with self.subTest(source=source, action=candidate), self.assertRaises(ValueError):
+                _reviewed_start_travel(source, candidate, ["character:1"])
+
+    def test_reviewed_start_never_infers_from_real_unreviewed_cawotte_step(self):
+        # Stage 55 has an interaction and a quest start; the observed map
+        # alone cannot prove which action is the destination.
+        action = self._canonical_quest_start(quest_id=845, x=22, y=-10)
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            self.build(reviewed_start_action_bindings={
+                "ganymede_2205_step_0055": action,
+            })
+        with self.assertRaisesRegex(ValueError, "unknown signed step"):
+            self.build(reviewed_start_action_bindings={
+                "ganymede_999_step_0001": action,
+            })
 
     def test_runtime_travel_overlay_is_step_and_character_scoped(self):
         first_id = "ganymede_2205_step_0001"

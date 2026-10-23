@@ -26,7 +26,8 @@ from app.modules.encyclopedia.services.guide_ganymede_preparation import (
 from app.modules.encyclopedia.services.guide_route_naming import (
     title_for_ganymede_step,
 )
-from app.modules.encyclopedia.services.guide_route_planner import GuideTravelPlan
+from app.modules.encyclopedia.services.adventure_route_engine import RouteAction
+from app.modules.encyclopedia.services.guide_route_planner import GuideTravelPlan, TravelMode
 
 
 def _quest_link_by_id(
@@ -63,6 +64,58 @@ def _quest_link_by_id(
     }
 
 
+def _reviewed_start_travel(
+    step: Mapping[str, object],
+    action: RouteAction,
+    participant_keys: list[str],
+) -> GuideTravelPlan:
+    """Check an explicitly reviewed source-to-canonical binding before travel.
+
+    This only verifies a direct location, not the quest completion or Zaap
+    eligibility. A Ganymède quest ID or observed coordinate alone cannot
+    produce a command: the caller must supply the independently mapped Atlas
+    start action, and both sources must agree without ambiguity.
+    """
+    if not isinstance(action, RouteAction):
+        raise ValueError("Reviewed binding must provide a canonical RouteAction")
+    candidates = step.get("source_action_candidates")
+    if not isinstance(candidates, list) or not candidates:
+        raise ValueError("Reviewed source step has no structured actions")
+    starts = [
+        row for row in candidates
+        if isinstance(row, Mapping) and row.get("kind") == "quest_start"
+    ]
+    passive = {"prepare_object", "optional_preparation", "optional_drop"}
+    if (len(starts) != 1
+            or any(not isinstance(row, Mapping)
+                   or row.get("kind") not in passive | {"quest_start"}
+                   for row in candidates)):
+        raise ValueError("Source step has ambiguous destinations or actions")
+    quest_id = starts[0].get("quest_id")
+    if (type(quest_id) is not int or quest_id <= 0
+            or action.quest_id != quest_id
+            or action.action_id != f"quest:{quest_id}:start"
+            or action.kind != "start"
+            or action.activates_quest is not True
+            or action.requires_active_quest is not False):
+        raise ValueError("Canonical quest start does not match source action")
+    observed = step.get("source_coordinates_mentioned")
+    location = action.location
+    if (not isinstance(observed, list) or len(observed) != 1
+            or not isinstance(observed[0], list) or len(observed[0]) != 2
+            or any(type(v) is not int for v in observed[0])
+            or type(location.map_id) is not int or location.map_id <= 0
+            or type(location.x) is not int or type(location.y) is not int
+            or -(2**31) in (location.x, location.y)
+            or abs(location.x) > 10000 or abs(location.y) > 10000
+            or observed[0] != [location.x, location.y]):
+        raise ValueError("Canonical map coordinates do not corroborate source")
+    return GuideTravelPlan(
+        TravelMode.DIRECT, location, tuple(participant_keys),
+        evidence=f"atlas:reviewed-quest-start:{quest_id}:map:{location.map_id}",
+    )
+
+
 def project_ganymede_continuous_plan(
     guides_dir: Path,
     audited_needs: Mapping[str, object],
@@ -74,6 +127,7 @@ def project_ganymede_continuous_plan(
     french_label_evidence: Mapping[str, object] | None = None,
     quest_provider: object | None = None,
     verified_stage_travel: Mapping[str, GuideTravelPlan] | None = None,
+    reviewed_start_action_bindings: Mapping[str, RouteAction] | None = None,
 ) -> dict[str, object]:
     """Join all signed source steps and audited needs without losing empty stages.
 
@@ -121,7 +175,14 @@ def project_ganymede_continuous_plan(
     ):
         raise ValueError("Manual progress must belong to a selected character")
     valid_ids = {step["id"] for step in steps}
+    start_bindings = (reviewed_start_action_bindings
+                      if reviewed_start_action_bindings is not None else {})
+    if (not isinstance(start_bindings, Mapping)
+            or any(step_id not in valid_ids for step_id in start_bindings)):
+        raise ValueError("Reviewed start binding refers to an unknown signed step")
     travel_by_step = verified_stage_travel if verified_stage_travel is not None else {}
+    if set(travel_by_step) & set(start_bindings):
+        raise ValueError("Ambiguous direct travel and reviewed start binding")
     if (not isinstance(travel_by_step, Mapping)
             or any(step_id not in valid_ids for step_id in travel_by_step)):
         raise ValueError("Verified travel must reference a signed source step")
@@ -290,6 +351,13 @@ def project_ganymede_continuous_plan(
             raise ValueError("Invalid observed Ganymède coordinates")
         title = title_for_ganymede_step(step["title"], number)
         travel = travel_by_step.get(sid)
+        if sid in start_bindings and pending:
+            if len(pending) != len(selected):
+                # Completed characters must not be dragged back to a stage
+                # needed by only a subset of the selected team.
+                travel = None
+            else:
+                travel = _reviewed_start_travel(step, start_bindings[sid], pending)
         if travel is not None:
             # This is a transient result from the canonical planner, not a
             # property read from (or written back into) the source JSON.
