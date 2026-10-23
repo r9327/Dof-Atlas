@@ -111,7 +111,9 @@ jobs:
         run: |
           git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ".\tools\doduda\doduda.exe" --headless --output "data/cache/dofus_maps/raw/doduda_cli" -i "images-.*"
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run one session for the union of selected scenarios
         run: python -X faulthandler -m tools.atlas_doctor_lib.doctor_ui_ci run --candidate-sha "$env:CANDIDATE_SHA"
