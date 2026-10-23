@@ -2,6 +2,9 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - .ai/scopes/
+  - .ai/context_index.json
+  - tests/test_phase_certification_guardrails.py
   - tools/agent.py
   - tools/agent_planner.py
   - tools/agent_graph.py

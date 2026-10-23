@@ -127,9 +127,12 @@ class RuntimeLocationTests(unittest.TestCase):
             target = Path(temp) / "OtherDisk" / "DofusAtlas" / "runtime"
             original_copytree = shutil.copytree
 
-            def corrupt_staged_copy(src, dst, **kwargs):
-                result = original_copytree(src, dst, **kwargs)
-                (Path(dst) / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe").write_bytes(b"MZ!CORRUPT")
+            def corrupt_staged_copy(src, dst, *args, **kwargs):
+                result = original_copytree(src, dst, *args, **kwargs)
+                if Path(src) == source:
+                    copied_executable = Path(dst) / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+                    copied_executable.write_bytes(b"MZ!CORRUPT!")
+                    self.assertEqual(copied_executable.stat().st_size, len(binary))
                 return result
 
             with (patch.object(loc, "APP_DATA", user),
