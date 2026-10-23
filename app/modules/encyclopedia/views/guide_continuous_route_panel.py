@@ -339,6 +339,23 @@ class ContinuousGuideRoutePanel(QWidget):
         self._verified_travel_plans = dict(plans)
         self.refresh()
 
+    def apply_projected_runtime_plan(self, projection: Mapping[str, object]) -> bool:
+        """Bind a matching #226 projection; clear stale commands on mismatch."""
+        valid = (
+            isinstance(projection, Mapping)
+            and projection.get("status") == "TRUSTED_SOURCE_STEPS_MANUAL_ONLY"
+            and projection.get("atlas_guide_id") == self.navigation.guide_id
+            and projection.get("source_payload_sha256") == self._source_payload_sha256
+            and projection.get("selected_character_keys")
+            == list(self.navigation.selected_character_keys)
+            and isinstance(projection.get("runtime_verified_travel_plans"), Mapping)
+        )
+        if not valid:
+            self.set_verified_travel_plans({})
+            return False
+        self.set_verified_travel_plans(projection["runtime_verified_travel_plans"])
+        return True
+
     def _current_verified_travel(self) -> tuple[str, tuple[str, ...]] | None:
         """Only an explicitly supplied runtime planner overlay may dispatch."""
         step_id = self.navigation.viewed_step_id

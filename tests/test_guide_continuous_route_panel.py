@@ -416,6 +416,74 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.addCleanup(panel.deleteLater)
         self.assertFalse(panel.travel_button.isEnabled())
 
+    def test_projected_planner_overlay_is_consumed_only_for_same_route_and_team(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        payload_sha = certified_payload_sha256(route)
+        plan = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 1, "y": 2},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": payload_sha,
+            "evidence": "atlas:verified-canonical-action",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        projection = {
+            "status": "TRUSTED_SOURCE_STEPS_MANUAL_ONLY",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_payload_sha256": payload_sha,
+            "selected_character_keys": ["character:1"],
+            "runtime_verified_travel_plans": {step_id: plan},
+        }
+        self.assertTrue(panel.apply_projected_runtime_plan(projection))
+        self.assertTrue(panel.travel_button.isEnabled())
+        events = []
+        panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
+        panel.travel_button.click()
+        self.assertEqual(events, [("/travel 1,2", ("character:1",))])
+        panel.set_characters(())
+        self.assertFalse(panel.travel_button.isEnabled())
+        # A projection for the previous selection invalidates/clears the overlay.
+        self.assertFalse(panel.apply_projected_runtime_plan(projection))
+        panel.set_characters(("character:1",))
+        self.assertFalse(panel.travel_button.isEnabled())
+
+    def test_projected_planner_rejects_changed_source_and_clears_old_commands(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        payload_sha = certified_payload_sha256(route)
+        plan = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 1, "y": 2},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": payload_sha,
+            "evidence": "atlas:verified-canonical-action",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        projection = {
+            "status": "TRUSTED_SOURCE_STEPS_MANUAL_ONLY",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_payload_sha256": payload_sha,
+            "selected_character_keys": ["character:1"],
+            "runtime_verified_travel_plans": {step_id: plan},
+        }
+        self.assertTrue(panel.apply_projected_runtime_plan(projection))
+        self.assertTrue(panel.travel_button.isEnabled())
+        bad = dict(projection, source_payload_sha256="0" * 64)
+        self.assertFalse(panel.apply_projected_runtime_plan(bad))
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertFalse(panel.apply_projected_runtime_plan({"status": "invalid"}))
+
     def test_runtime_travel_rejects_plan_for_stale_signed_guide(self):
         from copy import deepcopy
 
