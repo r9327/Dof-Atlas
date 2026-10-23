@@ -453,6 +453,48 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.set_characters(("character:1",))
         self.assertFalse(panel.travel_button.isEnabled())
 
+    def test_changing_team_invalidates_even_a_previously_matching_projection(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        payload_sha = certified_payload_sha256(route)
+        plan = {
+            "mode": "direct",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": payload_sha,
+            "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "evidence": "atlas:reviewed-start",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[
+                SimpleNamespace(key="character:1", connected=True),
+                SimpleNamespace(key="character:2", connected=True),
+            ],
+        )
+        self.addCleanup(panel.deleteLater)
+        projection = {
+            "status": "TRUSTED_SOURCE_STEPS_MANUAL_ONLY",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_payload_sha256": payload_sha,
+            "selected_character_keys": ["character:1"],
+            "runtime_verified_travel_plans": {step_id: plan},
+        }
+        self.assertTrue(panel.apply_projected_runtime_plan(projection))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.set_characters(("character:2",))
+        panel.set_characters(("character:1",))
+        self.assertFalse(panel.travel_button.isEnabled())
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append((command, keys)))
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
+        self.assertTrue(panel.apply_projected_runtime_plan(projection))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.set_characters(("character:1",))
+        self.assertTrue(panel.travel_button.isEnabled())
+
     def test_projected_planner_rejects_changed_source_and_clears_old_commands(self):
         route = _source_route()
         step_id = "ganymede_2205_step_0001"

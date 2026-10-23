@@ -278,7 +278,12 @@ class ContinuousGuideRoutePanel(QWidget):
         )
 
     def set_characters(self, character_keys: Iterable[str]) -> None:
+        previous = self.navigation.selected_character_keys
         self.navigation.select_characters(character_keys)
+        if self.navigation.selected_character_keys != previous:
+            # A previous action plan is scoped to the old participant
+            # selection, even if the user later selects the same team again.
+            self._verified_travel_plans.clear()
         self.refresh()
 
     def _character_toggled(self, character_key: str, checked: bool) -> None:
