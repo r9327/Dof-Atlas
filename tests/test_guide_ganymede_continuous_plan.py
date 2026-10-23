@@ -10,6 +10,7 @@ import unittest
 
 from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
     _reviewed_start_travel,
+    canonical_map_positions_from_doduda,
     project_ganymede_continuous_plan,
 )
 from app.modules.encyclopedia.services.adventure_route_engine import RouteAction, RouteLocation
@@ -144,6 +145,42 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
             self.build(reviewed_start_action_bindings={
                 "ganymede_2205_step_0001": action,
             })
+
+    def test_canonical_map_registry_uses_strict_doduda_id_and_coordinates(self):
+        raw_maps = {
+            123: {"id": 123, "posX": 5, "posY": -18},
+            124: {"id": 999, "posX": 5, "posY": -18},
+            125: {"id": 125, "posX": -(2**31), "posY": 2},
+            126: {"id": 126, "posX": True, "posY": 2},
+            127: {"id": 127, "posX": "5", "posY": -18},
+            128: {"id": 128, "posX": 10001, "posY": 2},
+        }
+        self.assertEqual(
+            canonical_map_positions_from_doduda(raw_maps, range(123, 130)),
+            {123: (5, -18)},
+        )
+        self.assertEqual(
+            canonical_map_positions_from_doduda(
+                raw_maps, (123, 123, 999),
+            ),
+            {123: (5, -18)},
+        )
+        for key in (0, -1, True, "123"):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                canonical_map_positions_from_doduda(raw_maps, (key,))
+
+    def test_empty_or_nonstring_travel_evidence_is_not_a_verified_plan(self):
+        for evidence in ("", None, "   "):
+            travel = GuideTravelPlan(
+                TravelMode.DIRECT, RouteLocation(x=5, y=-18),
+                ("character:1",), evidence=evidence,
+            )
+            with self.subTest(evidence=evidence), self.assertRaisesRegex(
+                ValueError, "Verified travel"
+            ):
+                self.build(verified_stage_travel={
+                    "ganymede_2205_step_0001": travel,
+                })
 
     def test_reviewed_bindings_refuse_reused_actions_and_empty_participants(self):
         action = self._canonical_quest_start()

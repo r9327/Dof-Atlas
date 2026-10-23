@@ -64,6 +64,36 @@ def _quest_link_by_id(
     }
 
 
+def canonical_map_positions_from_doduda(
+    raw_maps: Mapping[int, Mapping[str, object]],
+    map_ids: Iterable[int],
+) -> dict[int, tuple[int, int]]:
+    """Resolve only requested map IDs from the already-loaded Atlas snapshot.
+
+    AdventureRouteAdapter.raw_maps comes from Doduda maps_information.json.
+    Unavailable, malformed or sentinel map positions are deliberately omitted;
+    they can never become travel proof through this helper.
+    """
+    if not isinstance(raw_maps, Mapping):
+        raise ValueError("Canonical game map records must be a mapping")
+    result: dict[int, tuple[int, int]] = {}
+    for map_id in dict.fromkeys(map_ids):
+        if type(map_id) is not int or map_id <= 0:
+            raise ValueError("Canonical map IDs must be positive integers")
+        record = raw_maps.get(map_id)
+        if not isinstance(record, Mapping):
+            continue
+        if ("id" in record
+                and (type(record["id"]) is not int or record["id"] != map_id)):
+            continue
+        x, y = record.get("posX"), record.get("posY")
+        if (type(x) is int and type(y) is int
+                and -(2**31) not in (x, y)
+                and abs(x) <= 10000 and abs(y) <= 10000):
+            result[map_id] = (x, y)
+    return result
+
+
 def _reviewed_start_travel(
     step: Mapping[str, object],
     action: RouteAction,
@@ -212,6 +242,8 @@ def project_ganymede_continuous_plan(
     for step_id, travel in travel_by_step.items():
         if (not isinstance(travel, GuideTravelPlan)
                 or tuple(travel.participant_keys) != tuple(selected)
+                or not isinstance(travel.evidence, str)
+                or not travel.evidence.strip()
                 or travel.evidence == "exact_destination_coordinates"):
             raise ValueError("Verified travel needs an explicit scoped Atlas plan")
     marks: dict[str, frozenset[str]] = {}
@@ -444,4 +476,6 @@ def project_ganymede_continuous_plan(
     }
 
 
-__all__ = ["project_ganymede_continuous_plan"]
+__all__ = [
+    "canonical_map_positions_from_doduda", "project_ganymede_continuous_plan",
+]
