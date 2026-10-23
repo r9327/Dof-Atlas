@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -123,6 +124,48 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.close()
                     view.deleteLater()
                     self.app.processEvents()
+
+    def test_rich_guide_return_restores_canonical_lightweight_library(self):
+        """The detail view must never leave its legacy home after a return."""
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
+            DeferredAchievementGuidesView,
+        )
+        import inspect
+
+        # Genuine production signal: Guide card's back action -> GuidesView
+        # show_home -> Encyclopedia owner -> lightweight approved catalogue.
+        self.assertIn(
+            "self.catalogRequested.emit()",
+            inspect.getsource(DeferredAchievementGuidesView.show_home),
+        )
+        selected = []
+        catalog = SimpleNamespace(
+            _runtime_ready=False, hydrate_runtime=lambda **kw: selected.append(("hydrate", kw)),
+            set_search_text=lambda query: selected.append(("search", query)),
+        )
+        owner = SimpleNamespace(
+            guides_view=SimpleNamespace(search_text="cawotte"),
+            _guide_runtime_ready=True,
+            _quest_graph=None,
+            _guide_progress_by_guide={},
+            _guide_progress_character_key="",
+            sync_search_visibility=lambda: selected.append(("sync",)),
+            status_callback=lambda text: selected.append(("status", text)),
+        )
+
+        def ensure_catalog():
+            self.assertIsNone(owner.guides_view)
+            owner.guides_view = catalog
+            return catalog
+
+        owner.ensure_guides_view = ensure_catalog
+        EncyclopediaPage._restore_guides_catalog_home(owner)
+        self.assertIs(owner.guides_view, catalog)
+        self.assertEqual(selected[0][0], "hydrate")
+        self.assertIn(("search", "cawotte"), selected)
+        self.assertIn(("sync",), selected)
+
 
 
 if __name__ == "__main__":
