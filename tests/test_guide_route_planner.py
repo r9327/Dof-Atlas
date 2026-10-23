@@ -270,6 +270,39 @@ class GuideRoutePlannerTests(unittest.TestCase):
         self.assertEqual(capture.captures, (requirement,))
         self.assertIsNone(capture.captures[0].consumable_item_id)
 
+    def test_capture_kind_rejects_unknown_or_untyped_values(self) -> None:
+        for kind in (None, "unknown", "soul_stone"):
+            with self.subTest(kind=kind), self.assertRaisesRegex(ValueError, "capture kind"):
+                GuideCaptureRequirement(
+                    "capture:strict-kind", "quest:capture", kind,
+                    evidence="dataset:test",
+                )
+
+    def test_capture_quantity_requires_positive_integer(self) -> None:
+        for quantity in (True, 0, -1, 1.5, "3"):
+            with self.subTest(quantity=quantity), self.assertRaisesRegex(ValueError, "quantity"):
+                GuideCaptureRequirement(
+                    "capture:strict-quantity", "quest:capture", CaptureKind.ZONE_SPECIAL,
+                    quantity=quantity, evidence="dataset:test",
+                )
+
+    def test_soul_stone_requires_positive_exact_item_id(self) -> None:
+        for item_id in (True, 0, -3, 1.5, "500"):
+            with self.subTest(item_id=item_id), self.assertRaisesRegex(ValueError, "positive item id"):
+                GuideCaptureRequirement(
+                    "capture:strict-stone", "quest:capture", CaptureKind.SOUL_STONE,
+                    consumable_item_id=item_id, consumable_name="Pierre d'âme",
+                    evidence="dataset:test",
+                )
+
+    def test_capture_requires_explicit_evidence(self) -> None:
+        for evidence in ("", None, "  "):
+            with self.subTest(evidence=evidence), self.assertRaisesRegex(ValueError, "evidence"):
+                GuideCaptureRequirement(
+                    "capture:strict-evidence", "quest:capture", CaptureKind.DROP,
+                    evidence=evidence,
+                )
+
     def test_incomplete_stock_never_invents_a_missing_quantity(self) -> None:
         requirement = GuideCaptureRequirement(
             "capture:unknown-stock", "quest:capture", CaptureKind.SOUL_STONE,

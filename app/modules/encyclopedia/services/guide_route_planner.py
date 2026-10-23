@@ -185,16 +185,24 @@ class GuideCaptureRequirement:
     evidence: str = ""
 
     def __post_init__(self) -> None:
-        if not self.requirement_id.strip() or not self.action_id.strip():
+        if (not isinstance(self.requirement_id, str) or not self.requirement_id.strip()
+                or not isinstance(self.action_id, str) or not self.action_id.strip()):
             raise ValueError("capture requirement requires stable ids")
-        if self.quantity < 1 or not self.evidence.strip():
-            raise ValueError("capture requirement requires quantity and evidence")
+        if not isinstance(self.kind, CaptureKind):
+            raise ValueError("capture kind must be explicit and supported")
+        if type(self.quantity) is not int or self.quantity < 1:
+            raise ValueError("capture quantity must be a positive integer")
+        if not isinstance(self.evidence, str) or not self.evidence.strip():
+            raise ValueError("capture requirement requires evidence")
         if self.kind is CaptureKind.SOUL_STONE:
-            if self.consumable_item_id is None or not self.consumable_name.strip():
+            if (type(self.consumable_item_id) is not int
+                    or self.consumable_item_id <= 0
+                    or not isinstance(self.consumable_name, str)
+                    or not self.consumable_name.strip()):
                 raise ValueError(
-                    "soul-stone capture requires an explicit consumable id and name"
+                    "soul-stone capture requires a positive item id and name"
                 )
-        elif self.consumable_item_id is not None or self.consumable_name.strip():
+        elif self.consumable_item_id is not None or self.consumable_name:
             raise ValueError("only soul-stone capture may require a soul stone")
 
 
