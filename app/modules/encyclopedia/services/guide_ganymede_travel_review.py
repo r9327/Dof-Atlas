@@ -166,4 +166,58 @@ def review_signed_ganymede_start_candidates(
     }
 
 
-__all__ = ["review_signed_ganymede_start_candidates", "signed_source_start_ids"]
+def bind_explicitly_approved_starts(
+    guides_dir: Path,
+    atlas_guide_id: str,
+    canonical_actions: Iterable[RouteAction],
+    canonical_map_positions: Mapping[int, tuple[int, int]],
+    character_keys: Iterable[str],
+    approvals: Mapping[str, Mapping[str, object]],
+) -> dict[str, RouteAction]:
+    """Bind only individually approved, freshly rechecked signed source starts.
+
+    An audit candidate is never an approval. Before returning any typed
+    bindings, rerun the signed guide + canonical map checks, then require an
+    explicit decision naming the source payload SHA, action and map ID.
+    The caller still must pass the result to the manual-only planner; no
+    macro is dispatched by this function.
+    """
+    if not isinstance(approvals, Mapping):
+        raise ValueError("Explicit approvals must be a step-ID mapping")
+    actions = tuple(canonical_actions)
+    review = review_signed_ganymede_start_candidates(
+        guides_dir, atlas_guide_id, actions,
+        canonical_map_positions, character_keys,
+    )
+    by_id: dict[str, RouteAction] = {}
+    for action in actions:
+        if action.action_id in by_id:
+            raise ValueError("Duplicate canonical action ID in approval lookup")
+        by_id[action.action_id] = action
+    candidates = {row["source_step_id"]: row for row in review["entries"]}
+    approved: dict[str, RouteAction] = {}
+    for step_id, decision in approvals.items():
+        if not isinstance(step_id, str) or step_id not in candidates:
+            raise ValueError("Approval references an unknown signed source step")
+        row = candidates[step_id]
+        if row["status"] != "CANDIDATE_REQUIRES_APPROVAL":
+            raise ValueError("Blocked review candidate cannot be approved")
+        if (not isinstance(decision, Mapping)
+                or decision.get("approval_status") != "USER_APPROVED_EXACT_QUEST_MAP"
+                or decision.get("source_payload_sha256") != review["source_payload_sha256"]
+                or decision.get("canonical_action_id") != row["canonical_action_id"]
+                or type(decision.get("canonical_map_id")) is not int
+                or decision["canonical_map_id"] != row["canonical_map_id"]):
+            raise ValueError("Approval must pin exact source, action and map")
+        action = by_id.get(row["canonical_action_id"])
+        if action is None or action.location.map_id != row["canonical_map_id"]:
+            raise ValueError("Approved canonical action was changed")
+        approved[step_id] = action
+    return approved
+
+
+__all__ = [
+    "review_signed_ganymede_start_candidates",
+    "signed_source_start_ids",
+    "bind_explicitly_approved_starts",
+]

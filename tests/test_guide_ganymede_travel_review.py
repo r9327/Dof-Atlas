@@ -13,6 +13,7 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     certified_payload_sha256,
 )
 from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
+    bind_explicitly_approved_starts,
     review_signed_ganymede_start_candidates,
 )
 
@@ -77,6 +78,68 @@ class GanymedeTravelReviewTests(unittest.TestCase):
             self.assertEqual(row["status"], "CANDIDATE_REQUIRES_APPROVAL")
             self.assertEqual(report["verified_stage_travel"], {})
             self.assertFalse(report["ready_for_automatic_planning"])
+            # A candidate alone yields no executable binding. Each approval
+            # must pin this exact signed payload, canonical start and map.
+            action = start(845, 22, -10)
+            self.assertEqual(
+                bind_explicitly_approved_starts(
+                    root, "dofus_cawotte", (action,),
+                    {123: (22, -10)}, ("character:1",), {},
+                ), {},
+            )
+            approval = {
+                "approval_status": "USER_APPROVED_EXACT_QUEST_MAP",
+                "source_payload_sha256": report["source_payload_sha256"],
+                "canonical_action_id": "quest:845:start",
+                "canonical_map_id": 123,
+            }
+            self.assertEqual(
+                bind_explicitly_approved_starts(
+                    root, "dofus_cawotte", (action,),
+                    {123: (22, -10)}, ("character:1",),
+                    {step["id"]: approval},
+                ),
+                {step["id"]: action},
+            )
+            for corrupted in (
+                dict(approval, source_payload_sha256="0" * 64),
+                dict(approval, canonical_map_id=True),
+                dict(approval, canonical_action_id="quest:836:start"),
+                dict(approval, approval_status="CANDIDATE_REQUIRES_APPROVAL"),
+            ):
+                with self.subTest(corrupted=corrupted), self.assertRaisesRegex(
+                    ValueError, "Approval must pin",
+                ):
+                    bind_explicitly_approved_starts(
+                        root, "dofus_cawotte", (action,),
+                        {123: (22, -10)}, ("character:1",),
+                        {step["id"]: corrupted},
+                    )
+            with self.assertRaisesRegex(ValueError, "Blocked review candidate"):
+                bind_explicitly_approved_starts(
+                    GUIDES, "dofus_cawotte", (action,),
+                    {123: (22, -10)}, ("character:1",),
+                    {step["id"]: approval},
+                )
+            with self.assertRaisesRegex(ValueError, "unknown signed source"):
+                bind_explicitly_approved_starts(
+                    root, "dofus_cawotte", (action,),
+                    {123: (22, -10)}, ("character:1",),
+                    {"ganymede_999_step_9999": approval},
+                )
+            # Resealed test data was approved, but tampering after approval
+            # must invalidate the signed route before any binding is returned.
+            changed = json.loads((folder / "dofus_cawotte.json").read_text(encoding="utf-8"))
+            changed["sections"][0]["steps"][54]["title"] = "Changed after approval"
+            (folder / "dofus_cawotte.json").write_text(
+                json.dumps(changed, ensure_ascii=False), encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                bind_explicitly_approved_starts(
+                    root, "dofus_cawotte", (action,),
+                    {123: (22, -10)}, ("character:1",),
+                    {step["id"]: approval},
+                )
 
     def test_no_canonical_match_or_duplicate_matches_are_blocked(self):
         missing = self.review()
