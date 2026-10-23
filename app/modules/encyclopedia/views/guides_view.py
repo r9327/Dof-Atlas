@@ -1156,6 +1156,13 @@ class GuidesView(QWidget):
         self.link_service = LinkService(navigate_callback)
         self.launch_travel_callback = launch_travel_callback
         self.current_character_key = character_key or ""
+        from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE
+        from app.services.guide_participant_service import GuideParticipantService
+
+        self.guide_participant_service = GuideParticipantService(
+            profile_path=profile_path or PROFILE_FILE,
+            client_index_path=client_index_path or CLIENT_INDEX_JSON,
+        )
         self._continuous_route_panel = None
         self._continuous_selected_character_keys: tuple[str, ...] | None = None
         self._continuous_profile_path = profile_path
@@ -1707,19 +1714,10 @@ class GuidesView(QWidget):
         self.splitter.setSizes([0, 700, 0])
         keys = self._continuous_selected_character_keys
         if keys is None:
-            keys = ((self.current_character_key,)
-                    if is_character_key(self.current_character_key) else ())
-        from app.constants import (
-            CLIENT_INDEX_JSON, NETWORK_CHARACTER_BINDINGS_FILE, PROFILE_FILE,
-        )
-        from app.quest_catalog import load_quest_characters
-
-        characters = load_quest_characters(
-            profile_path=self._continuous_profile_path or PROFILE_FILE,
-            client_index_path=self._continuous_client_index_path or CLIENT_INDEX_JSON,
-            binding_path=NETWORK_CHARACTER_BINDINGS_FILE,
-            connected_only=False,
-        )
+            # Empty persistent selection is intentional: no implicit movement
+            # or progress validation just because an Organizer slot is active.
+            keys = self.guide_participant_service.selected_keys()
+        characters = self.guide_participant_service.available_characters()
         panel = ContinuousGuideRoutePanel(
             guide.raw, self.guide_progress_service, keys,
             available_characters=characters,
@@ -1731,7 +1729,10 @@ class GuidesView(QWidget):
         self.detail_header_done_button.setVisible(False)
 
     def _remember_continuous_characters(self, character_keys: tuple[str, ...]) -> None:
-        self._continuous_selected_character_keys = tuple(character_keys)
+        # Shared store with Organizer: stable identities persist across app
+        # restarts without coupling this source-only UI to active windows.
+        selected = self.guide_participant_service.save_selected_keys(character_keys)
+        self._continuous_selected_character_keys = tuple(selected)
 
     def set_continuous_route_characters(self, character_keys: Iterable[str]) -> bool:
         """Explicit multi-character choice used by the Guide's character picker."""
@@ -1739,7 +1740,7 @@ class GuidesView(QWidget):
             return False
         keys = tuple(character_keys)
         self._continuous_route_panel.set_characters(keys)
-        self._continuous_selected_character_keys = keys
+        self._remember_continuous_characters(keys)
         return True
 
     def show_quest_detail(self, quest_id: int, preserve_scroll: bool = False) -> bool:

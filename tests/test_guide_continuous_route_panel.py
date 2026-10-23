@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -154,6 +155,39 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual((two.progress_checked, two.progress_total), (1, 3))
         self.assertIsNone(extra.navigation.position().actual_step_id)
         self.assertEqual(extra.route_progress.value(), 0)
+
+    def test_picker_selection_survives_reopening_through_organizer_store(self):
+        from app.services.guide_participant_service import GuideParticipantService
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            profile = root / "profiles.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text("{}", encoding="utf-8")
+            clients.write_text('{"clients":[]}', encoding="utf-8")
+            bindings.write_text(json.dumps({"characters": {
+                "1": {"name": "Alpha", "source": "verified_network_identity"},
+                "2": {"name": "Beta", "source": "verified_network_identity"},
+            }}), encoding="utf-8")
+            service = GuideParticipantService(profile, clients, bindings)
+            panel = ContinuousGuideRoutePanel(
+                _source_route(), self.store, (),
+                available_characters=service.available_characters(),
+            )
+            self.addCleanup(panel.deleteLater)
+            panel.selectedCharactersChanged.connect(service.save_selected_keys)
+            panel._character_actions["character:2"].trigger()
+            fresh = GuideParticipantService(profile, clients, bindings)
+            self.assertEqual(fresh.selected_keys(), ("character:2",))
+            reopened = ContinuousGuideRoutePanel(
+                _source_route(), self.store, fresh.selected_keys(),
+                available_characters=fresh.available_characters(),
+            )
+            self.addCleanup(reopened.deleteLater)
+            self.assertTrue(reopened._character_actions["character:2"].isChecked())
+            self.assertEqual(reopened.navigation.position().completed_by_character,
+                             {"character:2": 0})
 
     def test_external_selection_updates_picker_without_false_signal(self):
         characters = [
