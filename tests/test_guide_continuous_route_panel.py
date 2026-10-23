@@ -15,6 +15,9 @@ from PySide6.QtWidgets import QApplication
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
 )
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    certified_payload_sha256,
+)
 from app.modules.encyclopedia.views.guide_continuous_route_panel import (
     ContinuousGuideRoutePanel,
 )
@@ -310,6 +313,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "source_step_id": step_id,
             "evidence": "canonical:contract-test",
         }
+        plan["source_payload_sha256"] = certified_payload_sha256(route)
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:1",),
             available_characters=[SimpleNamespace(key="character:1", connected=True)],
@@ -338,15 +342,15 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "atlas_guide_id": "dofus_cawotte",
             "source_step_id": "ganymede_2205_step_0001",
         }
+        plan = route["sections"][0]["steps"][0].pop("verified_travel_plan")
+        plan["source_payload_sha256"] = certified_payload_sha256(route)
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:2",),
             available_characters=[
                 SimpleNamespace(key="character:1", connected=True),
                 SimpleNamespace(key="character:2", connected=True),
             ],
-            verified_travel_plans={
-                "ganymede_2205_step_0001": route["sections"][0]["steps"][0]["verified_travel_plan"],
-            },
+            verified_travel_plans={"ganymede_2205_step_0001": plan},
         )
         self.addCleanup(panel.deleteLater)
         events = []
@@ -373,7 +377,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "atlas_guide_id": "dofus_cawotte",
             "source_step_id": "ganymede_2205_step_0001",
         }
-        route["sections"][0]["steps"][0]["verified_travel_plan"] = plan
+        plan["source_payload_sha256"] = certified_payload_sha256(route)
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:1", "character:2"),
             available_characters=[
@@ -411,6 +415,33 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(panel.deleteLater)
         self.assertFalse(panel.travel_button.isEnabled())
+
+    def test_runtime_travel_rejects_plan_for_stale_signed_guide(self):
+        from copy import deepcopy
+
+        original = _source_route()
+        route = deepcopy(original)
+        route["sections"][0]["steps"][0]["title"] = "New source edition"
+        step_id = "ganymede_2205_step_0001"
+        plan = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": certified_payload_sha256(original),
+            "evidence": "atlas:verified-objective",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            verified_travel_plans={step_id: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append((command, keys)))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
 
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())

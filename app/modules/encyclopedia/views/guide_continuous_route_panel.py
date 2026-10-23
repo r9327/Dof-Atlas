@@ -18,6 +18,9 @@ from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
 )
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    certified_payload_sha256,
+)
 from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
@@ -81,6 +84,9 @@ class ContinuousGuideRoutePanel(QWidget):
         self.route = route
         self.navigation = ContinuousGuideNavigation(route, progress, character_keys)
         self.rows = route["sections"][0]["steps"]
+        # A plan produced for a previous source edition must not send commands
+        # against today's steps, even when their stable step IDs were reused.
+        self._source_payload_sha256 = certified_payload_sha256(dict(route))
         # Runtime-only planner overlay. Never trust a similarly named field
         # inside Ganymède's imported/signed source JSON.
         self._verified_travel_plans = dict(verified_travel_plans or {})
@@ -345,7 +351,8 @@ class ContinuousGuideRoutePanel(QWidget):
         plan = self._verified_travel_plans.get(step_id)
         if (not isinstance(plan, Mapping)
                 or plan.get("atlas_guide_id") != self.navigation.guide_id
-                or plan.get("source_step_id") != step_id):
+                or plan.get("source_step_id") != step_id
+                or plan.get("source_payload_sha256") != self._source_payload_sha256):
             return None
         keys = plan.get("participant_keys")
         if (not isinstance(keys, (list, tuple))
