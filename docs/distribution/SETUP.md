@@ -175,3 +175,24 @@ Le job PR `Focused updater contracts` effectue aussi un **export réel non publi
 Le job ciblé **Focused updater + transfer contracts** construit un export temporaire sur le **HEAD exact de la PR** (et non sur un commit de fusion GitHub), exécute le certificat statique et vérifie les empreintes SHA-256 et les chemins. Son résultat se trouve dans le résumé GitHub Actions ; le JSON `atlas-app-transfer-<SHA>` est téléchargeable comme artefact de la CI.
 
 Il ne pousse rien vers le dépôt de distribution et ne contient **ni Doctor, ni Graphify**, seulement leurs principes de contrôle d'inventaire et de graphe. Une destination symbolique ou un SHA incohérent bloque explicitement la certification. Les contrôles Doctor/Graphify et la compilation Windows sont toujours séparés.
+
+## Choix du disque et vérification rapide
+
+Le `DofusAtlasSetup.exe` interactif propose de choisir le dossier des fichiers
+volumineux avant le premier téléchargement. Le petit lanceur et les profils
+restent dans LocalAppData, mais les archives téléchargées et les versions
+complètes sont stockées sur le disque choisi.
+
+Les installations antérieures sans `installation.json` voient une seule fois
+ce choix au lancement suivant. Pour changer de disque plus tard, relancer le
+Setup ou lancer `DofusAtlas.exe --atlas-configure`. Si une version existe
+déjà, elle est copiée vers le nouveau disque sans re-téléchargement. L'ancien
+dossier est préservé pour reprise en cas de problème : ne le supprimer
+manuellement qu'après validation du nouveau lancement et des modules.
+
+Au démarrage ordinaire, le lanceur consulte la dernière version et contrôle
+l'exécutable actif mais ne re-calcule plus tous les SHA-256 des fichiers
+installés lorsqu'aucune mise à jour n'est disponible. Les nouvelles versions
+et les fichiers différentiels restent intégralement vérifiés. Pour forcer
+une inspection complète/réparation depuis Windows :
+`DofusAtlas.exe --atlas-verify-install`.

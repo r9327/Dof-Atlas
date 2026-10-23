@@ -53,6 +53,8 @@ htmlcov/
 data/exports/
 data/raw/
 data/cache/
+# Public Craft seed rebuilt from the pinned Quest/Craft inputs during validation.
+/data/bootstrap/craft_seed.sqlite
 data/reports/
 data/archive/
 

@@ -2,8 +2,12 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - .gitignore
+  - tests/test_distribution_craft_seed.py
+  - .github/workflows/
   - .ai/scopes/
   - .ai/context_index.json
+  - tests/test_phase_certification_guardrails.py
   - tools/agent.py
   - tools/agent_planner.py
   - tools/agent_graph.py
