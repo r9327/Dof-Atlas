@@ -86,6 +86,9 @@ class GuideRouteNamingTests(unittest.TestCase):
         self.assertEqual(mismatched.text, "Étape 9 — Texte source")
         with self.assertRaises(ValueError):
             title_for_ganymede_step("Étape 1 — ", 1)
+        for title in ("Étape 1 —", "  Etape 1   —  ", "\t \n"):
+            with self.subTest(title=title), self.assertRaises(ValueError):
+                title_for_ganymede_step(title, 1)
 
     def test_duplicate_titles_are_explicit_review_findings(self) -> None:
         action = RouteAction("q1:start", 1, "Prendre — Une quête", "start")

@@ -114,12 +114,13 @@ def title_for_ganymede_step(title: str, number: int) -> GuideTitleDecision:
     """
     if type(number) is not int or number < 1 or not isinstance(title, str):
         raise ValueError("A source stage needs a numbered text title")
-    name = _clean(title)
-    prefixes = (f"Étape {number} — ", f"Etape {number} — ")
+    name = " ".join(title.split())
+    prefixes = (f"Étape {number} —", f"Etape {number} —")
     for prefix in prefixes:
-        if name.startswith(prefix):
-            name = _clean(name[len(prefix):])
+        if name == prefix or name.startswith(prefix + " "):
+            name = name[len(prefix):]
             break
+    name = _clean(name)
     if not name:
         raise ValueError("Empty signed source stage title")
     return GuideTitleDecision(name, "ganymede_signed_source")

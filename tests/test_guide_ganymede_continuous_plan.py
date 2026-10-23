@@ -374,6 +374,12 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         )
         self.assertFalse(any(
             row["character_key"] == "character:1"
+            and row["needed_at_source_step"] == 2
+            for row in after_mark["stages"][1]["preparation_rows"]
+        ))
+        self.assertTrue(any(
+            row["character_key"] == "character:1"
+            and row["needed_at_source_step"] == 34
             for row in after_mark["stages"][1]["preparation_rows"]
         ))
         self.assertTrue(any(

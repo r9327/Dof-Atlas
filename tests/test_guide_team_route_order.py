@@ -51,6 +51,34 @@ class GuideTeamGeographicOrderTests(unittest.TestCase):
         )
         self.assertEqual(ordered, ("required_first", "near_second"))
 
+    def test_coordinate_tiebreak_sums_only_action_participants(self):
+        engine = AdventureRouteEngine([
+            RouteAction("solo", 1, "Solo", "start", location=_loc(8)),
+            RouteAction("team", 2, "Team", "start", location=_loc(1)),
+        ])
+        graph = {key: set() for key in engine.by_id}
+        ordered = order_team_actions(
+            graph, dict.fromkeys(graph, 0),
+            {"solo": [(0, "character:1")],
+             "team": [(1, "character:1"), (1, "character:2")]},
+            engine, {"character:1": _loc(0), "character:2": _loc(0),
+                     "character:3": _loc(1000)},
+        )
+        self.assertEqual(ordered, ("team", "solo"))
+
+    def test_unknown_start_coordinates_preserve_source_order(self):
+        engine = AdventureRouteEngine([
+            RouteAction("far", 1, "Far", "start", location=_loc(60)),
+            RouteAction("near", 2, "Near", "start", location=_loc(1)),
+        ])
+        graph = {key: set() for key in engine.by_id}
+        ordered = order_team_actions(
+            graph, dict.fromkeys(graph, 0),
+            {"far": [(0, "character:1")], "near": [(1, "character:1")]},
+            engine, {"character:1": RouteLocation(zone="Amakna")},
+        )
+        self.assertEqual(ordered, ("far", "near"))
+
     def test_quest_start_kind_is_respected_even_without_activates_flag(self):
         engine = AdventureRouteEngine([
             RouteAction("start", 10, "Démarrer quête", "start", location=_loc(60)),

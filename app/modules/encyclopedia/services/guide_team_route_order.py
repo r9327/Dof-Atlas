@@ -7,6 +7,7 @@ verified transit path, route duration, distance or actual economy.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import hypot, inf
 from typing import Any
 
 
@@ -45,7 +46,7 @@ def order_team_actions(
                  if degree == 0}
     ordered: list[str] = []
 
-    def priority(action_id: str) -> tuple[float, int, str]:
+    def priority(action_id: str) -> tuple[float, float, int, str]:
         action = engine.by_id[action_id]
         score = sum(
             engine._movement_cost(
@@ -55,8 +56,22 @@ def order_team_actions(
             )
             for key in member_keys[action_id]
         )
+        # The engine deliberately rounds short same-zone trips to one cost.
+        # Break those ties with comparable coordinates before source order.
+        distance = 0.0
+        for key in member_keys[action_id]:
+            origin, destination = current[key], action.location
+            if (origin is None or not origin.zone_key
+                    or origin.zone_key != destination.zone_key
+                    or any(value is None for value in (
+                        origin.x, origin.y, destination.x, destination.y,
+                    ))):
+                distance = inf
+                break
+            distance += hypot(destination.x - origin.x, destination.y - origin.y)
         return (
             round(score, 7),
+            distance,
             min(index for index, _key in memberships[action_id]),
             action_id,
         )

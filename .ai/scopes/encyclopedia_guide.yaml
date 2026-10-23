@@ -2,6 +2,11 @@ schema_version: 1
 scope: encyclopedia_guide
 kind: feature
 working_set:
+  - app/modules/encyclopedia/services/guide_route_naming.py
+  - app/modules/encyclopedia/services/guide_team_route_order.py
+  - tests/test_guide_route_naming.py
+  - tests/test_guide_team_route_order.py
+  - tests/test_guide_ganymede_continuous_plan.py
   - app/modules/encyclopedia/views/guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py
   - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py

@@ -489,7 +489,13 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", source)
         self.assertIn("push:\n    branches:\n      - main", source)
         self.assertIn("pull_request:", source)
-        self.assertIn("synchronize", source)
+        pr_trigger = source.split("\n  pull_request:\n", 1)[1].split("\n\n", 1)[0]
+        event_types = pr_trigger.split("\n    types:\n", 1)[1]
+        self.assertEqual(
+            [line.strip() for line in event_types.splitlines() if line.strip()],
+            ["- ready_for_review"],
+            "Draft development must not rerun certification on every push",
+        )
         self.assertIn("github.event_name == 'push'", source)
         self.assertIn("github.event.before", source)
         self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
