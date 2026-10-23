@@ -539,6 +539,17 @@ jobs:
             --title "Dofus Atlas $tag" \
             --notes "Certified source r9327/Dof-Atlas@$SOURCE_SHA" \
             --latest
+      - name: Verify public release and remove superseded Atlas release versions
+        if: github.event_name == 'workflow_run'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+        run: |
+          # Never remove the prior working release unless the new public tag
+          # and all required assets have been published and verified.
+          python -m scripts.windows.prune_old_app_releases \
+            --source-sha "$SOURCE_SHA" \
+            --tag "sha-${SOURCE_SHA:0:12}"
 
   json-only-release:
     name: Certified JSON-only update without PyInstaller
@@ -678,3 +689,10 @@ jobs:
             --title "Dofus Atlas data $tag" \
             --notes "Certified JSON-only source r9327/Dof-Atlas@$SOURCE_SHA; executable reused" \
             --latest
+      - name: Verify public JSON release and remove superseded Atlas versions
+        if: github.event_name == 'workflow_run'
+        continue-on-error: true
+        run: |
+          python -m scripts.windows.prune_old_app_releases \
+            --source-sha "$SOURCE_SHA" \
+            --tag "sha-${SOURCE_SHA:0:12}"
