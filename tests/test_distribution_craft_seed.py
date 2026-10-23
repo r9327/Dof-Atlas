@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 from contextlib import closing
-from contextlib import closing
 import json
 import sqlite3
 import subprocess
@@ -34,8 +33,8 @@ class CraftFirstInstallTests(unittest.TestCase):
                  'scripts/windows/craft_seed.py',
                  'data/bootstrap/reviewed_input.json']
         result = subprocess.run(
-            ['git', 'check-ignore', '--no-index', '--stdin'], cwd=repo,
-            input='\n'.join(paths) + '\n', text=True, capture_output=True,
+            ['git', 'check-ignore', '--no-index', '--', *paths], cwd=repo,
+            text=True, capture_output=True,
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
