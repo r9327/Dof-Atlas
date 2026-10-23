@@ -854,17 +854,14 @@ class AtlasWindow(QMainWindow):
 
         self.apply_style()
         self.preload_popup = PreloadProgressPopup(self)
+        self.preload_popup.readyForMainWindow.connect(self._reveal_after_preload)
         self._schedule_owned_callback(0, self.start_startup_preload_sequence)
         self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)
         self.update_topmost_button()
         self.refresh_nav_selection("")
-        if self.topmost_enabled:
-            self._schedule_owned_callback(0, lambda: self.set_topmost(True))
-        self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
-        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
-            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
-        if EQUIPMENT_PRELOAD_DELAY_MS > 0:
-            self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
+        # Do not start the runtime/hooks/network while preload subprocesses
+        # are active. Overlapping initializers inflated the process-tree peak.
+        # These independent services start after the real UI becomes visible.
 
     def _schedule_owned_callback(self, delay_ms: int, callback: Callable[[], None]) -> None:
         timer = QTimer(self)
@@ -2094,6 +2091,24 @@ class AtlasWindow(QMainWindow):
         if popup is not None:
             popup.update_states(dict(self.preload_states))
 
+    def _reveal_after_preload(self) -> None:
+        """Only expose the main interface after every preload task is terminal."""
+        if not self.preload_finished:
+            return
+        self.show()
+        app = QApplication.instance()
+        if app is not None:
+            # Once the main window exists, normal close-to-quit semantics resume.
+            app.setQuitOnLastWindowClosed(True)
+        if self.topmost_enabled:
+            self.apply_topmost_state(True)
+        self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
+        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
+            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
+        if EQUIPMENT_PRELOAD_DELAY_MS > 0:
+            self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
+        LOGGER.info("[main] AtlasWindow shown after functional preload")
+
     def start_preload(
         self,
         target: str = "quests",
@@ -2641,6 +2656,9 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        # The only visible window during preload is a transient QDialog;
+        # hiding it must never quit Qt before revealing AtlasWindow.
+        app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
         app.setWindowIcon(atlas_application_icon())
         splash = None
@@ -2666,17 +2684,20 @@ def main() -> int:
             app.processEvents()
         app.setStyleSheet(atlas_stylesheet())
         initial_preload: dict[str, Any] = {}
-        LOGGER.info("[preload] initial quest load deferred until window is visible")
+        LOGGER.info("[preload] main window stays hidden until functional preload finishes")
         LOGGER.info("[main] creating AtlasWindow")
         window = AtlasWindow(initial_preload=initial_preload)
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
-        window.show()
-        LOGGER.info("[main] AtlasWindow shown visible=%s title=%r", window.isVisible(), window.windowTitle())
+        # Show only the standalone loading dialog. The normal Qt event loop
+        # continues to process workers and progress without displaying Home.
+        window.preload_popup.begin(dict(window.preload_states))
         from app.distribution.health import announce_ready
+        # The responsive preload dialog proves Qt is alive to the launcher.
+        # Waiting for all cache builders here would exceed its health timeout.
         QTimer.singleShot(0, announce_ready)
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
-            splash.finish(window)
+            splash.close()
         result = app.exec()
         LOGGER.info("[main] app.exec finished result=%s", result)
         return result

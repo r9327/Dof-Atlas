@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import re
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -272,8 +274,56 @@ def _latest_release_web() -> RemoteRelease:
                          launcher_url, delta_url, part_urls)
 
 
-def latest_release() -> RemoteRelease:
-    """Prefer GitHub API; fall back only when its network request fails."""
+def _current_launcher_matches_asset(doc: dict) -> bool:
+    """Do not skip a pending standalone-launcher self-update on Windows."""
+    if os.name != "nt" or not getattr(sys, "frozen", False):
+        return True
+    assets = doc.get("assets")
+    if not isinstance(assets, list):
+        return False
+    launcher = next(
+        (item for item in assets if isinstance(item, dict)
+         and item.get("name") == LAUNCHER_NAME), None
+    )
+    if not launcher:
+        return False
+    digest = launcher.get("digest")
+    size = launcher.get("size")
+    if (not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
+            or type(size) is not int):
+        return False
+    try:
+        local = Path(sys.executable)
+        if not local.is_file() or local.is_symlink() or local.stat().st_size != size:
+            return False
+        current = hashlib.sha256()
+        with local.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                current.update(block)
+        return current.hexdigest() == digest.removeprefix("sha256:")
+    except OSError:
+        return False
+
+
+def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease | None:
+    """Skip the large manifest when GitHub's stable release is already installed.
+
+    This advisory shortcut checks the official latest-release tag only. All
+    changed/unknown versions still pass through the full validated manifest.
+    """
+    if (isinstance(installed_source_sha, str)
+            and re.fullmatch(r"[a-f0-9]{40}", installed_source_sha)):
+        try:
+            doc = json.loads(_read_limited(API_URL, 1024 * 1024))
+            if (isinstance(doc, dict)
+                    and doc.get("draft") is False
+                    and doc.get("prerelease") is False
+                    and doc.get("tag_name") == f"sha-{installed_source_sha[:12]}"
+                    and _current_launcher_matches_asset(doc)):
+                return None
+        except (ValueError, TypeError, UpdateError, OSError, urllib.error.URLError):
+            # Invalid/unreachable metadata must never authorize an update skip.
+            pass
     try:
         return _latest_release_api()
     except UpdateError as api_failure:

@@ -149,6 +149,31 @@ def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest,
     return actual
 
 
+def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile) -> None:
+    """Copy one unchanged delta file and verify its SHA-256 in the same pass.
+
+    The old two-pass flow hashed the full source and then read it again for a
+    copy. We still verify every copied byte before the transaction commits.
+    """
+    try:
+        if (source.is_symlink() or not source.is_file()
+                or source.stat().st_size != entry.size):
+            raise UpdateError("Unchanged base file was modified or missing")
+        digest = hashlib.sha256()
+        copied = 0
+        with source.open("rb") as original, destination.open("xb") as output:
+            for block in iter(lambda: original.read(1024 * 1024), b""):
+                copied += len(block)
+                if copied > entry.size:
+                    raise UpdateError("Unchanged base file exceeded manifest size")
+                digest.update(block)
+                output.write(block)
+        if copied != entry.size or digest.hexdigest() != entry.sha256:
+            raise UpdateError("Unchanged base file was modified or missing")
+    except OSError as exc:
+        raise UpdateError("Unchanged base file cannot be copied safely") from exc
+
+
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     progress: Progress | None = None, *, delta: bool = False) -> bool:
     """Stage, verify every byte, then atomically activate the new version.
@@ -185,9 +210,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 if delta and entry.path not in entries:
                     old = slot_path(root, state["active"]) / entry.path
-                    if not verify_file(old, entry):
-                        raise UpdateError("Unchanged base file was modified or missing")
-                    shutil.copyfile(old, destination)
+                    _copy_unchanged_verified(old, destination, entry)
                     done += entry.size
                     if progress:
                         progress(done, total)
