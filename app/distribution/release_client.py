@@ -272,8 +272,24 @@ def _latest_release_web() -> RemoteRelease:
                          launcher_url, delta_url, part_urls)
 
 
-def latest_release() -> RemoteRelease:
-    """Prefer GitHub API; fall back only when its network request fails."""
+def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease | None:
+    """Skip the large manifest when GitHub's stable release is already installed.
+
+    This advisory shortcut checks the official latest-release tag only. All
+    changed/unknown versions still pass through the full validated manifest.
+    """
+    if (isinstance(installed_source_sha, str)
+            and re.fullmatch(r"[a-f0-9]{40}", installed_source_sha)):
+        try:
+            doc = json.loads(_read_limited(API_URL, 1024 * 1024))
+            if (isinstance(doc, dict)
+                    and doc.get("draft") is False
+                    and doc.get("prerelease") is False
+                    and doc.get("tag_name") == f"sha-{installed_source_sha[:12]}"):
+                return None
+        except (ValueError, TypeError, UpdateError, OSError, urllib.error.URLError):
+            # Invalid/unreachable metadata must never authorize an update skip.
+            pass
     try:
         return _latest_release_api()
     except UpdateError as api_failure:
