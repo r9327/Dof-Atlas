@@ -594,6 +594,46 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(emitted, [])
 
+    def test_manual_completion_invalidates_old_team_travel_immediately(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        keys = ("character:1", "character:2")
+        plan = {
+            "mode": "direct",
+            "participant_keys": list(keys),
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": certified_payload_sha256(route),
+            "evidence": "atlas:verified-canonical-action",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, keys,
+            available_characters=[
+                SimpleNamespace(key="character:1", connected=True),
+                SimpleNamespace(key="character:2", connected=True),
+            ],
+            verified_travel_plans={step_id: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        events = []
+        panel.travelRequested.connect(lambda command, characters: events.append((command, characters)))
+        self.assertTrue(panel.travel_button.isEnabled())
+        self.store.set_manual_step_completed(
+            "character:1", "dofus_cawotte", step_id, True,
+        )
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(events, [])
+        # Undoing the manual mark returns the already-verified plan to its
+        # original participant state; no synthetic quest completion is used.
+        self.store.set_manual_step_completed(
+            "character:1", "dofus_cawotte", step_id, False,
+        )
+        panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())
+
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())
         self.assertFalse(self.panel.actual_button.isEnabled())

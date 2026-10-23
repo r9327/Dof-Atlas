@@ -368,6 +368,14 @@ class ContinuousGuideRoutePanel(QWidget):
         registered = {row.key for row in self.available_characters}
         if not step_id or not selected or any(key not in registered for key in selected):
             return None
+        if any(
+            self.navigation.progress.is_manual_step_completed(
+                key, self.navigation.guide_id, step_id,
+            ) for key in selected
+        ):
+            # A projection computed before the participant checked this step
+            # must never move that participant again with the whole team.
+            return None
         # Source step dicts can contain arbitrary imported metadata. They must
         # never enable game input without an independently supplied runtime plan.
         plan = self._verified_travel_plans.get(step_id)
