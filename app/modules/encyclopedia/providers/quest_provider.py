@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from copy import deepcopy
+import logging
+import os
 from pathlib import Path
 from threading import Lock
 from weakref import ReferenceType, ref
 
 from app.constants import RAW_QUEST_DATA_DIR
 from app.quest_catalog import QuestCatalog, QuestRecord
+
+_LOGGER = logging.getLogger(__name__)
 
 _DEFAULT_DATA_DIR = RAW_QUEST_DATA_DIR.resolve()
 _SHARED_DEFAULT_CATALOG: ReferenceType[QuestCatalog] | None = None
@@ -42,6 +47,7 @@ class QuestProvider:
     ) -> None:
         self._catalog = catalog
         self.data_dir = data_dir
+        self._pack_guide_evidence: dict[int, dict[str, object]] | None = None
 
     def get_catalog(self) -> QuestCatalog:
         if self._catalog is None:
@@ -70,13 +76,35 @@ class QuestProvider:
         return self.get_catalog().by_id.get(int(quest_id))
 
     def guide_evidence(self, quest_id: int) -> dict[str, object]:
-        """Return compact Guide evidence without materializing rich Quest details."""
+        """Return accepted guide preparation facts, or the bundled catalogue.
 
-        getter = getattr(self.get_catalog(), "guide_evidence", None)
-        if not callable(getter):
-            return {}
-        payload = getter(int(quest_id))
-        return payload if isinstance(payload, dict) else {}
+        The optional pack is read once per provider on demand, never during
+        import/preload. Failed, pending and unfamiliar packs cannot overwrite
+        the canonical facts; the existing SQLite backed catalogue remains.
+        """
+        catalog = self.get_catalog()
+        getter = getattr(catalog, "guide_evidence", None)
+        baseline = getter(int(quest_id)) if callable(getter) else {}
+        if not isinstance(baseline, dict):
+            baseline = {}
+        if not _is_default_data_dir(self.data_dir):
+            return baseline
+        if self._pack_guide_evidence is None:
+            pack_root = os.environ.get("DOFUS_ATLAS_PACK_ROOT", "")
+            if not pack_root:
+                self._pack_guide_evidence = {}
+            else:
+                try:
+                    from app.distribution.quest_evidence_pack import load_accepted_quest_guide_evidence
+                    self._pack_guide_evidence = load_accepted_quest_guide_evidence(Path(pack_root))
+                except (OSError, ValueError) as exc:
+                    _LOGGER.warning("Pack de preparation des quetes ignore: %s", exc)
+                    self._pack_guide_evidence = {}
+        # A package must never introduce a quest without canonical catalogue ID.
+        if int(quest_id) not in catalog.by_id:
+            return baseline
+        supplied = self._pack_guide_evidence.get(int(quest_id))
+        return deepcopy(supplied) if supplied is not None else baseline
 
     def count(self) -> int:
         return len(self.list_quests())
