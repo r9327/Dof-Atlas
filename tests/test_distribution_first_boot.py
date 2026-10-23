@@ -17,7 +17,7 @@ from app.distribution.manifest import parse_manifest
 
 
 class FirstBootDiagnosticsTests(unittest.TestCase):
-    def test_current_release_repairs_missing_or_corrupt_resources_without_touching_user_data(self):
+    def test_explicit_integrity_check_repairs_corrupt_resources_without_touching_user_data(self):
         files = {"AtlasApp/AtlasApp.exe": b"MZ!",
                  "AtlasApp/_internal/data/quests.json": b"{}\n"}
         manifest = parse_manifest(json.dumps({
@@ -57,7 +57,7 @@ class FirstBootDiagnosticsTests(unittest.TestCase):
                     patch.object(launcher, "_launch_with_health", return_value=True),
                     patch.object(launcher, "schedule_launcher_upgrade"),
                 ):
-                    launcher.run_update(lambda *_: None)
+                    launcher.run_update(lambda *_: None, verify_installation=True)
                 self.assertEqual(download.call_count, int(damage != "healthy"))
                 self.assertEqual(resource.read_bytes(), b"{}\n")
                 self.assertEqual(marker.read_bytes(), b'{"personal":true}')
