@@ -1364,6 +1364,7 @@ class EncyclopediaPage(QWidget):
             defer_runtime=not self._guide_runtime_ready,
         )
         view.achievementRuntimeRequested.connect(self.request_achievement_warmup)
+        view.catalogRequested.connect(self._restore_guides_catalog_home)
         self.guides_view = view
         self.replace_tab_widget(GUIDES_TAB, view)
 
@@ -1380,6 +1381,29 @@ class EncyclopediaPage(QWidget):
             if callable(apply_runtime):
                 apply_runtime()
         return view
+
+    def _restore_guides_catalog_home(self) -> None:
+        """Show the single approved catalogue even after opening a rich guide.
+
+        The rich detail widget is disposable: rebuilding it only on another
+        explicit guide selection keeps the home path memory-bounded.
+        """
+        previous = self.guides_view
+        if previous is None or isinstance(previous, _resolve_guide_catalog_view_type()):
+            return
+        search_text = str(getattr(previous, "search_text", "") or "")
+        self.guides_view = None
+        catalog = self.ensure_guides_view()
+        if self._guide_runtime_ready and not getattr(catalog, "_runtime_ready", False):
+            catalog.hydrate_runtime(
+                graph=self._quest_graph,
+                initial_progress_by_guide=self._guide_progress_by_guide,
+                initial_progress_character_key=self._guide_progress_character_key,
+            )
+        if search_text:
+            catalog.set_search_text(search_text)
+        self.sync_search_visibility()
+        self.status_callback("Guides : bibliothèque des parcours")
 
     def open_pending_lazy_tab(self) -> None:
         label = str(self._pending_lazy_tab or "")
