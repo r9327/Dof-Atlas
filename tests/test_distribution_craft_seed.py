@@ -6,6 +6,7 @@ from contextlib import closing
 from contextlib import closing
 import json
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,6 +27,20 @@ def _source(rows):
 
 
 class CraftFirstInstallTests(unittest.TestCase):
+    def test_generated_seed_is_ignored_without_hiding_its_source_locks(self):
+        repo = Path(__file__).resolve().parents[1]
+        paths = [SEED.as_posix(), LOCK.as_posix(),
+                 'scripts/windows/quest_assets_lock.json',
+                 'scripts/windows/craft_seed.py',
+                 'data/bootstrap/reviewed_input.json']
+        result = subprocess.run(
+            ['git', 'check-ignore', '--no-index', '--stdin'], cwd=repo,
+            input='\n'.join(paths) + '\n', text=True, capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [SEED.as_posix()])
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
