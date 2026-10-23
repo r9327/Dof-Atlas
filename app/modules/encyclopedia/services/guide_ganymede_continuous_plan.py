@@ -296,6 +296,7 @@ def project_ganymede_continuous_plan(
             runtime_travel_plans[sid] = {
                 "atlas_guide_id": atlas_guide_id,
                 "source_step_id": sid,
+                "source_payload_sha256": record["payload_sha256"],
                 **travel.to_payload(),
             }
         stages.append({

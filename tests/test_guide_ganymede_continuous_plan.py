@@ -83,6 +83,10 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
         self.assertEqual(list(overlay), [first_id])
         self.assertEqual(overlay[first_id]["atlas_guide_id"], "dofus_cawotte")
         self.assertEqual(overlay[first_id]["source_step_id"], first_id)
+        self.assertEqual(
+            overlay[first_id]["source_payload_sha256"],
+            projected["source_payload_sha256"],
+        )
         self.assertEqual(overlay[first_id]["participant_keys"], ["character:1"])
         self.assertEqual(overlay[first_id]["destination"]["x"], 5)
         self.assertEqual(overlay[first_id]["destination"]["y"], -18)
