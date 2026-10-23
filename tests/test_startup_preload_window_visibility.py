@@ -70,7 +70,10 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
         self.assertIn("app.setQuitOnLastWindowClosed(True)", source)
         self.assertNotIn("window.show()", body)
         self.assertNotIn("splash.finish(window)", body)
-        self.assertIn("window.preload_popup.readyForMainWindow.connect(self._reveal_after_preload)", source)
+        self.assertIn(
+            "self.preload_popup.readyForMainWindow.connect(self._reveal_after_preload)",
+            source,
+        )
 
 
 if __name__ == "__main__":
