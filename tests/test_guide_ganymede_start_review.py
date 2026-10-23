@@ -45,6 +45,40 @@ class GanymedeStartReviewTests(unittest.TestCase):
         self.assertTrue(all(not row["travel_authorized"] for row in report["candidates"]))
         self.assertEqual(report["candidate_count"], len(report["candidates"]))
 
+    def test_review_apis_share_one_blocking_decision_engine(self):
+        from app.modules.encyclopedia.services.guide_ganymede_travel_review import (
+            review_signed_ganymede_start_candidates,
+        )
+
+        action = start_action(845, 22, -10)
+        older = self.review((action,))
+        core = review_signed_ganymede_start_candidates(
+            GUIDES, "dofus_cawotte", (action,), {123: (22, -10)},
+            ("character:1",),
+        )
+        self.assertEqual(
+            [row["source_step_id"] for row in older["candidates"]],
+            [row["source_step_id"] for row in core["entries"]],
+        )
+        self.assertEqual(older["source_payload_sha256"], core["source_payload_sha256"])
+        self.assertEqual(older["candidate_count"], len(core["entries"]))
+        self.assertEqual(older["corroborated_count"], core["candidate_count"])
+        for display, internal in zip(older["candidates"], core["entries"]):
+            self.assertEqual(display["source_step_number"],
+                             internal["source_step_number"])
+            self.assertEqual(display["source_observed_coordinates"],
+                             internal["source_observed_coordinates"])
+            self.assertEqual(display["source_quest_id"], internal["quest_id"])
+            self.assertEqual(display["canonical_action_id"],
+                             internal["canonical_action_id"])
+            self.assertFalse(display["travel_authorized"])
+            self.assertEqual(
+                display["status"] == "CORROBORATED_REVIEW_ONLY",
+                internal["status"] == "CANDIDATE_REQUIRES_APPROVAL",
+            )
+        self.assertEqual(older["runtime_verified_travel_plans"], {})
+        self.assertEqual(core["verified_stage_travel"], {})
+
     def test_missing_duplicate_or_untyped_actions_and_users_fail_closed(self):
         self.assertEqual(self.review()["corroborated_count"], 0)
         action = start_action(845, 22, -10)

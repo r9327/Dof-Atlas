@@ -107,6 +107,8 @@ def review_signed_ganymede_start_candidates(
                     reason = "Exact quest, single source action and Atlas map agree"
         entries.append({
             "source_step_id": step["id"],
+            "source_step_number": step["source_step_number"],
+            "source_observed_coordinates": step["source_coordinates_mentioned"],
             "quest_id": quest_id,
             "canonical_action_id": action_id,
             "canonical_map_id": map_id,
