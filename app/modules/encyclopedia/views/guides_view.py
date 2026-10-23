@@ -1163,13 +1163,6 @@ class GuidesView(QWidget):
             client_index_path=client_index_path or CLIENT_INDEX_JSON,
         )
         self.current_character_key = character_key or ""
-        from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE
-        from app.services.guide_participant_service import GuideParticipantService
-
-        self.guide_participant_service = GuideParticipantService(
-            profile_path=profile_path or PROFILE_FILE,
-            client_index_path=client_index_path or CLIENT_INDEX_JSON,
-        )
         self._continuous_route_panel = None
         self._continuous_selected_character_keys: tuple[str, ...] | None = None
         self._continuous_profile_path = profile_path
