@@ -234,7 +234,6 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        nav.addWidget(self.travel_button)
         self.validate_button = self._button("✓", "GuideContinuousValidate")
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
@@ -242,6 +241,9 @@ class ContinuousGuideRoutePanel(QWidget):
         self.validate_button.clicked.connect(self.toggle_manual_current)
         nav.addWidget(self.validate_button)
         detail.addLayout(nav)
+        # The four navigation controls stay in one compact row; the travel
+        # action has its own width so it cannot squeeze or overlap them.
+        detail.addWidget(self.travel_button)
         work.addWidget(content, 3)
         layout.addLayout(work, 1)
         self.navigation.show_actual()
