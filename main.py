@@ -859,13 +859,9 @@ class AtlasWindow(QMainWindow):
         self._schedule_owned_callback(POST_RENDER_TRAY_DELAY_MS, self.setup_tray)
         self.update_topmost_button()
         self.refresh_nav_selection("")
-        # Restoring topmost before preload finishes could reveal Atlas behind
-        # the loading dialog (and on non-Windows backends calls show()).
-        self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
-        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
-            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
-        if EQUIPMENT_PRELOAD_DELAY_MS > 0:
-            self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
+        # Do not start the runtime/hooks/network while preload subprocesses
+        # are active. Overlapping initializers inflated the process-tree peak.
+        # These independent services start after the real UI becomes visible.
 
     def _schedule_owned_callback(self, delay_ms: int, callback: Callable[[], None]) -> None:
         timer = QTimer(self)
@@ -2102,6 +2098,11 @@ class AtlasWindow(QMainWindow):
         self.show()
         if self.topmost_enabled:
             self.apply_topmost_state(True)
+        self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
+        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
+            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
+        if EQUIPMENT_PRELOAD_DELAY_MS > 0:
+            self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
         LOGGER.info("[main] AtlasWindow shown after functional preload")
 
     def start_preload(
