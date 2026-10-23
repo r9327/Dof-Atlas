@@ -250,9 +250,10 @@ jobs:
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
           }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*" 2>&1 | Tee-Object -FilePath $log -Append
-          $dodudaExitCode = $LASTEXITCODE
-          if ($dodudaExitCode -ne 0) { exit $dodudaExitCode }
+          python -m scripts.windows.quest_assets --download 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download 2>&1 | Tee-Object -FilePath $log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           @'
           from app.quest_catalog import QuestCatalog
           catalog = QuestCatalog.load()
@@ -440,7 +441,9 @@ jobs:
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
           }
-          & ".\tools\doduda\doduda.exe" --headless --output $catalog -i "images-.*"
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           @'
           from app.quest_catalog import QuestCatalog

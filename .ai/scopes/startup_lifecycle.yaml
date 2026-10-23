@@ -2,6 +2,7 @@ schema_version: 1
 scope: startup_lifecycle
 kind: shared_infrastructure
 working_set:
+  - tests/test_distribution_install_location.py
   - launch.py
   - main.py
   - app/preload.py

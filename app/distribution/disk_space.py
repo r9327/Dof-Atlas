@@ -58,5 +58,5 @@ def ensure_space(manifest: ReleaseManifest, root: Path, *,
         raise UpdateError(
             "Espace disque insuffisant pour installer Atlas : "
             f"{free / gb:.1f} Go libres, {needed / gb:.1f} Go necessaires. "
-            "Liberez de la place sur le disque Windows et relancez."
+            "Liberez de la place sur le disque d\'installation choisi et relancez."
         )
