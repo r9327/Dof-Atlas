@@ -259,11 +259,16 @@ def schedule_success_passes(
 ) -> tuple[tuple[int, ...], ...]:
     """Partition successes into deterministic compatible dungeon passes."""
 
-    nodes = tuple(sorted(set(int(value) for value in success_ids)))
+    supplied_ids = tuple(success_ids)
+    if any(type(value) is not int or value <= 0 for value in supplied_ids):
+        raise ValueError("success IDs must be positive canonical integers")
+    nodes = tuple(sorted(set(supplied_ids)))
     node_set = set(nodes)
     incompatible: dict[int, set[int]] = defaultdict(set)
     for left, right in incompatible_pairs:
-        left, right = int(left), int(right)
+        if (type(left) is not int or left <= 0
+                or type(right) is not int or right <= 0):
+            raise ValueError("incompatible success IDs must be positive canonical integers")
         if left == right or left not in node_set or right not in node_set:
             continue
         incompatible[left].add(right)

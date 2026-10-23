@@ -470,6 +470,19 @@ class GuideRoutePlannerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             GuideParticipantState("slot:1")
 
+    def test_dungeon_passes_reject_noncanonical_success_ids(self) -> None:
+        for ids in ((True, 2), (1.5, 2), ("3",), (0,), (-2,)):
+            with self.subTest(ids=ids):
+                with self.assertRaisesRegex(ValueError, "success IDs"):
+                    schedule_success_passes(ids, ())
+        for pair in ((True, 2), (1.5, 2), ("2", 3), (0, 2)):
+            with self.subTest(pair=pair):
+                with self.assertRaisesRegex(ValueError, "incompatible success IDs"):
+                    schedule_success_passes((2, 3), (pair,))
+        # A global incompatibility table may list successes not selected for
+        # this run. Those unrelated (but valid) IDs remain safely ignored.
+        self.assertEqual(schedule_success_passes((2, 3), ((2, 4),)), ((2, 3),))
+
     def test_incompatible_successes_are_split_deterministically(self) -> None:
         self.assertEqual(
             schedule_success_passes([3, 1, 2], [(1, 2)]),
