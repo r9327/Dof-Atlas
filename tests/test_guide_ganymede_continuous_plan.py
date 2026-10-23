@@ -122,6 +122,24 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
             with self.subTest(source=source, action=candidate), self.assertRaises(ValueError):
                 _reviewed_start_travel(source, candidate, ["character:1"])
 
+    def test_reviewed_bindings_refuse_reused_actions_and_empty_participants(self):
+        action = self._canonical_quest_start()
+        with self.assertRaisesRegex(ValueError, "multiple source steps"):
+            self.build(reviewed_start_action_bindings={
+                "ganymede_2205_step_0001": action,
+                "ganymede_2205_step_0002": action,
+            })
+        with self.assertRaisesRegex(ValueError, "explicit participants"):
+            self.build(characters=(), reviewed_start_action_bindings={
+                "ganymede_2205_step_0001": action,
+            })
+        with self.assertRaisesRegex(ValueError, "canonical RouteAction"):
+            self.build(reviewed_start_action_bindings={
+                "ganymede_2205_step_0001": {"action_id": "quest:835:start"},
+            })
+        with self.assertRaisesRegex(ValueError, "Verified travel"):
+            self.build(verified_stage_travel=42)
+
     def test_reviewed_start_never_infers_from_real_unreviewed_cawotte_step(self):
         # Stage 55 has an interaction and a quest start; the observed map
         # alone cannot prove which action is the destination.

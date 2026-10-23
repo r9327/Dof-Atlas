@@ -180,12 +180,19 @@ def project_ganymede_continuous_plan(
     if (not isinstance(start_bindings, Mapping)
             or any(step_id not in valid_ids for step_id in start_bindings)):
         raise ValueError("Reviewed start binding refers to an unknown signed step")
+    if start_bindings and not selected:
+        raise ValueError("Reviewed start bindings need explicit participants")
+    if any(not isinstance(action, RouteAction) for action in start_bindings.values()):
+        raise ValueError("Reviewed binding must be a canonical RouteAction")
+    action_ids = [action.action_id for action in start_bindings.values()]
+    if len(action_ids) != len(set(action_ids)):
+        raise ValueError("One canonical start action cannot bind multiple source steps")
     travel_by_step = verified_stage_travel if verified_stage_travel is not None else {}
-    if set(travel_by_step) & set(start_bindings):
-        raise ValueError("Ambiguous direct travel and reviewed start binding")
     if (not isinstance(travel_by_step, Mapping)
             or any(step_id not in valid_ids for step_id in travel_by_step)):
         raise ValueError("Verified travel must reference a signed source step")
+    if set(travel_by_step) & set(start_bindings):
+        raise ValueError("Ambiguous direct travel and reviewed start binding")
     # Do not turn an unbound or stale planner export into a source route command.
     for step_id, travel in travel_by_step.items():
         if (not isinstance(travel, GuideTravelPlan)
