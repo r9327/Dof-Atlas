@@ -59,6 +59,10 @@ def build_report(
     adapter = GuideUltimeRouteAdapter(
         catalog, SimpleNamespace(quest_ids=ids), raw_data_dir=raw_data_dir,
     )
+    if not adapter.raw_quests or not adapter.raw_maps:
+        raise FileNotFoundError(
+            "Canonical Doduda quest/map snapshot unavailable for review"
+        )
     canonical = adapter.build()
     map_ids = tuple(
         action.location.map_id

@@ -153,6 +153,15 @@ class GanymedeTravelReviewTests(unittest.TestCase):
                     root, "dofus_cawotte", (), {}, ("character:1",),
                 )
 
+    def test_travel_cli_refuses_missing_canonical_doduda_snapshot(self):
+        from tools.audit_ganymede_travel_candidates import build_report
+
+        with TemporaryDirectory(prefix="atlas-missing-map-snapshot-") as tmp:
+            with self.assertRaises((FileNotFoundError, ValueError, OSError)):
+                build_report(
+                    GUIDES, "dofus_cawotte", ("character:1",), Path(tmp),
+                )
+
     def test_invalid_participants_and_untyped_actions_fail_closed(self):
         with self.assertRaises(ValueError):
             review_signed_ganymede_start_candidates(

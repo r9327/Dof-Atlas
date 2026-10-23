@@ -8,7 +8,7 @@ from unittest.mock import patch
 import unittest
 
 from tools.audit_ganymede_start_correspondences import (
-    GUIDES, main, signed_source_quest_ids,
+    GUIDES, GuideUltimeRouteAdapter, main, signed_source_quest_ids,
 )
 
 
@@ -20,6 +20,18 @@ class GanymedeStartReviewCliTests(unittest.TestCase):
         self.assertIn(845, ids)
         with self.assertRaisesRegex(ValueError, "Untrusted signed guide"):
             signed_source_quest_ids(GUIDES, ("not_a_real_guide",))
+
+    def test_start_review_adapter_rejects_missing_game_map_coordinates(self):
+        # Both read-only CLIs now share this sentinel-aware adapter.
+        adapter = GuideUltimeRouteAdapter.__new__(GuideUltimeRouteAdapter)
+        adapter.raw_maps = {
+            123: {"id": 123, "posX": -(2**31), "posY": -18},
+            124: {"id": 124, "posX": 5, "posY": -18},
+        }
+        unavailable = adapter._location_from_map(123, None, zone="")
+        self.assertIsNone(unavailable.x)
+        self.assertIsNone(unavailable.y)
+        self.assertEqual(adapter._location_from_map(124, None, zone="").x, 5)
 
     def test_cli_writes_only_explicit_review_output(self):
         example = {

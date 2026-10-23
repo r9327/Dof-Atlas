@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
-from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
+from app.modules.encyclopedia.services.guide_ultime_route_adapter import GuideUltimeRouteAdapter
 from app.modules.encyclopedia.services.guide_ganymede_continuous_plan import (
     canonical_map_positions_from_doduda,
 )
@@ -74,7 +74,9 @@ def build_review_report(
     quest_ids = signed_source_quest_ids(guides_dir, selected)
     provider = QuestProvider(data_dir=raw_data_dir)
     catalog = provider.get_catalog()
-    adapter = AdventureRouteAdapter(
+    # Use the player-safe, sentinel-aware canonical adapter shared with the
+    # other Ganymède audit CLI; a mapId=0 is not a location.
+    adapter = GuideUltimeRouteAdapter(
         catalog, SimpleNamespace(quest_ids=quest_ids), raw_data_dir=raw_data_dir,
     )
     # A missing local Doduda snapshot is a hard failure, not a zero-match
