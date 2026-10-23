@@ -972,10 +972,23 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         other = open_guide(page, owner, other_id)
         returned = open_guide(page, owner, guide_id)
         other_visible = isValid(other) and other.isVisible()
+        # The Guide Succès runtime uses the canonical GuideUltimeManualRuntimeService,
+        # which intentionally has no `guide_id` field. Verify its actual
+        # service type, and independently check the active Encyclopedia owner.
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+        service_guide_id = getattr(returned.service, "guide_id", None)
+        if service_guide_id is None and isinstance(
+            returned.service, GuideUltimeManualRuntimeService
+        ):
+            service_guide_id = "guide_complet"
+        owner_guide_id = getattr(page.guides_view, "current_guide_id", None)
         session.check("guide-return", "Change guide then return", "Correct renderer visible; other guide hidden",
-                      {"current_guide": returned.service.guide_id,
+                      {"current_guide": service_guide_id, "owner_guide": owner_guide_id,
                        "other_alive": isValid(other), "other_visible": other_visible},
-                      returned.service.guide_id == guide_id and not other_visible, page)
+                      service_guide_id == guide_id and owner_guide_id == guide_id
+                      and not other_visible, page)
         view = returned
     else:
         view = reopened
