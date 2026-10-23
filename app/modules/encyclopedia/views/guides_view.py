@@ -151,7 +151,7 @@ def item_row(*args, **kwargs):
 
 
 Navigator = Callable[..., bool]
-TravelLauncher = Callable[[str], None]
+TravelLauncher = Callable[[str, tuple[str, ...]], None]
 LOGGER = logging.getLogger("dofus_atlas.encyclopedia.images")
 
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
@@ -1727,6 +1727,10 @@ class GuidesView(QWidget):
             available_characters=characters,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
+        if self.launch_travel_callback is not None:
+            # Main/Encyclopedia already pass the explicit-target Organizer callback.
+            # Never send raw source coordinates or silently select all windows.
+            panel.travelRequested.connect(self.launch_travel_callback)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)

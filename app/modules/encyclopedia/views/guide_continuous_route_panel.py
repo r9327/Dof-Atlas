@@ -64,6 +64,7 @@ class _GuideCharacterProgressButton(QToolButton):
 
 class ContinuousGuideRoutePanel(QWidget):
     selectedCharactersChanged = Signal(tuple)
+    travelRequested = Signal(str, tuple)
 
     def __init__(
         self,
@@ -228,6 +229,12 @@ class ContinuousGuideRoutePanel(QWidget):
         self.actual_button = self._button("Actuelle", "GuideContinuousActual")
         self.actual_button.clicked.connect(self.show_actual)
         nav.addWidget(self.actual_button)
+        self.travel_button = self._button("Aller à l'étape", "GuideContinuousTravel")
+        self.travel_button.clicked.connect(self.request_current_travel)
+        self.travel_button.setToolTip(
+            "Déplacement indisponible sans trajet vérifié et participants identifiés"
+        )
+        nav.addWidget(self.travel_button)
         self.validate_button = self._button("✓", "GuideContinuousValidate")
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
@@ -301,6 +308,57 @@ class ContinuousGuideRoutePanel(QWidget):
         self.navigation.mark_manual_step(step_id, not all_done)
         self.refresh()
 
+    @staticmethod
+    def _exact_coordinates(value: object) -> tuple[int, int] | None:
+        if not isinstance(value, Mapping):
+            return None
+        x, y = value.get("x"), value.get("y")
+        if (type(x) is not int or type(y) is not int
+                or -(2**31) in (x, y)):
+            return None
+        return x, y
+
+    def _current_verified_travel(self) -> tuple[str, tuple[str, ...]] | None:
+        """Accept only a planner-produced step plan, never Ganymède location hints."""
+        step_id = self.navigation.viewed_step_id
+        selected = self.navigation.selected_character_keys
+        registered = {row.key for row in self.available_characters}
+        if not step_id or not selected or any(key not in registered for key in selected):
+            return None
+        step = self.rows[self.navigation.step_ids.index(step_id)]
+        plan = step.get("verified_travel_plan")
+        if not isinstance(plan, Mapping):
+            return None
+        keys = plan.get("participant_keys")
+        if (not isinstance(keys, (list, tuple))
+                or tuple(keys) != selected):
+            # A stale plan for a different selection must never be broadcast.
+            return None
+        if not isinstance(plan.get("evidence"), str) or not plan["evidence"].strip():
+            return None
+        destination = self._exact_coordinates(plan.get("destination"))
+        if destination is None:
+            return None
+        command = f"/travel {destination[0]},{destination[1]}"
+        mode = plan.get("mode")
+        if mode == "direct":
+            if plan.get("zaap") is not None:
+                return None
+        elif mode == "zaap_then_travel":
+            zaap = self._exact_coordinates(plan.get("zaap"))
+            if (zaap is None or not isinstance(plan.get("world"), str)
+                    or not plan["world"].strip()):
+                return None
+            command = f"/zaap {zaap[0]},{zaap[1]} ; {command}"
+        else:
+            return None
+        return command, selected
+
+    def request_current_travel(self) -> None:
+        request = self._current_verified_travel()
+        if request is not None:
+            self.travelRequested.emit(*request)
+
     def refresh(self) -> None:
         position = self.navigation.position()
         total_checks = position.total_steps * len(position.selected_character_keys)
@@ -336,6 +394,8 @@ class ContinuousGuideRoutePanel(QWidget):
             current is not None and bool(position.selected_character_keys)
         )
         self.validate_button.setVisible(current is not None)
+        travel = self._current_verified_travel()
+        self.travel_button.setEnabled(travel is not None)
         if current is None:
             self.title_label.setText("Aucune fiche sélectionnée")
             self.body_label.setText(

@@ -260,6 +260,99 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(self.panel.route_progress.value(), 0)
         self.assertIn("aucun personnage", self.panel.route_progress.format())
 
+    def test_travel_remains_disabled_for_unverified_source_coordinates(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_coordinates_mentioned"] = [[5, -18]]
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        events = []
+        panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(events, [])
+
+    def test_verified_direct_travel_emits_only_selected_registered_character(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["verified_travel_plan"] = {
+            "mode": "direct", "participant_keys": ["character:2"],
+            "destination": {"x": 5, "y": -18},
+            "evidence": "canonical:verified-coordinates",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:2",),
+            available_characters=[
+                SimpleNamespace(key="character:1", connected=True),
+                SimpleNamespace(key="character:2", connected=True),
+            ],
+        )
+        self.addCleanup(panel.deleteLater)
+        events = []
+        panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.travel_button.click()
+        self.assertEqual(events, [("/travel 5,-18", ("character:2",))])
+        panel.set_characters(("character:1",))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(events), 1)
+
+    def test_zaap_plan_requires_complete_verified_coordinates_and_exact_members(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        plan = {
+            "mode": "zaap_then_travel",
+            "participant_keys": ["character:1", "character:2"],
+            "destination": {"x": 5, "y": -18},
+            "zaap": {"x": -32, "y": -56},
+            "world": "Monde des Douze",
+            "evidence": "canonical:verified-route",
+        }
+        route["sections"][0]["steps"][0]["verified_travel_plan"] = plan
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1", "character:2"),
+            available_characters=[
+                SimpleNamespace(key="character:1", connected=True),
+                SimpleNamespace(key="character:2", connected=False),
+            ],
+        )
+        self.addCleanup(panel.deleteLater)
+        events = []
+        panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.travel_button.click()
+        self.assertEqual(events, [
+            ("/zaap -32,-56 ; /travel 5,-18", ("character:1", "character:2")),
+        ])
+        plan["destination"]["x"] = -(2**31)
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(events), 1)
+
+    def test_travel_refuses_unregistered_keys_even_with_matching_plan(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["verified_travel_plan"] = {
+            "mode": "direct", "participant_keys": ["character:999"],
+            "destination": {"x": 1, "y": 2},
+            "evidence": "canonical:test",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:999",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+        )
+        self.addCleanup(panel.deleteLater)
+        self.assertFalse(panel.travel_button.isEnabled())
+
     def test_no_characters_block_manual_completion(self):
         self.panel.set_characters(())
         self.assertFalse(self.panel.actual_button.isEnabled())
