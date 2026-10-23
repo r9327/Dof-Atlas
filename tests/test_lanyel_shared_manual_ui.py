@@ -285,6 +285,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     "GuideManualGuideButton",
                     "GuideManualProgress",
                     "GuideManualPercent",
+                    "GuideParticipantsButton",
                     "GuideManualProgressLock",
                     "GuideManualNavPage",
                 ],

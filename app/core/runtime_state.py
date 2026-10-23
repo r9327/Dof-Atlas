@@ -460,6 +460,10 @@ class AtlasRuntime:
         self.settings = load_settings()
         self.travel.run_async(text)
 
+    def launch_guide_travel(self, text: str, character_keys) -> None:
+        self.settings = load_settings()
+        self.travel.run_async(text, tuple(character_keys or ()))
+
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
         self.settings = load_settings()
         self.zaap.run_async(text, click_position=click_position, click_ratios=click_ratios)

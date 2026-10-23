@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
-from app.constants import QUEST_PROGRESS_FILE
+from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
@@ -1156,14 +1156,13 @@ class GuidesView(QWidget):
         self.quest_progress_service = QuestProgressService(quest_progress_path)
         self.link_service = LinkService(navigate_callback)
         self.launch_travel_callback = launch_travel_callback
-        self.current_character_key = character_key or ""
-        from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE
         from app.services.guide_participant_service import GuideParticipantService
 
         self.guide_participant_service = GuideParticipantService(
             profile_path=profile_path or PROFILE_FILE,
             client_index_path=client_index_path or CLIENT_INDEX_JSON,
         )
+        self.current_character_key = character_key or ""
         self._continuous_route_panel = None
         self._continuous_selected_character_keys: tuple[str, ...] | None = None
         self._continuous_profile_path = profile_path
@@ -3373,6 +3372,8 @@ class GuidesView(QWidget):
             character_key=self.current_character_key,
             quest_provider=self.quest_provider,
             quest_graph=getattr(self, "graph", None),
+            travel_callback=self.launch_travel_callback,
+            participant_service=self.guide_participant_service,
         )
         # Expose the already-existing Encyclopedia navigator to the GPS view. The
         # view never knows how tabs are built; it only asks Atlas to open an entity.

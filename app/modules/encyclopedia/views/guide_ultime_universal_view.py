@@ -352,11 +352,36 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
 
     backToGuidesRequested = Signal()
 
-    def __init__(self, *args, quest_provider: Any = None, quest_graph: Any = None, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        quest_provider: Any = None,
+        quest_graph: Any = None,
+        travel_callback=None,
+        participant_service=None,
+        **kwargs,
+    ) -> None:
         self.quest_provider = quest_provider
         self.walkthrough = QuestWalkthroughIndex(quest_provider, quest_graph)
         self.order_combo: QComboBox | None = None
+        self.travel_callback = travel_callback
+        if participant_service is None:
+            from app.services.guide_participant_service import GuideParticipantService
+
+            participant_service = GuideParticipantService()
+        self.participant_service = participant_service
         super().__init__(*args, **kwargs)
+
+    def selected_participant_keys(self) -> tuple[str, ...]:
+        return tuple(self.participant_service.selected_keys())
+
+    def _launch_travel_command(self, command: str) -> bool:
+        callback = self.travel_callback
+        if not callable(callback):
+            QApplication.clipboard().setText(command)
+            return False
+        callback(command, self.selected_participant_keys())
+        return True
 
     def _build_ui(self) -> None:
         self.filter_mode = "Tout"
@@ -609,7 +634,11 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             label.setProperty("travelCopyEnabled", True)
             label.setProperty("travelCommand", command)
             label.setCursor(Qt.PointingHandCursor)
-            label.setToolTip(f"Cliquer pour copier {command}")
+            label.setToolTip(
+                f"Cliquer pour déplacer les participants : {command}"
+                if callable(self.travel_callback)
+                else f"Cliquer pour copier {command}"
+            )
             if not bool(label.property("travelEventFilterInstalled")):
                 label.installEventFilter(self)
                 label.setProperty("travelEventFilterInstalled", True)
@@ -625,8 +654,12 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         ):
             command = str(watched.property("travelCommand") or "").strip()
             if command:
-                QApplication.clipboard().setText(command)
-                watched.setToolTip(f"Copié : {command}")
+                launched = self._launch_travel_command(command)
+                watched.setToolTip(
+                    f"Déplacement demandé : {command}"
+                    if launched
+                    else f"Copié : {command}"
+                )
                 event.accept()
                 return True
         return super().eventFilter(watched, event)

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QToolButton,
+    QMenu,
     QVBoxLayout,
     QWidget,
 )
@@ -51,12 +52,22 @@ _COMBAT_STOP_WORDS = {
 class SharedGuideManualCard(GuideUltimeManualCard):
     """Canonical Guide Succès/Lanyel card with inline route semantics."""
 
-    def __init__(self, service, character_key: str, card: dict[str, Any], index: int, parent=None) -> None:
+    def __init__(
+        self,
+        service,
+        character_key: str,
+        card: dict[str, Any],
+        index: int,
+        parent=None,
+        *,
+        travel_command_callback=None,
+    ) -> None:
         QFrame.__init__(self, parent)
         self.service = service
         self.character_key = character_key
         self.card = card
         self.index = index
+        self.travel_command_callback = travel_command_callback
         self._quest_rows = self._canonical_quest_rows()
         # One visible quest shortcut per quest and per rendered guide sheet.
         self._shown_quest_ids: set[int] = set()
@@ -701,6 +712,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.route_progress_label.setObjectName("GuideManualPercent")
         strip_layout.addWidget(self.route_progress_label)
 
+        self.participants_button = QToolButton()
+        self.participants_button.setObjectName("GuideParticipantsButton")
+        self.participants_button.setPopupMode(QToolButton.InstantPopup)
+        self.participants_button.setCursor(Qt.PointingHandCursor)
+        strip_layout.addWidget(self.participants_button)
+        self._refresh_participants_menu()
+
         self.route_lock_check = QToolButton()
         self.route_lock_check.setObjectName("GuideManualProgressLock")
         self.route_lock_check.setCheckable(True)
@@ -716,6 +734,38 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.nav_page_label.setMinimumWidth(94)
         strip_layout.addWidget(self.nav_page_label)
         root.addWidget(strip)
+
+    def _refresh_participants_menu(self) -> None:
+        selected = set(self.selected_participant_keys())
+        characters = self.participant_service.available_characters()
+        menu = QMenu(self.participants_button)
+        for character in characters:
+            action = menu.addAction(character.label + (" (hors ligne)" if not character.connected else ""))
+            action.setCheckable(True)
+            action.setChecked(character.key in selected)
+            action.toggled.connect(
+                lambda checked, key=character.key: self._participant_toggled(key, checked)
+            )
+        if not characters:
+            empty = menu.addAction("Aucun personnage vérifié")
+            empty.setEnabled(False)
+        self.participants_button.setMenu(menu)
+        count = len(selected)
+        self.participants_button.setText(f"Participants : {count}")
+        self.participants_button.setToolTip(
+            "Choisir explicitement les personnages qui recevront les déplacements du Guide."
+        )
+
+    def _participant_toggled(self, character_key: str, checked: bool) -> None:
+        selected = list(self.selected_participant_keys())
+        if checked and character_key not in selected:
+            selected.append(character_key)
+        elif not checked:
+            selected = [key for key in selected if key != character_key]
+        self.participant_service.save_selected_keys(selected)
+        self.participants_button.setText(
+            f"Participants : {len(self.selected_participant_keys())}"
+        )
 
     def _restore_route_lock_state(self) -> None:
         locked = False
@@ -778,6 +828,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.character_key,
             card,
             index,
+            travel_command_callback=(
+                self._launch_travel_command
+                if callable(self.travel_callback)
+                else None
+            ),
         )
         widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)

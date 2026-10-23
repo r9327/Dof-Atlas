@@ -93,8 +93,13 @@ class GuideUltimeManualCard(QFrame):
         title.setObjectName("GuideManualLegendTitle")
         layout.addWidget(title)
 
+        travel_action = (
+            "déplace les participants sélectionnés"
+            if callable(getattr(self, "travel_command_callback", None))
+            else "copie la commande /travel x,y"
+        )
         rows = (
-            "Coordonnée en gras : cliquer copie la commande /travel x,y.",
+            f"Coordonnée en gras : cliquer {travel_action}.",
             "Objet en vert : cliquer copie son nom. PNJ en jaune : interlocuteur à trouver.",
             "Case de combat : objectif partagé avec l’onglet Quêtes, avec monstre et quantité.",
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
@@ -419,6 +424,12 @@ class GuideUltimeManualCard(QFrame):
     def _copy_link_target(self, href: str) -> None:
         value = self._copy_text_for_link(href)
         if not value:
+            return
+        travel_callback = getattr(self, "travel_command_callback", None)
+        if value.startswith("/travel ") and callable(travel_callback):
+            travel_callback(value)
+            QToolTip.showText(QCursor.pos(), "Déplacement demandé", self)
+            QTimer.singleShot(800, QToolTip.hideText)
             return
         QApplication.clipboard().setText(value)
         QToolTip.showText(QCursor.pos(), "Copié", self)

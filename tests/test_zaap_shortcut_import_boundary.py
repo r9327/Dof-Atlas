@@ -39,16 +39,15 @@ class ZaapShortcutImportBoundaryTests(unittest.TestCase):
             with patch.object(zaap_shortcuts, "ZAAP_SHORTCUTS_FILE", path):
                 self.assertEqual(zaap_shortcuts.read_zaap_button_ratios(), (0.25, 0.75))
 
-    def test_macro_does_not_eagerly_import_storage(self) -> None:
+    def test_macro_uses_chat_command_without_legacy_click_dependencies(self) -> None:
         path = ROOT / "app/macros/zaap.py"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)]
         self.assertFalse(any(node.module == "app.storage" for node in imports))
-        self.assertTrue(any(
-            node.module == "app.core.zaap_shortcuts"
-            and any(alias.name == "read_zaap_button_ratios" for alias in node.names)
-            for node in imports
-        ))
+        imported_modules = {node.module for node in imports}
+        self.assertIn("app.macros.input_tools", imported_modules)
+        self.assertNotIn("app.core.zaap_shortcuts", imported_modules)
+        self.assertNotIn("app.windows.clicks", imported_modules)
 
 
 if __name__ == "__main__":

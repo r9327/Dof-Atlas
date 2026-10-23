@@ -107,6 +107,8 @@ class ManualRouteGuidesView(_BaseGuidesView):
             character_key=self.current_character_key,
             quest_provider=self.quest_provider,
             quest_graph=getattr(self, "graph", None),
+            travel_callback=self.launch_travel_callback,
+            participant_service=self.guide_participant_service,
         )
         view.navigate_entity = self.link_service.navigate_to_entity
         view.questProgressChanged.connect(self._on_guide_ultime_quest_progress_changed)
@@ -147,6 +149,8 @@ class ManualRouteGuidesView(_BaseGuidesView):
             character_key=self.current_character_key,
             quest_provider=self.quest_provider,
             quest_graph=getattr(self, "graph", None),
+            travel_callback=self.launch_travel_callback,
+            participant_service=self.guide_participant_service,
         )
         view.navigate_entity = self.link_service.navigate_to_entity
         view.questProgressChanged.connect(

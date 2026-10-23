@@ -1223,9 +1223,13 @@ def achievement_title_contrast(page, view) -> dict:
     y0 = max(0, int((top.y() + 1) * scale_y))
     x1 = min(image.width(), int((top.x() + crop_width) * scale_x))
     y1 = min(image.height(), int((top.y() + min(label.height() - 1, 100)) * scale_y))
-    if x1 - x0 < 40 or y1 - y0 < 12:
+    crop_width = x1 - x0
+    crop_height = y1 - y0
+    logical_crop_size = [crop_width / scale_x, crop_height / scale_y]
+    if logical_crop_size[0] < 40 or logical_crop_size[1] < 12:
         return {"status": "BLOCKED", "reason": "TITLE_CROP_TOO_SMALL",
-                "crop": [x0, y0, x1, y1]}
+                "crop": [x0, y0, x1, y1],
+                "logical_crop_size": logical_crop_size}
     rgb = []
     for y in range(y0, y1):
         for x in range(x0, x1):
@@ -1235,7 +1239,8 @@ def achievement_title_contrast(page, view) -> dict:
     return {
         **outcome, "widget": "AchievementDetailTitle",
         "expected_visible_text": label.text()[:160],
-        "crop": [x0, y0, x1 - x0, y1 - y0],
+        "crop": [x0, y0, crop_width, crop_height],
+        "logical_crop_size": logical_crop_size,
         "capture_pixel_size": [image.width(), image.height()],
         "coverage": "one visible plain-text Success title in actual Qt screenshot",
         "not_covered": ["body rich text", "other tabs", "below-fold text", "color vision accessibility"],

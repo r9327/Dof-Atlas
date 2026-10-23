@@ -2019,7 +2019,12 @@ class AtlasWindow(QMainWindow):
             guide_progress_by_guide=guide_progress_by_guide if isinstance(guide_progress_by_guide, dict) else None,
             guide_progress_character_key=str(guide_progress_character_key or ""),
             owned_items=owned_items if isinstance(owned_items, dict) else None,
-            launch_travel_callback=self.launch_travel,
+            launch_travel_callback=(
+                lambda text, character_keys: self.launch_guide_travel(
+                    text,
+                    character_keys,
+                )
+            ),
             related_data_ready_callback=self.on_encyclopedia_related_data_ready,
             initial_tab=self.pending_encyclopedia_tab or (GUIDES_TAB if self.pending_guide_target else QUESTS_TAB),
         )
@@ -2560,6 +2565,10 @@ class AtlasWindow(QMainWindow):
     def launch_travel(self, text: str) -> None:
         self.reload_runtime()
         self._ensure_runtime().launch_travel(text)
+
+    def launch_guide_travel(self, text: str, character_keys) -> None:
+        self.reload_runtime()
+        self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
         self.reload_runtime()

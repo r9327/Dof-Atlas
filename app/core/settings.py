@@ -76,6 +76,7 @@ class AtlasClient:
     handle: int
     binding: str = ""
     primary: bool = False
+    character_key: str = ""
 
     @property
     def display_name(self) -> str:
@@ -236,6 +237,7 @@ def load_settings() -> AtlasSettings:
                 handle=handle,
                 binding=binding if binding_explicit else "",
                 primary=bool_value(raw.get("primary"), False),
+                character_key=str(raw.get("character_key") or "").strip(),
             )
         )
 

@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
-from app.constants import KEY_DEBUG_MODE, KEY_SESSION_ORDER
+from app.constants import KEY_DEBUG_MODE, KEY_PRIMARY_WINDOW, KEY_SESSION_ORDER
 import app.pages.organizer_page as organizer
 from app.services.character_order_service import CharacterOrderService
 
@@ -225,6 +225,112 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     ["gamma", "alpha", "beta"],
                 )
                 self.assertTrue(persisted[KEY_DEBUG_MODE])
+
+    def test_primary_character_rebinds_to_new_hwnd_by_verified_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps(
+                    {
+                        "characters": {
+                            "77": {
+                                "name": "Alpha",
+                                "class_key": "iop",
+                                "pid": 111,
+                                "source": "verified_network_identity",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, profile, client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alpha - Iop", "hwnd": 101, "pid": 111}]
+                )
+                page.set_primary_window(page.sessions[0])
+
+                self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "character:77")
+
+                bindings.write_text(
+                    json.dumps(
+                        {
+                            "characters": {
+                                "77": {
+                                    "name": "Alpha",
+                                    "class_key": "iop",
+                                    "pid": 222,
+                                    "source": "verified_network_identity",
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alpha - Iop", "hwnd": 909, "pid": 222}]
+                )
+                page.export_client_index()
+
+                exported = json.loads(client_index.read_text(encoding="utf-8"))
+                self.assertEqual(exported["global_hotkeys"]["primary_handle"], 909)
+                self.assertTrue(exported["clients"][0]["primary"])
+                self.assertEqual(exported["clients"][0]["character_key"], "character:77")
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
+                    "character:77",
+                )
+
+    def test_reused_pid_cannot_bind_primary_to_another_character(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps({
+                    "characters": {
+                        "77": {
+                            "name": "Beta", "class_key": "cra", "pid": 111,
+                            "source": "verified_network_identity",
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, _profile, _client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alpha - Iop", "hwnd": 909, "pid": 111}]
+                )
+                # Stale Beta PID must not silently select Beta for Alpha.
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]), ""
+                )
+                page.set_primary_window(page.sessions[0])
+                self.assertEqual(
+                    page.profiles[KEY_PRIMARY_WINDOW], "name-class:alpha:iop"
+                )
+
+    def test_primary_character_fails_closed_for_ambiguous_name_and_class(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            statuses: list[str] = []
+            with self.organizer_page(root) as (page, _profile, _client_index):
+                page.status_callback = statuses.append
+                page.network_character_bindings_file = root / "missing-bindings.json"
+                page.sessions = page.build_session_slots(
+                    [
+                        {"nom": "Same - Cra", "hwnd": 101, "pid": 111},
+                        {"nom": "Same - Cra", "hwnd": 202, "pid": 222},
+                    ]
+                )
+
+                page.set_primary_window(page.sessions[0])
+
+                self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
+                self.assertIn("identité ambiguë", statuses[-1])
 
 
 if __name__ == "__main__":

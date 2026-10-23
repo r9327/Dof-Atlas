@@ -1385,18 +1385,20 @@ class ZaapWidget(QWidget):
             return
         self.launching_zaap = True
         label = self.suggestion_label(zaap)
-        search = zaap_runtime_search_text(zaap)
         coords = row_coordinate_pair(zaap)
         try:
+            if coords is None:
+                LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
+                self.status_callback(f"Zaap invalide (coordonnees absentes) : {label}")
+                return
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
             if self.start_callback is not None:
-                position = read_zaap_click_position()
-                ratios = read_zaap_button_ratios()
-                invoke_compatible_callback(self.start_callback, search, position, ratios)
+                command = f"/zaap {coords[0]},{coords[1]}"
+                invoke_compatible_callback(self.start_callback, command, None, None)
             self.hide_suggestions()
-            LOGGER.info("Auto zaap selection: label=%s search=%s coords=%s", label, search, coords)
+            LOGGER.info("Auto zaap selection: label=%s coords=%s", label, coords)
             self.status_callback(f"Auto zaap lance: {label}")
         finally:
             self._schedule_owned_callback(0, self.reset_launch_guard)

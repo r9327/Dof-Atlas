@@ -207,7 +207,7 @@ class PySideShellTests(unittest.TestCase):
         self.assertTrue(widget.launch_current_suggestion())
         self.assertIn(widget.search_input.text(), {"Cite d'Astrub [5,-18]", "Village cotier [-46,18]", "Bonta [-32,-56]"})
         self.assertTrue(calls)
-        self.assertIn(calls[-1][0], {"Cite d'Astrub", "Village cotier", "Bonta"})
+        self.assertIn(calls[-1][0], {"/zaap 5,-18", "/zaap -46,18", "/zaap -32,-56"})
         widget.deleteLater()
         app.processEvents()
 
@@ -219,7 +219,7 @@ class PySideShellTests(unittest.TestCase):
         widget.launch_zaap({"label": "Cite d'Astrub [5,-18]", "search": "Cite d'Astrub"})
 
         self.assertEqual(widget.search_input.text(), "Cite d'Astrub [5,-18]")
-        self.assertEqual(calls[-1][0], "Cite d'Astrub")
+        self.assertEqual(calls[-1][0], "/zaap 5,-18")
         widget.deleteLater()
         app.processEvents()
 
@@ -261,7 +261,7 @@ class PySideShellTests(unittest.TestCase):
                 self.assertEqual(len(widget.favorite_star_buttons), 1)
 
                 widget.favorite_buttons[0].click()
-                self.assertEqual(calls[-1][0], "Bonta")
+                self.assertEqual(calls[-1][0], "/zaap -32,-56")
                 widget.favorite_star_buttons[0].click()
                 payload = json.loads(storage.ZAAP_SHORTCUTS_FILE.read_text(encoding="utf-8"))
                 self.assertEqual(payload["zaap_favorites"], [])
@@ -1434,12 +1434,15 @@ class PySideShellTests(unittest.TestCase):
             try:
                 page = organizer.OrganizerPage(lambda _text: None, lambda *args: None)
                 page.sessions = page.build_session_slots([
-                    {"nom": "Perso 1", "hwnd": 101},
-                    {"nom": "Perso 2", "hwnd": 202},
+                    {"nom": "Perso 1 - Iop", "hwnd": 101},
+                    {"nom": "Perso 2 - Cra", "hwnd": 202},
                 ])
 
                 page.set_primary_window(page.sessions[1])
-                self.assertEqual(page.profiles[organizer.KEY_PRIMARY_WINDOW], "hwnd:202")
+                self.assertEqual(
+                    page.profiles[organizer.KEY_PRIMARY_WINDOW],
+                    "name-class:perso_2:cra",
+                )
                 payload = json.loads(organizer.CLIENT_INDEX_JSON.read_text(encoding="utf-8"))
                 self.assertEqual(payload["global_hotkeys"]["primary_handle"], 202)
 

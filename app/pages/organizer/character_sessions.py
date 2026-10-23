@@ -19,6 +19,7 @@ from app.constants import (
     KEY_SWITCH_DOUBLE_CLICK,
     KEY_SWITCH_MOVEMENT,
     KEY_TRAVEL_TEXT,
+    NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
 from app.quest_catalog import is_generic_dofus_client_name
@@ -60,6 +61,37 @@ class CharacterSessionsMixin:
 
     def _client_index_ini(self):
         return getattr(self, "client_index_ini", CLIENT_INDEX_INI)
+
+    def _network_character_bindings_file(self):
+        return getattr(
+            self,
+            "network_character_bindings_file",
+            NETWORK_CHARACTER_BINDINGS_FILE,
+        )
+
+    def _verified_character_rows(self) -> tuple[tuple[int, dict[str, Any]], ...]:
+        path = self._network_character_bindings_file()
+        try:
+            stat = path.stat()
+            stamp = (str(path.resolve()), int(stat.st_mtime_ns), int(stat.st_size))
+        except OSError:
+            stamp = (str(path.resolve()), 0, 0)
+        if stamp == getattr(self, "_verified_character_rows_stamp", None):
+            return getattr(self, "_verified_character_rows_cache", ())
+        payload = read_json(path, {})
+        characters = payload.get("characters", {}) if isinstance(payload, dict) else {}
+        rows: list[tuple[int, dict[str, Any]]] = []
+        for raw_id, row in characters.items() if isinstance(characters, dict) else ():
+            if not str(raw_id).isdigit() or not isinstance(row, dict):
+                continue
+            character_id = int(raw_id)
+            if character_id <= 0 or str(row.get("source") or "") != "verified_network_identity":
+                continue
+            rows.append((character_id, dict(row)))
+        result = tuple(rows)
+        self._verified_character_rows_stamp = stamp
+        self._verified_character_rows_cache = result
+        return result
 
     def _scan_unity_sessions(self) -> list[dict[str, Any]]:
         scanner = getattr(self, "scan_unity_sessions_callback", None)
@@ -110,8 +142,7 @@ class CharacterSessionsMixin:
         cleaned.pop(KEY_TRAVEL_TEXT, None)
         cleaned[KEY_SESSION_ORDER] = [str(value or "").strip() for value in legacy_order]
         primary = str(cleaned.get(KEY_PRIMARY_WINDOW, "")).strip()
-        if primary and not primary.startswith("hwnd:"):
-            cleaned[KEY_PRIMARY_WINDOW] = ""
+        cleaned[KEY_PRIMARY_WINDOW] = primary[:256]
         return cleaned
 
     def save_profiles(self, payload: dict[str, Any]) -> None:
@@ -279,7 +310,7 @@ class CharacterSessionsMixin:
             hwnd = session_hwnd(session)
             if not name or hwnd <= 0:
                 continue
-            if self.session_is_primary(name, hwnd, primary):
+            if self.session_is_primary(name, hwnd, primary, session):
                 if primary.startswith("hwnd:") or not primary_matched:
                     return session
                 primary_matched = True
@@ -400,15 +431,115 @@ class CharacterSessionsMixin:
         else:
             self.status_callback("Raccourcis Python recharges: aucune session Unity detectee.")
 
-    def primary_token_for_session(self, name: str, hwnd: int) -> str:
-        return f"hwnd:{hwnd}" if hwnd > 0 else name
+    def verified_character_token_for_session(self, session: dict[str, Any]) -> str:
+        pid = session_pid(session)
+        pid_matches: list[str] = []
+        name_class_matches: list[str] = []
+        name_key = normalize_key(clean_auto_group_name(session_name(session)))
+        class_key = dofus_class_key_from_window_name(session_name(session)) or ""
+        for character_id, row in self._verified_character_rows():
+            token = f"character:{character_id}"
+            try:
+                row_pid = int(row.get("pid") or 0)
+            except (TypeError, ValueError):
+                row_pid = 0
+            # A Windows PID can be reused after restart. Never trust it
+            # without matching the verified character name AND class.
+            verified_identity_matches = (
+                name_key
+                and class_key
+                and normalize_key(row.get("name")) == name_key
+                and normalize_key(row.get("class_key")) == class_key
+            )
+            if verified_identity_matches:
+                name_class_matches.append(token)
+                if pid > 0 and row_pid == pid:
+                    pid_matches.append(token)
+        unique_pid = tuple(dict.fromkeys(pid_matches))
+        if len(unique_pid) == 1:
+            return unique_pid[0]
+        unique_name_class = tuple(dict.fromkeys(name_class_matches))
+        return unique_name_class[0] if len(unique_name_class) == 1 else ""
 
-    def session_is_primary(self, name: str, hwnd: int, primary: str) -> bool:
+    def fallback_primary_token_for_session(self, session: dict[str, Any]) -> str:
+        name = clean_auto_group_name(session_name(session))
+        name_key = normalize_key(name)
+        class_key = dofus_class_key_from_window_name(session_name(session)) or ""
+        if not name_key or not class_key or is_generic_dofus_client_name(name):
+            return ""
+        matches = [
+            candidate
+            for candidate in self.sessions
+            if session_is_detected(candidate)
+            and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
+            and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key
+        ]
+        if len(matches) != 1:
+            return ""
+        return f"name-class:{name_key}:{class_key}"
+
+    def primary_token_for_session(
+        self,
+        name: str,
+        hwnd: int,
+        session: dict[str, Any] | None = None,
+    ) -> str:
+        candidate = dict(session or {"nom": name, "hwnd": hwnd})
+        return (
+            self.verified_character_token_for_session(candidate)
+            or self.fallback_primary_token_for_session(candidate)
+        )
+
+    def session_is_primary(
+        self,
+        name: str,
+        hwnd: int,
+        primary: str,
+        session: dict[str, Any] | None = None,
+    ) -> bool:
         if not primary:
             return False
-        if hwnd > 0 and primary == self.primary_token_for_session(name, hwnd):
-            return True
-        return primary == name
+        candidate = dict(session or {"nom": name, "hwnd": hwnd})
+        if primary.startswith("character:"):
+            return self.verified_character_token_for_session(candidate) == primary
+        if primary.startswith("name-class:"):
+            return self.fallback_primary_token_for_session(candidate) == primary
+        if primary.startswith("hwnd:"):
+            return hwnd > 0 and primary == f"hwnd:{hwnd}"
+        legacy_key = normalize_key(primary)
+        matches = [
+            row
+            for row in self.sessions
+            if session_is_detected(row)
+            and normalize_key(clean_auto_group_name(session_name(row))) == legacy_key
+        ]
+        return len(matches) == 1 and matches[0] is session
+
+    def rebind_primary_preference(self) -> None:
+        primary = str(self.profiles.get(KEY_PRIMARY_WINDOW, "")).strip()
+        if not primary or primary.startswith("character:"):
+            return
+        matches = [
+            session
+            for session in self.sessions
+            if session_is_detected(session)
+            and self.session_is_primary(
+                session_name(session),
+                session_hwnd(session),
+                primary,
+                session,
+            )
+        ]
+        if len(matches) != 1:
+            return
+        token = self.primary_token_for_session(
+            session_name(matches[0]),
+            session_hwnd(matches[0]),
+            matches[0],
+        )
+        if token and token != primary:
+            self.profiles[KEY_PRIMARY_WINDOW] = token
+            self.save_profiles(self.profiles)
 
     def set_primary_window(self, session: dict[str, Any] | str) -> None:
         current = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
@@ -418,11 +549,19 @@ class CharacterSessionsMixin:
                 hwnd = int(session.get("hwnd", 0))
             except (TypeError, ValueError):
                 hwnd = 0
-            token = self.primary_token_for_session(name, hwnd)
+            token = self.primary_token_for_session(name, hwnd, session)
         else:
             name = str(session)
-            token = name
-        self.profiles[KEY_PRIMARY_WINDOW] = "" if current == token else token
+            hwnd = 0
+            session = {"nom": name, "hwnd": 0}
+            token = self.primary_token_for_session(name, 0, session)
+        if not token:
+            self.status_callback(
+                f"Fenêtre principale non modifiée : identité ambiguë pour {name}."
+            )
+            return
+        selected = self.session_is_primary(name, hwnd, current, session)
+        self.profiles[KEY_PRIMARY_WINDOW] = "" if selected else token
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.render_sessions()
@@ -431,6 +570,7 @@ class CharacterSessionsMixin:
     def export_client_index(self) -> None:
         timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
         self.save_session_order()
+        self.rebind_primary_preference()
         primary_token = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         primary_label = ""
         primary_handle = 0
@@ -456,7 +596,7 @@ class CharacterSessionsMixin:
             if not name or hwnd <= 0 or session_is_empty(session):
                 continue
             client_index = len(clients) + 1
-            is_primary = self.session_is_primary(name, hwnd, primary_token)
+            is_primary = self.session_is_primary(name, hwnd, primary_token, session)
             if is_primary and not primary_token.startswith("hwnd:"):
                 if primary_matched:
                     is_primary = False
@@ -484,6 +624,7 @@ class CharacterSessionsMixin:
                     "binding": binding,
                     "binding_explicit": bool(binding),
                     "primary": is_primary,
+                    "character_key": self.verified_character_token_for_session(session),
                 }
             )
 

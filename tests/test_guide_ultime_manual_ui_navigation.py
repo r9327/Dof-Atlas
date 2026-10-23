@@ -156,6 +156,24 @@ class _FakeQuestProvider:
         )
 
 
+class _FakeParticipantService:
+    def __init__(self) -> None:
+        self.selected = ["character:1"]
+
+    def available_characters(self):
+        return (
+            SimpleNamespace(key="character:1", label="Alpha", connected=True),
+            SimpleNamespace(key="character:2", label="Beta", connected=False),
+        )
+
+    def selected_keys(self):
+        return tuple(self.selected)
+
+    def save_selected_keys(self, values):
+        self.selected = list(values)
+        return tuple(self.selected)
+
+
 class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -228,6 +246,38 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             QApplication.processEvents()
             current_sheet = view.cards_layout.itemAt(0).widget()
             self.assertIsNone(current_sheet.findChild(QFrame, "GuideManualLegendCard"))
+        finally:
+            view.close()
+
+    def test_participants_are_persistent_and_coordinate_launches_once(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        calls: list[tuple[str, tuple[str, ...]]] = []
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        try:
+            self.assertEqual(view.participants_button.text(), "Participants : 1")
+            actions = view.participants_button.menu().actions()
+            self.assertEqual([action.text() for action in actions], ["Alpha", "Beta (hors ligne)"])
+            actions[1].setChecked(True)
+            self.assertEqual(
+                participants.selected_keys(),
+                ("character:1", "character:2"),
+            )
+
+            current_sheet = view.cards_layout.itemAt(0).widget()
+            current_sheet._copy_link_target("travel-copy:1,-1")
+            self.assertEqual(
+                calls,
+                [("/travel 1,-1", ("character:1", "character:2"))],
+            )
+            legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
+            texts = [label.text() for label in legend.findChildren(QLabel)]
+            self.assertTrue(any("participants sélectionnés" in text for text in texts))
         finally:
             view.close()
 
