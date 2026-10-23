@@ -261,6 +261,8 @@ class PreloadProgressPopup(QDialog):
     def _hide_if_current(self, generation: int) -> None:
         if generation != self._hide_generation or not self._finished:
             return
+        # Consume this generation: a queued timer must not reveal twice.
+        self._hide_generation += 1
         self.hide()
         self.readyForMainWindow.emit()
 
