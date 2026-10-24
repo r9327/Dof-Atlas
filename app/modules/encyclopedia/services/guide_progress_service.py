@@ -105,6 +105,7 @@ class GuideProgressService:
 
     def set_manual_steps_for_characters(
         self, character_keys, guide_id: str, step_id: str, completed: bool,
+        *, expected_completed: dict[str, bool] | None = None,
     ) -> bool:
         """Apply one explicit multi-character check in a single atomic write."""
         keys = tuple(require_character_key(key) for key in character_keys)
@@ -112,9 +113,22 @@ class GuideProgressService:
             raise ValueError("duplicate character in manual progress selection")
         if not keys:
             return False
+        if expected_completed is not None and set(expected_completed) != set(keys):
+            raise ValueError("expected manual states must match selected characters")
         with self._coordinator.lock:
             self.progress = self._load()
             self._disk_signature = self._current_disk_signature()
+            if expected_completed is not None:
+                for key in keys:
+                    previous_steps = self._read_manual_steps_map(key).get(str(guide_id), [])
+                    previous = (
+                        str(step_id) in {str(value) for value in previous_steps}
+                        if isinstance(previous_steps, list) else False
+                    )
+                    if previous != bool(expected_completed[key]):
+                        self._seen_generation = self._coordinator.generation
+                        self._clear_manual_steps_cache()
+                        raise RuntimeError("Guide progress changed since selection; reload before validating")
             changed = False
             for key in keys:
                 guide_steps = self._manual_steps_map(key)
