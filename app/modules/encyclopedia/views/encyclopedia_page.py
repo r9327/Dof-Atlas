@@ -1362,7 +1362,10 @@ class EncyclopediaPage(QWidget):
         search_text = str(getattr(previous, "search_text", "") or "")
         self.guides_view = None
         catalog = self.ensure_guides_view()
-        if self._guide_runtime_ready and not getattr(catalog, "_runtime_ready", False):
+        # Returning from an already-hydrated rich Guide must not expose a
+        # perpetual "Chargement des guides…" catalog while the separate
+        # background-ready flag is still false in an isolated/runtime scene.
+        if (self._guide_runtime_ready or getattr(previous, "_runtime_ready", False)) and not getattr(catalog, "_runtime_ready", False):
             catalog.hydrate_runtime(
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,
