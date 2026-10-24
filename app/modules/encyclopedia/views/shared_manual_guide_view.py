@@ -1588,6 +1588,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._refresh_header()
         self._render_window(reset_scroll=moved)
 
+    @staticmethod
+    def _common_sheet_count(keys, cards, is_complete) -> int:
+        """Count sheet identities completed by ALL selected characters."""
+        return sum(
+            1 for index, card in enumerate(cards)
+            if all(is_complete(key, card, index) for key in keys)
+        )
+
     def _refresh_header(self) -> None:
         keys = self._progress_participant_keys()
         progress_rows: list[tuple[int, int]] = []
@@ -1602,9 +1610,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             # Common progress is the intersection of completed sheet IDs.
             # The minimum of two counts is not evidence of shared completion.
             if len(keys) > 1:
-                completed = sum(
-                    1 for index, card in enumerate(self.service.cards)
-                    if all(self._card_complete(key, card, index) for key in keys)
+                completed = self._common_sheet_count(
+                    keys, self.service.cards, self._card_complete,
                 )
             else:
                 completed = min(done for done, _total in progress_rows)
