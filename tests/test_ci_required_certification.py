@@ -247,6 +247,7 @@ class CertificationMergeGateTests(unittest.TestCase):
             self.assertEqual(paths, ["docs/a.md", "docs/b.md", "app/link.py"])
             self.assertEqual(deleted, ["docs/a.md", "app/link.py"])
             self.assertIn("--no-renames", mocked.call_args.args[0])
+            self.assertEqual(mocked.call_args.args[0][-1], f"{BASE}...{HEAD}")
             mocked.return_value.stdout = "R100\0old.py\0new.py\0"
             with self.assertRaises(ValueError):
                 candidate_paths(BASE, HEAD)
