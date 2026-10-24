@@ -3,7 +3,7 @@
 
 > **Mise à jour des sources réelles (24/10/2026, commit `f17b4724`) :** le dépôt contient maintenant l'archive du **fond original**, neuf sous-archives ZIP regroupant les **103 PNG originaux** réellement transmis, et le ZIP de sélection avec manifeste/aperçu/script. Voir `docs/design/dofus-unity/README.md`. Les **47 sprites UI précis** du manifeste et les **10 fichiers TTF** restent absents du dépôt : ils sont sur le PC de l'utilisateur et nécessitent un import distinct. Les ZIPs déjà présents ne sont pas encore utilisés par le runtime. Les mentions ci-dessous « non versionnée ici » décrivent l'état initial de la préparation avant ce commit.
 
-> **À réaliser dans la PR #254 existante, sans supprimer ni réécrire les fonctionnalités déjà implémentées.** Ce document est une spécification versionnée, PAS la preuve que le thème est intégré. Les PNG/TTF originaux sont sur le PC de l'utilisateur ; ils ne sont pas joints à la branche. Aucune certification Windows ou preuve de rendu n'est attestée ici.
+> **À réaliser dans la PR #254 existante, sans supprimer ni réécrire les fonctionnalités déjà implémentées.** Ce document est une spécification versionnée, PAS la preuve que le thème est intégré. Le fond original et 103 PNG extraits sont joints à la branche en ZIP ; les 47 PNG spécifiques de boutons/cadres et les 10 TTF restent sur le PC utilisateur, non joints. Les archives existantes ne sont pas intégrées au runtime. Aucune certification Windows ou preuve de rendu n'est attestée ici.
 
 ## A. État contrôlé de la PR #254
 
@@ -16,13 +16,13 @@ La branche `plan/guides-20261024-06-accueil-guides-bibliotheque` contient déjà
 
 ## B. Références visuelles *réelles*
 
-**Fond validé par l'utilisateur :** capture originale de la sélection de personnages DOFUS Unity, 1919 × 1079, SHA-256 `3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb`. Capture détenue dans la conversation, non versionnée ici. Scène cosmique cyan / bleu / violet, étoiles, nuages et rochers flottants. Les trois icônes natives en haut à droite ne doivent pas être reproduites en éléments décoratifs Atlas ; préparer un fond nettoyé *sans toucher à l'original*, après validation.
+**Fond validé par l'utilisateur :** capture originale de la sélection de personnages DOFUS Unity, 1919 × 1079, SHA-256 `3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb`. Capture détenue dans la conversation et désormais versionnée dans une archive ZIP sous `docs/design/dofus-unity/sources/` (pas encore déployée dans l'app). Scène cosmique cyan / bleu / violet, étoiles, nuages et rochers flottants. Les trois icônes natives en haut à droite ne doivent pas être reproduites en éléments décoratifs Atlas ; préparer un fond nettoyé *sans toucher à l'original*, après validation.
 
 **Extraction réalisée localement sur Windows :**
 - DOFUS Unity installé sous `%LOCALAPPDATA%\Ankama\Dofus-dofus3`.
 - `Picto/UI` : 44/44 bundles traités, 8 537 PNG.
 - cinq bundles d'UI : `uiassets_assets_.bundle`, `uiassets_assets_1x.bundle`, `uiassets_assets_2x.bundle`, `uidarkstone_assets_all.bundle`, `uielements_assets_all.bundle`.
-- Extraction ciblée `--force-object` : **3 359 PNG et 10 TTF** déclarés par l'utilisateur, et **47 candidats visuels** présélectionnés dans `Atlas_UI_Manifest_Cible.csv` (ce manifeste et les fichiers originaux ne sont PAS encore dans Git). La sélection visuelle de la conversation ne remplace pas ces 47 originaux.
+- Extraction ciblée `--force-object` : **3 359 PNG et 10 TTF** déclarés par l'utilisateur, et **47 candidats visuels** présélectionnés dans `Atlas_UI_Manifest_Cible.csv` (le manifeste des 47 noms est désormais versionné dans `06b-dofus-unity-asset-manifest.csv`, mais les 47 PNG originaux et les 10 TTF ne sont PAS encore dans Git). La sélection visuelle et les ZIP de référence de la conversation ne remplacent pas ces 47 PNG originaux, distincts des 103 PNG déjà archivés.
 - Catégories observées : boutons normal / over / pressed / disabled, cases normales/sélectionnées, onglets, bordures et ombres de fenêtres, icônes de navigation.
 
 **Police :** dix ressources extraites : `Lexend-Regular/Medium/SemiBold/Bold`, `Rowdies-Regular`, `LexendDeca-Regular`, `LexendGiga-Regular`, `NotoSans-Medium`, `NotInter-Regular`, `Roboto-MediumItalic`. Leur présence est confirmée ; **l'affectation exacte par écran est à vérifier**. Recommandation Atlas : Lexend pour contrôles/texte, Rowdies pour titres expressifs parcimonieux, variantes spécialisées au besoin. Ne jamais distribuer les TTF extraits du jeu sans vérification de licence/droits ; préférer les distributions officielles redistribuables des polices lorsqu'elles existent.
@@ -42,7 +42,7 @@ La branche `plan/guides-20261024-06-accueil-guides-bibliotheque` contient déjà
 
 ## D. Ressources exactes sélectionnées à importer (47 candidats)
 
-Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composants`. Les préfixes `uiassets_assets_*`, `uidarkstone_assets_all`, `uielements_assets_all` correspondent aux dossiers créés par le script Windows. Les chemins complets sont conservés dans le CSV local `Atlas_UI_Manifest_Cible.csv` ; les noms ci-dessous doivent être réconciliés avec les **fichiers originaux**, et leur rendu inspecté avant intégration.
+Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composants`. Les préfixes `uiassets_assets_*`, `uidarkstone_assets_all`, `uielements_assets_all` correspondent aux dossiers créés par le script Windows. La liste candidate de 47 noms est versionnée dans `docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv` et un importeur ciblé existe dans `tools/assets/import_dofus_unity_ui.ps1`. Les chemins et variantes doivent être réconciliés avec les **fichiers originaux** et leur rendu inspecté avant intégration.
 
 **Boutons principaux — 8 :**
 - `Assets_UI_Themes_darkStone_common_btn_greenLargeBorder_{normal,over,pressed,disabled}-png.png`
@@ -96,4 +96,4 @@ Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composan
 
 ## G. État de réalisation au moment de l'ajout
 
-**Spécification intégrée à #254 ; thème global NON encore implémenté ; droits et binaires sources non vérifiés ; aucune certification finale.** Ne pas marquer cette section « terminée » en confondant l'inventaire fait sur le PC de l'utilisateur et l'intégration Windows / Git du thème.
+**Spécification intégrée à #254 ; fond + 103 PNG sources archivés dans Git, 47 sprites prioritaires + 10 polices TTF encore absents ; thème global NON implémenté dans le runtime ; droits de redistribution non validés ; aucune certification finale.** Ne pas marquer cette section « terminée » en confondant l'inventaire fait sur le PC de l'utilisateur et l'intégration Windows / Git du thème.
