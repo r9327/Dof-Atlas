@@ -1673,11 +1673,18 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
         actual_index = self._actual_index_for_participants()
+        route_finished = bool(keys) and bool(progress_rows) and all(
+            total > 0 and completed >= total for completed, total in progress_rows
+        )
+        self.current_button.setText("Terminé" if route_finished else "Actuelle")
         self.current_button.setEnabled(actual_index is not None)
         self.current_button.setToolTip(
-            "Revenir à la première fiche encore nécessaire pour au moins un participant."
-            if actual_index is not None
-            else "Étape actuelle indisponible : progression non déterminable."
+            "Toutes les fiches sont terminées pour les personnages sélectionnés."
+            if route_finished else (
+                "Revenir à la première fiche encore nécessaire pour au moins un participant."
+                if actual_index is not None
+                else "Sélectionnez des personnages pour retrouver leur fiche actuelle."
+            )
         )
 
     def _restore_route_lock_state(self) -> None:
