@@ -147,6 +147,43 @@ def test_memory_benchmark_counts_external_warmup_process_tree() -> None:
 
 
 
+def test_windows_descendants_reject_stale_parent_pid_reuse() -> None:
+    # Execute the pure ancestry function without importing Qt or Windows DLLs.
+    # On GitHub Windows runners, dwm/winlogon/csrss can retain a stale PPID
+    # that has since been reused by the real Python cache warmer.
+    from collections import namedtuple
+    from types import SimpleNamespace
+
+    source = ast.parse(BENCHMARK.read_text(encoding="utf-8"))
+    function = next(
+        node for node in source.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_descendant_rows"
+    )
+    ProcessRow = namedtuple("ProcessRow", "pid parent_pid name")
+    creation = {100: 1000, 101: 1100, 102: 1200, 103: 500, 104: 600}
+    namespace = {
+        "ProcessRow": ProcessRow,
+        "os": SimpleNamespace(name="nt", getpid=lambda: 100),
+        "_windows_process_start_ticks": creation.get,
+    }
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "<ancestry>", "exec"), namespace)
+    descendants = namespace["_descendant_rows"]
+    rows = [
+        ProcessRow(101, 100, "python.exe"),
+        ProcessRow(102, 101, "python.exe"),
+        ProcessRow(103, 100, "dwm.exe"),
+        ProcessRow(104, 103, "csrss.exe"),
+    ]
+    assert [row.pid for row in descendants(100, rows)] == [101, 102]
+
+    # Unknown process times cannot silently certify an app RSS sample.
+    namespace["_windows_process_start_ticks"] = lambda _pid: None
+    with unittest.TestCase().assertRaisesRegex(RuntimeError, "process ancestry"):
+        descendants(100, rows)
+    # An external warmer that exited between snapshots contributes no RSS.
+    assert descendants(999, rows) == []
+
+
 def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source
