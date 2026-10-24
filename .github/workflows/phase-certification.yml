@@ -459,7 +459,9 @@ jobs:
           steps.route.outputs.run_full == 'true' &&
           (github.event_name == 'workflow_dispatch' ||
            github.event_name == 'push' ||
-           (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')))
+           (github.event_name == 'pull_request' &&
+            steps.diff_preflight.outcome == 'success' &&
+            startsWith(github.event.pull_request.title, 'Phase 7B')))
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/06_timing_performance.log"
