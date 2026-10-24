@@ -37,11 +37,15 @@ _REQUIRED_FULL_STEPS = (
 )
 
 
-def classify_merge_route(paths: list[str], *, root: Path | None = None, base_sha='') -> dict[str, Any]:
+def classify_merge_route(paths: list[str], *, root: Path | None = None, base_sha='',
+                         deleted_paths: tuple[str, ...] | list[str] = ()) -> dict[str, Any]:
     """A risk route independent of text/metadata supplied by the PR author."""
     paths = sorted(set(paths))
     if not paths or any(not isinstance(p, str) or not p or p.startswith("/") or ".." in p.split("/") for p in paths):
         raise ValueError("Untrusted or empty candidate diff")
+    deleted = sorted(set(deleted_paths))
+    if any(path not in paths for path in deleted):
+        raise ValueError('Deleted paths must occur in the candidate diff')
     risk = classify_risk(paths)
     trust = sorted(set(critical_changed(paths)) | {
         p for p in paths if (
@@ -54,25 +58,27 @@ def classify_merge_route(paths: list[str], *, root: Path | None = None, base_sha
         or p in {".ai/context_index.json", "README.md"}
         for p in paths
     )
-    tooling_only = tooling_eligible(paths, root=root, base_sha=base_sha)
+    tooling_only = tooling_eligible(paths, deleted=deleted, root=root, base_sha=base_sha)
     bounded_high = (
         not tooling_only and not trust and risk["risk"] == "HIGH"
-        and high_smart_eligible(root, paths)
+        and high_smart_eligible(root, paths, deleted=deleted)
     )
-    full_required = not tooling_only and (
+    full_required = bool(deleted) or (not tooling_only and (
         bool(trust) or risk["risk"] == "CRITICAL"
         or (risk["risk"] == "HIGH" and not bounded_high)
-    )
+    ))
     return {
         "route": "FULL_REQUIRED" if full_required else "SMART" if bounded_high else "SCOPED",
         "risk": risk["risk"],
         "changed_files": paths,
+        "deleted_files": deleted,
         "root_of_trust_changes": trust,
         "docs_only": docs_only,
         "tooling_only": tooling_only,
         "smart_requires_host_proof": bounded_high,
         "reason": "bounded CI contracts; Safe Validation must pass; not Phase certification" if tooling_only else
                   "bounded HIGH SMART; require exact-SHA host-scoped execution, not FULL" if bounded_high else
+                  "removed or replaced path" if deleted else
                   "root of trust" if trust else
                   "high/critical risk" if full_required else
                   "docs-only low risk" if docs_only else
@@ -175,9 +181,38 @@ _SCOPED_HIGH_STEPS = (
 )
 
 
+def _verify_smart_pr_identity(
+    run: dict[str, Any], *, candidate_sha: str, base_sha: str,
+    pr_number: int | None, head_ref: str, base_ref: str,
+) -> None:
+    """Bind PR host evidence to the actual candidate PR, base and source branch."""
+    if (type(pr_number) is not int or pr_number < 1 or not _SHA.fullmatch(base_sha)
+            or not head_ref or not base_ref
+            or run.get("head_branch") != head_ref):
+        raise ValueError("Missing or mismatched SMART PR identity")
+    linked = run.get("pull_requests")
+    if not isinstance(linked, list) or not linked:
+        raise ValueError("SMART proof has no GitHub-linked pull request")
+    def matches(pr: Any) -> bool:
+        if not isinstance(pr, dict) or pr.get("number") != pr_number:
+            return False
+        head = pr.get("head") or {}
+        base = pr.get("base") or {}
+        return (isinstance(head, dict) and isinstance(base, dict)
+                and head.get("sha") == candidate_sha
+                and head.get("ref") == head_ref
+                and (head.get("repo") or {}).get("full_name") == run.get("repository", {}).get("full_name")
+                and base.get("sha") == base_sha
+                and base.get("ref") == base_ref
+                and (base.get("repo") or {}).get("full_name") == run.get("repository", {}).get("full_name"))
+    if not any(matches(pr) for pr in linked):
+        raise ValueError("SMART proof belongs to a different PR, base or branch")
+
+
 def validate_scoped_high_run(
     run: dict[str, Any], jobs: list[dict[str, Any]], *,
     candidate_sha: str, repo: str, now: datetime,
+    base_sha: str, pr_number: int, head_ref: str, base_ref: str,
 ) -> None:
     """Only the GitHub host can attest SMART execution; PR JSON never can."""
     if not _SHA.fullmatch(candidate_sha) or not _REPO.fullmatch(repo):
@@ -186,6 +221,8 @@ def validate_scoped_high_run(
             or run.get("event") != "pull_request"
             ):
         raise ValueError("SMART proof missing exact-HEAD PR run")
+    _verify_smart_pr_identity(run, candidate_sha=candidate_sha, base_sha=base_sha,
+                              pr_number=pr_number, head_ref=head_ref, base_ref=base_ref)
     _require_authenticated_run_state(run, jobs)
     path = str(run.get("path") or "")
     if not (path == _CERT_WORKFLOW or f"/{_CERT_WORKFLOW}@" in path
@@ -233,12 +270,16 @@ def evaluate_merge(
     runs: list[dict[str, Any]] | None = None,
     jobs_by_run: dict[int, list[dict[str, Any]]] | None = None,
     root: Path | None = None,
+    deleted_paths: tuple[str, ...] | list[str] = (),
+    pr_number: int | None = None,
+    head_ref: str = '', base_ref: str = '',
 ) -> dict[str, Any]:
     if not _SHA.fullmatch(candidate_sha) or not _SHA.fullmatch(base_sha):
         raise ValueError("Expected exact 40-digit candidate/base SHA")
     if candidate_sha == base_sha or not _REPO.fullmatch(repo):
         raise ValueError("Invalid PR candidate identity")
-    route = classify_merge_route(paths, root=root, base_sha=base_sha)
+    route = classify_merge_route(paths, root=root, base_sha=base_sha,
+                                 deleted_paths=deleted_paths)
     result: dict[str, Any] = {
         "schema_version": 1,
         "candidate_sha": candidate_sha,
@@ -263,6 +304,8 @@ def evaluate_merge(
                 validate_scoped_high_run(
                     run, (jobs_by_run or {}).get(run.get("id"), []),
                     candidate_sha=candidate_sha, repo=repo, now=now,
+                    base_sha=base_sha, pr_number=pr_number,
+                    head_ref=head_ref, base_ref=base_ref,
                 )
                 result["status"] = "PASS_SMART_AUTHENTICATED_NOT_FULL"
                 result["scoped_evidence_run"] = run["id"]
@@ -273,6 +316,11 @@ def evaluate_merge(
                 # bounded candidate (unmapped consumer, metrics or unknown
                 # dependency). A *real* exact-head FULL proof still wins.
                 try:
+                    if run.get("event") == "pull_request":
+                        _verify_smart_pr_identity(
+                            run, candidate_sha=candidate_sha, base_sha=base_sha,
+                            pr_number=pr_number, head_ref=head_ref, base_ref=base_ref,
+                        )
                     validate_full_run(
                         run, (jobs_by_run or {}).get(run.get("id"), []),
                         candidate_sha=candidate_sha, repo=repo, now=now,
@@ -352,11 +400,34 @@ def git(*args: str) -> str:
     return result.stdout.strip()
 
 
+def candidate_paths(base_sha: str, candidate: str) -> tuple[list[str], list[str]]:
+    """Preserve deletions/type changes; --no-renames makes moves D+A."""
+    finished = subprocess.run(
+        ["git", "diff", "--name-status", "-z", "--no-renames", base_sha, candidate],
+        check=True, capture_output=True, text=True, encoding="utf-8", timeout=45,
+    )
+    fields = finished.stdout.split("\0")
+    if not fields or fields[-1] != "" or (len(fields) - 1) % 2:
+        raise ValueError("Malformed Git name-status diff")
+    paths, deleted = [], []
+    for i in range(0, len(fields) - 1, 2):
+        status, path = fields[i:i + 2]
+        if status not in {"A", "M", "D", "T"} or not path:
+            raise ValueError("Unrecognized or unsafe diff status")
+        paths.append(path)
+        if status in {"D", "T"}:
+            deleted.append(path)
+    return paths, deleted
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--base-sha", required=True)
     parser.add_argument("--repo", required=True)
+    parser.add_argument("--pr-number", type=int, required=True)
+    parser.add_argument("--head-ref", required=True)
+    parser.add_argument("--base-ref", required=True)
     parser.add_argument("--safe-result", required=True)
     parser.add_argument("--enforce", choices=("true", "false"), default="false")
     parser.add_argument("--output", type=Path, required=True)
@@ -364,8 +435,9 @@ def main(argv: list[str] | None = None) -> int:
     candidate = git("rev-parse", "HEAD")
     if candidate != args.candidate_sha:
         raise ValueError("Checkout differs from PR's exact HEAD")
-    paths = git("diff", "--name-only", "--no-renames", args.base_sha, candidate).splitlines()
-    route = classify_merge_route(paths, root=Path.cwd(), base_sha=args.base_sha)
+    paths, deleted = candidate_paths(args.base_sha, candidate)
+    route = classify_merge_route(paths, root=Path.cwd(), base_sha=args.base_sha,
+                                 deleted_paths=deleted)
     runs: list[dict[str, Any]] = []
     jobs: dict[int, list[dict[str, Any]]] = {}
     if route["route"] in {"FULL_REQUIRED", "SMART"}:
@@ -374,8 +446,9 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             print(f"FULL proof retrieval failed closed: {exc}")
     result = evaluate_merge(candidate_sha=candidate, base_sha=args.base_sha,
-                            paths=paths, safe_validation=args.safe_result, repo=args.repo,
-                            now=datetime.now(timezone.utc), runs=runs, jobs_by_run=jobs, root=Path.cwd())
+                            paths=paths, deleted_paths=deleted, safe_validation=args.safe_result, repo=args.repo,
+                            now=datetime.now(timezone.utc), runs=runs, jobs_by_run=jobs, root=Path.cwd(),
+                            pr_number=args.pr_number, head_ref=args.head_ref, base_ref=args.base_ref)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, ensure_ascii=False))
