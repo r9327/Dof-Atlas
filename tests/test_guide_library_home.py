@@ -159,7 +159,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 row = model.row_for_guide("dofus_cawotte")
                 self.assertGreaterEqual(row, 0)
                 self.assertNotIn("0 %", model.index(row, 0).data(Qt.DisplayRole))
-                self.assertIn("Progression indisponible", model.index(row, 0).data(Qt.DisplayRole))
+                self.assertIn("Progression inconnue", model.index(row, 0).data(Qt.DisplayRole))
             finally:
                 view.close()
                 view.deleteLater()
