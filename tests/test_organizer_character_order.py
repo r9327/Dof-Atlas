@@ -378,5 +378,43 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
 
 
 
+    def test_duplicate_live_names_cannot_share_one_network_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps({"characters": {"77": {
+                    "name": "Alpha", "class_key": "iop", "pid": 101,
+                    "source": "verified_network_identity",
+                }}}),
+                encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, _profile, client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop 1", "hwnd": 11, "pid": 101},
+                    {"nom": "Alpha - Iop 2", "hwnd": 22, "pid": 102},
+                ])
+                self.assertEqual(
+                    [page.verified_character_token_for_session(row)
+                     for row in page.sessions[:2]],
+                    ["", ""],
+                )
+                page.export_client_index()
+                exported = json.loads(client_index.read_text(encoding="utf-8"))
+                self.assertEqual(
+                    [row["character_key"] for row in exported["clients"]],
+                    ["", ""],
+                )
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop", "hwnd": 33, "pid": 105}
+                ])
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]),
+                    "character:77",
+                )
+
+
+
 if __name__ == "__main__":
     unittest.main()
