@@ -109,5 +109,35 @@ class GuideParticipantServiceTests(unittest.TestCase):
 
 
 
+    def test_legacy_verified_slot_keeps_actual_character_id_without_slot_promotion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text(
+                json.dumps({KEY_GUIDE_PARTICIPANTS: [
+                    "character:201", "character:2"
+                ]}), encoding="utf-8",
+            )
+            clients.write_text('{"clients":[]}', encoding="utf-8")
+            bindings.write_text(
+                json.dumps({"slots": {
+                    "2": {
+                        "character_id": 201, "name": "Ancien",
+                        "source": "verified_network_identity",
+                    },
+                    "3": {"name": "Inconnu", "source": "verified_network_identity"},
+                }}), encoding="utf-8",
+            )
+            service = GuideParticipantService(profile, clients, bindings)
+            self.assertEqual(service.selected_keys(), ("character:201",))
+            self.assertEqual(
+                [row.key for row in service.available_characters()],
+                ["character:201"],
+            )
+
+
+
 if __name__ == "__main__":
     unittest.main()
