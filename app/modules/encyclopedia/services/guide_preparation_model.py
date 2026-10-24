@@ -6,10 +6,38 @@ into a certified inventory claim.
 """
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
+import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
+
+_COMPACT_DECODE_LIMIT = 4 * 1024 * 1024
+_COMPACT_PREPARATION_FIELDS = (
+    "preparation", "a_preparer", "resource_plan", "resources",
+    "required_items", "items_to_prepare", "manual_preparation",
+    "keep_in_bank", "bank_items",
+)
+_COMPACT_PROFESSION_FIELDS = (
+    "profession", "professions", "profession_gates", "jobs",
+)
+
+
+def _compact_data(payload: Any, expected_type: type) -> Any | None:
+    """Read one compressed source, never hydrate the Qt card or all 267 cards."""
+    if not isinstance(payload, (bytes, bytearray)) or len(payload) > _COMPACT_DECODE_LIMIT:
+        return None
+    try:
+        decoder = zlib.decompressobj()
+        raw = decoder.decompress(bytes(payload), _COMPACT_DECODE_LIMIT + 1)
+        if not decoder.eof or len(raw) > _COMPACT_DECODE_LIMIT:
+            return None
+        decoded = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, ValueError, TypeError, zlib.error):
+        return None
+    return decoded if isinstance(decoded, expected_type) else None
+
 
 _EXPLICIT_QUANTITY = re.compile(
     r"\b(?:pr[ée]pare(?:r|z)?|apporte(?:r|z)?)\s+(\d+)\s*[×x]\s*(.+?)(?:[.;]|$)",
@@ -121,12 +149,45 @@ def card_claims(
     *,
     sections: dict[str, Any] | None = None,
 ) -> tuple[PreparationClaim, ...]:
-    """Merge structured requirements and explicit authored text without mirrors.
+    """Merge authored evidence, including compact stage payloads, without Qt.
 
-    Two independently identified consumptions are kept; the same structured
-    requirement mirrored in its 'Prépare N × ...' caption is counted once.
-    Unverified source_action_candidates are never treated as stock demands.
+    The compact route stays compressed: decode one card at a time, do not call
+    manual_lines_for_card/manual_sections_for_card, and never modify the card.
     """
+    if isinstance(card.get("_manual_stage_payload"), (bytes, bytearray)):
+        stage_source = _compact_data(card.get("_manual_stage_payload"), dict)
+        if stage_source is None:
+            return ()
+        authored_rows: list[dict[str, Any]] = []
+        captions: list[dict[str, str]] = []
+        for field in _COMPACT_PREPARATION_FIELDS:
+            value = stage_source.get(field)
+            authored_rows.extend(_structured_entries(value, origin=field))
+            if isinstance(value, str):
+                captions.append({"text": value})
+        chapter_rows = _compact_data(card.get("_manual_chapter_preparation_payload"), list)
+        if chapter_rows:
+            authored_rows.extend(_structured_entries(
+                chapter_rows, origin="chapter_preparation",
+            ))
+        professions = []
+        for field in _COMPACT_PROFESSION_FIELDS:
+            value = stage_source.get(field)
+            if isinstance(value, (list, tuple)):
+                professions.extend(value)
+            elif value not in (None, "", False):
+                professions.append(value)
+        given_sections = stage_source.get("manual_sections")
+        if isinstance(given_sections, dict):
+            captions.extend(given_sections.get("prepare", ()) or ())
+        return card_claims(
+            {
+                "manual_stage_id": card.get("manual_stage_id"),
+                "a_preparer": authored_rows,
+                "profession_gates": professions,
+            },
+            sections={"prepare": captions},
+        )
     stage = str(card.get("manual_stage_id") or "")
     claims: list[PreparationClaim] = []
     structured_keys: set[tuple[str, int | None]] = set()

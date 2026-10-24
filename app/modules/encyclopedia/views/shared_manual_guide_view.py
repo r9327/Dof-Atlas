@@ -1402,8 +1402,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             for need in aggregate_remaining(
                 rows,
                 sections_for_card=(
-                    lambda card, key=character_key: sections_getter(key, card)
-                    if callable(sections_getter) else card.get("manual_sections", {})
+                    lambda card, key=character_key: (
+                        None if "_manual_stage_payload" in card else
+                        sections_getter(key, card) if callable(sections_getter)
+                        else card.get("manual_sections", {})
+                    )
                 ),
             ):
                 item_key = self._preparation_item_key(need.item_id, need.name)

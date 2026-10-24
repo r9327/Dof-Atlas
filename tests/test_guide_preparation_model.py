@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+import zlib
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_preparation_model import (
@@ -118,6 +119,63 @@ class GuidePreparationModelTests(unittest.TestCase):
         ]})
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row.quantity is None for row in rows))
+
+    def test_compact_incarnam_preparation_keeps_route_unhydrated(self):
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
+            GuideUltimeManualRuntimeService,
+        )
+        root = Path(__file__).resolve().parents[1]
+        chapter = json.loads((
+            root / "data/routes/guide_ultime_manual/incarnam_v1.json"
+        ).read_text(encoding="utf-8"))
+        stages = chapter["stages"]
+        schedule = GuideUltimeManualRuntimeService._chapter_preparation_schedule(
+            chapter, stages,
+        )
+        first = stages[0]
+        card = {
+            "manual_stage_id": first["id"],
+            "a_preparer": [],
+            "_manual_stage_payload": zlib.compress(json.dumps(
+                first, ensure_ascii=False,
+            ).encode("utf-8")),
+            "_manual_chapter_preparation_payload": zlib.compress(json.dumps(
+                schedule[0], ensure_ascii=False,
+            ).encode("utf-8")),
+        }
+        before_keys = set(card)
+        claims = card_claims(card)
+        results = {claim.name: claim.quantity for claim in claims}
+        self.assertEqual(results["Blé"], 18)
+        self.assertEqual(results["Goujon"], 8)
+        self.assertEqual(results["Relique d'Incarnam"], 3)
+        self.assertEqual(set(card), before_keys)
+        self.assertNotIn("manual_stage_data", card)
+        self.assertEqual(
+            {row.name: row.quantity for row in aggregate_remaining(((card, False),))},
+            results,
+        )
+
+    def test_compact_payload_is_bounded_and_never_uses_action_candidates(self):
+        enormous = zlib.compress(b"x" * (4 * 1024 * 1024 + 1))
+        self.assertEqual(card_claims({
+            "manual_stage_id": "bomb",
+            "_manual_stage_payload": enormous,
+        }), ())
+        stage = {
+            "resource_plan": {
+                "items": [{"item": "Potion de foyer", "quantity": 2}],
+            },
+            "source_action_candidates": [
+                {"name": "Suggestion Ganymède", "quantity": 999},
+            ],
+        }
+        card = {"manual_stage_id": "stage:one", "a_preparer": [],
+                "_manual_stage_payload": zlib.compress(json.dumps(stage).encode())}
+        self.assertEqual(
+            [(c.name, c.quantity) for c in card_claims(card)],
+            [("Potion de foyer", 2)],
+        )
 
     def test_authored_incarnam_resource_plan_reaches_cards(self):
         """Use real retained chapter data, not an invented synthetic item."""

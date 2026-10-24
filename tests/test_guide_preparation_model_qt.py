@@ -124,6 +124,31 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
             160,
         )
 
+    def test_compact_route_preview_never_hydrates_card(self):
+        import json
+        import zlib
+
+        self.participants.save_selected_keys(())
+        stage = {
+            "id": "INC-mini",
+            "resource_plan": {"items": [
+                {"name": "Pierre d'âme parfaite", "quantity": 3},
+            ]},
+        }
+        self.service.cards[0]["a_preparer"] = []
+        self.service.cards[0]["_manual_stage_payload"] = zlib.compress(
+            json.dumps(stage, ensure_ascii=False).encode("utf-8"),
+        )
+        card = self.service.cards[0]
+        initial_keys = set(card)
+        view = self._view()
+        self.assertIn(
+            ("Pierres d'âme", "Pierre d'âme parfaite", 3),
+            view._preparation_preview,
+        )
+        self.assertEqual(set(card), initial_keys)
+        self.assertFalse(self.path.exists())
+
     def test_readonly_without_selected_character(self):
         self.participants.save_selected_keys(())
         view = self._view()
