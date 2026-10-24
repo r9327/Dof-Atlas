@@ -171,6 +171,105 @@ class GuidePreparationModelTests(unittest.TestCase):
             "Preparation-only allocations exceeded 2 MiB + 5% margin",
         )
 
+    def test_real_guide_ultime_canonical_267_stage_sources(self):
+        """Read the canonical authored chapters, without remote catalogue/GUI."""
+        from app.modules.encyclopedia.services.guide_ultime_manual_route import (
+            load_manual_chapter,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
+            GuideUltimeManualRuntimeService,
+        )
+        manual_dir = (Path(__file__).resolve().parents[1] /
+                      "data/routes/guide_ultime_manual")
+        manifest = json.loads(
+            (manual_dir / "manifest_v1.json").read_text(encoding="utf-8")
+        )
+        chapters = manifest["canonical"]["chapters"]
+        total = 0
+        global_claims = []
+        for meta in chapters:
+            chapter = load_manual_chapter(
+                manual_dir / meta["file"], _memo={}
+            )
+            stages = [row for row in chapter["stages"] if isinstance(row, dict)]
+            self.assertEqual(len(stages), int(meta["stage_count"]), meta["id"])
+            schedule = GuideUltimeManualRuntimeService._chapter_preparation_schedule(
+                chapter, stages,
+            )
+            for index, stage in enumerate(stages):
+                card = {
+                    "manual_stage_id": str(stage.get("id") or f"{meta['id']}-{index}"),
+                    "manual_chapter_id": meta["id"],
+                    "a_preparer": [],
+                    "_manual_stage_payload": zlib.compress(
+                        json.dumps(stage, ensure_ascii=False).encode("utf-8")
+                    ),
+                }
+                if schedule.get(index):
+                    card["_manual_chapter_preparation_payload"] = zlib.compress(
+                        json.dumps(schedule[index], ensure_ascii=False).encode("utf-8")
+                    )
+                keys_before = set(card)
+                claims = card_claims(card)
+                self.assertEqual(set(card), keys_before)
+                self.assertNotIn("manual_stage_data", card)
+                for claim in claims:
+                    self.assertTrue(claim.identity)
+                    self.assertTrue(claim.name)
+                    self.assertTrue(claim.source)
+                    if claim.quantity is not None:
+                        self.assertGreater(claim.quantity, 0)
+                if meta["id"] == "incarnam":
+                    global_claims.extend(claims)
+                total += 1
+        self.assertEqual(total, 267)
+        first_chapter = {row.name: row.quantity for row in global_claims}
+        self.assertEqual(first_chapter["Blé"], 18)
+        self.assertEqual(first_chapter["Goujon"], 8)
+        print(
+            f"ATLAS_GUIDES_CANONICAL chapters={len(chapters)} cards={total} "
+            f"incarnam_claims={len(global_claims)} no_catalog_download=true",
+            flush=True,
+        )
+
+    def test_real_sylvestre_quest_dependencies_not_false_inventory(self):
+        root = Path(__file__).resolve().parents[1]
+        guide = json.loads((
+            root / "data/encyclopedia/guides/dofus_sylvestre.json"
+        ).read_text(encoding="utf-8"))
+        self.assertEqual(guide["id"], "dofus_sylvestre")
+        route = next(
+            part for part in guide["sections"]
+            if part["id"] == "dofus_sylvestre_v4_route"
+        )
+        steps = route["steps"]
+        self.assertGreaterEqual(len(steps), 200)
+        source = {
+            "manual_stage_id": "sylvestre:source",
+            "source_action_candidates": steps,
+        }
+        self.assertEqual(card_claims(source), ())
+        self.assertEqual(aggregate_remaining(((source, False),)), ())
+
+    def test_real_ganymede_candidates_never_certified_as_inventory(self):
+        root = Path(__file__).resolve().parents[1]
+        data = json.loads((
+            root / "data/encyclopedia/guides/ganymede_2205_action_candidates.json"
+        ).read_text(encoding="utf-8"))
+        self.assertFalse(data["ready_to_replace"])
+        self.assertEqual(data["certified_actions"], 0)
+        self.assertGreaterEqual(len(data["steps"]), 60)
+        count = 0
+        for step in data["steps"]:
+            candidates = step.get("actions") or []
+            count += sum(x.get("kind") == "prepare_object" for x in candidates)
+            card = {
+                "manual_stage_id": step["stable_step_id"],
+                "source_action_candidates": candidates,
+            }
+            self.assertEqual(card_claims(card), ())
+        self.assertGreater(count, 0)
+
     def test_global_chapter_inventory_survives_anchor_card_completion(self):
         first = {
             "manual_stage_id": "INC-00",

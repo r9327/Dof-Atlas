@@ -163,7 +163,7 @@
     "tests": {
       "mode": "040000",
       "type": "tree",
-      "sha": "e7e31b9a57bca285daa2768822e983cd29f9838b"
+      "sha": "36d53fc687fbdb2b4f272441cd5773d066c529b3"
     },
     "tools": {
       "mode": "040000",
