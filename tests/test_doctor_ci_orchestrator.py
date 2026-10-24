@@ -394,7 +394,13 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn('name: Require successful Doctor plan', central)
         self.assertIn('if: always() && github.event_name == \'pull_request\'', central)
         certify = central.split('  certify:', 1)[1].split('    steps:', 1)[0]
-        self.assertIn('needs: doctor-plan', certify)
+        self.assertIn('needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]', certify)
+        self.assertIn("needs.phase8_memory_benchmark.result == 'success'", certify)
+        self.assertIn("needs.phase8_preload_benchmark.result == 'success'", certify)
+        self.assertIn("needs.phase8_memory_benchmark.result == 'skipped'", certify)
+        self.assertIn("needs.doctor-plan.outputs.phase8_memory_benchmark != 'true'", certify)
+        self.assertIn("needs.doctor-plan.outputs.phase8_preload_benchmark != 'true'", certify)
+        self.assertIn("needs.doctor-plan.result == 'success'", certify)
         self.assertNotIn('title', certify)
         self.assertNotIn('draft', certify)
         required_public = central.split('  safe-validation:', 1)[1].split('    steps:', 1)[0]
