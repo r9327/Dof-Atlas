@@ -55,6 +55,7 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.logging_setup import configure_logging
+from app.validation_log import record_validation
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
@@ -1032,6 +1033,10 @@ class AtlasWindow(QMainWindow):
         connected_characters = self._connected_characters(known_characters)
         known_by_key = {character.key: character for character in known_characters}
         self.characters = connected_characters
+        record_validation("shell_characters", known=len(known_characters),
+                          connected=len(connected_characters),
+                          with_verified_class=sum(bool(character.class_key)
+                                                  for character in connected_characters))
 
         selected_index = next(
             (
@@ -1046,7 +1051,9 @@ class AtlasWindow(QMainWindow):
         try:
             self.character_combo.clear()
             for character in connected_characters:
-                icon_path = self.character_icon_path(character.label)
+                icon_path = self.character_icon_path(
+                    character.label, class_key=getattr(character, "class_key", "")
+                )
                 icon = QIcon(icon_path) if icon_path else QIcon()
                 self.character_combo.addItem(icon, character.label, character)
                 self.character_combo.setItemData(
@@ -1081,7 +1088,7 @@ class AtlasWindow(QMainWindow):
         self.home_page.set_character(
             self.current_character_key,
             self.current_character_label,
-            self.character_icon_path(self.current_character_label),
+            self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
         )
         self.sync_selected_character_to_pages()
         self._refresh_runtime_hotkeys_for_client_mapping()
@@ -1107,52 +1114,38 @@ class AtlasWindow(QMainWindow):
 
     def _connected_characters(self, known_characters: list[Any]) -> list[Any]:
         from app.network.character_runtime_state import character_runtime_state
-        from app.quest_catalog import is_generic_dofus_client_name, normalize_text
 
         runtime_store = character_runtime_state()
-        runtime_keys = {
-            character.key
-            for character in known_characters
-            if (snapshot := runtime_store.snapshot(character.key)) is not None
-            and snapshot.connected
-        }
-
-        payload = read_json(CLIENT_INDEX_JSON, {})
-        clients = payload.get("clients", []) if isinstance(payload, dict) else []
-        named_clients: set[str] = set()
-        for client in clients if isinstance(clients, list) else ():
-            if not isinstance(client, dict):
-                continue
-            name = str(client.get("character_name") or client.get("name") or "").strip()
-            if not name or is_generic_dofus_client_name(name):
-                continue
-            normalized = normalize_text(name)
-            if normalized:
-                named_clients.add(normalized)
-
-        connected: list[Any] = []
+        connected = []
         for character in known_characters:
-            if (
-                character.key not in runtime_keys
-                and normalize_text(character.label) not in named_clients
+            # The quest character loader already validated the modern
+            # Organizer index against verified network bindings. A bare
+            # window display name cannot establish that a character is online.
+            snapshot = runtime_store.snapshot(character.key)
+            if not character.connected and not (
+                snapshot is not None and snapshot.connected
             ):
                 continue
             character.connected = True
             connected.append(character)
         return self._ordered_characters(connected)
 
-    def character_icon_path(self, label: str) -> str:
+    def character_icon_path(self, label: str, *, class_key: str = "") -> str:
+        fallback = str(LOGO_PATH) if LOGO_PATH.exists() else ""
         if not str(label or "").strip() or label == "Aucun personnage connecté":
-            return str(LOGO_PATH) if LOGO_PATH.exists() else ""
-        try:
-            from app.pages.organizer_page import class_icon_path_for_window_name
+            return fallback
+        from app.pages.organizer.common import (
+            DOFUS_CLASS_DEFINITIONS,
+            class_icon_candidates,
+        )
 
-            path = class_icon_path_for_window_name(label)
-        except Exception:
-            path = None
-        if path is not None and path.exists():
-            return str(path)
-        return str(LOGO_PATH) if LOGO_PATH.exists() else ""
+        verified_class = str(class_key or "").strip().casefold()
+        if verified_class not in DOFUS_CLASS_DEFINITIONS:
+            return fallback
+        for path in class_icon_candidates(verified_class):
+            if path.is_file():
+                return str(path)
+        return fallback
 
     def on_global_character_changed(self) -> None:
         character = self.character_combo.currentData()
@@ -1167,7 +1160,10 @@ class AtlasWindow(QMainWindow):
         self.current_character_key = key
         self.current_character_label = label
         self.persist_selected_character()
-        self.home_page.set_character(key, label, self.character_icon_path(label))
+        self.home_page.set_character(
+            key, label,
+            self.character_icon_path(label, class_key=getattr(character, "class_key", "")),
+        )
         self.sync_selected_character_to_pages()
 
     def on_network_progress_changed(self, character_key: str) -> None:
@@ -1308,7 +1304,7 @@ class AtlasWindow(QMainWindow):
             self.home_page.set_character(
                 known.key,
                 known.label,
-                self.character_icon_path(known.label),
+                self.character_icon_path(known.label, class_key=known.class_key),
             )
             self.sync_selected_character_to_pages()
         page.refresh_from_sources(self.current_character_key)

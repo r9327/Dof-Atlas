@@ -1119,7 +1119,25 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
 
+    def _participant_source_signature(self) -> tuple[object, ...]:
+        from app.pages.quest_character_cache import quest_character_source_signature
+
+        service = self.participant_service
+        profile_path = getattr(service, "profile_path", None)
+        client_index_path = getattr(service, "client_index_path", None)
+        binding_path = getattr(service, "binding_path", None)
+        if any(path is None for path in (profile_path, client_index_path, binding_path)):
+            # Some in-memory participant providers expose no files. Never
+            # guess a source signature or turn their absence into a UI crash.
+            return ("in_memory_participants", id(service))
+        return quest_character_source_signature(
+            profile_path,
+            client_index_path,
+            binding_path=binding_path,
+        )
+
     def _refresh_participants_panel(self) -> None:
+        self._last_participant_source_signature = self._participant_source_signature()
         while self.participants_layout.count():
             item = self.participants_layout.takeAt(0)
             widget = item.widget()
@@ -1164,25 +1182,21 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
 
     def _participant_icon(self, character) -> tuple[str, str]:
-        try:
-            from app.pages.organizer.common import (
-                DOFUS_CLASS_DEFINITIONS,
-                class_icon_path_for_window_name,
-                dofus_class_key_for_character_name,
-                dofus_class_key_from_window_name,
-            )
+        """Render portraits from the verified identity, never a window-name guess."""
+        from app.pages.organizer.common import (
+            DOFUS_CLASS_DEFINITIONS,
+            class_icon_candidates,
+        )
 
-            class_key = (
-                dofus_class_key_for_character_name(character.label)
-                or dofus_class_key_from_window_name(character.label)
-            )
-            path = class_icon_path_for_window_name(character.label)
-            label = str(
-                DOFUS_CLASS_DEFINITIONS.get(class_key or "", {}).get("label", "")
-            )
-            return (str(path) if path is not None else "", label)
-        except (ImportError, OSError, TypeError, ValueError):
+        class_key = str(getattr(character, "class_key", "") or "").strip().casefold()
+        definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
+        if not definition:
             return "", ""
+        label = str(definition["label"])
+        for path in class_icon_candidates(class_key):
+            if path.is_file():
+                return str(path), label
+        return "", label
 
     def _participant_progress(self, character_key: str) -> int:
         try:
@@ -1547,6 +1561,10 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def refresh(self, *, reset_to_active: bool = False) -> None:
         self.service.reload_progress()
+        if self._participant_source_signature() != getattr(
+            self, "_last_participant_source_signature", None
+        ):
+            self._refresh_participants_panel()
         if not self.service.available:
             self._render_missing_data()
             return
