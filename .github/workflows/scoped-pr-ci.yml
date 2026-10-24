@@ -74,6 +74,32 @@ jobs:
         run: |
           python -X faulthandler -m tools.ci_scope_gate --base-ref "$BASE_SHA" --output "$GITHUB_OUTPUT"
 
+      - name: Generate exact-SHA Draft PR mini-audit (advisory)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          # The existing Doctor plan already computes the source/UI impact.
+          # Reuse that authoritative planner instead of inventing a second
+          # risk or dependency engine. No Qt, tests, Windows or LFS installed.
+          python -X faulthandler -m tools.atlas_doctor ci \
+            --base-ref "$BASE_SHA" \
+            --expected-sha "$CANDIDATE_SHA" \
+            --event pull_request \
+            --output artifacts/doctor_ci/plan.json --json
+          python -m tools.ci_pr_audit \
+            --plan artifacts/doctor_ci/plan.json \
+            --report artifacts/doctor_ci/pr_mini_audit.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Draft PR impact evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-draft-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_ci/**
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Decide whether Windows execution is required
         id: route
         shell: bash
