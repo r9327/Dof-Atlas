@@ -54,6 +54,29 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 ["character:2", "character:1"],
             )
 
+    def test_unknown_canonical_identity_is_not_accepted_from_saved_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profiles.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text(
+                json.dumps({KEY_GUIDE_PARTICIPANTS: ["character:1", "character:999"]}),
+                encoding="utf-8",
+            )
+            clients.write_text("{}", encoding="utf-8")
+            bindings.write_text(
+                json.dumps({"characters": {"1": {"name": "Alpha", "pid": 101}}}),
+                encoding="utf-8",
+            )
+            service = GuideParticipantService(profile, clients, bindings)
+            self.assertEqual(service.selected_keys(), ("character:1",))
+            # Read filtering must not destroy the original saved payload.
+            self.assertEqual(
+                json.loads(profile.read_text(encoding="utf-8"))[KEY_GUIDE_PARTICIPANTS],
+                ["character:1", "character:999"],
+            )
+
     def test_corrupt_selection_type_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
