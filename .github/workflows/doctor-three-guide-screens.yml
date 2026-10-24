@@ -1,0 +1,94 @@
+name: Doctor Atlas - three real Guide screens
+
+on:
+  push:
+    branches:
+      - doctor/three-guide-screens-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Three Qt screenshots only
+    runs-on: windows-latest
+    timeout-minutes: 18
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+      - name: Install pinned Qt
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Prepare canonical public Guide assets
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Render precisely three real Qt screens
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import os
+          import tempfile
+
+          from tools.atlas_doctor_lib.doctor_ui_qt import build_scene, settle, open_guide
+          from app.modules.encyclopedia.constants import GUIDES_TAB
+
+          root = Path(tempfile.mkdtemp(prefix="atlas-doctor-three-"))
+          os.environ["DOFUS_ATLAS_USER_ROOT"] = str(root)
+          output = Path("doctor-3-screens")
+          output.mkdir(exist_ok=True)
+          app, page, owner = build_scene(root)
+          page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+          page.resize(1200, 800)
+          settle()
+          # Catalogue: the real product view, before any guide is opened.
+          assert page.guides_view is owner, "Real Guides catalogue not mounted"
+          assert page.grab().save(str(output / "01-accueil-guides.png"), "PNG")
+
+          # Open the real canonical guide, using exactly the same Doctor helper
+          # as the existing Guide UI certification.
+          view = open_guide(page, owner, "guide_complet")
+          view._show_index(0)
+          page.resize(1200, 800)
+          settle()
+          assert page.grab().save(str(output / "02-guide-succes.png"), "PNG")
+
+          view = open_guide(page, owner, "dofus_sylvestre")
+          view._show_index(0)
+          page.resize(1200, 800)
+          settle()
+          assert page.grab().save(str(output / "03-sylvestre-opti.png"), "PNG")
+
+          page.close()
+          settle()
+          files = sorted(output.glob("*.png"))
+          assert len(files) == 3 and all(p.stat().st_size > 5000 for p in files)
+          for f in files:
+              print(f"{f.name}: {f.stat().st_size} bytes")
+          '@ | Set-Content -Path doctor_three_screens.py -Encoding utf8
+          python -X faulthandler doctor_three_screens.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload only the requested three PNGs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-three-guide-screens
+          path: doctor-3-screens/*.png
+          if-no-files-found: error
