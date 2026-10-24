@@ -83,9 +83,14 @@ dependency-graph critical path are **not** inferred from overlapping intervals.
 Observability cannot waive any required job.
 
 Existing `Scoped PR Feedback` now runs a cheap stdlib-only smoke automatically
-on Draft PR opens/updates, including the audit and timing regressions. The
-Windows scoped runner is still **manual-only**, and the Phase Ready/full
-certification is unchanged. A Draft report can only say
+on Draft PR opens/updates. The **actual** Doctor CI planner also generates
+`artifacts/doctor_ci/plan.json` and the structured
+`artifacts/doctor_ci/pr_mini_audit.json`, publishes a Markdown summary, and
+archives both as `doctor-draft-audit-<run>-<attempt>`. It reuses the existing
+router and does not launch Qt, LFS, specialist jobs or FULL. New audit/timing
+regressions run alongside the historical selector tests.
+The Windows scoped runner is still **manual-only**, and the Phase Ready/full
+certification is unchanged. A Draft verdict can only say
 `DRAFT_ROUTE_ONLY_NOT_CERTIFIED`, never claim Windows evidence or FULL. The final
 Phase artifact upload runs **after** verdict enforcement, preserving a final
 canonical verdict JSON when it exists. The independent diagnostic
