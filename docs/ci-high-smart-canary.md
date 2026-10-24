@@ -66,9 +66,27 @@ bounded pure-tooling parallelism, timing and duplicate inventory), #137
 specialist selection) and #258 (DIFF_TARGETS early abort). The locked pip
 cache-dependency-path is already configured on the relevant Windows jobs.
 
-Read-only Doctor PR mini-audit and a GitHub job timing summary now reuse the
-**existing CI jobs**. Summed, overlapping job durations are not GitHub billed
-minutes, and a timing report is never test or certification proof. The final
+The Doctor PR mini-audit now persists `artifacts/doctor_ci/pr_mini_audit.json`
+with exact SHA/base, sensitive CI/policy paths, removed/renamed file inventory,
+uncovered/unclassified paths (where the canonical router supplies them),
+required jobs, route constraints and specialist fallback. The Markdown PR
+summary is generated from that same advisory-only record. It is not a deep
+source-security review, test execution, or merge PASS.
+
+Doctor / CI Verdict also persists `artifacts/doctor_ci/job_timings.json` and
+a Job Summary with elapsed durations, earliest completed failed job, a measured
+run span, and explicitly excluded/pending/invalid observations. GitHub has
+reported a **negative 1-second timestamp for a skipped Windows job** (run
+#40140997450); the observer now excludes that skipped job instead of
+discarding every valid timing. Actual GitHub billable minutes and genuine
+dependency-graph critical path are **not** inferred from overlapping intervals.
+Observability cannot waive any required job.
+
+Existing `Scoped PR Feedback` now runs a cheap stdlib-only smoke automatically
+on Draft PR opens/updates, including the audit and timing regressions. The
+Windows scoped runner is still **manual-only**, and the Phase Ready/full
+certification is unchanged. A Draft report can only say
+`DRAFT_ROUTE_ONLY_NOT_CERTIFIED`, never claim Windows evidence or FULL. The final
 Phase artifact upload runs **after** verdict enforcement, preserving a final
 canonical verdict JSON when it exists. The independent diagnostic
 `05_phase_outcome.json` is always attempted after enforcement, including on
@@ -95,3 +113,14 @@ including when the overall workflow has completed.
 The older run #40133005156 measured Craft retained memory at 2.66 MB above
 the 2.10 MB hard ceiling. Its failure remains valid for that candidate and
 cannot be waived; it is not a validation of the current SHA.
+
+### Observed certification failures, not waivers
+
+[Run #40140997450](https://github.com/r9327/Dof-Atlas/actions/runs/40140997450)
+found a malformed diagnostic JSON newline (fixed in `ab85ce2`) and reproduced
+Craft retained RSS at **2.62 MB vs its 2.10 MB ceiling**. The Qt widget count
+returned to its pre-Craft level after Home, but RSS did not: avoid claiming a
+Qt-widget leak or classifying this as repaired without a Windows retest.
+The preceding measurement was 2.66 MB. The independent pre-FULL gate correctly
+skipped FULL, avoiding expensive work **but not certifying the PR**. No memory
+threshold or required certificate has been relaxed.
