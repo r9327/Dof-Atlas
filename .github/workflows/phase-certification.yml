@@ -385,6 +385,74 @@ jobs:
             --output "artifacts/phase_certification/inputs_before.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Fail fast on changed test regressions before FULL
+        id: diff_preflight
+        if: >-
+          steps.route.outputs.run_full == 'true' &&
+          github.event_name == 'pull_request' &&
+          steps.catalog.outcome == 'success' &&
+          steps.inputs_before.outcome == 'success'
+        timeout-minutes: 12
+        continue-on-error: true
+        run: |
+          # Use Atlas Integrity's canonical DIFF_TARGETS command; this is
+          # extra early failure detection, not a replacement for FULL_SUITE.
+          @'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          from tools.atlas_integrity import (
+              CommandExecutor, _command_for_group, changed_files,
+              load_policy, repository_head,
+          )
+
+          root = Path.cwd()
+          expected_sha = os.environ['CANDIDATE_SHA']
+          actual_sha = repository_head(root)
+          if actual_sha != expected_sha:
+              raise SystemExit('DIFF_TARGETS preflight SHA mismatch')
+          base_ref = os.environ['CERT_BASE_REF']
+          changed = changed_files(root, base_ref)
+          policy = load_policy(root)
+          command = _command_for_group(
+              'DIFF_TARGETS', policy['groups']['DIFF_TARGETS'],
+              root=root, base_ref=base_ref, changed=changed,
+          )
+          out = root / 'artifacts/phase_certification'
+          out.mkdir(parents=True, exist_ok=True)
+          report = {
+              'schema_version': 1, 'candidate_sha': actual_sha,
+              'base_ref': base_ref, 'changed_files': changed,
+              'group': 'DIFF_TARGETS', 'preflight_only': True,
+              'full_suite_executed': False, 'phase_certified': False,
+          }
+          if command is None:
+              report.update(status='PASS_NO_CHANGED_TESTS', exit_code=0, test_count=0)
+          else:
+              result = CommandExecutor().run(command, root)
+              code = result.get('exit_code')
+              if type(code) is not int:
+                  raise SystemExit('Invalid canonical DIFF_TARGETS result')
+              output = str(result.get('stdout', '')) + '\n' + str(result.get('stderr', ''))
+              (out / '02b_diff_preflight.log').write_text(output, encoding='utf-8')
+              report.update(
+                  status='PASS' if code == 0 else 'FAIL',
+                  exit_code=code,
+                  duration_seconds=result.get('duration_seconds'),
+                  command=command,
+              )
+          (out / '02b_diff_preflight.json').write_text(
+              json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+          )
+          print('DIFF_TARGETS early preflight:', report['status'],
+                'candidate:', actual_sha, 'FULL remains independently required')
+          if report['exit_code'] != 0:
+              print('Changed tests failed. Skipping expensive FULL; no certification granted.', file=sys.stderr)
+              sys.exit(1)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
+
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
@@ -446,7 +514,11 @@ jobs:
 
       - name: Run full Atlas phase certification gate
         id: certification
-        if: steps.route.outputs.run_full == 'true' && steps.inputs_before.outcome == 'success'
+        if: >-
+          steps.route.outputs.run_full == 'true' &&
+          steps.inputs_before.outcome == 'success' &&
+          steps.catalog.outcome == 'success' &&
+          (github.event_name != 'pull_request' || steps.diff_preflight.outcome == 'success')
         continue-on-error: true
         run: |
           $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
