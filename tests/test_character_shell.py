@@ -307,10 +307,9 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                     json.dumps({"clients": [{"character_name": "elise"}]}),
                     encoding="utf-8",
                 )
-                self.assertEqual(
-                    [row.key for row in shell._connected_characters(known)],
-                    ["character:42"],
-                )
+                # A display name alone is no longer a network identity:
+                # it cannot re-mark a disconnected character as connected.
+                self.assertEqual(shell._connected_characters(known), [])
 
     def test_connected_projection_uses_character_order_service(self):
         characters = [
