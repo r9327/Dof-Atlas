@@ -153,7 +153,7 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("À découvrir prochainement")
+        self.metadata_title = QLabel("Autres guides répertoriés")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
@@ -411,7 +411,7 @@ class GuideCatalogView(QWidget):
         )
         self.home_metadata_list.clear()
         for entry in entries:
-            item = QListWidgetItem(f"{entry.title} · bientôt disponible")
+            item = QListWidgetItem(f"{entry.title} · non disponible")
             item.setFlags(Qt.NoItemFlags)
             item.setToolTip("Parcours non disponible actuellement.")
             item.setData(Qt.UserRole, entry.source_id)
@@ -420,8 +420,12 @@ class GuideCatalogView(QWidget):
         has_metadata = bool(entries)
         self.metadata_title.setVisible(has_metadata)
         self.home_metadata_list.setVisible(has_metadata)
-        self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
-        self.home_empty.setVisible(not shown_guides and not has_metadata)
+        if category == "optimized" and not shown_guides:
+            # The two optimized routes are already shown as featured cards.
+            self.home_empty.setVisible(False)
+        else:
+            self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
+            self.home_empty.setVisible(not shown_guides and not has_metadata)
         self._sync_grid_columns()
 
     def _sync_grid_columns(self) -> None:
