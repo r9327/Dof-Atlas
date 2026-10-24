@@ -18,10 +18,11 @@ _EXPLICIT_QUANTITY = re.compile(
 
 
 def normalized_name(text: str) -> str:
-    return " ".join(
-        "".join(ch for ch in unicodedata.normalize("NFKD", str(text or "").casefold())
-                if not unicodedata.combining(ch)).split()
+    decomposed = "".join(
+        ch for ch in unicodedata.normalize("NFKD", str(text or "").casefold())
+        if not unicodedata.combining(ch)
     )
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in decomposed).split())
 
 
 def item_identity(item_id: int | None, name: str) -> str:

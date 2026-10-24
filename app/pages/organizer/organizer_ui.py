@@ -38,8 +38,7 @@ from .common import (
     KEY_BADGE_HEIGHT,
     SESSION_SLOT_COUNT,
     STOP_BUTTON_HEIGHT,
-    class_icon_path_for_window_name,
-    dofus_class_key_for_character_name,
+    class_icon_candidates,
     dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
@@ -558,13 +557,31 @@ class OrganizerUiMixin:
             star.setEnabled(is_detected)
             if is_detected:
                 star.clicked.connect(lambda _checked=False, target=session: self.set_primary_window(target))
-                self.bind_session_drag_events(star, index, row)
+                # A favorite is an action, not a drag handle: swallowing its
+                # mouse release during a tiny drag loses the click/selection.
             layout.addWidget(star)
             icon = QLabel()
             icon.setFixedSize(24, 24)
             icon.setAlignment(Qt.AlignCenter)
-            class_key = dofus_class_key_from_window_name(name) or dofus_class_key_for_character_name(name)
-            icon_path = class_icon_path_for_window_name(name)
+            verified_key = self.verified_character_token_for_session(session)
+            verified_row = next(
+                (row for character_id, row in self._verified_character_rows()
+                 if verified_key == f"character:{character_id}"),
+                {},
+            )
+            class_key = str(verified_row.get("class_key") or "").strip().casefold()
+            verified_class = class_key in DOFUS_CLASS_DEFINITIONS
+            if not verified_class:
+                # Cosmetic hint only: a visible Unity window can show its
+                # class portrait before network proof exists. Never promote
+                # this title-derived class into a progression identity.
+                class_key = dofus_class_key_from_window_name(name) or ""
+            if class_key not in DOFUS_CLASS_DEFINITIONS:
+                class_key = ""
+            icon_path = next(
+                (path for path in class_icon_candidates(class_key) if path.is_file()),
+                None,
+            ) if class_key else None
             pixmap = QPixmap(str(icon_path)) if icon_path is not None else QPixmap()
             if pixmap.isNull() and ICON_PATH.exists():
                 pixmap = QPixmap(str(ICON_PATH))
@@ -572,7 +589,10 @@ class OrganizerUiMixin:
                 pixmap = pixmap.scaled(22, 22, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 icon.setPixmap(pixmap)
             if class_key:
-                icon.setToolTip(DOFUS_CLASS_DEFINITIONS[class_key]["label"])
+                label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
+                icon.setToolTip(
+                    label if verified_class else f"{label} (titre Unity, non vérifié)"
+                )
             icon.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(icon, index, row)
             layout.addWidget(icon)

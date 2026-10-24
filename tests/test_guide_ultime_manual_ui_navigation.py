@@ -181,7 +181,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
     def _view(self) -> tuple[_FakeManualUiService, SharedGuideManualView]:
         service = _FakeManualUiService()
-        view = SharedGuideManualView(service, character_key="character:1")
+        view = SharedGuideManualView(
+            service, character_key="character:1", participant_service=_FakeParticipantService(),
+        )
         view.resize(560, 320)
         view.show()
         QApplication.processEvents()
