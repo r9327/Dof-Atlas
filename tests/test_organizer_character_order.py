@@ -453,6 +453,9 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
                     "character:77",
                 )
+                # A scan in reverse order must NOT change the canonical order.
+                # Exercise a real Organizer drag/reorder before reconnecting.
+                page.reorder_session(0, 1)
                 bindings.write_text(
                     json.dumps({"characters": {
                         "77": {
