@@ -34,6 +34,14 @@
 - [ ] Recherche globale Encyclopédie traitée conformément à la demande utilisateur après contrôle des dépendances aux autres onglets.
 - [ ] Tests guide_library_home, guide_home_two_columns, guides_home_render_cache, hidden_home_refresh, home_manual_guide_import_deferral, doctor_ui_qt et coût RAM/chargement.
 
+## Compléments explicites — accueil validé et recherche globale
+- [ ] Organiser les familles sur la surface d'exploration selon la présentation retenue : **Optimisés + Alignements à gauche ; Dofus à droite**, sous-menus repliables alignés et stables, avec Dimensions / Éliocalypse / Événements / Régions / Îles dans des groupes cohérents. Conserver les sous-menus ouverts pendant la navigation si l'utilisateur ne les ferme pas.
+- [ ] Supprimer **effectivement la barre de recherche générale de l'Encyclopédie** demandée par l'utilisateur, après cartographie de sa gestion dans `EncyclopediaPage` : ne pas simplement masquer le champ de l'accueil Guides en oubliant celui de l'onglet. Préserver les fonctions de recherche internes légitimes de Quêtes, Sommaire ou des autres modules si elles sont distinctes.
+- [ ] Ne pas sacrifier la zone de navigation principale à des titres/compteurs techniques ou cartes Alignement prioritaires : seules les deux cartes **Guide Succès Opti** et **Sylvestre Opti** y restent.
+- [ ] Les cartes Dofus doivent être réellement symétriques et entièrement cliquables ; chaque carte affiche un titre distinctif sans préfixe répétitif `Dofus` quand non nécessaire, état calculé et ressource image vérifiée.
+- [ ] Les 95 entrées source non jouables peuvent rester consultables de manière informative, mais jamais sous forme de boutons de lancement trompeurs ; signaler clairement la disponibilité réelle du guide sans texte technique inutile.
+- [ ] Vérifier l'accueil dans l'EXE Windows réel après passage accueil → Guide → retour catalogue, en contrôlant la destruction de la vue riche pour éviter l'accumulation de RAM.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
