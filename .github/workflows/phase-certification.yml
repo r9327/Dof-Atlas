@@ -214,8 +214,20 @@ jobs:
           if-no-files-found: error
 
   certify:
-    needs: doctor-plan
-    if: needs.doctor-plan.outputs.phase == 'true'
+    # Cheap independent memory/preload signals finish before expensive Windows
+    # FULL. A failed selected benchmark must prevent a wasted 120-minute job,
+    # not merely turn Public PR / Safe Validation red after the FULL finishes.
+    needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]
+    if: >-
+      always() &&
+      needs.doctor-plan.result == 'success' &&
+      needs.doctor-plan.outputs.phase == 'true' &&
+      (needs.phase8_memory_benchmark.result == 'success' ||
+       (needs.phase8_memory_benchmark.result == 'skipped' &&
+        needs.doctor-plan.outputs.phase8_memory_benchmark != 'true')) &&
+      (needs.phase8_preload_benchmark.result == 'success' ||
+       (needs.phase8_preload_benchmark.result == 'skipped' &&
+        needs.doctor-plan.outputs.phase8_preload_benchmark != 'true'))
     name: Phase Certification / Full Validation
     runs-on: windows-latest
     timeout-minutes: 120
