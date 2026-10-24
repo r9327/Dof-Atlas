@@ -1,18 +1,29 @@
 from __future__ import annotations
 
+import hashlib
+import re
+from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpinBox,
+    QStyle,
     QToolButton,
-    QMenu,
     QVBoxLayout,
     QWidget,
 )
@@ -25,6 +36,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
+from app.ui.theme import PALETTE
 
 
 _COMBAT_STOP_WORDS = {
@@ -48,9 +60,162 @@ _COMBAT_STOP_WORDS = {
     "vaincre",
 }
 
+_PREPARATION_QUANTITY_RE = re.compile(
+    r"\bpr[ée]pare\s+(\d+)\s*[×x]\s*(.+?)(?:[.;]|$)",
+    re.IGNORECASE,
+)
+
+
+def _guide_symbol_icon(widget: QWidget, symbol: str, *, size: int = 18) -> QIcon:
+    """Draw small semantic icons without font glyph or platform-theme drift."""
+
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.6)
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+    if symbol == "settings":
+        center = QPointF(size / 2, size / 2)
+        painter.drawEllipse(center, 3.0, 3.0)
+        painter.drawEllipse(center, 5.6, 5.6)
+        for dx, dy in ((0, -7), (0, 7), (-7, 0), (7, 0), (-5, -5), (5, 5), (-5, 5), (5, -5)):
+            start = QPointF(center.x() + dx * 0.72, center.y() + dy * 0.72)
+            end = QPointF(center.x() + dx, center.y() + dy)
+            painter.drawLine(start, end)
+    elif symbol == "map":
+        painter.drawPolyline(
+            [QPointF(2, 4), QPointF(6.5, 2), QPointF(11.5, 4), QPointF(16, 2)]
+        )
+        painter.drawPolyline(
+            [QPointF(2, 4), QPointF(2, 15), QPointF(6.5, 13), QPointF(11.5, 15), QPointF(16, 13), QPointF(16, 2)]
+        )
+        painter.drawLine(QPointF(6.5, 2), QPointF(6.5, 13))
+        painter.drawLine(QPointF(11.5, 4), QPointF(11.5, 15))
+    elif symbol == "location":
+        painter.drawEllipse(QPointF(9, 6.5), 4.2, 4.2)
+        painter.drawEllipse(QPointF(9, 6.5), 1.2, 1.2)
+        painter.drawLine(QPointF(6.2, 9.7), QPointF(9, 16))
+        painter.drawLine(QPointF(11.8, 9.7), QPointF(9, 16))
+    elif symbol == "clipboard":
+        painter.drawRoundedRect(QRectF(3, 3, 12, 13), 1.5, 1.5)
+        painter.drawRoundedRect(QRectF(6, 1.5, 6, 4), 1.2, 1.2)
+        painter.drawLine(QPointF(6, 9), QPointF(12, 9))
+        painter.drawLine(QPointF(6, 12), QPointF(12, 12))
+    elif symbol == "people":
+        painter.drawEllipse(QPointF(6.2, 6), 2.6, 2.6)
+        painter.drawEllipse(QPointF(12.2, 7), 2.2, 2.2)
+        painter.drawArc(QRectF(1.5, 8.5, 9.5, 7), 20 * 16, 140 * 16)
+        painter.drawArc(QRectF(8, 10, 8, 5), 20 * 16, 140 * 16)
+    elif symbol == "summary":
+        for y in (4, 9, 14):
+            painter.drawEllipse(QPointF(3, y), 0.8, 0.8)
+            painter.drawLine(QPointF(6, y), QPointF(16, y))
+    elif symbol == "current":
+        painter.drawArc(QRectF(3, 3, 11, 11), 35 * 16, 285 * 16)
+        painter.drawLine(QPointF(3, 4), QPointF(3, 9))
+        painter.drawLine(QPointF(3, 4), QPointF(8, 4))
+    elif symbol == "lock":
+        painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
+        painter.drawArc(QRectF(6, 2, 6, 9), 0, 180 * 16)
+    elif symbol == "unlock":
+        painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
+        painter.drawArc(QRectF(8, 2, 6, 9), 0, 180 * 16)
+    elif symbol == "check":
+        painter.drawLine(QPointF(3, 9), QPointF(7, 13))
+        painter.drawLine(QPointF(7, 13), QPointF(15, 4))
+    painter.end()
+    return QIcon(pixmap)
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparationNeed:
+    item_key: str
+    item_id: int | None
+    name: str
+    category: str
+    required_by_character: tuple[tuple[str, int], ...]
+
+    @property
+    def required_total(self) -> int:
+        return sum(quantity for _key, quantity in self.required_by_character)
+
+
+class _GuideProgressDonut(QWidget):
+    """Small palette-aware route progress indicator used in the fixed header."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._percent = 0
+        self.setObjectName("GuideCompactDonut")
+        self.setFixedSize(66, 66)
+
+    def set_percent(self, value: int) -> None:
+        value = max(0, min(100, int(value)))
+        if value == self._percent:
+            return
+        self._percent = value
+        self.update()
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        ring = self.rect().adjusted(7, 7, -7, -7)
+        pen = QPen(self.palette().mid().color(), 6)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawArc(ring, 0, 360 * 16)
+        pen.setColor(self.palette().highlight().color())
+        painter.setPen(pen)
+        painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
+        painter.setPen(self.palette().text().color())
+        painter.drawText(self.rect(), Qt.AlignCenter, f"{self._percent} %")
+
+
+class _ParticipantPortraitButton(QToolButton):
+    """Real class portrait button with a compact individual progress ring."""
+
+    def __init__(
+        self,
+        character_key: str,
+        *,
+        progress: int,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.character_key = str(character_key)
+        self.progress = max(0, min(100, int(progress)))
+        self.setObjectName("GuideParticipantPortrait")
+        self.setCheckable(True)
+        self.setFixedSize(42, 42)
+        self.setIconSize(QSize(32, 32))
+        self.setCursor(Qt.PointingHandCursor)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        color = (
+            self.palette().highlight().color()
+            if self.isChecked()
+            else self.palette().mid().color()
+        )
+        pen = QPen(color, 3)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawArc(
+            self.rect().adjusted(2, 2, -2, -2),
+            90 * 16,
+            -round(360 * 16 * self.progress / 100),
+        )
+
 
 class SharedGuideManualCard(GuideUltimeManualCard):
-    """Canonical Guide Succès/Lanyel card with inline route semantics."""
+    """Guide-agnostic canonical card with inline route semantics."""
 
     def __init__(
         self,
@@ -61,6 +226,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         parent=None,
         *,
         travel_command_callback=None,
+        show_header_title: bool = True,
     ) -> None:
         QFrame.__init__(self, parent)
         self.service = service
@@ -86,7 +252,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             self._add_legend(root)
 
         title_text = self._visible_stage_title()
-        if title_text:
+        if show_header_title and title_text:
             title = QLabel(title_text)
             title.setObjectName("GuideManualStageTitle")
             title.setWordWrap(True)
@@ -118,13 +284,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
-        self._add_line_section(
-            root,
-            "À PRÉPARER",
-            sections.get("prepare"),
-            "GuideManualResourceSection",
-            "prepare",
-        )
+        # Preparation belongs to the single global, participant-aware panel.
+        # Repeating every requirement on each sheet made the route unreadable
+        # and could contradict the saved ``Prêt`` state.
         self._add_line_section(
             root,
             "À FAIRE MAINTENANT",
@@ -337,6 +499,16 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
+            quest_names = {
+                quest_id: name for quest_id, name in self._quest_rows
+            }
+            related_names = [
+                quest_names[quest_id]
+                for quest_id in self._quest_ids_for_row(row)
+                if quest_id in quest_names
+            ]
+            if related_names:
+                line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
             if section_key == "now":
                 self._add_inline_quest_links(row_layout, row)
@@ -615,7 +787,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
 
 class SharedGuideManualView(GuideUltimeManualView):
-    """Canonical manual road-book renderer reusable by Guide Succès and Lanyel."""
+    """Guide-agnostic canonical manual road-book renderer."""
 
     ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
 
@@ -638,13 +810,16 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _build_ui(self) -> None:
         self.filter_mode = "Tout"
         self.navigate_entity = None
+        self._preparation_needs: tuple[_PreparationNeed, ...] = ()
+        self._preparation_loaded = False
+        self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
-        # Entire Guide/progress/lock/page strip stays pinned at the top directly
-        # under the Encyclopedia tabs for both Guide Succès and Lanyel.
-        self._build_progress_strip(root)
+        self._build_compact_header(root)
+        self._build_preparation_panel(root)
+        self._build_sheet_header(root)
 
         self.scroll = QScrollArea()
         self.scroll.setObjectName("GuideManualScroll")
@@ -663,8 +838,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 4, 8, 6)
         nav_layout.setSpacing(8)
-        self.prev_button = QPushButton("← Précédent")
+        self.prev_button = QPushButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
+        self.prev_button.setIcon(
+            self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
+        )
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
         nav_layout.addStretch(1)
@@ -675,8 +853,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.validation_layout.setSpacing(0)
         nav_layout.addWidget(self.validation_host)
         nav_layout.addStretch(1)
-        self.next_button = QPushButton("Suivant →")
+        self.next_button = QPushButton("Suivant")
         self.next_button.setObjectName("GuideManualNextButton")
+        self.next_button.setIcon(
+            self.next_button.style().standardIcon(QStyle.SP_ArrowForward)
+        )
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
         root.addWidget(nav)
@@ -687,74 +868,650 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.position_label.setVisible(False)
         self._restore_route_lock_state()
 
-    def _build_progress_strip(self, root: QVBoxLayout) -> None:
-        strip = QFrame()
-        strip.setObjectName("GuideManualProgressFrame")
-        strip_layout = QHBoxLayout(strip)
-        strip_layout.setContentsMargins(8, 4, 8, 5)
-        strip_layout.setSpacing(8)
+    def _build_compact_header(self, root: QVBoxLayout) -> None:
+        header = QFrame()
+        header.setObjectName("GuideCompactHeader")
+        layout = QVBoxLayout(header)
+        layout.setContentsMargins(12, 9, 12, 10)
+        layout.setSpacing(8)
 
-        self.guide_button = AtlasButton("Guide")
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        self.guide_button = AtlasButton("Guides")
         self.guide_button.setObjectName("GuideManualGuideButton")
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
-        strip_layout.addWidget(self.guide_button)
+        title_row.addWidget(self.guide_button)
+        self.guide_title_label = QLabel(self._guide_title())
+        self.guide_title_label.setObjectName("GuideCompactTitle")
+        title_row.addWidget(self.guide_title_label, 1)
+        self.settings_button = QToolButton()
+        self.settings_button.setObjectName("GuideCompactSettingsButton")
+        self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
+        self.settings_button.setIconSize(QSize(16, 16))
+        self.settings_button.setToolTip("Paramètres du Guide")
+        self.settings_button.setAccessibleName("Paramètres du Guide")
+        self.settings_button.setCheckable(True)
+        title_row.addWidget(self.settings_button)
+        layout.addLayout(title_row)
+
+        metrics = QHBoxLayout()
+        metrics.setSpacing(12)
+        self.progress_donut = _GuideProgressDonut()
+        metrics.addWidget(self.progress_donut)
+        bars = QGridLayout()
+        bars.setHorizontalSpacing(8)
+        bars.setVerticalSpacing(3)
 
         self.route_bar = GuideManualProgressBar()
         self.route_bar.setObjectName("GuideManualProgress")
         self.route_bar.setTextVisible(False)
         self.route_bar.setFixedHeight(7)
+        self.route_bar.setCursor(Qt.PointingHandCursor)
         self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        strip_layout.addWidget(self.route_bar, 1)
+        self.route_progress_label = QLabel("Route")
+        self.route_progress_label.setObjectName("GuideCompactMetricValue")
+        bars.addWidget(QLabel("Route"), 0, 0)
+        bars.addWidget(self.route_bar, 0, 1)
+        bars.addWidget(self.route_progress_label, 0, 2)
 
-        self.route_progress_label = QLabel()
-        self.route_progress_label.setObjectName("GuideManualPercent")
-        strip_layout.addWidget(self.route_progress_label)
+        self.preparation_bar = QProgressBar()
+        self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
+        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar.setFixedHeight(7)
+        self.preparation_progress_label = QLabel("—")
+        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
+        bars.addWidget(QLabel("Préparation"), 1, 0)
+        bars.addWidget(self.preparation_bar, 1, 1)
+        bars.addWidget(self.preparation_progress_label, 1, 2)
 
-        self.participants_button = QToolButton()
-        self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setPopupMode(QToolButton.InstantPopup)
-        self.participants_button.setCursor(Qt.PointingHandCursor)
-        strip_layout.addWidget(self.participants_button)
-        self._refresh_participants_menu()
+        self.success_bar = QProgressBar()
+        self.success_bar.setObjectName("GuideCompactSuccessProgress")
+        self.success_bar.setTextVisible(False)
+        self.success_bar.setFixedHeight(7)
+        self.success_progress_label = QLabel("—")
+        self.success_progress_label.setObjectName("GuideCompactMetricValue")
+        bars.addWidget(QLabel("Succès"), 2, 0)
+        bars.addWidget(self.success_bar, 2, 1)
+        bars.addWidget(self.success_progress_label, 2, 2)
+        bars.setColumnStretch(1, 1)
+        metrics.addLayout(bars, 1)
+        layout.addLayout(metrics)
 
+        actions = QHBoxLayout()
+        actions.setSpacing(7)
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setPrefix("Fiche ")
+        self.page_jump.setRange(1, max(1, len(self.service.cards)))
+        self.page_jump.setToolTip("Numéro de la fiche à ouvrir")
+        actions.addWidget(self.page_jump)
+        self.page_jump_button = QPushButton("Aller à la fiche")
+        self.page_jump_button.setObjectName("GuideCompactJumpButton")
+        self.page_jump_button.setIcon(_guide_symbol_icon(self.page_jump_button, "location"))
+        self.page_jump_button.clicked.connect(
+            lambda _checked=False: self._show_index(self.page_jump.value() - 1)
+        )
+        actions.addWidget(self.page_jump_button)
+        self.current_button = QPushButton("Actuelle")
+        self.current_button.setObjectName("GuideCompactCurrentButton")
+        self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
+        self.current_button.clicked.connect(self.go_active)
+        actions.addWidget(self.current_button)
+        # Kept as the compatibility sink for the shared navigation base. The
+        # visible page identity lives once in GuideSheetMeta.
+        self.nav_page_label = QLabel(self)
+        self.nav_page_label.setObjectName("GuideManualNavPage")
+        self.nav_page_label.setVisible(False)
+        actions.addStretch(1)
+        self.overlay_button = QToolButton()
+        self.overlay_button.setObjectName("GuideCompactOverlayButton")
+        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
+        self.overlay_button.setIconSize(QSize(16, 16))
+        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
+        self.overlay_button.setAccessibleName("Overlay")
+        self.overlay_button.setEnabled(False)
+        actions.addWidget(self.overlay_button)
+        layout.addLayout(actions)
+
+        self.settings_panel = QFrame()
+        self.settings_panel.setObjectName("GuideCompactSettingsPanel")
+        settings_layout = QHBoxLayout(self.settings_panel)
+        settings_layout.setContentsMargins(8, 5, 8, 5)
         self.route_lock_check = QToolButton()
         self.route_lock_check.setObjectName("GuideManualProgressLock")
         self.route_lock_check.setCheckable(True)
-        self.route_lock_check.setAutoRaise(True)
-        self.route_lock_check.setFixedHeight(26)
         self.route_lock_check.setCursor(Qt.PointingHandCursor)
         self.route_lock_check.toggled.connect(self._route_lock_toggled)
-        strip_layout.addWidget(self.route_lock_check)
+        settings_layout.addWidget(self.route_lock_check)
+        settings_layout.addStretch(1)
+        self.settings_panel.setVisible(False)
+        self.settings_button.toggled.connect(self.settings_panel.setVisible)
+        layout.addWidget(self.settings_panel)
+        root.addWidget(header)
 
-        self.nav_page_label = QLabel()
-        self.nav_page_label.setObjectName("GuideManualNavPage")
-        self.nav_page_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.nav_page_label.setMinimumWidth(94)
-        strip_layout.addWidget(self.nav_page_label)
-        root.addWidget(strip)
+    def _build_preparation_panel(self, root: QVBoxLayout) -> None:
+        self.preparation_button = QToolButton()
+        self.preparation_button.setObjectName("GuidePreparationToggle")
+        self.preparation_button.setText("Préparation générale du guide")
+        self.preparation_button.setIcon(
+            _guide_symbol_icon(self.preparation_button, "clipboard")
+        )
+        self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.preparation_button.setArrowType(Qt.RightArrow)
+        self.preparation_button.setCheckable(True)
+        self.preparation_button.setCursor(Qt.PointingHandCursor)
+        self.preparation_button.toggled.connect(self._preparation_toggled)
+        root.addWidget(self.preparation_button)
 
-    def _refresh_participants_menu(self) -> None:
+        self.preparation_panel = QFrame()
+        self.preparation_panel.setObjectName("GuidePreparationPanel")
+        panel_layout = QVBoxLayout(self.preparation_panel)
+        panel_layout.setContentsMargins(10, 8, 10, 9)
+        panel_layout.setSpacing(7)
+        filters = QHBoxLayout()
+        filters.setSpacing(5)
+        self.preparation_filter_group = QButtonGroup(self)
+        self.preparation_filter_group.setExclusive(True)
+        for label in ("Tout", "Métiers", "Potions", "Objets"):
+            button = QPushButton(label)
+            button.setObjectName("GuidePreparationFilter")
+            button.setCheckable(True)
+            button.setProperty("filterKey", label)
+            button.setChecked(label == "Tout")
+            self.preparation_filter_group.addButton(button)
+            button.clicked.connect(
+                lambda _checked=False, value=label: self._render_preparation(value)
+            )
+            filters.addWidget(button)
+        filters.addStretch(1)
+        panel_layout.addLayout(filters)
+
+        self.preparation_scroll = QScrollArea()
+        self.preparation_scroll.setObjectName("GuidePreparationScroll")
+        self.preparation_scroll.setWidgetResizable(True)
+        self.preparation_scroll.setFrameShape(QFrame.NoFrame)
+        self.preparation_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.preparation_scroll.setMinimumHeight(126)
+        self.preparation_scroll.setMaximumHeight(210)
+        self.preparation_content = QWidget()
+        self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
+        self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.preparation_rows_layout.setSpacing(4)
+        self.preparation_scroll.setWidget(self.preparation_content)
+        panel_layout.addWidget(self.preparation_scroll)
+        self.preparation_panel.setVisible(False)
+        root.addWidget(self.preparation_panel)
+
+    def _build_sheet_header(self, root: QVBoxLayout) -> None:
+        header = QFrame()
+        header.setObjectName("GuideSheetHeader")
+        layout = QVBoxLayout(header)
+        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setSpacing(6)
+        top = QHBoxLayout()
+        top.setSpacing(7)
+        labels = QVBoxLayout()
+        labels.setSpacing(1)
+        self.sheet_meta_label = QLabel()
+        self.sheet_meta_label.setObjectName("GuideSheetMeta")
+        labels.addWidget(self.sheet_meta_label)
+        self.sheet_title_label = QLabel()
+        self.sheet_title_label.setObjectName("GuideSheetTitle")
+        self.sheet_title_label.setWordWrap(True)
+        labels.addWidget(self.sheet_title_label)
+        top.addLayout(labels, 1)
+
+        self.participants_button = QToolButton()
+        self.participants_button.setObjectName("GuideParticipantsButton")
+        self.participants_button.setText("Mes personnages")
+        self.participants_button.setIcon(
+            _guide_symbol_icon(self.participants_button, "people")
+        )
+        self.participants_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.participants_button.setCheckable(True)
+        self.participants_button.setCursor(Qt.PointingHandCursor)
+        top.addWidget(self.participants_button)
+        self.summary_button = QToolButton()
+        self.summary_button.setObjectName("GuideSummaryButton")
+        self.summary_button.setText("Sommaire")
+        self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
+        self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.summary_button.setArrowType(Qt.RightArrow)
+        self.summary_button.setCheckable(True)
+        self.summary_button.setCursor(Qt.PointingHandCursor)
+        top.addWidget(self.summary_button)
+        layout.addLayout(top)
+
+        self.participants_panel = QFrame()
+        self.participants_panel.setObjectName("GuideParticipantsPanel")
+        self.participants_layout = QHBoxLayout(self.participants_panel)
+        self.participants_layout.setContentsMargins(7, 5, 7, 5)
+        self.participants_layout.setSpacing(5)
+        self.participants_panel.setVisible(False)
+        self.participants_button.toggled.connect(self.participants_panel.setVisible)
+        layout.addWidget(self.participants_panel)
+
+        self.summary_panel = QFrame()
+        self.summary_panel.setObjectName("GuideSummaryPanel")
+        summary_layout = QVBoxLayout(self.summary_panel)
+        summary_layout.setContentsMargins(7, 5, 7, 5)
+        summary_layout.setSpacing(5)
+        self.summary_search = QLineEdit()
+        self.summary_search.setObjectName("GuideSummarySearch")
+        self.summary_search.setPlaceholderText("Rechercher une fiche…")
+        self.summary_search.textChanged.connect(self._filter_summary)
+        summary_layout.addWidget(self.summary_search)
+        self.summary_list = QListWidget()
+        self.summary_list.setObjectName("GuideSummaryList")
+        self.summary_list.setUniformItemSizes(True)
+        self.summary_list.setMaximumHeight(190)
+        self.summary_list.itemClicked.connect(self._summary_item_clicked)
+        summary_layout.addWidget(self.summary_list)
+        self.summary_panel.setVisible(False)
+        self.summary_button.toggled.connect(self._summary_toggled)
+        layout.addWidget(self.summary_panel)
+        root.addWidget(header)
+        self._refresh_participants_panel()
+
+    def _guide_title(self) -> str:
+        title = str(getattr(self.service, "guide_title", "") or "").strip()
+        return title or "Guide Succès"
+
+    def _refresh_participants_panel(self) -> None:
+        while self.participants_layout.count():
+            item = self.participants_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self._participant_buttons.clear()
         selected = set(self.selected_participant_keys())
-        characters = self.participant_service.available_characters()
-        menu = QMenu(self.participants_button)
+        characters = tuple(self.participant_service.available_characters())
         for character in characters:
-            action = menu.addAction(character.label + (" (hors ligne)" if not character.connected else ""))
-            action.setCheckable(True)
-            action.setChecked(character.key in selected)
-            action.toggled.connect(
+            progress = self._participant_progress(character.key)
+            button = _ParticipantPortraitButton(
+                character.key,
+                progress=progress,
+            )
+            button.setChecked(character.key in selected)
+            icon_path, class_label = self._participant_icon(character)
+            if icon_path:
+                button.setIcon(QIcon(icon_path))
+            else:
+                button.setIcon(
+                    button.style().standardIcon(QStyle.SP_DirHomeIcon)
+                )
+            status = "en ligne" if character.connected else "hors ligne"
+            button.setToolTip(
+                f"{character.label} · {class_label or 'classe inconnue'} · "
+                f"{progress} % · {status}"
+            )
+            button.setAccessibleName(character.label)
+            button.toggled.connect(
                 lambda checked, key=character.key: self._participant_toggled(key, checked)
             )
+            self._participant_buttons[character.key] = button
+            self.participants_layout.addWidget(button)
         if not characters:
-            empty = menu.addAction("Aucun personnage vérifié")
-            empty.setEnabled(False)
-        self.participants_button.setMenu(menu)
-        count = len(selected)
-        self.participants_button.setText(f"Participants : {count}")
+            empty = QLabel("Aucun personnage vérifié")
+            empty.setObjectName("GuideParticipantsEmpty")
+            self.participants_layout.addWidget(empty)
+        self.participants_layout.addStretch(1)
+        self.participants_button.setText(f"Mes personnages · {len(selected)}")
         self.participants_button.setToolTip(
-            "Choisir explicitement les personnages qui recevront les déplacements du Guide."
+            "Choisir les identités stables utilisées par la progression et les déplacements."
         )
+
+    def _participant_icon(self, character) -> tuple[str, str]:
+        try:
+            from app.pages.organizer.common import (
+                DOFUS_CLASS_DEFINITIONS,
+                class_icon_path_for_window_name,
+                dofus_class_key_for_character_name,
+                dofus_class_key_from_window_name,
+            )
+
+            class_key = (
+                dofus_class_key_for_character_name(character.label)
+                or dofus_class_key_from_window_name(character.label)
+            )
+            path = class_icon_path_for_window_name(character.label)
+            label = str(
+                DOFUS_CLASS_DEFINITIONS.get(class_key or "", {}).get("label", "")
+            )
+            return (str(path) if path is not None else "", label)
+        except (ImportError, OSError, TypeError, ValueError):
+            return "", ""
+
+    def _participant_progress(self, character_key: str) -> int:
+        try:
+            completed, total = self.service.route_sheet_progress(character_key)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            return 0
+        return min(100, round(completed * 100 / total)) if total > 0 else 0
+
+    def _summary_toggled(self, opened: bool) -> None:
+        self.summary_panel.setVisible(bool(opened))
+        self.summary_button.setArrowType(
+            Qt.DownArrow if opened else Qt.RightArrow
+        )
+        if opened and self.summary_list.count() == 0:
+            self._populate_summary()
+
+    def _populate_summary(self) -> None:
+        self.summary_list.clear()
+        for index, card in enumerate(self.service.cards):
+            chapter = str(card.get("manual_chapter_label") or "").strip()
+            title = str(card.get("manual_title") or card.get("destination") or "").strip()
+            label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
+            item = QListWidgetItem(label)
+            item.setData(Qt.UserRole, index)
+            self.summary_list.addItem(item)
+
+    def _filter_summary(self, value: str) -> None:
+        needle = normalize_text(value)
+        for index in range(self.summary_list.count()):
+            item = self.summary_list.item(index)
+            item.setHidden(bool(needle and needle not in normalize_text(item.text())))
+
+    def _summary_item_clicked(self, item: QListWidgetItem) -> None:
+        try:
+            index = int(item.data(Qt.UserRole))
+        except (TypeError, ValueError):
+            return
+        self._show_index(index)
+        # The summary is deliberately sticky. Only an explicit click on the
+        # Sommaire button may close it.
+
+    def _preparation_toggled(self, opened: bool) -> None:
+        self.preparation_button.setArrowType(
+            Qt.DownArrow if opened else Qt.RightArrow
+        )
+        self.preparation_panel.setVisible(bool(opened))
+        if not opened:
+            return
+        if not self._preparation_loaded:
+            self._load_preparation_needs()
+        checked = self.preparation_filter_group.checkedButton()
+        self._render_preparation(
+            str(checked.property("filterKey") if checked is not None else "Tout")
+        )
+
+    def _progress_participant_keys(self) -> tuple[str, ...]:
+        selected = tuple(self.selected_participant_keys())
+        if selected:
+            return selected
+        return (self.character_key,) if str(self.character_key).startswith("character:") else ()
+
+    def _card_complete(self, character_key: str, card: dict[str, Any], index: int) -> bool:
+        state_getter = getattr(self.service, "card_state", None)
+        if callable(state_getter):
+            try:
+                return bool(state_getter(character_key, card, index).complete)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                pass
+        automatic = getattr(self.service, "card_auto_complete", None)
+        checked = getattr(self.service, "page_checked", None)
+        return bool(
+            (callable(automatic) and automatic(character_key, card))
+            or (callable(checked) and checked(character_key, card, index))
+        )
+
+    @staticmethod
+    def _preparation_category(name: str) -> str:
+        normalized = normalize_text(name)
+        if "potion" in normalized:
+            return "Potions"
+        return "Objets"
+
+    @staticmethod
+    def _is_soul_stone(name: str) -> bool:
+        normalized = normalize_text(name)
+        return (
+            "pierre d ame" in normalized
+            or "pierres d ame" in normalized
+            or "soul stone" in normalized
+        )
+
+    @staticmethod
+    def _preparation_item_key(item_id: int | None, name: str) -> str:
+        if item_id is not None:
+            return f"item:{item_id}"
+        digest = hashlib.sha256(normalize_text(name).encode("utf-8")).hexdigest()[:16]
+        return f"name:{digest}"
+
+    @classmethod
+    def _requirements_from_card(
+        cls,
+        service,
+        character_key: str,
+        card: dict[str, Any],
+    ) -> tuple[tuple[int | None, str, int, str], ...]:
+        rows: list[tuple[int | None, str, int, str]] = []
+        structured = [
+            raw for raw in card.get("a_preparer", ()) or ()
+            if isinstance(raw, dict)
+        ]
+        for raw in structured:
+            name = str(raw.get("name") or raw.get("label") or "").strip()
+            try:
+                quantity = max(1, int(raw.get("quantity") or 1))
+            except (TypeError, ValueError):
+                quantity = 1
+            try:
+                item_id = int(raw.get("item_id")) if raw.get("item_id") is not None else None
+            except (TypeError, ValueError):
+                item_id = None
+            if name:
+                rows.append((item_id, name, quantity, cls._preparation_category(name)))
+        if not rows:
+            sections_for_card = getattr(service, "manual_sections_for_card", None)
+            sections = sections_for_card(character_key, card) if callable(sections_for_card) else {}
+            for raw in sections.get("prepare", ()) if isinstance(sections, dict) else ():
+                text = str(raw.get("text") or "") if isinstance(raw, dict) else str(raw or "")
+                for match in _PREPARATION_QUANTITY_RE.finditer(text):
+                    name = " ".join(match.group(2).split()).strip()
+                    if name:
+                        rows.append(
+                            (None, name, max(1, int(match.group(1))), cls._preparation_category(name))
+                        )
+        for raw in card.get("profession_gates", ()) or ():
+            if isinstance(raw, dict):
+                name = str(raw.get("name") or raw.get("label") or raw.get("text") or "").strip()
+            else:
+                name = str(raw or "").strip()
+            if name:
+                rows.append((None, name, 1, "Métiers"))
+        return tuple(rows)
+
+    def _load_preparation_needs(self) -> None:
+        participant_keys = tuple(self.selected_participant_keys())
+        if not participant_keys:
+            self._preparation_needs = ()
+            self._preparation_loaded = True
+            self._update_preparation_progress()
+            return
+
+        aggregated: dict[
+            tuple[str, str],
+            dict[str, Any],
+        ] = {}
+        for character_key in participant_keys:
+            for index, card in enumerate(self.service.cards):
+                if self._card_complete(character_key, card, index):
+                    continue
+                seen_on_card: set[str] = set()
+                for item_id, name, quantity, category in self._requirements_from_card(
+                    self.service,
+                    character_key,
+                    card,
+                ):
+                    item_key = self._preparation_item_key(item_id, name)
+                    if item_key in seen_on_card:
+                        continue
+                    seen_on_card.add(item_key)
+                    key = (item_key, category)
+                    row = aggregated.setdefault(
+                        key,
+                        {
+                            "item_id": item_id,
+                            "name": name,
+                            "category": category,
+                            "required": {},
+                        },
+                    )
+                    required = row["required"]
+                    required[character_key] = int(required.get(character_key, 0)) + quantity
+
+        self._preparation_needs = tuple(
+            _PreparationNeed(
+                item_key=item_key,
+                item_id=row["item_id"],
+                name=row["name"],
+                category=row["category"],
+                required_by_character=tuple(sorted(row["required"].items())),
+            )
+            for (item_key, _category), row in sorted(
+                aggregated.items(),
+                key=lambda item: (item[1]["category"], normalize_text(item[1]["name"])),
+            )
+        )
+        self._preparation_loaded = True
+        self._update_preparation_progress()
+
+    def _ready_progress_key(self, need: _PreparationNeed) -> str:
+        guide_id = str(getattr(self.service, "guide_id", "guide_complet") or "guide_complet")
+        return f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+
+    def _need_ready(self, need: _PreparationNeed) -> bool:
+        getter = getattr(self.service, "manual_checked", None)
+        if not callable(getter) or not need.required_by_character:
+            return False
+        key = self._ready_progress_key(need)
+        return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
+
+    def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
+        setter = getattr(self.service, "set_manual_checked", None)
+        if not callable(setter):
+            return
+        key = self._ready_progress_key(need)
+        for character_key, _quantity in need.required_by_character:
+            setter(character_key, key, bool(checked))
+        checked_button = self.preparation_filter_group.checkedButton()
+        current_filter = str(
+            checked_button.property("filterKey") if checked_button is not None else "Tout"
+        )
+        self._render_preparation(current_filter)
+        self._update_preparation_progress()
+
+    def _clear_preparation_rows(self) -> None:
+        while self.preparation_rows_layout.count():
+            item = self.preparation_rows_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+
+    def _render_preparation(self, selected_filter: str) -> None:
+        self._clear_preparation_rows()
+        if not self.selected_participant_keys():
+            label = QLabel("Sélectionne au moins un personnage dans Mes personnages.")
+            label.setObjectName("GuidePreparationEmpty")
+            self.preparation_rows_layout.addWidget(label)
+            return
+
+        if selected_filter == "Tout":
+            for category in ("Métiers", "Potions", "Objets"):
+                matching = [
+                    need
+                    for need in self._preparation_needs
+                    if need.category == category and not self._is_soul_stone(need.name)
+                ]
+                summary = QFrame()
+                summary.setObjectName("GuidePreparationSummary")
+                row = QHBoxLayout(summary)
+                row.setContentsMargins(8, 5, 8, 5)
+                row.addWidget(QLabel(category))
+                row.addStretch(1)
+                ready_count = sum(1 for need in matching if self._need_ready(need))
+                row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
+                self.preparation_rows_layout.addWidget(summary)
+            self.preparation_rows_layout.addStretch(1)
+            return
+
+        matching = [
+            need for need in self._preparation_needs if need.category == selected_filter
+        ]
+        if not matching:
+            label = QLabel(f"Aucun besoin détaillé dans {selected_filter}.")
+            label.setObjectName("GuidePreparationEmpty")
+            self.preparation_rows_layout.addWidget(label)
+            return
+        for need in matching:
+            self.preparation_rows_layout.addWidget(self._preparation_row(need))
+        self.preparation_rows_layout.addStretch(1)
+
+    def _preparation_row(self, need: _PreparationNeed) -> QWidget:
+        frame = QFrame()
+        frame.setObjectName("GuidePreparationRow")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(3)
+        top = QHBoxLayout()
+        top.setSpacing(6)
+        ready = self._need_ready(need)
+        status = "Prêt" if ready else f"? / {need.required_total} · quantité à confirmer"
+        label = QLabel(f"{need.name} — {status}")
+        label.setObjectName("GuidePreparationRowLabel")
+        top.addWidget(label, 1)
+        ready_button = QToolButton()
+        ready_button.setObjectName("GuidePreparationReady")
+        ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
+        ready_button.setIconSize(QSize(14, 14))
+        ready_button.setCheckable(True)
+        ready_button.setChecked(ready)
+        ready_button.setToolTip("Déclarer Prêt pour les participants concernés")
+        ready_button.toggled.connect(
+            lambda checked, row=need: self._set_need_ready(row, checked)
+        )
+        top.addWidget(ready_button)
+        details_button = QToolButton()
+        details_button.setObjectName("GuidePreparationDetailsButton")
+        details_button.setArrowType(Qt.RightArrow)
+        details_button.setCheckable(True)
+        top.addWidget(details_button)
+        layout.addLayout(top)
+        details = QFrame()
+        details.setObjectName("GuidePreparationDetails")
+        details_layout = QVBoxLayout(details)
+        details_layout.setContentsMargins(8, 2, 8, 3)
+        details_layout.setSpacing(2)
+        labels_by_key = {
+            character.key: character.label
+            for character in self.participant_service.available_characters()
+        }
+        for character_key, quantity in need.required_by_character:
+            detail = QLabel(f"{labels_by_key.get(character_key, character_key)} : besoin {quantity}")
+            detail.setObjectName("GuidePreparationParticipantNeed")
+            details_layout.addWidget(detail)
+        details.setVisible(False)
+        details_button.toggled.connect(details.setVisible)
+        details_button.toggled.connect(
+            lambda opened, button=details_button: button.setArrowType(
+                Qt.DownArrow if opened else Qt.RightArrow
+            )
+        )
+        layout.addWidget(details)
+        return frame
+
+    def _update_preparation_progress(self) -> None:
+        total = len(self._preparation_needs)
+        ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
+        self.preparation_bar.setRange(0, max(1, total))
+        self.preparation_bar.setValue(ready)
+        self.preparation_progress_label.setText(f"{ready} / {total}" if total else "—")
 
     def _participant_toggled(self, character_key: str, checked: bool) -> None:
         selected = list(self.selected_participant_keys())
@@ -764,7 +1521,136 @@ class SharedGuideManualView(GuideUltimeManualView):
             selected = [key for key in selected if key != character_key]
         self.participant_service.save_selected_keys(selected)
         self.participants_button.setText(
-            f"Participants : {len(self.selected_participant_keys())}"
+            f"Mes personnages · {len(self.selected_participant_keys())}"
+        )
+        self._preparation_loaded = False
+        self._preparation_needs = ()
+        if self.preparation_button.isChecked():
+            self._load_preparation_needs()
+            checked_button = self.preparation_filter_group.checkedButton()
+            self._render_preparation(
+                str(checked_button.property("filterKey") if checked_button else "Tout")
+            )
+        self._refresh_header()
+
+    def _actual_index_for_participants(self) -> int | None:
+        keys = self._progress_participant_keys()
+        if not keys or not self.service.cards:
+            return None
+        indexes: list[int] = []
+        for character_key in keys:
+            try:
+                indexes.append(int(self.service.first_incomplete_index(character_key)))
+            except (AttributeError, KeyError, TypeError, ValueError):
+                return None
+        return max(0, min(len(self.service.cards) - 1, min(indexes)))
+
+    def refresh(self, *, reset_to_active: bool = False) -> None:
+        self.service.reload_progress()
+        if not self.service.available:
+            self._render_missing_data()
+            return
+        actual_index = self._actual_index_for_participants()
+        if actual_index is not None:
+            self.active_index = actual_index
+            if reset_to_active or not (0 <= self.view_index < len(self.service.cards)):
+                self.view_index = actual_index
+        self._preparation_loaded = False
+        self._preparation_needs = ()
+        self._sync_order_combo()
+        self._refresh_header()
+        self._render_window()
+
+    def go_active(self) -> None:
+        index = self._actual_index_for_participants()
+        if index is None:
+            self.current_button.setEnabled(False)
+            self.current_button.setToolTip("Étape actuelle indisponible : progression non déterminable.")
+            return
+        self.active_index = index
+        self._show_index(index)
+
+    def _follow_active_after_progress_change(self) -> None:
+        previous = self.active_index
+        actual_index = self._actual_index_for_participants()
+        if actual_index is None:
+            self._refresh_header()
+            return
+        self.active_index = actual_index
+        moved = self.view_index == previous and actual_index != previous
+        if moved:
+            self.view_index = actual_index
+        self._preparation_loaded = False
+        self._preparation_needs = ()
+        self._refresh_participants_panel()
+        self._refresh_header()
+        self._render_window(reset_scroll=moved)
+
+    def _refresh_header(self) -> None:
+        keys = self._progress_participant_keys()
+        progress_rows: list[tuple[int, int]] = []
+        for character_key in keys:
+            try:
+                progress_rows.append(self.service.route_sheet_progress(character_key))
+            except (AttributeError, KeyError, TypeError, ValueError):
+                progress_rows = []
+                break
+        if progress_rows:
+            total = max(total for _completed, total in progress_rows)
+            completed = min(completed for completed, _total in progress_rows)
+            percent = min(100, round(completed * 100 / total)) if total > 0 else 0
+            self.route_bar.setRange(0, max(1, total))
+            self.route_bar.setValue(completed)
+            self.route_progress_label.setText(f"{completed} / {total}")
+            self.progress_donut.set_percent(percent)
+        else:
+            self.route_bar.setRange(0, 1)
+            self.route_bar.setValue(0)
+            self.route_progress_label.setText("—")
+            self.progress_donut.set_percent(0)
+
+        success_rows: list[tuple[int, int]] = []
+        progress_getter = getattr(self.service, "progress", None)
+        if callable(progress_getter):
+            for character_key in keys:
+                try:
+                    progress = progress_getter(character_key)
+                    success_rows.append(
+                        (
+                            int(getattr(progress, "full_success_completed", 0) or 0),
+                            int(getattr(progress, "full_success_total", 0) or 0),
+                        )
+                    )
+                except (AttributeError, KeyError, TypeError, ValueError):
+                    success_rows = []
+                    break
+        success_total = max((total for _done, total in success_rows), default=0)
+        success_done = min((done for done, _total in success_rows), default=0)
+        self.success_bar.setRange(0, max(1, success_total))
+        self.success_bar.setValue(success_done)
+        self.success_progress_label.setText(
+            f"{success_done} / {success_total}" if success_total else "—"
+        )
+        self._update_preparation_progress()
+
+        total_cards = len(self.service.cards)
+        index = max(0, min(self.view_index, max(0, total_cards - 1)))
+        card = self.service.cards[index] if total_cards else {}
+        chapter = str(card.get("manual_chapter_label") or "Guide").strip()
+        title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
+        self.sheet_meta_label.setText(f"FICHE {index + 1} · {chapter.upper()}")
+        self.sheet_title_label.setText(title)
+        self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
+        self.page_jump.blockSignals(True)
+        self.page_jump.setRange(1, max(1, total_cards))
+        self.page_jump.setValue(index + 1)
+        self.page_jump.blockSignals(False)
+        actual_index = self._actual_index_for_participants()
+        self.current_button.setEnabled(actual_index is not None)
+        self.current_button.setToolTip(
+            "Revenir à la première fiche encore nécessaire pour au moins un participant."
+            if actual_index is not None
+            else "Étape actuelle indisponible : progression non déterminable."
         )
 
     def _restore_route_lock_state(self) -> None:
@@ -784,8 +1670,11 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _apply_route_lock_visual(self, locked: bool) -> None:
         label = "Verrouillé" if locked else "Déverrouillé"
-        icon = "🔒" if locked else "🔓"
-        self.route_lock_check.setText(f"{icon} {label}")
+        self.route_lock_check.setText(label)
+        self.route_lock_check.setIcon(
+            _guide_symbol_icon(self.route_lock_check, "lock" if locked else "unlock")
+        )
+        self.route_lock_check.setIconSize(QSize(14, 14))
         self.route_lock_check.setAccessibleName(label)
         self.route_lock_check.setProperty("state", "locked" if locked else "unlocked")
         self.route_lock_check.style().unpolish(self.route_lock_check)
@@ -814,6 +1703,9 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def set_character_key(self, character_key: str) -> None:
         super().set_character_key(character_key)
+        self._preparation_loaded = False
+        self._preparation_needs = ()
+        self._refresh_participants_panel()
         self._restore_route_lock_state()
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
@@ -833,6 +1725,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 if callable(self.travel_callback)
                 else None
             ),
+            show_header_title=False,
         )
         widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)
