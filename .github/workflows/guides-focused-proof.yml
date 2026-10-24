@@ -60,10 +60,19 @@ jobs:
           } else {
             Write-Host "Preparation model not part of this candidate; skipped by scope."
           }
+      - name: Read-only preparation Qt preview if present
+        shell: pwsh
+        run: |
+          if (Select-String -LiteralPath "tests/test_lanyel_shared_manual_ui.py" -Pattern "def test_preparation_without_selected_characters_is_read_only" -Quiet) {
+            python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_preparation_without_selected_characters_is_read_only
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "Preparation preview Qt case absent from this candidate."
+          }
       - name: Provenance summary
         if: always()
         shell: pwsh
         run: |
-          Add-Content $env:GITHUB_STEP_SUMMARY "## Guides targeted evidence"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- Exact PR head: `$env:CANDIDATE_SHA`"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- No FULL, no release certification, no fabricated identity."
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## Guides targeted evidence'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Exact PR head: " + $env:CANDIDATE_SHA)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- No FULL, no release certification, no fabricated identity.'
