@@ -158,8 +158,19 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
         self.home_metadata_list.setObjectName("GuideLibraryUnavailableList")
-        self.home_metadata_list.setAlternatingRowColors(True)
-        result_layout.addWidget(self.home_metadata_list, 1)
+        # Metadata-only guides are informational, never clickable.
+        # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
+        self.home_metadata_list.setAlternatingRowColors(False)
+        self.home_metadata_list.setMaximumHeight(148)
+        self.home_metadata_list.setStyleSheet(
+            f"QListWidget#GuideLibraryUnavailableList {{ background: {PALETTE['PANEL']};"
+            f" color: {PALETTE['TEXT_MUTED']}; border: 1px solid {PALETTE['BORDER']}; }}"
+            f"QListWidget#GuideLibraryUnavailableList::item {{ padding: 4px 8px;"
+            f" background: {PALETTE['PANEL']}; color: {PALETTE['TEXT_MUTED']}; }}"
+            f"QListWidget#GuideLibraryUnavailableList::item:disabled {{"
+            f" color: {PALETTE['TEXT_MUTED']}; }}"
+        )
+        result_layout.addWidget(self.home_metadata_list, 0)
 
         self.home_empty = QLabel("Aucun parcours disponible dans cette catégorie.")
         self.home_empty.setObjectName("GuidesHomeEmptyText")
