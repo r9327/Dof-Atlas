@@ -70,10 +70,15 @@ Read-only Doctor PR mini-audit and a GitHub job timing summary now reuse the
 **existing CI jobs**. Summed, overlapping job durations are not GitHub billed
 minutes, and a timing report is never test or certification proof. The final
 Phase artifact upload runs **after** verdict enforcement, preserving a final
-verdict JSON when it exists; aborted/timeout preflight also records a
-fail-closed status if the ordinary report is unavailable. Git deletions and
-renames can no longer silently lose their removed-path semantics in the
-independent merge policy.
+canonical verdict JSON when it exists. The independent diagnostic
+`05_phase_outcome.json` is always attempted after enforcement, including on
+failed/timeout paths; it has `certified: false` and cannot confer certification.
+Aborted/timeout preflight also records a fail-closed status if the ordinary
+report is unavailable. Git deletions and renames preserve their removed-path
+semantics in the merge policy. PR classification uses the **merge-base diff**,
+not unrelated changes that arrived on main. Every PR-hosted proof also requires
+the independent successful `Public PR / Safe Validation` job on that same run,
+including when the overall workflow has completed.
 
 ### Pending verification (not claimed complete)
 
