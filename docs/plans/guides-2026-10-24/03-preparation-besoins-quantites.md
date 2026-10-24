@@ -1,6 +1,15 @@
 # [PLAN 03/07] Guides : Préparation, besoins réels et bouton Prêt
 
-**STATUT : BROUILLON DE CADRAGE — aucune implémentation. NE PAS FUSIONNER CE COMMIT SEUL.**
+**STATUT : IMPLÉMENTATION PARTIELLE (WIP), NON TESTÉE SUR WINDOWS — NE PAS FUSIONNER.**
+
+Avancement de cette branche empilée sur la PR #250 :
+- Moteur pur `guide_preparation_model.py` : inventaire de besoins explicites, fusion sans doublon des sources structurées et textuelles, distinction entre quantités additives, ressources réutilisables, quantités inconnues et suggestions non certifiées ; provenance conservée.
+- Préparation Qt : aperçu sans sélection, catégories détaillées, quantité inconnue affichée comme telle, boutons Prêt ciblés par personnage avec écriture atomique sur plusieurs personnages, liste en pages de 80 éléments.
+- Tests écrits : `tests/test_guide_preparation_model.py` (9 scénarios) et scénario Qt de lecture seule sans personnage.
+- **Preuve manquante :** ni tests Qt Windows, ni benchmarks mémoire de ce SHA, ni certification finale exécutés. Les prérequis non matériels et l'évaluation sur vraies routes restent à valider.
+- La PR #251 dépend de la fusion de #250, elle-même bloquée par l'ancien verdict FULL. Ne pas prétendre que cet ancien verdict certifie #251.
+
+---
 
 Objectif : Exposer intégralement les préparatifs du guide, garantir les quantités et enregistrer Prêt indépendamment par personnage.
 
