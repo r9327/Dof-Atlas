@@ -46,7 +46,8 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
     # The independently reviewed HIGH canary is the sole exception to the
     # risk-level FULL trigger, and only after canonical Phase verifies SCOPED.
     # The Phase router already checks test closure; this cannot select SCOPED.
-    high_smart = (risk == "HIGH" and high_smart_eligible(Path(__file__).resolve().parents[2], paths, deleted=deleted)
+    high_smart = (event == 'pull_request' and risk == "HIGH"
+                  and high_smart_eligible(Path(__file__).resolve().parents[2], paths, deleted=deleted)
                   and phase_route.get('route') == 'SCOPED')
     full = event == 'workflow_dispatch' or (not docs_only and not tooling_only and (
         bool(deleted) or bool(critical_changed(paths))
