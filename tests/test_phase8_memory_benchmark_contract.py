@@ -52,6 +52,10 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
     assert "craft_retained_tree_delta_mb" in source
+    assert '"craft_adapter_module_loaded_before"' in source
+    assert '"craft_adapter_module_loaded_after"' in source
+    assert 'craft_adapter_loaded_after = "local_dofus_data.compatibility_adapter" in sys.modules' in source
+    assert source.index('after_craft_home = _capture(') < source.index("craft_adapter_loaded_after =")
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
 
