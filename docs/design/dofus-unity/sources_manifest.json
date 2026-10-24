@@ -1,0 +1,62 @@
+{
+  "provenance": "Assets fournis par l'utilisateur, depuis une extraction de DOFUS Unity sur Windows",
+  "original_zip_sha256": "26df71037b4dc9445c80ff91d3ee8038a9474031b96c5b36f80cdb383b19f261",
+  "source_png_count": 103,
+  "packets": [
+    {
+      "file": "sources/atlas_unity_picto_source_01.zip",
+      "png_count": 38,
+      "sha256": "fc101a592acfbb78fa54fe7b7ecae28f55fc8c5b5bdad6a39043e538676a6100"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_02.zip",
+      "png_count": 31,
+      "sha256": "db70079530e0eba4a52bc8b3af594b6d5e1fbe06ed32ea2f95c362ce599a32a3"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_03.zip",
+      "png_count": 13,
+      "sha256": "e48ef24fa6c3af51b04e02ce5d854bbdbcc0c8522ab75193d97bc36a42b6c9a3"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_04.zip",
+      "png_count": 9,
+      "sha256": "4cbfaa43412dc9e3d91ed74649c0bcab6e0f3ce91291f30ec92f7c9245b8c26d"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_05.zip",
+      "png_count": 5,
+      "sha256": "2b9ec02804dfdbb02f095c847faf950d95c000bd2a4c278f2d0a32a660bdbe88"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_06.zip",
+      "png_count": 2,
+      "sha256": "b09073cc21a89179be4ec970b08e51f8eed76fa8aaa99b5bdabb9c6dbd8ba223"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_07.zip",
+      "png_count": 2,
+      "sha256": "73a5daec39149a1de77ac0e78cdc62df58f6c693812606540fa6a2cb90d35961"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_08.zip",
+      "png_count": 2,
+      "sha256": "1e970c475cd79b3e8009ae2d10c013bd1fa9e3953cd4110f80731a56e533a0cf"
+    },
+    {
+      "file": "sources/atlas_unity_picto_source_09.zip",
+      "png_count": 1,
+      "sha256": "24c4a3f2d273786c4b46eb0449a493d5be388d74e75202758603a043835f9ff8"
+    }
+  ],
+  "background": {
+    "file": "sources/atlas_unity_background_original.zip",
+    "contained_file": "selection_perso_original.png",
+    "sha256_png": "3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb"
+  },
+  "selection_reference": {
+    "file": "sources/Atlas_UI_Selection_Prete.zip",
+    "note": "Contient la planche, le manifeste et le script, PAS les 47 PNG originaux"
+  },
+  "missing_to_import": "47 sprites retenus dans les cinq bundles uiassets/uielements/uidarkstone, ainsi que les fichiers de polices TTF"
+}
