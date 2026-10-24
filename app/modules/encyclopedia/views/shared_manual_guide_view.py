@@ -1119,7 +1119,18 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
 
+    def _participant_source_signature(self) -> tuple[object, ...]:
+        from app.pages.quest_character_cache import quest_character_source_signature
+
+        service = self.participant_service
+        return quest_character_source_signature(
+            service.profile_path,
+            service.client_index_path,
+            binding_path=service.binding_path,
+        )
+
     def _refresh_participants_panel(self) -> None:
+        self._last_participant_source_signature = self._participant_source_signature()
         while self.participants_layout.count():
             item = self.participants_layout.takeAt(0)
             widget = item.widget()
@@ -1543,6 +1554,10 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def refresh(self, *, reset_to_active: bool = False) -> None:
         self.service.reload_progress()
+        if self._participant_source_signature() != getattr(
+            self, "_last_participant_source_signature", None
+        ):
+            self._refresh_participants_panel()
         if not self.service.available:
             self._render_missing_data()
             return
