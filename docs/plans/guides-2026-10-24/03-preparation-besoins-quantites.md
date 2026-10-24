@@ -14,7 +14,7 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 ## À réaliser intégralement
 - [ ] Afficher sans sélection la préparation globale consultable sans prétendre connaître l'inventaire ou autoriser un état Prêt anonyme.
 - [ ] Le filtre Tout doit présenter listes détaillées et sous-sections Métier / Potion / Objet / spécial, pas seulement des comptes.
-- [ ] Lire l'intégralité des structures de préparation présentes dans les cartes/ch apitres/manuels sans modifier le texte affiché des étapes.
+- [ ] Lire l'intégralité des structures de préparation présentes dans les cartes/chapitres/manuels sans modifier le texte affiché des étapes.
 - [ ] Différencier prérequis, objets à conserver, consommables, métiers, potions, pierres d'âme, clefs, besoins particuliers et actions à faire sur place.
 - [ ] Identifier les ressources par ID lorsque disponible, sinon nom normalisé sûr ; distinguer répétition d'affichage vs consommations cumulées.
 - [ ] Calculer les quantités réelles par personnage et à l'échelle du parcours restant ; ne pas multiplier des ressources réutilisables.
@@ -31,6 +31,13 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] Affichage complet sans personnage ; cas 1/2/6 personnages à avancements différents ; quantités et pierres d'âme réellement exposées.
 - [ ] Prêt individuel, collectif, annulation, retour sur filtre Tout, rechargement, version EXE ; pas de faux doublons ni données masquées.
 - [ ] Tests ciblés des vrais besoins, lanyel_shared_manual_ui, guide_ultime_manual_ui_navigation, doctor_ui_qt, RAM et chronométrage ciblés.
+
+## Compléments explicites — contenu et ergonomie
+- [ ] Le bloc `À préparer` visible dans une fiche reste minimaliste et ne doit pas être dupliqué avec la Préparation générale ; pas de blocs redondants « sources », « succès liés » ou prérequis répétés dans cette PR.
+- [ ] Préserver les **couleurs et distinctions par type** d'objet, potion, métier et ressource sans transformer un simple texte d'action en exigence d'inventaire.
+- [ ] Le filtre `Tout` doit afficher **les pierres d'âme et leurs quantités** (aujourd'hui exclues des résumés), y compris après changements de participants.
+- [ ] Assurer des infobulles/étiquettes de besoin compréhensibles, une vérification de l'item ID et un cumul de quantités explicable lorsqu'un objet est nécessaire à plusieurs fiches.
+- [ ] La commande `Prêt` valide les objets pour **les personnages sélectionnés concernés uniquement**, sans marquer une fiche, une quête ou un succès terminé ; persistance distincte des données de progression Route.
 
 ## Processus de livraison
 - [ ] Cette PR est ouverte en brouillon pour CADRAGE : ce commit ne contient aucun correctif applicatif et ne doit pas être fusionné seul.
