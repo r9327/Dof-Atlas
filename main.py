@@ -1051,7 +1051,9 @@ class AtlasWindow(QMainWindow):
         try:
             self.character_combo.clear()
             for character in connected_characters:
-                icon_path = self.character_icon_path(character.label, class_key=character.class_key)
+                icon_path = self.character_icon_path(
+                    character.label, class_key=getattr(character, "class_key", "")
+                )
                 icon = QIcon(icon_path) if icon_path else QIcon()
                 self.character_combo.addItem(icon, character.label, character)
                 self.character_combo.setItemData(
@@ -1158,7 +1160,10 @@ class AtlasWindow(QMainWindow):
         self.current_character_key = key
         self.current_character_label = label
         self.persist_selected_character()
-        self.home_page.set_character(key, label, self.character_icon_path(label, class_key=character.class_key))
+        self.home_page.set_character(
+            key, label,
+            self.character_icon_path(label, class_key=getattr(character, "class_key", "")),
+        )
         self.sync_selected_character_to_pages()
 
     def on_network_progress_changed(self, character_key: str) -> None:
