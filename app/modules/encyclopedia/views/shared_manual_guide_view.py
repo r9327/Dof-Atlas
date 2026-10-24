@@ -1462,7 +1462,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 # checkbox widgets when there is no validated identity.
                 lines = [f"• {quantity} × {name} ({category})"
                          for category, name, quantity in preview]
-                details = QLabel("\\n".join(lines))
+                details = QLabel(chr(10).join(lines))
                 details.setObjectName("GuidePreparationPreview")
                 details.setWordWrap(True)
                 details.setTextInteractionFlags(Qt.TextSelectableByMouse)
