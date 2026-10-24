@@ -22,6 +22,9 @@ class DifferentialDistributionTests(unittest.TestCase):
             (app / "AtlasApp.exe").write_bytes(b"MZ-unchanged-executable")
             catalog = data / "catalog.json"
             catalog.write_text('{"items":[1]}', encoding="utf-8")
+            image = app / "_internal" / "data" / "encyclopedia" / "images" / "quest.png"
+            image.parent.mkdir(parents=True)
+            image.write_bytes(b"immutable-image" * 80000)
             prior_zip, prior_path = package_release(app, root / "first", "a" * 40,
                                                     "1.0", "v1", 1)
             previous = parse_manifest(prior_path.read_bytes())
@@ -46,6 +49,10 @@ class DifferentialDistributionTests(unittest.TestCase):
             new_slot = slot_path(target, read_state(target)["active"])
             self.assertEqual((new_slot / "AtlasApp/AtlasApp.exe").read_bytes(),
                              b"MZ-unchanged-executable")
+            old_image = slot_path(target, old_slot) / "AtlasApp/_internal/data/encyclopedia/images/quest.png"
+            new_image = new_slot / "AtlasApp/_internal/data/encyclopedia/images/quest.png"
+            self.assertTrue(old_image.samefile(new_image))
+            self.assertEqual(new_image.read_bytes(), image.read_bytes())
             self.assertEqual((new_slot / "AtlasApp/_internal/data/raw/catalog.json").read_text(),
                              '{"items":[1,2]}')
             self.assertEqual((slot_path(target, old_slot) /

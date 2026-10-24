@@ -162,6 +162,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     report("Telechargement des fichiers modifies...", 10)
                     archive = None
                     try:
+                        started = time.monotonic()
                         archive = download_archive(
                             remote, ROOT / "downloads",
                             lambda done, total: report(
@@ -170,7 +171,9 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                             ),
                             differential=True,
                         )
+                        log.info("Differential download finished in %.2fs", time.monotonic() - started)
                         report("Verification des fichiers existants...", 76)
+                        started = time.monotonic()
                         delta_installed = install_release(
                             ROOT, archive, remote.manifest,
                             lambda done, total: report(
@@ -179,6 +182,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                             ),
                             delta=True,
                         )
+                        log.info("Differential staging finished in %.2fs", time.monotonic() - started)
                     except (UpdateError, OSError) as exc:
                         log.warning("Differential update failed, using full release: %s", exc)
                         if archive is not None:
