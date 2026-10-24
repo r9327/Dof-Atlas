@@ -1586,7 +1586,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         previous = self.active_index
         actual_index = self._actual_index_for_participants()
         if actual_index is None:
+            # End-of-route and empty-selection transitions must replace the
+            # live validation button, not keep its previous checked/label state.
+            self._refresh_participants_panel()
             self._refresh_header()
+            self._render_window()
             return
         self.active_index = actual_index
         moved = self.view_index == previous and actual_index != previous
@@ -1759,7 +1763,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
         reversible = any(manual for _, _, manual, _ in statuses)
         batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
-        enabled = bool(statuses) and callable(batcher) and not blocked and (not all_done or reversible)
+        page_key = getattr(self.service, "page_key", None)
+        enabled = bool(statuses) and callable(batcher) and callable(page_key) and not blocked and (not all_done or reversible)
         if not statuses:
             label, hint = "Choisir des personnages", "Sélectionnez un ou plusieurs personnages vérifiés dans Mes personnages."
         elif blocked:
@@ -1770,7 +1775,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             label, hint = "Validé ✓", "Fiche déjà validée automatiquement pour tous les personnages sélectionnés."
         else:
             label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
-        if statuses and not callable(batcher):
+        if statuses and (not callable(batcher) or not callable(page_key)):
             hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
         button.blockSignals(True)
         try:
