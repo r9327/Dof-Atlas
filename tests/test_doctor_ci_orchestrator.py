@@ -99,6 +99,44 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(p['workflows']['atlas-windows-distribution']['selected'])
         self.assertFalse(p['workflows']['doctor-runtime-perf']['selected'])
 
+    def test_mixed_guide_and_verified_qt_detector_keeps_full_but_not_all_specialists(self):
+        paths = [
+            'app/modules/encyclopedia/views/shared_manual_guide_view.py',
+            'tools/atlas_doctor_lib/doctor_ui_qt.py',
+            'tests/test_guide_manual_selected_validation.py',
+        ]
+        covered_ui = {'status': 'UI_REQUIRED', 'selected_scenarios': [
+            'validator-smoke', 'achievement-detail', 'guides-success',
+            'guides-lanyel', 'guide-quests',
+        ]}
+        routed = self.select(paths, route={'route': 'FULL'}, ui=covered_ui)
+        self.assertTrue(routed['phase'])
+        self.assertTrue(routed['full'])  # Never waive the mandatory FULL.
+        self.assertFalse(routed['specialist_fallback'])
+        self.assertTrue(routed['workflows']['doctor-ui']['selected'])
+        self.assertTrue(routed['workflows']['phase8-memory-benchmark']['selected'])
+        self.assertTrue(routed['workflows']['phase8-preload-benchmark']['selected'])
+        self.assertFalse(routed['workflows']['atlas-windows-distribution']['selected'])
+        self.assertFalse(routed['workflows']['json-focused-data-contract']['selected'])
+        self.assertFalse(routed['workflows']['encyclopedia-provider-import']['selected'])
+
+        # An incomplete UI campaign, unknown policy or other trust owner
+        # must still dispatch the exhaustive specialist safety fallback.
+        for kwargs in (
+            {'ui': {'status': 'REVIEW_REQUIRED', 'selected_scenarios': ['validator-smoke']}},
+            {'ui': {'status': 'UI_REQUIRED', 'selected_scenarios': ['validator-smoke']}},
+            {'route': {}},
+        ):
+            with self.subTest(kwargs=kwargs):
+                self.assertTrue(self.select(paths, route=kwargs.get('route', {'route': 'FULL'}),
+                                            ui=kwargs.get('ui', covered_ui))['specialist_fallback'])
+        unknown_trust = self.select(
+            [paths[0], 'tools/atlas_doctor_lib/runtime_observation.py'],
+            route={'route': 'FULL'}, ui=covered_ui,
+        )
+        self.assertTrue(unknown_trust['full'])
+        self.assertTrue(unknown_trust['specialist_fallback'])
+
     def test_known_workflow_uses_focused_ci_contracts_without_application_full(self):
         p = self.select(['.github/workflows/phase-certification.yml'])
         self.assertFalse(p['full'])
