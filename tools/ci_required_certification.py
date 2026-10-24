@@ -22,6 +22,7 @@ from urllib.request import Request, urlopen
 from tools.atlas_integrity import classify_risk
 from tools.phase_adaptive_gate import critical_changed
 from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible
+from tools.atlas_doctor_lib.high_smart_scope import eligible as high_smart_eligible
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -54,15 +55,24 @@ def classify_merge_route(paths: list[str], *, root: Path | None = None, base_sha
         for p in paths
     )
     tooling_only = tooling_eligible(paths, root=root, base_sha=base_sha)
-    full_required = not tooling_only and (bool(trust) or risk["risk"] in ("HIGH", "CRITICAL"))
+    bounded_high = (
+        not tooling_only and not trust and risk["risk"] == "HIGH"
+        and high_smart_eligible(root, paths)
+    )
+    full_required = not tooling_only and (
+        bool(trust) or risk["risk"] == "CRITICAL"
+        or (risk["risk"] == "HIGH" and not bounded_high)
+    )
     return {
-        "route": "FULL_REQUIRED" if full_required else "SCOPED",
+        "route": "FULL_REQUIRED" if full_required else "SMART" if bounded_high else "SCOPED",
         "risk": risk["risk"],
         "changed_files": paths,
         "root_of_trust_changes": trust,
         "docs_only": docs_only,
         "tooling_only": tooling_only,
+        "smart_requires_host_proof": bounded_high,
         "reason": "bounded CI contracts; Safe Validation must pass; not Phase certification" if tooling_only else
+                  "bounded HIGH SMART; require exact-SHA host-scoped execution, not FULL" if bounded_high else
                   "root of trust" if trust else
                   "high/critical risk" if full_required else
                   "docs-only low risk" if docs_only else
@@ -128,6 +138,62 @@ def validate_full_run(
             raise ValueError(f"Mandatory FULL step failed or skipped: {name}")
 
 
+
+_SCOPED_HIGH_STEPS = (
+    "Verify exact certification checkout",
+    "Resolve adaptive Doctor route on exact SHA",
+    "Execute and verify exact-SHA targeted modules",
+    "Enforce phase certification verdict",
+)
+
+
+def validate_scoped_high_run(
+    run: dict[str, Any], jobs: list[dict[str, Any]], *,
+    candidate_sha: str, repo: str, now: datetime,
+) -> None:
+    """Only the GitHub host can attest SMART execution; PR JSON never can."""
+    if not _SHA.fullmatch(candidate_sha) or not _REPO.fullmatch(repo):
+        raise ValueError("Invalid SMART run identity")
+    if (run.get("head_sha") != candidate_sha
+            or run.get("event") != "pull_request"
+            or run.get("status") != "completed"
+            or run.get("conclusion") != "success"):
+        raise ValueError("SMART proof missing exact-HEAD successful PR run")
+    path = str(run.get("path") or "")
+    if not (path == _CERT_WORKFLOW or f"/{_CERT_WORKFLOW}@" in path
+            or path.startswith(_CERT_WORKFLOW + "@")):
+        raise ValueError("SMART proof belongs to another workflow")
+    if (run.get("repository") or {}).get("full_name") != repo:
+        raise ValueError("SMART proof belongs to another repository")
+    created = _parsed_date(run.get("created_at", ""))
+    finished = _parsed_date(run.get("updated_at", ""))
+    if (created > now + timedelta(minutes=5)
+            or finished > now + timedelta(minutes=5)
+            or finished < created or now - finished > _MAX_PROOF_AGE):
+        raise ValueError("Stale or invalid SMART host evidence")
+    matched = [job for job in jobs
+               if job.get("name") == "Phase Certification / Full Validation"]
+    if len(matched) != 1:
+        raise ValueError("Missing or ambiguous host Phase job for SMART")
+    job = matched[0]
+    if (job.get("run_id") != run.get("id")
+            or job.get("status") != "completed"
+            or job.get("conclusion") != "success"):
+        raise ValueError("SMART Phase job not successful on this run")
+    steps = job.get("steps") or []
+    for name in _SCOPED_HIGH_STEPS:
+        matches = [step for step in steps if step.get("name") == name]
+        if (len(matches) != 1 or matches[0].get("status") != "completed"
+                or matches[0].get("conclusion") != "success"):
+            raise ValueError("SMART mandatory step missing/failed: " + name)
+    # A FULL result is never relabeled SMART. An actual FULL proof can only
+    # satisfy the independent FULL policy and always stays separately named.
+    full_steps = [step for step in steps
+                  if step.get("name") == "Run full Atlas phase certification gate"]
+    if len(full_steps) != 1 or full_steps[0].get("conclusion") != "skipped":
+        raise ValueError("SMART proof cannot conceal a FULL execution")
+
+
 def evaluate_merge(
     *,
     candidate_sha: str,
@@ -163,6 +229,23 @@ def evaluate_merge(
         result["reasons"].append("Exact-HEAD Public PR / Safe Validation passed; FULL not required by route")
         return result
     failures = []
+    if route["route"] == "SMART":
+        for run in runs or []:
+            try:
+                validate_scoped_high_run(
+                    run, (jobs_by_run or {}).get(run.get("id"), []),
+                    candidate_sha=candidate_sha, repo=repo, now=now,
+                )
+                result["status"] = "PASS_SMART_AUTHENTICATED_NOT_FULL"
+                result["scoped_evidence_run"] = run["id"]
+                result["reasons"].append("Host-verified exact-SHA SMART; no Phase/FULL certification")
+                return result
+            except (ValueError, TypeError) as exc:
+                failures.append(str(exc))
+        result["reasons"] = failures[:10] or [
+            "HIGH SMART BLOCKED: missing successful exact-SHA host scoped steps"
+        ]
+        return result
     for run in runs or []:
         try:
             validate_full_run(
@@ -239,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
     route = classify_merge_route(paths, root=Path.cwd(), base_sha=args.base_sha)
     runs: list[dict[str, Any]] = []
     jobs: dict[int, list[dict[str, Any]]] = {}
-    if route["route"] == "FULL_REQUIRED":
+    if route["route"] in {"FULL_REQUIRED", "SMART"}:
         try:
             runs, jobs = retrieve_full_proofs(args.repo, candidate, os.environ.get("GITHUB_TOKEN", ""))
         except ValueError as exc:
