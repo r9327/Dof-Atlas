@@ -40,6 +40,13 @@ class FrozenWorkerDispatchTests(unittest.TestCase):
             self.assertEqual(main(), 17)
             worker.assert_called_once_with(["--port", "4321", "--token", "proof"])
 
+    def test_frozen_capture_smoke_imports_worker_without_running_it(self):
+        with patch.object(sys, "frozen", True, create=True), \
+             patch.object(sys, "argv", ["AtlasApp.exe", "--atlas-capture-smoke"]), \
+             patch("app.network.capture_helper.main") as worker:
+            self.assertEqual(main(), 0)
+            worker.assert_not_called()
+
     def test_unknown_worker_is_rejected(self):
         with patch.object(sys, "frozen", True, create=True), \
              patch.object(sys, "argv", ["AtlasApp.exe", "-m", "os"]), \
