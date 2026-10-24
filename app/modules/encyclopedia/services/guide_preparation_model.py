@@ -167,13 +167,20 @@ def card_claims(
 
 def aggregate_remaining(
     card_rows: Iterable[tuple[dict[str, Any], bool]],
+    *,
+    sections_for_card=None,
 ) -> tuple[PreparationNeed, ...]:
-    """Aggregate only incomplete stages; report unknown rather than false sums."""
+    """Aggregate only incomplete stages; report unknown rather than false sums.
+
+    sections_for_card may apply the production filter which removes items
+    obtained on the same map. Only the caller owns loading those sections.
+    """
     grouped: dict[tuple[str, str], list[PreparationClaim]] = {}
     for card, complete in card_rows:
         if complete:
             continue
-        for claim in card_claims(card):
+        sections = sections_for_card(card) if callable(sections_for_card) else None
+        for claim in card_claims(card, sections=sections):
             grouped.setdefault((claim.identity, claim.category), []).append(claim)
     needs = []
     for (identity, category), group in sorted(grouped.items()):
