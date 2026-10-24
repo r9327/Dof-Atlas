@@ -129,3 +129,25 @@ Qt-widget leak or classifying this as repaired without a Windows retest.
 The preceding measurement was 2.66 MB. The independent pre-FULL gate correctly
 skipped FULL, avoiding expensive work **but not certifying the PR**. No memory
 threshold or required certificate has been relaxed.
+
+### Craft retained RSS follow-up (not yet certified)
+
+Windows memory evidence from run #40140997450 shows **Guide Home 100.77 MB,
+Craft active 101.46 MB, Craft Home 103.39 MB**; **Craft retained +2.62 MB**
+continues to FAIL the unchanged 2.10 MB ceiling. Qt widgets recover to 145
+(the same as Guide Home), so this does not by itself prove a live widget leak.
+
+The first targeted application change is a lifecycle/import fix in
+`app/local_data_cache.release_adapter`: it no longer loads the previously
+unused `local_dofus_data.compatibility_adapter` module solely while returning
+Home. If an adapter module is already resident, its real `release_adapter`
+function is still called and closes the active SQLite connection. This is
+covered by stdlib tests for never-imported, already-loaded, live, and repeated
+release cases. The Windows memory benchmark now records whether this module
+was loaded before opening Craft and after its Home RSS capture, **without
+changing the measured RSS, the capture sequence, or pass/fail thresholds**.
+
+This is a source-level hypothesis **not a proven memory fix** until a fresh
+real Windows benchmark reports `craft_retained_tree_delta_mb <= 2.10 MB`.
+If the delta remains elevated, investigate Qt/native allocations and imported
+modules rather than adjusting the budget or faking release evidence.
