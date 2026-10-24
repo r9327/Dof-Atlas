@@ -31,8 +31,18 @@
 ## Critères d'acceptation
 - [ ] Aller Guide → Quête → retour bonne fiche sans perdre l'étape consultée ; Sommaire ouvert reste ouvert, infobulle plus réactive, icônes cohérentes.
 - [ ] Rétracter colonne droite plusieurs fois, changement Guide/Quête, redimensionnement, sauvegarde/restauration largeur et scroll ; centre gagne l'espace.
-- [ ] Pas de fuite Qt ni de widget orphelin après navigation ; tests guid es_phase3, doctor_ui_qt, guide_ultime_manual_ui_navigation, UI Windows réelle et mémoire ciblée.
+- [ ] Pas de fuite Qt ni de widget orphelin après navigation ; tests guides_phase3, doctor_ui_qt, guide_ultime_manual_ui_navigation, UI Windows réelle et mémoire ciblée.
 - [ ] Respect intégral de l'en-tête déjà validé en PR04.
+
+## Compléments explicites — contenu interactif et commandes
+- [ ] Conserver/sécuriser la présentation des combats cochables **« ✔ x5 Nom du monstre »** avec quantité, cible et état corrects ; cliquer ne valide pas une quête non prouvée.
+- [ ] Fusionner les actions contiguës qui décrivent réellement la même étape de carte, par exemple « parler à PNJ » puis « prendre objet », **sans modifier leur ordre, signification ou les données métier** ; éviter les phrases coupées ou doublées.
+- [ ] Ne pas réintroduire les blocs obsolètes `Succès liés`, `Destination suivante`, les sources techniques ou un deuxième bouton de lien Quête sur la même fiche ; préserver la carte Légende en première fiche.
+- [ ] Séparer raccourci Quête **par fiche** et navigation entre fiches : un seul accès pertinent à la Quête, nom exact en tooltip, retour à la fiche/étape source, titres chapitres/actes lisibles et repliables.
+- [ ] Vérifier la chaîne de déplacement **coordonnées [x,y] → /travel x,y direct si possible ; trajet nécessitant un zaap → /zaap approprié puis /travel x,y** uniquement lorsque la preuve d'itinéraire le justifie ; Organizer désigne les destinataires réellement sélectionnés. Aucun /zaap inventé.
+- [ ] Contrôler l'outil de création d'étapes : libellés courts, distinction combat/donjon/PNJ/objet/position et rendu final correspondant, sans modifier silencieusement les étapes déjà enregistrées.
+- [ ] Vérifier que la fermeture/réouverture de la colonne droite conserve largeur, état et scroll y compris après parcours Guide → Quête → Guide ; tester seulement les lecteurs où cette colonne existe.
+- [ ] Préparer exactement les **trois captures de contrôle utiles** : accueil Guides, en-tête + fiche Guide Succès Opti, et un guide Ganymède réel quand activé ; ne pas multiplier les captures inutiles.
 
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
