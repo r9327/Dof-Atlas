@@ -1129,6 +1129,59 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      # Pure observability on the existing final runner: no tests skipped and
+      # no extra runner allocated. Running job is excluded from the totals.
+      - name: Publish measured CI job timings (advisory)
+        shell: bash
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYTIMINGS'
+          import json, os
+          from datetime import datetime
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          run_id = os.environ["GITHUB_RUN_ID"]
+          url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
+          request = Request(url, headers={
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "atlas-ci-timing-observer",
+          })
+          try:
+              with urlopen(request, timeout=12) as response:
+                  result = json.load(response)
+              jobs = result["jobs"]
+              if not isinstance(jobs, list) or result.get("total_count", 0) > len(jobs):
+                  raise ValueError("Incomplete job inventory: timing totals withheld")
+              measured = []
+              for job in jobs:
+                  if job.get("status") != "completed" or not job.get("started_at") or not job.get("completed_at"):
+                      continue
+                  start = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                  end = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                  seconds = (end - start).total_seconds()
+                  if seconds < 0:
+                      raise ValueError("Negative GitHub job duration")
+                  measured.append((str(job.get("name", "unknown")).replace("|", "/").replace("\\n", " "), seconds, job.get("conclusion", "unknown")))
+              measured.sort(key=lambda row: -row[1])
+              # Sum of job intervals is not billed GitHub minutes; it includes
+              # parallel time. This is advisory, not certification evidence.
+              total = sum(row[1] for row in measured)
+              with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
+                  stream.write("\\n## Doctor — CI timing observations (advisory)\\n")
+                  stream.write(f"Completed jobs measured: {len(measured)} / {len(jobs)}; total runner elapsed time: {total / 60:.1f} min (not billing).\\n")
+                  stream.write("| Completed job | Duration | Result |\\n|---|---:|---|\\n")
+                  for name, seconds, status in measured[:15]:
+                      stream.write(f"| {name} | {seconds / 60:.1f} min | {status} |\\n")
+                  stream.write("This snapshot excludes jobs still running, including Doctor / CI Verdict. No gate is waived.\\n")
+          except (OSError, KeyError, TypeError, ValueError) as exc:
+              print(f"CI timing observation unavailable (advisory): {type(exc).__name__}: {exc}")
+          PYTIMINGS
       - name: Reject failed or skipped selected CI
         shell: python
         env:
