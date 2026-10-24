@@ -241,9 +241,22 @@ def evaluate_merge(
                 result["reasons"].append("Host-verified exact-SHA SMART; no Phase/FULL certification")
                 return result
             except (ValueError, TypeError) as exc:
-                failures.append(str(exc))
+                # Independent Phase may conservatively run FULL even on this
+                # bounded candidate (unmapped consumer, metrics or unknown
+                # dependency). A *real* exact-head FULL proof still wins.
+                try:
+                    validate_full_run(
+                        run, (jobs_by_run or {}).get(run.get("id"), []),
+                        candidate_sha=candidate_sha, repo=repo, now=now,
+                    )
+                    result["status"] = "PASS_FULL_AUTHENTICATED"
+                    result["full_evidence_run"] = run["id"]
+                    result["reasons"].append("Doctor escalated bounded HIGH to verified real FULL")
+                    return result
+                except (ValueError, TypeError):
+                    failures.append(str(exc))
         result["reasons"] = failures[:10] or [
-            "HIGH SMART BLOCKED: missing successful exact-SHA host scoped steps"
+            "HIGH SMART BLOCKED: missing successful exact-SHA scoped or FULL host steps"
         ]
         return result
     for run in runs or []:
