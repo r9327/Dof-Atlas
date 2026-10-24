@@ -98,21 +98,24 @@ def _parsed_date(value: str) -> datetime:
 def _require_authenticated_run_state(
     run: dict[str, Any], jobs: list[dict[str, Any]],
 ) -> None:
-    """The merge-policy job runs inside the workflow it authenticates.
+    """Require the independent Safe Validation from the same PR run.
 
-    A completed run must have succeeded. During an active PR run, the
-    independent Public PR / Safe Validation job must already have completed
-    successfully on that very run; no pending, failed, skipped or foreign job
-    can unlock this gate. The Phase job is validated separately below.
+    While this merge gate is evaluating the current run, its final outcome
+    cannot be known yet. A completed run can be accepted only after success,
+    but even a completed SUCCESS may contain skipped jobs and must prove the
+    mandatory public validation independently. Manual FULL runs keep their
+    separate step attestation.
     """
-    if run.get("status") == "completed":
+    status = run.get("status")
+    if status == "completed":
         if run.get("conclusion") != "success":
             raise ValueError("Certification workflow did not succeed")
-        return
-    if (run.get("status") != "in_progress"
-            or run.get("conclusion") is not None
-            or run.get("event") != "pull_request"):
+    elif (status != "in_progress"
+          or run.get("conclusion") is not None
+          or run.get("event") != "pull_request"):
         raise ValueError("Certification workflow is neither successful nor attestable")
+    if run.get("event") != "pull_request":
+        return
     matched = [job for job in jobs
                if job.get("name") == "Public PR / Safe Validation"]
     if len(matched) != 1:
