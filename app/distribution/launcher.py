@@ -244,6 +244,16 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         _run_handle.close()
 
 
+def _requires_updater_window(message: str) -> bool:
+    """A checked no-op/offline launch shows Atlas preload, never an updater popup."""
+    return message.startswith((
+        "Telechargement", "Differentiel", "Installation",
+        "Verification complete", "Verification et installation",
+        "Copie vers", "Version precedente restauree",
+        "Paquets de donnees precedents restaures",
+    ))
+
+
 def main() -> int:
     # Fast, offline bootstrap self-test used by the detached maintenance helper.
     # Do not open Tk, contact GitHub or launch AtlasApp during this health check.
@@ -254,6 +264,9 @@ def main() -> int:
         import tkinter as tk
         from tkinter import ttk
         window = tk.Tk()
+        # Hide immediately, before title/geometry and before Tk can paint a
+        # misleading updater popup on a no-op startup.
+        window.withdraw()
     except Exception:
         # A broken/missing Tk UI must not prevent access to an already installed Atlas.
         try:
@@ -325,6 +338,7 @@ def main() -> int:
              font=("Segoe UI", 9)).pack()
     finished = False
     succeeded = False
+    updater_visible = choosing_install
 
     def report(message: str, value: int):
         events.put(("progress", (message, value)))
@@ -351,7 +365,7 @@ def main() -> int:
             events.put(("error", str(exc)))
 
     def poll():
-        nonlocal finished, succeeded
+        nonlocal finished, succeeded, updater_visible
         try:
             while True:
                 kind, payload = events.get_nowait()
@@ -360,21 +374,29 @@ def main() -> int:
                     status.set(message)
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
+                    if not updater_visible and _requires_updater_window(message):
+                        updater_visible = True
+                        window.deiconify()
                 elif kind == "done":
                     finished = True
                     succeeded = True
-                    window.after(550, window.destroy)
+                    window.after(550 if updater_visible else 0, window.destroy)
                 elif kind == "error":
                     finished = True
                     succeeded = False
                     status.set("Echec : " + str(payload))
                     numeric.set("Journal : DofusAtlas/logs/updater.log")
+                    if not updater_visible:
+                        updater_visible = True
+                        window.deiconify()
         except queue.Empty:
             pass
         if not finished:
             window.after(70, poll)
 
     if choosing_install:
+        # Show the folder picker only after its widgets are fully configured.
+        window.deiconify()
         def begin_install():
             start_button.configure(state="disabled")
             status.set("Installation en cours...")

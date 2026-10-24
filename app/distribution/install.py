@@ -149,7 +149,8 @@ def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest,
     return actual
 
 
-def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile) -> None:
+def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile,
+                             progress: Callable[[int], None] | None = None) -> None:
     """Copy one unchanged delta file and verify its SHA-256 in the same pass.
 
     The old two-pass flow hashed the full source and then read it again for a
@@ -168,6 +169,8 @@ def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile
                     raise UpdateError("Unchanged base file exceeded manifest size")
                 digest.update(block)
                 output.write(block)
+                if progress is not None:
+                    progress(copied)
         if copied != entry.size or digest.hexdigest() != entry.sha256:
             raise UpdateError("Unchanged base file was modified or missing")
     except OSError as exc:
@@ -205,15 +208,28 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                                         set(manifest.delta.paths) if delta else None)
             total = sum(f.size for f in manifest.files)
             done = 0
+            last_percent = -1
+
+            def report_copied(complete: int) -> None:
+                nonlocal last_percent
+                # At most 101 events, including progress inside large unchanged
+                # files. This avoids flooding the Tk queue on multi-GB deltas.
+                percent = min(100, complete * 100 // max(total, 1))
+                if progress is not None and percent > last_percent:
+                    last_percent = percent
+                    progress(complete, total)
+
             for entry in manifest.files:
                 destination = stage / entry.path
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 if delta and entry.path not in entries:
                     old = slot_path(root, state["active"]) / entry.path
-                    _copy_unchanged_verified(old, destination, entry)
+                    _copy_unchanged_verified(
+                        old, destination, entry,
+                        lambda copied: report_copied(done + copied),
+                    )
                     done += entry.size
-                    if progress:
-                        progress(done, total)
+                    report_copied(done)
                     continue
                 digest = hashlib.sha256()
                 count = 0
@@ -228,8 +244,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                         output.write(part)
                         digest.update(part)
                         done += len(part)
-                        if progress:
-                            progress(done, total)
+                        report_copied(done)
                 if count != entry.size or digest.hexdigest() != entry.sha256:
                     raise UpdateError("Release file SHA-256 validation failed")
         if not (stage / manifest.entrypoint).is_file():
