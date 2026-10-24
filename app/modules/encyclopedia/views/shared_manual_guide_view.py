@@ -1750,7 +1750,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         statuses = self._validation_status(card, index)
         all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
         blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
-        reversible = any(manual and not auto for _, auto, manual, _ in statuses)
+        reversible = any(manual for _, _, manual, _ in statuses)
         batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
         enabled = bool(statuses) and callable(batcher) and not blocked and (not all_done or reversible)
         if not statuses:
@@ -1787,11 +1787,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         # A mixed team click fills only incomplete manual states; undo removes
         # only manually checked states without erasing quest/success evidence.
-        targets = tuple(
-            key for key, auto, manual, _ in statuses
-            if (not auto and not manual) if checked
-        ) if checked else tuple(
-            key for key, auto, manual, _ in statuses if manual and not auto
+        targets = (
+            tuple(key for key, auto, manual, _ in statuses if not auto and not manual)
+            if checked else tuple(key for key, _, manual, _ in statuses if manual)
         )
         batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
         page_key = getattr(self.service, "page_key", None)
@@ -1801,9 +1799,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         from app.modules.encyclopedia.services.guide_ultime_generated_service import GUIDE_ULTIME_PROGRESS_ID
         progress_id = str(getattr(self.service, "progress_id", None) or GUIDE_ULTIME_PROGRESS_ID)
         try:
-            batcher(targets, progress_id, page_key(card, index), checked)
+            batcher(
+                targets, progress_id, page_key(card, index), checked,
+                expected_completed={key: manual for key, _, manual, _ in statuses if key in targets},
+            )
+        except RuntimeError:
+            # Another instance updated the same page after we read its state.
+            # The compare-and-swap service rejects the entire stale batch.
+            self.validation_host.setToolTip("Progression modifiée ailleurs ; l’état a été rechargé.")
         finally:
-            # A failed write must never leave a checked-looking control behind.
             self._follow_active_after_progress_change()
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
