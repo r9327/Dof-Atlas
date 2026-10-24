@@ -222,7 +222,7 @@ jobs:
           # Memory targets stay visible; all hard memory measurements admit
           # at most +5% observation tolerance, with an explicit warning.
           # Proof integrity and missing or invalid observations remain strict.
-          from tools.phase8_memory_tolerance import classify, hard_limit
+          from tools.phase8_memory_tolerance import classify, hard_limit, require_peak_tree_rss
           advisory_home_budgets_mb = {
               "after_quests_home": 100.0,
               "after_achievements_home": 100.0,
@@ -269,7 +269,7 @@ jobs:
               "HOME_TARGET_ADVISORY: " +
               (", ".join(home_advisories) if home_advisories else "all measured stages below 100 MB")
           )
-          peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
+          peak_tree = require_peak_tree_rss(metrics, preload_mb=preload_mb)
           peak_target_mb = 220.0
           peak_hard_limit_mb = hard_limit(peak_target_mb)
           if classify(peak_tree, peak_target_mb) == "FAIL":
