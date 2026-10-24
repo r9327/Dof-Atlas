@@ -14,6 +14,7 @@ import subprocess
 import sys
 from typing import Any
 from tools.atlas_doctor_lib.high_smart_scope import REQUIRED_TESTS, bounded_paths
+from tools.atlas_integrity import classify_risk
 
 ROOT = Path(__file__).resolve().parents[1]
 SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -74,6 +75,9 @@ def choose_route(
         if (report.get("independent_policy") or {}).get("root_of_trust_changed"):
             reasons.append("DOCTOR_ROOT_OF_TRUST_CHANGE")
         independent_policy = report.get("independent_policy") or {}
+        actual_risk = classify_risk(paths)["risk"]
+        if independent_policy.get("canonical_risk") != actual_risk:
+            reasons.append("INDEPENDENT_RISK_CLASSIFICATION_MISMATCH")
         high_smart = (
             independent_policy.get("canonical_risk") == "HIGH"
             and bounded_paths(paths)
