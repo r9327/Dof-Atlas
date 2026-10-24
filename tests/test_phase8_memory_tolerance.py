@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.phase8_memory_tolerance import MARGIN, classify, hard_limit, require_peak_tree_rss
+from tools.phase8_memory_tolerance import (MARGIN, classify, hard_limit,
+                                           require_peak_tree_rss, require_memory_observation)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,11 +50,23 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_peak_tree_rss({"peak_tree_rss_mb": 200.0}, preload_mb=float("nan"))
 
+    def test_required_memory_evidence_rejects_coercion_and_missing_values(self):
+        self.assertEqual(require_memory_observation(0.0, label="retained"), 0.0)
+        self.assertEqual(require_memory_observation(95.0, label="preload", positive=True), 95.0)
+        for value in (None, True, False, "0", "95", float("nan"), float("inf"), -1):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                require_memory_observation(value, label="required", positive=True)
+            self.assertEqual(classify(value, 2.0), "FAIL")
+        with self.assertRaises(ValueError):
+            require_memory_observation(0.0, label="stage", positive=True)
+
     def test_windows_workflow_uses_common_bound_and_preserves_warnings(self):
         workflow = (ROOT / ".github/workflows/phase8-memory-benchmark.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("from tools.phase8_memory_tolerance import classify, hard_limit, require_peak_tree_rss", workflow)
+        self.assertIn("classify, hard_limit, require_peak_tree_rss, require_memory_observation", workflow)
+        self.assertIn("require_memory_observation(row.get(kind)", workflow)
+        self.assertIn("require_memory_observation(metrics.get(metric)", workflow)
         self.assertIn("peak_tree = require_peak_tree_rss(metrics, preload_mb=preload_mb)", workflow)
         self.assertNotIn('metrics.get("peak_tree_rss_mb") or 0.0', workflow)
         self.assertIn('preload_status = classify(preload_mb, preload_target_mb)', workflow)
@@ -61,7 +74,7 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
         self.assertIn('state = classify(measured, budget)', workflow)
         self.assertIn('if state == "FAIL":', workflow)
         self.assertIn('if state == "WARNING":', workflow)
-        self.assertIn('if metric not in metrics or metrics[metric] is None:', workflow)
+        self.assertNotIn('float(metrics[metric])', workflow)
         self.assertIn('hard ceiling: 2.10 MB with +5% tolerance', workflow)
 
 
