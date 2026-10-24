@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - doctor/three-guide-screens-20261024
+  pull_request:
+    types: [opened]
 
 permissions:
   contents: read
