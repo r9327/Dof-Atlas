@@ -77,10 +77,11 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
             self._ids(left),
             ["guide_complet", "dofus_sylvestre", "alignement_bonta", "alignement_brakmar"],
         )
-        self.assertEqual(self._headings(right), ["DOFUS"])
+        self.assertEqual(self._headings(right), [])  # No empty title-grid cell.
         self.assertEqual(self._ids(right), ["dofus_turquoise", "dofus_cawotte"])
         self.assertEqual(left.row_for_guide("dofus_turquoise"), -1)
         self.assertEqual(right.row_for_guide("dofus_sylvestre"), -1)
+        self.assertEqual(right.rowCount(), 2)
 
     def test_lazy_home_search_navigation_and_responsive_grid(self) -> None:
         provider = _CatalogProvider()
@@ -122,8 +123,17 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
+                    # Alignements are available without featured-card duplication.
+                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["alignement_bonta", "alignement_brakmar"],
+                    )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
+                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
+                    self.assertEqual(view.home_dofus_model.rowCount(), 1)
+                    view.library_categories.setCurrentItem(view._category_nodes["dofus"])
                     self.assertFalse(view.home_dofus_list.isVisible())
                     view.resize(610, 750)
                     self.app.processEvents()
