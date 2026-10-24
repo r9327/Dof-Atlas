@@ -788,7 +788,7 @@ jobs:
               "steps": outcomes,
               "certified": False,
               "note": "Diagnostic only. Certification requires the canonical verdict or independent host-verified reuse, never this file.",
-          }, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+          }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
       - name: Upload certification logs
         if: always()
