@@ -556,7 +556,8 @@ class OrganizerUiMixin:
             star.setEnabled(is_detected)
             if is_detected:
                 star.clicked.connect(lambda _checked=False, target=session: self.set_primary_window(target))
-                self.bind_session_drag_events(star, index, row)
+                # A favorite is an action, not a drag handle: swallowing its
+                # mouse release during a tiny drag loses the click/selection.
             layout.addWidget(star)
             icon = QLabel()
             icon.setFixedSize(24, 24)
