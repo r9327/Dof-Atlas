@@ -40,6 +40,9 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(selection['full'])
         self.assertFalse(selection['tooling_only'])
         self.assertFalse(selection['specialist_fallback'])
+        # SMART can only optimize PR feedback, never a main/release push.
+        self.assertTrue(self.select([HIGH_SOURCE], event='push')['full'])
+        self.assertTrue(self.select([HIGH_SOURCE], event='workflow_dispatch')['full'])
         self.assertTrue(selection['workflows']['phase8_memory_benchmark']['selected'] if
                         'phase8_memory_benchmark' in selection['workflows']
                         else selection['workflows']['phase8-memory-benchmark']['selected'])
