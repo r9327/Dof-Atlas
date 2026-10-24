@@ -105,6 +105,9 @@ jobs:
               f.write(f"FULL: {p['full']}; broad specialist fallback: {p['specialist_fallback']}\n\n")
               for name, route in p['workflows'].items():
                   f.write(f"- {name}: {'RUN' if route['selected'] else 'NOT_APPLICABLE'} — {'; '.join(route['reasons'])}\n")
+              f.write('\n### PR mini-audit (read-only)\n')
+              f.write(f"- Changed paths: {len(p.get('changed_paths', []))}, deleted: {len(p.get('deleted_paths', []))}\n")
+              f.write(f"- Required jobs: {len(p.get('required_jobs', []))}; route: {p.get('phase_route', {}).get('route', 'UNPROVEN')}\n")
               f.write('\nSelection is not execution or certification.\n')
           PYPLAN
           fi
@@ -626,17 +629,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host "Doctor exact-SHA shadow pair recorded; no FULL waiver granted"
 
-      - name: Upload certification logs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/phase_certification/**
-            artifacts/ci_guide_ultime_logs/**
-          if-no-files-found: warn
-          retention-days: 30
-
       - name: Enforce phase certification verdict
         if: always()
         run: |
@@ -740,6 +732,17 @@ jobs:
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide status: existing ``BUILDING`` debt carried byte-for-byte unchanged from the Phase 1 base; this is not GUIDE CERTIFIED."
             }
           }
+
+      - name: Upload certification logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/phase_certification/**
+            artifacts/ci_guide_ultime_logs/**
+          if-no-files-found: warn
+          retention-days: 30
 
   pr-fast-validation:
     needs: doctor-plan
@@ -1011,6 +1014,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           SAFE_VALIDATION: ${{ needs.safe-validation.result }}
           ATLAS_CERT_POLICY_ENFORCE: "false"
         run: |
@@ -1018,6 +1024,9 @@ jobs:
             --candidate-sha "$CANDIDATE_SHA" \
             --base-sha "$BASE_SHA" \
             --repo "$GITHUB_REPOSITORY" \
+            --pr-number "$PR_NUMBER" \
+            --head-ref "$PR_HEAD_REF" \
+            --base-ref "$PR_BASE_REF" \
             --safe-result "$SAFE_VALIDATION" \
             --enforce "$ATLAS_CERT_POLICY_ENFORCE" \
             --output artifacts/cert_policy/merge_gate.json
