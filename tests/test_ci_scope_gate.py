@@ -227,7 +227,16 @@ class ScopeGateTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("workflow_dispatch:", scoped)
-        self.assertNotIn("pull_request:", scoped)
+        # Draft PRs get a cheap advisory stdlib-only feedback pass. The
+        # opt-in Windows proof is still manual and cannot be marked PASS merely
+        # because a Draft route selected it.
+        self.assertIn("pull_request:", scoped)
+        self.assertIn("github.event.pull_request.draft == true", scoped)
+        self.assertIn("github.event_name == 'workflow_dispatch'", scoped)
+        self.assertIn("DRAFT_ROUTE_ONLY_NOT_CERTIFIED", scoped)
+        self.assertIn("github.event.pull_request.head.sha || github.sha", scoped)
+        self.assertIn("github.event.pull_request.base.sha || inputs.base_ref", scoped)
+        self.assertNotIn("pull_request_target:", scoped)
         self.assertIn("tools.phase_adaptive_gate verify-scoped", pr)
         self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", scoped)
         self.assertIn("fetch-depth: 0", scoped)
