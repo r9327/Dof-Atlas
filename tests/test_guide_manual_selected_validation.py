@@ -193,6 +193,25 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertEqual(self.view.route_progress_label.text(), "0 / 2")
         self.assertEqual(self.view.progress_donut._percent, 0)
 
+    def test_last_click_refreshes_completed_state_without_reopening_guide(self) -> None:
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        first = self.service.cards[0]
+        self.service.guide_progress.set_manual_steps_for_characters(
+            ("character:1", "character:2"),
+            self.service.progress_id,
+            self.service.page_key(first, 0),
+            True,
+        )
+        self._show_sheet(1)
+        self.view.validation_layout.itemAt(0).widget().click()
+        QApplication.processEvents()
+        self.assertEqual(self.view.route_progress_label.text(), "2 / 2")
+        self.assertEqual(self.view.current_button.text(), "Terminé")
+        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertEqual(
+            self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
+        )
+
     def test_completed_team_has_no_phantom_current_sheet(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         for index, card in enumerate(self.service.cards):
