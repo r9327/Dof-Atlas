@@ -20,6 +20,8 @@ _ESSENTIAL_ASSETS = frozenset({
 })
 _DATA_ROOTS = ("data/encyclopedia/", "data/cartography/", "data/routes/")
 _DATA_SUFFIXES = frozenset({".json", ".db", ".ini"})
+_CLASS_ICON_ROOTS = ("data/images/classes/", "data/images/breeds/", "data/images/misc/classes/")
+_CLASS_ICON_SUFFIXES = frozenset({".png", ".webp", ".jpg", ".jpeg", ".ico"})
 _RUNTIME_ROOTS = ("app/", "local_dofus_data/")
 _FORBIDDEN_COMPONENTS = frozenset({
     "__pycache__", ".cache", ".git", ".github", ".agents", ".ai", ".codex",
@@ -52,6 +54,9 @@ def selected_runtime_path(filename: str) -> bool:
         return path.suffix.lower() == ".py"
     if filename.startswith(_DATA_ROOTS):
         return path.suffix.lower() in _DATA_SUFFIXES
+    # Pack only reviewed class-icon folders; never mirror arbitrary user images.
+    if filename.startswith(_CLASS_ICON_ROOTS):
+        return path.suffix.lower() in _CLASS_ICON_SUFFIXES
     return False
 
 
