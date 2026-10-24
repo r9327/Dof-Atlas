@@ -337,6 +337,11 @@ def evaluate_merge(
         return result
     for run in runs or []:
         try:
+            if run.get("event") == "pull_request":
+                _verify_smart_pr_identity(
+                    run, candidate_sha=candidate_sha, base_sha=base_sha,
+                    pr_number=pr_number, head_ref=head_ref, base_ref=base_ref,
+                )
             validate_full_run(
                 run, (jobs_by_run or {}).get(run.get("id"), []),
                 candidate_sha=candidate_sha, repo=repo, now=now,
