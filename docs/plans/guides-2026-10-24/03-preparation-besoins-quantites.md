@@ -1,13 +1,15 @@
 # [PLAN 03/07] Guides : Préparation, besoins réels et bouton Prêt
 
-**STATUT : IMPLÉMENTATION PARTIELLE (WIP), NON TESTÉE SUR WINDOWS — NE PAS FUSIONNER.**
+**STATUT : IMPLÉMENTATION PARTIELLE (WIP), TESTS WINDOWS CIBLÉS VERTS, CERTIFICATION FINALE ET RAM GLOBALE NON VALIDÉES — NE PAS FUSIONNER.**
 
 Avancement de cette branche empilée sur la PR #250 :
 - Moteur pur `guide_preparation_model.py` : inventaire de besoins explicites, fusion sans doublon des sources structurées et textuelles, distinction entre quantités additives, ressources réutilisables, quantités inconnues et suggestions non certifiées ; provenance conservée.
 - Préparation Qt : aperçu sans sélection, catégories détaillées, quantité inconnue affichée comme telle, boutons Prêt ciblés par personnage avec écriture atomique sur plusieurs personnages, liste en pages de 80 éléments.
-- Tests écrits : `tests/test_guide_preparation_model.py` (9 scénarios) et scénario Qt de lecture seule sans personnage.
+- Tests exécutés sur Windows : [30/30 PASS sur SHA e373f713](https://github.com/r9327/Dof-Atlas/actions/runs/40131037098) (11 validation multi-personnages, 14 modèle, 5 Qt). La couverture mémoire spécifique à 267 fiches compactes et 6 personnages est ajoutée sur ce nouveau SHA et reste à exécuter.
 - **Preuve disponible :** Windows ciblé 22/22 PASS au commit `ba5e001b` (Qt et modèle), mais les nouveaux cas sur `resource_plan`/6 personnages/pagination et le SHA courant restent à tester ; aucun benchmark RAM certifié ni certification finale.
 - **Correction réelle :** le `resource_plan` du chapitre (par ex. les besoins Incarnam Blé ×18, Goujon ×8, Relique d'Incarnam ×3) est alloué à la première carte ; le modèle lit les formes structurées `item`/`resource` et les groupes imbriqués, sans lire les actions candidates Ganymède.
+
+- **Budget mémoire distinct (préparation seulement) :** test `tracemalloc` sur 267 fiches compactes × 6 parcours, plafond 2 MiB d'allocations transitoires et 5 % de marge (2,10 MiB) ; **ce n'est pas** la mesure RSS complète Phase 8 95/250 Mo ni le benchmark Craft historique.
 - La PR #251 dépend de la fusion de #250, elle-même bloquée par l'ancien verdict FULL. Ne pas prétendre que cet ancien verdict certifie #251.
 
 ---

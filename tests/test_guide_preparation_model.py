@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import gc
 import json
+import tracemalloc
 import unittest
 import zlib
 from pathlib import Path
@@ -119,6 +121,55 @@ class GuidePreparationModelTests(unittest.TestCase):
         ]})
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row.quantity is None for row in rows))
+
+    def test_compact_267_cards_six_characters_memory_with_five_percent_margin(self):
+        """Preparation-only allocation proof; NOT the full Phase 8 app RSS gate."""
+        cards = []
+        for index in range(267):
+            stage = {
+                "id": f"route-stage-{index}",
+                "resource_plan": {"resources": [
+                    {"item": f"Potion témoin {index}", "quantity": 2},
+                    {"resource": f"Clef témoin {index}", "quantity": 1},
+                    {"name": f"Objet témoin {index}", "quantity": 3},
+                ]},
+            }
+            cards.append({
+                "manual_stage_id": stage["id"],
+                "_manual_stage_payload": zlib.compress(
+                    json.dumps(stage, ensure_ascii=False).encode("utf-8")
+                ),
+                "a_preparer": [],
+            })
+        gc.collect()
+        # This is a local memory-budget guard for preparation allocations
+        # alone, not the 95MB preload / 250MB process-tree Phase 8 metrics.
+        budget_bytes = 2 * 1024 * 1024
+        allowed_bytes = int(budget_bytes * 1.05)
+        tracemalloc.start()
+        try:
+            for character_index in range(6):
+                results = aggregate_remaining(
+                    (card, False) for card in cards
+                )
+                self.assertEqual(
+                    len(results), 801,
+                    f"6-character scenario {character_index} lost authored items",
+                )
+                del results
+            _current, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        print(
+            f"ATLAS_PREPARATION_MEMORY cards=267 characters=6 "
+            f"peak_bytes={peak} budget_bytes={budget_bytes} "
+            f"allowed_bytes={allowed_bytes} margin=5pct",
+            flush=True,
+        )
+        self.assertLessEqual(
+            peak, allowed_bytes,
+            "Preparation-only allocations exceeded 2 MiB + 5% margin",
+        )
 
     def test_global_chapter_inventory_survives_anchor_card_completion(self):
         first = {
