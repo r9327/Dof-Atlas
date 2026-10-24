@@ -282,9 +282,18 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             )
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
-            self.assertIsNotNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
-            self.assertIsNotNone(sheet_header.findChild(QToolButton, "GuideSummaryButton"))
-            self.assertIsNone(compact.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertIsNotNone(compact.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertIsNotNone(compact.findChild(QToolButton, "GuideSummaryButton"))
+            self.assertIsNotNone(compact.findChild(QToolButton, "GuidePreparationToggle"))
+            self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertFalse(hasattr(shared, "page_jump_button"))
+            self.assertEqual(shared.page_jump.value(), 1)
+            self.assertEqual(shared.guide_button.text(), "←")
+            self.assertFalse(shared.overlay_button.isEnabled())
+            self.assertEqual(
+                [shared.preparation_button.text(), shared.summary_button.text()],
+                ["Préparation", "Sommaire"],
+            )
             self.assertEqual(shared.nav_page_label.text().split(" / ")[0], "Page 1")
             self.assertFalse(shared.nav_page_label.isVisible())
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
