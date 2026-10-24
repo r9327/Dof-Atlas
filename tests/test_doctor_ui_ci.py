@@ -147,6 +147,52 @@ class DoctorUiSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(set(self.plan(path)["selected_scenarios"]), selected)
 
+    def test_changed_guide_tests_resolve_real_runtime_imports(self):
+        # These tests import app services/views. They are not unmapped merely
+        # because the reverse AST graph intentionally only contains app/tools.
+        for path in (
+            'tests/test_guide_progress_persistence.py',
+            'tests/test_guide_ultime_manual_ui_navigation.py',
+            'tests/test_lanyel_shared_manual_ui.py',
+        ):
+            with self.subTest(path=path):
+                plan = self.plan(path)
+                self.assertEqual(plan['status'], 'UI_REQUIRED', plan['uncertainty'])
+                self.assertIn('guides-success', plan['selected_scenarios'])
+                self.assertIn('guides-lanyel', plan['selected_scenarios'])
+
+        # New Guide tests in a feature PR are not necessarily on main yet.
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            view = root / 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+            view.parent.mkdir(parents=True)
+            view.write_text('class SharedGuideManualView: pass\\n'.replace('\\n', '\n'))
+            test = root / 'tests/test_guide_manual_selected_validation.py'
+            test.parent.mkdir(parents=True)
+            test.write_text('from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView\\n'.replace('\\n', '\n'))
+            plan = classify_ui(root, [test.relative_to(root).as_posix()],
+                               candidate_sha=SHA, base_sha=BASE)
+            self.assertEqual(plan['status'], 'UI_REQUIRED', plan['uncertainty'])
+            self.assertEqual(set(plan['selected_scenarios']), set(ALL_GUIDES))
+
+    def test_changed_tests_with_unknown_or_dynamic_app_imports_remain_blocked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            view = root / 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+            view.parent.mkdir(parents=True)
+            view.write_text('class SharedGuideManualView: pass\\n'.replace('\\n', '\n'))
+            test = root / 'tests/test_example.py'
+            test.parent.mkdir(parents=True)
+            for content in (
+                'from app.missing_module import Missing\\n',
+                'from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView\\n__import__("app.unknown")\\n',
+                'from PySide6.QtWidgets import QWidget\\n',
+            ):
+                test.write_text(content.replace('\\n', '\n'), encoding='utf-8')
+                plan = classify_ui(root, ['tests/test_example.py'],
+                                   candidate_sha=SHA, base_sha=BASE)
+                self.assertEqual(plan['status'], 'REVIEW_REQUIRED', plan)
+
     def test_shared_validator_changes_execute_real_success_and_both_guides(self):
         for path in (
             "tools/atlas_doctor_lib/doctor_ui_qt.py",
