@@ -49,7 +49,7 @@ class LocalValidationLogTests(unittest.TestCase):
     def test_unknown_events_and_sensitive_strings_are_discarded(self):
         log.record_validation("bad_event", token="PRIVATE_TOKEN")
         self.assertFalse((self.directory / "atlas_validation.jsonl").exists())
-        log.record_validation("network_status", reason="C:\\Users\\Private\\token.txt")
+        log.record_validation("network_status", reason="private token value")
         self.assertEqual(self.rows()[0]["reason"], "unclassified")
 
     def test_log_rotates_without_exceeding_bound(self):
