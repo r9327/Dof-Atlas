@@ -47,8 +47,20 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
     phase = (not docs_only and not tooling_only) or event == 'workflow_dispatch'
     # FULL is the canonical suite, not an instruction to replay every unrelated
     # specialist. Unknown scope, removals and policy changes retain the broad fallback.
+    # An independently covered Qt detector change still requires the canonical
+    # FULL when mixed with product code. It does not, on its own, justify
+    # running every unrelated provider, JSON and packaging specialist.
+    # Unmapped UI impact, unknown policy or non-detector trust changes retain
+    # the exhaustive fallback. Never reduce the FULL requirement itself.
+    critical = critical_changed(paths)
+    covered_qt_detector = (
+        bool(critical) and set(critical) <= QT_DETECTOR_PATHS
+        and ui_plan.get('status') == 'UI_REQUIRED'
+        and {'validator-smoke', 'achievement-detail', 'guides-success', 'guides-lanyel'}
+            <= set(ui_plan.get('selected_scenarios', ()))
+    )
     specialist_fallback = full and (event == 'workflow_dispatch'
-        or bool(critical_changed(paths)) or bool(deleted)
+        or (bool(critical) and not covered_qt_detector) or bool(deleted)
         or phase_route.get('route') not in {'SCOPED', 'FULL'}
         or ui_plan.get('status') == 'REVIEW_REQUIRED')
     decisions = {}
