@@ -1,6 +1,19 @@
 # [PLAN 02/07] Guides : Valider et progression multi-personnages
 
-**STATUT : BROUILLON DE CADRAGE — aucune implémentation. NE PAS FUSIONNER CE COMMIT SEUL.**
+**STATUT : IMPLÉMENTATION EN COURS — aucun test Qt/Windows ni certification exécuté ici. PR en Draft, ne pas fusionner.**
+
+## État réel des changements sur la branche (24/10/2026)
+
+- Bouton Valider lié aux seuls personnages canoniques présents dans le registre et explicitement sélectionnés ; sans sélection, action désactivée.
+- Lot atomique via GuideProgressService avec vérification des états attendus sous verrou interprocessus ; aucun personnage non sélectionné modifié.
+- État automatique prioritaire, annulation des coches manuelles sans retrait de la preuve automatique ; choix d'ordre bloquant traité explicitement.
+- Intersection des fiches validées pour l'équipe, affichage sans donnée distinct de zéro et état « Terminé » sans fausse fiche actuelle.
+- Rafraîchissement des boutons de validation après sélection, navigation, mutation et fin de parcours.
+- Tests de contrats et Qt ajoutés : test_guide_manual_selected_validation.py, test_guide_progress_persistence.py, test_guide_participant_service.py, ainsi que les fixtures UI existantes adaptées.
+- **NON VÉRIFIÉ :** exécution réelle des tests ciblés, Doctor Qt, persistance sous client Windows, migration GPS et impacts des évolutions récentes de main. Aucun statut PASS n'est revendiqué.
+- **BLOQUANT :** GitHub signale la PR non fusionnable (mergeable=false, état dirty). Résoudre les conflits après relecture de main, sans forcer une branche ni écraser les PR voisines.
+
+
 
 Objectif : Rendre Valider et la progression réellement corrects par personne et par équipe, sans perdre d'historique.
 
