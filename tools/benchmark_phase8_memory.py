@@ -173,20 +173,77 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
         close_handle(handle)
 
 
+def _windows_process_start_ticks(pid: int) -> int | None:
+    """Use kernel creation time to disambiguate reused Windows parent PIDs."""
+    if os.name != "nt":
+        return None
+
+    kernel32, _psapi = _windows_api_dlls()
+    open_process = kernel32.OpenProcess
+    open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    open_process.restype = wintypes.HANDLE
+    close_handle = kernel32.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+    get_times = kernel32.GetProcessTimes
+    get_times.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+    ]
+    get_times.restype = wintypes.BOOL
+
+    handle = open_process(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        created = wintypes.FILETIME()
+        exited = wintypes.FILETIME()
+        kernel_time = wintypes.FILETIME()
+        user_time = wintypes.FILETIME()
+        if not get_times(
+            handle,
+            ctypes.byref(created),
+            ctypes.byref(exited),
+            ctypes.byref(kernel_time),
+            ctypes.byref(user_time),
+        ):
+            return None
+        return (int(created.dwHighDateTime) << 32) | int(created.dwLowDateTime)
+    finally:
+        close_handle(handle)
+
+
 def _descendant_rows(root_pid: int, rows: list[ProcessRow]) -> list[ProcessRow]:
+    # Toolhelp parent PIDs are not lifetime identities: Windows can reuse a
+    # dead parent's PID for the cache warmer. Count only descendants whose
+    # creation time is no earlier than each living ancestor's creation time.
+    root_started = _windows_process_start_ticks(root_pid) if os.name == "nt" else None
+    if os.name == "nt" and root_started is None:
+        if int(root_pid) == os.getpid():
+            raise RuntimeError("Cannot verify Atlas process ancestry for RAM evidence")
+        return []  # The external warmer may have exited during the snapshot.
+
     children: dict[int, list[ProcessRow]] = {}
     for row in rows:
         children.setdefault(row.parent_pid, []).append(row)
     output: list[ProcessRow] = []
-    pending = list(children.get(int(root_pid), ()))
+    pending = [(row, root_started) for row in children.get(int(root_pid), ())]
     seen: set[int] = set()
     while pending:
-        row = pending.pop()
+        row, parent_started = pending.pop()
         if row.pid in seen:
+            continue
+        started = _windows_process_start_ticks(row.pid) if os.name == "nt" else None
+        if os.name == "nt" and (started is None or started < parent_started):
+            # A stale parent PID must not attribute dwm/winlogon/csrss RSS
+            # to Atlas. Inaccessible/vanished children cannot be authenticated.
             continue
         seen.add(row.pid)
         output.append(row)
-        pending.extend(children.get(row.pid, ()))
+        pending.extend((child, started) for child in children.get(row.pid, ()))
     return output
 
 
