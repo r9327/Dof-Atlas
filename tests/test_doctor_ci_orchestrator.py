@@ -33,6 +33,23 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(p['workflows']['phase8-preload-benchmark']['selected'])
         self.assertTrue(p['workflows']['phase8-memory-benchmark']['selected'])
 
+    def test_high_smart_canary_keeps_phase_and_specialists_but_not_full(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE
+        selection = self.select([HIGH_SOURCE], route={'route': 'SCOPED'})
+        self.assertTrue(selection['phase'])
+        self.assertFalse(selection['full'])
+        self.assertFalse(selection['tooling_only'])
+        self.assertFalse(selection['specialist_fallback'])
+        self.assertTrue(selection['workflows']['phase8_memory_benchmark']['selected'] if
+                        'phase8_memory_benchmark' in selection['workflows']
+                        else selection['workflows']['phase8-memory-benchmark']['selected'])
+        for kwargs in ({'route': {'route': 'FULL'}},
+                       {'deleted': [HIGH_SOURCE]},
+                       {'ui': {'status': 'REVIEW_REQUIRED'}}):
+            with self.subTest(kwargs=kwargs):
+                self.assertTrue(self.select([HIGH_SOURCE], **kwargs)['full'])
+        self.assertTrue(self.select([HIGH_SOURCE, 'app/core/json_store.py'])['full'])
+
     def test_unknown_or_deleted_changes_fall_back_to_real_full(self):
         for kwargs in ({'route': {}}, {'route': {'route': 'INVALID'}}, {'deleted': ['app/old.py']},
                        {'ui': {'status': 'REVIEW_REQUIRED'}}):
