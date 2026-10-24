@@ -96,6 +96,15 @@ class ReplacementReadinessTests(unittest.TestCase):
         self.assertEqual(report["replacement_activated_count"], 0)
         self.assertFalse(report["replacement_activated"])
         self.assertEqual(report["source_trusted_manual_staged_count"], 20)
+        matrix = report["activation_matrix"]
+        self.assertEqual(len(matrix), 22)
+        self.assertEqual({row["atlas_guide_id"] for row in matrix},
+                         {row["atlas_guide_id"] for row in report["guide_reports"]})
+        self.assertEqual(sum(row["route_staged"] for row in matrix), 20)
+        self.assertEqual(sum(row["route_active"] for row in matrix), 0)
+        self.assertTrue(all(row["legacy_progress_preserved"] for row in matrix))
+        self.assertTrue(all(row["source_guide_id"] is None for row in matrix
+                            if row["atlas_guide_id"] in {"dofoozbz", "dokille"}))
         self.assertEqual(report["source_trusted_manual_guides"], 20)
         self.assertEqual(report["certified_canonical_guides"], 0)
         staged = [g for g in report["guide_reports"] if g["replacement_staged"]]
