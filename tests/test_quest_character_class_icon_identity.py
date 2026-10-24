@@ -84,5 +84,47 @@ class QuestCharacterClassIdentityTests(unittest.TestCase):
                 )
 
 
+    def test_modern_client_index_cannot_claim_another_verified_character(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text("{}", encoding="utf-8")
+            bindings.write_text(
+                json.dumps({"characters": {
+                    "1": {"name": "Alpha", "class_key": "feca",
+                          "source": "verified_network_identity"},
+                    "2": {"name": "Beta", "class_key": "cra",
+                          "source": "verified_network_identity"},
+                }}), encoding="utf-8",
+            )
+            entry = {"character_name": "Alpha", "pid": 55, "slot": 1,
+                     "class_key": "feca", "character_key": "character:1"}
+
+            def connected():
+                clients.write_text(
+                    json.dumps({"clients": [entry]}), encoding="utf-8"
+                )
+                return load_quest_characters(
+                    profile, clients, binding_path=bindings, connected_only=True
+                )
+
+            self.assertEqual([row.key for row in connected()], ["character:1"])
+            entry["character_key"] = "character:2"
+            self.assertEqual(connected(), [])
+            entry["character_key"] = ""
+            self.assertEqual(connected(), [])
+            entry["character_key"] = "character:1"
+            entry["class_key"] = "cra"
+            self.assertEqual(connected(), [])
+            entry["class_key"] = "feca"
+            entry["character_name"] = "Beta"
+            self.assertEqual(connected(), [])
+            entry["character_name"] = "Alpha"
+            self.assertEqual([row.key for row in connected()], ["character:1"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
