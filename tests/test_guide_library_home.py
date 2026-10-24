@@ -1,4 +1,4 @@
-"""Guide library and featured-card contracts for the approved 2026-10-23 UI."""
+"""Guide library and featured-card contracts for the compact 2026-10-24 UI."""
 from __future__ import annotations
 
 import os
@@ -11,7 +11,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
+from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -75,7 +75,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
         visible_ids = {entry.source_id for entry in selected}
         self.assertTrue({2247, 2285, 2290}.isdisjoint(visible_ids))
 
-    def test_top_four_cards_remain_visible_with_library_search(self):
+    def test_two_featured_cards_and_stable_alignment_tree(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:
             with patch(
@@ -96,27 +96,32 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 try:
                     self.assertEqual(set(view.featured_cards), {
                         "guide_complet", "dofus_sylvestre",
-                        "alignement_bonta", "alignement_brakmar",
                     })
                     self.assertEqual(view.optimized_pair.pair_layout.direction(),
                                      QBoxLayout.LeftToRight)
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
-                    self.assertTrue(view.featured_cards["alignement_bonta"].isVisibleTo(view))
+                    self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
+                    self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
                     self.assertEqual(view.home_dofus_list.viewMode(), QListView.IconMode)
                     requested = []
                     view.guideRequested.connect(requested.append)
                     view.featured_cards["guide_complet"].open_button.click()
                     self.assertEqual(requested, ["guide_complet"])
-                    view.library_categories.setCurrentRow(1)
+                    alignments = view._category_nodes["alignements"]
+                    requested.clear()
+                    view.library_categories.setCurrentItem(alignments.child(0))
+                    self.assertEqual(requested, ["alignement_bonta"])
+                    view.library_categories.setCurrentItem(view._category_nodes["dimensions"])
                     self.assertEqual(view.library_category, "dimensions")
                     self.assertGreater(view.home_metadata_list.count(), 0)
                     self.assertTrue(all(
                         not (view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
                         for i in range(view.home_metadata_list.count())
                     ))
+                    alignments.setExpanded(False)
                     view.set_search_text("no-matching-library-entry")
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
-                    self.assertTrue(view.featured_cards["alignement_bonta"].isVisibleTo(view))
+                    self.assertFalse(alignments.isExpanded())
                     self.assertFalse(view.home_dofus_list.isVisible())
                     view.resize(610, 780)
                     self.app.processEvents()
@@ -127,11 +132,12 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.deleteLater()
                     self.app.processEvents()
 
-    def test_catalog_owns_the_only_visible_guide_search(self):
-        # Production deliberately identifies lazy widgets without importing
-        # their heavy concrete classes during startup.
-        catalog = type("GuideCatalogView", (), {})()
-        self.assertTrue(_has_embedded_search(catalog))
+    def test_global_encyclopedia_search_is_absent(self):
+        # The common header has no QLineEdit; Quêtes/Sommaire search is separate.
+        import inspect
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        self.assertNotIn("EncyclopediaSearch", inspect.getsource(EncyclopediaPage))
+        self.assertTrue(_has_embedded_search(type("GuideCatalogView", (), {})()))
 
     def test_progress_bar_geometry_never_escapes_later_grid_columns(self):
         second_column = QRect(280, 96, 280, 96)
