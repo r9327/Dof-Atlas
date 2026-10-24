@@ -1423,12 +1423,23 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         if selected_filter == "Tout":
-            for category in ("Métiers", "Potions", "Objets"):
-                matching = [
-                    need
-                    for need in self._preparation_needs
-                    if need.category == category and not self._is_soul_stone(need.name)
-                ]
+            # "Tout" must expose the REAL needs, including soul stones. Summary
+            # counters alone concealed what a player actually had to prepare.
+            groups = (
+                ("Métiers", lambda need: need.category == "Métiers"),
+                ("Potions", lambda need: need.category == "Potions"),
+                ("Pierres d'âme", lambda need: self._is_soul_stone(need.name)),
+                ("Objets", lambda need: need.category == "Objets"
+                 and not self._is_soul_stone(need.name)),
+            )
+            if not self._preparation_needs:
+                label = QLabel("Aucun besoin confirmé sur le parcours restant.")
+                label.setObjectName("GuidePreparationEmpty")
+                self.preparation_rows_layout.addWidget(label)
+            for category, predicate in groups:
+                matching = [need for need in self._preparation_needs if predicate(need)]
+                if not matching:
+                    continue
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
                 row = QHBoxLayout(summary)
@@ -1438,6 +1449,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
                 self.preparation_rows_layout.addWidget(summary)
+                for need in matching:
+                    self.preparation_rows_layout.addWidget(self._preparation_row(need))
             self.preparation_rows_layout.addStretch(1)
             return
 
