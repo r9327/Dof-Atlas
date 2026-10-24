@@ -189,6 +189,35 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "blockers": sorted(set(blockers)),
         })
 
+    # One auditable per-guide activation matrix derived from the verified
+    # records above. It never changes the manifest or enables a route.
+    activation_matrix = []
+    for record in records:
+        sources = record["source_guides"]
+        unique_source = sources[0] if len(sources) == 1 else None
+        activation_matrix.append({
+            "atlas_guide_id": record["atlas_guide_id"],
+            "source_guide_id": (
+                unique_source["ganymede_guide_id"] if unique_source else None
+            ),
+            "legacy_steps": record["legacy_step_count"],
+            "source_steps_expected": (
+                unique_source["expected_source_step_count"] if unique_source else None
+            ),
+            "source_steps_observed": (
+                unique_source["observed_source_step_count"] if unique_source else None
+            ),
+            "source_snapshot_verified": (
+                unique_source["source_snapshot_verified"] if unique_source else False
+            ),
+            "route_staged": record["replacement_staged"],
+            "route_active": record["replacement_active"],
+            "manual_only": record["source_trusted_manual_only"],
+            "canonical_objectives_verified": record["canonical_objectives_verified"],
+            "legacy_progress_preserved": record["legacy_progress_preserved"],
+            "blockers": record["blockers"],
+        })
+
     mapped = sum(bool(record["source_guides"]) for record in records)
     ready = sum(record["ready_to_replace"] for record in records)
     activated = sum(record["replacement_active"] for record in records)
@@ -227,6 +256,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "characters[character_key].manual_steps[atlas_guide_id]"
         ),
         "guide_reports": records,
+        "activation_matrix": activation_matrix,
         "issues": issues,
     }
 
