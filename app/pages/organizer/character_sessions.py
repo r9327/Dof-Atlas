@@ -38,6 +38,7 @@ from app.storage import (
     write_text_atomic,
 )
 from app.windows_embed import EVENT_SYSTEM_FOREGROUND, scan_unity_sessions
+from app.validation_log import record_validation
 from .common import (
     RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
@@ -567,12 +568,17 @@ class CharacterSessionsMixin:
             session = {"nom": name, "hwnd": 0}
             token = self.primary_token_for_session(name, 0, session)
         if not token:
+            record_validation("organizer_favorite", selected=False, rejected=True,
+                              verified=False, detected=self.detected_session_count())
             self.status_callback(
                 f"Fenêtre principale non modifiée : identité ambiguë pour {name}."
             )
             return
         selected = self.session_is_primary(name, hwnd, current, session)
         self.profiles[KEY_PRIMARY_WINDOW] = "" if selected else token
+        record_validation("organizer_favorite", selected=not selected, rejected=False,
+                          verified=token.startswith("character:"),
+                          detected=self.detected_session_count())
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.render_sessions()
@@ -708,6 +714,12 @@ class CharacterSessionsMixin:
             )
         write_json(self._client_index_json(), payload)
         write_text_atomic(self._client_index_ini(), "\n".join(lines) + "\n")
+        verified = sum(bool(client["character_key"]) for client in clients)
+        record_validation("organizer_sessions", detected=len(clients),
+                          verified=verified, unverified=len(clients) - verified,
+                          primary=any(client["primary"] for client in clients),
+                          classes_verified=sum(bool(client["character_key"] and client["class_key"])
+                                               for client in clients))
 
     def resolve_client_binding(
         self,
