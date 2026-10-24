@@ -22,6 +22,7 @@ from app.constants import (
     RAW_QUEST_DATA_DIR,
     ROOT_DIR,
 )
+from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
@@ -1419,7 +1420,26 @@ def load_quest_characters(
         client_pid = safe_int(client.get("pid")) or 0
         organizer_slot = safe_int(client.get("slot")) or safe_int(client.get("index")) or 0
         candidate_ids: tuple[int, ...]
-        if is_generic_dofus_client_name(name):
+        if "character_key" in client:
+            # New Organizer exports an identity only after matching verified
+            # network provenance, name and class. Never recover an explicitly
+            # unresolved modern row by guessing from its PID or display name.
+            candidate_id = character_id_from_key(client.get("character_key"))
+            row = identities.get(candidate_id) if candidate_id is not None else None
+            if (
+                row is None
+                or row.get("source") != "verified_network_identity"
+                or normalize_text(row.get("name")) != normalize_text(name)
+            ):
+                continue
+            expected_class = normalize_text(row.get("class_key"))
+            current_class = normalize_text(client.get("class_key"))
+            if expected_class and current_class and expected_class != current_class:
+                continue
+            candidate_ids = (candidate_id,)
+        elif is_generic_dofus_client_name(name):
+            # Read-only compatibility with older indexes. Generic window
+            # titles must never authorize a new progression identity.
             candidate_ids = tuple(dict.fromkeys(ids_by_pid.get(client_pid, ())))
         else:
             candidate_ids = tuple(dict.fromkeys(ids_by_name.get(normalize_text(name), ())))
