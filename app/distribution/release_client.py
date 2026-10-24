@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import json
 import hashlib
+import errno
 import os
+import socket
 import re
 import sys
 import time
@@ -76,7 +78,7 @@ class _StrictRedirect(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_StrictRedirect())
 
 
-def _open(url: str, headers: dict[str, str] | None = None):
+def _open(url: str, headers: dict[str, str] | None = None, *, timeout: float = 20):
     trusted_url = _safe_url(url)
     destination = urllib.parse.urlsplit(trusted_url)
     if destination.hostname == "api.github.com":
@@ -92,12 +94,12 @@ def _open(url: str, headers: dict[str, str] | None = None):
     if headers:
         request_headers.update(headers)
     request = urllib.request.Request(trusted_url, headers=request_headers)
-    return _OPENER.open(request, timeout=20)
+    return _OPENER.open(request, timeout=timeout)
 
 
-def _read_limited(url: str, limit: int) -> bytes:
+def _read_limited(url: str, limit: int, *, timeout: float = 20) -> bytes:
     try:
-        with _open(url) as response:
+        with _open(url, timeout=timeout) as response:
             data = response.read(limit + 1)
     except (OSError, urllib.error.URLError) as exc:
         endpoint = urllib.parse.urlsplit(url)
@@ -106,6 +108,27 @@ def _read_limited(url: str, limit: int) -> bytes:
     if len(data) > limit:
         raise UpdateError("Metadata exceeds allowed size")
     return data
+
+
+def _is_offline_failure(exc: BaseException) -> bool:
+    """Recognize network loss, not HTTP errors such as API rate limiting."""
+    seen: set[int] = set()
+    while isinstance(exc, BaseException) and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, urllib.error.HTTPError):
+            return False
+        if isinstance(exc, (TimeoutError, socket.gaierror, ConnectionError)):
+            return True
+        if isinstance(exc, OSError) and exc.errno in {
+            errno.ENETDOWN, errno.ENETUNREACH, errno.EHOSTUNREACH,
+            errno.ECONNREFUSED, errno.ECONNRESET,
+        }:
+            return True
+        if isinstance(exc, urllib.error.URLError) and isinstance(exc.reason, BaseException):
+            exc = exc.reason
+        else:
+            exc = exc.__cause__ or exc.__context__
+    return False
 
 
 def _latest_release_api() -> RemoteRelease:
@@ -314,15 +337,20 @@ def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease 
     if (isinstance(installed_source_sha, str)
             and re.fullmatch(r"[a-f0-9]{40}", installed_source_sha)):
         try:
-            doc = json.loads(_read_limited(API_URL, 1024 * 1024))
+            doc = json.loads(_read_limited(API_URL, 1024 * 1024, timeout=5))
             if (isinstance(doc, dict)
                     and doc.get("draft") is False
                     and doc.get("prerelease") is False
                     and doc.get("tag_name") == f"sha-{installed_source_sha[:12]}"
                     and _current_launcher_matches_asset(doc)):
                 return None
-        except (ValueError, TypeError, UpdateError, OSError, urllib.error.URLError):
-            # Invalid/unreachable metadata must never authorize an update skip.
+        except (ValueError, TypeError, UpdateError, OSError, urllib.error.URLError) as exc:
+            # An installed, already-verified version must not wait on two more
+            # 20-second GitHub fallbacks after a real network outage.
+            if _is_offline_failure(exc):
+                raise UpdateError("GitHub inaccessible — lancement local") from exc
+            # HTTP 403/429 or malformed metadata may still be served by the
+            # stable-channel/HTML fallbacks (do not treat them as offline).
             pass
     try:
         return _latest_release_api()
