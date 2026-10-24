@@ -1,0 +1,21 @@
+name: Guides / Final Phase 8 RAM Proof
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/guides-final-phase8-memory.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One candidate-specific full RAM benchmark, deliberately not on every code push.
+# The called workflow enforces preload <=95 MB, peak tree <=231 MB (220 +5%),
+# and retained lifecycle budgets on the exact PR head on Windows.
+jobs:
+  phase8_memory:
+    name: Phase 8 / Full Windows RSS for Guides
+    uses: ./.github/workflows/phase8-memory-benchmark.yml
+    permissions:
+      contents: read
