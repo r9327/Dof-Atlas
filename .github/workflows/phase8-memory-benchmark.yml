@@ -211,10 +211,13 @@ jobs:
           missing = [name for name in required if name not in by_label]
           if missing:
               raise SystemExit("memory benchmark missing stages: " + ", ".join(missing))
+          from tools.phase8_memory_tolerance import (
+              classify, hard_limit, require_peak_tree_rss, require_memory_observation,
+          )
           for label in required:
               row = by_label[label]
-              if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
-                  raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
+              for kind in ("process_rss_mb", "tree_rss_mb"):
+                  require_memory_observation(row.get(kind), label=f"{label}.{kind}", positive=True)
 
           # Phase 8 policy: the former 100 MB Home target is observational,
           # not a merge gate. Keep the actual RSS values and emit annotations
@@ -222,7 +225,6 @@ jobs:
           # Memory targets stay visible; all hard memory measurements admit
           # at most +5% observation tolerance, with an explicit warning.
           # Proof integrity and missing or invalid observations remain strict.
-          from tools.phase8_memory_tolerance import classify, hard_limit, require_peak_tree_rss
           advisory_home_budgets_mb = {
               "after_quests_home": 100.0,
               "after_achievements_home": 100.0,
@@ -237,7 +239,8 @@ jobs:
               "repeat_2_achievements_home": 100.0,
               "repeat_2_guide_home": 100.0,
           }
-          preload_mb = float(by_label["after_preload"]["tree_rss_mb"])
+          preload_mb = require_memory_observation(
+              by_label["after_preload"]["tree_rss_mb"], label="after_preload.tree_rss_mb", positive=True)
           preload_target_mb = 95.0
           preload_limit_mb = hard_limit(preload_target_mb)
           preload_status = classify(preload_mb, preload_target_mb)
@@ -256,7 +259,7 @@ jobs:
 
           home_advisories = []
           for label, budget in advisory_home_budgets_mb.items():
-              measured = float(by_label[label]["tree_rss_mb"])
+              measured = require_memory_observation(by_label[label]["tree_rss_mb"], label=label, positive=True)
               if measured >= budget:
                   warning = (
                       f"{label}: {measured:.2f} MB >= {budget:.2f} MB "
@@ -294,9 +297,7 @@ jobs:
           for metric, budget in retained_budgets_mb.items():
               # The original limit is still the target. Do not silently label
               # tolerated overshoot as PASS or widen the tolerance beyond 5%.
-              if metric not in metrics or metrics[metric] is None:
-                  raise SystemExit(f"missing retained memory evidence: {metric}")
-              measured = float(metrics[metric])
+              measured = require_memory_observation(metrics.get(metric), label=metric)
               limit = hard_limit(budget)
               state = classify(measured, budget)
               if state == "FAIL":
