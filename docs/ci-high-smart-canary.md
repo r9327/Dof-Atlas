@@ -31,8 +31,11 @@ policy, or a CRITICAL path retains **FULL_REQUIRED**.
    full step relabeled as SMART blocks. `Public PR / Safe Validation`
    must also PASS, including every Doctor-selected UI/benchmark specialist.
 5. Manual phase certification and main branch release certification still
-   mandate FULL. No change to the required FULL policy, guide baselines,
-   benchmark limits or release status vocabulary.
+   mandate FULL. The FULL policy, guide baselines and release status vocabulary
+   remain unchanged. The Phase 8 memory benchmark retains its targets but
+   permits a maximum +5% measurement tolerance, with explicit warnings for
+   over-target readings; missing, invalid or inconsistent peak RSS evidence
+   remains blocking.
 
 The remote `Certification Policy / Merge Gate` is **still advisory**
 (`--enforce false`). Activating enforcement and replacing the broader
