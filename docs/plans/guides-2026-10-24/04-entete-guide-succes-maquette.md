@@ -50,6 +50,23 @@
 - [ ] Tester les états panneaux ouverts, longueurs de titres, texte zoomé, Windows DPI et largeur actuelle de l'application ; aucune action cliquable perdue ni fuite de taille.
 - [ ] Ne pas substituer une image générée, une maquette approximative ou un faux QWidget à la **capture du runtime Qt réel** ; les vérifications visuelles ne s'appliquent qu'à l'en-tête, jamais aux fiches sous celui-ci.
 
+## Géométrie, interactions et référence de capture (préparation)
+
+**Reference fonctionnelle à ne pas inventer :** le screenshot original est dans la conversation utilisateur, **pas** dans le dépôt. Conserver ses proportions et demander une preuve de comparaison au moment du développement, mais ne pas prétendre ici connaître des coordonnées exactes ni produire une fausse capture.
+
+**Architecture réelle :** `SharedGuideManualView._build_compact_header` (`shared_manual_guide_view.py`) contient le titre, le donut, les barres et Fiche/Actuelle ; `_build_preparation_panel` et `_build_sheet_header` tiennent actuellement les vrais panneaux. Déplacer visuellement leurs déclencheurs dans les trois lignes du nouvel en-tête tout en préservant les conteneurs, propriétés de visibilité et signaux Qt — **jamais** remplacer les panneaux par des `QComboBox` ou `QMenu` factices.
+
+**Scénarios de capture/acceptation :**
+- [ ] H1 : ouverture Guide Succès à la vraie largeur par défaut => un anneau global à gauche, 3 barres Route/Préparation/Succès sur une même ligne, 3 contrôles Préparation/Sommaire/Mes personnages sur la ligne suivante.
+- [ ] H2 : fenêtre agrandie, réduite, titres longs, Windows 100/125/150 % DPI => aucun chevauchement/clipping, bouton Personnages à droite, taille de l'anneau proportionnée, en-tête réellement moins haut qu'avant.
+- [ ] H3 : Fiche X change immédiatement la fiche sans bouton Aller ; mise à jour du sélecteur lors de Précédent/Suivant et navigation Sommaire, sans récursion des signaux Qt.
+- [ ] H4 : Sommaire/Préparation/Personnages s'ouvrent et **restent ouverts pendant navigation** jusqu'à fermeture volontaire ; vérifier les focus et tabulations.
+- [ ] H5 : barres et cercle affichent des données calculées réelles, pas de pourcentage décoratif ; état sans personnage et valeurs indéterminées lisibles.
+- [ ] H6 : bouton Guides legacy retiré, mais retour vers catalogue réellement accessible depuis le contexte équivalent ; `Actuelle` ne doit jamais devenir un faux bouton « Accueil ».
+- [ ] H7 : Overlay est explicitement désactivé dans le runtime présent ; son nouvel emplacement doit être fidèle, mais **aucune activation mensongère** sans moteur réellement connecté. Démontrer état accessible et explication si indisponible.
+
+**Contrôle UI :** trois captures utiles pour l'ensemble du chantier, dont UNE de la page Guide Succès ; pour PR04 comparer exclusivement l'en-tête, via rectangles mesurés, état des clics réels et valeur avant/après de la hauteur Qt. Tester Guide Succès et Sylvestre sur le composant partagé.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
