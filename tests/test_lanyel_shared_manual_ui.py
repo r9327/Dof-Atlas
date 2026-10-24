@@ -258,6 +258,24 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_preparation_without_selected_characters_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            shared.participant_service.save_selected_keys([])
+            shared._load_preparation_needs()
+            shared.preparation_button.setChecked(True)
+            self.app.processEvents()
+            self.assertEqual(shared._preparation_needs, ())
+            self.assertFalse(shared.preparation_panel.findChildren(QToolButton, "GuidePreparationReady"))
+            description = shared.preparation_panel.findChild(QLabel, "GuidePreparationEmpty")
+            self.assertIsNotNone(description)
+            self.assertIn("Aperçu des préparatifs", description.text())
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
