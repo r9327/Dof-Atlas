@@ -9,9 +9,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QComboBox,
     QFrame,
     QLabel,
     QSizePolicy,
+    QPushButton,
     QToolButton,
 )
 
@@ -199,6 +201,78 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+
+    def test_sheet_selector_is_immediate_and_controls_share_compact_rows(self) -> None:
+        _service, view = self._view()
+        try:
+            selector = view.findChild(QComboBox, "GuideCompactPageJump")
+            self.assertIsNotNone(selector)
+            self.assertEqual(selector.count(), 2)
+            self.assertTrue(view.guide_button.isHidden())
+            self.assertEqual(view.overlay_button.width(), 26)
+            self.assertEqual(view.settings_button.width(), 26)
+            self.assertEqual(view.route_bar.width(), 150)
+            self.assertIsNone(view.findChild(QPushButton, "GuideCompactJumpButton"))
+            self.assertIs(view.guide_controls.itemAt(0).widget(), view.preparation_button)
+            self.assertIs(view.guide_controls.itemAt(1).widget(), view.participants_button)
+            self.assertIs(view.guide_controls.itemAt(2).widget(), view.summary_button)
+            selector.setCurrentIndex(1)
+            self.assertEqual(view.view_index, 1)
+            self.assertEqual(view.sheet_title_label.text(), "Deuxième fiche")
+            view.navigate_relative(-1)
+            self.assertEqual(selector.currentIndex(), 0)
+        finally:
+            view.close()
+
+    def test_preparation_is_visible_as_preview_without_network_identities(self) -> None:
+        service = _FakeManualUiService()
+        service.cards[0]["a_preparer"] = [
+            {"item_id": 10, "name": "Potion de test", "quantity": 3},
+        ]
+        participants = _FakeParticipantService()
+        participants.selected = []
+        view = SharedGuideManualView(
+            service, character_key="", participant_service=participants
+        )
+        try:
+            view.preparation_button.click()
+            labels = [label.text() for label in view.findChildren(QLabel, "GuidePreparationRowLabel")]
+            self.assertTrue(any("Potion de test" in text for text in labels))
+            self.assertFalse(view.findChild(QToolButton, "GuidePreparationReady").isEnabled())
+            self.assertFalse(view.findChild(QPushButton, "GuideManualPageCheck").isEnabled())
+            self.assertEqual(view.participants_button.text(), "0")
+        finally:
+            view.close()
+
+    def test_manual_validation_is_scoped_to_selected_character_keys(self) -> None:
+        service = _FakeManualUiService()
+        states: dict[tuple[str, int], bool] = {}
+        service.page_checked = lambda key, card, index: states.get((key, index), False)
+        service.set_page_checked = lambda key, card, index, checked: states.__setitem__(
+            (key, index), bool(checked)
+        )
+        participants = _FakeParticipantService()
+        participants.selected = ["character:1", "character:2"]
+        view = SharedGuideManualView(
+            service, character_key="character:1", participant_service=participants
+        )
+        try:
+            view.findChild(QPushButton, "GuideManualPageCheck").click()
+            self.assertTrue(states[("character:1", 0)])
+            self.assertTrue(states[("character:2", 0)])
+            # Deselect one participant. The next completion must not affect them.
+            participants.selected = ["character:1"]
+            view._refresh_participants_panel()
+            view.navigate_relative(1)
+            view.findChild(QPushButton, "GuideManualPageCheck").click()
+            self.assertTrue(states[("character:1", 1)])
+            self.assertNotIn(("character:2", 1), states)
+            # Reopen the earlier sheet from persisted state, not a UI-only flag.
+            view._show_index(0)
+            self.assertTrue(view.findChild(QPushButton, "GuideManualPageCheck").isChecked())
+        finally:
+            view.close()
+
     def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
         service, view = self._view()
         try:
@@ -227,7 +301,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "Guides")
+            self.assertTrue(view.guide_button.isHidden())
+            self.assertIsNone(view.findChild(QPushButton, "GuideCompactJumpButton"))
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
             view.close()
@@ -261,7 +336,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             travel_callback=lambda command, keys: calls.append((command, keys)),
         )
         try:
-            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.participants_button.text(), "1")
             self.assertFalse(view.participants_panel.isVisible())
             view.participants_button.click()
             QApplication.processEvents()
