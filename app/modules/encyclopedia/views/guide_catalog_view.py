@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QListView, QListWidget,
+    QFrame, QLabel, QListView, QListWidget,
     QListWidgetItem, QScrollArea, QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
@@ -97,8 +97,7 @@ class GuideCatalogView(QWidget):
             )
             return label
 
-        # Main focus: two genuinely large optimized cards and two alignments.
-        # These four cards remain visible even while the library is searched.
+        # Exactly two highlighted guides; alignments remain in the browsable library.
         self.featured_cards = {
             guide_id: FeaturedGuideCard(guide_id, title, self.select_guide, self)
             for guide_id, title in FEATURED
@@ -109,24 +108,6 @@ class GuideCatalogView(QWidget):
              self.featured_cards["dofus_sylvestre"]), self
         )
         root.addWidget(self.optimized_pair)
-        root.addWidget(heading("ALIGNEMENTS"))
-        self.alignments_pair = FeaturedPair(
-            (self.featured_cards["alignement_bonta"],
-             self.featured_cards["alignement_brakmar"]), self
-        )
-        root.addWidget(self.alignments_pair)
-
-        search_row = QHBoxLayout()
-        search_row.addWidget(heading("EXPLORER LES GUIDES"))
-        search_row.addStretch(1)
-        self.library_search = QLineEdit(self)
-        self.library_search.setObjectName("GuideLibrarySearch")
-        self.library_search.setPlaceholderText("Rechercher un guide…")
-        self.library_search.setClearButtonEnabled(True)
-        self.library_search.setMaximumWidth(270)
-        self.library_search.textChanged.connect(self.set_search_text)
-        search_row.addWidget(self.library_search)
-        root.addLayout(search_row)
 
         # Preserve the legacy model roles for integrations and external progress.
         self.result_model = GuideListModel(self)
@@ -156,7 +137,9 @@ class GuideCatalogView(QWidget):
             item = QListWidgetItem(text)
             item.setData(Qt.UserRole, category_key)
             self.library_categories.addItem(item)
-        self.library_categories.setCurrentRow(0)
+        self.library_categories.setCurrentRow(next(
+            index for index, (key, _label) in enumerate(CATEGORIES) if key == "dofus"
+        ))
         self.library_categories.currentRowChanged.connect(self._on_category_changed)
 
         self.library_right = QWidget(self)
@@ -166,14 +149,8 @@ class GuideCatalogView(QWidget):
         self.library_results_title = heading("DOFUS")
         result_layout.addWidget(self.library_results_title)
 
-        self.library_filter = QComboBox(self)
-        self.library_filter.setObjectName("GuideLibraryProgressFilter")
-        self.library_filter.addItems(("Tous", "En cours", "Terminés"))
-        self.library_filter.currentIndexChanged.connect(lambda _idx: self.refresh_home())
-        result_layout.addWidget(self.library_filter)
-
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Parcours Ganymède référencés · non jouables")
+        self.metadata_title = QLabel("À découvrir prochainement")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
@@ -181,7 +158,7 @@ class GuideCatalogView(QWidget):
         self.home_metadata_list.setAlternatingRowColors(True)
         result_layout.addWidget(self.home_metadata_list, 1)
 
-        self.home_empty = QLabel("Aucun guide ne correspond à la recherche.")
+        self.home_empty = QLabel("Aucun parcours disponible dans cette catégorie.")
         self.home_empty.setObjectName("GuidesHomeEmptyText")
         self.home_empty.setAlignment(Qt.AlignCenter)
         self.home_empty.setVisible(False)
@@ -262,14 +239,11 @@ class GuideCatalogView(QWidget):
         return True
 
     def set_search_text(self, text: str) -> None:
+        """Retain the programmatic navigation contract without a search widget."""
         text = str(text or "")
         if text == self.search_text:
             return
         self.search_text = text
-        if self.library_search.text() != text:
-            self.library_search.blockSignals(True)
-            self.library_search.setText(text)
-            self.library_search.blockSignals(False)
         if self._runtime_ready:
             self.refresh_home()
 
@@ -370,83 +344,75 @@ class GuideCatalogView(QWidget):
     def refresh_home(self) -> None:
         if not self._runtime_ready:
             return
-        # Searching the library never hides the four prioritized guides.
         matched = list(self.provider.search(self.search_text))
-        featured_ids = {id_ for id_, _name in FEATURED}
+        featured_ids = {guide_id for guide_id, _title in FEATURED}
         catalog_by_id = {str(guide.id): guide for guide in self.guides}
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
-        shown_dofus = (
-            [guide for guide in matched
-             if guide.category == "dofus" and guide.id not in featured_ids]
-            if self.library_category == "dofus" else []
-        )
-        # Limit progress IO to the four highlighted cards and the active grid.
+        category = self.library_category
+        if category == "optimized":
+            shown_guides = [
+                guide for guide in matched
+                if guide.category == "aventure" and guide.id not in featured_ids
+            ]
+        else:
+            shown_guides = [
+                guide for guide in matched
+                if guide.category == category and guide.id not in featured_ids
+            ]
+
+        # Read progress only for rendered cards; no eager per-guide widget creation.
         self.visible_guides = list({
             str(guide.id): guide for guide in
             [*(catalog_by_id[id_] for id_ in featured_ids if id_ in catalog_by_id),
-             *shown_dofus]
+             *shown_guides]
         }.values())
         progress = self._progress_snapshot()
         self.result_model.set_progress(progress)
-        for guide_id, _name in FEATURED:
+        for guide_id, _title in FEATURED:
             self.featured_cards[guide_id].set_guide(
-                catalog_by_id.get(guide_id),
-                progress.get(guide_id, (0, 0, "")),
+                catalog_by_id.get(guide_id), progress.get(guide_id, (0, 0, ""))
             )
 
-        chosen = self.library_filter.currentText()
-        if chosen == "En cours":
-            shown_dofus = [
-                guide for guide in shown_dofus
-                if 0 < progress.get(guide.id, (0, 0, ""))[0]
-                < progress.get(guide.id, (0, 0, ""))[1]
-            ]
-        elif chosen == "Terminés":
-            shown_dofus = [
-                guide for guide in shown_dofus
-                if progress.get(guide.id, (0, 0, ""))[1] > 0
-                and progress.get(guide.id, (0, 0, ""))[0]
-                >= progress.get(guide.id, (0, 0, ""))[1]
-            ]
-        self.home_dofus_model.set_home_column(shown_dofus, "right")
+        self.home_dofus_model.set_home_column(shown_guides, "catalog")
         self.home_dofus_model.set_progress(progress)
+        self.library_results_title.setText(dict(CATEGORIES).get(category, "Guides").upper())
+        self.home_dofus_list.setVisible(bool(shown_guides))
 
-        category_label = dict(CATEGORIES).get(self.library_category, "Guides")
-        self.library_results_title.setText(category_label.upper())
-        self.library_filter.setVisible(self.library_category == "dofus")
-        self.home_dofus_list.setVisible(bool(self.home_dofus_model.guides))
-
-        # Metadata-only items must be disabled, never passed to select_guide().
+        # Source-only Ganymède entries remain informative and non-interactive.
         entries = displayable_listings(
-            self.ganymede_listings, set(catalog_by_id),
-            self.library_category, self.search_text,
+            self.ganymede_listings, set(catalog_by_id), category, self.search_text,
         )
-        if chosen != "Tous" and self.library_category == "dofus":
-            # Unknown progress is never advertised as "in progress" or "done".
-            entries = []
         self.home_metadata_list.clear()
         for entry in entries:
-            level = f" · niveau {entry.level}" if entry.level is not None else ""
-            steps = f" · {entry.step_count} étapes référencées" if entry.step_count is not None else ""
-            item = QListWidgetItem(
-                f"{entry.title}{level}{steps} · en préparation"
-            )
+            item = QListWidgetItem(f"{entry.title} · bientôt disponible")
             item.setFlags(Qt.NoItemFlags)
-            item.setToolTip(
-                f"Source : {entry.source_url}\n"
-                "Métadonnées uniquement : aucune route jouable certifiée."
-            )
+            item.setToolTip("Parcours non disponible actuellement.")
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
 
         has_metadata = bool(entries)
         self.metadata_title.setVisible(has_metadata)
         self.home_metadata_list.setVisible(has_metadata)
-        empty = not shown_dofus and not has_metadata
-        self.home_empty.setText("Aucun guide disponible pour cette recherche.")
-        self.home_empty.setVisible(empty)
+        self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
+        self.home_empty.setVisible(not shown_guides and not has_metadata)
+        self._sync_grid_columns()
+
+    def _sync_grid_columns(self) -> None:
+        """Fit whole cells to the real viewport, with no empty heading cell."""
+        width = self.home_dofus_list.viewport().width()
+        if width <= 0:
+            return
+        columns = max(1, width // 230)
+        cell_width = max(215, min(320, width // columns))
+        wanted = QSize(cell_width, 96)
+        if self.home_dofus_list.gridSize() != wanted:
+            self.home_dofus_list.setGridSize(wanted)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._sync_grid_columns)
 
 
 __all__ = ["GuideCatalogView"]
