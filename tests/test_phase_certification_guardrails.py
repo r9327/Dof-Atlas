@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -73,6 +78,31 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn('--verify-against "artifacts/phase_certification/inputs_before.json"', workflow)
         self.assertIn('steps.inputs_before.outcome }}" -ne "success"', workflow[enforce:])
         self.assertIn('steps.inputs_after.outcome }}" -ne "success"', workflow[enforce:])
+
+    def test_final_phase_outcome_is_archived_but_never_a_pass_certificate(self) -> None:
+        workflow = self.certification_workflow
+        verdict = workflow.index("name: Enforce phase certification verdict")
+        diagnostic = workflow.index("name: Record final Phase outcome diagnostics")
+        archive = workflow.index("name: Upload certification logs")
+        self.assertLess(verdict, diagnostic)
+        self.assertLess(diagnostic, archive)
+        section = workflow.split("      - name: Record final Phase outcome diagnostics", 1)[1].split(
+            "      - name: Upload certification logs", 1)[0]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        for outcome in ("success", "failure", "cancelled", "skipped"):
+            with tempfile.TemporaryDirectory() as tmp:
+                env = {**os.environ, "CANDIDATE_SHA": "a" * 40,
+                       "CERT_BASE_REF": "b" * 40,
+                       "PHASE_VERDICT_OUTCOME": outcome}
+                run = subprocess.run([sys.executable, "-c", script], cwd=tmp, env=env,
+                                     capture_output=True, text=True, check=False)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                payload = json.loads((Path(tmp) / "artifacts/phase_certification/05_phase_outcome.json").read_text())
+                self.assertFalse(payload["certified"])
+                self.assertEqual(payload["candidate_sha"], "a" * 40)
+                self.assertFalse(payload["canonical_phase_verdict_present"])
+                expected = "STEP_SUCCEEDED_NOT_CERTIFICATE" if outcome == "success" else "NOT_CERTIFIED"
+                self.assertEqual(payload["status"], expected)
 
     def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
