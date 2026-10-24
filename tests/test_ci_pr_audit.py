@@ -45,6 +45,30 @@ class MiniAuditTests(unittest.TestCase):
         self.assertFalse(report["tests_executed"])
         self.assertIn("test mapping unproven", render(report))
 
+    def test_real_doctor_ui_uncertainty_and_root_of_trust_are_not_hidden(self):
+        p = sample_plan()
+        p["phase_route"]["root_of_trust_changes"] = [
+            "tools/atlas_doctor_lib/certification_engine.py",
+        ]
+        p["ui_plan"]["status"] = "REVIEW_REQUIRED"
+        p["ui_plan"]["uncertainty"] = [
+            "UNMAPPED_DEPENDENCY: tools/atlas_doctor_lib/certification_engine.py"
+        ]
+        p["ui_plan"]["recommended_tests"] = ["tests.test_doctor_ci_orchestrator"]
+        p["ui_plan"]["selected_scenarios"] = ["validator-smoke"]
+        report = audit_plan(p)
+        self.assertEqual(report["status"], "REVIEW_REQUIRED")
+        codes = {row["code"] for row in report["findings"]}
+        self.assertIn("UI_IMPACT_UNPROVEN", codes)
+        self.assertIn("ROOT_OF_TRUST_CHANGED", codes)
+        self.assertIn("tools/atlas_doctor_lib/certification_engine.py",
+                      report["sensitive_paths"])
+        rendered = render(report)
+        self.assertIn("UNMAPPED_DEPENDENCY", rendered)
+        self.assertIn("tests.test_doctor_ci_orchestrator", rendered)
+        self.assertIn("validator-smoke", rendered)
+        self.assertFalse(report["merge_authorized"])
+
     def test_unknown_route_fails_observation_closed(self):
         p = sample_plan()
         p["phase_route"] = {}
