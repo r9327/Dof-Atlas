@@ -1167,18 +1167,18 @@ jobs:
                   seconds = (end - start).total_seconds()
                   if seconds < 0:
                       raise ValueError("Negative GitHub job duration")
-                  measured.append((str(job.get("name", "unknown")).replace("|", "/").replace("\\n", " "), seconds, job.get("conclusion", "unknown")))
+                  measured.append((str(job.get("name", "unknown")).replace("|", "/").replace("\n", " "), seconds, job.get("conclusion", "unknown")))
               measured.sort(key=lambda row: -row[1])
               # Sum of job intervals is not billed GitHub minutes; it includes
               # parallel time. This is advisory, not certification evidence.
               total = sum(row[1] for row in measured)
               with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
-                  stream.write("\\n## Doctor — CI timing observations (advisory)\\n")
-                  stream.write(f"Completed jobs measured: {len(measured)} / {len(jobs)}; total runner elapsed time: {total / 60:.1f} min (not billing).\\n")
-                  stream.write("| Completed job | Duration | Result |\\n|---|---:|---|\\n")
+                  stream.write("\n## Doctor — CI timing observations (advisory)\n")
+                  stream.write(f"Completed jobs measured: {len(measured)} / {len(jobs)}; total runner elapsed time: {total / 60:.1f} min (not billing).\n")
+                  stream.write("| Completed job | Duration | Result |\n|---|---:|---|\n")
                   for name, seconds, status in measured[:15]:
-                      stream.write(f"| {name} | {seconds / 60:.1f} min | {status} |\\n")
-                  stream.write("This snapshot excludes jobs still running, including Doctor / CI Verdict. No gate is waived.\\n")
+                      stream.write(f"| {name} | {seconds / 60:.1f} min | {status} |\n")
+                  stream.write("This snapshot excludes jobs still running, including Doctor / CI Verdict. No gate is waived.\n")
           except (OSError, KeyError, TypeError, ValueError) as exc:
               print(f"CI timing observation unavailable (advisory): {type(exc).__name__}: {exc}")
           PYTIMINGS
