@@ -1,5 +1,8 @@
 # Complément demandé le 24/10/2026 — thème intégral DOFUS Unity pour Atlas
 
+
+> **Mise à jour des sources réelles (24/10/2026, commit `f17b4724`) :** le dépôt contient maintenant l'archive du **fond original**, neuf sous-archives ZIP regroupant les **103 PNG originaux** réellement transmis, et le ZIP de sélection avec manifeste/aperçu/script. Voir `docs/design/dofus-unity/README.md`. Les **47 sprites UI précis** du manifeste et les **10 fichiers TTF** restent absents du dépôt : ils sont sur le PC de l'utilisateur et nécessitent un import distinct. Les ZIPs déjà présents ne sont pas encore utilisés par le runtime. Les mentions ci-dessous « non versionnée ici » décrivent l'état initial de la préparation avant ce commit.
+
 > **À réaliser dans la PR #254 existante, sans supprimer ni réécrire les fonctionnalités déjà implémentées.** Ce document est une spécification versionnée, PAS la preuve que le thème est intégré. Les PNG/TTF originaux sont sur le PC de l'utilisateur ; ils ne sont pas joints à la branche. Aucune certification Windows ou preuve de rendu n'est attestée ici.
 
 ## A. État contrôlé de la PR #254
