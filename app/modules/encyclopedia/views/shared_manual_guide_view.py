@@ -229,6 +229,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         *,
         travel_command_callback=None,
         show_header_title: bool = True,
+        page_validation_callback=None,
     ) -> None:
         QFrame.__init__(self, parent)
         self.service = service
@@ -346,7 +347,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.page_check.setCheckable(True)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
         self.page_check.setEnabled(not automatic and not blocking)
-        if not automatic and not blocking:
+        if page_validation_callback is not None:
+            # Shared Guide owns selection-aware writes; do not also write to the
+            # fallback global character through the legacy card handler.
+            self.page_check.toggled.connect(page_validation_callback)
+        elif not automatic and not blocking:
             self.page_check.setToolTip(
                 "Valider cette fiche. La progression automatique reste prioritaire lorsqu’Atlas dispose de la preuve."
             )
@@ -1241,10 +1246,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
 
     def _progress_participant_keys(self) -> tuple[str, ...]:
-        selected = tuple(self.selected_participant_keys())
-        if selected:
-            return selected
-        return (self.character_key,) if str(self.character_key).startswith("character:") else ()
+        # A global character is a browsing context, never implicit consent to
+        # change that character's saved progression.
+        known = {row.key for row in self.participant_service.available_characters()}
+        return tuple(key for key in self.selected_participant_keys() if key in known)
 
     def _card_complete(self, character_key: str, card: dict[str, Any], index: int) -> bool:
         state_getter = getattr(self.service, "card_state", None)
@@ -1534,6 +1539,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 str(checked_button.property("filterKey") if checked_button else "Tout")
             )
         self._refresh_header()
+        # Selection changes must immediately replace the live Valider control.
+        self._render_window()
 
     def _actual_index_for_participants(self) -> int | None:
         keys = self._progress_participant_keys()
@@ -1542,10 +1549,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         indexes: list[int] = []
         for character_key in keys:
             try:
+                done, total = self.service.route_sheet_progress(character_key)
+                if total > 0 and done >= total:
+                    continue  # All sheets completed: no phantom final-sheet target.
                 indexes.append(int(self.service.first_incomplete_index(character_key)))
             except (AttributeError, KeyError, TypeError, ValueError):
                 return None
-        return max(0, min(len(self.service.cards) - 1, min(indexes)))
+        return max(0, min(len(self.service.cards) - 1, min(indexes))) if indexes else None
 
     def refresh(self, *, reset_to_active: bool = False) -> None:
         self.service.reload_progress()
@@ -1725,6 +1735,77 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._refresh_participants_panel()
         self._restore_route_lock_state()
 
+    def _validation_status(self, card: dict[str, Any], index: int):
+        keys = self._progress_participant_keys()
+        statuses = []
+        for key in keys:
+            automatic = bool(self.service.card_auto_complete(key, card))
+            manual = bool(self.service.page_checked(key, card, index))
+            blocking = getattr(self.service, "manual_order_choice_blocking", None)
+            blocked = bool(callable(blocking) and blocking(key, card))
+            statuses.append((key, automatic, manual, blocked))
+        return statuses
+
+    def _sync_validation_control(self, button: QPushButton, card: dict[str, Any], index: int) -> None:
+        statuses = self._validation_status(card, index)
+        all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
+        blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
+        reversible = any(manual and not auto for _, auto, manual, _ in statuses)
+        batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
+        enabled = bool(statuses) and callable(batcher) and not blocked and (not all_done or reversible)
+        if not statuses:
+            label, hint = "Choisir des personnages", "Sélectionnez un ou plusieurs personnages vérifiés dans Mes personnages."
+        elif blocked:
+            label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
+        elif all_done and reversible:
+            label, hint = "Annuler validation", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
+        elif all_done:
+            label, hint = "Validé ✓", "Fiche déjà validée automatiquement pour tous les personnages sélectionnés."
+        else:
+            label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
+        if statuses and not callable(batcher):
+            hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
+        button.blockSignals(True)
+        try:
+            button.setChecked(all_done)
+            button.setText(label)
+            button.setEnabled(enabled)
+            button.setToolTip(hint)
+        finally:
+            button.blockSignals(False)
+
+    def _page_toggled_for_participants(self, card: dict[str, Any], index: int, checked: bool) -> None:
+        # Ignore deferred signals from an old card after navigation.
+        if index != self.view_index or index >= len(self.service.cards) or self.service.cards[index] is not card:
+            return
+        self.service.reload_progress()
+        statuses = self._validation_status(card, index)
+        all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
+        blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
+        if not statuses or blocked or checked == all_done:
+            self._render_window()
+            return
+        # A mixed team click fills only incomplete manual states; undo removes
+        # only manually checked states without erasing quest/success evidence.
+        targets = tuple(
+            key for key, auto, manual, _ in statuses
+            if (not auto and not manual) if checked
+        ) if checked else tuple(
+            key for key, auto, manual, _ in statuses if manual and not auto
+        )
+        batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
+        page_key = getattr(self.service, "page_key", None)
+        if not targets or not callable(batcher) or not callable(page_key):
+            self._render_window()
+            return
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import GUIDE_ULTIME_PROGRESS_ID
+        progress_id = str(getattr(self.service, "progress_id", None) or GUIDE_ULTIME_PROGRESS_ID)
+        try:
+            batcher(targets, progress_id, page_key(card, index), checked)
+        finally:
+            # A failed write must never leave a checked-looking control behind.
+            self._follow_active_after_progress_change()
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._clear_cards()
         if not self.service.cards:
@@ -1743,7 +1824,11 @@ class SharedGuideManualView(GuideUltimeManualView):
                 else None
             ),
             show_header_title=False,
+            page_validation_callback=lambda checked, sheet=card, sheet_index=index: (
+                self._page_toggled_for_participants(sheet, sheet_index, bool(checked))
+            ),
         )
+        self._sync_validation_control(widget.page_check, card, index)
         widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)
         self.cards_layout.addWidget(widget)
