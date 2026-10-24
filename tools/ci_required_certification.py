@@ -201,10 +201,12 @@ def _verify_smart_pr_identity(
         return (isinstance(head, dict) and isinstance(base, dict)
                 and head.get("sha") == candidate_sha
                 and head.get("ref") == head_ref
-                and (head.get("repo") or {}).get("full_name") == run.get("repository", {}).get("full_name")
+                and type((head.get("repo") or {}).get("id")) is int
+                and (head.get("repo") or {}).get("id") == (run.get("head_repository") or {}).get("id")
                 and base.get("sha") == base_sha
                 and base.get("ref") == base_ref
-                and (base.get("repo") or {}).get("full_name") == run.get("repository", {}).get("full_name"))
+                and type((base.get("repo") or {}).get("id")) is int
+                and (base.get("repo") or {}).get("id") == (run.get("repository") or {}).get("id"))
     if not any(matches(pr) for pr in linked):
         raise ValueError("SMART proof belongs to a different PR, base or branch")
 
