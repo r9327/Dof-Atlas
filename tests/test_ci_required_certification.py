@@ -4,10 +4,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
+from copy import deepcopy
 from unittest.mock import patch
 
 from tools.ci_required_certification import (
-    _REQUIRED_FULL_STEPS, _SCOPED_HIGH_STEPS, classify_merge_route, evaluate_merge,
+    _REQUIRED_FULL_STEPS, _SCOPED_HIGH_STEPS, candidate_paths, classify_merge_route, evaluate_merge,
     retrieve_full_proofs, validate_full_run, validate_scoped_high_run,
 )
 
@@ -15,6 +16,9 @@ NOW = datetime(2026, 10, 14, 20, 0, tzinfo=timezone.utc)
 HEAD = "a" * 40
 BASE = "b" * 40
 REPO = "r9327/Dof-Atlas"
+PR_NUMBER = 259
+HEAD_REF = "feature"
+BASE_REF = "main"
 
 
 def full_record():
@@ -26,6 +30,12 @@ def full_record():
         "conclusion": "success",
         "path": "r9327/Dof-Atlas/.github/workflows/phase-certification.yml@refs/heads/feature",
         "repository": {"full_name": REPO},
+        "head_branch": HEAD_REF,
+        "pull_requests": [{
+            "number": PR_NUMBER,
+            "head": {"sha": HEAD, "ref": HEAD_REF, "repo": {"full_name": REPO}},
+            "base": {"sha": BASE, "ref": BASE_REF, "repo": {"full_name": REPO}},
+        }],
         "created_at": (NOW - timedelta(hours=2)).isoformat(),
         "updated_at": (NOW - timedelta(hours=1)).isoformat(),
     }
@@ -76,7 +86,8 @@ class CertificationMergeGateTests(unittest.TestCase):
             self.assertEqual(route["route"], "SMART")
             self.assertTrue(route["smart_requires_host_proof"])
             args = dict(candidate_sha=HEAD, base_sha=BASE, paths=[HIGH_SOURCE],
-                        safe_validation="success", repo=REPO, now=NOW, root=root)
+                        safe_validation="success", repo=REPO, now=NOW, root=root,
+                        pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
             self.assertEqual(evaluate_merge(**args)["status"], "BLOCKED")
             record = full_record()
             record["event"] = "pull_request"
@@ -101,9 +112,10 @@ class CertificationMergeGateTests(unittest.TestCase):
             self.assertEqual(full_accepted["status"], "PASS_FULL_AUTHENTICATED")
             self.assertEqual(full_accepted["full_evidence_run"], 418)
             for mutation in ("wrong_sha", "wrong_repo", "wrong_event", "skipped_test",
-                             "real_full", "failed_job"):
+                             "real_full", "failed_job", "wrong_pr", "wrong_base",
+                             "wrong_branch", "missing_pr_list", "wrong_head_repo"):
                 with self.subTest(mutation=mutation):
-                    bad_run = {**record, "repository": dict(record["repository"])}
+                    bad_run = deepcopy(record)
                     bad_job = {**proof, "steps": [dict(step) for step in proof["steps"]]}
                     if mutation == "wrong_sha": bad_run["head_sha"] = BASE
                     if mutation == "wrong_repo": bad_run["repository"]["full_name"] = "attacker/repo"
@@ -111,6 +123,11 @@ class CertificationMergeGateTests(unittest.TestCase):
                     if mutation == "skipped_test": bad_job["steps"][2]["conclusion"] = "skipped"
                     if mutation == "real_full": bad_job["steps"][-1]["conclusion"] = "success"
                     if mutation == "failed_job": bad_job["conclusion"] = "failure"
+                    if mutation == "wrong_pr": bad_run["pull_requests"][0]["number"] = 999
+                    if mutation == "wrong_base": bad_run["pull_requests"][0]["base"]["sha"] = "c" * 40
+                    if mutation == "wrong_branch": bad_run["head_branch"] = "other-branch"
+                    if mutation == "missing_pr_list": bad_run["pull_requests"] = []
+                    if mutation == "wrong_head_repo": bad_run["pull_requests"][0]["head"]["repo"]["full_name"] = "foreign/repo"
                     self.assertEqual(evaluate_merge(**args, runs=[bad_run],
                                       jobs_by_run={418: [bad_job]})["status"], "BLOCKED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "tools/ci_scope_gate.py"],
@@ -167,7 +184,8 @@ class CertificationMergeGateTests(unittest.TestCase):
             for name in _SCOPED_HIGH_STEPS
         ] + [{"name": "Run full Atlas phase certification gate",
               "status": "completed", "conclusion": "skipped"}]
-        args = dict(candidate_sha=HEAD, repo=REPO, now=NOW)
+        args = dict(candidate_sha=HEAD, repo=REPO, now=NOW,
+                    base_sha=BASE, pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
         validate_scoped_high_run(run, [phase, safe], **args)
         with self.assertRaisesRegex(ValueError, "Safe Validation"):
             validate_scoped_high_run(run, [phase], **args)
@@ -178,6 +196,50 @@ class CertificationMergeGateTests(unittest.TestCase):
         wrong["steps"][2]["conclusion"] = "failure"
         with self.assertRaisesRegex(ValueError, "SMART mandatory"):
             validate_scoped_high_run(run, [wrong, safe], **args)
+
+    def test_smart_pr_identity_rejects_wrong_base_and_branch(self):
+        run = full_record()
+        run["event"] = "pull_request"
+        phase = full_job()
+        phase["steps"] = [
+            {"name": name, "status": "completed", "conclusion": "success"}
+            for name in _SCOPED_HIGH_STEPS
+        ] + [{"name": "Run full Atlas phase certification gate",
+              "status": "completed", "conclusion": "skipped"}]
+        for kwargs in ({"base_sha": "c" * 40}, {"pr_number": 999},
+                       {"head_ref": "other"}, {"base_ref": "release"}):
+            args = dict(candidate_sha=HEAD, repo=REPO, now=NOW, base_sha=BASE,
+                        pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
+            args.update(kwargs)
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                validate_scoped_high_run(run, [phase], **args)
+
+    def test_removed_or_replaced_files_never_keep_scoped_route(self):
+        for path in ("docs/deleted.md", ".ai/context_index.json"):
+            route = classify_merge_route([path], deleted_paths=[path])
+            self.assertEqual(route["route"], "FULL_REQUIRED")
+            self.assertEqual(route["deleted_files"], [path])
+        with self.assertRaisesRegex(ValueError, "Deleted paths"):
+            classify_merge_route(["docs/readme.md"], deleted_paths=["app/other.py"])
+
+    def test_zero_delimited_diff_preserves_deletions_and_type_changes(self):
+        with patch("tools.ci_required_certification.subprocess.run") as mocked:
+            mocked.return_value.stdout = "D\\0docs/a.md\\0A\\0docs/b.md\\0T\\0app/link.py\\0"
+            paths, deleted = candidate_paths(BASE, HEAD)
+            self.assertEqual(paths, ["docs/a.md", "docs/b.md", "app/link.py"])
+            self.assertEqual(deleted, ["docs/a.md", "app/link.py"])
+            self.assertIn("--no-renames", mocked.call_args.args[0])
+            mocked.return_value.stdout = "R100\\0old.py\\0new.py\\0"
+            with self.assertRaises(ValueError):
+                candidate_paths(BASE, HEAD)
+
+    def test_phase_workflow_supplies_pr_identity_to_merge_gate(self):
+        text = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        for key in ("PR_NUMBER:", "PR_HEAD_REF:", "PR_BASE_REF:",
+                    '--pr-number "$PR_NUMBER"', '--head-ref "$PR_HEAD_REF"',
+                    '--base-ref "$PR_BASE_REF"'):
+            self.assertIn(key, text)
 
     def test_retrieve_active_pr_proofs_but_never_failed_or_pending(self):
         active = full_record()
