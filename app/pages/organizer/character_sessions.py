@@ -615,6 +615,7 @@ class CharacterSessionsMixin:
                     "index": client_index,
                     "label": f"Personnage {client_index}",
                     "name": name,
+                    "raw_title": str(session.get("raw_title") or name),
                     "character_name": clean_auto_group_name(name),
                     "class_key": dofus_class_key_from_window_name(name) or "",
                     "slot": slot_index + 1,
