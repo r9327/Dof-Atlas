@@ -824,6 +824,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
         self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
         self._preparation_loaded = False
+        self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -1500,6 +1501,22 @@ class SharedGuideManualView(GuideUltimeManualView):
                 widget.setParent(None)
                 widget.deleteLater()
 
+    def _show_more_preparation(self) -> None:
+        self._preparation_visible_limit += 80
+        checked = self.preparation_filter_group.checkedButton()
+        current_filter = str(
+            checked.property("filterKey") if checked is not None else "Tout"
+        )
+        self._render_preparation(current_filter)
+
+    def _append_preparation_more(self, remaining: int) -> None:
+        if remaining <= 0:
+            return
+        button = QPushButton(f"Afficher la suite ({remaining} besoins restants)")
+        button.setObjectName("GuidePreparationShowMore")
+        button.clicked.connect(lambda _checked=False: self._show_more_preparation())
+        self.preparation_rows_layout.addWidget(button)
+
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         if not self.selected_participant_keys():
@@ -1514,13 +1531,17 @@ class SharedGuideManualView(GuideUltimeManualView):
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
             else:
                 # Read-only text, no checkbox and no anonymous persistence.
+                visible = preview[:self._preparation_visible_limit]
                 lines = [f"• {quantity if quantity else '?'} × {name} ({category})"
-                         for category, name, quantity in preview]
+                         for category, name, quantity in visible]
                 details = QLabel(chr(10).join(lines))
                 details.setObjectName("GuidePreparationPreview")
                 details.setWordWrap(True)
                 details.setTextInteractionFlags(Qt.TextSelectableByMouse)
                 self.preparation_rows_layout.addWidget(details)
+                self._append_preparation_more(
+                    len(preview) - self._preparation_visible_limit
+                )
             self.preparation_rows_layout.addStretch(1)
             return
 
@@ -1538,6 +1559,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
                 empty.setObjectName("GuidePreparationEmpty")
                 self.preparation_rows_layout.addWidget(empty)
+            rendered_count = 0
             for category, predicate in groups:
                 matching = [need for need in self._preparation_needs if predicate(need)]
                 if not matching:
@@ -1551,8 +1573,13 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
                 self.preparation_rows_layout.addWidget(summary)
-                for need in matching:
+                available = max(0, self._preparation_visible_limit - rendered_count)
+                for need in matching[:available]:
                     self.preparation_rows_layout.addWidget(self._preparation_row(need))
+                rendered_count += min(len(matching), available)
+            self._append_preparation_more(
+                len(self._preparation_needs) - rendered_count
+            )
             self.preparation_rows_layout.addStretch(1)
             return
 
@@ -1564,8 +1591,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             label.setObjectName("GuidePreparationEmpty")
             self.preparation_rows_layout.addWidget(label)
             return
-        for need in matching:
+        for need in matching[:self._preparation_visible_limit]:
             self.preparation_rows_layout.addWidget(self._preparation_row(need))
+        self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
 
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
