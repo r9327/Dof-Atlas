@@ -1168,12 +1168,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 button.setIcon(
                     button.style().standardIcon(QStyle.SP_DirHomeIcon)
                 )
-            status = "en ligne" if character.connected else "hors ligne"
-            progress_label = f"{progress} %" if progress is not None else "progression inconnue"
-            button.setToolTip(
-                f"{character.label} · {class_label or 'classe inconnue'} · "
-                f"{progress_label} · {status}"
-            )
+            button.setProperty("guideClassLabel", class_label)
+            button.setToolTip(self._participant_tooltip(character, class_label, progress))
             button.setAccessibleName(character.label)
             button.toggled.connect(
                 lambda checked, key=character.key: self._participant_toggled(key, checked)
@@ -1189,6 +1185,28 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
+
+    @staticmethod
+    def _participant_tooltip(character, class_label: str, progress: int | None) -> str:
+        status = "en ligne" if character.connected else "hors ligne"
+        progress_label = f"{progress} %" if progress is not None else "progression inconnue"
+        return (
+            f"{character.label} · {class_label or 'classe inconnue'} · "
+            f"{progress_label} · {status}"
+        )
+
+    def _refresh_participant_progress(self) -> None:
+        """Refresh external progress without rebuilding portrait widgets."""
+        for character in self.participant_service.available_characters():
+            button = self._participant_buttons.get(character.key)
+            if button is None:
+                continue
+            progress = self._participant_progress(character.key)
+            if button.progress != progress:
+                button.progress = progress
+                button.update()
+            class_label = str(button.property("guideClassLabel") or "")
+            button.setToolTip(self._participant_tooltip(character, class_label, progress))
 
     def _participant_icon(self, character) -> tuple[str, str]:
         """Render portraits from the verified identity, never a window-name guess."""
@@ -1579,6 +1597,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             self, "_last_participant_source_signature", None
         ):
             self._refresh_participants_panel()
+        else:
+            self._refresh_participant_progress()
         if not self.service.available:
             self._render_missing_data()
             return
