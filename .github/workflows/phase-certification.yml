@@ -213,21 +213,56 @@ jobs:
             artifacts/doctor_ci/ui_regression_watch.json
           if-no-files-found: error
 
+  pre-full-gate:
+    # PR only. Every independent job chosen by the exact-SHA Doctor plan
+    # must finish successfully BEFORE allocating a costly FULL runner.
+    # No cycle: certify and the two final verdict jobs are not prerequisites.
+    name: Doctor / Pre-FULL Contract Gate
+    needs: [doctor-plan, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success' && needs.doctor-plan.outputs.phase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Reject failed, cancelled, skipped or unverified selected contracts before FULL
+        shell: python
+        env:
+          DOCTOR_RESULTS: ${{ toJSON(needs) }}
+          DOCTOR_REQUIRED: ${{ needs.doctor-plan.outputs.required_jobs }}
+        run: |
+          import json
+          import os
+
+          jobs = json.loads(os.environ['DOCTOR_RESULTS'])
+          if jobs.get('doctor-plan', {}).get('result') != 'success':
+              raise SystemExit('Pre-FULL blocked: no successful Doctor CI plan')
+          required = json.loads(os.environ['DOCTOR_REQUIRED'])
+          if not isinstance(required, list) or not required or 'certify' not in required:
+              raise SystemExit('Pre-FULL blocked: malformed required job inventory')
+          for name in required:
+              if name == 'certify':
+                  continue  # This future job cannot attest to itself.
+              actual = jobs.get(name, {}).get('result')
+              if actual != 'success':
+                  raise SystemExit(f'Pre-FULL blocked: {name} is {actual!r}, expected success')
+          # An explicitly failed independent specialist cannot be hidden as
+          # optional or by an incomplete plan.
+          for name, row in jobs.items():
+              if row.get('result') in ('failure', 'cancelled'):
+                  raise SystemExit(f'Pre-FULL blocked: independent {name} failed/cancelled')
+          print('Independent exact-SHA PR contracts: PASS; FULL may start if required.')
+
   certify:
-    # Cheap independent memory/preload signals finish before expensive Windows
+    # The PR pre-FULL gate waits for EVERY independently selected specialist;
+    # push and explicit dispatch retain their existing FULL policy.
     # FULL. A failed selected benchmark must prevent a wasted 120-minute job,
     # not merely turn Public PR / Safe Validation red after the FULL finishes.
-    needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]
+    needs: [doctor-plan, pre-full-gate]
     if: >-
       always() &&
       needs.doctor-plan.result == 'success' &&
       needs.doctor-plan.outputs.phase == 'true' &&
-      (needs.phase8_memory_benchmark.result == 'success' ||
-       (needs.phase8_memory_benchmark.result == 'skipped' &&
-        needs.doctor-plan.outputs.phase8_memory_benchmark != 'true')) &&
-      (needs.phase8_preload_benchmark.result == 'success' ||
-       (needs.phase8_preload_benchmark.result == 'skipped' &&
-        needs.doctor-plan.outputs.phase8_preload_benchmark != 'true'))
+      (github.event_name != 'pull_request' ||
+       needs.pre-full-gate.result == 'success')
     name: Phase Certification / Full Validation
     runs-on: windows-latest
     timeout-minutes: 120
