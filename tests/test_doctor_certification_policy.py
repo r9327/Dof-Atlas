@@ -214,13 +214,17 @@ class PolicyAndPassportTests(unittest.TestCase):
         )
         docs = (root / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
         decision = phase.split("  certify:", 1)[1].split("    name:", 1)[0]
-        self.assertIn(
-            "needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]",
-            decision,
-        )
-        self.assertIn("needs.phase8_memory_benchmark.result == 'success'", decision)
-        self.assertIn("needs.phase8_preload_benchmark.result == 'success'", decision)
-        self.assertIn("needs.doctor-plan.result == 'success'", decision)
+        self.assertIn("needs: [doctor-plan, pre-full-gate]", decision)
+        self.assertIn("needs.pre-full-gate.result == 'success'", decision)
+        preflight = phase.split("  pre-full-gate:", 1)[1].split("  certify:", 1)[0]
+        for contract in (
+            "pr-fast-validation", "doctor_certification", "doctor_ui",
+            "phase8_memory_benchmark", "phase8_preload_benchmark",
+            "ai_context_ci", "graphify_targeted_ci",
+        ):
+            self.assertIn(contract, preflight)
+        self.assertIn("if actual != 'success':", preflight)
+        self.assertIn("github.event_name == 'pull_request'", preflight)
         self.assertNotIn("draft", decision)
         self.assertNotIn("title", decision)
         self.assertIn("ready_for_review", phase)
