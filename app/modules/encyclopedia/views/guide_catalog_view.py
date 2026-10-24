@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame, QLabel, QListView, QListWidget,
-    QListWidgetItem, QScrollArea, QVBoxLayout, QWidget,
+    QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
 from app.modules.encyclopedia.views.guide_featured_home import (
@@ -130,17 +130,20 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.clicked.connect(self._on_clicked)
         self.home_dofus_list.activated.connect(self._on_clicked)
 
-        self.library_categories = QListWidget(self)
+        # Tree nodes are stable across refreshes: expansion is user-controlled.
+        self.library_categories = QTreeWidget(self)
         self.library_categories.setObjectName("GuideLibraryCategories")
+        self.library_categories.setHeaderHidden(True)
+        self.library_categories.setIndentation(16)
         self.library_categories.setMaximumWidth(235)
+        self._category_nodes = {}
         for category_key, text in CATEGORIES:
-            item = QListWidgetItem(text)
-            item.setData(Qt.UserRole, category_key)
-            self.library_categories.addItem(item)
-        self.library_categories.setCurrentRow(next(
-            index for index, (key, _label) in enumerate(CATEGORIES) if key == "dofus"
-        ))
-        self.library_categories.currentRowChanged.connect(self._on_category_changed)
+            node = QTreeWidgetItem((text,))
+            node.setData(0, Qt.UserRole, category_key)
+            self.library_categories.addTopLevelItem(node)
+            self._category_nodes[category_key] = node
+        self.library_categories.setCurrentItem(self._category_nodes["dofus"])
+        self.library_categories.currentItemChanged.connect(self._on_category_changed)
 
         self.library_right = QWidget(self)
         result_layout = QVBoxLayout(self.library_right)
@@ -219,6 +222,7 @@ class GuideCatalogView(QWidget):
         if initial_progress_character_key:
             self._initial_progress_character_key = str(initial_progress_character_key)
         self._runtime_ready = True
+        self._populate_library_tree()
         self.refresh_home()
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
         return True
@@ -331,13 +335,34 @@ class GuideCatalogView(QWidget):
                 f"Parcours optimisé · {count} {suffix}",
             )
 
-    def _on_category_changed(self, row: int) -> None:
-        if row < 0:
-            return
-        item = self.library_categories.item(row)
+    def _populate_library_tree(self) -> None:
+        """Attach only real playable guides; metadata-only sources never launch."""
+        for category in ("optimized", "alignements"):
+            parent = self._category_nodes[category]
+            parent.takeChildren()
+            for guide in self.guides:
+                is_optimized = guide.category == "aventure"
+                if not (is_optimized if category == "optimized"
+                        else guide.category == "alignements"):
+                    continue
+                title = dict(FEATURED).get(guide.id, guide.title)
+                child = QTreeWidgetItem((title,))
+                child.setData(0, Qt.UserRole + 1, str(guide.id))
+                child.setToolTip(0, str(guide.title))
+                parent.addChild(child)
+            parent.setExpanded(True)
+
+    def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None:
             return
-        self.library_category = str(item.data(Qt.UserRole))
+        guide_id = item.data(0, Qt.UserRole + 1)
+        if guide_id:
+            self.select_guide(str(guide_id))
+            return
+        category = item.data(0, Qt.UserRole)
+        if not category:
+            return
+        self.library_category = str(category)
         if self._runtime_ready:
             self.refresh_home()
 
