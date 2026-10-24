@@ -158,6 +158,28 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertFalse(self._check("character:2"))
         self.assertTrue(self.service.card_auto_complete("character:2", self.service.cards[0]))
 
+    def test_blocked_participant_prevents_partial_team_write(self) -> None:
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.blocked.add(("character:2", 0))
+        self._show_sheet()
+        control = self.view.validation_layout.itemAt(0).widget()
+        self.assertFalse(control.isEnabled())
+        self.assertIn("ordre", control.text())
+        self.assertFalse(self._check("character:1"))
+        self.assertFalse(self._check("character:2"))
+        self.assertFalse(self.path.exists())
+
+    def test_unregistered_selected_identity_is_never_written(self) -> None:
+        self.participants.save_selected_keys(("character:1", "character:999"))
+        self._show_sheet()
+        self.view.validation_layout.itemAt(0).widget().click()
+        self.assertTrue(self._check("character:1"))
+        self.assertFalse(
+            GuideProgressService(self.path).manual_steps(
+                "character:999", self.service.progress_id
+            )
+        )
+
     def test_team_progress_counts_shared_sheet_intersection(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         first, second = self.service.cards
