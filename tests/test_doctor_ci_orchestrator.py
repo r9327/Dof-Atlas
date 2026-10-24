@@ -418,6 +418,21 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             env = {**os.environ, 'DOCTOR_REQUIRED': '', 'DOCTOR_RESULTS': value}
             self.assertNotEqual(subprocess.run([sys.executable, '-c', script], env=env, capture_output=True).returncode, 0)
 
+    def test_job_timing_observer_cannot_replace_or_weaken_verdict(self):
+        source = (ROOT / ".github/workflows/phase-certification.yml").read_text(
+            encoding="utf-8")
+        verdict = source.split("  doctor-verdict:", 1)[1]
+        observer = verdict.split("      - name: Publish measured CI job timings (advisory)", 1)[1].split(
+            "      - name: Reject failed or skipped selected CI", 1)[0]
+        self.assertIn("continue-on-error: true", observer)
+        self.assertIn("jobs?per_page=100", observer)
+        self.assertIn("started_at", observer)
+        self.assertIn("completed_at", observer)
+        self.assertIn("not billing", observer)
+        self.assertIn("Required CI did not succeed", verdict)
+        self.assertNotIn("continue-on-error: true", verdict.split(
+            "      - name: Reject failed or skipped selected CI", 1)[1])
+
     def test_single_automatic_entry_and_no_required_public_check_rename(self):
         registry = json.loads((ROOT / 'tools/atlas_doctor_lib/ci_routes.json').read_text(encoding='utf-8'))
         for name in registry:
