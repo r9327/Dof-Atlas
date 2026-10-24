@@ -15,6 +15,7 @@ from typing import Iterable
 
 from tools import ai_context
 from tools.atlas_integrity import classify_risk
+from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS, eligible as high_smart_eligible
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,7 @@ KNOWN_COUPLED_MODULES = {
     "tools/ci_scope_gate.py": ("tests.test_ci_scope_gate",),
     "tools/ci_dev_tests.py": ("tests.test_ci_dev_tests",),
     "tools/atlas_doctor_lib/ci_history.py": ("tests.test_ci_history",),
+    HIGH_SOURCE: tuple(sorted(REQUIRED_TESTS)),
 }
 _SCOPED_TEST_RUNNER = """import sys
 import unittest
@@ -111,7 +113,9 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
         reasons.append("INVALID_PATH")
 
     risks = classify_risk(changed)
-    if risks["risk"] in {"HIGH", "CRITICAL"}:
+    if risks["risk"] in {"HIGH", "CRITICAL"} and not (
+        risks["risk"] == "HIGH" and high_smart_eligible(root, changed, deleted=deleted)
+    ):
         reasons.append(f"RISK_{risks['risk']}")
     unclassified = [p for p in changed if ai_context.classify_path(p) == "repository"]
     if unclassified:
