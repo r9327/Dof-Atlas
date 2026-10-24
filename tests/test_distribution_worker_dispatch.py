@@ -32,6 +32,14 @@ class FrozenWorkerDispatchTests(unittest.TestCase):
                     )
                     self.assertEqual(sys.argv, [worker, "--ensure-cache"])
 
+    def test_frozen_capture_helper_dispatches_before_gui(self):
+        with patch.object(sys, "frozen", True, create=True), \
+             patch.object(sys, "argv", ["AtlasApp.exe", "--atlas-capture-helper",
+                                        "--port", "4321", "--token", "proof"]), \
+             patch("app.network.capture_helper.main", return_value=17) as worker:
+            self.assertEqual(main(), 17)
+            worker.assert_called_once_with(["--port", "4321", "--token", "proof"])
+
     def test_unknown_worker_is_rejected(self):
         with patch.object(sys, "frozen", True, create=True), \
              patch.object(sys, "argv", ["AtlasApp.exe", "-m", "os"]), \
