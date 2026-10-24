@@ -87,6 +87,7 @@ jobs:
           python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v
           python -m unittest discover -s tests -p test_ci_pr_audit.py -v
           python -m unittest discover -s tests -p test_ci_timing_observer.py -v
+          python -m unittest discover -s tests -p test_craft_adapter_release.py -v
       - name: Determine required CI from exact Git diff
         id: plan
         shell: bash
