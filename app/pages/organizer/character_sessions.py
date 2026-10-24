@@ -437,6 +437,17 @@ class CharacterSessionsMixin:
         name_class_matches: list[str] = []
         name_key = normalize_key(clean_auto_group_name(session_name(session)))
         class_key = dofus_class_key_from_window_name(session_name(session)) or ""
+        # Two live windows with the same displayed name and class cannot both
+        # own the same network identity, even if one PID matches an old binding.
+        live_matches = [
+            candidate
+            for candidate in self.sessions
+            if session_is_detected(candidate)
+            and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
+            and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key
+        ]
+        if len(live_matches) != 1:
+            return ""
         for character_id, row in self._verified_character_rows():
             token = f"character:{character_id}"
             try:
