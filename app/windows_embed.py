@@ -316,6 +316,7 @@ def scan_unity_sessions() -> list[dict[str, Any]]:
             {
                 "nom": title,
                 "detected_title": title,
+                "raw_title": raw_title,
                 "hwnd": int(hwnd),
                 "pid": window_process_id(hwnd),
             }

@@ -182,6 +182,43 @@ class NetworkElevatedCaptureTests(unittest.TestCase):
         self.assertTrue(kernel.terminated)
         self.assertTrue(kernel.closed)
 
+    def test_frozen_windows_launcher_invokes_capture_flag_not_python_module(self) -> None:
+        class FakeKernel32:
+            def GetLastError(self) -> int:
+                return 0
+
+            def CloseHandle(self, _handle) -> int:
+                return 1
+
+        class FakeShell32:
+            def ShellExecuteExW(self, pointer) -> int:
+                self.info = pointer._obj
+                self.info.hProcess = 123
+                return 1
+
+        shell = FakeShell32()
+        windll = type("FakeWindll", (), {
+            "kernel32": FakeKernel32(), "shell32": shell,
+        })()
+        fake_os = type("FakeOs", (), {"name": "nt"})()
+        with (
+            patch.object(elevated_capture, "os", fake_os),
+            patch.object(elevated_capture.sys, "frozen", True, create=True),
+            patch.object(elevated_capture.ctypes, "windll", windll, create=True),
+        ):
+            process = elevated_capture.launch_elevated_capture_helper(
+                4444, "secret-token", Path.cwd()
+            )
+            self.assertEqual(shell.info.lpVerb, "runas")
+            self.assertEqual(
+                shell.info.lpParameters,
+                subprocess.list2cmdline((
+                    "--atlas-capture-helper", "--port", "4444",
+                    "--token", "secret-token",
+                )),
+            )
+            process.close()
+
     def test_windows_launcher_reports_uac_cancellation(self) -> None:
         class FakeKernel32:
             @staticmethod
