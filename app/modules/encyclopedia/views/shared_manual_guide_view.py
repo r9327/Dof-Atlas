@@ -5,8 +5,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QStyle,
     QToolButton,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -96,6 +97,11 @@ def _guide_symbol_icon(widget: QWidget, symbol: str, *, size: int = 18) -> QIcon
         )
         painter.drawLine(QPointF(6.5, 2), QPointF(6.5, 13))
         painter.drawLine(QPointF(11.5, 4), QPointF(11.5, 15))
+    elif symbol == "quest":
+        painter.drawRoundedRect(QRectF(4, 2.5, 10, 13), 1.3, 1.3)
+        painter.drawLine(QPointF(6.5, 6), QPointF(11.5, 6))
+        painter.drawLine(QPointF(6.5, 9), QPointF(11.5, 9))
+        painter.drawLine(QPointF(6.5, 12), QPointF(10, 12))
     elif symbol == "location":
         painter.drawEllipse(QPointF(9, 6.5), 4.2, 4.2)
         painter.drawEllipse(QPointF(9, 6.5), 1.2, 1.2)
@@ -215,6 +221,19 @@ class _ParticipantPortraitButton(QToolButton):
         )
 
 
+class _FastQuestTooltipLabel(QLabel):
+    """Display quest names promptly without changing the global Qt tooltip delay."""
+
+    def enterEvent(self, event) -> None:  # noqa: N802
+        super().enterEvent(event)
+        if self.toolTip():
+            QTimer.singleShot(
+                450,
+                lambda: QToolTip.showText(QCursor.pos(), self.toolTip(), self)
+                if self.underMouse() and self.toolTip() else None,
+            )
+
+
 class SharedGuideManualCard(GuideUltimeManualCard):
     """Guide-agnostic canonical card with inline route semantics."""
 
@@ -228,10 +247,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         *,
         travel_command_callback=None,
         show_header_title: bool = True,
+        participant_keys: tuple[str, ...] | None = None,
     ) -> None:
         QFrame.__init__(self, parent)
         self.service = service
         self.character_key = character_key
+        self.participant_keys = tuple(dict.fromkeys(
+            participant_keys if participant_keys is not None
+            else ((character_key,) if character_key else ())
+        ))
         self.card = card
         self.index = index
         self.travel_command_callback = travel_command_callback
@@ -324,17 +348,27 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             "before_leave",
         )
 
-        automatic = service.card_auto_complete(character_key, card)
-        manual = service.page_checked(character_key, card, index)
-        blocking = bool(
+        automatic = bool(self.participant_keys) and all(
+            service.card_auto_complete(key, card) for key in self.participant_keys
+        )
+        manual = bool(self.participant_keys) and all(
+            service.card_auto_complete(key, card)
+            or service.page_checked(key, card, index)
+            for key in self.participant_keys
+        )
+        blocking = any(
             callable(getattr(service, "manual_order_choice_blocking", None))
-            and service.manual_order_choice_blocking(character_key, card)
+            and service.manual_order_choice_blocking(key, card)
+            for key in self.participant_keys
         )
-        trigger_ready = bool(
+        trigger_ready = any(
             callable(getattr(service, "manual_order_choice_required", None))
-            and service.manual_order_choice_required(character_key, card)
+            and service.manual_order_choice_required(key, card)
+            for key in self.participant_keys
         )
-        if blocking:
+        if not self.participant_keys:
+            label = "Choisir un personnage"
+        elif blocking:
             label = "Choisir l’ordre" if trigger_ready else "Rang 20 requis"
         elif automatic:
             label = "Validé ✓"
@@ -344,12 +378,40 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.page_check.setObjectName("GuideManualPageCheck")
         self.page_check.setCheckable(True)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
-        self.page_check.setEnabled(not automatic and not blocking)
-        if not automatic and not blocking:
+        self.page_check.setEnabled(bool(self.participant_keys) and not automatic and not blocking)
+        if self.participant_keys and not automatic and not blocking:
             self.page_check.setToolTip(
                 "Valider cette fiche. La progression automatique reste prioritaire lorsqu’Atlas dispose de la preuve."
             )
             self.page_check.toggled.connect(self._page_toggled)
+
+    def _page_toggled(self, checked: bool) -> None:
+        # Only explicitly selected, verified identities are written, each under
+        # its own progress key. Never attribute a completion to the active tab
+        # character when the selected guide participants differ.
+        if not self.participant_keys:
+            return
+        for key in self.participant_keys:
+            if not self.service.card_auto_complete(key, self.card):
+                self.service.set_page_checked(key, self.card, self.index, bool(checked))
+        parent = self.parentWidget()
+        while parent is not None:
+            handler = getattr(parent, "_manual_page_changed", None)
+            if callable(handler):
+                handler()
+                return
+            parent = parent.parentWidget()
+
+    def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
+        super()._add_inline_quest_links(row_layout, row)
+        for index in range(row_layout.count()):
+            item = row_layout.itemAt(index)
+            button = item.widget() if item is not None else None
+            if isinstance(button, QToolButton) and button.objectName() == "GuideManualQuestInlineButton":
+                button.setIcon(_guide_symbol_icon(button, "quest", size=16))
+                button.setIconSize(QSize(16, 16))
+                button.setFixedSize(22, 22)
+                button.setToolTip(f"Ouvrir la quête : {button.accessibleName()}")
 
     def _visible_stage_title(self) -> str:
         """Keep authored action titles, hide redundant route/zone headings."""
@@ -474,7 +536,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(7)
 
-            line = QLabel()
+            line = _FastQuestTooltipLabel()
             self._set_clickable_text(
                 line,
                 self._format_line_html(
@@ -1334,12 +1396,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         return tuple(rows)
 
     def _load_preparation_needs(self) -> None:
-        participant_keys = tuple(self.selected_participant_keys())
-        if not participant_keys:
-            self._preparation_needs = ()
-            self._preparation_loaded = True
-            self._update_preparation_progress()
-            return
+        selected_keys = tuple(self.selected_participant_keys())
+        # A route can be consulted and prepared before network identities are
+        # available. Preview only: never create a saved character progress key.
+        preview_only = not selected_keys
+        participant_keys = selected_keys or (self.character_key or "",)
 
         aggregated: dict[
             tuple[str, str],
@@ -1347,7 +1408,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         ] = {}
         for character_key in participant_keys:
             for index, card in enumerate(self.service.cards):
-                if self._card_complete(character_key, card, index):
+                if not preview_only and self._card_complete(character_key, card, index):
                     continue
                 seen_on_card: set[str] = set()
                 for item_id, name, quantity, category in self._requirements_from_card(
@@ -1370,7 +1431,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                         },
                     )
                     required = row["required"]
-                    required[character_key] = int(required.get(character_key, 0)) + quantity
+                    key_for_quantity = "__preview__" if preview_only else character_key
+                    required[key_for_quantity] = int(required.get(key_for_quantity, 0)) + quantity
 
         self._preparation_needs = tuple(
             _PreparationNeed(
@@ -1393,6 +1455,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         return f"__ui:preparation_ready:{guide_id}:{need.item_key}"
 
     def _need_ready(self, need: _PreparationNeed) -> bool:
+        if not self.selected_participant_keys():
+            return False
         getter = getattr(self.service, "manual_checked", None)
         if not callable(getter) or not need.required_by_character:
             return False
@@ -1400,6 +1464,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
 
     def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
+        if not self.selected_participant_keys():
+            return
         setter = getattr(self.service, "set_manual_checked", None)
         if not callable(setter):
             return
@@ -1425,17 +1491,17 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         if not self.selected_participant_keys():
-            label = QLabel("Sélectionne au moins un personnage dans Mes personnages.")
+            label = QLabel("Préparation du guide en aperçu · sélectionner des personnages pour enregistrer « Prêt ».")
             label.setObjectName("GuidePreparationEmpty")
+            label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
-            return
 
         if selected_filter == "Tout":
             for category in ("Métiers", "Potions", "Objets"):
                 matching = [
                     need
                     for need in self._preparation_needs
-                    if need.category == category and not self._is_soul_stone(need.name)
+                    if need.category == category
                 ]
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
@@ -1446,6 +1512,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
                 self.preparation_rows_layout.addWidget(summary)
+                for need in matching:
+                    self.preparation_rows_layout.addWidget(self._preparation_row(need))
+            if not self._preparation_needs:
+                self.preparation_rows_layout.addWidget(QLabel("Aucun préparatif exploitable dans les fiches du guide."))
             self.preparation_rows_layout.addStretch(1)
             return
 
@@ -1480,6 +1550,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.setIconSize(QSize(14, 14))
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
+        ready_button.setEnabled(bool(self.selected_participant_keys()))
         ready_button.setToolTip("Déclarer Prêt pour les participants concernés")
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
@@ -1501,7 +1572,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             for character in self.participant_service.available_characters()
         }
         for character_key, quantity in need.required_by_character:
-            detail = QLabel(f"{labels_by_key.get(character_key, character_key)} : besoin {quantity}")
+            if character_key == "__preview__":
+                detail = QLabel(f"Besoin total du guide : {quantity}")
+            else:
+                detail = QLabel(f"{labels_by_key.get(character_key, character_key)} : besoin {quantity}")
             detail.setObjectName("GuidePreparationParticipantNeed")
             details_layout.addWidget(detail)
         details.setVisible(False)
@@ -1538,6 +1612,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 str(checked_button.property("filterKey") if checked_button else "Tout")
             )
         self._refresh_header()
+        self._render_window()
 
     def _actual_index_for_participants(self) -> int | None:
         keys = self._progress_participant_keys()
@@ -1736,6 +1811,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 else None
             ),
             show_header_title=False,
+            participant_keys=tuple(self.selected_participant_keys()),
         )
         widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)
