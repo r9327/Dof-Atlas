@@ -41,6 +41,6 @@ def eligible(root: Path | None, paths, *, deleted=()) -> bool:
     for relative in (HIGH_SOURCE, *(str(Path(*m.split(".")).with_suffix(".py"))
                                     for m in REQUIRED_TESTS)):
         target = root / relative
-        if not target.is_file() or target.is_symlink():
+        if (not target.is_file() or target.is_symlink() or not target.resolve().is_relative_to(root)):
             return False
     return True
