@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.quest_catalog import load_quest_characters
 
@@ -49,6 +50,38 @@ class QuestCharacterClassIdentityTests(unittest.TestCase):
                 profile, clients, binding_path=bindings
             )
             self.assertEqual({r.class_key for r in rows}, {""})
+
+
+    def test_guide_portrait_does_not_infer_class_from_character_name(self):
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+        from app.pages.organizer import common
+        from app.quest_catalog import QuestCharacter
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "feca.png").write_bytes(b"icon")
+            with patch.object(common, "CLASS_ICON_DIRS", (root,)):
+                unverified = QuestCharacter(
+                    "character:42", "Alice - Feca", 1, False, class_key=""
+                )
+                self.assertEqual(
+                    SharedGuideManualView._participant_icon(None, unverified),
+                    ("", ""),
+                )
+                verified = QuestCharacter(
+                    "character:42", "Alice", 1, False, class_key="feca"
+                )
+                self.assertEqual(
+                    SharedGuideManualView._participant_icon(None, verified),
+                    (str(root / "feca.png"), "Feca"),
+                )
+                unsafe = QuestCharacter(
+                    "character:43", "Alice", 1, False, class_key="../outside"
+                )
+                self.assertEqual(
+                    SharedGuideManualView._participant_icon(None, unsafe),
+                    ("", ""),
+                )
 
 
 if __name__ == "__main__":
