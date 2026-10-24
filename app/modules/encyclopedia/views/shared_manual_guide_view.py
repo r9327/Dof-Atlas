@@ -1584,7 +1584,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         for character_key in keys:
             try:
                 done, total = self.service.route_sheet_progress(character_key)
-                if total > 0 and done >= total:
+                if total <= 0:
+                    return None  # Unknown route: do not invent a current sheet.
+                if done >= total:
                     continue  # All sheets completed: no phantom final-sheet target.
                 indexes.append(int(self.service.first_incomplete_index(character_key)))
             except (AttributeError, KeyError, TypeError, ValueError):
