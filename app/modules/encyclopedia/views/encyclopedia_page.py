@@ -112,7 +112,6 @@ def _has_embedded_search(widget: object) -> bool:
     return type(widget).__name__ in {
         "AchievementsView",
         "DeferredAchievementGuidesView",
-        "GuideCatalogView",
         "LazyQuestsPage",
         "QuestsPage",
     }
