@@ -96,16 +96,18 @@ class FeaturedGuideCard(QFrame):
         self.open_button.setEnabled(usable)
         self.open_button.setText("Continuer →" if usable and done > 0 else
                                  "Ouvrir →" if usable else "Indisponible")
-        self.subtitle.setText(
-            (str(getattr(guide, "description", "") or "").strip()[:110]
-             if usable else "Parcours indisponible")
-        )
-        # A count of zero is not evidence of zero percent progress.
+        description = str(getattr(guide, "description", "") or "").strip()[:85]
+        if not usable:
+            status = "Parcours indisponible"
+        elif total > 0:
+            status = f"{done}/{total} quêtes · {state or 'Non commencé'}"
+        else:
+            status = "Progression indisponible"
+        self.subtitle.setText(f"{description} · {status}" if description else status)
+        # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
             self.progress.setValue(max(0, min(100, round(done * 100 / total))))
-            if not self.subtitle.text():
-                self.subtitle.setText(f"{done}/{total} quêtes · {state}")
         self.artwork.clear()
         self.open_button.setIcon(QIcon())
         if usable:
