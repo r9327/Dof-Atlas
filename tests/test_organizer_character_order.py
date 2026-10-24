@@ -359,5 +359,24 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
 
 
 
+    def test_client_index_retains_raw_window_title_without_using_it_as_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.organizer_page(root) as (page, _profile, index):
+                page.sessions = page.build_session_slots([{
+                    "nom": "Alice - Feca 1",
+                    "detected_title": "Alice - Feca",
+                    "raw_title": "Alice - Feca - Release 77",
+                    "hwnd": 501, "pid": 502,
+                }])
+                page.export_client_index()
+                client = json.loads(index.read_text(encoding="utf-8"))["clients"][0]
+                self.assertEqual(client["raw_title"], "Alice - Feca - Release 77")
+                self.assertEqual(client["pid"], 502)
+                self.assertEqual(client["handle"], 501)
+                self.assertEqual(client["character_key"], "")
+
+
+
 if __name__ == "__main__":
     unittest.main()
