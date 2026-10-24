@@ -171,6 +171,8 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         # An unsuccessful or omitted preflight blocks the expensive FULL;
         # it cannot certify the phase by silently skipping mandatory work.
         self.assertIn("steps.diff_preflight.outcome == 'success'", full)
+        timing = workflow.split('      - name: Measure canonical Encyclopedia user paths', 1)[1].split('      - name: Run full Atlas phase certification gate', 1)[0]
+        self.assertIn("steps.diff_preflight.outcome == 'success'", timing)
         self.assertIn("steps.catalog.outcome == 'success'", full)
         self.assertIn("steps.inputs_before.outcome == 'success'", full)
         self.assertIn("python -X faulthandler -m tools.atlas_integrity full", full)
