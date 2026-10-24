@@ -9,6 +9,7 @@ import shutil
 import stat
 import tempfile
 import zipfile
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Callable
 
@@ -151,26 +152,57 @@ def _validate_archive(archive: zipfile.ZipFile, manifest: ReleaseManifest,
 
 def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile,
                              progress: Callable[[int], None] | None = None) -> None:
-    """Copy one unchanged delta file and verify its SHA-256 in the same pass.
+    """Verify unchanged bytes and stage via link or one-pass copy.
 
-    The old two-pass flow hashed the full source and then read it again for a
-    copy. We still verify every copied byte before the transaction commits.
+    Immutable image payloads can use same-volume hardlinks. All staged bytes
+    remain SHA-256 verified; files that may be written keep independent copies.
     """
     try:
         if (source.is_symlink() or not source.is_file()
                 or source.stat().st_size != entry.size):
             raise UpdateError("Unchanged base file was modified or missing")
+        # Only immutable, packaged image assets are eligible. Never share
+        # writable caches, user data, SQLite, executables or Python modules
+        # across the current and rollback slots. NTFS hardlinks save a second
+        # multi-GB disk write; other filesystems use the original copy path.
+        static_image = (
+            entry.size >= 64 * 1024
+            and entry.path.startswith("AtlasApp/_internal/data/")
+            and Path(entry.path).suffix.casefold() in {
+                ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".ico", ".avif",
+            }
+            and not (set(part.casefold() for part in Path(entry.path).parts)
+                     & {"cache", "local", "user", "profiles", "routes",
+                        "config", "logs", "generated"})
+        )
+        linked = False
+        if static_image:
+            try:
+                os.link(source, destination)
+            except OSError:
+                # Unsupported volume, permissions or exhausted link count:
+                # safely copy as before, without abandoning the delta.
+                pass
+            else:
+                linked = True
         digest = hashlib.sha256()
         copied = 0
-        with source.open("rb") as original, destination.open("xb") as output:
+        with ExitStack() as stack:
+            original = stack.enter_context(
+                (destination if linked else source).open("rb")
+            )
+            output = (None if linked else stack.enter_context(destination.open("xb")))
             for block in iter(lambda: original.read(1024 * 1024), b""):
                 copied += len(block)
                 if copied > entry.size:
                     raise UpdateError("Unchanged base file exceeded manifest size")
                 digest.update(block)
-                output.write(block)
+                if output is not None:
+                    output.write(block)
                 if progress is not None:
                     progress(copied)
+        # Hardlinks still require a full SHA-256 read before activating the
+        # staged version. A mismatch aborts before state.json changes.
         if copied != entry.size or digest.hexdigest() != entry.sha256:
             raise UpdateError("Unchanged base file was modified or missing")
     except OSError as exc:
