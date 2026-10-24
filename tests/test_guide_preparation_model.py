@@ -270,6 +270,55 @@ class GuidePreparationModelTests(unittest.TestCase):
             self.assertEqual(card_claims(card), ())
         self.assertGreater(count, 0)
 
+    def test_authored_non_material_prerequisites_are_not_inventory(self):
+        card = {
+            "manual_stage_id": "needs:quest",
+            "a_preparer": [{"name": "Potion", "quantity": 1}],
+            "hard_runtime_gates": [
+                {"label": "Avoir terminé la quête d'accès", "quest_id": 123},
+                {"condition": "Niveau 100 requis"},
+                {"level": 100},
+                {"label": "Avoir terminé la quête d'accès"},
+            ],
+        }
+        claims = card_claims(card)
+        prereqs = [row for row in claims if row.category == "Prérequis"]
+        self.assertEqual(
+            [row.name for row in prereqs],
+            ["Avoir terminé la quête d'accès", "Niveau 100 requis"],
+        )
+        self.assertTrue(all(row.quantity is None for row in prereqs))
+        self.assertTrue(all(row.identity.startswith("gate:") for row in prereqs))
+        self.assertEqual(len([c for c in claims if c.name == "Potion"]), 1)
+
+    def test_compact_non_material_gates_stay_unhydrated(self):
+        stage = {
+            "id": "stage:gate",
+            "hard_runtime_gates": [
+                {"condition": "Disposer de l'accès à la dimension"},
+                {"quest_id": 404},
+            ],
+            "profession_gates": [{"label": "Alchimiste niveau 50"}],
+        }
+        card = {
+            "manual_stage_id": "stage:gate",
+            "_manual_stage_payload": zlib.compress(
+                json.dumps(stage, ensure_ascii=False).encode("utf-8")
+            ),
+        }
+        before = set(card)
+        claims = card_claims(card)
+        self.assertEqual(set(card), before)
+        self.assertIn(
+            ("Prérequis", "Disposer de l'accès à la dimension", None),
+            [(c.category, c.name, c.quantity) for c in claims],
+        )
+        self.assertIn(
+            ("Métiers", "Alchimiste niveau 50", None),
+            [(c.category, c.name, c.quantity) for c in claims],
+        )
+        self.assertFalse(any(c.name == "404" for c in claims))
+
     def test_global_chapter_inventory_survives_anchor_card_completion(self):
         first = {
             "manual_stage_id": "INC-00",

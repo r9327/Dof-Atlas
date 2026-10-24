@@ -22,6 +22,10 @@ _COMPACT_PREPARATION_FIELDS = (
 _COMPACT_PROFESSION_FIELDS = (
     "profession", "professions", "profession_gates", "jobs",
 )
+_COMPACT_GATE_FIELDS = (
+    "conditions", "runtime_conditions", "runtime_gate",
+    "runtime_gates", "hard_runtime_gates", "hard_gates",
+)
 
 
 def _compact_data(payload: Any, expected_type: type) -> Any | None:
@@ -70,6 +74,8 @@ def _positive_int(value: Any) -> int | None:
 def category_for(name: str, kind: str = "") -> str:
     category = normalized_name(kind)
     label = normalized_name(name)
+    if category in {"prerequis", "prerequisite", "gate", "condition"}:
+        return "Prérequis"
     if category in {"metier", "metiers", "profession"}:
         return "Métiers"
     if "pierre d ame" in label or "soul stone" in label:
@@ -106,6 +112,30 @@ def _structured_entries(raw: Any, *, origin: str = "") -> Iterable[dict[str, Any
             continue
         if isinstance(child, (dict, list, tuple)):
             yield from _structured_entries(child, origin=source or key)
+
+
+def _gate_labels(raw: Any) -> Iterable[str]:
+    """Yield only human-readable authored constraints; never invent an ID's name."""
+    if isinstance(raw, str):
+        text = " ".join(raw.split()).strip()
+        if text:
+            yield text
+        return
+    if isinstance(raw, (list, tuple)):
+        for row in raw:
+            yield from _gate_labels(row)
+        return
+    if not isinstance(raw, dict):
+        return
+    for key in ("label", "name", "text", "description", "requirement",
+                "condition", "warning", "policy"):
+        text = raw.get(key)
+        if isinstance(text, str) and text.strip():
+            yield " ".join(text.split())
+            return
+    for value in raw.values():
+        if isinstance(value, (list, tuple, dict)):
+            yield from _gate_labels(value)
 
 
 def _consumption(record: dict[str, Any]) -> str:
@@ -177,6 +207,11 @@ def card_claims(
                 professions.extend(value)
             elif value not in (None, "", False):
                 professions.append(value)
+        gates = []
+        for field in _COMPACT_GATE_FIELDS:
+            value = stage_source.get(field)
+            if value not in (None, "", False, [], {}):
+                gates.append(value)
         given_sections = stage_source.get("manual_sections")
         if isinstance(given_sections, dict):
             captions.extend(given_sections.get("prepare", ()) or ())
@@ -185,6 +220,7 @@ def card_claims(
                 "manual_stage_id": card.get("manual_stage_id"),
                 "a_preparer": authored_rows,
                 "profession_gates": professions,
+                "hard_runtime_gates": gates,
             },
             sections={"prepare": captions},
         )
@@ -249,6 +285,16 @@ def card_claims(
         claims.append(PreparationClaim(
             identity, None, name, "Métiers", None, "reusable",
             "profession_gates", stage, f"profession:{index}",
+        ))
+    seen_gates: set[str] = set()
+    for index, name in enumerate(_gate_labels(card.get("hard_runtime_gates", ()) or ())):
+        identity = f"gate:{normalized_name(name)}"
+        if identity in seen_gates or identity == "gate:":
+            continue
+        seen_gates.add(identity)
+        claims.append(PreparationClaim(
+            identity, None, name, "Prérequis", None, "reusable",
+            "hard_runtime_gates", stage, f"gate:{index}",
         ))
     return tuple(claims)
 

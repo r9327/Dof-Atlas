@@ -4,7 +4,7 @@
 
 Avancement de cette branche empilée sur la PR #250 :
 - Moteur pur `guide_preparation_model.py` : inventaire de besoins explicites, fusion sans doublon des sources structurées et textuelles, distinction entre quantités additives, ressources réutilisables, quantités inconnues et suggestions non certifiées ; provenance conservée.
-- Préparation Qt : aperçu sans sélection, catégories détaillées, quantité inconnue affichée comme telle, boutons Prêt ciblés par personnage avec écriture atomique sur plusieurs personnages, liste en pages de 80 éléments.
+- Préparation Qt : aperçu sans sélection, catégories détaillées (dont Prérequis non matériels), quantité inconnue affichée comme telle, boutons Prêt ciblés par personnage avec écriture atomique sur plusieurs personnages, liste en pages de 80 éléments.
 - Tests exécutés sur Windows : [30/30 PASS sur SHA e373f713](https://github.com/r9327/Dof-Atlas/actions/runs/40131037098) (11 validation multi-personnages, 14 modèle, 5 Qt). La couverture mémoire spécifique à 267 fiches compactes et 6 personnages est ajoutée sur ce nouveau SHA et reste à exécuter.
 - **Preuve disponible :** Windows ciblé 22/22 PASS au commit `ba5e001b` (Qt et modèle), mais les nouveaux cas sur `resource_plan`/6 personnages/pagination et le SHA courant restent à tester ; aucun benchmark RAM certifié ni certification finale.
 - **Correction réelle :** le `resource_plan` du chapitre (par ex. les besoins Incarnam Blé ×18, Goujon ×8, Relique d'Incarnam ×3) est alloué à la première carte ; le modèle lit les formes structurées `item`/`resource` et les groupes imbriqués, sans lire les actions candidates Ganymède.

@@ -1027,7 +1027,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         filters.setSpacing(5)
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
+        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
             button = QPushButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
@@ -1550,6 +1550,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         if selected_filter == "Tout":
             groups = (
+                ("Prérequis", lambda need: need.category == "Prérequis"),
                 ("Métiers", lambda need: need.category == "Métiers"),
                 ("Potions", lambda need: need.category == "Potions"),
                 ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
@@ -1615,9 +1616,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         total = len(need.required_by_character)
         quantity = need.required_total
-        amount = f"{quantity} ×" if quantity is not None else "? ×"
+        amount = (
+            "" if need.category in {"Prérequis", "Métiers"}
+            else f"{quantity} × " if quantity is not None else "? × "
+        )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
-        label = QLabel(f"{amount} {need.name} — {status}")
+        label = QLabel(f"{amount}{need.name} — {status}")
         label.setToolTip(" ; ".join(need.sources[:8])
                          or "Quantité ou provenance à confirmer")
         label.setObjectName("GuidePreparationRowLabel")

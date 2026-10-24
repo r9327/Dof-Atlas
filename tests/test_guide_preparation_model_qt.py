@@ -149,6 +149,27 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(set(card), initial_keys)
         self.assertFalse(self.path.exists())
 
+    def test_non_material_gates_have_filter_and_no_fake_quantity(self):
+        self.participants.save_selected_keys(("character:1",))
+        self.service.cards[0]["hard_runtime_gates"] = [
+            {"condition": "Être niveau 100"},
+        ]
+        view = self._view()
+        gates = [x for x in view._preparation_needs if x.category == "Prérequis"]
+        self.assertEqual(len(gates), 1)
+        self.assertIsNone(gates[0].required_total)
+        prereq_filter = next(
+            b for b in view.preparation_filter_group.buttons()
+            if b.property("filterKey") == "Prérequis"
+        )
+        prereq_filter.click()
+        QApplication.processEvents()
+        text = " ".join(
+            row.text() for row in view.preparation_panel.findChildren(QLabel)
+        )
+        self.assertIn("Être niveau 100", text)
+        self.assertNotIn("? × Être niveau 100", text)
+
     def test_readonly_without_selected_character(self):
         self.participants.save_selected_keys(())
         view = self._view()
