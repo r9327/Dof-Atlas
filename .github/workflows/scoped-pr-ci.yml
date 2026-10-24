@@ -1,6 +1,11 @@
 name: Scoped PR Feedback
 
 on:
+  # Cheap stdlib smoke while PRs are Draft. Ready certification remains owned
+  # exclusively by Phase Certification (no new Windows FULL/specialist run).
+  pull_request:
+    branches: [main, phase8/peak250-guide-worker-v1]
+    types: [opened, synchronize, reopened, converted_to_draft]
   workflow_dispatch:
     inputs:
       base_ref:
@@ -12,18 +17,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: dof-atlas-scoped-pr-${{ github.event.pull_request.number }}
+  group: dof-atlas-scoped-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
-  CANDIDATE_SHA: ${{ github.sha }}
-  BASE_SHA: ${{ inputs.base_ref }}
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.base_ref }}
 
 jobs:
   plan:
     name: PR / Stdlib Scope Plan
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == true
     runs-on: ubuntu-latest
     timeout-minutes: 8
     outputs:
@@ -54,6 +60,13 @@ jobs:
           # Run exact test files without importing tests/__init__.py (which starts Qt).
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_scope_gate.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_dev_tests.py'
+          # No Qt, no downloads and no duplicate FULL: catch policy and
+          # observer regressions before an expensive Ready-for-review run.
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_pr_audit.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_timing_observer.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_required_certification.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_phase_certification_guardrails.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_phase8_memory_tolerance.py'
 
       - name: Classify scope fail closed without installing PySide6
         id: scope
@@ -93,7 +106,9 @@ jobs:
 
   windows:
     needs: plan
-    if: needs.plan.outputs.run_scoped == 'true'
+    # Draft signal is deliberately stdlib-only; the opt-in dispatch retains
+    # its existing Windows targeted behavior. Ready keeps all mandatory gates.
+    if: needs.plan.outputs.run_scoped == 'true' && github.event_name == 'workflow_dispatch'
     name: PR / Windows Scoped Tests
     runs-on: windows-latest
     timeout-minutes: 15
