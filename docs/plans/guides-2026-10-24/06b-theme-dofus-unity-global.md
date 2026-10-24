@@ -1,7 +1,7 @@
 # Complément demandé le 24/10/2026 — thème intégral DOFUS Unity pour Atlas
 
 
-> **Mise à jour des sources réelles (24/10/2026, commit `f17b4724`) :** le dépôt contient maintenant l'archive du **fond original**, neuf sous-archives ZIP regroupant les **103 PNG originaux** réellement transmis, et le ZIP de sélection avec manifeste/aperçu/script. Voir `docs/design/dofus-unity/README.md`. Les **47 sprites UI précis** du manifeste et les **10 fichiers TTF** restent absents du dépôt : ils sont sur le PC de l'utilisateur et nécessitent un import distinct. Les ZIPs déjà présents ne sont pas encore utilisés par le runtime. Les mentions ci-dessous « non versionnée ici » décrivent l'état initial de la préparation avant ce commit.
+> **Mise à jour des sources réelles (24/10/2026, commit `f17b4724`) :** le dépôt contient maintenant l'archive du **fond original**, neuf sous-archives ZIP regroupant les **103 PNG originaux** réellement transmis, et le ZIP de sélection avec manifeste/aperçu/script. Voir `docs/design/dofus-unity/README.md`. Les **47 sprites UI précis** du manifeste, les **10 fichiers TTF** et le **fond PNG individuel** ont ensuite été importés dans `app/assets/themes/dofus_unity` (voir section H). Les ZIPs déjà présents ne sont pas encore utilisés par le runtime. Les mentions ci-dessous « non versionnée ici » décrivent l'état initial de la préparation avant ce commit.
 
 > **À réaliser dans la PR #254 existante, sans supprimer ni réécrire les fonctionnalités déjà implémentées.** Ce document est une spécification versionnée, PAS la preuve que le thème est intégré. Le fond original et 103 PNG extraits sont joints à la branche en ZIP ; les 47 PNG spécifiques de boutons/cadres et les 10 TTF restent sur le PC utilisateur, non joints. Les archives existantes ne sont pas intégrées au runtime. Aucune certification Windows ou preuve de rendu n'est attestée ici.
 
@@ -22,7 +22,7 @@ La branche `plan/guides-20261024-06-accueil-guides-bibliotheque` contient déjà
 - DOFUS Unity installé sous `%LOCALAPPDATA%\Ankama\Dofus-dofus3`.
 - `Picto/UI` : 44/44 bundles traités, 8 537 PNG.
 - cinq bundles d'UI : `uiassets_assets_.bundle`, `uiassets_assets_1x.bundle`, `uiassets_assets_2x.bundle`, `uidarkstone_assets_all.bundle`, `uielements_assets_all.bundle`.
-- Extraction ciblée `--force-object` : **3 359 PNG et 10 TTF** déclarés par l'utilisateur, et **47 candidats visuels** présélectionnés dans `Atlas_UI_Manifest_Cible.csv` (le manifeste des 47 noms est désormais versionné dans `06b-dofus-unity-asset-manifest.csv`, mais les 47 PNG originaux et les 10 TTF ne sont PAS encore dans Git). La sélection visuelle et les ZIP de référence de la conversation ne remplacent pas ces 47 PNG originaux, distincts des 103 PNG déjà archivés.
+- Extraction ciblée `--force-object` : **3 359 PNG et 10 TTF** déclarés par l'utilisateur, et **47 candidats visuels** présélectionnés dans `Atlas_UI_Manifest_Cible.csv` (le manifeste des 47 noms est désormais versionné dans `06b-dofus-unity-asset-manifest.csv`, mais les 47 PNG originaux et les 10 TTF SONT maintenant dans Git (section H)). La sélection visuelle et les ZIP de référence de la conversation ne remplacent pas ces 47 PNG originaux, distincts des 103 PNG déjà archivés.
 - Catégories observées : boutons normal / over / pressed / disabled, cases normales/sélectionnées, onglets, bordures et ombres de fenêtres, icônes de navigation.
 
 **Police :** dix ressources extraites : `Lexend-Regular/Medium/SemiBold/Bold`, `Rowdies-Regular`, `LexendDeca-Regular`, `LexendGiga-Regular`, `NotoSans-Medium`, `NotInter-Regular`, `Roboto-MediumItalic`. Leur présence est confirmée ; **l'affectation exacte par écran est à vérifier**. Recommandation Atlas : Lexend pour contrôles/texte, Rowdies pour titres expressifs parcimonieux, variantes spécialisées au besoin. Ne jamais distribuer les TTF extraits du jeu sans vérification de licence/droits ; préférer les distributions officielles redistribuables des polices lorsqu'elles existent.
@@ -96,4 +96,14 @@ Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composan
 
 ## G. État de réalisation au moment de l'ajout
 
-**Spécification intégrée à #254 ; fond + 103 PNG sources archivés dans Git, 47 sprites prioritaires + 10 polices TTF encore absents ; thème global NON implémenté dans le runtime ; droits de redistribution non validés ; aucune certification finale.** Ne pas marquer cette section « terminée » en confondant l'inventaire fait sur le PC de l'utilisateur et l'intégration Windows / Git du thème.
+**Spécification intégrée à #254 ; fond PNG original, 47 sprites ciblés et 10 polices TTF présents dans Git (section H) ; thème global NON implémenté dans le runtime ; droits de redistribution non validés ; aucune certification finale.** Ne pas marquer cette section « terminée » en confondant l'inventaire fait sur le PC de l'utilisateur et l'intégration Windows / Git du thème.
+
+
+## H. Livraison des sources originales — 24/10/2026 (à jour)
+
+- **47 PNG sur 47 importés individuellement dans Git** en `app/assets/themes/dofus_unity/sprites` (46 textures utilisables) et `app/assets/themes/dofus_unity/references/logoDofus.png` (identité de référence uniquement). Commit `756c2b02c192f3f8bd9a321934a752c45548f8a9`.
+- **10 TTF sur 10 importés individuellement** sous `app/assets/themes/dofus_unity/fonts`. Commit `518924be8518fc48b264d7fa750238322a5ef836`.
+- **Capture originale de fond PNG** également importée comme fichier individuel : `app/assets/themes/dofus_unity/background_selection_original.png`, SHA-256 `3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb`. Commit `4c2c9b9deeb103093b4a193a9ac00ef73c75d661`.
+- Contrôle ZIP `Atlas-UI-Selection-Originale.zip` : 47 PNG, 10 TTF, 1 CSV, archive sans erreur CRC. Contrôle GitHub par lecture des blobs : `btn_green_normal.png`, `Lexend-Regular.ttf`, `Rowdies-Regular.ttf`, `logoDofus.png` et fond original, SHAs conformes.
+- **Fichiers intégrés ≠ thème appliqué :** aucun branchement global QSS/Qt/WebView, aucun retrait des trois icônes du fond ni test Doctor/Windows réalisé à ce stade. Conserver la PR en brouillon.
+- **Droits :** les familles de polices existent sous licence OFL en amont, mais les copies précises extraites du jeu, les sprites, le logo et la capture ne sont pas présumés libres. Ne pas produire ni publier de release réutilisant ces fichiers avant revue de licence/autorisations ; voir `app/assets/themes/dofus_unity/README.md`.
