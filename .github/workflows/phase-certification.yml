@@ -503,6 +503,27 @@ jobs:
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
 
+      - name: Preserve preflight failure or timeout evidence
+        if: always() && github.event_name == 'pull_request' && steps.route.outputs.run_full == 'true' && steps.diff_preflight.outcome != 'success'
+        shell: pwsh
+        run: |
+          $target = "artifacts/phase_certification/02b_diff_preflight.json"
+          if (-not (Test-Path -LiteralPath $target)) {
+            New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
+            [ordered]@{
+              schema_version = 1
+              candidate_sha = $env:CANDIDATE_SHA
+              base_ref = $env:CERT_BASE_REF
+              group = "DIFF_TARGETS"
+              preflight_only = $true
+              full_suite_executed = $false
+              phase_certified = $false
+              status = "INCOMPLETE_OR_FAILED"
+              github_step_outcome = "${{ steps.diff_preflight.outcome }}"
+              reason = "Early regression preflight did not complete successfully (including timeout/skip)."
+            } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $target -Encoding utf8
+          }
+
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
