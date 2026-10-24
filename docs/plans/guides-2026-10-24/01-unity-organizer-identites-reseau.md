@@ -51,6 +51,22 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] **Contrôles fonctionnels futurs :** Feca hors ligne classe correcte ; deux personnages au même nom mais aux classes contradictoires = absence d'attribution ; écran Guide initialement vide puis identité validée par le réseau = apparition sans redémarrage ; personnage disparu/revenu sans faux changement de compte.
 - [ ] **Interdiction de développement à ce stade :** ce point est un diagnostic de planification et ne correspond pas à un correctif intégré. Toute implémentation devra attendre le lancement explicite des travaux.
 
+## Verrous de passage et scénarios transversaux (préparation)
+
+**Entrées vérifiées avant correction :** `scan_unity_sessions` (`app/windows_embed.py`) renvoie `nom`/ `detected_title` tronqués aux deux premiers segments, HWND/PID, mais ne conserve pas le `raw_title` original dans le dictionnaire exposé. `uniquify_session_names` ajoute un suffixe d'affichage aux doublons ; ce suffixe ne doit pas contaminer l'identité. `Organizer.export_client_index` (`character_sessions.py`) produit `character_name`, `class_key`, `character_key`, PID/HWND et rang. `GuideParticipantService.available_characters` lit les identités connues, y compris hors ligne. `quest_character_cache` perd actuellement `class_key` lors de ses copies, correction planifiée mais **non appliquée**.
+
+**Arbre de cas à documenter pendant l'implémentation :**
+- [ ] Scénario U1 : 1 client nommé et reconnu par capture réseau ; portrait et sélection en ligne ; fermer sa fenêtre => même identité hors ligne, aucun destinataire de déplacement.
+- [ ] U2 : 2 clients portant le même nom, ou le même PID à des instants différents ; ne pas attribuer le mauvais `character_key`.
+- [ ] U3 : nom de fenêtre changé par release / fenêtre « Dofus » générique puis corrigée ; identité et classe préservées si preuves concordantes, pas de boucle de retry infinie.
+- [ ] U4 : registre des bindings modifié seul, sans changement du fichier client_index => rafraîchissement du Guide sans redémarrer, avec cache de classe mis à jour.
+- [ ] U5 : aucune fenêtre, Npcap indisponible ou SHA sans mapping exact => lecture et suivi manuel disponibles, **aucune auto-complétion** ; motif exploitable dans le diagnostic.
+- [ ] U6 : redémarrer Atlas avec favoris, ordre, sélection des personnages, iconographie et compte principal enregistrés ; les données personnelles ne se mélangent pas.
+
+**Découplage non négociable :** cette PR répare les producteurs d'identités/réseau et l'affichage des portraits, pas les règles de validation des fiches de la PR #250. Si un mapping Unity ne peut pas être prouvé sur le PC équipé du client réel, laisser le sous-objectif réseau **BLOQUÉ**, ne pas fabriquer un test PASS ni retenir les autres PR de cadrage en otage.
+
+**Recevabilité :** les tests `test_character_pid_ownership.py`, `test_character_binding_recovery.py`, `test_character_class_icon_resolution.py`, `test_quest_character_cache.py`, `test_encyclopedia_character_refresh_cache.py`, `test_guide_participant_service.py` et les contrats réseau sélectionnés passent ; les preuves nécessitant le PC Windows portent leur propre statut. Aucune CI lancée pendant cette préparation.
+
 ## Processus de livraison
 - [ ] Cette PR est ouverte en brouillon pour CADRAGE : ce commit ne contient aucun correctif applicatif et ne doit pas être fusionné seul.
 - [ ] Développer les PR dans l'ordre des dépendances, UNE SEULE à la fois. Avant chaque lot, repartir de main actualisé, vérifier HEAD et git status, ne pas intégrer la branche accidentelle non validée.
