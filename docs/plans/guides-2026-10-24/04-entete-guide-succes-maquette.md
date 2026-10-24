@@ -37,6 +37,14 @@
 - [ ] Vérifier tailles, bounding boxes, zones cliquables, chevauchements, proportion du cercle et gain réel de hauteur ; 0/1/n personnages.
 - [ ] Tests ciblés guide_ultime_manual_ui_navigation, lanyel_shared_manual_ui, doctor_ui_qt et captures UI Windows ; pas de changement de contenu.
 
+## Vérification exhaustive de la référence visuelle (screenshot validé)
+- [ ] L'anneau général est **avant toute navigation, progression et action**, à gauche du titre et des trois barres ; il prend visuellement la hauteur d'environ deux rangées, sans grossir toute la barre supérieure.
+- [ ] **Mes personnages** est le contrôle le plus à droite de la troisième rangée ; `Préparation` est à gauche et `Sommaire` au centre, sans bouton à menu déroulant substitué aux vrais panneaux.
+- [ ] Ne pas déplacer le grand anneau à droite du titre ni ajouter une autre progression ronde à la fiche : **un seul cercle général** pour tout l'en-tête.
+- [ ] Première rangée compacte : `Guide Succès`, `Fiche X`, `Actuelle`, `Overlay`, `Paramètres` ; boutons Overlay et Paramètres vraiment au bout, pas de grand espace vide ni de bouton caché à une quatrième rangée.
+- [ ] Tester les états panneaux ouverts, longueurs de titres, texte zoomé, Windows DPI et largeur actuelle de l'application ; aucune action cliquable perdue ni fuite de taille.
+- [ ] Ne pas substituer une image générée, une maquette approximative ou un faux QWidget à la **capture du runtime Qt réel** ; les vérifications visuelles ne s'appliquent qu'à l'en-tête, jamais aux fiches sous celui-ci.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
