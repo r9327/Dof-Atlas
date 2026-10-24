@@ -55,6 +55,7 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.logging_setup import configure_logging
+from app.validation_log import record_validation
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
@@ -1032,6 +1033,10 @@ class AtlasWindow(QMainWindow):
         connected_characters = self._connected_characters(known_characters)
         known_by_key = {character.key: character for character in known_characters}
         self.characters = connected_characters
+        record_validation("shell_characters", known=len(known_characters),
+                          connected=len(connected_characters),
+                          with_verified_class=sum(bool(character.class_key)
+                                                  for character in connected_characters))
 
         selected_index = next(
             (
