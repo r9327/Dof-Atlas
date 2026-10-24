@@ -83,7 +83,10 @@ jobs:
       - name: Test routing failure boundaries
         shell: bash
         run: |
-          python -m unittest -v tests.test_doctor_ci_orchestrator tests.test_ci_pr_audit tests.test_ci_timing_observer
+          # Discover -s tests avoids importing tests/__init__.py (which starts Qt).
+          python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v
+          python -m unittest discover -s tests -p test_ci_pr_audit.py -v
+          python -m unittest discover -s tests -p test_ci_timing_observer.py -v
       - name: Determine required CI from exact Git diff
         id: plan
         shell: bash
