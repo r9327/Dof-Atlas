@@ -164,7 +164,8 @@ jobs:
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
-         (github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+         (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
+          github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
            github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
@@ -292,6 +293,8 @@ jobs:
           }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Smoke frozen capture helper imports without UAC or network
+        run: dist/AtlasApp/AtlasApp.exe --atlas-capture-smoke
       - name: Smoke real frozen quest parser before accepting a Release
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Smoke real frozen Guides and Guide-item indexes

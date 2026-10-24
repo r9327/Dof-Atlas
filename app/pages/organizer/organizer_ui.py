@@ -39,6 +39,7 @@ from .common import (
     SESSION_SLOT_COUNT,
     STOP_BUTTON_HEIGHT,
     class_icon_candidates,
+    dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
     session_is_detected,
@@ -569,6 +570,12 @@ class OrganizerUiMixin:
                 {},
             )
             class_key = str(verified_row.get("class_key") or "").strip().casefold()
+            verified_class = class_key in DOFUS_CLASS_DEFINITIONS
+            if not verified_class:
+                # Cosmetic hint only: a visible Unity window can show its
+                # class portrait before network proof exists. Never promote
+                # this title-derived class into a progression identity.
+                class_key = dofus_class_key_from_window_name(name) or ""
             if class_key not in DOFUS_CLASS_DEFINITIONS:
                 class_key = ""
             icon_path = next(
@@ -582,7 +589,10 @@ class OrganizerUiMixin:
                 pixmap = pixmap.scaled(22, 22, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 icon.setPixmap(pixmap)
             if class_key:
-                icon.setToolTip(DOFUS_CLASS_DEFINITIONS[class_key]["label"])
+                label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
+                icon.setToolTip(
+                    label if verified_class else f"{label} (titre Unity, non vérifié)"
+                )
             icon.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(icon, index, row)
             layout.addWidget(icon)

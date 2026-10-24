@@ -118,16 +118,15 @@ def launch_elevated_capture_helper(
 ) -> ElevatedHelperProcess:
     if os.name != "nt":
         raise NetworkCaptureStartError("capture_windows_only")
+    # A PyInstaller EXE is not a Python interpreter: -B -m would open
+    # another Atlas GUI rather than starting the IPC capture worker.
+    prefix = (
+        ("--atlas-capture-helper",)
+        if getattr(sys, "frozen", False)
+        else ("-B", "-m", "app.network.capture_helper")
+    )
     parameters = subprocess.list2cmdline(
-        (
-            "-B",
-            "-m",
-            "app.network.capture_helper",
-            "--port",
-            str(int(port)),
-            "--token",
-            str(token),
-        )
+        (*prefix, "--port", str(int(port)), "--token", str(token))
     )
     info = _ShellExecuteInfoW()
     info.cbSize = ctypes.sizeof(info)

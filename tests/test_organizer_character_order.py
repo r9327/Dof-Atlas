@@ -335,7 +335,7 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                 self.assertIn("identité ambiguë", statuses[-1])
 
 
-    def test_organizer_class_tooltip_requires_verified_character(self):
+    def test_organizer_portrait_hint_does_not_claim_verified_character(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             bindings = root / "network_character_bindings.json"
@@ -346,7 +346,13 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                 )
                 page.render_sessions()
                 labels = page.sessions_panel.findChildren(QLabel)
-                self.assertNotIn("Feca", [label.toolTip() for label in labels])
+                self.assertIn(
+                    "Feca (titre Unity, non vérifié)",
+                    [label.toolTip() for label in labels],
+                )
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]), ""
+                )
 
                 bindings.write_text(
                     json.dumps({"characters": {"7": {
