@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "8dac36de4651e8ee6af9625e03266a0b4f46dbf6",
+      "sha": "8761bc726674f45423227609dd806df746eda8ae",
       "type": "tree"
     },
     ".gitignore": {
