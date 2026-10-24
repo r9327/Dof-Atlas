@@ -9,6 +9,8 @@ on:
       - 'tests/test_guide_preparation_model.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'app/pages/craft_page.py'
+      - 'tests/test_craft_minimal_lazy.py'
 
 permissions:
   contents: read
@@ -60,15 +62,18 @@ jobs:
           } else {
             Write-Host "Preparation model not part of this candidate; skipped by scope."
           }
-      - name: Isolated Qt preparation and atomic Ready tests if present
+      - name: Read-only preparation Qt preview if present
         shell: pwsh
         run: |
-          if (Test-Path -LiteralPath "tests/test_guide_preparation_model_qt.py") {
-            python -X faulthandler -m unittest -v tests.test_guide_preparation_model_qt
+          if (Select-String -LiteralPath "tests/test_lanyel_shared_manual_ui.py" -Pattern "def test_preparation_without_selected_characters_is_read_only" -Quiet) {
+            python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_preparation_without_selected_characters_is_read_only
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } else {
-            Write-Host "Focused preparation Qt test not in this candidate."
+            Write-Host "Preparation preview Qt case absent from this candidate."
           }
+      - name: Reconstructible Craft release regression
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy
       - name: Provenance summary
         if: always()
         shell: pwsh

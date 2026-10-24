@@ -5,6 +5,7 @@ on:
     types: [synchronize]
     paths:
       - '.github/workflows/guides-final-phase8-memory.yml'
+      - 'app/pages/craft_page.py'
   workflow_dispatch:
 
 permissions:
