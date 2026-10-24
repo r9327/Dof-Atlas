@@ -1392,6 +1392,18 @@ class GuidesView(QWidget):
         self.detail_header_done_button.setFocusPolicy(Qt.NoFocus)
         self.detail_header_done_button.clicked.connect(self.toggle_current_quest_completed)
         header_layout.addWidget(self.detail_header_done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
+        # The classical detail's right column can be collapsed without
+        # touching the locked left-column splitter handle.
+        self._right_panel_collapsed = False
+        self._right_panel_saved_width = 230
+        self._right_panel_scroll_position = 0
+        self.right_panel_toggle = QToolButton()
+        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
+        self.right_panel_toggle.setText("›")
+        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
+        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
+        header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.detail_header)
 
         self.breadcrumb = QFrame()
@@ -1414,7 +1426,7 @@ class GuidesView(QWidget):
 
         self.left_panel.setMinimumWidth(GUIDE_STEPS_OPEN_WIDTH)
         self.left_panel.setMaximumWidth(GUIDE_STEPS_OPEN_WIDTH)
-        self.right_panel.setMinimumWidth(220)
+        self.right_panel.setMinimumWidth(0 if self._right_panel_collapsed else 220)
         self.center_panel.setMinimumWidth(260)
 
         self.splitter.addWidget(self.left_panel)
@@ -1734,6 +1746,7 @@ class GuidesView(QWidget):
         clear_layout(self.right_layout)
         self.left_panel.setVisible(False)
         self.right_panel.setVisible(False)
+        self.right_panel_toggle.setVisible(False)
         self.center_panel.setVisible(True)
         self.center_panel.setMinimumWidth(340)
         self.splitter.setStretchFactor(1, 1)
@@ -2260,13 +2273,47 @@ class GuidesView(QWidget):
         self.expanded_chapters[guide.id] = {ref[1].id}
         self.show_guide_overview(guide.id, preserve_scroll=False)
 
+    def _toggle_right_panel(self) -> None:
+        """Explicit right-column rail: preserve width and scroll across guides."""
+        sizes = self.splitter.sizes()
+        if not self._right_panel_collapsed:
+            if len(sizes) == 3 and sizes[2] > 0:
+                self._right_panel_saved_width = max(220, sizes[2])
+            self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
+            self._right_panel_collapsed = True
+        else:
+            self._right_panel_collapsed = False
+        self._apply_right_panel_visibility()
+
+    def _apply_right_panel_visibility(self) -> None:
+        hidden = self._right_panel_collapsed
+        self.right_panel.setMinimumWidth(0 if hidden else 220)
+        self.right_panel.setVisible(not hidden)
+        self.right_panel_toggle.setText("‹" if hidden else "›")
+        caption = ("Réafficher la colonne d'informations" if hidden
+                   else "Masquer la colonne d'informations")
+        self.right_panel_toggle.setToolTip(caption)
+        self.right_panel_toggle.setAccessibleName(caption)
+        sizes = self.splitter.sizes()
+        if len(sizes) == 3:
+            left, center, right = sizes
+            if hidden:
+                self.splitter.setSizes([left, center + right, 0])
+            else:
+                width = max(220, self._right_panel_saved_width)
+                self.splitter.setSizes([left, max(260, center - width), width])
+                self.right_scroll.verticalScrollBar().setValue(
+                    self._right_panel_scroll_position
+                )
+
     def _configure_detail_layout(self, guide: Guide, quest_detail: bool) -> None:
         if quest_detail:
             self.detail_stack.setCurrentWidget(self.quest_detail_view)
             return
         self.detail_stack.setCurrentWidget(self.splitter)
         self.center_panel.setVisible(True)
-        self.right_panel.setVisible(True)
+        self.right_panel_toggle.setVisible(True)
+        self.right_panel.setVisible(not self._right_panel_collapsed)
         show_steps = self._guide_uses_steps_column(guide) and not quest_detail
         self.left_panel.setVisible(show_steps)
         if not show_steps:
@@ -2276,12 +2323,12 @@ class GuidesView(QWidget):
             self.left_panel.setMinimumWidth(0)
             self.left_panel.setMaximumWidth(0)
             self.center_panel.setMinimumWidth(340)
-            self.right_panel.setMinimumWidth(220)
+            self.right_panel.setMinimumWidth(0 if self._right_panel_collapsed else 220)
             self.splitter.setSizes([0, 560, 230])
             return
         self.left_panel.setVisible(True)
         self.center_panel.setMinimumWidth(260)
-        self.right_panel.setMinimumWidth(220)
+        self.right_panel.setMinimumWidth(0 if self._right_panel_collapsed else 220)
         if self.steps_collapsed:
             self.left_panel.setMinimumWidth(GUIDE_STEPS_COLLAPSED_WIDTH)
             self.left_panel.setMaximumWidth(GUIDE_STEPS_COLLAPSED_WIDTH)
