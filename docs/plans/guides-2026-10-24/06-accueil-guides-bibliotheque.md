@@ -42,6 +42,21 @@
 - [ ] Les 95 entrées source non jouables peuvent rester consultables de manière informative, mais jamais sous forme de boutons de lancement trompeurs ; signaler clairement la disponibilité réelle du guide sans texte technique inutile.
 - [ ] Vérifier l'accueil dans l'EXE Windows réel après passage accueil → Guide → retour catalogue, en contrôlant la destruction de la vue riche pour éviter l'accumulation de RAM.
 
+## Contrat de catalogue et cycle de vie (préparation)
+
+**Composants actifs identifiés :** `GuideCatalogView` affiche aujourd'hui **quatre** `FeaturedGuideCard` ; `GuideHomeColumns` organise une liste de catégories à gauche et le catalogue Dofus à droite ; `GuideCardDelegate` peint une liste virtuelle `QListView`. `EncyclopediaPage._restore_guides_catalog_home` remplace la vue riche par la légère au retour. Conserver cette stratégie pour respecter la RAM.
+
+**Épreuves précises :**
+- [ ] A1 : exactement **deux** cartes principales Guide Succès Opti / Sylvestre Opti, tailles égales, toute surface sélectionnable (pas seulement un bouton « Ouvrir »), retour visuel clavier/souris.
+- [ ] A2 : Bonta/Brâkmar sous Alignements, catégorie retrouvable au clavier, pas de doublon dans les grandes cartes ; Dofus, Dimensions, Éliocalypse, Régions, Événements, Îles et Autres accessibles selon statut réel.
+- [ ] A3 : sans recherche globale Encyclopédie ni filtre « Tous/En cours/Terminés » inutile, **les recherches internes de Quêtes, Succès et Sommaire restent utilisables**. Vérifier les connexions des signaux avant retrait.
+- [ ] A4 : 0 guide jouable dans une catégorie => véritable état vide compréhensible ; source Ganymède indexée sans drapeau jouable => affichage informatif seulement, aucun lancement factice.
+- [ ] A5 : grille Dofus symétrique à 3 largeurs de fenêtre et écran DPI Windows différent ; ne pas faire disparaître un item derrière `GuideHomeColumns`.
+- [ ] A6 : cliquer 30 fois accueil → guide → accueil => aucune multiplication de QWidget/caches/images, mémoire stable dans le budget du parcours concerné ; les données non sélectionnées restent non matérialisées.
+- [ ] A7 : catalogue avant/après apparition d'un personnage vérifié, personnage hors ligne et changement de guide => bonne source de progression, aucun « 0 % » affiché comme preuve lorsque total inconnu.
+
+**Sélection de tests :** `test_guide_library_home.py`, `test_guide_home_two_columns.py`, `test_guide_home_async_images.py`, `test_guide_home_image_cache_budget.py`, `test_guide_image_memory_policy.py`, `test_doctor_ui_qt.py`. Distinguer les tests de l'ancien `GuidesView` de ceux du catalogue léger effectivement affiché.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
