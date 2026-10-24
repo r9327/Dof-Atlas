@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 
 from app.constants import KEY_DEBUG_MODE, KEY_PRIMARY_WINDOW, KEY_SESSION_ORDER
 import app.pages.organizer_page as organizer
@@ -331,6 +331,32 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
 
                 self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
                 self.assertIn("identité ambiguë", statuses[-1])
+
+
+    def test_organizer_class_tooltip_requires_verified_character(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            with self.organizer_page(root) as (page, _profile, _client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alice - Feca", "hwnd": 101, "pid": 202}]
+                )
+                page.render_sessions()
+                labels = page.sessions_panel.findChildren(QLabel)
+                self.assertNotIn("Feca", [label.toolTip() for label in labels])
+
+                bindings.write_text(
+                    json.dumps({"characters": {"7": {
+                        "name": "Alice", "class_key": "feca", "pid": 202,
+                        "source": "verified_network_identity",
+                    }}}),
+                    encoding="utf-8",
+                )
+                page.render_sessions()
+                labels = page.sessions_panel.findChildren(QLabel)
+                self.assertIn("Feca", [label.toolTip() for label in labels])
+
 
 
 if __name__ == "__main__":
