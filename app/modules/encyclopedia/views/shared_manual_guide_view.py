@@ -185,12 +185,12 @@ class _ParticipantPortraitButton(QToolButton):
         self,
         character_key: str,
         *,
-        progress: int,
+        progress: int | None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.character_key = str(character_key)
-        self.progress = max(0, min(100, int(progress)))
+        self.progress = None if progress is None else max(0, min(100, int(progress)))
         self.setObjectName("GuideParticipantPortrait")
         self.setCheckable(True)
         self.setFixedSize(42, 42)
@@ -209,11 +209,12 @@ class _ParticipantPortraitButton(QToolButton):
         pen = QPen(color, 3)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
-        painter.drawArc(
-            self.rect().adjusted(2, 2, -2, -2),
-            90 * 16,
-            -round(360 * 16 * self.progress / 100),
-        )
+        if self.progress is not None:
+            painter.drawArc(
+                self.rect().adjusted(2, 2, -2, -2),
+                90 * 16,
+                -round(360 * 16 * self.progress / 100),
+            )
 
 
 class SharedGuideManualCard(GuideUltimeManualCard):
@@ -1168,9 +1169,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                     button.style().standardIcon(QStyle.SP_DirHomeIcon)
                 )
             status = "en ligne" if character.connected else "hors ligne"
+            progress_label = f"{progress} %" if progress is not None else "progression inconnue"
             button.setToolTip(
                 f"{character.label} · {class_label or 'classe inconnue'} · "
-                f"{progress} % · {status}"
+                f"{progress_label} · {status}"
             )
             button.setAccessibleName(character.label)
             button.toggled.connect(
@@ -1205,12 +1207,12 @@ class SharedGuideManualView(GuideUltimeManualView):
                 return str(path), label
         return "", label
 
-    def _participant_progress(self, character_key: str) -> int:
+    def _participant_progress(self, character_key: str) -> int | None:
         try:
             completed, total = self.service.route_sheet_progress(character_key)
         except (AttributeError, KeyError, TypeError, ValueError):
-            return 0
-        return min(100, round(completed * 100 / total)) if total > 0 else 0
+            return None
+        return min(100, round(completed * 100 / total)) if total > 0 else None
 
     def _summary_toggled(self, opened: bool) -> None:
         self.summary_panel.setVisible(bool(opened))
@@ -1637,7 +1639,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             except (AttributeError, KeyError, TypeError, ValueError):
                 progress_rows = []
                 break
-        if progress_rows:
+        if progress_rows and all(total > 0 for _completed, total in progress_rows):
             total = max(total for _completed, total in progress_rows)
             # Common progress is the intersection of completed sheet IDs.
             # The minimum of two counts is not evidence of shared completion.
