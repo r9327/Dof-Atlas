@@ -1123,10 +1123,17 @@ class SharedGuideManualView(GuideUltimeManualView):
         from app.pages.quest_character_cache import quest_character_source_signature
 
         service = self.participant_service
+        profile_path = getattr(service, "profile_path", None)
+        client_index_path = getattr(service, "client_index_path", None)
+        binding_path = getattr(service, "binding_path", None)
+        if any(path is None for path in (profile_path, client_index_path, binding_path)):
+            # Some in-memory participant providers expose no files. Never
+            # guess a source signature or turn their absence into a UI crash.
+            return ("in_memory_participants", id(service))
         return quest_character_source_signature(
-            service.profile_path,
-            service.client_index_path,
-            binding_path=service.binding_path,
+            profile_path,
+            client_index_path,
+            binding_path=binding_path,
         )
 
     def _refresh_participants_panel(self) -> None:
