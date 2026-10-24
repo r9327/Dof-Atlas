@@ -1164,25 +1164,21 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
 
     def _participant_icon(self, character) -> tuple[str, str]:
-        try:
-            from app.pages.organizer.common import (
-                DOFUS_CLASS_DEFINITIONS,
-                class_icon_path_for_window_name,
-                dofus_class_key_for_character_name,
-                dofus_class_key_from_window_name,
-            )
+        """Render portraits from the verified identity, never a window-name guess."""
+        from app.pages.organizer.common import (
+            DOFUS_CLASS_DEFINITIONS,
+            class_icon_candidates,
+        )
 
-            class_key = (
-                dofus_class_key_for_character_name(character.label)
-                or dofus_class_key_from_window_name(character.label)
-            )
-            path = class_icon_path_for_window_name(character.label)
-            label = str(
-                DOFUS_CLASS_DEFINITIONS.get(class_key or "", {}).get("label", "")
-            )
-            return (str(path) if path is not None else "", label)
-        except (ImportError, OSError, TypeError, ValueError):
+        class_key = str(getattr(character, "class_key", "") or "").strip().casefold()
+        definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
+        if not definition:
             return "", ""
+        label = str(definition["label"])
+        for path in class_icon_candidates(class_key):
+            if path.is_file():
+                return str(path), label
+        return "", label
 
     def _participant_progress(self, character_key: str) -> int:
         try:
