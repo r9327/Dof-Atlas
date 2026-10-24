@@ -52,6 +52,30 @@ class PolicyAndPassportTests(unittest.TestCase):
         report["independent_verdict"] = policy.enforce(report)
         return report
 
+    def test_independent_high_policy_rejects_metrics_forgery_and_mixed_scope(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        obligations = policy.obligations(self.root, [HIGH_SOURCE], [])
+        modules = sorted(set(obligations["required_tests"]) | REQUIRED_TESTS)
+        for module in REQUIRED_TESTS:
+            (self.root / Path(*module.split(".")).with_suffix(".py")).write_text("pass\n")
+        candidate = self.sample(scenarios=obligations, modules=modules)
+        candidate["changed_paths"] = [HIGH_SOURCE]
+        candidate["deleted_paths"] = []
+        candidate["high_smart_candidate"] = True
+        self.assertEqual(policy.enforce(candidate)["status"], "POLICY_CONFORMING")
+        for mutation in (
+            lambda p: p.update(high_smart_candidate=False),
+            lambda p: p.update(changed_paths=[HIGH_SOURCE, "app/core/json_store.py"]),
+            lambda p: p.update(deleted_paths=[HIGH_SOURCE]),
+            lambda p: p.update(test_modules=["tests.test_guide_progress_persistence"]),
+            lambda p: p["independent_policy"].update(required_metrics=["steady_rss_home"]),
+        ):
+            with self.subTest(mutation=mutation):
+                from copy import deepcopy
+                unsafe = deepcopy(candidate)
+                mutation(unsafe)
+                self.assertIn("UNSAFE_SCOPE_DOWNGRADE", policy.enforce(unsafe)["errors"])
+
     def test_scenario_registry_references_runnable_contracts(self):
         out = policy.obligations(self.root, ["app/modules/encyclopedia/widgets/__init__.py"], [])
         self.assertEqual(out["missing_contracts"], [])
