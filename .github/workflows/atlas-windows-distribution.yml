@@ -33,8 +33,9 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
       - name: Certify real runtime export without publishing
         run: |
-          # Only the essential LFS logo is necessary for the code/data mirror.
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png" --exclude=""
+          # Materialize only the tracked runtime visuals selected by the App
+          # export allowlist. Never transfer Git LFS pointer files as icons.
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/images/classes/**,data/images/breeds/**,data/images/misc/classes/**" --exclude=""
           source_sha="$(git rev-parse HEAD)"
           if test "${{ github.event_name }}" = "pull_request"; then
             test "$source_sha" = "${{ github.event.pull_request.head.sha }}"
