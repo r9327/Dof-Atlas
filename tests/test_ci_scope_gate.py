@@ -45,6 +45,10 @@ class ScopeGateTests(unittest.TestCase):
         self.assertTrue(REQUIRED_TESTS <= set(result["modules"]))
         self.assertFalse(result["certified"])
         self.assertFalse(result["full_suite_waived"])
+        with_docs = self.classify([HIGH_SOURCE, "docs/canary.md", ".ai/context_index.json"])
+        self.assertEqual(with_docs["status"], "TARGETED", with_docs["reasons"])
+        self.assertEqual(with_docs["uncovered_paths"], [])
+        self.assertTrue(REQUIRED_TESTS <= set(with_docs["modules"]))
         for paths, extra in (
             ([HIGH_SOURCE, "app/core/json_store.py"], {}),
             ([HIGH_SOURCE, "tools/ci_scope_gate.py"], {}),
