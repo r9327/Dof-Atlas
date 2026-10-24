@@ -67,6 +67,8 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_required_certification.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_phase_certification_guardrails.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_phase8_memory_tolerance.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_craft_adapter_release.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_craft_lightweight_import_boundary.py'
 
       - name: Classify scope fail closed without installing PySide6
         id: scope
