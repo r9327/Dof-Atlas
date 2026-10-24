@@ -41,6 +41,16 @@ class GuideParticipantService:
                 verified.add(character_key(raw_id))
             except ValueError:
                 continue
+        # Pre-registry verified rows stored their genuine Dofus ID under
+        # character_id; the Organizer slot itself is never used as identity.
+        slots = payload.get("slots", {}) if isinstance(payload, dict) else {}
+        for row in slots.values() if isinstance(slots, dict) else ():
+            if not isinstance(row, dict) or row.get("source") != "verified_network_identity":
+                continue
+            try:
+                verified.add(character_key(row.get("character_id")))
+            except ValueError:
+                continue
         return verified
 
     def available_characters(self) -> tuple[QuestCharacter, ...]:
