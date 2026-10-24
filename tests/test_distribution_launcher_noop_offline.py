@@ -161,6 +161,30 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         self.assertEqual(result, 0)
         window.deiconify.assert_called_once()
 
+    def test_unchanged_large_file_reports_actual_copy_progress(self):
+        import hashlib
+        from app.distribution.install import _copy_unchanged_verified
+        from app.distribution.manifest import ReleaseFile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = b"Atlas!" * 600000
+            source = root / "source.bin"
+            destination = root / "destination.bin"
+            source.write_bytes(payload)
+            marks = []
+            entry = ReleaseFile(
+                "AtlasApp/source.bin", len(payload),
+                hashlib.sha256(payload).hexdigest(),
+            )
+            _copy_unchanged_verified(
+                source, destination, entry, progress=marks.append,
+            )
+            self.assertGreater(len(marks), 1)
+            self.assertEqual(marks[-1], len(payload))
+            self.assertEqual(marks, sorted(marks))
+            self.assertEqual(destination.read_bytes(), payload)
+
     def test_failure_reveals_error_even_when_initially_hidden(self):
         result, window = self._drive([("Atlas est a jour", 96)], fail=True)
         self.assertEqual(result, 1)

@@ -264,6 +264,9 @@ def main() -> int:
         import tkinter as tk
         from tkinter import ttk
         window = tk.Tk()
+        # Hide immediately, before title/geometry and before Tk can paint a
+        # misleading updater popup on a no-op startup.
+        window.withdraw()
     except Exception:
         # A broken/missing Tk UI must not prevent access to an already installed Atlas.
         try:
@@ -283,9 +286,6 @@ def main() -> int:
     window.geometry("590x370" if choosing_install else "510x260")
     window.resizable(False, False)
     window.configure(bg="#101826")
-    if not choosing_install:
-        # No update => only the Atlas preload window will be visible.
-        window.withdraw()
     try:
         window.eval("tk::PlaceWindow . center")
     except tk.TclError:
@@ -395,6 +395,8 @@ def main() -> int:
             window.after(70, poll)
 
     if choosing_install:
+        # Show the folder picker only after its widgets are fully configured.
+        window.deiconify()
         def begin_install():
             start_button.configure(state="disabled")
             status.set("Installation en cours...")
