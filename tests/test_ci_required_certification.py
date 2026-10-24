@@ -92,6 +92,14 @@ class CertificationMergeGateTests(unittest.TestCase):
             self.assertEqual(accepted["status"], "PASS_SMART_AUTHENTICATED_NOT_FULL")
             self.assertIsNone(accepted["full_evidence_run"])
             self.assertEqual(accepted["scoped_evidence_run"], 418)
+            # The independent Doctor planner may still demand FULL for real
+            # metric dependencies; a genuine host-verified FULL must pass.
+            real_full = full_job()
+            full_record_pr = dict(record)
+            full_accepted = evaluate_merge(**args, runs=[full_record_pr],
+                                           jobs_by_run={418: [real_full]})
+            self.assertEqual(full_accepted["status"], "PASS_FULL_AUTHENTICATED")
+            self.assertEqual(full_accepted["full_evidence_run"], 418)
             for mutation in ("wrong_sha", "wrong_repo", "wrong_event", "skipped_test",
                              "real_full", "failed_job"):
                 with self.subTest(mutation=mutation):
