@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.phase8_memory_tolerance import MARGIN, classify, hard_limit
+from tools.phase8_memory_tolerance import MARGIN, classify, hard_limit, require_peak_tree_rss
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,11 +35,27 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
             with self.subTest(target=target), self.assertRaises(ValueError):
                 hard_limit(target)
 
+    def test_missing_or_inconsistent_peak_evidence_fails_closed(self):
+        self.assertEqual(require_peak_tree_rss({"peak_tree_rss_mb": 231.0}, preload_mb=95.0), 231.0)
+        for metrics in ({}, {"peak_tree_rss_mb": None},
+                        {"peak_tree_rss_mb": 0}, {"peak_tree_rss_mb": -1},
+                        {"peak_tree_rss_mb": float("nan")},
+                        {"peak_tree_rss_mb": float("inf")},
+                        {"peak_tree_rss_mb": True},
+                        {"peak_tree_rss_mb": "200"},
+                        {"peak_tree_rss_mb": 90.0}):
+            with self.subTest(metrics=metrics), self.assertRaises(ValueError):
+                require_peak_tree_rss(metrics, preload_mb=95.0)
+        with self.assertRaises(ValueError):
+            require_peak_tree_rss({"peak_tree_rss_mb": 200.0}, preload_mb=float("nan"))
+
     def test_windows_workflow_uses_common_bound_and_preserves_warnings(self):
         workflow = (ROOT / ".github/workflows/phase8-memory-benchmark.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("from tools.phase8_memory_tolerance import classify, hard_limit", workflow)
+        self.assertIn("from tools.phase8_memory_tolerance import classify, hard_limit, require_peak_tree_rss", workflow)
+        self.assertIn("peak_tree = require_peak_tree_rss(metrics, preload_mb=preload_mb)", workflow)
+        self.assertNotIn('metrics.get("peak_tree_rss_mb") or 0.0', workflow)
         self.assertIn('preload_status = classify(preload_mb, preload_target_mb)', workflow)
         self.assertIn('peak_hard_limit_mb = hard_limit(peak_target_mb)', workflow)
         self.assertIn('state = classify(measured, budget)', workflow)
