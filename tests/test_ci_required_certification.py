@@ -224,12 +224,12 @@ class CertificationMergeGateTests(unittest.TestCase):
 
     def test_zero_delimited_diff_preserves_deletions_and_type_changes(self):
         with patch("tools.ci_required_certification.subprocess.run") as mocked:
-            mocked.return_value.stdout = "D\\0docs/a.md\\0A\\0docs/b.md\\0T\\0app/link.py\\0"
+            mocked.return_value.stdout = "D\0docs/a.md\0A\0docs/b.md\0T\0app/link.py\0"
             paths, deleted = candidate_paths(BASE, HEAD)
             self.assertEqual(paths, ["docs/a.md", "docs/b.md", "app/link.py"])
             self.assertEqual(deleted, ["docs/a.md", "app/link.py"])
             self.assertIn("--no-renames", mocked.call_args.args[0])
-            mocked.return_value.stdout = "R100\\0old.py\\0new.py\\0"
+            mocked.return_value.stdout = "R100\0old.py\0new.py\0"
             with self.assertRaises(ValueError):
                 candidate_paths(BASE, HEAD)
 
