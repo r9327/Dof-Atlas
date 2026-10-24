@@ -21,8 +21,9 @@ def hard_limit(target_mb: float) -> float:
 
 def classify(measured_mb: float, target_mb: float) -> str:
     """PASS within target, WARNING within +5%, FAIL beyond or invalid."""
-    measured = float(measured_mb)
-    if not isfinite(measured) or measured < 0:
+    try:
+        measured = require_memory_observation(measured_mb, label="measured_mb")
+    except ValueError:
         return "FAIL"
     limit = hard_limit(target_mb)
     if measured > limit:
@@ -30,6 +31,16 @@ def classify(measured_mb: float, target_mb: float) -> str:
     if measured > target_mb:
         return "WARNING"
     return "PASS"
+
+
+def require_memory_observation(raw: object, *, label: str, positive: bool = False) -> float:
+    """Only actual finite numeric measurements count as memory evidence."""
+    if type(raw) not in (int, float):
+        raise ValueError(f"Invalid or missing memory observation: {label}")
+    measured = float(raw)
+    if not isfinite(measured) or measured < 0 or (positive and measured == 0):
+        raise ValueError(f"Non-finite or impossible memory observation: {label}")
+    return measured
 
 
 def require_peak_tree_rss(metrics: Mapping[str, object], *, preload_mb: float) -> float:
@@ -40,12 +51,8 @@ def require_peak_tree_rss(metrics: Mapping[str, object], *, preload_mb: float) -
     """
     if not isinstance(metrics, Mapping) or "peak_tree_rss_mb" not in metrics:
         raise ValueError("Missing peak process-tree RSS evidence")
-    raw = metrics["peak_tree_rss_mb"]
-    if type(raw) not in (int, float):
-        raise ValueError("Invalid peak process-tree RSS observation")
-    peak = float(raw)
-    if not isfinite(peak) or peak <= 0:
-        raise ValueError("Peak process-tree RSS must be finite and positive")
+    peak = require_memory_observation(metrics["peak_tree_rss_mb"],
+                                      label="peak_tree_rss_mb", positive=True)
     if not isfinite(preload_mb) or preload_mb <= 0:
         raise ValueError("Invalid preload RSS reference")
     if peak < preload_mb:
