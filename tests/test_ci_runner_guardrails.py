@@ -165,6 +165,10 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("'DIFF_TARGETS', policy['groups']['DIFF_TARGETS']", preflight)
         self.assertIn('02b_diff_preflight.json', preflight)
         self.assertIn('02b_diff_preflight.log', preflight)
+        self.assertIn("Preserve preflight failure or timeout evidence", workflow)
+        self.assertIn('status = "INCOMPLETE_OR_FAILED"', workflow)
+        self.assertLess(workflow.index("name: Enforce phase certification verdict"),
+                        workflow.index("name: Upload certification logs"))
         self.assertIn("if report['exit_code'] != 0:", preflight)
         self.assertIn('sys.exit(1)', preflight)
         self.assertIn("if ($LASTEXITCODE -ne 0) { throw", preflight)
