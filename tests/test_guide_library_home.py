@@ -11,6 +11,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
@@ -131,6 +132,38 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.close()
                     view.deleteLater()
                     self.app.processEvents()
+
+    def test_entire_featured_card_is_clickable_and_keyboard_accessible(self):
+        provider = _Provider()
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None,
+                provider=provider,
+                quest_progress_path=Path(directory) / "progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            view.resize(1200, 800)
+            view.show()
+            self.app.processEvents()
+            try:
+                events = []
+                view.guideRequested.connect(events.append)
+                card = view.featured_cards["guide_complet"]
+                QTest.mouseClick(card, Qt.LeftButton)
+                QTest.keyClick(card, Qt.Key_Return)
+                self.assertEqual(events, ["guide_complet", "guide_complet"])
+                self.assertTrue(card.accessibleName())
+                model = view.home_dofus_model
+                row = model.row_for_guide("dofus_cawotte")
+                self.assertGreaterEqual(row, 0)
+                self.assertNotIn("0 %", model.index(row, 0).data(Qt.DisplayRole))
+                self.assertIn("Progression indisponible", model.index(row, 0).data(Qt.DisplayRole))
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
 
     def test_global_encyclopedia_search_is_absent(self):
         # The common header has no QLineEdit; Quêtes/Sommaire search is separate.
