@@ -170,7 +170,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
         import inspect
         from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
         self.assertNotIn("EncyclopediaSearch", inspect.getsource(EncyclopediaPage))
-        self.assertTrue(_has_embedded_search(type("GuideCatalogView", (), {})()))
+        self.assertFalse(_has_embedded_search(type("GuideCatalogView", (), {})()))
 
     def test_progress_bar_geometry_never_escapes_later_grid_columns(self):
         second_column = QRect(280, 96, 280, 96)
