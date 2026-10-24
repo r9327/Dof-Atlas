@@ -89,6 +89,35 @@ def _parsed_date(value: str) -> datetime:
     return d.astimezone(timezone.utc)
 
 
+def _require_authenticated_run_state(
+    run: dict[str, Any], jobs: list[dict[str, Any]],
+) -> None:
+    """The merge-policy job runs inside the workflow it authenticates.
+
+    A completed run must have succeeded. During an active PR run, the
+    independent Public PR / Safe Validation job must already have completed
+    successfully on that very run; no pending, failed, skipped or foreign job
+    can unlock this gate. The Phase job is validated separately below.
+    """
+    if run.get("status") == "completed":
+        if run.get("conclusion") != "success":
+            raise ValueError("Certification workflow did not succeed")
+        return
+    if (run.get("status") != "in_progress"
+            or run.get("conclusion") is not None
+            or run.get("event") != "pull_request"):
+        raise ValueError("Certification workflow is neither successful nor attestable")
+    matched = [job for job in jobs
+               if job.get("name") == "Public PR / Safe Validation"]
+    if len(matched) != 1:
+        raise ValueError("Missing or ambiguous successful independent Safe Validation")
+    job = matched[0]
+    if (job.get("run_id") != run.get("id")
+            or job.get("status") != "completed"
+            or job.get("conclusion") != "success"):
+        raise ValueError("Safe Validation not successful on the current run")
+
+
 def validate_full_run(
     run: dict[str, Any],
     jobs: list[dict[str, Any]],
@@ -104,8 +133,7 @@ def validate_full_run(
         raise ValueError("FULL evidence belongs to a different HEAD")
     if run.get("event") not in ("workflow_dispatch", "pull_request"):
         raise ValueError("FULL evidence has an unauthorized event")
-    if run.get("status") != "completed" or run.get("conclusion") != "success":
-        raise ValueError("FULL workflow did not succeed")
+    _require_authenticated_run_state(run, jobs)
     workflow_path = str(run.get("path") or "")
     if not (workflow_path == _CERT_WORKFLOW
             or f"/{_CERT_WORKFLOW}@" in workflow_path
@@ -156,9 +184,9 @@ def validate_scoped_high_run(
         raise ValueError("Invalid SMART run identity")
     if (run.get("head_sha") != candidate_sha
             or run.get("event") != "pull_request"
-            or run.get("status") != "completed"
-            or run.get("conclusion") != "success"):
-        raise ValueError("SMART proof missing exact-HEAD successful PR run")
+            ):
+        raise ValueError("SMART proof missing exact-HEAD PR run")
+    _require_authenticated_run_state(run, jobs)
     path = str(run.get("path") or "")
     if not (path == _CERT_WORKFLOW or f"/{_CERT_WORKFLOW}@" in path
             or path.startswith(_CERT_WORKFLOW + "@")):
@@ -301,7 +329,12 @@ def retrieve_full_proofs(repo: str, sha: str, token: str) -> tuple[list[dict[str
         raise ValueError("Incomplete FULL run inventory (pagination not implemented)")
     jobs: dict[int, list[dict[str, Any]]] = {}
     for run in runs:
-        if run.get("head_sha") != sha or run.get("conclusion") != "success":
+        if run.get("head_sha") != sha or not (
+            (run.get("status") == "completed" and run.get("conclusion") == "success")
+            or (run.get("status") == "in_progress"
+                and run.get("conclusion") is None
+                and run.get("event") == "pull_request")
+        ):
             continue
         run_id = run.get("id")
         if type(run_id) is not int:
