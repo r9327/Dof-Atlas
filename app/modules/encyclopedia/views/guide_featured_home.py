@@ -1,4 +1,4 @@
-"""Four prominent playable guide cards, then a compact browsable library."""
+"""Two prominent playable guide cards, then a compact browsable library."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,20 +15,21 @@ from app.ui.theme import PALETTE
 
 
 FEATURED = (
-    ("guide_complet", "Guide Succès"),
+    ("guide_complet", "Guide Succès Opti"),
     ("dofus_sylvestre", "Sylvestre Opti"),
-    ("alignement_bonta", "Bonta"),
-    ("alignement_brakmar", "Brâkmar"),
 )
 
 
 class FeaturedGuideCard(QFrame):
-    """One of only four eagerly constructed cards, not 95 QWidgets."""
+    """One of only two eagerly constructed cards, not 95 QWidgets."""
 
     def __init__(self, guide_id: str, title: str, on_open, parent=None) -> None:
         super().__init__(parent)
         self.guide_id = guide_id
         self.setObjectName("GuideFeaturedCard")
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAccessibleName(title)
         self.setStyleSheet(
             "#GuideFeaturedCard { background: " + PALETTE["PANEL_2"]
             + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
@@ -42,7 +43,13 @@ class FeaturedGuideCard(QFrame):
         self.title.setStyleSheet(
             f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 14px;"
         )
-        layout.addWidget(self.title)
+        title_row = QHBoxLayout()
+        self.artwork = QLabel()
+        self.artwork.setFixedSize(36, 36)
+        self.artwork.setAlignment(Qt.AlignCenter)
+        title_row.addWidget(self.artwork)
+        title_row.addWidget(self.title, 1)
+        layout.addLayout(title_row)
         self.subtitle = QLabel("")
         self.subtitle.setObjectName("FeaturedSubtitle")
         self.subtitle.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']};")
@@ -67,29 +74,49 @@ class FeaturedGuideCard(QFrame):
         layout.addLayout(actions)
         self.set_guide(None, (0, 0, ""))
 
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self.rect().contains(event.position().toPoint()):
+            if self.open_button.isEnabled():
+                self.open_button.click()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            if self.open_button.isEnabled():
+                self.open_button.click()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def set_guide(self, guide, values: tuple[int, int, str]) -> None:
         done, total, state = values
         usable = guide is not None
         self.open_button.setEnabled(usable)
         self.open_button.setText("Continuer →" if usable and done > 0 else
                                  "Ouvrir →" if usable else "Indisponible")
-        self.subtitle.setText(
-            (str(getattr(guide, "description", "") or "").strip()[:110]
-             if usable else "Parcours indisponible")
-        )
-        # A count of zero is not evidence of zero percent progress.
+        description = str(getattr(guide, "description", "") or "").strip()[:85]
+        if not usable:
+            status = "Parcours indisponible"
+        elif total > 0:
+            status = f"{done}/{total} quêtes · {state or 'Non commencé'}"
+        else:
+            status = "Progression indisponible"
+        self.subtitle.setText(f"{description} · {status}" if description else status)
+        # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
             self.progress.setValue(max(0, min(100, round(done * 100 / total))))
-            if not self.subtitle.text():
-                self.subtitle.setText(f"{done}/{total} quêtes · {state}")
+        self.artwork.clear()
+        self.open_button.setIcon(QIcon())
         if usable:
             image_path = getattr(guide, "image_path", None)
             if image_path and Path(image_path).is_file():
                 from PySide6.QtCore import QSize
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(32, 32))
                 if pixmap is not None and not pixmap.isNull():
-                    self.open_button.setIcon(QIcon(pixmap))
+                    self.artwork.setPixmap(pixmap)
 
 
 class FeaturedPair(QWidget):

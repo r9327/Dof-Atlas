@@ -13,6 +13,8 @@ from app.constants import DATA_DIR
 
 INDEX_PATH = DATA_DIR / "encyclopedia" / "guides" / "ganymede_main_index.json"
 CATEGORIES = (
+    ("optimized", "Guides optimisés"),
+    ("alignements", "Alignements"),
     ("dofus", "Dofus"),
     ("dimensions", "Dimensions divines"),
     ("eliocalypse", "Éliocalypse"),
@@ -55,7 +57,7 @@ def classify_title(title: str) -> str:
     }):
         return "dofus"
     if "alignment" in text or text == "bonta / brakmar":
-        return "adventures"
+        return "alignements"
     if any(k in text for k in ("xelorium", "srambad", "enudorado", "ecaflipus")):
         return "dimensions"
     if any(k in text for k in ("eliocalypse", "resonance", "corruption",
