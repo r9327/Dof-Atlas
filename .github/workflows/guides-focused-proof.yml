@@ -9,6 +9,8 @@ on:
       - 'tests/test_guide_preparation_model.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'app/pages/craft_page.py'
+      - 'tests/test_craft_minimal_lazy.py'
 
 permissions:
   contents: read
@@ -69,6 +71,9 @@ jobs:
           } else {
             Write-Host "Preparation preview Qt case absent from this candidate."
           }
+      - name: Reconstructible Craft release regression
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy
       - name: Provenance summary
         if: always()
         shell: pwsh
