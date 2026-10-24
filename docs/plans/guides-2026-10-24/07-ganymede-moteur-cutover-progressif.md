@@ -47,6 +47,24 @@
 - [ ] Les catégories Dimensions / Éliocalypse / Événements / Régions / Îles restent affichées à l'accueil avec leur vrai statut, sans confondre inventaire source et contenu entièrement certifié.
 - [ ] Preuves livrées en fin de PR : **liste nominative et nombre exact de guides actifs/bloqués**, parité des étapes, captures réelles d'un guide Ganymède, diff des données exportées vers Atlas App et vérification de l'absence de régression des anciennes sauvegardes.
 
+## Contrat d'activation et UI continue (préparation)
+
+**Blocage architectural confirmé :** `ContinuousGuideNavigation.__init__` refuse toute route où `category != "dofus"`, ou dont l'ordre source, le nombre d'étapes et les propriétés manuelles ne sont pas exacts. Il n'est donc pas possible d'activer Bonta/Brâkmar en renommant seulement une catégorie. `ContinuousGuideRoutePanel` utilise actuellement un `QToolButton` avec `QMenu.InstantPopup` pour les personnages ; à **ne pas recopier** si l'interface cible impose des panneaux réels stables.
+
+**Livrables par groupe de guides :** table `guide_id Atlas ↔ source_guide_id Ganymède ↔ SHA du payload ↔ count attendu/observé ↔ statut manifeste ↔ statut UI ↔ ancien progrès conservé ↔ nouvelles étapes complétées ↔ statut de certification`. Séparer « 95 guides indexés » de « 20 Dofus source-trusted déclarés au cutover » et « guides effectivement activés ». Dofoozbz/Dokille restent sans correspondance si les données ne changent pas.
+
+**Gates et scénarios :**
+- [ ] G1 : guide certifié Dofus => lire chaque étape dans l'ordre source, texte/source/provenance conservés, une seule route, état individuel par ID stable ; pas d'auto-vrai à partir de prose.
+- [ ] G2 : ancien guide non remplacé => route Atlas et anciennes marques inchangées ; cutover désactivé si manifeste/empreinte invalide, sans effacer les nouveaux enregistrements.
+- [ ] G3 : 2 personnages cochent des étapes différentes, le lecteur se ferme/rouvre et Actualiste les points de reprise ; aucun report automatique sur succès/quête.
+- [ ] G4 : sans sélection => `ContinuousGuideNavigation.position().status == NO_SELECTED_CHARACTER` et aucun clic Valider de groupe ; guide consultable.
+- [ ] G5 : source action inconnue ou quantité non vérifiée => texte de source visible, validation manuelle permise seulement sur l'étape identifiée ; aucune commande de déplacement auto déduite.
+- [ ] G6 : Alignements Bonta/Brâkmar => moteur et schéma adaptés séparément, contrôles d'ordre/branches conservés ; statut BLOQUÉ si couverture de source ou identités d'étape insuffisantes.
+- [ ] G7 : UI alignée sur composants Guides (Sommaire stable, préparation détaillée, vrais panneaux Mes personnages, boutons de fiche, retour), **pas de QMenu/QComboBox** substitués ; aucune matérialisation de 7705 widgets au démarrage.
+- [ ] G8 : prévisualisation/activation de lot ne modifie aucun chemin source, même si le guide reçoit des quêtes connues ; liste des guides activés et non certifiables publiée avec motif exact.
+
+**Contrôles ciblés vérifiables :** `test_ganymede_cutover.py`, `test_ganymede_trusted_cutovers.py`, `test_ganymede_replacement_readiness.py`, `test_guide_continuous_navigation.py`, `test_guide_continuous_route_panel.py`, `test_guide_continuous_preparation.py`, `test_guide_ganymede_travel_review.py`. Ajouter un scénario Doctor Ganymède ciblé si les scénarios CI existants ne couvrent que guides-success et guides-lanyel.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
