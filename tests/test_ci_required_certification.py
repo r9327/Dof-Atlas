@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from tools.ci_required_certification import (
-    _REQUIRED_FULL_STEPS, classify_merge_route, evaluate_merge,
-    retrieve_full_proofs, validate_full_run,
+    _REQUIRED_FULL_STEPS, _SCOPED_HIGH_STEPS, classify_merge_route, evaluate_merge,
+    retrieve_full_proofs, validate_full_run, validate_scoped_high_run,
 )
 
 NOW = datetime(2026, 10, 14, 20, 0, tzinfo=timezone.utc)
@@ -57,6 +59,60 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertTrue(result["route"]["docs_only"])
         self.assertEqual(result["route"]["route"], "SCOPED")
         self.assertIsNone(result["full_evidence_run"])
+
+    def test_high_smart_merge_needs_real_exact_sha_scoped_host_proof(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / HIGH_SOURCE
+            source.parent.mkdir(parents=True)
+            source.write_text("pass\n")
+            for module in REQUIRED_TESTS:
+                path = root / Path(*module.split(".")).with_suffix(".py")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("def test_real(): pass\n")
+            route = classify_merge_route([HIGH_SOURCE], root=root, base_sha=BASE)
+            self.assertEqual(route["risk"], "HIGH")
+            self.assertEqual(route["route"], "SMART")
+            self.assertTrue(route["smart_requires_host_proof"])
+            args = dict(candidate_sha=HEAD, base_sha=BASE, paths=[HIGH_SOURCE],
+                        safe_validation="success", repo=REPO, now=NOW, root=root)
+            self.assertEqual(evaluate_merge(**args)["status"], "BLOCKED")
+            record = full_record()
+            record["event"] = "pull_request"
+            proof = full_job()
+            proof["steps"] = [
+                {"name": name, "status": "completed", "conclusion": "success"}
+                for name in _SCOPED_HIGH_STEPS
+            ] + [{
+                "name": "Run full Atlas phase certification gate",
+                "status": "completed", "conclusion": "skipped",
+            }]
+            accepted = evaluate_merge(**args, runs=[record], jobs_by_run={418: [proof]})
+            self.assertEqual(accepted["status"], "PASS_SMART_AUTHENTICATED_NOT_FULL")
+            self.assertIsNone(accepted["full_evidence_run"])
+            self.assertEqual(accepted["scoped_evidence_run"], 418)
+            for mutation in ("wrong_sha", "wrong_repo", "wrong_event", "skipped_test",
+                             "real_full", "failed_job"):
+                with self.subTest(mutation=mutation):
+                    bad_run = {**record, "repository": dict(record["repository"])}
+                    bad_job = {**proof, "steps": [dict(step) for step in proof["steps"]]}
+                    if mutation == "wrong_sha": bad_run["head_sha"] = BASE
+                    if mutation == "wrong_repo": bad_run["repository"]["full_name"] = "attacker/repo"
+                    if mutation == "wrong_event": bad_run["event"] = "workflow_dispatch"
+                    if mutation == "skipped_test": bad_job["steps"][2]["conclusion"] = "skipped"
+                    if mutation == "real_full": bad_job["steps"][-1]["conclusion"] = "success"
+                    if mutation == "failed_job": bad_job["conclusion"] = "failure"
+                    self.assertEqual(evaluate_merge(**args, runs=[bad_run],
+                                      jobs_by_run={418: [bad_job]})["status"], "BLOCKED")
+            self.assertEqual(classify_merge_route([HIGH_SOURCE, "tools/ci_scope_gate.py"],
+                                                   root=root)["route"], "FULL_REQUIRED")
+            self.assertEqual(classify_merge_route([HIGH_SOURCE, "app/core/json_store.py"],
+                                                   root=root)["route"], "FULL_REQUIRED")
+            self.assertEqual(evaluate_merge(**{**args, "safe_validation": "failure"},
+                runs=[record], jobs_by_run={418: [proof]})["status"], "BLOCKED")
+            source.unlink()
+            self.assertEqual(classify_merge_route([HIGH_SOURCE], root=root)["route"], "FULL_REQUIRED")
 
     def test_required_full_without_proof_fails_closed(self):
         result = decide(["tools/atlas_integrity.py"])
