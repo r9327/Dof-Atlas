@@ -122,6 +122,77 @@ class CertificationMergeGateTests(unittest.TestCase):
             source.unlink()
             self.assertEqual(classify_merge_route([HIGH_SOURCE], root=root)["route"], "FULL_REQUIRED")
 
+    def test_active_pr_proof_requires_successful_host_safe_validation(self):
+        # The policy job is nested in the same parent run; waiting for that
+        # parent's final conclusion would deadlock. An unfinished Phase job
+        # or a missing/failed Safe Validation must remain BLOCKED instead.
+        run = full_record()
+        run["event"] = "pull_request"
+        run["status"] = "in_progress"
+        run["conclusion"] = None
+        phase = full_job()
+        safe = {"run_id": 418, "name": "Public PR / Safe Validation",
+                "status": "completed", "conclusion": "success"}
+        args = dict(candidate_sha=HEAD, repo=REPO, now=NOW)
+        with self.assertRaisesRegex(ValueError, "Safe Validation"):
+            validate_full_run(run, [phase], **args)
+        validate_full_run(run, [phase, safe], **args)
+        for bad in (
+            {**safe, "conclusion": "failure"},
+            {**safe, "conclusion": "skipped"},
+            {**safe, "status": "in_progress", "conclusion": None},
+            {**safe, "run_id": 999},
+        ):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                validate_full_run(run, [phase, bad], **args)
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            validate_full_run(run, [phase, safe, dict(safe)], **args)
+        bad_run = {**run, "conclusion": "failure"}
+        with self.assertRaises(ValueError):
+            validate_full_run(bad_run, [phase, safe], **args)
+        # The parent run does not mask a skipped or failed FULL step.
+        failed_phase = {**phase, "steps": [dict(s) for s in phase["steps"]]}
+        failed_phase["steps"][-1]["conclusion"] = "skipped"
+        with self.assertRaisesRegex(ValueError, "FULL step"):
+            validate_full_run(run, [failed_phase, safe], **args)
+
+    def test_active_high_smart_accepts_only_completed_scoped_host_steps(self):
+        run = full_record()
+        run.update(event="pull_request", status="in_progress", conclusion=None)
+        safe = {"run_id": 418, "name": "Public PR / Safe Validation",
+                "status": "completed", "conclusion": "success"}
+        phase = full_job()
+        phase["steps"] = [
+            {"name": name, "status": "completed", "conclusion": "success"}
+            for name in _SCOPED_HIGH_STEPS
+        ] + [{"name": "Run full Atlas phase certification gate",
+              "status": "completed", "conclusion": "skipped"}]
+        args = dict(candidate_sha=HEAD, repo=REPO, now=NOW)
+        validate_scoped_high_run(run, [phase, safe], **args)
+        with self.assertRaisesRegex(ValueError, "Safe Validation"):
+            validate_scoped_high_run(run, [phase], **args)
+        unfinished = {**phase, "status": "in_progress", "conclusion": None}
+        with self.assertRaisesRegex(ValueError, "Phase job not successful"):
+            validate_scoped_high_run(run, [unfinished, safe], **args)
+        wrong = {**phase, "steps": [dict(s) for s in phase["steps"]]}
+        wrong["steps"][2]["conclusion"] = "failure"
+        with self.assertRaisesRegex(ValueError, "SMART mandatory"):
+            validate_scoped_high_run(run, [wrong, safe], **args)
+
+    def test_retrieve_active_pr_proofs_but_never_failed_or_pending(self):
+        active = full_record()
+        active.update(event="pull_request", status="in_progress", conclusion=None)
+        failed = {**active, "id": 419, "status": "completed", "conclusion": "failure"}
+        queued = {**active, "id": 420, "status": "queued"}
+        listing = {"workflow_runs": [active, failed, queued], "total_count": 3}
+        jobs = {"jobs": [full_job()], "total_count": 1}
+        with patch("tools.ci_required_certification.github_get",
+                   side_effect=[listing, jobs]) as fetch:
+            runs, by_run = retrieve_full_proofs(REPO, HEAD, "token")
+        self.assertEqual(len(runs), 3)
+        self.assertEqual(set(by_run), {418})
+        self.assertEqual(fetch.call_count, 2)
+
     def test_required_full_without_proof_fails_closed(self):
         result = decide(["tools/atlas_integrity.py"])
         self.assertEqual(result["route"]["route"], "FULL_REQUIRED")
