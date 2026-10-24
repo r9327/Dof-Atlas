@@ -180,6 +180,31 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
             )
         )
 
+    def test_unknown_participant_progress_is_not_reported_as_zero(self) -> None:
+        self.participants.save_selected_keys(("character:1",))
+        self.service.route_sheet_progress = lambda key: (
+            (0, 0) if key == "character:1" else (0, len(self.service.cards))
+        )
+        self.view._refresh_participants_panel()
+        self.view._refresh_header()
+
+        unknown = self.view._participant_buttons["character:1"]
+        known_zero = self.view._participant_buttons["character:2"]
+        self.assertIsNone(unknown.progress)
+        self.assertIn("progression inconnue", unknown.toolTip())
+        self.assertEqual(known_zero.progress, 0)
+        self.assertIn("0 %", known_zero.toolTip())
+        self.assertEqual(self.view.route_progress_label.text(), "—")
+        self.assertIsNone(self.view.progress_donut._percent)
+
+    def test_known_zero_progress_still_displays_zero(self) -> None:
+        self.participants.save_selected_keys(("character:1",))
+        self.view._refresh_participants_panel()
+        self.view._refresh_header()
+        self.assertEqual(self.view._participant_buttons["character:1"].progress, 0)
+        self.assertEqual(self.view.route_progress_label.text(), "0 / 2")
+        self.assertEqual(self.view.progress_donut._percent, 0)
+
     def test_team_progress_counts_shared_sheet_intersection(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         first, second = self.service.cards
