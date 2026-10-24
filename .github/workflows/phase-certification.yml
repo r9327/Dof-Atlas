@@ -1161,6 +1161,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      - name: Archive measured CI timings (advisory)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-ci-timings-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_ci/job_timings.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Reject failed or skipped selected CI
         shell: python
         env:
@@ -1216,26 +1225,70 @@ jobs:
               if not isinstance(jobs, list) or result.get("total_count", 0) > len(jobs):
                   raise ValueError("Incomplete job inventory: timing totals withheld")
               measured = []
+              excluded = []
+              skipped = 0
               for job in jobs:
-                  if job.get("status") != "completed" or not job.get("started_at") or not job.get("completed_at"):
+                  label = str(job.get("name", "unknown")).replace("|", "/").replace("\n", " ").replace("\r", " ")
+                  if job.get("conclusion") == "skipped":
+                      # GitHub can return completed_at one second BEFORE
+                      # started_at for a job that never ran (observed in run
+                      # #40140997450). Skipped jobs consume no test runner time.
+                      skipped += 1
                       continue
-                  start = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
-                  end = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
-                  seconds = (end - start).total_seconds()
-                  if seconds < 0:
-                      raise ValueError("Negative GitHub job duration")
-                  measured.append((str(job.get("name", "unknown")).replace("|", "/").replace("\n", " "), seconds, job.get("conclusion", "unknown")))
-              measured.sort(key=lambda row: -row[1])
-              # Sum of job intervals is not billed GitHub minutes; it includes
-              # parallel time. This is advisory, not certification evidence.
+                  if job.get("status") != "completed" or not job.get("started_at") or not job.get("completed_at"):
+                      excluded.append((label, "pending or missing timestamps"))
+                      continue
+                  try:
+                      start = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                      end = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                      seconds = (end - start).total_seconds()
+                      if seconds < 0:
+                          raise ValueError("negative GitHub timestamp interval")
+                  except (ValueError, TypeError, AttributeError) as exc:
+                      excluded.append((label, type(exc).__name__))
+                      continue  # Never silently coerce an invalid interval to zero.
+                  measured.append((label, seconds, str(job.get("conclusion") or "unknown"), start, end))
+              measured.sort(key=lambda row: (-row[1], row[0]))
+              # Sum of parallel job intervals is NOT actual billed minutes.
               total = sum(row[1] for row in measured)
+              span = ((max(row[4] for row in measured) -
+                       min(row[3] for row in measured)).total_seconds()
+                      if measured else None)
+              failed = [row for row in measured if row[2] in ("failure", "cancelled", "timed_out")]
+              earliest = min(failed, key=lambda row: row[4]) if failed else None
+              report = {
+                  "schema_version": 1, "kind": "atlas_ci_job_timing_observations",
+                  "status": "ADVISORY_PARTIAL" if excluded else "ADVISORY",
+                  "run_id": run_id, "observed_jobs": len(jobs),
+                  "measured_jobs": len(measured), "skipped_jobs": skipped,
+                  "excluded": [{"job": name, "reason": why} for name, why in excluded],
+                  "sum_completed_job_seconds": round(total, 3),
+                  "observed_wall_span_seconds": round(span, 3) if span is not None else None,
+                  "first_failed_job": earliest[0] if earliest else None,
+                  "first_failed_at": earliest[4].isoformat() if earliest else None,
+                  "jobs": [{"name": name, "seconds": round(seconds, 3),
+                            "conclusion": status}
+                           for name, seconds, status, _, _ in measured],
+                  "certified": False, "tests_executed": False,
+                  "note": "Advisory snapshot. Parallel job sums are NOT billing. The current running verdict is excluded.",
+              }
+              output = Path("artifacts/doctor_ci/job_timings.json")
+              output.parent.mkdir(parents=True, exist_ok=True)
+              output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
               with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
                   stream.write("\n## Doctor — CI timing observations (advisory)\n")
-                  stream.write(f"Completed jobs measured: {len(measured)} / {len(jobs)}; total runner elapsed time: {total / 60:.1f} min (not billing).\n")
+                  stream.write(f"Completed jobs: {len(measured)}/{len(jobs)}; skipped: {skipped}; invalid/pending: {len(excluded)}.\n")
+                  stream.write(f"Summed completed job durations: **{total / 60:.1f} min** (parallel overlap, NOT billed minutes).\n")
+                  if span is not None:
+                      stream.write(f"Observed run span: **{span / 60:.1f} min** (not a dependency-graph critical path).\n")
+                  if earliest:
+                      stream.write(f"First completed failure: **{earliest[0]}** at {earliest[4].isoformat()}.\n")
                   stream.write("| Completed job | Duration | Result |\n|---|---:|---|\n")
-                  for name, seconds, status in measured[:15]:
-                      stream.write(f"| {name} | {seconds / 60:.1f} min | {status} |\n")
-                  stream.write("This snapshot excludes jobs still running, including Doctor / CI Verdict. No gate is waived.\n")
+                  for name, seconds, status, _, _ in measured[:20]:
+                      stream.write(f"| {name} | {seconds / 60:.2f} min | {status} |\n")
+                  for name, reason in excluded[:12]:
+                      stream.write(f"- Excluded observation: {name} ({reason}); not counted as zero.\n")
+                  stream.write("Pending/current job excluded; estimates of saved FULL minutes are NOT claimed. This is not certification proof.\n")
           except (OSError, KeyError, TypeError, ValueError) as exc:
               print(f"CI timing observation unavailable (advisory): {type(exc).__name__}: {exc}")
           PYTIMINGS
