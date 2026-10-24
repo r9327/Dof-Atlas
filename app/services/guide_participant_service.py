@@ -43,11 +43,14 @@ class GuideParticipantService:
         values = payload.get(KEY_GUIDE_PARTICIPANTS, [])
         if not isinstance(values, list):
             return ()
+        # A correctly formatted key is not proof that the character exists.
+        # Stale/forged selection entries must never become write recipients.
+        known = {row.key for row in self.available_characters()}
         return tuple(
             dict.fromkeys(
                 str(value).strip()
                 for value in values
-                if is_character_key(str(value).strip())
+                if is_character_key(str(value).strip()) and str(value).strip() in known
             )
         )
 
