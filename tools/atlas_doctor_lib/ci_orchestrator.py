@@ -18,6 +18,7 @@ from tools.ci_scope_gate import changed_paths
 from tools.phase_adaptive_gate import critical_changed
 from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui
 from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible, QT_DETECTOR_PATHS
+from tools.atlas_doctor_lib.high_smart_scope import eligible as high_smart_eligible
 
 REGISTRY = Path(__file__).with_name('ci_routes.json')
 
@@ -41,8 +42,16 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
         required = {'validator-smoke', 'achievement-detail'}
         tooling_only = (tooling_only and ui_plan.get('status') == 'UI_REQUIRED'
                         and required <= set(ui_plan.get('selected_scenarios', ())))
+    risk = classify_risk(paths)["risk"]
+    # The independently reviewed HIGH canary is the sole exception to the
+    # risk-level FULL trigger, and only after canonical Phase verifies SCOPED.
+    # The Phase router already checks test closure; this cannot select SCOPED.
+    high_smart = (risk == "HIGH" and high_smart_eligible(Path(__file__).resolve().parents[2], paths, deleted=deleted)
+                  and phase_route.get('route') == 'SCOPED')
     full = event == 'workflow_dispatch' or (not docs_only and not tooling_only and (
-        bool(deleted) or bool(critical_changed(paths)) or classify_risk(paths)["risk"] in {"HIGH", "CRITICAL"} or phase_route.get('route') != 'SCOPED'
+        bool(deleted) or bool(critical_changed(paths))
+        or (risk in {"HIGH", "CRITICAL"} and not high_smart)
+        or phase_route.get('route') != 'SCOPED'
         or ui_plan.get('status') == 'REVIEW_REQUIRED'))
     phase = (not docs_only and not tooling_only) or event == 'workflow_dispatch'
     # FULL is the canonical suite, not an instruction to replay every unrelated
