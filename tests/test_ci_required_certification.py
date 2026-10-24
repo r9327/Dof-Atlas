@@ -286,6 +286,19 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS_FULL_AUTHENTICATED")
         self.assertEqual(result["full_evidence_run"], 418)
 
+    def test_real_full_pr_proof_must_belong_to_current_pr_and_base(self):
+        pr_run = full_record()
+        pr_run["event"] = "pull_request"
+        kwargs = dict(candidate_sha=HEAD, base_sha=BASE,
+                      paths=["tools/atlas_integrity.py"], safe_validation="success",
+                      repo=REPO, now=NOW, runs=[pr_run], jobs_by_run={418: [full_job()]},
+                      pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
+        self.assertEqual(evaluate_merge(**kwargs)["status"], "PASS_FULL_AUTHENTICATED")
+        for changed in ({"pr_number": 2}, {"base_sha": "c" * 40},
+                        {"head_ref": "other"}, {"base_ref": "release"}):
+            with self.subTest(changed=changed):
+                self.assertEqual(evaluate_merge(**{**kwargs, **changed})["status"], "BLOCKED")
+
     def test_wrong_head_failed_full_and_skipped_required_stage_fail(self):
         invalid = full_record()
         invalid["head_sha"] = "c" * 40
