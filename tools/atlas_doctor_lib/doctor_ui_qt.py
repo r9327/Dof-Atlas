@@ -1018,6 +1018,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
         if not isinstance(page.guides_view, GuideCatalogView):
             raise RuntimeError("Return from rich Guide did not restore lightweight catalog")
+        if (not page.guides_view._runtime_ready
+                or page.guides_view.home_empty.text() == "Chargement des guides…"):
+            raise RuntimeError("Returning to catalog must display ready guides, not a loading placeholder")
         previous_scenario = session.scenario
         session.scenario = "guides-catalog-after-return"
         session.card_id = "catalog"
