@@ -34,6 +34,14 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] Preuves Windows : empreinte et mapping du client installé, état Npcap, logs et tests ciblés network_* / organizer_* / character_* / windows_embed ; résultat BLOQUÉ si sans capture fiable.
 - [ ] Aucun effet secondaire sur les sauvegardes ou performance de démarrage.
 
+## Compléments explicites — points oubliés de l'enquête
+- [ ] Corriger la **perte de sélection des favoris Organizer** déjà signalée : favoris persistants malgré scan, nouvel ordre, changement de fenêtre, reconnexion et relancement ; ne pas confondre favori UI, personnage principal et destinataire de commande.
+- [ ] Supprimer les numéros de slots présentés comme identifiants de personnages dans les surfaces remaniées ; garder slot/HWND/PID seulement comme détails techniques nécessaires à Organizer.
+- [ ] Vérifier explicitement les caches de signatures de sources des personnages et la propagation du changement de **fichier bindings réseau** jusque dans le Guide/Encyclopédie ; un binding modifié sans changement de fenêtre ne doit pas laisser les portraits anciens affichés.
+- [ ] Ne jamais utiliser directement le champ exporté `character_key` comme preuve autonome : valider qu'il appartient toujours au registre d'identités réseau, avec provenance, unicité et correspondance de session.
+- [ ] Vérifier la capacité de l'EXE distribué à charger les portraits/icônes de classes et le diagnostic réseau sans chemin de développement local ni Python installé.
+- [ ] Contrat transversal : chaque personnage connu hors ligne reste **consultable** et progressable manuellement selon sa sélection, mais seules les fenêtres effectivement rattachées et disponibles reçoivent les commandes de déplacement.
+
 ## Processus de livraison
 - [ ] Cette PR est ouverte en brouillon pour CADRAGE : ce commit ne contient aucun correctif applicatif et ne doit pas être fusionné seul.
 - [ ] Développer les PR dans l'ordre des dépendances, UNE SEULE à la fois. Avant chaque lot, repartir de main actualisé, vérifier HEAD et git status, ne pas intégrer la branche accidentelle non validée.
