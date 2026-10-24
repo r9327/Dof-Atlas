@@ -189,7 +189,8 @@ def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None
     assert 'state = classify(measured, budget)' in source
     assert 'if state == "FAIL":' in source
     assert 'if state == "WARNING":' in source
-    assert 'if metric not in metrics or metrics[metric] is None:' in source
+    assert 'measured = require_memory_observation(metrics.get(metric), label=metric)' in source
+    assert 'require_memory_observation(row.get(kind)' in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"craft_retained_tree_delta_mb": 2.0' in source
