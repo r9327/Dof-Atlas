@@ -42,6 +42,11 @@ def full_record():
     }
 
 
+def safe_job():
+    return {"run_id": 418, "name": "Public PR / Safe Validation",
+            "status": "completed", "conclusion": "success"}
+
+
 def full_job():
     return {
         "run_id": 418,
@@ -100,7 +105,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                 "name": "Run full Atlas phase certification gate",
                 "status": "completed", "conclusion": "skipped",
             }]
-            accepted = evaluate_merge(**args, runs=[record], jobs_by_run={418: [proof]})
+            accepted = evaluate_merge(**args, runs=[record], jobs_by_run={418: [proof, safe_job()]})
             self.assertEqual(accepted["status"], "PASS_SMART_AUTHENTICATED_NOT_FULL")
             self.assertIsNone(accepted["full_evidence_run"])
             self.assertEqual(accepted["scoped_evidence_run"], 418)
@@ -109,7 +114,7 @@ class CertificationMergeGateTests(unittest.TestCase):
             real_full = full_job()
             full_record_pr = dict(record)
             full_accepted = evaluate_merge(**args, runs=[full_record_pr],
-                                           jobs_by_run={418: [real_full]})
+                                           jobs_by_run={418: [real_full, safe_job()]})
             self.assertEqual(full_accepted["status"], "PASS_FULL_AUTHENTICATED")
             self.assertEqual(full_accepted["full_evidence_run"], 418)
             for mutation in ("wrong_sha", "wrong_repo", "wrong_event", "skipped_test",
@@ -130,7 +135,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                     if mutation == "missing_pr_list": bad_run["pull_requests"] = []
                     if mutation == "wrong_head_repo": bad_run["pull_requests"][0]["head"]["repo"]["id"] = 999
                     self.assertEqual(evaluate_merge(**args, runs=[bad_run],
-                                      jobs_by_run={418: [bad_job]})["status"], "BLOCKED")
+                                      jobs_by_run={418: [bad_job, safe_job()]})["status"], "BLOCKED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "tools/ci_scope_gate.py"],
                                                    root=root)["route"], "FULL_REQUIRED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "app/core/json_store.py"],
@@ -139,6 +144,18 @@ class CertificationMergeGateTests(unittest.TestCase):
                 runs=[record], jobs_by_run={418: [proof]})["status"], "BLOCKED")
             source.unlink()
             self.assertEqual(classify_merge_route([HIGH_SOURCE], root=root)["route"], "FULL_REQUIRED")
+
+    def test_completed_pr_cannot_pass_when_public_safe_validation_was_skipped(self):
+        run = full_record()
+        run["event"] = "pull_request"
+        args = dict(candidate_sha=HEAD, repo=REPO, now=NOW)
+        with self.assertRaisesRegex(ValueError, "Safe Validation"):
+            validate_full_run(run, [full_job()], **args)
+        validate_full_run(run, [full_job(), safe_job()], **args)
+        for bad in ("skipped", "failure", "cancelled"):
+            failed_safe = {**safe_job(), "conclusion": bad}
+            with self.subTest(status=bad), self.assertRaises(ValueError):
+                validate_full_run(run, [full_job(), failed_safe], **args)
 
     def test_active_pr_proof_requires_successful_host_safe_validation(self):
         # The policy job is nested in the same parent run; waiting for that
@@ -213,7 +230,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                         pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
             args.update(kwargs)
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
-                validate_scoped_high_run(run, [phase], **args)
+                validate_scoped_high_run(run, [phase, safe_job()], **args)
 
     def test_removed_or_replaced_files_never_keep_scoped_route(self):
         for path in ("docs/deleted.md", ".ai/context_index.json"):
@@ -292,7 +309,7 @@ class CertificationMergeGateTests(unittest.TestCase):
         pr_run["event"] = "pull_request"
         kwargs = dict(candidate_sha=HEAD, base_sha=BASE,
                       paths=["tools/atlas_integrity.py"], safe_validation="success",
-                      repo=REPO, now=NOW, runs=[pr_run], jobs_by_run={418: [full_job()]},
+                      repo=REPO, now=NOW, runs=[pr_run], jobs_by_run={418: [full_job(), safe_job()]},
                       pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
         self.assertEqual(evaluate_merge(**kwargs)["status"], "PASS_FULL_AUTHENTICATED")
         for changed in ({"pr_number": 2}, {"base_sha": "c" * 40},
