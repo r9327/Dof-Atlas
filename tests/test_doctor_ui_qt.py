@@ -299,6 +299,8 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
+        click_target(self.view, self.view.settings_button)
+        settle()
         self.view.route_lock_check.toggled.disconnect()
         click_target(self.view, self.view.route_lock_check)
         self.assertTrue(self.view.route_lock_check.isChecked())

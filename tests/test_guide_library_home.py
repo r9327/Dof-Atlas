@@ -10,16 +10,18 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRect, Qt
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+from app.modules.encyclopedia.views.encyclopedia_page import _has_embedded_search
 from app.modules.encyclopedia.views.guide_library_sources import (
     ATLAS_EQUIVALENTS, CATEGORIES, classify_title, displayable_listings,
     load_ganymede_listings,
 )
 from app.modules.encyclopedia.widgets.guide_card import GUIDE_ID_ROLE
+from app.modules.encyclopedia.widgets.guide_card import GuideCardDelegate
 
 
 def _guide(name, category):
@@ -124,6 +126,23 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.close()
                     view.deleteLater()
                     self.app.processEvents()
+
+    def test_catalog_owns_the_only_visible_guide_search(self):
+        # Production deliberately identifies lazy widgets without importing
+        # their heavy concrete classes during startup.
+        catalog = type("GuideCatalogView", (), {})()
+        self.assertTrue(_has_embedded_search(catalog))
+
+    def test_progress_bar_geometry_never_escapes_later_grid_columns(self):
+        second_column = QRect(280, 96, 280, 96)
+        bar = GuideCardDelegate.progress_rect(
+            second_column,
+            second_column.left() + 71,
+            second_column.right() - 10,
+        )
+        self.assertGreaterEqual(bar.left(), second_column.left())
+        self.assertLessEqual(bar.right(), second_column.right())
+        self.assertEqual(bar.height(), 4)
 
     def test_rich_guide_return_restores_canonical_lightweight_library(self):
         """The detail view must never leave its legacy home after a return."""
