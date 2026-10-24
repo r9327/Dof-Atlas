@@ -31,6 +31,30 @@ class ScopeGateTests(unittest.TestCase):
             **extra
         )
 
+    def test_high_smart_canary_requires_exact_owner_and_mandatory_test_modules(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        source = self.root / HIGH_SOURCE
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("class GuideProgressService: pass\n")
+        for module in REQUIRED_TESTS:
+            target = self.root / Path(*module.split(".")).with_suffix(".py")
+            target.write_text("def test_real(): pass\n")
+        result = self.classify([HIGH_SOURCE])
+        self.assertEqual(result["risk"], "HIGH")
+        self.assertEqual(result["status"], "TARGETED", result["reasons"])
+        self.assertTrue(REQUIRED_TESTS <= set(result["modules"]))
+        self.assertFalse(result["certified"])
+        self.assertFalse(result["full_suite_waived"])
+        for paths, extra in (
+            ([HIGH_SOURCE, "app/core/json_store.py"], {}),
+            ([HIGH_SOURCE, "tools/ci_scope_gate.py"], {}),
+            ([HIGH_SOURCE], {"deletion_paths": [HIGH_SOURCE]}),
+        ):
+            with self.subTest(paths=paths, extra=extra):
+                self.assertEqual(self.classify(paths, **extra)["status"], "FULL_REQUIRED")
+        (self.root / "tests/test_progress_cross_surface_reload.py").unlink()
+        self.assertEqual(self.classify([HIGH_SOURCE])["status"], "FULL_REQUIRED")
+
     def test_selector_or_ai_context_changes_require_full(self):
         for changed in (
             "tools/ci_scope_gate.py",
