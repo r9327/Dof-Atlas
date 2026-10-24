@@ -122,6 +122,10 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         # Change selection through a real portrait click, without reopening Guide.
         self.view._participant_buttons["character:2"].click()
         QApplication.processEvents()
+        # The first Valider legitimately advanced to the next incomplete
+        # sheet. Navigate back to the source sheet before testing mixed-team
+        # completion; never assert a click on the next page changed page zero.
+        self._show_sheet(0)
         control = self.view.validation_layout.itemAt(0).widget()
         self.assertEqual(control.text(), "Valider")
         control.click()
@@ -131,6 +135,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
 
         self.view._participant_buttons["character:1"].click()
         QApplication.processEvents()
+        self._show_sheet(0)
         control = self.view.validation_layout.itemAt(0).widget()
         self.assertEqual(control.text(), "Annuler validation")
         control.click()
