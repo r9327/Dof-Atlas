@@ -10,6 +10,7 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
+    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -151,7 +152,7 @@ class _GuideProgressDonut(QWidget):
         super().__init__(parent)
         self._percent = 0
         self.setObjectName("GuideCompactDonut")
-        self.setFixedSize(66, 66)
+        self.setFixedSize(54, 54)
 
     def set_percent(self, value: int) -> None:
         value = max(0, min(100, int(value)))
@@ -882,14 +883,26 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
-        title_row.addWidget(self.guide_button)
+        # Compatibility-only action: the duplicate Guides button is not rendered.
+        self.guide_button.setParent(self)
+        self.guide_button.hide()
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
         title_row.addWidget(self.guide_title_label, 1)
+        self.overlay_button = QToolButton()
+        self.overlay_button.setObjectName("GuideCompactOverlayButton")
+        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
+        self.overlay_button.setIconSize(QSize(14, 14))
+        self.overlay_button.setFixedSize(26, 26)
+        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
+        self.overlay_button.setAccessibleName("Overlay")
+        self.overlay_button.setEnabled(False)
+        title_row.addWidget(self.overlay_button)
         self.settings_button = QToolButton()
         self.settings_button.setObjectName("GuideCompactSettingsButton")
         self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
-        self.settings_button.setIconSize(QSize(16, 16))
+        self.settings_button.setIconSize(QSize(14, 14))
+        self.settings_button.setFixedSize(26, 26)
         self.settings_button.setToolTip("Paramètres du Guide")
         self.settings_button.setAccessibleName("Paramètres du Guide")
         self.settings_button.setCheckable(True)
@@ -908,6 +921,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.route_bar.setObjectName("GuideManualProgress")
         self.route_bar.setTextVisible(False)
         self.route_bar.setFixedHeight(7)
+        self.route_bar.setFixedWidth(150)
         self.route_bar.setCursor(Qt.PointingHandCursor)
         self.route_bar.navigationRequested.connect(self._jump_from_progress)
         self.route_progress_label = QLabel("Route")
@@ -920,6 +934,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
         self.preparation_bar.setTextVisible(False)
         self.preparation_bar.setFixedHeight(7)
+        self.preparation_bar.setFixedWidth(150)
         self.preparation_progress_label = QLabel("—")
         self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
         bars.addWidget(QLabel("Préparation"), 1, 0)
@@ -930,50 +945,40 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.success_bar.setObjectName("GuideCompactSuccessProgress")
         self.success_bar.setTextVisible(False)
         self.success_bar.setFixedHeight(7)
+        self.success_bar.setFixedWidth(150)
         self.success_progress_label = QLabel("—")
         self.success_progress_label.setObjectName("GuideCompactMetricValue")
         bars.addWidget(QLabel("Succès"), 2, 0)
         bars.addWidget(self.success_bar, 2, 1)
         bars.addWidget(self.success_progress_label, 2, 2)
         bars.setColumnStretch(1, 1)
-        metrics.addLayout(bars, 1)
-        layout.addLayout(metrics)
+        metrics.addLayout(bars, 0)
+        metrics.addStretch(1)
 
-        actions = QHBoxLayout()
-        actions.setSpacing(7)
-        self.page_jump = QSpinBox()
+        # Choosing a sheet navigates immediately; no confirmation button.
+        actions = QVBoxLayout()
+        actions.setSpacing(5)
+        self.page_jump = QComboBox()
         self.page_jump.setObjectName("GuideCompactPageJump")
-        self.page_jump.setPrefix("Fiche ")
-        self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setToolTip("Numéro de la fiche à ouvrir")
-        actions.addWidget(self.page_jump)
-        self.page_jump_button = QPushButton("Aller à la fiche")
-        self.page_jump_button.setObjectName("GuideCompactJumpButton")
-        self.page_jump_button.setIcon(_guide_symbol_icon(self.page_jump_button, "location"))
-        self.page_jump_button.clicked.connect(
-            lambda _checked=False: self._show_index(self.page_jump.value() - 1)
+        self.page_jump.addItems(
+            [f"Fiche {i + 1}" for i in range(len(self.service.cards))]
         )
-        actions.addWidget(self.page_jump_button)
+        self.page_jump.setToolTip("Afficher directement la fiche sélectionnée")
+        self.page_jump.currentIndexChanged.connect(
+            lambda index: self._show_index(index) if index >= 0 else None
+        )
+        actions.addWidget(self.page_jump)
         self.current_button = QPushButton("Actuelle")
         self.current_button.setObjectName("GuideCompactCurrentButton")
         self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
         self.current_button.clicked.connect(self.go_active)
         actions.addWidget(self.current_button)
-        # Kept as the compatibility sink for the shared navigation base. The
-        # visible page identity lives once in GuideSheetMeta.
+        # Retained for compatibility with the navigation base (never visible).
         self.nav_page_label = QLabel(self)
         self.nav_page_label.setObjectName("GuideManualNavPage")
         self.nav_page_label.setVisible(False)
-        actions.addStretch(1)
-        self.overlay_button = QToolButton()
-        self.overlay_button.setObjectName("GuideCompactOverlayButton")
-        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
-        self.overlay_button.setIconSize(QSize(16, 16))
-        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
-        self.overlay_button.setAccessibleName("Overlay")
-        self.overlay_button.setEnabled(False)
-        actions.addWidget(self.overlay_button)
-        layout.addLayout(actions)
+        metrics.addLayout(actions, 0)
+        layout.addLayout(metrics)
 
         self.settings_panel = QFrame()
         self.settings_panel.setObjectName("GuideCompactSettingsPanel")
@@ -1003,7 +1008,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_button.setCheckable(True)
         self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        root.addWidget(self.preparation_button)
+        self.guide_controls = QHBoxLayout()
+        self.guide_controls.setSpacing(8)
+        self.guide_controls.addWidget(self.preparation_button, 1)
+        root.addLayout(self.guide_controls)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1065,14 +1073,14 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setText("Mes personnages")
+        self.participants_button.setText("0")
         self.participants_button.setIcon(
             _guide_symbol_icon(self.participants_button, "people")
         )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        top.addWidget(self.participants_button)
+        self.guide_controls.addWidget(self.participants_button)
         self.summary_button = QToolButton()
         self.summary_button.setObjectName("GuideSummaryButton")
         self.summary_button.setText("Sommaire")
@@ -1081,7 +1089,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_button.setArrowType(Qt.RightArrow)
         self.summary_button.setCheckable(True)
         self.summary_button.setCursor(Qt.PointingHandCursor)
-        top.addWidget(self.summary_button)
+        self.guide_controls.addWidget(self.summary_button)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1158,7 +1166,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             empty.setObjectName("GuideParticipantsEmpty")
             self.participants_layout.addWidget(empty)
         self.participants_layout.addStretch(1)
-        self.participants_button.setText(f"Mes personnages · {len(selected)}")
+        self.participants_button.setText(str(len(selected)))
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
@@ -1520,9 +1528,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         elif not checked:
             selected = [key for key in selected if key != character_key]
         self.participant_service.save_selected_keys(selected)
-        self.participants_button.setText(
-            f"Mes personnages · {len(self.selected_participant_keys())}"
-        )
+        self.participants_button.setText(str(len(self.selected_participant_keys())))
         self._preparation_loaded = False
         self._preparation_needs = ()
         if self.preparation_button.isChecked():
@@ -1642,8 +1648,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.sheet_title_label.setText(title)
         self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
         self.page_jump.blockSignals(True)
-        self.page_jump.setRange(1, max(1, total_cards))
-        self.page_jump.setValue(index + 1)
+        if self.page_jump.count() != total_cards:
+            self.page_jump.clear()
+            self.page_jump.addItems(
+                [f"Fiche {i + 1}" for i in range(total_cards)]
+            )
+        self.page_jump.setCurrentIndex(index if total_cards else -1)
         self.page_jump.blockSignals(False)
         actual_index = self._actual_index_for_participants()
         self.current_button.setEnabled(actual_index is not None)
