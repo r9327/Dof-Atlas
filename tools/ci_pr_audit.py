@@ -30,9 +30,23 @@ def audit_plan(plan: dict) -> dict:
         raise ValueError("Doctor plan missing essential change or job inventory")
     phase = plan.get("phase_route") if isinstance(plan.get("phase_route"), dict) else {}
     ui = plan.get("ui_plan") if isinstance(plan.get("ui_plan"), dict) else {}
-    sensitive = [p for p in changed if p.startswith((".github/workflows/", ".github/rulesets/"))
-                 or p in {"tools/ci_scope_gate.py", "tools/ci_required_certification.py",
-                          "tools/atlas_integrity.py", "tools/phase_adaptive_gate.py"}]
+    root_of_trust = phase.get("root_of_trust_changes", [])
+    if not isinstance(root_of_trust, list):
+        root_of_trust = []
+    sensitive = sorted(set(root_of_trust) | {
+        p for p in changed if p.startswith((".github/workflows/", ".github/rulesets/"))
+        or p in {"tools/ci_scope_gate.py", "tools/ci_required_certification.py",
+                 "tools/atlas_integrity.py", "tools/phase_adaptive_gate.py"}
+    })
+    ui_uncertainty = ui.get("uncertainty", [])
+    if not isinstance(ui_uncertainty, list):
+        ui_uncertainty = []
+    selected_ui_scenarios = ui.get("selected_scenarios", [])
+    if not isinstance(selected_ui_scenarios, list):
+        selected_ui_scenarios = []
+    recommended_tests = ui.get("recommended_tests", [])
+    if not isinstance(recommended_tests, list):
+        recommended_tests = []
     uncovered = phase.get("uncovered_paths", [])
     if not isinstance(uncovered, list):
         uncovered = []
@@ -56,6 +70,12 @@ def audit_plan(plan: dict) -> dict:
     if uncovered:
         findings.append({"level": "HIGH", "code": "UNMAPPED_TESTS",
                          "detail": f"{len(uncovered)} paths lack test mapping"})
+    if ui.get("status") == "REVIEW_REQUIRED" or ui_uncertainty:
+        findings.append({"level": "HIGH", "code": "UI_IMPACT_UNPROVEN",
+                         "detail": f"{len(ui_uncertainty)} UI import/dependency uncertainties; independent UI contracts mandatory"})
+    if root_of_trust:
+        findings.append({"level": "HIGH", "code": "ROOT_OF_TRUST_CHANGED",
+                         "detail": f"{len(root_of_trust)} host-verified CI/trust owners changed"})
     if phase.get("route") not in {"SCOPED", "FULL", "FULL_REQUIRED", "SMART"}:
         findings.append({"level": "HIGH", "code": "UNKNOWN_ROUTE",
                          "detail": "Canonical Phase routing is unavailable"})
@@ -75,7 +95,11 @@ def audit_plan(plan: dict) -> dict:
         "phase_route": safe(phase.get("route", "UNVERIFIED")),
         "ui_status": safe(ui.get("status", "UNVERIFIED")),
         "changed_paths": changed, "deleted_paths": deleted,
-        "sensitive_paths": sensitive, "uncovered_paths": uncovered,
+        "sensitive_paths": sensitive, "root_of_trust_paths": root_of_trust,
+        "ui_uncertainty": [safe(x) for x in ui_uncertainty[:40]],
+        "selected_ui_scenarios": [safe(x) for x in selected_ui_scenarios[:40]],
+        "recommended_tests": [safe(x) for x in recommended_tests[:50]],
+        "uncovered_paths": uncovered,
         "unclassified_paths": unclassified, "categories": categories,
         "phase_reasons": [safe(x) for x in reasons[:30]],
         "selected_specialists": selected, "required_jobs": required,
@@ -98,6 +122,15 @@ def render(report: dict) -> str:
         lines.append(f"- [{finding['level']}] {finding['code']}: {safe(finding['detail'])}")
     for reason in report["phase_reasons"][:12]:
         lines.append("- Route constraint: " + safe(reason))
+    if report["ui_uncertainty"]:
+        lines.append("- UI impact uncertainties (up to 12):")
+        for reason in report["ui_uncertainty"][:12]:
+            lines.append("  - " + safe(reason))
+    if report["selected_ui_scenarios"]:
+        lines.append("- Selected UI scenarios: " + ", ".join(safe(x) for x in report["selected_ui_scenarios"][:12]))
+    if report["recommended_tests"]:
+        lines.append("- Tests suggested by Doctor (not executed here): " + ", ".join(
+            safe(x) for x in report["recommended_tests"][:14]))
     lines.extend(["", "| Changed path | Reason to inspect |", "|---|---|"])
     for path in report["changed_paths"][:35]:
         tags = []
