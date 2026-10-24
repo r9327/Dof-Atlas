@@ -44,6 +44,22 @@
 - [ ] Vérifier que la fermeture/réouverture de la colonne droite conserve largeur, état et scroll y compris après parcours Guide → Quête → Guide ; tester seulement les lecteurs où cette colonne existe.
 - [ ] Préparer exactement les **trois captures de contrôle utiles** : accueil Guides, en-tête + fiche Guide Succès Opti, et un guide Ganymède réel quand activé ; ne pas multiplier les captures inutiles.
 
+## Contrats de navigation et état de colonne (préparation)
+
+**État constaté :** `guides_view.py::_configure_detail_layout` fixe `right_panel.setVisible(True)` et réimpose les largeurs 220–230 px à chaque entrée de guide classique ; le splitter `FixedColumnSplitter` ne permet pas le redimensionnement classique par poignée. Il faut une action explicite, pas seulement `right_panel.hide()` dans un handler qui sera annulé au prochain render.
+
+**Scénarios et détenteurs d'état :**
+- [ ] N1 : guide classique + colonne visible => activer rétraction : panneau caché et **languette de restauration réellement cliquable**, centre prend la place libérée.
+- [ ] N2 : aller Guide → Quête → même Guide ; rechanger onglet / guide / redimensionner => préférence de colonne et scroll conservés selon la portée définie, sans largeur négative ni min-width bloquant.
+- [ ] N3 : Ganymède continu masque volontairement droite ; ne pas créer de languette trompeuse sur ce lecteur. Guide Succès/Sylvestre utilisant la vue partagée ne doivent pas recevoir ce QSplitter.
+- [ ] N4 : Quête accessible une seule fois **par quête et par fiche**, zone de clic et tooltip exacts ; retour fidèle au `guide_id`, `guide_stage_id`, `guide_index` émis par `_open_quest_from_card`.
+- [ ] N5 : sommaire sticky et chapitres/actes repliables conservent leur état ; retour « fiche actuelle » distinct de retour catalogue ; navigation Précédent/Suivant sans perdre la sélection.
+- [ ] N6 : chaîne de commandes destination `[x,y]` → `/travel x,y` ou `/zaap` puis `/travel`, **uniquement** sur route connue et destinataires actuellement connectés/vérifiés ; sinon copier la commande ou afficher explicitement indisponible.
+- [ ] N7 : combats checkables `✔ xN monstre`, groupements PNJ/objets, carte Légende et texte compact ; la normalisation visuelle ne doit pas fusionner deux objectifs métier distincts.
+- [ ] N8 : captures Doctor limitées aux écrans demandés, vrais événements Qt, test de détachement des anciennes cartes QWidget (`hide` + `deleteLater`) et absence d'empilement après plusieurs retours.
+
+**Critère de livraison :** cette PR est UNE PR ergonomique cohérente, pas une PR pour la seule colonne droite ; vérifier la non-régression Guide Succès, Sylvestre, Dofus classique, Alignements et contenu Ganymède accessible.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
