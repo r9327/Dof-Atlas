@@ -96,14 +96,20 @@ class FeaturedGuideCard(QFrame):
         self.open_button.setEnabled(usable)
         self.open_button.setText("Continuer →" if usable and done > 0 else
                                  "Ouvrir →" if usable else "Indisponible")
-        description = str(getattr(guide, "description", "") or "").strip()[:85]
+        raw_description = str(getattr(guide, "description", "") or "").strip()
+        # Never slice a French word halfway through; leave room for the
+        # state below rather than forcing both strings into one cramped line.
+        if len(raw_description) > 68:
+            description = raw_description[:68].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+        else:
+            description = raw_description
         if not usable:
             status = "Parcours indisponible"
         elif total > 0:
             status = f"{done}/{total} quêtes · {state or 'Non commencé'}"
         else:
             status = "Progression indisponible"
-        self.subtitle.setText(f"{description} · {status}" if description else status)
+        self.subtitle.setText(f"{description}\n{status}" if description else status)
         # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
