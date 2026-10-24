@@ -651,6 +651,7 @@ jobs:
           Write-Host "Doctor exact-SHA shadow pair recorded; no FULL waiver granted"
 
       - name: Enforce phase certification verdict
+        id: phase_verdict
         if: always()
         run: |
           if ("${{ steps.reuse.outputs.reuse_full }}" -eq "true") {
@@ -753,6 +754,41 @@ jobs:
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide status: existing ``BUILDING`` debt carried byte-for-byte unchanged from the Phase 1 base; this is not GUIDE CERTIFIED."
             }
           }
+
+      - name: Record final Phase outcome diagnostics
+        if: always()
+        continue-on-error: true
+        shell: python
+        env:
+          PHASE_ROUTE_OUTCOME: ${{ steps.route.outcome }}
+          PHASE_FULL_OUTCOME: ${{ steps.certification.outcome }}
+          PHASE_SCOPED_OUTCOME: ${{ steps.scoped.outcome }}
+          PHASE_PREFLIGHT_OUTCOME: ${{ steps.diff_preflight.outcome }}
+          PHASE_VERDICT_OUTCOME: ${{ steps.phase_verdict.outcome }}
+        run: |
+          import json, os
+          from pathlib import Path
+          target = Path("artifacts/phase_certification/05_phase_outcome.json")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          outcomes = {
+              key: os.environ.get(key, "unknown") for key in (
+                  "PHASE_ROUTE_OUTCOME", "PHASE_FULL_OUTCOME",
+                  "PHASE_SCOPED_OUTCOME", "PHASE_PREFLIGHT_OUTCOME",
+                  "PHASE_VERDICT_OUTCOME"
+              )
+          }
+          good = outcomes["PHASE_VERDICT_OUTCOME"] == "success"
+          canonical = Path("artifacts/phase_certification/04_phase_verdict.json").is_file()
+          target.write_text(json.dumps({
+              "schema_version": 1, "kind": "atlas_phase_step_diagnostics",
+              "candidate_sha": os.environ.get("CANDIDATE_SHA"),
+              "base_ref": os.environ.get("CERT_BASE_REF"),
+              "status": "STEP_SUCCEEDED_NOT_CERTIFICATE" if good else "NOT_CERTIFIED",
+              "canonical_phase_verdict_present": canonical,
+              "steps": outcomes,
+              "certified": False,
+              "note": "Diagnostic only. Certification requires the canonical verdict or independent host-verified reuse, never this file.",
+          }, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
 
       - name: Upload certification logs
         if: always()
