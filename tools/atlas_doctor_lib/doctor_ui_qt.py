@@ -482,8 +482,22 @@ def build_scene(temp: Path):
         client_index_path=paths["clients"], owned_items_path=paths["items"])
     page.resize(1200, 800)
     page.set_character_key("character:990000001")
+    # Local Doctor-only source fixture: genuine canonical IDs with explicit
+    # verification provenance. Never infer a progression ID from a slot/name.
+    bindings_path = temp / "network_bindings.json"
+    write_json(bindings_path, {"characters": {
+        "990000001": {"name": "Doctor Alpha", "class_key": "feca",
+                      "source": "verified_network_identity"},
+        "990000002": {"name": "Doctor Beta", "class_key": "cra",
+                      "source": "verified_network_identity"},
+    }})
     # Upgrade through the production owner; no substitute Guide or navigation mock.
     owner = page.ensure_full_guides_view()
+    from app.services.guide_participant_service import GuideParticipantService
+    owner.guide_participant_service = GuideParticipantService(
+        profile_path=paths["profiles"], client_index_path=paths["clients"],
+        binding_path=bindings_path,
+    )
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
     page.show()
@@ -597,6 +611,48 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     view = open_guide(page, owner, guide_id)
     view._show_index(0)
     settle()
+    if session.mode not in {"capture", "inspect"}:
+        from PySide6.QtWidgets import QPushButton
+
+        # The browsing character is NOT an implicit Valider recipient. Exercise
+        # the real Qt selection flow before asserting manual persistence.
+        primary_key = "character:990000001"
+        view.participant_service.save_selected_keys(())
+        view._refresh_participants_panel()
+        view._render_window()
+        settle()
+        initial_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        empty_blocked = (
+            view.selected_participant_keys() == ()
+            and initial_button is not None and not initial_button.isEnabled()
+        )
+        session.check(
+            "participant-empty-blocked", "Open Guide without explicitly selected characters",
+            "Valider disabled with no explicit recipient",
+            {"selected": list(view.selected_participant_keys()),
+             "validation_enabled": initial_button.isEnabled() if initial_button else None},
+            empty_blocked, page,
+        )
+        view.participants_button.setChecked(True)
+        settle()
+        portrait = view._participant_buttons.get(primary_key)
+        selection_click = (
+            click_target(page, portrait) if portrait is not None
+            else {"accessible": False, "reason": "MISSING_VERIFIED_CHARACTER"}
+        )
+        settle()
+        selected = view.selected_participant_keys()
+        live_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        session.check(
+            "participant-explicit-selection", "QTest click verified Doctor character portrait",
+            "Physical selection persisted, Valider targets only the selected canonical ID",
+            {"click": selection_click, "selected": list(selected),
+             "validation_enabled": live_button.isEnabled() if live_button else None},
+            selection_click["accessible"] and selected == (primary_key,)
+            and live_button is not None and live_button.isEnabled(), page,
+        )
+        view.participants_button.setChecked(False)
+        settle()
     indices = (0,) if smoke else ((0, 2) if guide_id == "guide_complet" else (0, 7))
     if session.mode in {"capture", "inspect"}:
         for index in indices:
@@ -790,13 +846,20 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
              "disk_checked": view.service.page_checked(character, card, 0),
              "expected": expected_manual}, real_reopen, page,
         )
+        # Switching browsing context alone cannot change Valider recipients.
+        # Explicitly switch the verified selection in this isolated test scene.
+        view.participant_service.save_selected_keys((other_character,))
         view.set_character_key(other_character)
+        view._refresh_participants_panel()
+        view._render_window()
         settle()
         view.service.reload_progress()
         other_button = view.findChild(QPushButton, "GuideManualPageCheck")
         other_saved = view.service.page_checked(other_character, card, 0)
         other_visual = other_button.isChecked() if other_button else None
+        view.participant_service.save_selected_keys((character,))
         view.set_character_key(character)
+        view._refresh_participants_panel()
         view._show_index(0)
         settle()
         view.service.reload_progress()
