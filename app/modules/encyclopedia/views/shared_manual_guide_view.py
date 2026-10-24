@@ -149,12 +149,12 @@ class _GuideProgressDonut(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._percent = 0
+        self._percent: int | None = None
         self.setObjectName("GuideCompactDonut")
         self.setFixedSize(66, 66)
 
-    def set_percent(self, value: int) -> None:
-        value = max(0, min(100, int(value)))
+    def set_percent(self, value: int | None) -> None:
+        value = None if value is None else max(0, min(100, int(value)))
         if value == self._percent:
             return
         self._percent = value
@@ -171,9 +171,11 @@ class _GuideProgressDonut(QWidget):
         painter.drawArc(ring, 0, 360 * 16)
         pen.setColor(self.palette().highlight().color())
         painter.setPen(pen)
-        painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
+        if self._percent is not None:
+            painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
         painter.setPen(self.palette().text().color())
-        painter.drawText(self.rect(), Qt.AlignCenter, f"{self._percent} %")
+        painter.drawText(self.rect(), Qt.AlignCenter,
+                         f"{self._percent} %" if self._percent is not None else "—")
 
 
 class _ParticipantPortraitButton(QToolButton):
@@ -1597,8 +1599,16 @@ class SharedGuideManualView(GuideUltimeManualView):
                 break
         if progress_rows:
             total = max(total for _completed, total in progress_rows)
-            completed = min(completed for completed, _total in progress_rows)
-            percent = min(100, round(completed * 100 / total)) if total > 0 else 0
+            # Common progress is the intersection of completed sheet IDs.
+            # The minimum of two counts is not evidence of shared completion.
+            if len(keys) > 1:
+                completed = sum(
+                    1 for index, card in enumerate(self.service.cards)
+                    if all(self._card_complete(key, card, index) for key in keys)
+                )
+            else:
+                completed = min(done for done, _total in progress_rows)
+            percent = min(100, round(completed * 100 / total)) if total > 0 else None
             self.route_bar.setRange(0, max(1, total))
             self.route_bar.setValue(completed)
             self.route_progress_label.setText(f"{completed} / {total}")
@@ -1607,7 +1617,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
-            self.progress_donut.set_percent(0)
+            self.progress_donut.set_percent(None)
 
         success_rows: list[tuple[int, int]] = []
         progress_getter = getattr(self.service, "progress", None)
