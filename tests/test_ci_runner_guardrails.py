@@ -150,6 +150,35 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("Run full application test suite", source)  # manual diagnostic preserved
         self.assertTrue((ROOT / "tools/ci_main_phase_evidence.py").is_file())
 
+    def test_phase_full_aborts_early_on_real_changed_test_failures(self) -> None:
+        workflow = self._workflow('phase-certification.yml')
+        preflight = workflow.split('      - name: Fail fast on changed test regressions before FULL', 1)[1].split('      - name: Measure canonical Encyclopedia user paths', 1)[0]
+        full = workflow.split('      - name: Run full Atlas phase certification gate', 1)[1].split('      - name: Verify public dataset inputs did not change during validation', 1)[0]
+        self.assertLess(workflow.index('Fail fast on changed test regressions before FULL'),
+                        workflow.index('Run full Atlas phase certification gate'))
+        self.assertIn("github.event_name == 'pull_request'", preflight)
+        self.assertIn("steps.catalog.outcome == 'success'", preflight)
+        self.assertIn("steps.inputs_before.outcome == 'success'", preflight)
+        self.assertIn('timeout-minutes: 12', preflight)
+        self.assertIn('continue-on-error: true', preflight)
+        self.assertIn('CommandExecutor().run(command, root)', preflight)
+        self.assertIn("'DIFF_TARGETS', policy['groups']['DIFF_TARGETS']", preflight)
+        self.assertIn('02b_diff_preflight.json', preflight)
+        self.assertIn('02b_diff_preflight.log', preflight)
+        self.assertIn("if report['exit_code'] != 0:", preflight)
+        self.assertIn('sys.exit(1)', preflight)
+        self.assertIn("if ($LASTEXITCODE -ne 0) { throw", preflight)
+        # An unsuccessful or omitted preflight blocks the expensive FULL;
+        # it cannot certify the phase by silently skipping mandatory work.
+        self.assertIn("steps.diff_preflight.outcome == 'success'", full)
+        timing = workflow.split('      - name: Measure canonical Encyclopedia user paths', 1)[1].split('      - name: Run full Atlas phase certification gate', 1)[0]
+        self.assertIn("steps.diff_preflight.outcome == 'success'", timing)
+        self.assertIn("steps.catalog.outcome == 'success'", full)
+        self.assertIn("steps.inputs_before.outcome == 'success'", full)
+        self.assertIn("python -X faulthandler -m tools.atlas_integrity full", full)
+        self.assertIn('name: Enforce phase certification verdict', workflow)
+        self.assertIn('name: Upload certification logs', workflow)
+
     def test_app_ci_full_gate_materializes_catalog_before_full_discovery(self) -> None:
         source = self._workflow("app-ci.yml")
         full = source[source.index("  full-validation:") :]
