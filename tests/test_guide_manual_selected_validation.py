@@ -196,6 +196,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertIn("0 %", known_zero.toolTip())
         self.assertEqual(self.view.route_progress_label.text(), "—")
         self.assertIsNone(self.view.progress_donut._percent)
+        self.assertFalse(self.view.current_button.isEnabled())
 
     def test_known_zero_progress_still_displays_zero(self) -> None:
         self.participants.save_selected_keys(("character:1",))
