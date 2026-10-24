@@ -53,6 +53,33 @@ def category_for(name: str, kind: str = "") -> str:
     return "Objets"
 
 
+def _structured_entries(raw: Any, *, origin: str = "") -> Iterable[dict[str, Any]]:
+    """Unwrap nested authored preparation containers without mining actions.
+
+    Guide Ultime can store a resource_plan with named groups of item rows.
+    The caller only passes an already-authored a_preparer container, never
+    source_action_candidates or general walkthrough text.
+    """
+    if isinstance(raw, (list, tuple)):
+        for child in raw:
+            yield from _structured_entries(child, origin=origin)
+        return
+    if not isinstance(raw, dict):
+        return
+    source = str(raw.get("_source_field") or origin or "")
+    if any(raw.get(key) not in (None, "") for key in ("name", "label", "item", "resource")):
+        row = dict(raw)
+        if source:
+            row.setdefault("_source_field", source)
+        yield row
+        return
+    for key, child in raw.items():
+        if key.startswith("_"):
+            continue
+        if isinstance(child, (dict, list, tuple)):
+            yield from _structured_entries(child, origin=source or key)
+
+
 def _consumption(record: dict[str, Any]) -> str:
     # No default: without a proven reusable/consumed status the amount across
     # multiple stages is ambiguous. Do not assume every displayed mention is use.
@@ -104,10 +131,10 @@ def card_claims(
     claims: list[PreparationClaim] = []
     structured_keys: set[tuple[str, int | None]] = set()
     exact_rows: set[tuple[str, int | None, str, str]] = set()
-    for index, raw in enumerate(card.get("a_preparer", ()) or ()):
-        if not isinstance(raw, dict):
-            continue
-        name = str(raw.get("name") or raw.get("label") or "").strip()
+    for index, raw in enumerate(_structured_entries(card.get("a_preparer", ()) or ())):
+        name = str(
+            raw.get("name") or raw.get("label") or raw.get("item") or raw.get("resource") or ""
+        ).strip()
         if not name:
             continue
         item_id = _positive_int(raw.get("item_id"))

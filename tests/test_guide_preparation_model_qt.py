@@ -63,6 +63,67 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         QApplication.processEvents()
         return self.view
 
+    def test_six_verified_participants_can_be_ready_without_anonymous_writes(self):
+        from types import SimpleNamespace
+
+        class SixParticipants(_ThreeParticipants):
+            def available_characters(self):
+                return tuple(SimpleNamespace(
+                    key=f"character:{index}", label=f"Perso {index}", connected=False
+                ) for index in range(1, 7))
+
+        self.participants = SixParticipants()
+        self.participants.save_selected_keys(tuple(
+            f"character:{index}" for index in range(1, 7)
+        ))
+        view = self._view()
+        self.assertEqual(len(view._preparation_needs), 1)
+        need = view._preparation_needs[0]
+        self.assertEqual(len(need.required_by_character), 6)
+        key = view._ready_progress_key(need)
+        ready = view.preparation_panel.findChild(QToolButton, "GuidePreparationReady")
+        self.assertTrue(ready.isEnabled())
+        ready.click()
+        QApplication.processEvents()
+        persisted = GuideProgressService(self.path)
+        self.assertTrue(all(
+            persisted.is_manual_step_completed(
+                f"character:{index}", self.service.progress_id, key
+            )
+            for index in range(1, 7)
+        ))
+        self.assertFalse(persisted.is_manual_step_completed(
+            "character:7", self.service.progress_id, key,
+        ))
+
+    def test_many_preparation_rows_remain_bounded_in_qt(self):
+        self.participants.save_selected_keys(("character:1",))
+        self.service.cards[0]["a_preparer"] = [
+            {"item_id": index + 10000, "name": f"Objet témoin {index}",
+             "quantity": 1}
+            for index in range(235)
+        ]
+        view = self._view()
+        self.assertEqual(len(view._preparation_needs), 235)
+        rows = view.preparation_panel.findChildren(QToolButton, "GuidePreparationReady")
+        self.assertLessEqual(len(rows), 80)
+        self.assertIsNotNone(view.preparation_panel.findChild(
+            QLabel, "GuidePreparationEmpty"
+        ) if not view._preparation_needs else view.preparation_panel.findChild(
+            QToolButton, "GuidePreparationReady"
+        ))
+        more = view.preparation_panel.findChild(
+            __import__("PySide6.QtWidgets", fromlist=["QPushButton"]).QPushButton,
+            "GuidePreparationShowMore",
+        )
+        self.assertIsNotNone(more)
+        more.click()
+        QApplication.processEvents()
+        self.assertLessEqual(
+            len(view.preparation_panel.findChildren(QToolButton, "GuidePreparationReady")),
+            160,
+        )
+
     def test_readonly_without_selected_character(self):
         self.participants.save_selected_keys(())
         view = self._view()

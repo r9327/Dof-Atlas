@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import unittest
+from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_preparation_model import (
     aggregate_remaining, card_claims, category_for,
@@ -116,6 +118,48 @@ class GuidePreparationModelTests(unittest.TestCase):
         ]})
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row.quantity is None for row in rows))
+
+    def test_authored_incarnam_resource_plan_reaches_cards(self):
+        """Use real retained chapter data, not an invented synthetic item."""
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
+            GuideUltimeManualRuntimeService,
+        )
+        root = Path(__file__).resolve().parents[1]
+        chapter = json.loads((
+            root / "data/routes/guide_ultime_manual/incarnam_v1.json"
+        ).read_text(encoding="utf-8"))
+        authored = chapter["resource_plan"]["collect_before_leaving_incarnam"]
+        self.assertGreater(len(authored), 10)
+        schedule = GuideUltimeManualRuntimeService._chapter_preparation_schedule(
+            chapter, chapter["stages"],
+        )
+        self.assertIn(0, schedule)
+        card = {
+            "manual_stage_id": chapter["stages"][0]["id"],
+            "a_preparer": schedule[0],
+        }
+        claims = card_claims(card)
+        quantities = {claim.name: claim.quantity for claim in claims}
+        self.assertEqual(quantities["Blé"], 18)
+        self.assertEqual(quantities["Goujon"], 8)
+        self.assertEqual(quantities["Relique d'Incarnam"], 3)
+        self.assertGreaterEqual(len(quantities), len(authored))
+
+    def test_nested_authored_resources_not_confused_with_candidate_actions(self):
+        card = {"manual_stage_id": "fixture", "a_preparer": [{
+            "_source_field": "resource_plan",
+            "collect_before_leaving": [
+                {"resource": "Ortie", "quantity": 13},
+                {"item": "Fer", "quantity": 10},
+            ],
+            "notes": [{"policy": "Aucun achat forcé"}],
+        }], "source_action_candidates": [{
+            "label": "Objet Ganymède", "quantity": 999, "kind": "prepare_object",
+        }]}
+        claims = card_claims(card)
+        self.assertEqual([(c.name, c.quantity) for c in claims],
+                         [("Ortie", 13), ("Fer", 10)])
+        self.assertTrue(all(c.source == "resource_plan" for c in claims))
 
     def test_missing_identity_never_uses_slot(self):
         rows = card_claims({"a_preparer": [
