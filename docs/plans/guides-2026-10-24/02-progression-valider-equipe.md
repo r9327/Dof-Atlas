@@ -33,6 +33,13 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] Tests guide_progress_persistence, guide_ultime_manual_ui_navigation, doctor_ui_qt, progress_concurrent_instances, character_identity_guardrails.
 - [ ] Doctor vrai clic et persistance, aucun faux PASS avec faux service set_page_checked sans sauvegarde.
 
+## Compléments explicites — invariants fonctionnels
+- [ ] Clic sur Valider / annulation : comportement déterministe pour les mélanges de fiches déjà validées, automatiques, non validées et fiches bloquées parmi plusieurs personnages. Ne jamais utiliser un seul booléen d'équipe pour écraser les résultats individuels.
+- [ ] Vérifier les transitions de personnage **sans rechargement du Guide** : portrait coché/décoché, personnage courant global modifié, onglet quitté puis réouvert, identité devenue hors ligne, évènement réseau concurrent. État du bouton et textes doivent suivre les bons destinataires.
+- [ ] État Route à 100 % : `Actuelle` et bouton Valider doivent afficher le bon statut de fin, sans renvoyer arbitrairement à la dernière fiche comme si elle était encore à faire.
+- [ ] Le résultat de `route_sheet_progress`, les caches manuels et les mises à jour Quêtes/Succès doivent rester cohérents après les migrations paresseuses de clés ; aucun write-on-read inattendu ne doit perdre une modification récente.
+- [ ] Tester annulation manuelle après auto-validation et rechargement : la preuve de quête/succès est toujours autoritaire ; seule la marque manuelle associée peut être modifiée.
+
 ## Processus de livraison
 - [ ] Cette PR est ouverte en brouillon pour CADRAGE : ce commit ne contient aucun correctif applicatif et ne doit pas être fusionné seul.
 - [ ] Développer les PR dans l'ordre des dépendances, UNE SEULE à la fois. Avant chaque lot, repartir de main actualisé, vérifier HEAD et git status, ne pas intégrer la branche accidentelle non validée.
