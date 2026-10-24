@@ -205,6 +205,21 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertEqual(self.view.route_progress_label.text(), "0 / 2")
         self.assertEqual(self.view.progress_donut._percent, 0)
 
+    def test_external_progress_refresh_updates_existing_portrait(self) -> None:
+        self.participants.save_selected_keys(("character:1",))
+        self.view._refresh_participants_panel()
+        portrait = self.view._participant_buttons["character:1"]
+        self.assertEqual(portrait.progress, 0)
+
+        first = self.service.cards[0]
+        self.service.guide_progress.set_manual_step_completed(
+            "character:1", self.service.progress_id, self.service.page_key(first, 0), True,
+        )
+        self.view.refresh()
+        self.assertIs(self.view._participant_buttons["character:1"], portrait)
+        self.assertEqual(portrait.progress, 50)
+        self.assertIn("50 %", portrait.toolTip())
+
     def test_team_progress_counts_shared_sheet_intersection(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         first, second = self.service.cards
