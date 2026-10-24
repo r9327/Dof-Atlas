@@ -158,6 +158,22 @@ class Phase8MemoryAdvisoryPolicyTests(unittest.TestCase):
         self.assertNotEqual(blocked_craft.returncode, 0)
         self.assertIn("craft_retained_tree_delta_mb", blocked_craft.stderr)
 
+    def test_invalid_required_observations_block_even_below_memory_limits(self) -> None:
+        for key, value in (("stage", True), ("stage", "90.0"),
+                           ("peak", None), ("peak", 0),
+                           ("retained", True), ("retained", "0.1"),
+                           ("retained", float("nan"))):
+            payload = metric_payload()
+            if key == "stage":
+                payload["metrics"]["stages"][0]["tree_rss_mb"] = value
+            elif key == "peak":
+                payload["metrics"]["peak_tree_rss_mb"] = value
+            else:
+                payload["metrics"]["craft_retained_tree_delta_mb"] = value
+            with self.subTest(metric=key, value=value):
+                result = run_validation(payload)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+
     def test_missing_required_evidence_still_blocks(self) -> None:
         payload = metric_payload()
         payload["metrics"]["stages"] = payload["metrics"]["stages"][:-1]
