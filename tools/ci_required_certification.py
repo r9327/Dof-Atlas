@@ -411,9 +411,14 @@ def git(*args: str) -> str:
 
 
 def candidate_paths(base_sha: str, candidate: str) -> tuple[list[str], list[str]]:
-    """Preserve deletions/type changes; --no-renames makes moves D+A."""
+    """Match canonical PR merge-base diff, preserving deletions/type changes.
+
+    A branch behind main must not inherit unrelated changes to main when
+    deciding whether the PR itself is eligible for a lighter certificate.
+    --no-renames makes a move a deletion plus an addition, never a silent M.
+    """
     finished = subprocess.run(
-        ["git", "diff", "--name-status", "-z", "--no-renames", base_sha, candidate],
+        ["git", "diff", "--name-status", "-z", "--no-renames", f"{base_sha}...{candidate}"],
         check=True, capture_output=True, text=True, encoding="utf-8", timeout=45,
     )
     fields = finished.stdout.split("\0")
