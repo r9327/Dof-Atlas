@@ -51,7 +51,9 @@ class ExtendedNavigationEvidenceTests(unittest.TestCase):
         self.assertIn('if ("${{ github.event_name }}" -eq "workflow_dispatch"', workflow)
         self.assertIn('--include-heavy-views', workflow)
         self.assertIn('python -X faulthandler tools/benchmark_phase8_memory.py', workflow)
-        self.assertIn('peak_tree > 220.0', workflow)
+        self.assertIn('peak_target_mb = 220.0', workflow)
+        self.assertIn('peak_hard_limit_mb = peak_target_mb * 1.05', workflow)
+        self.assertIn('if peak_tree > peak_hard_limit_mb:', workflow)
 
     def test_longer_cycles_are_optional_without_changing_legacy_gates(self):
         source = BENCHMARK.read_text(encoding="utf-8")

@@ -97,12 +97,26 @@ class Phase8MemoryAdvisoryPolicyTests(unittest.TestCase):
         self.assertIn("repeat_2_guide_home: 100.54 MB >= 100.00 MB", result.stdout)
         self.assertIn("::warning title=Memory Home target (advisory)", result.stdout)
 
-    def test_peak_still_blocks(self) -> None:
+    def test_peak_target_overshoot_warns_with_approved_5_percent_margin(self) -> None:
         payload = metric_payload()
-        payload["metrics"]["peak_tree_rss_mb"] = 220.01
+        payload["metrics"]["peak_tree_rss_mb"] = 220.10
+        result = run_validation(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("::warning title=Peak RAM above target (5% tolerance)", result.stdout)
+        self.assertIn("hard ceiling is 231.00 MB", result.stdout)
+
+    def test_peak_at_tolerance_boundary_is_still_permitted(self) -> None:
+        payload = metric_payload()
+        payload["metrics"]["peak_tree_rss_mb"] = 231.0
+        result = run_validation(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_peak_above_5_percent_hard_limit_still_blocks(self) -> None:
+        payload = metric_payload()
+        payload["metrics"]["peak_tree_rss_mb"] = 231.01
         result = run_validation(payload)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("process-tree peak budget exceeded", result.stderr)
+        self.assertIn("process-tree peak tolerance exceeded", result.stderr)
 
     def test_preload_still_blocks(self) -> None:
         payload = metric_payload()

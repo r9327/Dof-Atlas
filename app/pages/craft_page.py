@@ -54,9 +54,6 @@ from app.storage import (
 from app.ui.components import AtlasButton
 
 
-from local_dofus_data.normalizer import craft_category_for_item
-
-
 LOGGER = logging.getLogger(__name__)
 
 _RESULT_BATCH_SIZE = 8
@@ -733,6 +730,10 @@ class CraftPage(QWidget):
             self.restyle_button(button)
 
     def category_for_item(self, item: dict[str, Any]) -> str:
+        # SQLite/preload already classifies items. Load the normalizer only for
+        # an unclassified item, not when opening Craft and returning Home.
+        from local_dofus_data.normalizer import craft_category_for_item
+
         return craft_category_for_item(item)
 
     def load_items(self) -> None:

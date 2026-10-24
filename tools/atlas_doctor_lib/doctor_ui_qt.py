@@ -563,6 +563,23 @@ def check_sheet(session, page, view, key):
                   observed, ok, page)
 
 
+def guide_runtime_identity(service) -> str | None:
+    """Identify the actual renderer without requiring nonexistent fields.
+
+    Guide Succès has a distinct canonical runtime service without `guide_id`.
+    Do not replace this identity check with the requested guide ID: the
+    assertion must still catch the wrong renderer after a guide switch.
+    """
+    from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+        GuideUltimeManualRuntimeService,
+    )
+
+    guide_id = getattr(service, "guide_id", None)
+    if guide_id is None and isinstance(service, GuideUltimeManualRuntimeService):
+        return "guide_complet"
+    return str(guide_id) if guide_id else None
+
+
 def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     from PySide6.QtWidgets import QPushButton, QFrame, QCheckBox
     from shiboken6 import isValid
@@ -972,10 +989,16 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         other = open_guide(page, owner, other_id)
         returned = open_guide(page, owner, guide_id)
         other_visible = isValid(other) and other.isVisible()
+        # The Guide Succès runtime uses the canonical GuideUltimeManualRuntimeService,
+        # which intentionally has no `guide_id` field. Verify its actual
+        # service type, and independently check the active Encyclopedia owner.
+        service_guide_id = guide_runtime_identity(returned.service)
+        owner_guide_id = getattr(page.guides_view, "current_guide_id", None)
         session.check("guide-return", "Change guide then return", "Correct renderer visible; other guide hidden",
-                      {"current_guide": returned.service.guide_id,
+                      {"current_guide": service_guide_id, "owner_guide": owner_guide_id,
                        "other_alive": isValid(other), "other_visible": other_visible},
-                      returned.service.guide_id == guide_id and not other_visible, page)
+                      service_guide_id == guide_id and owner_guide_id == guide_id
+                      and not other_visible, page)
         view = returned
     else:
         view = reopened

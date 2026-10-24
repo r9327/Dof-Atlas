@@ -33,6 +33,35 @@ class CraftLightweightImportBoundaryTests(unittest.TestCase):
         for module in ("app.core.item_identity", "app.core.json_store", "app.core.text"):
             self.assertIn(module, modules)
 
+    def test_craft_category_normalizer_is_deferred_until_classification(self) -> None:
+        # Opening an SQLite-backed Craft page must not import the full
+        # normalization stack when no item has been searched yet.
+        source = (ROOT / "app/pages/craft_page.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        self.assertFalse(
+            any(
+                isinstance(node, ast.ImportFrom)
+                and node.module == "local_dofus_data.normalizer"
+                for node in tree.body
+            )
+        )
+        craft_page = next(
+            node for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "CraftPage"
+        )
+        category = next(
+            node for node in craft_page.body
+            if isinstance(node, ast.FunctionDef) and node.name == "category_for_item"
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.ImportFrom)
+                and node.module == "local_dofus_data.normalizer"
+                and any(alias.name == "craft_category_for_item" for alias in node.names)
+                for node in ast.walk(category)
+            )
+        )
+
     def test_legacy_storage_still_reexports_canonical_item_id(self) -> None:
         source = (ROOT / "app/storage.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
