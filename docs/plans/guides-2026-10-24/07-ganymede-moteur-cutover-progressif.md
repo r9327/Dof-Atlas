@@ -39,6 +39,14 @@
 - [ ] Tests ganymede_* ciblés (manifest/fingerprint/actions/parity/prepa), guide_continuous_navigation, guide_continuous_route_panel, Doctor UI Windows, performance et packaging ; preuve par guide/groupe avant activation.
 - [ ] La PR entière est considérée finie uniquement après identification claire des guides activés et de ceux restant bloqués ; ne jamais proclamer 95/95 jouables par le simple index.
 
+## Compléments explicites — contrat de remplacement Ganymède
+- [ ] Assurer un **suivi continu intégral** de la première à la dernière étape pour les parcours effectivement activés, pas une simple liste d'objectifs ou de quêtes associées.
+- [ ] Les deux catégories **Dofus et Alignements** doivent préserver leurs règles spécifiques ; Bonta/Brâkmar ne doivent pas devenir actifs sur le seul drapeau de disponibilité d'un Dofus, et les guides non couverts restent clairement identifiés.
+- [ ] Les étapes Ganymède conservent leur ordre source **sans optimisation automatique** ; les modifications d'itinéraires et de regroupements sont réservées au moteur du Guide Succès Opti, pas au remplacement source.
+- [ ] Tester chaque guide activé avec au moins une séquence d'étapes contenant déplacements, PNJ, combats, préparation, passage de fiche et sauvegarde de deux personnages ; les actions inconnues sont clairement distinguées des actions vérifiées.
+- [ ] Les catégories Dimensions / Éliocalypse / Événements / Régions / Îles restent affichées à l'accueil avec leur vrai statut, sans confondre inventaire source et contenu entièrement certifié.
+- [ ] Preuves livrées en fin de PR : **liste nominative et nombre exact de guides actifs/bloqués**, parité des étapes, captures réelles d'un guide Ganymède, diff des données exportées vers Atlas App et vérification de l'absence de régression des anciennes sauvegardes.
+
 ## Protocole de développement et certification
 - [ ] PR brouillon de CADRAGE : le premier commit est documentaire uniquement ; pas d'implémentation tant que le lot n'est pas engagé et ne jamais fusionner le plan seul.
 - [ ] Une seule PR de développement à la fois, terminer intégralement, rebaser sur le main mis à jour depuis la PR précédente, puis passer à la suivante sans redemander le découpage.
