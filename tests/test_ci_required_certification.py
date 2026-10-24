@@ -29,12 +29,13 @@ def full_record():
         "status": "completed",
         "conclusion": "success",
         "path": "r9327/Dof-Atlas/.github/workflows/phase-certification.yml@refs/heads/feature",
-        "repository": {"full_name": REPO},
+        "repository": {"full_name": REPO, "id": 1363051919},
+        "head_repository": {"full_name": REPO, "id": 1363051919},
         "head_branch": HEAD_REF,
         "pull_requests": [{
             "number": PR_NUMBER,
-            "head": {"sha": HEAD, "ref": HEAD_REF, "repo": {"full_name": REPO}},
-            "base": {"sha": BASE, "ref": BASE_REF, "repo": {"full_name": REPO}},
+            "head": {"sha": HEAD, "ref": HEAD_REF, "repo": {"id": 1363051919}},
+            "base": {"sha": BASE, "ref": BASE_REF, "repo": {"id": 1363051919}},
         }],
         "created_at": (NOW - timedelta(hours=2)).isoformat(),
         "updated_at": (NOW - timedelta(hours=1)).isoformat(),
@@ -127,7 +128,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                     if mutation == "wrong_base": bad_run["pull_requests"][0]["base"]["sha"] = "c" * 40
                     if mutation == "wrong_branch": bad_run["head_branch"] = "other-branch"
                     if mutation == "missing_pr_list": bad_run["pull_requests"] = []
-                    if mutation == "wrong_head_repo": bad_run["pull_requests"][0]["head"]["repo"]["full_name"] = "foreign/repo"
+                    if mutation == "wrong_head_repo": bad_run["pull_requests"][0]["head"]["repo"]["id"] = 999
                     self.assertEqual(evaluate_merge(**args, runs=[bad_run],
                                       jobs_by_run={418: [bad_job]})["status"], "BLOCKED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "tools/ci_scope_gate.py"],
