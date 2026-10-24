@@ -367,6 +367,45 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 plan_ci(root, base_ref=base, candidate_sha=head, event='pull_request', output=root / 'plan.json')
 
+    def test_pre_full_contract_gate_is_executable_fail_closed(self):
+        central = (ROOT / '.github/workflows/phase-certification.yml').read_text(
+            encoding='utf-8'
+        )
+        job = central.split('  pre-full-gate:', 1)[1].split('  certify:', 1)[0]
+        script = textwrap.dedent(job.split('        run: |', 1)[1])
+        successful = {
+            'doctor-plan': {'result': 'success'},
+            'pr-fast-validation': {'result': 'success'},
+            'doctor_certification': {'result': 'success'},
+            'phase8_memory_benchmark': {'result': 'success'},
+            'signature_report': {'result': 'skipped'},  # Unselected optional job.
+        }
+        required = ['certify', 'pr-fast-validation', 'doctor_certification',
+                    'phase8_memory_benchmark']
+        def execute(rows, mandatory):
+            env = {**os.environ, 'DOCTOR_REQUIRED': json.dumps(mandatory),
+                   'DOCTOR_RESULTS': json.dumps(rows)}
+            return subprocess.run([sys.executable, '-c', script], env=env,
+                                  text=True, capture_output=True)
+        ok = execute(successful, required)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        for key, status in (
+            ('pr-fast-validation', 'failure'),
+            ('doctor_certification', 'cancelled'),
+            ('phase8_memory_benchmark', 'skipped'),
+            ('phase8_memory_benchmark', 'failure'),
+        ):
+            rows = json.loads(json.dumps(successful))
+            rows[key]['result'] = status
+            with self.subTest(job=key, status=status):
+                self.assertNotEqual(execute(rows, required).returncode, 0)
+        rows = json.loads(json.dumps(successful))
+        rows['signature_report']['result'] = 'failure'
+        self.assertNotEqual(execute(rows, required).returncode, 0)
+        self.assertNotEqual(execute(successful, ['certify', 'unknown_job']).returncode, 0)
+        self.assertNotEqual(execute(successful, []).returncode, 0)
+        self.assertNotEqual(execute(successful, ['pr-fast-validation']).returncode, 0)
+
     def test_actual_final_verdict_rejects_skipped_failed_or_cancelled_selected_ci(self):
         source = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
         script = textwrap.dedent(source.rsplit('        run: |\n', 1)[1])
@@ -394,13 +433,16 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn('name: Require successful Doctor plan', central)
         self.assertIn('if: always() && github.event_name == \'pull_request\'', central)
         certify = central.split('  certify:', 1)[1].split('    steps:', 1)[0]
-        self.assertIn('needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]', certify)
-        self.assertIn("needs.phase8_memory_benchmark.result == 'success'", certify)
-        self.assertIn("needs.phase8_preload_benchmark.result == 'success'", certify)
-        self.assertIn("needs.phase8_memory_benchmark.result == 'skipped'", certify)
-        self.assertIn("needs.doctor-plan.outputs.phase8_memory_benchmark != 'true'", certify)
-        self.assertIn("needs.doctor-plan.outputs.phase8_preload_benchmark != 'true'", certify)
+        self.assertIn('needs: [doctor-plan, pre-full-gate]', certify)
+        self.assertIn("needs.pre-full-gate.result == 'success'", certify)
         self.assertIn("needs.doctor-plan.result == 'success'", certify)
+        prereq = central.split('  pre-full-gate:', 1)[1].split('  certify:', 1)[0]
+        for name in ('pr-fast-validation', 'doctor_certification',
+                     'doctor_ui', 'phase8_memory_benchmark',
+                     'phase8_preload_benchmark', 'graphify_map'):
+            self.assertIn(name, prereq)
+        self.assertNotIn('certify,', prereq.split('needs: [', 1)[1].split(']', 1)[0])
+        self.assertNotIn('safe-validation', prereq.split('needs: [', 1)[1].split(']', 1)[0])
         self.assertNotIn('title', certify)
         self.assertNotIn('draft', certify)
         required_public = central.split('  safe-validation:', 1)[1].split('    steps:', 1)[0]
