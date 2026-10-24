@@ -173,5 +173,30 @@ class QuestCharacterClassIdentityTests(unittest.TestCase):
 
 
 
+    def test_guide_participant_signature_changes_with_bindings_only(self):
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+        from app.services.guide_participant_service import GuideParticipantService
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text("{}", encoding="utf-8")
+            clients.write_text('{"clients":[]}', encoding="utf-8")
+            bindings.write_text('{"characters":{}}', encoding="utf-8")
+            view = SimpleNamespace(
+                participant_service=GuideParticipantService(profile, clients, bindings)
+            )
+            first = SharedGuideManualView._participant_source_signature(view)
+            bindings.write_text(
+                '{"characters":{"123":{"name":"Alpha","source":"verified_network_identity"}}}',
+                encoding="utf-8",
+            )
+            second = SharedGuideManualView._participant_source_signature(view)
+            self.assertNotEqual(first, second)
+
+
+
 if __name__ == "__main__":
     unittest.main()
