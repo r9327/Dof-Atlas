@@ -145,7 +145,11 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         )
         self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", self.source)
         certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
-        self.assertIn("if: " + route, certification)
+        # The FULL job may now wait for cheap independent gates, but it
+        # must still depend on the canonical exact-diff Doctor plan.
+        full_job = certification.split("  certify:", 1)[1].split("    name:", 1)[0]
+        self.assertIn(route, full_job)
+        self.assertIn("needs.doctor-plan.result == 'success'", full_job)
         self.assertIn("name: Phase Certification / Full Validation", certification)
         self.assertIn("tools.atlas_integrity full", certification)
 
