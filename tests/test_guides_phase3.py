@@ -742,6 +742,33 @@ class GuidePhase3Tests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_classic_right_panel_collapses_and_restores_across_quest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            view = self.make_view(Path(tmp))
+            view.resize(1100, 760)
+            view.show()
+            view.select_guide(TURQUOISE_GUIDE_ID)
+            self.app.processEvents()
+            toggle = view.findChild(QToolButton, "GuideRightPanelToggle")
+            self.assertIsNotNone(toggle)
+            self.assertFalse(view.right_panel.isHidden())
+            self.assertEqual(toggle.text(), "›")
+            toggle.click()
+            self.app.processEvents()
+            self.assertTrue(view.right_panel.isHidden())
+            self.assertEqual(toggle.text(), "‹")
+            self.assertTrue(view.show_quest_detail(1654))
+            self.assertTrue(view._right_panel_collapsed)
+            view.show_guide_overview(TURQUOISE_GUIDE_ID)
+            self.app.processEvents()
+            self.assertTrue(view.right_panel.isHidden())
+            toggle.click()
+            self.app.processEvents()
+            self.assertFalse(view.right_panel.isHidden())
+            self.assertGreaterEqual(view.right_panel.minimumWidth(), 220)
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_home_uses_virtualized_model_for_real_guides(self):
         with tempfile.TemporaryDirectory() as tmp:
             view = self.make_view(Path(tmp))
