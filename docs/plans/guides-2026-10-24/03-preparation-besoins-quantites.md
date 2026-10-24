@@ -39,6 +39,23 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] Assurer des infobulles/étiquettes de besoin compréhensibles, une vérification de l'item ID et un cumul de quantités explicable lorsqu'un objet est nécessaire à plusieurs fiches.
 - [ ] La commande `Prêt` valide les objets pour **les personnages sélectionnés concernés uniquement**, sans marquer une fiche, une quête ou un succès terminé ; persistance distincte des données de progression Route.
 
+## Modèle de besoins et matrice d'acceptation (préparation)
+
+**Sources exactes inspectées :** `SharedGuideManualView._requirements_from_card` privilégie les objets `a_preparer`, puis seulement en absence de ceux-ci parcourt `manual_sections_for_card(...).prepare` via regex « quantité x texte » ; `profession_gates` est traité séparément. La présence d'un objet structuré peut donc masquer des besoins additionnels uniquement textuels. Ce point nécessite un contrat de fusion dédupliqué, **pas** un remplacement aveugle de l'une des deux sources.
+
+**Modèle de données à spécifier lors de l'implémentation :** identité d'item si disponible, libellé, type, quantité par occurrence, unité/persistance (consommable vs réutilisable), source (chapitre/fiche/ligne), validité du rapprochement, participants associés, état `Prêt` pour chacun ; état `inconnu` conservé si la source ne permet pas de calculer la quantité. Ne pas déduire une ressource par simple présence dans `manual_resource_names`.
+
+**Matrice concrète :**
+- [ ] B1 : aucun personnage => lire tous les besoins exploitables, bouton Prêt personnel absent/désactivé, pas de `0/0 = 100 %`.
+- [ ] B2 : besoin identique dans 3 lignes : une mention redondante + 2 consommations distinctes => compter les 2 consommations, sans les confondre avec le doublon.
+- [ ] B3 : pierres d'âme, clés de donjon, potion, objet, métier et prérequis dur => visible avec type/couleur, y compris filtre Tout.
+- [ ] B4 : fiches franchies puis retour arrière => la liste générale ne mélange pas « besoin de toute la route » et « reste à préparer » ; la portée est expliquée.
+- [ ] B5 : A prêt, B non prêt => progression commune non complète ; permutation/déconnexion/restart ne change aucune marque d'un autre personnage.
+- [ ] B6 : informations Ganymède non certifiées => texte de source lisible avec « quantité non vérifiée » sans impact sur les totaux numériques certifiés.
+- [ ] B7 : changement de filtre et panneau refermé/ouvert => liste, état des boutons et pourcentages cohérents sans reconstruire tout le Guide en Qt.
+
+**Recevabilité ciblée :** `test_guide_action_preparation_contract.py`, `test_guide_prerequisite_lookup.py`, `test_guide_continuous_preparation.py`, `test_guide_progress_persistence.py`, `test_doctor_ui_qt.py` ; s'assurer de couvrir les vrais contenus du manuel et pas uniquement des fixtures synthétiques.
+
 ## Processus de livraison
 - [ ] Cette PR est ouverte en brouillon pour CADRAGE : ce commit ne contient aucun correctif applicatif et ne doit pas être fusionné seul.
 - [ ] Développer les PR dans l'ordre des dépendances, UNE SEULE à la fois. Avant chaque lot, repartir de main actualisé, vérifier HEAD et git status, ne pas intégrer la branche accidentelle non validée.
