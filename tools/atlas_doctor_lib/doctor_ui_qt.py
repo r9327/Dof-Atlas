@@ -498,6 +498,9 @@ def build_scene(temp: Path):
         profile_path=paths["profiles"], client_index_path=paths["clients"],
         binding_path=bindings_path,
     )
+    # The Encyclopedia may replace its Guides owner after returning to the
+    # catalog. Reapply the same isolated source provider to the NEW owner.
+    page._doctor_participant_service = owner.guide_participant_service
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
     page.show()
@@ -514,9 +517,10 @@ def open_guide(page, owner, guide_id):
     live_owner = owner
     if not isValid(owner) or page.guides_view is not owner:
         live_owner = page.ensure_full_guides_view()
-        if not live_owner.select_guide(guide_id):
-            raise RuntimeError("Guide cannot be opened: " + guide_id)
-    elif not owner.select_guide(guide_id):
+    fixture_participants = getattr(page, "_doctor_participant_service", None)
+    if fixture_participants is not None:
+        live_owner.guide_participant_service = fixture_participants
+    if not live_owner.select_guide(guide_id):
         raise RuntimeError("Guide cannot be opened: " + guide_id)
     settle()
     view = live_owner.stack.currentWidget()
@@ -1077,10 +1081,30 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     click = click_target(page, view.guide_button)
     catalog_visible = page.guides_view is not owner
     reopened = open_guide(page, owner, guide_id)
-    session.check("home-reopen", "QTest Guide then reopen canonical guide", "Catalog reached and real guide restored",
+    # Production is allowed to retain the same Guide widget; identity, the
+    # active owner and the rebuilt canonical sheet are the true UI contracts.
+    reopened_card = (
+        reopened.service.cards[reopened.view_index]
+        if 0 <= reopened.view_index < len(reopened.service.cards) else None
+    )
+    reopened_sheet = sheet_observations(reopened, reopened_card) if reopened_card else {}
+    restored = (
+        isValid(reopened) and reopened.isVisible()
+        and page.guides_view.stack.currentWidget() is reopened
+        and guide_runtime_identity(reopened.service) == guide_id
+        and reopened_sheet.get("sheet_count") == 1
+        and reopened_sheet.get("mounted")
+        and reopened_sheet.get("stage_ids") == [reopened_card.get("manual_stage_id")]
+        and not reopened_sheet.get("missing_lines")
+        and not reopened_sheet.get("stale_or_duplicate_lines")
+    )
+    session.check("home-reopen", "QTest Guide then reopen canonical guide",
+                  "Catalog reached and correct visible canonical sheet restored (safe reuse allowed)",
                   {"click": click, "catalog": catalog_visible,
-                   "fresh_view": reopened is not view},
-                  click["accessible"] and catalog_visible and reopened is not view, page)
+                   "fresh_view": reopened is not view,
+                   "canonical_renderer": restored,
+                   "sheet_count": reopened_sheet.get("sheet_count")},
+                  click["accessible"] and catalog_visible and restored, page)
     if not smoke:
         from shiboken6 import isValid
 
