@@ -258,6 +258,26 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_common_progress_uses_same_sheet_ids_not_smallest_count(self) -> None:
+        completed = {
+            "character:1": {0, 1, 2, 3, 4},
+            "character:2": {5, 6, 7, 8, 9},
+        }
+        count = SharedGuideManualView._common_sheet_count(
+            ("character:1", "character:2"),
+            tuple(range(10)),
+            lambda key, card, _index: card in completed[key],
+        )
+        self.assertEqual(count, 0)
+        completed["character:2"].update((0, 2))
+        self.assertEqual(
+            SharedGuideManualView._common_sheet_count(
+                tuple(completed), tuple(range(10)),
+                lambda key, card, _index: card in completed[key],
+            ),
+            2,
+        )
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
