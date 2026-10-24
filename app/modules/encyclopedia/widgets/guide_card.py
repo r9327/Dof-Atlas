@@ -116,8 +116,11 @@ class GuideListModel(QAbstractListModel):
                 ("ALIGNEMENTS", [guide for guide in guides if guide.category == "alignements"]),
             )
         elif column == "right":
-            # Never inject a heading as a false grid card.
+            # Legacy right-column contract: filter Dofus, without a fake grid item.
             sections = (("", [guide for guide in guides if guide.category == "dofus"]),)
+        elif column == "catalog":
+            # The parent already selected the category, including Alignements.
+            sections = (("", list(guides)),)
         else:
             raise ValueError(f"Unknown Guide Home column: {column}")
         self.guides = []
