@@ -1,6 +1,6 @@
 # [PLAN 01/07] Guides : Unity, Organizer, personnages et réseau
 
-**STATUT : BROUILLON DE CADRAGE — aucune implémentation. NE PAS FUSIONNER CE COMMIT SEUL.**
+**STATUT : IMPLÉMENTATION PARTIELLE EN BROUILLON — tests et certification finale non exécutés ; NE PAS FUSIONNER.**
 
 Objectif : Réparer et certifier la chaîne fenêtres Unity → Organizer → identités réseau vérifiées → profils et Guides, sans faux rapprochements.
 
@@ -49,7 +49,7 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] **Cohérence des sources :** `EncyclopediaPage._current_character_sources_signature` utilise `quest_character_source_signature`; vérifier que le changement de binding provoque un rafraîchissement efficace. Les profils synthétiques `Personnage N` ne constituent jamais une identité fiable.
 - [ ] **Tests de développement à écrire au moment autorisé :** `tests/test_quest_character_cache.py` couvre préservation de la classe au premier chargement, au cache-hit, après changement du fichier bindings et après copie isolée ; `tests/test_quest_character_class_icon_identity.py` prouve le refus de classes non vérifiées ; `tests/test_guide_participant_service.py` couvre offline/online ; `tests/test_encyclopedia_character_refresh_cache.py` protège l'invalidation ciblée ; test Qt de portrait dans `test_guide_ultime_manual_ui_navigation.py`.
 - [ ] **Contrôles fonctionnels futurs :** Feca hors ligne classe correcte ; deux personnages au même nom mais aux classes contradictoires = absence d'attribution ; écran Guide initialement vide puis identité validée par le réseau = apparition sans redémarrage ; personnage disparu/revenu sans faux changement de compte.
-- [ ] **Interdiction de développement à ce stade :** ce point est un diagnostic de planification et ne correspond pas à un correctif intégré. Toute implémentation devra attendre le lancement explicite des travaux.
+- [ ] **Historique du cadrage :** ce diagnostic a précédé l'autorisation explicite de démarrer la PR #249. Les correctifs décrits ci-dessous sont désormais poussés dans cette PR, mais non certifiés.
 
 ## Verrous de passage et scénarios transversaux (préparation)
 
@@ -75,3 +75,18 @@ Base analysée : 5849fb05828d56b5b5a15fe762e762a71f6b913c
 - [ ] Un échec impose correction, nouvelles vérifications ciblées et certification finale actualisée ; ne jamais déclarer PASS une preuve ancienne ou non exécutée.
 - [ ] Conserver les sauvegardes, les identités vérifiées, les interfaces Quêtes/Succès, le chargement paresseux et les données des étapes. Ne pas élargir le périmètre sans nécessité documentée.
 - [ ] Certifier sur un vrai client Windows tout ce qui nécessite Npcap/Unity ou une capture UI réelle ; en absence de preuve, afficher BLOQUÉ plutôt qu'inventer un succès.
+
+## Journal d'implémentation — 24 octobre 2026
+
+Implémentation **en cours** sur la branche de la PR #249, sans fusion ni transition Ready for review. Les contrôles ci-dessous décrivent les changements de code présents, **pas** des tests exécutés.
+
+- **FAIT DANS LE CODE :** propagation du `class_key` déjà vérifié à travers les deux copies du cache des personnages ; tests cache-hit, mutation défensive et changement de bindings ajoutés.
+- **FAIT DANS LE CODE :** résolution de portrait Guide exclusivement par le `class_key` fourni par l'identité réseau vérifiée, avec liste de classes autorisées et repli neutre.
+- **FAIT DANS LE CODE :** conservation du titre Unity brut `raw_title` à côté des titres d'affichage, HWND/PID, jusqu'à l'export `client_index`.
+- **FAIT DANS LE CODE :** refus de l'attribution d'une même identité à plusieurs fenêtres simultanées portant le même nom/classe ; tests de collisions ajoutés.
+- **FAIT DANS LE CODE :** filtres des participants Guide (affichés et sélectionnés) sur le registre `characters` de provenance `verified_network_identity`. Personnages vérifiés hors ligne conservés.
+- **FAIT DANS LE CODE :** résolution des fenêtres Organizer dans le catalogue Quêtes via la clé réseau vérifiée ; refus des clés modernes absentes, invalides ou en contradiction avec le nom/la classe ; lecture historique sans clé conservée en compatibilité.
+- **FAIT DANS LE CODE :** suppression des portraits de classe inférés depuis les titres de fenêtre dans Organizer ; tests d'absence d'attribution et de classe vérifiée ajoutés.
+- **À VÉRIFIER :** favoris/fenêtre principale sous redémarrage, reconnexion, renommage et multisession Windows ; rafraîchissement autonome après modification de bindings ; routage des commandes de déplacement hors ligne ; stabilité de l'ordre et de l'UI.
+- **NON ATTESTÉ / BLOQUÉ PAR L'ENVIRONNEMENT :** exécution des tests ciblés Python/Qt, Atlas Doctor/Graphify locaux, tests réels Windows Unity/Npcap/helper/admin, empreinte exacte du build, événement kvi/kva, mapping exact, certification de l'EXE installé, performances/RAM. Aucune preuve PASS n'est revendiquée.
+- **LIVRAISON :** rester en Draft. Ne pas déclencher la certification finale tant que ces vérifications et les points restants de l'inventaire n'ont pas été accomplis ou explicitement traités comme bloqueurs.
