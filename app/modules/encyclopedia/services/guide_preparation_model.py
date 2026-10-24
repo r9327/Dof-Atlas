@@ -263,12 +263,23 @@ def aggregate_remaining(
     sections_for_card may apply the production filter which removes items
     obtained on the same map. Only the caller owns loading those sections.
     """
+    # The chapter's authored global inventory is anchored to one card for
+    # compact storage, but it remains due until the entire chapter is complete.
+    # Finishing that anchor card must not hide Blé / Goujon needed further on.
+    rows = tuple(card_rows)
+    incomplete_chapters = {
+        str(card.get("manual_chapter_id") or "")
+        for card, complete in rows if not complete
+    }
     grouped: dict[tuple[str, str], list[PreparationClaim]] = {}
-    for card, complete in card_rows:
-        if complete:
+    for card, complete in rows:
+        chapter = str(card.get("manual_chapter_id") or "")
+        if complete and (not chapter or chapter not in incomplete_chapters):
             continue
         sections = sections_for_card(card) if callable(sections_for_card) else None
         for claim in card_claims(card, sections=sections):
+            if complete and claim.source != "chapter_preparation":
+                continue
             grouped.setdefault((claim.identity, claim.category), []).append(claim)
     needs = []
     for (identity, category), group in sorted(grouped.items()):

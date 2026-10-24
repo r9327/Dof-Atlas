@@ -120,6 +120,28 @@ class GuidePreparationModelTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row.quantity is None for row in rows))
 
+    def test_global_chapter_inventory_survives_anchor_card_completion(self):
+        first = {
+            "manual_stage_id": "INC-00",
+            "manual_chapter_id": "incarnam",
+            "a_preparer": [
+                {"name": "Blé", "quantity": 18,
+                 "_source_field": "chapter_preparation"},
+                {"name": "Potion locale", "quantity": 2,
+                 "_source_field": "a_preparer"},
+            ],
+        }
+        last = {"manual_stage_id": "INC-08",
+                "manual_chapter_id": "incarnam", "a_preparer": []}
+        pending = aggregate_remaining(((first, True), (last, False)))
+        self.assertEqual([(row.name, row.quantity) for row in pending],
+                         [("Blé", 18)])
+        self.assertEqual(aggregate_remaining(((first, True), (last, True))), ())
+        self.assertEqual(
+            {row.name for row in aggregate_remaining(((first, False), (last, False)))},
+            {"Blé", "Potion locale"},
+        )
+
     def test_compact_incarnam_preparation_keeps_route_unhydrated(self):
         from app.modules.encyclopedia.services.guide_ultime_manual_runtime_core import (
             GuideUltimeManualRuntimeService,
