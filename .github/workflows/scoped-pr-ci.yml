@@ -168,7 +168,7 @@ jobs:
           }
 
   verdict:
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == true)
     needs: [plan, windows]
     name: PR / Scoped Test Feedback
     runs-on: ubuntu-latest
@@ -190,10 +190,14 @@ jobs:
           if [ "$PR_EVENT" = "pull_request" ]; then
             # Automated Draft execution is a *plan only*. It cannot claim
             # Windows test evidence or a certification PASS.
-            if [ "$WINDOWS_RESULT" != "skipped" ] || [ "$RUN_SCOPED" != "true" ] && [ "$RUN_SCOPED" != "false" ]; then
-              echo "::error::Unexpected Draft route/Windows execution"
+            if [ "$WINDOWS_RESULT" != "skipped" ]; then
+              echo "::error::Unexpected Windows execution in Draft feedback"
               exit 1
             fi
+            case "$RUN_SCOPED" in
+              true|false) ;;
+              *) echo "::error::Unknown or empty Draft scope decision"; exit 1 ;;
+            esac
             echo "DRAFT_ROUTE_ONLY_NOT_CERTIFIED: Windows and FULL remain required according to official policy."
           elif [ "$RUN_SCOPED" = "true" ]; then
             if [ "$WINDOWS_RESULT" != "success" ]; then
