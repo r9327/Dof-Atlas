@@ -190,11 +190,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 %")
+            self.assertEqual(view.route_progress_label.text(), "0 / 2")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "🔓 Déverrouillé")
+            self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
         finally:
             view.close()
@@ -203,7 +203,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         service, view = self._view()
         try:
             view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "🔒 Verrouillé")
+            self.assertEqual(view.route_lock_check.text(), "Verrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
             self.assertTrue(
                 service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
@@ -227,7 +227,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "Guide")
+            self.assertEqual(view.guide_button.text(), "Guides")
+            self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
             view.close()
 
@@ -260,10 +261,14 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             travel_callback=lambda command, keys: calls.append((command, keys)),
         )
         try:
-            self.assertEqual(view.participants_button.text(), "Participants : 1")
-            actions = view.participants_button.menu().actions()
-            self.assertEqual([action.text() for action in actions], ["Alpha", "Beta (hors ligne)"])
-            actions[1].setChecked(True)
+            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertFalse(view.participants_panel.isVisible())
+            view.participants_button.click()
+            QApplication.processEvents()
+            portraits = view.findChildren(QToolButton, "GuideParticipantPortrait")
+            self.assertEqual([portrait.accessibleName() for portrait in portraits], ["Alpha", "Beta"])
+            self.assertTrue(all(portrait.text() == "" for portrait in portraits))
+            portraits[1].click()
             self.assertEqual(
                 participants.selected_keys(),
                 ("character:1", "character:2"),
@@ -444,8 +449,127 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "50 %")
+            self.assertEqual(view.route_progress_label.text(), "1 / 2")
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
+        finally:
+            view.close()
+
+    def test_actual_uses_first_incomplete_sheet_across_selected_participants(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        participants.selected = ["character:1", "character:2"]
+        service.first_incomplete_index = lambda key: {
+            "character:1": 1,
+            "character:2": 0,
+        }[key]
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+        )
+        try:
+            view._show_index(1)
+            view.go_active()
+            self.assertEqual(view.active_index, 0)
+            self.assertEqual(view.view_index, 0)
+        finally:
+            view.close()
+
+    def test_summary_stays_open_until_its_button_is_explicitly_toggled(self) -> None:
+        _service, view = self._view()
+        try:
+            self.assertFalse(view.summary_panel.isVisible())
+            view.summary_button.click()
+            QApplication.processEvents()
+            self.assertTrue(view.summary_panel.isVisible())
+            view.summary_list.item(1).setSelected(True)
+            view._summary_item_clicked(view.summary_list.item(1))
+            view.go_active()
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            self.assertTrue(view.summary_panel.isVisible())
+            view.summary_button.click()
+            self.assertFalse(view.summary_panel.isVisible())
+        finally:
+            view.close()
+
+    def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_objects(self) -> None:
+        service = _FakeManualUiService()
+        service.cards[0]["a_preparer"] = [
+            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+            {"item_id": 20, "name": "Pierre d'âme moyenne", "quantity": 1},
+            {"item_id": 30, "name": "Clef de test", "quantity": 2},
+        ]
+        service.cards[1]["a_preparer"] = [
+            {"item_id": 10, "name": "Potion de test", "quantity": 2},
+        ]
+        service.card_auto_complete = lambda key, card: (
+            key == "character:2" and card is service.cards[0]
+        )
+        participants = _FakeParticipantService()
+        participants.selected = ["character:1", "character:2"]
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+        )
+        try:
+            self.assertFalse(view.preparation_panel.isVisible())
+            view.preparation_button.click()
+            potion = next(need for need in view._preparation_needs if need.name == "Potion de test")
+            self.assertEqual(
+                dict(potion.required_by_character),
+                {"character:1": 6, "character:2": 2},
+            )
+            summaries = [
+                label.text()
+                for row in view.findChildren(QFrame, "GuidePreparationSummary")
+                for label in row.findChildren(QLabel)
+            ]
+            self.assertIn("0 / 1 prêts", summaries)
+            objects = next(
+                button
+                for button in view.preparation_filter_group.buttons()
+                if button.property("filterKey") == "Objets"
+            )
+            objects.click()
+            labels = [
+                label.text()
+                for label in view.findChildren(QLabel, "GuidePreparationRowLabel")
+            ]
+            self.assertTrue(any("Pierre d'âme moyenne" in label for label in labels))
+            self.assertTrue(any("Clef de test" in label for label in labels))
+        finally:
+            view.close()
+
+    def test_ready_state_is_per_identity_when_a_participant_is_added(self) -> None:
+        service = _FakeManualUiService()
+        service.cards[0]["a_preparer"] = [
+            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+        ]
+        participants = _FakeParticipantService()
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+        )
+        try:
+            view.preparation_button.click()
+            potions = next(
+                button
+                for button in view.preparation_filter_group.buttons()
+                if button.property("filterKey") == "Potions"
+            )
+            potions.click()
+            ready = view.findChild(QToolButton, "GuidePreparationReady")
+            ready.click()
+            self.assertTrue(ready.isChecked())
+            view.participants_button.click()
+            portraits = view.findChildren(QToolButton, "GuideParticipantPortrait")
+            portraits[1].click()
+            QApplication.processEvents()
+            self.assertFalse(view.findChild(QToolButton, "GuidePreparationReady").isChecked())
         finally:
             view.close()
 

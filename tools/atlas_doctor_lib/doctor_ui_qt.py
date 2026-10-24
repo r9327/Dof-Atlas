@@ -529,7 +529,9 @@ def sheet_observations(view, expected_card) -> dict:
         sheet._last_route_position_key = ""
         sections = sheet._without_prepare_duplicates(
             view.service.manual_sections_for_card(view.character_key, expected_card))
-        for section_key in ("prepare", "now", "opportunity", "keep", "boss", "before_leave"):
+        # Preparation is intentionally global in the compact Guide UI. The
+        # active sheet must not repeat those rows.
+        for section_key in ("now", "opportunity", "keep", "boss", "before_leave"):
             rows = sections.get(section_key, [])
             for row in rows:
                 text = str(row.get("text") or "").strip()
@@ -581,10 +583,17 @@ def guide_runtime_identity(service) -> str | None:
 
 
 def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
+    from app.modules.encyclopedia.constants import GUIDES_TAB
     from PySide6.QtWidgets import QPushButton, QFrame, QCheckBox
     from shiboken6 import isValid
 
     session.guide_id = guide_id
+    if session.mode in {"capture", "inspect"}:
+        page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+        page.resize(1200, 800)
+        settle()
+        session.card_id = "catalog"
+        session.snapshot(page)
     view = open_guide(page, owner, guide_id)
     view._show_index(0)
     settle()
@@ -601,6 +610,30 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 view.scroll.verticalScrollBar().setValue(view.scroll.verticalScrollBar().maximum())
                 settle()
                 session.snapshot(page)
+        view._show_index(0)
+        page.resize(1200, 800)
+        view.scroll.verticalScrollBar().setValue(0)
+        settle()
+        view.preparation_button.setChecked(True)
+        settle()
+        session.snapshot(page)
+        for filter_name in ("Potions", "Objets"):
+            filter_button = next(
+                button
+                for button in view.preparation_filter_group.buttons()
+                if button.property("filterKey") == filter_name
+            )
+            filter_button.click()
+            settle()
+            session.snapshot(page)
+        view.preparation_button.setChecked(False)
+        view.participants_button.setChecked(True)
+        settle()
+        session.snapshot(page)
+        view.participants_button.setChecked(False)
+        view.summary_button.setChecked(True)
+        settle()
+        session.snapshot(page)
         return
     check_sheet(session, page, view, "open")
     for index in indices:
@@ -644,6 +677,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         check_sheet(session, page, view, f"refresh-{turn}")
     # Persisted lock and actual navigation blocking are distinct assertions.
     lock = view.route_lock_check
+    if not view.settings_panel.isVisible():
+        click_target(page, view.settings_button)
+        settle()
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver

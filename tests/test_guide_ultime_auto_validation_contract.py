@@ -195,10 +195,10 @@ class GuideUltimeAutoValidationContractTests(unittest.TestCase):
 
     def test_manual_view_uses_clickable_progress_scrubber_and_only_bottom_arrows(self):
         build = inspect.getsource(SharedGuideManualView._build_ui)
-        strip = inspect.getsource(SharedGuideManualView._build_progress_strip)
-        self.assertIn("GuideManualProgressBar", strip)
-        self.assertIn("navigationRequested.connect", strip)
-        self.assertNotIn("current_button", build)
+        header = inspect.getsource(SharedGuideManualView._build_compact_header)
+        self.assertIn("GuideManualProgressBar", header)
+        self.assertIn("navigationRequested.connect", header)
+        self.assertIn("current_button", header)
         self.assertIn("Précédent", build)
         self.assertIn("Suivant", build)
         self.assertTrue(hasattr(GuideManualProgressBar, "navigationRequested"))

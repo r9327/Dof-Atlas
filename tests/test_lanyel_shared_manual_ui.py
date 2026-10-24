@@ -151,7 +151,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_prepare_rows_share_one_red_parent_instead_of_red_row_tiles(self) -> None:
+    def test_prepare_rows_are_not_repeated_inside_the_active_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
             self.assertTrue(view.select_guide("dofus_sylvestre"))
@@ -165,11 +165,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
 
             card = SharedGuideManualCard(service, "character:1", source, 0)
             self.app.processEvents()
-            parent = card.findChild(QFrame, "GuideManualWarningSection")
-            self.assertIsNotNone(parent)
-            lines = parent.findChildren(QLabel, "GuideManualLine")
-            self.assertEqual(len(lines), 2)
-            self.assertFalse(parent.findChildren(QLabel, "GuideManualWarning"))
+            self.assertIsNone(card.findChild(QFrame, "GuideManualWarningSection"))
+            texts = [label.text() for label in card.findChildren(QLabel)]
+            self.assertFalse(any("Prépare le premier objet" in text for text in texts))
+            self.assertFalse(any("Prépare le second objet" in text for text in texts))
 
             card.deleteLater()
             view.deleteLater()
@@ -259,7 +258,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_navigation_and_footer_have_the_requested_order(self) -> None:
+    def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
             self.assertTrue(view.select_guide("dofus_sylvestre"))
@@ -268,9 +267,11 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.app.processEvents()
 
             nav = shared.findChild(QFrame, "GuideManualNav")
-            footer = shared.findChild(QFrame, "GuideManualProgressFrame")
+            compact = shared.findChild(QFrame, "GuideCompactHeader")
+            sheet_header = shared.findChild(QFrame, "GuideSheetHeader")
             self.assertIsNotNone(nav)
-            self.assertIsNotNone(footer)
+            self.assertIsNotNone(compact)
+            self.assertIsNotNone(sheet_header)
             self.assertEqual(
                 self._layout_widget_names(nav),
                 [
@@ -279,19 +280,13 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     "GuideManualNextButton",
                 ],
             )
-            self.assertEqual(
-                self._layout_widget_names(footer),
-                [
-                    "GuideManualGuideButton",
-                    "GuideManualProgress",
-                    "GuideManualPercent",
-                    "GuideParticipantsButton",
-                    "GuideManualProgressLock",
-                    "GuideManualNavPage",
-                ],
-            )
-            page = shared.findChild(QLabel, "GuideManualNavPage")
-            self.assertIs(page.parentWidget(), footer)
+            self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNotNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertIsNotNone(sheet_header.findChild(QToolButton, "GuideSummaryButton"))
+            self.assertIsNone(compact.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertEqual(shared.nav_page_label.text().split(" / ")[0], "Page 1")
+            self.assertFalse(shared.nav_page_label.isVisible())
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(validation)
             self.assertEqual(validation.text(), "Valider")
@@ -311,12 +306,12 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             toggle = shared.findChild(QToolButton, "GuideManualProgressLock")
             self.assertIsNotNone(toggle)
             self.assertFalse(toggle.isChecked())
-            self.assertEqual(toggle.text(), "🔓 Déverrouillé")
-            self.assertGreater(toggle.sizeHint().width(), 26)
+            self.assertEqual(toggle.text(), "Déverrouillé")
+            self.assertTrue(toggle.icon().isNull() is False)
             toggle.click()
             self.app.processEvents()
             self.assertTrue(toggle.isChecked())
-            self.assertEqual(toggle.text(), "🔒 Verrouillé")
+            self.assertEqual(toggle.text(), "Verrouillé")
             self.assertTrue(
                 service.manual_checked(
                     "character:1",
@@ -332,7 +327,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.app.processEvents()
             restored_toggle = restored.findChild(QToolButton, "GuideManualProgressLock")
             self.assertTrue(restored_toggle.isChecked())
-            self.assertEqual(restored_toggle.text(), "🔒 Verrouillé")
+            self.assertEqual(restored_toggle.text(), "Verrouillé")
 
             restored.deleteLater()
             view.deleteLater()

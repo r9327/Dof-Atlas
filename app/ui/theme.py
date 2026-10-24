@@ -2501,6 +2501,175 @@ QToolButton#GuideManualProgressLock[state="locked"] {
     color: @TEXT;
 }
 
+QFrame#GuideCompactHeader,
+QFrame#GuidePreparationPanel,
+QFrame#GuideSheetHeader {
+    background: @PANEL;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+}
+
+QLabel#GuideCompactTitle {
+    color: @TEXT;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+QLabel#GuideCompactMetricValue,
+QLabel#GuideSheetMeta,
+QLabel#GuidePreparationParticipantNeed,
+QLabel#GuidePreparationEmpty,
+QLabel#GuideParticipantsEmpty {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+
+QLabel#GuideCompactMetricValue {
+    min-width: 52px;
+}
+
+QProgressBar#GuideCompactPreparationProgress,
+QProgressBar#GuideCompactSuccessProgress {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 3px;
+}
+
+QProgressBar#GuideCompactPreparationProgress::chunk,
+QProgressBar#GuideCompactSuccessProgress::chunk {
+    background: @GREEN;
+    border-radius: 2px;
+}
+
+QToolButton#GuideCompactSettingsButton,
+QToolButton#GuideCompactOverlayButton,
+QToolButton#GuideParticipantsButton,
+QToolButton#GuideSummaryButton,
+QToolButton#GuidePreparationDetailsButton {
+    background: transparent;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: 4px 7px;
+    font-weight: 700;
+}
+
+QToolButton#GuideCompactSettingsButton:hover,
+QToolButton#GuideParticipantsButton:hover,
+QToolButton#GuideSummaryButton:hover,
+QToolButton#GuidePreparationDetailsButton:hover,
+QToolButton#GuideParticipantsButton:checked,
+QToolButton#GuideSummaryButton:checked {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QToolButton#GuideCompactOverlayButton:disabled {
+    color: @TEXT_MUTED;
+    border-color: @BORDER_SOFT;
+}
+
+QFrame#GuideCompactSettingsPanel,
+QFrame#GuideParticipantsPanel,
+QFrame#GuideSummaryPanel,
+QFrame#GuidePreparationDetails {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QToolButton#GuidePreparationToggle {
+    background: @PANEL;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+    padding: 7px 10px;
+    font-weight: 800;
+    text-align: left;
+}
+
+QToolButton#GuidePreparationToggle:hover,
+QToolButton#GuidePreparationToggle:checked {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
+
+QPushButton#GuidePreparationFilter {
+    background: transparent;
+    color: @TEXT_MUTED;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: 4px 9px;
+    font-weight: 700;
+}
+
+QPushButton#GuidePreparationFilter:hover,
+QPushButton#GuidePreparationFilter:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QFrame#GuidePreparationSummary,
+QFrame#GuidePreparationRow {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QLabel#GuidePreparationRowLabel {
+    color: @TEXT_SOFT;
+    font-size: @FONT_BODY;
+}
+
+QToolButton#GuidePreparationReady {
+    background: transparent;
+    color: @TEXT_MUTED;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0;
+}
+
+QToolButton#GuidePreparationReady:checked {
+    background: @GREEN;
+    border-color: @GREEN;
+    color: @BG;
+}
+
+QLabel#GuideSheetTitle {
+    color: @TEXT;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+QLineEdit#GuideSummarySearch,
+QListWidget#GuideSummaryList {
+    background: @PANEL;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+
+QToolButton#GuideParticipantPortrait {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 21px;
+    padding: 4px;
+}
+
+QToolButton#GuideParticipantPortrait:hover,
+QToolButton#GuideParticipantPortrait:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN;
+}
+
 #GuideManualOrderChoice {
     background: @PANEL;
     border: 1px solid @GREEN_BORDER;

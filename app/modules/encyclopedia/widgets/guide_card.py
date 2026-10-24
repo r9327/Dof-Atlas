@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt
+from PySide6.QtCore import QAbstractListModel, QModelIndex, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QListView, QStyle, QStyledItemDelegate, QWidget
 
@@ -195,6 +195,19 @@ class GuideListModel(QAbstractListModel):
 
 
 class GuideCardDelegate(QStyledItemDelegate):
+    @staticmethod
+    def progress_rect(item_rect: QRect, text_left: int, text_right: int) -> QRect:
+        """Return absolute bar geometry contained by the current item.
+
+        ``QRect.adjusted`` expects relative deltas.  Feeding it the absolute
+        text coordinate shifted every card after the first column to the
+        right, which painted progress bars across neighbouring cards.
+        """
+
+        left = max(item_rect.left(), int(text_left))
+        right = min(item_rect.right(), int(text_right))
+        return QRect(left, item_rect.bottom() - 9, max(0, right - left + 1), 4)
+
     def paint(self, painter: QPainter, option, index: QModelIndex) -> None:
         guide = index.data(GUIDE_ROLE)
         group_label = index.data(GUIDE_GROUP_ROLE)
@@ -289,7 +302,7 @@ class GuideCardDelegate(QStyledItemDelegate):
         painter.drawText(text_left, y, text_right - text_left - 50, 15, Qt.AlignLeft | Qt.AlignVCenter, f"{done} / {total} {GuideListModel._progress_word(guide, total)}")
         painter.drawText(text_right - 48, y, 48, 15, Qt.AlignRight | Qt.AlignVCenter, f"{percent} %")
 
-        bar_rect = option.rect.adjusted(text_left, 72, -10, -7)
+        bar_rect = self.progress_rect(rect, text_left, text_right)
         painter.setPen(QPen(QColor(PALETTE["BORDER_SOFT"]), 1))
         painter.setBrush(QColor(PALETTE["SIDEBAR"]))
         painter.drawRoundedRect(bar_rect, 3, 3)
