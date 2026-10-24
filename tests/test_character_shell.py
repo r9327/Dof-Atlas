@@ -136,7 +136,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 )
                 _int_value = staticmethod(app_main.AtlasWindow._int_value)
 
-                def character_icon_path(self, _label: str) -> str:
+                def character_icon_path(self, _label: str, *, class_key: str = "") -> str:
                     return ""
 
                 def persist_selected_character(self) -> None:
