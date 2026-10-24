@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.quest_catalog import load_quest_characters
@@ -123,6 +124,52 @@ class QuestCharacterClassIdentityTests(unittest.TestCase):
             self.assertEqual(connected(), [])
             entry["character_name"] = "Alpha"
             self.assertEqual([row.key for row in connected()], ["character:1"])
+
+
+
+    def test_shell_does_not_treat_matching_window_name_as_network_connection(self):
+        from main import AtlasWindow
+        from app.quest_catalog import QuestCharacter
+
+        shell = SimpleNamespace(_ordered_characters=lambda rows: list(rows))
+        offline = QuestCharacter("character:5", "Alice", 0, False, class_key="feca")
+        online = QuestCharacter("character:6", "Bob", 1, True, class_key="cra")
+        runtime = SimpleNamespace(snapshot=lambda _key: None)
+        with patch(
+            "app.network.character_runtime_state.character_runtime_state",
+            return_value=runtime,
+        ):
+            connected = AtlasWindow._connected_characters(shell, [offline, online])
+        self.assertEqual([row.key for row in connected], ["character:6"])
+        self.assertFalse(offline.connected)
+
+    def test_shell_portraits_require_verified_class_even_when_name_has_class(self):
+        from main import AtlasWindow
+        from app.pages.organizer import common
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            icon = root / "feca.png"
+            icon.write_bytes(b"icon")
+            with (
+                patch.object(common, "CLASS_ICON_DIRS", (root,)),
+                patch("main.LOGO_PATH", root / "missing-logo.png"),
+            ):
+                self.assertEqual(
+                    AtlasWindow.character_icon_path(None, "Alice - Feca"), ""
+                )
+                self.assertEqual(
+                    AtlasWindow.character_icon_path(
+                        None, "Alice", class_key="feca"
+                    ),
+                    str(icon),
+                )
+                self.assertEqual(
+                    AtlasWindow.character_icon_path(
+                        None, "Alice", class_key="../unsafe"
+                    ),
+                    "",
+                )
 
 
 
