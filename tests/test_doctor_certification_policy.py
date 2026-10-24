@@ -214,7 +214,13 @@ class PolicyAndPassportTests(unittest.TestCase):
         )
         docs = (root / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
         decision = phase.split("  certify:", 1)[1].split("    name:", 1)[0]
-        self.assertIn("needs: doctor-plan", decision)
+        self.assertIn(
+            "needs: [doctor-plan, phase8_memory_benchmark, phase8_preload_benchmark]",
+            decision,
+        )
+        self.assertIn("needs.phase8_memory_benchmark.result == 'success'", decision)
+        self.assertIn("needs.phase8_preload_benchmark.result == 'success'", decision)
+        self.assertIn("needs.doctor-plan.result == 'success'", decision)
         self.assertNotIn("draft", decision)
         self.assertNotIn("title", decision)
         self.assertIn("ready_for_review", phase)
