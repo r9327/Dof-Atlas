@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 from typing import Any
+from tools.atlas_doctor_lib.high_smart_scope import REQUIRED_TESTS, bounded_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -72,7 +73,16 @@ def choose_route(
             reasons.append("DOCTOR_REPORTED_RISK")
         if (report.get("independent_policy") or {}).get("root_of_trust_changed"):
             reasons.append("DOCTOR_ROOT_OF_TRUST_CHANGE")
-        if (report.get("independent_policy") or {}).get("canonical_risk") in ("HIGH", "CRITICAL"):
+        independent_policy = report.get("independent_policy") or {}
+        high_smart = (
+            independent_policy.get("canonical_risk") == "HIGH"
+            and bounded_paths(paths)
+            and report.get("high_smart_candidate") is True
+            and not independent_policy.get("required_metrics")
+            and REQUIRED_TESTS <= set(report.get("test_modules") or ())
+        )
+        if (independent_policy.get("canonical_risk") == "CRITICAL"
+                or (independent_policy.get("canonical_risk") == "HIGH" and not high_smart)):
             reasons.append("HIGH_OR_CRITICAL_RISK")
         if (not isinstance(report.get("plan_fingerprint"), str)
                 or not re.fullmatch(r"[0-9a-f]{64}", report["plan_fingerprint"])):
