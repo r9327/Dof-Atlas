@@ -37,6 +37,11 @@
 - [ ] Vérifier tailles, bounding boxes, zones cliquables, chevauchements, proportion du cercle et gain réel de hauteur ; 0/1/n personnages.
 - [ ] Tests ciblés guide_ultime_manual_ui_navigation, lanyel_shared_manual_ui, doctor_ui_qt et captures UI Windows ; pas de changement de contenu.
 
+## Source de vérité visuelle — point de vigilance
+- [ ] Le **screenshot validé dans la conversation n'est pas joint comme image dans cette branche**. La disposition et les contraintes ont été retranscrites dans ce document ; cette transcription ne constitue **pas une preuve de fidélité pixel à pixel**.
+- [ ] Avant d'annoncer l'interface « exactement conforme », rapprocher une capture Doctor du vrai QWidget de la **référence originale**, effectivement accessible à l'exécutant ; si la référence n'est pas disponible dans son environnement, le signaler comme **comparaison visuelle non certifiée**, sans inventer un résultat.
+- [ ] La capture de comparaison ne doit porter QUE sur l'en-tête. Aucune intervention sur les textes/cartes de la fiche située en dessous.
+
 ## Vérification exhaustive de la référence visuelle (screenshot validé)
 - [ ] L'anneau général est **avant toute navigation, progression et action**, à gauche du titre et des trois barres ; il prend visuellement la hauteur d'environ deux rangées, sans grossir toute la barre supérieure.
 - [ ] **Mes personnages** est le contrôle le plus à droite de la troisième rangée ; `Préparation` est à gauche et `Sommaire` au centre, sans bouton à menu déroulant substitué aux vrais panneaux.
