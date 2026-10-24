@@ -82,7 +82,8 @@ jobs:
           python-version: "3.13"
       - name: Test routing failure boundaries
         shell: bash
-        run: python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v
+        run: |
+          python -m unittest -v tests.test_doctor_ci_orchestrator tests.test_ci_pr_audit tests.test_ci_timing_observer
       - name: Determine required CI from exact Git diff
         id: plan
         shell: bash
@@ -92,6 +93,7 @@ jobs:
           python -m tools.atlas_doctor ci --base-ref "$BASE_SHA" --expected-sha "$CANDIDATE_SHA" --event "$DOCTOR_EVENT" --output artifacts/doctor_ci/plan.json --github-output "$GITHUB_OUTPUT" --json
       - name: Explain Doctor selection
         if: always()
+        continue-on-error: true
         shell: bash
         run: |
           if [ -f artifacts/doctor_ci/plan.json ]; then
@@ -105,18 +107,21 @@ jobs:
               f.write(f"FULL: {p['full']}; broad specialist fallback: {p['specialist_fallback']}\n\n")
               for name, route in p['workflows'].items():
                   f.write(f"- {name}: {'RUN' if route['selected'] else 'NOT_APPLICABLE'} — {'; '.join(route['reasons'])}\n")
-              f.write('\n### PR mini-audit (read-only)\n')
-              f.write(f"- Changed paths: {len(p.get('changed_paths', []))}, deleted: {len(p.get('deleted_paths', []))}\n")
-              f.write(f"- Required jobs: {len(p.get('required_jobs', []))}; route: {p.get('phase_route', {}).get('route', 'UNPROVEN')}\n")
               f.write('\nSelection is not execution or certification.\n')
           PYPLAN
+            python -m tools.ci_pr_audit \
+              --plan artifacts/doctor_ci/plan.json \
+              --report artifacts/doctor_ci/pr_mini_audit.json \
+              --summary "$GITHUB_STEP_SUMMARY"
           fi
       - name: Store exact-SHA Doctor plan
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-ci-plan-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/plan.json
+          path: |
+            artifacts/doctor_ci/plan.json
+            artifacts/doctor_ci/pr_mini_audit.json
           if-no-files-found: error
 
   focused-validation:
@@ -1249,6 +1254,8 @@ jobs:
                       continue  # Never silently coerce an invalid interval to zero.
                   measured.append((label, seconds, str(job.get("conclusion") or "unknown"), start, end))
               measured.sort(key=lambda row: (-row[1], row[0]))
+              # This is elapsed sum, not billing; separate invoiced minutes
+              # require GitHub billing records and runner-specific rounding.
               # Sum of parallel job intervals is NOT actual billed minutes.
               total = sum(row[1] for row in measured)
               span = ((max(row[4] for row in measured) -
