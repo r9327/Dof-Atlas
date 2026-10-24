@@ -811,6 +811,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
+        self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
         self._preparation_loaded = False
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
@@ -1328,10 +1329,38 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _load_preparation_needs(self) -> None:
         participant_keys = tuple(self.selected_participant_keys())
         if not participant_keys:
+            # Read-only preview from authored structured inputs. No character
+            # identity is fabricated and no "Prêt" state can be written.
+            preview: list[tuple[str, str, int]] = []
+            seen: set[tuple[str, str, int]] = set()
+            for card in self.service.cards:
+                for raw in card.get("a_preparer", ()) or ():
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get("name") or raw.get("label") or "").strip()
+                    if not name:
+                        continue
+                    try:
+                        quantity = max(1, int(raw.get("quantity") or 1))
+                    except (TypeError, ValueError):
+                        quantity = 1
+                    row = (self._preparation_category(name), name, quantity)
+                    if row not in seen:
+                        preview.append(row)
+                        seen.add(row)
+                for raw in card.get("profession_gates", ()) or ():
+                    name = str((raw.get("name") or raw.get("label") or raw.get("text") or "")
+                               if isinstance(raw, dict) else raw or "").strip()
+                    row = ("Métiers", name, 1)
+                    if name and row not in seen:
+                        preview.append(row)
+                        seen.add(row)
+            self._preparation_preview = tuple(preview)
             self._preparation_needs = ()
             self._preparation_loaded = True
             self._update_preparation_progress()
             return
+        self._preparation_preview = ()
 
         aggregated: dict[
             tuple[str, str],
@@ -1417,9 +1446,28 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         if not self.selected_participant_keys():
-            label = QLabel("Sélectionne au moins un personnage dans Mes personnages.")
+            label = QLabel("Aperçu des préparatifs structurés · sélectionner un personnage pour confirmer les besoins et utiliser Prêt.")
             label.setObjectName("GuidePreparationEmpty")
+            label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
+            preview = self._preparation_preview
+            if selected_filter != "Tout":
+                preview = tuple(row for row in preview if row[0] == selected_filter)
+            if not preview:
+                self.preparation_rows_layout.addWidget(QLabel(
+                    "Aucun besoin structuré vérifié dans cette sélection."
+                ))
+            else:
+                # A single read-only label avoids creating hundreds of
+                # checkbox widgets when there is no validated identity.
+                lines = [f"• {quantity} × {name} ({category})"
+                         for category, name, quantity in preview]
+                details = QLabel("\\n".join(lines))
+                details.setObjectName("GuidePreparationPreview")
+                details.setWordWrap(True)
+                details.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                self.preparation_rows_layout.addWidget(details)
+            self.preparation_rows_layout.addStretch(1)
             return
 
         if selected_filter == "Tout":
