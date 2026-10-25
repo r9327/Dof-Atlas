@@ -1096,9 +1096,9 @@ jobs:
           Write-Host "Dependency Review verdict: success"
 
   certification-policy:
-    # Stage 1: expose and smoke-test the *real check context* on PRs without
-    # updating remote branch protection. Stage 2 (admin operation) activates
-    # --enforce true and adds this context to the ruleset after a real PR smoke.
+    # Hard fail-closed host verification of the exact PR domain certificate.
+    # Branch-protection/ruleset updates remain a separate admin operation;
+    # this local status must NOT succeed when evidence is missing.
     name: Certification Policy / Merge Gate
     needs: [doctor-plan, safe-validation, certify]
     if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success'
@@ -1131,7 +1131,7 @@ jobs:
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           SAFE_VALIDATION: ${{ needs.safe-validation.result }}
-          ATLAS_CERT_POLICY_ENFORCE: "false"
+          ATLAS_CERT_POLICY_ENFORCE: "true"
         run: |
           python -m tools.ci_required_certification \
             --candidate-sha "$CANDIDATE_SHA" \
