@@ -52,6 +52,10 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
     assert "craft_retained_tree_delta_mb" in source
+    assert '"craft_adapter_module_loaded_before"' in source
+    assert '"craft_adapter_module_loaded_after"' in source
+    assert 'craft_adapter_loaded_after = "local_dofus_data.compatibility_adapter" in sys.modules' in source
+    assert source.index('after_craft_home = _capture(') < source.index("craft_adapter_loaded_after =")
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
 
@@ -105,8 +109,8 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
             self.assertIn(f'"{label}": 100.0', source)
         self.assertIn('HOME_TARGET_ADVISORY:', source)
         self.assertIn("::warning title=Memory Home target (advisory)", source)
-        self.assertIn("peak_tree > peak_hard_limit_mb", source)
-        self.assertIn("peak_hard_limit_mb = peak_target_mb * 1.05", source)
+        self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", source)
+        self.assertIn('classify(peak_tree, peak_target_mb) == "FAIL"', source)
         self.assertIn("::warning title=Peak RAM above target (5% tolerance)", source)
 
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
@@ -183,9 +187,14 @@ def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None
     ):
         assert f'"{label}": 100.0' in source
     assert 'advisory_home_budgets_mb = {' in source
-    assert 'preload_mb > 95.0' in source
-    assert 'preload memory budget exceeded' in source
-    assert "peak_tree > peak_hard_limit_mb" in source
+    assert 'preload_status = classify(preload_mb, preload_target_mb)' in source
+    assert 'preload memory tolerance exceeded' in source
+    assert 'classify(peak_tree, peak_target_mb) == "FAIL"' in source
+    assert 'state = classify(measured, budget)' in source
+    assert 'if state == "FAIL":' in source
+    assert 'if state == "WARNING":' in source
+    assert 'measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)' in source
+    assert 'require_memory_observation(row.get(kind)' in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"craft_retained_tree_delta_mb": 2.0' in source

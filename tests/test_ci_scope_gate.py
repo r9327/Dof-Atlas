@@ -31,6 +31,34 @@ class ScopeGateTests(unittest.TestCase):
             **extra
         )
 
+    def test_high_smart_canary_requires_exact_owner_and_mandatory_test_modules(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        source = self.root / HIGH_SOURCE
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("class GuideProgressService: pass\n")
+        for module in REQUIRED_TESTS:
+            target = self.root / Path(*module.split(".")).with_suffix(".py")
+            target.write_text("def test_real(): pass\n")
+        result = self.classify([HIGH_SOURCE])
+        self.assertEqual(result["risk"], "HIGH")
+        self.assertEqual(result["status"], "TARGETED", result["reasons"])
+        self.assertTrue(REQUIRED_TESTS <= set(result["modules"]))
+        self.assertFalse(result["certified"])
+        self.assertFalse(result["full_suite_waived"])
+        with_docs = self.classify([HIGH_SOURCE, "docs/canary.md", ".ai/context_index.json"])
+        self.assertEqual(with_docs["status"], "TARGETED", with_docs["reasons"])
+        self.assertEqual(with_docs["uncovered_paths"], [])
+        self.assertTrue(REQUIRED_TESTS <= set(with_docs["modules"]))
+        for paths, extra in (
+            ([HIGH_SOURCE, "app/core/json_store.py"], {}),
+            ([HIGH_SOURCE, "tools/ci_scope_gate.py"], {}),
+            ([HIGH_SOURCE], {"deletion_paths": [HIGH_SOURCE]}),
+        ):
+            with self.subTest(paths=paths, extra=extra):
+                self.assertEqual(self.classify(paths, **extra)["status"], "FULL_REQUIRED")
+        (self.root / "tests/test_progress_cross_surface_reload.py").unlink()
+        self.assertEqual(self.classify([HIGH_SOURCE])["status"], "FULL_REQUIRED")
+
     def test_selector_or_ai_context_changes_require_full(self):
         for changed in (
             "tools/ci_scope_gate.py",
@@ -199,7 +227,22 @@ class ScopeGateTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("workflow_dispatch:", scoped)
-        self.assertNotIn("pull_request:", scoped)
+        # Draft PRs get a cheap advisory stdlib-only feedback pass. The
+        # opt-in Windows proof is still manual and cannot be marked PASS merely
+        # because a Draft route selected it.
+        self.assertIn("pull_request:", scoped)
+        self.assertIn("github.event.pull_request.draft == true", scoped)
+        self.assertIn("github.event_name == 'workflow_dispatch'", scoped)
+        self.assertIn("DRAFT_ROUTE_ONLY_NOT_CERTIFIED", scoped)
+        self.assertIn("Generate exact-SHA Draft PR mini-audit", scoped)
+        self.assertIn("python -m tools.ci_pr_audit", scoped)
+        self.assertIn("artifacts/doctor_ci/pr_mini_audit.json", scoped)
+        self.assertIn("doctor-draft-audit-", scoped)
+        self.assertIn("--expected-sha", scoped)
+        self.assertIn("No FULL is claimed or waived", scoped)
+        self.assertIn("github.event.pull_request.head.sha || github.sha", scoped)
+        self.assertIn("github.event.pull_request.base.sha || inputs.base_ref", scoped)
+        self.assertNotIn("pull_request_target:", scoped)
         self.assertIn("tools.phase_adaptive_gate verify-scoped", pr)
         self.assertIn("ref: ${{ env.CANDIDATE_SHA }}", scoped)
         self.assertIn("fetch-depth: 0", scoped)

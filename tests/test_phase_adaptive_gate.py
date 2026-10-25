@@ -46,6 +46,33 @@ class PhaseAdaptiveGateTests(unittest.TestCase):
         self.assertFalse(route["phase_certified"])
         self.assertFalse(route["merge_authorized"])
 
+    def test_high_smart_route_is_exact_and_fail_closed(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        high = plan()
+        high["independent_policy"] = {
+            "root_of_trust_changed": False, "canonical_risk": "HIGH",
+            "required_metrics": [],
+        }
+        high["test_modules"] = sorted(REQUIRED_TESTS)
+        high["high_smart_candidate"] = True
+        selected = choose_route(high, [HIGH_SOURCE], base_sha=BASE, candidate_sha=HEAD)
+        self.assertEqual(selected["route"], "SCOPED")
+        self.assertFalse(selected["phase_certified"])
+        self.assertFalse(selected["merge_authorized"])
+        for field, value in (
+            ("high_smart_candidate", False),
+            ("test_modules", ["tests.test_guide_progress_persistence"]),
+            ("independent_policy", {**high["independent_policy"], "required_metrics": ["process_tree_peak"]}),
+        ):
+            with self.subTest(field=field):
+                broken = {**high, field: value}
+                self.assertEqual(choose_route(broken, [HIGH_SOURCE],
+                    base_sha=BASE, candidate_sha=HEAD)["route"], "FULL")
+        self.assertEqual(choose_route(high, [HIGH_SOURCE, "app/core/json_store.py"],
+            base_sha=BASE, candidate_sha=HEAD)["route"], "FULL")
+        self.assertEqual(choose_route(high, [HIGH_SOURCE],
+            base_sha=BASE, candidate_sha=HEAD, forced=True)["route"], "FULL")
+
     def test_trust_changes_force_full_even_when_doctor_claims_scoped(self):
         for path in (
             ".github/workflows/phase-certification.yml",

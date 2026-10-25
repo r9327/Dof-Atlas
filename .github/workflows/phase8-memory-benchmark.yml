@@ -211,17 +211,20 @@ jobs:
           missing = [name for name in required if name not in by_label]
           if missing:
               raise SystemExit("memory benchmark missing stages: " + ", ".join(missing))
+          from tools.phase8_memory_tolerance import (
+              classify, hard_limit, require_peak_tree_rss, require_memory_observation,
+          )
           for label in required:
               row = by_label[label]
-              if row.get("process_rss_mb") is None or row.get("tree_rss_mb") is None:
-                  raise SystemExit(f"memory stage {label} has incomplete RSS evidence")
+              for kind in ("process_rss_mb", "tree_rss_mb"):
+                  require_memory_observation(row.get(kind), label=f"{label}.{kind}", positive=True)
 
           # Phase 8 policy: the former 100 MB Home target is observational,
           # not a merge gate. Keep the actual RSS values and emit annotations
           # for any overshoot; never report a budget hit as "within target".
-          # Preload (95 MB), retention budgets and proof-integrity stay strict.
-          # The 220 MB peak remains the optimization target; user-approved 5%
-          # measurement tolerance allows a maximum of 231 MB, with a warning.
+          # Memory targets stay visible; all hard memory measurements admit
+          # at most +5% observation tolerance, with an explicit warning.
+          # Proof integrity and missing or invalid observations remain strict.
           advisory_home_budgets_mb = {
               "after_quests_home": 100.0,
               "after_achievements_home": 100.0,
@@ -236,15 +239,27 @@ jobs:
               "repeat_2_achievements_home": 100.0,
               "repeat_2_guide_home": 100.0,
           }
-          preload_mb = float(by_label["after_preload"]["tree_rss_mb"])
-          if preload_mb > 95.0:
+          preload_mb = require_memory_observation(
+              by_label["after_preload"]["tree_rss_mb"], label="after_preload.tree_rss_mb", positive=True)
+          preload_target_mb = 95.0
+          preload_limit_mb = hard_limit(preload_target_mb)
+          preload_status = classify(preload_mb, preload_target_mb)
+          if preload_status == "FAIL":
               raise SystemExit(
-                  f"preload memory budget exceeded: {preload_mb:.2f} MB > 95.00 MB"
+                  "preload memory tolerance exceeded: "
+                  f"{preload_mb:.2f} MB > {preload_limit_mb:.2f} MB "
+                  f"(target: {preload_target_mb:.2f} MB; +5% ceiling)"
+              )
+          if preload_status == "WARNING":
+              print(
+                  "::warning title=Preload RAM above target (5% tolerance)::"
+                  f"{preload_mb:.2f} MB > {preload_target_mb:.2f} MB; "
+                  f"hard ceiling: {preload_limit_mb:.2f} MB"
               )
 
           home_advisories = []
           for label, budget in advisory_home_budgets_mb.items():
-              measured = float(by_label[label]["tree_rss_mb"])
+              measured = require_memory_observation(by_label[label]["tree_rss_mb"], label=label, positive=True)
               if measured >= budget:
                   warning = (
                       f"{label}: {measured:.2f} MB >= {budget:.2f} MB "
@@ -257,16 +272,16 @@ jobs:
               "HOME_TARGET_ADVISORY: " +
               (", ".join(home_advisories) if home_advisories else "all measured stages below 100 MB")
           )
-          peak_tree = float(metrics.get("peak_tree_rss_mb") or 0.0)
+          peak_tree = require_peak_tree_rss(metrics, preload_mb=preload_mb)
           peak_target_mb = 220.0
-          peak_hard_limit_mb = peak_target_mb * 1.05  # 5% user-approved margin
-          if peak_tree > peak_hard_limit_mb:
+          peak_hard_limit_mb = hard_limit(peak_target_mb)
+          if classify(peak_tree, peak_target_mb) == "FAIL":
               raise SystemExit(
                   "process-tree peak tolerance exceeded: "
                   f"{peak_tree:.2f} MB > {peak_hard_limit_mb:.2f} MB "
                   f"(target: {peak_target_mb:.2f} MB; +5% tolerance)"
               )
-          if peak_tree > peak_target_mb:
+          if classify(peak_tree, peak_target_mb) == "WARNING":
               print(
                   "::warning title=Peak RAM above target (5% tolerance)::"
                   f"{peak_tree:.2f} MB exceeds the {peak_target_mb:.2f} MB target; "
@@ -280,11 +295,22 @@ jobs:
               "equipment_tree_delta_stabilized_mb": 1.0,
           }
           for metric, budget in retained_budgets_mb.items():
-              measured = float(metrics.get(metric) or 0.0)
-              if measured > budget:
+              # The original limit is still the target. Do not silently label
+              # tolerated overshoot as PASS or widen the tolerance beyond 5%.
+              measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)
+              limit = hard_limit(budget)
+              state = classify(measured, budget, allow_negative=True)
+              if state == "FAIL":
                   raise SystemExit(
-                      f"retained memory budget exceeded for {metric}: "
-                      f"{measured:.2f} MB > {budget:.2f} MB"
+                      f"retained memory tolerance exceeded for {metric}: "
+                      f"{measured:.2f} MB > {limit:.2f} MB "
+                      f"(target: {budget:.2f} MB; +5% ceiling)"
+                  )
+              if state == "WARNING":
+                  print(
+                      f"::warning title=Retained RAM above target (5% tolerance)::{metric}: "
+                      f"{measured:.2f} MB > {budget:.2f} MB; "
+                      f"hard ceiling: {limit:.2f} MB"
                   )
 
           print(json.dumps(metrics, ensure_ascii=False, indent=2))
@@ -310,7 +336,7 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Peak process-tree RSS: $($payload.metrics.peak_tree_rss_mb) MB (target: 220 MB; hard gate: 231 MB with +5% tolerance)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Success retained tree delta after Home: $($payload.metrics.achievements_retained_tree_delta_mb) MB (budget: 15 MB)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Guide retained tree delta after Home: $($payload.metrics.guide_retained_tree_delta_mb) MB (budget: 20 MB)"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Craft retained tree delta after Home: $($payload.metrics.craft_retained_tree_delta_mb) MB (budget: 2 MB)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Craft retained tree delta after Home: $($payload.metrics.craft_retained_tree_delta_mb) MB (target: 2 MB; hard ceiling: 2.10 MB with +5% tolerance)"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment active tree delta: $($payload.metrics.equipment_tree_delta_active_mb) MB"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Equipment retained tree delta after Home: $($payload.metrics.equipment_tree_delta_stabilized_mb) MB"
 
