@@ -497,14 +497,16 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
     def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_objects(self) -> None:
         service = _FakeManualUiService()
+        # Explicit consumable evidence permits adding separate incomplete stages;
+        # duplicate lines on one card remain display mirrors, not extra purchases.
         service.cards[0]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
             {"item_id": 20, "name": "Pierre d'âme moyenne", "quantity": 1},
             {"item_id": 30, "name": "Clef de test", "quantity": 2},
         ]
         service.cards[1]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 2},
+            {"item_id": 10, "name": "Potion de test", "quantity": 2, "consumable": True},
         ]
         service.card_auto_complete = lambda key, card: (
             key == "character:2" and card is service.cards[0]
