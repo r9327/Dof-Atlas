@@ -39,6 +39,7 @@ CI_FILES = frozenset({
     "tools/atlas_integrity.py", "tools/atlas_integrity_policy.json",
     "tools/atlas_meta_integrity.py", "tools/phase_certification_verdict.py",
     "tools/phase_adaptive_gate.py", "tools/ci_required_certification.py",
+    "tools/ci_smart_host_proof.py",
     "tools/ci_scope_gate.py", "tools/ci_pr_audit.py",
     "tools/ci_domain_certification.py", "tools/doctor_certification.py",
     "tools/atlas_full_suite_proof.py", "tools/ci_verified_pr_full.py",

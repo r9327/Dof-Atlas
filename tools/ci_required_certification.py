@@ -23,6 +23,7 @@ from tools.atlas_integrity import classify_risk
 from tools.phase_adaptive_gate import critical_changed
 from tools.atlas_doctor_lib.ci_tooling_scope import eligible as tooling_eligible
 from tools.atlas_doctor_lib.high_smart_scope import eligible as high_smart_eligible
+from tools.ci_smart_host_proof import validate_host_metrics
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -354,10 +355,35 @@ def evaluate_merge(
     if safe_validation != "success":
         result["reasons"].append("Public PR / Safe Validation was not successful")
         return result
-    # PR-only domain certification supersedes the generic FULL requirement
-    # ONLY with real GitHub host evidence for the exact PR and its independently
-    # successful Safe Validation. A missing/incomplete proof remains BLOCKED.
-    if route["route"] in {"SMART", "FULL_REQUIRED"}:
+    # A bounded HIGH candidate may claim SMART only AFTER the immutable
+    # exact-head domain run AND independently measured Windows resource
+    # budgets, real Qt scenarios and user journeys all pass in the same
+    # GitHub-hosted PR run. The conservative pre-run FULL marker is not proof.
+    if route["route"] == "SMART":
+        for run in runs or []:
+            try:
+                host_jobs = (jobs_by_run or {}).get(run.get("id"), [])
+                validate_domain_run(
+                    run, host_jobs, candidate_sha=candidate_sha, repo=repo, now=now,
+                    base_sha=base_sha, pr_number=pr_number,
+                    head_ref=head_ref, base_ref=base_ref,
+                )
+                metrics = validate_host_metrics(
+                    run, host_jobs, candidate_sha=candidate_sha,
+                )
+                result["status"] = "PASS_SMART_AUTHENTICATED_NOT_FULL"
+                result["scoped_evidence_run"] = run["id"]
+                result["metric_checks_host_attested"] = list(metrics)
+                result["reasons"].append(
+                    "Real exact-SHA domain tests and Windows memory/preload, "
+                    "Qt and user journey metric host steps passed; "
+                    "release FULL has not executed")
+                return result
+            except (ValueError, TypeError, AttributeError):
+                pass
+    # A broad HIGH/CRITICAL candidate is accepted only with the independent
+    # domain certificate; never mislabel that result SMART.
+    if route["route"] == "FULL_REQUIRED":
         for run in runs or []:
             try:
                 validate_domain_run(
@@ -380,40 +406,28 @@ def evaluate_merge(
         return result
     failures = []
     if route["route"] == "SMART":
+        # Legacy scoped-only host steps are insufficient for measured SMART.
+        # Allow only a separately validated genuine FULL as fallback.
         for run in runs or []:
             try:
-                validate_scoped_high_run(
+                if run.get("event") == "pull_request":
+                    _verify_smart_pr_identity(
+                        run, candidate_sha=candidate_sha, base_sha=base_sha,
+                        pr_number=pr_number, head_ref=head_ref, base_ref=base_ref,
+                    )
+                validate_full_run(
                     run, (jobs_by_run or {}).get(run.get("id"), []),
                     candidate_sha=candidate_sha, repo=repo, now=now,
-                    base_sha=base_sha, pr_number=pr_number,
-                    head_ref=head_ref, base_ref=base_ref,
                 )
-                result["status"] = "PASS_SMART_AUTHENTICATED_NOT_FULL"
-                result["scoped_evidence_run"] = run["id"]
-                result["reasons"].append("Host-verified exact-SHA SMART; no Phase/FULL certification")
+                result["status"] = "PASS_FULL_AUTHENTICATED"
+                result["full_evidence_run"] = run["id"]
+                result["reasons"].append("Real FULL fallback verified, not SMART")
                 return result
-            except (ValueError, TypeError) as exc:
-                # Independent Phase may conservatively run FULL even on this
-                # bounded candidate (unmapped consumer, metrics or unknown
-                # dependency). A *real* exact-head FULL proof still wins.
-                try:
-                    if run.get("event") == "pull_request":
-                        _verify_smart_pr_identity(
-                            run, candidate_sha=candidate_sha, base_sha=base_sha,
-                            pr_number=pr_number, head_ref=head_ref, base_ref=base_ref,
-                        )
-                    validate_full_run(
-                        run, (jobs_by_run or {}).get(run.get("id"), []),
-                        candidate_sha=candidate_sha, repo=repo, now=now,
-                    )
-                    result["status"] = "PASS_FULL_AUTHENTICATED"
-                    result["full_evidence_run"] = run["id"]
-                    result["reasons"].append("Doctor escalated bounded HIGH to verified real FULL")
-                    return result
-                except (ValueError, TypeError):
-                    failures.append(str(exc))
+            except (ValueError, TypeError, AttributeError) as exc:
+                failures.append(str(exc))
         result["reasons"] = failures[:10] or [
-            "HIGH SMART BLOCKED: missing successful exact-SHA scoped or FULL host steps"
+            "HIGH SMART BLOCKED: missing exact-SHA domain, measured Windows "
+            "budgets/Qt/journey checks, or genuine FULL fallback"
         ]
         return result
     for run in runs or []:

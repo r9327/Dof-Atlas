@@ -246,3 +246,29 @@ Dans Settings → Rules → Rulesets → « Protect Dof'Atlas main » :
 Le fichier `.github/CODEOWNERS` reste utile pour documenter l'ownership, même sans revue obligatoire. **Ce document ne modifie pas les règles serveur** : un administrateur doit appliquer et vérifier cette configuration dans GitHub.
 
 Le workflow `Phase Certification` relance les validations sur chaque nouveau commit **Ready** (SHA exact), mais évite les validations lourdes sur les commits **Draft**, qui passent seulement par `Scoped PR Feedback`. Le canary HIGH → SMART sera testé dans une PR applicative distincte **après fusion du mécanisme sur `main`** : modifier uniquement `app/modules/encyclopedia/services/guide_progress_service.py` et les tests expressément autorisés, vérifier le routage SMART et les preuves Windows/GitHub sans prétendre à une certification FULL.
+
+
+## Real HIGH SMART host measurement attestation
+
+The observed canary [run #40189670274](https://github.com/r9327/Dof-Atlas/actions/runs/40189670274)
+passed PR domain certification, but its old pre-execution Doctor plan still
+classified the change `FULL_REQUIRED` because it conservatively found transitive
+Qt and startup consumers. A green *domain-only* run is **not SMART**.
+
+The independent merge policy now checks the **post-execution** GitHub-hosted
+evidence for the same candidate SHA and PR: all Guide owner-domain tests,
+real Windows memory and preload benchmark validation steps, real Windows
+selected Qt scenarios with an independent Ubuntu Qt verdict, and real
+Windows user-journey contracts. The preserved five required dimensions are
+`preload_time`, `process_tree_peak`, `qt_lifecycle`, `startup_time` and
+`steady_rss_home`. The unchanged benchmark steps enforce numerical budgets.
+Host job identities, same-run and exact-SHA provenance, Windows/Ubuntu runner
+labels, uniqueness, test/measurement steps and artifact-upload success are
+mandatory. A skipped, missing, failed or stale host step **blocks SMART**.
+The old scoped-only PASS cannot stand in for those metrics. A true historical
+FULL remains a separately named fallback; neither the domain nor SMART proof
+claims release/phase FULL.
+
+This is a **policy change** and must be validated on its own PR. Only afterward
+can the application canary #262 be rerun on a fresh `main` and receive a
+host-attested SMART merge decision.
