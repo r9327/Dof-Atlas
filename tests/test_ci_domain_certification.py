@@ -42,6 +42,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(self.route(["main.py"])["domains"],
                          ["craft", "quests", "guides", "ui", "startup", "identity", "data"])
 
+    def test_main_phase_evidence_is_critical_ci_domain_owner(self):
+        from tools.ci_domain_certification import owners_for
+        path = "tests/test_main_phase_evidence.py"
+        self.assertEqual(owners_for(path), frozenset({"ci"}))
+        self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route([path])["domains"], ["ci"])
+
     def test_shared_data_api_requires_all_current_consumers(self):
         plan = self.route(["app/local_data_cache.py", "tools/ci_scope_gate.py"])
         self.assertEqual(plan["domains"], ["ci", "craft", "quests", "guides", "data"])
