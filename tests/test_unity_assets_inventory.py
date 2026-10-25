@@ -51,6 +51,29 @@ class UnityAssetInventoryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "truncated"):
                 png_chunk_integrity(path)
 
+    def test_crc_valid_but_out_of_order_png_is_rejected(self) -> None:
+        def chunk(kind: bytes, data: bytes = b"") -> bytes:
+            payload = kind + data
+            return struct.pack(">I", len(data)) + payload + struct.pack(">I", zlib.crc32(payload))
+
+        header = chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+        compressed = chunk(b"IDAT", zlib.compress(bytes((0, 0, 0, 0, 255))))
+        end = chunk(b"IEND")
+        ordinary = PNG_MAGIC + header + compressed + end
+        with tempfile.TemporaryDirectory() as directory:
+            png = Path(directory) / "invalid.png"
+            for payload, expected in (
+                (PNG_MAGIC + header + header + compressed + end, "duplicate"),
+                (PNG_MAGIC + header + compressed + chunk(b"tEXt", b"x") + compressed + end, "non-consecutive"),
+                (PNG_MAGIC + header + chunk(b"JUNK") + compressed + end, "critical"),
+                (PNG_MAGIC + header + compressed + chunk(b"tRNS", b"x") + end, "tRNS"),
+            ):
+                png.write_bytes(payload)
+                with self.subTest(message=expected), self.assertRaisesRegex(ValueError, expected):
+                    png_chunk_integrity(png)
+            png.write_bytes(ordinary)
+            self.assertTrue(png_chunk_integrity(png))
+
     def test_inventory_fails_closed_without_required_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

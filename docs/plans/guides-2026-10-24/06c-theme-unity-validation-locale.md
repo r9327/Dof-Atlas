@@ -138,7 +138,7 @@ Audit d'intégrité des ressources (local et sans Qt/CI) :
 py -3.13 tools/assets/inspect_unity_assets.py --json
 ```
 
-L'audit vérifie les en-têtes PNG, les CRC de **tous** les blocs, la présence des blocs IDAT/IEND, les tailles, la présence de transparence, les doublons éventuels et l'identité SHA du fond original. Il n'est **pas** un contrôle des licences, du rendu visuel ni du décodage complet des PNG.
+L'audit vérifie les en-têtes PNG, les CRC de **tous** les blocs, l'ordre des blocs critiques (IHDR initial unique, PLTE avant IDAT, IDAT consécutifs, IEND terminal), les types critiques inconnus, les tailles, la présence de transparence, les doublons éventuels et l'identité SHA du fond original. L'audit renforcé a accepté les **48 PNG du pack original local**, et a rejeté quatre fichiers synthétiques CRC-valides mais structurellement invalides. Il n'est **pas** un contrôle des licences, du rendu visuel ni du décodage complet des PNG.
 
 Sur Windows, après installation des dépendances déjà prévues par le projet, depuis la racine du dépôt :
 

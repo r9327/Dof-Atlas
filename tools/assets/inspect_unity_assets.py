@@ -46,6 +46,11 @@ def png_chunk_integrity(path: Path) -> bool:
     transparency = colour in (4, 6)
     saw_image_data = False
     saw_end = False
+    saw_palette = False
+    saw_transparency = False
+    closed_idat = False
+    previous = b""
+    known_critical = {b"IHDR", b"PLTE", b"IDAT", b"IEND"}
     with path.open("rb") as stream:
         if stream.read(8) != PNG_MAGIC:
             raise ValueError("bad PNG signature")
@@ -67,15 +72,39 @@ def png_chunk_integrity(path: Path) -> bool:
             suffix = stream.read(4)
             if len(suffix) != 4 or crc != struct.unpack(">I", suffix)[0]:
                 raise ValueError("PNG chunk CRC mismatch")
+            # CRC-valid garbage is not a structurally valid PNG. In
+            # particular, IDAT chunks must be consecutive and a decoder
+            # cannot silently ignore unknown critical chunk types.
+            if not all(65 <= letter <= 90 or 97 <= letter <= 122 for letter in kind):
+                raise ValueError("invalid PNG chunk type")
+            if not previous:
+                if kind != b"IHDR" or length != 13:
+                    raise ValueError("PNG must begin with a 13-byte IHDR")
+            elif kind == b"IHDR":
+                raise ValueError("duplicate PNG IHDR")
+            if kind[0] in range(65, 91) and kind not in known_critical:
+                raise ValueError("unknown critical PNG chunk")
+            if kind == b"PLTE":
+                if saw_palette or saw_image_data:
+                    raise ValueError("PNG PLTE must precede IDAT and be unique")
+                saw_palette = True
             if kind == b"tRNS":
+                if saw_transparency or saw_image_data or colour in (4, 6):
+                    raise ValueError("invalid PNG tRNS placement")
+                saw_transparency = True
                 transparency = True
             if kind == b"IDAT":
+                if closed_idat:
+                    raise ValueError("non-consecutive PNG IDAT chunks")
                 saw_image_data = True
+            elif saw_image_data and kind != b"IEND":
+                closed_idat = True
             if kind == b"IEND":
-                if length or stream.read(1):
+                if not saw_image_data or length or stream.read(1):
                     raise ValueError("invalid PNG terminal IEND")
                 saw_end = True
                 break
+            previous = kind
     if not saw_end or not saw_image_data:
         raise ValueError("missing IDAT or IEND")
     return transparency
