@@ -107,6 +107,9 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "ui"})
     if path == "tests/test_unity_skin.py":
         return frozenset({"ui"})
+    if path == "tests/test_distribution_export.py":
+        # Runtime export policy is both CI packaging integrity and startup.
+        return frozenset({"ci", "startup"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
     if path.startswith("app/pages/quest_"):
