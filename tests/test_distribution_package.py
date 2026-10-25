@@ -28,6 +28,9 @@ class PackagingTests(unittest.TestCase):
             private = bundle / "_internal" / "data" / "local" / "quest_progress.json"
             private.parent.mkdir(parents=True, exist_ok=True)
             private.write_text('{"private":true}')
+            extracted = bundle / "_internal" / "app" / "assets" / "themes" / "dofus_unity" / "sprites" / "btn_green_normal.png"
+            extracted.parent.mkdir(parents=True, exist_ok=True)
+            extracted.write_bytes(b"unlicensed-test-fixture")
             output = root / "release"
             archive, manifest_path = package_release(bundle, output, "a" * 40,
                                                       "1.0.0", "2026.10", 1)
@@ -37,6 +40,10 @@ class PackagingTests(unittest.TestCase):
             self.assertIn("AtlasApp/_internal/PySide6/QtWebEngineProcess.exe", entries)
             self.assertNotIn("AtlasApp/_internal/data/local/quest_progress.json", entries)
             self.assertIn("AtlasApp/_internal/data/local/zaaps.json", entries)
+            self.assertNotIn(
+                "AtlasApp/_internal/app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+                entries,
+            )
             with zipfile.ZipFile(archive) as package:
                 self.assertEqual(set(package.namelist()), entries)
             target = root / "installed"

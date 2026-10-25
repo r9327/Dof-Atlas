@@ -19,12 +19,18 @@ _MAX_GITHUB_RELEASE_ASSET_BYTES = 2 * 1024**3 - 1
 # Keep headroom below GitHub's strict 2 GiB-per-asset limit.
 _CHUNK_BYTES = 1792 * 1024**2
 _RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
+# Public builds cannot ship game-extracted theme sources without licence.
+_UNLICENSED_THEME_COMPONENTS = ("app", "assets", "themes", "dofus_unity")
 
 
 def _publishable(relative: Path) -> bool:
     if relative.as_posix() in _RUNTIME_SEEDS:
         return True
     parts = relative.parts
+    folded = tuple(part.casefold() for part in parts)
+    if any(folded[i:i + 4] == _UNLICENSED_THEME_COMPONENTS
+           for i in range(len(folded) - 3)):
+        return False
     if any(piece in _BLOCKED for piece in parts):
         return False
     if any(piece.lower() in ("data", "_internal") and parts[i + 1:i + 2] == ("local",)

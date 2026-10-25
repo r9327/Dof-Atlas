@@ -1,3 +1,5 @@
+> **Dépôt public : attention.** Les sprites, TTF et capture de référence sont actuellement consultables dans l'historique Git de ce dépôt public. Les exclure des exports App/EXE ne supprime pas leur diffusion via Git. Un retrait du simple HEAD ne suffit pas : une purge d'historique coordonnée et une décision sur la visibilité du dépôt seraient nécessaires si les droits ne sont pas confirmés. Aucune réécriture de l'historique n'a été effectuée automatiquement.
+
 # DOFUS Unity – assets extractés pour l'étude du thème Atlas
 
 Ce dossier provient du ZIP d'assets originaux fourni par l'utilisateur le 24 octobre 2026 (47 PNG et 10 TTF). Le dossier `sprites` contient 46 textures de composants ; `references/logoDofus.png` est **une référence d'identité uniquement**, jamais un logo de substitution pour Atlas.
