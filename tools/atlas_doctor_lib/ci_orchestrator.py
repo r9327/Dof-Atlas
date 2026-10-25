@@ -142,8 +142,12 @@ def plan_ci(root: Path, *, base_ref: str, candidate_sha: str, event: str,
     result = select_workflows(paths, event=event, phase_route=route, ui_plan=ui, deleted=deleted,
         tooling_scope=tooling_eligible(paths, deleted=deleted, root=root, base_sha=base))
     from tools.ci_domain_certification import plan_domains
+    # Legacy Doctor changed_paths lists live paths only while deleted carries
+    # removed paths separately. The independent domain router receives the
+    # *complete* exact diff so removals stay blocking rather than raising
+    # before Doctor can record its fail-closed plan.
     domain_plan = plan_domains(base_sha=base, candidate_sha=candidate_sha,
-                               paths=paths, deleted=deleted)
+                               paths=sorted(set(paths) | set(deleted)), deleted=deleted)
     execution_mode = ('PR_DOMAIN_MODULES' if event == 'pull_request' and result['phase']
                       else 'RELEASE_FULL' if event in {'push', 'workflow_dispatch'}
                       else 'FOCUSED_CONTRACTS')
