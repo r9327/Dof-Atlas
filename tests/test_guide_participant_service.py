@@ -31,8 +31,8 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 json.dumps(
                     {
                         "characters": {
-                            "1": {"name": "Alpha", "pid": 101},
-                            "2": {"name": "Beta", "pid": 202},
+                            "1": {"name": "Alpha", "pid": 101, "source": "verified_network_identity"},
+                            "2": {"name": "Beta", "pid": 202, "source": "verified_network_identity"},
                         }
                     }
                 ),
@@ -69,6 +69,74 @@ class GuideParticipantServiceTests(unittest.TestCase):
             )
 
             self.assertEqual(service.selected_keys(), ())
+
+
+    def test_selection_rejects_unknown_or_unverified_ids_without_losing_offline(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text(
+                json.dumps({KEY_GUIDE_PARTICIPANTS: [
+                    "character:1", "character:2", "character:999"
+                ]}),
+                encoding="utf-8",
+            )
+            clients.write_text('{"clients":[]}', encoding="utf-8")
+            bindings.write_text(
+                json.dumps({"characters": {
+                    "1": {"name": "Alpha", "source": "verified_network_identity",
+                          "class_key": "feca"},
+                    "2": {"name": "Beta", "source": "unverified_candidate",
+                          "class_key": "cra"},
+                }}),
+                encoding="utf-8",
+            )
+            service = GuideParticipantService(profile, clients, bindings)
+            self.assertEqual(service.selected_keys(), ("character:1",))
+            self.assertEqual(service.save_selected_keys([
+                "character:2", "character:1", "character:999"
+            ]), ("character:1",))
+            self.assertEqual(
+                [(row.key, row.connected, row.class_key)
+                 for row in service.available_characters()],
+                [("character:1", False, "feca")],
+            )
+            bindings.write_text('{"characters":{}}', encoding="utf-8")
+            self.assertEqual(service.selected_keys(), ())
+            self.assertEqual(service.available_characters(), ())
+
+
+
+    def test_legacy_verified_slot_keeps_actual_character_id_without_slot_promotion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            profile.write_text(
+                json.dumps({KEY_GUIDE_PARTICIPANTS: [
+                    "character:201", "character:2"
+                ]}), encoding="utf-8",
+            )
+            clients.write_text('{"clients":[]}', encoding="utf-8")
+            bindings.write_text(
+                json.dumps({"slots": {
+                    "2": {
+                        "character_id": 201, "name": "Ancien",
+                        "source": "verified_network_identity",
+                    },
+                    "3": {"name": "Inconnu", "source": "verified_network_identity"},
+                }}), encoding="utf-8",
+            )
+            service = GuideParticipantService(profile, clients, bindings)
+            self.assertEqual(service.selected_keys(), ("character:201",))
+            self.assertEqual(
+                [row.key for row in service.available_characters()],
+                ["character:201"],
+            )
+
 
 
 if __name__ == "__main__":

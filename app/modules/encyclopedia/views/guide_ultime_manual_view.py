@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import quote, unquote
 
 from PySide6.QtCore import QSize, QTimer, Signal, Qt
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -46,6 +46,25 @@ _NPC_PATTERNS = (
 )
 _RESOURCE_STOP_WORDS = {"de", "du", "des", "la", "le", "les", "d", "l", "à", "au", "aux", "et"}
 _NPC_CONNECTORS = {"de", "des", "du", "d'", "d’", "of", "le", "la", "l'", "l’"}
+
+
+def _quest_shortcut_icon() -> QIcon:
+    """Draw a theme-coloured quest page instead of a platform file icon."""
+    pixmap = QPixmap(18, 18)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.5)
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+    painter.drawRoundedRect(3, 1, 12, 16, 2, 2)
+    painter.drawLine(6, 6, 12, 6)
+    painter.drawLine(6, 9, 12, 9)
+    painter.drawLine(6, 12, 10, 12)
+    painter.end()
+    return QIcon(pixmap)
 
 
 class GuideManualProgressBar(QProgressBar):
@@ -233,13 +252,12 @@ class GuideUltimeManualCard(QFrame):
             self._shown_quest_ids.add(int(quest_id))
             button = QToolButton()
             button.setObjectName("GuideManualQuestInlineButton")
-            # Use an actual Qt icon, never a text glyph which may be invisible
-            # with the packaged Windows font.
-            button.setIcon(button.style().standardIcon(QStyle.SP_FileIcon))
-            button.setIconSize(QSize(16, 16))
+            button.setIcon(_quest_shortcut_icon())
+            button.setIconSize(QSize(18, 18))
             button.setAutoRaise(True)
             button.setCursor(Qt.PointingHandCursor)
-            button.setFixedSize(24, 24)
+            button.setFocusPolicy(Qt.StrongFocus)
+            button.setFixedSize(30, 30)
             button.setToolTip(name)
             button.setAccessibleName(name)
             button.clicked.connect(

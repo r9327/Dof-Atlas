@@ -753,6 +753,10 @@ class GuidePhase3Tests(unittest.TestCase):
             self.assertIsNotNone(toggle)
             self.assertFalse(view.right_panel.isHidden())
             self.assertEqual(toggle.text(), "›")
+            view.splitter.setSizes([0, 620, 310])
+            self.app.processEvents()
+            saved_width = view.splitter.sizes()[2]
+            self.assertGreaterEqual(saved_width, 220)
             toggle.click()
             self.app.processEvents()
             self.assertTrue(view.right_panel.isHidden())
@@ -766,6 +770,10 @@ class GuidePhase3Tests(unittest.TestCase):
             self.app.processEvents()
             self.assertFalse(view.right_panel.isHidden())
             self.assertGreaterEqual(view.right_panel.minimumWidth(), 220)
+            self.assertLessEqual(abs(view.splitter.sizes()[2] - saved_width), 25)
+            view.show_guide_overview(TURQUOISE_GUIDE_ID)
+            self.app.processEvents()
+            self.assertLessEqual(abs(view.splitter.sizes()[2] - saved_width), 25)
             view.deleteLater()
             self.app.processEvents()
 

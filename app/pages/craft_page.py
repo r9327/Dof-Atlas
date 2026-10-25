@@ -651,7 +651,19 @@ class CraftPage(QWidget):
             clear_icons()
         self.selection.clear()
         self.jobs.clear()
+        self.guides.clear()
         self._pending_result_items.clear()
+        # The Craft shell is reconstructible: release populated Qt lists and
+        # job widgets before deleteLater(), not just their Python providers.
+        # Windows RSS sampling sees the Home transition before deferred QObject
+        # destruction has necessarily reclaimed every large QListWidgetItem.
+        self.results.clear()
+        self.selection_list.clear()
+        self.clear_layout(self.job_grid)
+        self.clear_layout(self.job_buttons_layout)
+        self.clear_layout(self.job_actions_layout)
+        self._job_layout_signature = None
+        self._runtime_ready = False
         self.preload = {}
         release = getattr(local_data_cache, "release_adapter", None)
         if callable(release):

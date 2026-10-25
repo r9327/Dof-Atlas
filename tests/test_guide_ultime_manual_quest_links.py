@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
@@ -92,6 +93,8 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
             self.assertEqual(len(buttons), 1)
             self.assertEqual(buttons[0].text(), "")
             self.assertFalse(buttons[0].icon().isNull())
+            self.assertGreaterEqual(buttons[0].width(), 30)
+            self.assertEqual(buttons[0].focusPolicy(), Qt.StrongFocus)
             self.assertEqual(buttons[0].toolTip(), "Quête de test")
             self.assertEqual(buttons[0].accessibleName(), "Quête de test")
 

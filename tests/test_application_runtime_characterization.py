@@ -494,7 +494,7 @@ print(json.dumps(payload, ensure_ascii=False))
                 self.page_factories: dict[str, object] = {}
                 self.persist_calls = 0
 
-            def character_icon_path(self, _label: str) -> str:
+            def character_icon_path(self, _label: str, *, class_key: str = "") -> str:
                 return ""
 
             def persist_selected_character(self) -> None:

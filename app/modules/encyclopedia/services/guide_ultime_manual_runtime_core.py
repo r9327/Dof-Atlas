@@ -292,6 +292,10 @@ _META_INSTRUCTION_TOKENS = (
 
 _CHAPTER_PREPARATION_FIELDS = (
     "preparation",
+    # Authored resource_plan is a chapter-wide inventory schedule, not a
+    # navigation instruction. Keep each record and its amount attached to the
+    # first chapter card, so global Preparation never silently omits it.
+    "resource_plan",
     "global_preparation",
     "global_ebene_preparation",
     "global_preparation_post_eliocalypse",

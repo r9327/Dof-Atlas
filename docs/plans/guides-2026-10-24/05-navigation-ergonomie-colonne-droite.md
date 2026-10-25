@@ -1,10 +1,19 @@
 # [PLAN 05/07] Guides : navigation, liens Quêtes et colonne droite
 
-> **DRAFT PLAN SEUL — aucune fonctionnalité implémentée. Ne jamais fusionner avant développement + CI finale.**
+> **DRAFT — développement partiel. Ne pas fusionner avant couverture du lot et certification finale du SHA.**
 
 **Objectif :** Regrouper dans une PR ergonomique cohérente les interactions du lecteur et la colonne d'informations rétractable, sans changer le contenu des parcours.
 
-**Révision auditée :** 5849fb05828d56b5b5a15fe762e762a71f6b913c
+**Révision initiale auditée :** 5849fb05828d56b5b5a15fe762e762a71f6b913c
+
+## Avancement vérifiable au 25 octobre 2026
+
+- [x] Colonne droite classique : bouton de rétraction/réouverture et mémorisation de la largeur en pixels, sans remise systématique à 230 px lors d'une navigation.
+- [x] Raccourci Quête par fiche : pictogramme dédié au thème, zone cliquable de 30 px, focus clavier, nom exact et contexte de navigation existant conservés.
+- [x] Tests de régression ajoutés pour le panneau droit et le bouton Quête (présents dans le code, non exécutés dans cet audit).
+- [ ] Validation Windows/DPI, navigation multi-guides, scroll, mémoire, Doctor et certification du SHA final.
+- [ ] Vérifier le Sommaire, le délai des infobulles, les commandes de déplacement, les groupes d'actions et les scénarios N1 à N8.
+- [ ] Aucun résultat de test Qt n'est revendiqué dans ce document.
 
 ## Pourquoi et état actuel
 - [ ] Les liens inline des quêtes sont des petits boutons icône de fichier, infobulles Qt standard, un seul raccourci par quête et par fiche ; rendu actuellement jugé mauvais.
