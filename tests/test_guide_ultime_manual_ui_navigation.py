@@ -192,12 +192,38 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 / 2")
+            self.assertEqual(view.route_progress_label.text(), "0 %")
+            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
+            self.assertEqual(view.progress_donut._percent, 0)
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
             self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
+        finally:
+            view.close()
+
+    def test_narrow_layout_preserves_named_actions(self) -> None:
+        _service, view = self._view()
+        try:
+            view.resize(490, 320)
+            QApplication.processEvents()
+            self.assertLess(view.width(), 520)
+            self.assertEqual(view.participants_button.text(), "1")
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "")
+            self.assertEqual(view.current_button.accessibleName(), "Actuelle")
+            self.assertTrue(view.current_button.icon().isNull() is False)
+            self.assertEqual(view.page_jump.maximumWidth(), 93)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
+
+            view.resize(960, 640)
+            QApplication.processEvents()
+            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "Actuelle")
+            self.assertEqual(view.page_jump.maximumWidth(), 115)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
         finally:
             view.close()
 
@@ -229,7 +255,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "Guides")
+            self.assertEqual(view.guide_button.text(), "←")
+            self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
             view.close()
@@ -451,7 +478,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "1 / 2")
+            self.assertEqual(view.route_progress_label.text(), "50 %")
+            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.progress_donut._percent, 50)
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
         finally:
             view.close()
