@@ -164,13 +164,26 @@ The actual `Run full Atlas phase certification gate` step is skipped for PRs.
 A release/push/explicit manual run still retains the old independent FULL
 while the release baseline contract is migrated separately.
 
-The independent selector is closed-world and has distinct owners for CI/trust,
-Craft, Quests, Guides, UI, startup, identity and data; the PR's documentation
-or title cannot downscope it. A tooling-only PR selects only CI contracts,
-and a CI+Craft PR selects those two owners rather than replaying every Guide
-and Quest unittest. Deleted/renamed files, unowned code, absent baseline CI
-modules, or changed routing that removes previous mandatory CI tests
-**BLOCK** rather than automatically skipping a consumer or making a fake PASS.
+The independent selector is closed-world with owners for CI/trust, Craft,
+Quests, Guides, UI, startup, identity and data. The PR title or docs cannot
+downscope it. A **CI-only** PR selects only CI-domain test groups and
+independent policy checks, avoiding unrelated Guide/Quest journeys. A change
+to a **shared consumer API**, such as `app/local_data_cache.py`, conservatively
+selects the actual Craft, Quests, Guides and data consumers as well: there is
+currently no independently authenticated symbol-level impact proof to narrow
+that shared dependency safely. Deleted/renamed files, unowned code or missing
+baseline CI contracts **BLOCK** rather than automatically skipping consumers.
+
+Every selected domain also inherits the relevant **critical unittest groups
+from the baseline `atlas_integrity_policy.json`**. Mandatory memory/preload
+and Quest-data specialists are selected from the affected domain even if a
+legacy glob-based workflow registry does not match the modified path. A
+domain-closure proof prevents blanket specialist fallback only when every
+changed path is accounted for. The independent merge policy is now **enforced
+in the GitHub job** (`--enforce true`); remote branch-protection changes
+remain a separate authorized admin operation. The observer archives timings
+from its own verdict runner. Failed modular executions produce
+`02c_domain_failure.json` rather than the unreachable pre-FULL fallback.
 
 The Windows domain runner compares exact candidate/base SHAs, uses the
 immutable base version of the CI policy and baseline test registry, discovers
