@@ -73,6 +73,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
+    if path == "app/modules/encyclopedia/views/shared_manual_guide_view.py":
+        return frozenset({"guides", "ui"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
     if path.startswith("app/pages/quest_"):
