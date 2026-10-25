@@ -103,7 +103,9 @@ sur ciel synthétique passent localement ; l'interface graphique elle-même
 n'est pas testée sous Windows ici.
 
 Le résultat est un PNG local `background_selection_clean.png` utilisé en
-priorité par le thème Unity. **Examiner la capture et la réparation avant
+priorité par le thème Unity. L'écriture passe par un fichier PNG temporaire
+puis un remplacement atomique, sans jamais laisser un ancien dérivé tronqué
+si l'enregistrement échoue. **Examiner la capture et la réparation avant
 utilisation** ; l'interpolation de ciel n'est pas une garantie de suppression
 invisible sur n'importe quelle texture. Ne pas publier ce dérivé dans Git
 ou un EXE tant que les droits des assets DOFUS ne sont pas confirmés.

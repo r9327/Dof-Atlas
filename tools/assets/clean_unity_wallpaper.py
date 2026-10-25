@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
+import tempfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -252,9 +254,20 @@ def main() -> int:
             preview.save(args.preview)
         result = repair_sky(raw, args.boxes)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    result.save(args.output, format="PNG")
-    if source_sha(args.source) != SOURCE_SHA256:
-        raise RuntimeError("original unexpectedly changed")
+    # A failed save must never replace a previously approved wallpaper with
+    # a truncated PNG (which Qt would then try to display on next launch).
+    fd, staging_name = tempfile.mkstemp(
+        prefix=".atlas-unity-background-", suffix=".png", dir=args.output.parent
+    )
+    os.close(fd)
+    staging = Path(staging_name)
+    try:
+        result.save(staging, format="PNG")
+        if source_sha(args.source) != SOURCE_SHA256:
+            raise RuntimeError("original unexpectedly changed")
+        os.replace(staging, args.output)
+    finally:
+        staging.unlink(missing_ok=True)
     print(f"Local derived wallpaper created: {args.output}; inspect visually before enabling.")
     return 0
 

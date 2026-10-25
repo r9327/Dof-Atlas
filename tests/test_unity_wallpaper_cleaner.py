@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import tempfile
 import unittest
 
@@ -65,6 +66,24 @@ class WallpaperCleanerTests(unittest.TestCase):
         self.assertEqual(changed.getpixel((280, 8)), (0, 0, 0))
         with self.assertRaises(ValueError):
             validate_boxes((300, 150), [(259, 0, 40, 18)])
+
+    def test_failed_png_write_preserves_previous_clean_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "original.png"
+            Image.new("RGB", (1919, 1079), (20, 40, 90)).save(source)
+            expected = hashlib.sha256(source.read_bytes()).hexdigest()
+            output = Path(directory) / "clean.png"
+            output.write_bytes(b"previous approved wallpaper")
+            command = ["clean_unity_wallpaper", "--source", str(source),
+                       "--output", str(output), "--corner-toolbar"]
+            with patch("tools.assets.clean_unity_wallpaper.SOURCE_SHA256", expected), \
+                 patch("sys.argv", command), \
+                 patch("PIL.Image.Image.save", side_effect=OSError("disk full")):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    main()
+            self.assertEqual(output.read_bytes(), b"previous approved wallpaper")
+            self.assertEqual(sorted(x.name for x in Path(directory).iterdir()),
+                             ["clean.png", "original.png"])
 
     def test_invalid_areas_and_coordinates_rejected(self):
         with self.assertRaises(ValueError):
