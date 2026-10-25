@@ -218,6 +218,7 @@ def _verify_smart_pr_identity(
 
 _DOMAIN_HOST_STEPS = (
     "Verify exact certification checkout",
+    "Materialize selected domain fixtures",
     "Run independently required domain certification",
     "Enforce phase certification verdict",
 )
