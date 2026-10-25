@@ -16,6 +16,20 @@ from typing import Any
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 DOMAINS = ("ci", "craft", "quests", "guides", "ui", "startup", "identity", "data")
+# Historical critical groups are the independent BASELINE minimum. A domain
+# owns every shared consumer test, not just modules matching filename globs.
+# The candidate cannot remove tests from these baseline groups.
+BASELINE_GROUPS = {
+    "ci": ("ARCHITECTURE", "CI_INTEGRITY"),
+    "craft": ("ASYNC_LIFECYCLE", "RESOURCE_BUDGETS"),
+    "quests": ("PERSISTENCE", "LAZY_LOADING", "GOLDEN_FLOWS"),
+    "guides": ("PERSISTENCE", "GOLDEN_FLOWS"),
+    "ui": ("ASYNC_LIFECYCLE", "GOLDEN_FLOWS"),
+    "startup": ("STARTUP", "LAZY_LOADING", "RESOURCE_BUDGETS"),
+    "identity": ("IDENTITY", "PERSISTENCE"),
+    "data": ("PERSISTENCE", "GOLDEN_FLOWS"),
+}
+
 INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",
     "DOCTOR_ADAPTIVE_CERTIFICATION.md", "PHASE_CERTIFICATION.md",
@@ -250,6 +264,20 @@ def execute_domain_tests(plan: dict[str, Any], *, root: Path, base_sha: str) -> 
     if not isinstance(base_ci, list) or not base_ci:
         raise ValueError("Missing original CI certification obligations")
     module_names: set[str] = set()
+    for domain in domains:
+        if domain == "metadata":
+            continue
+        if domain not in BASELINE_GROUPS:
+            raise ValueError("Unrecognized domain has no baseline obligations")
+        for group_name in BASELINE_GROUPS[domain]:
+            group = prior.get("groups", {}).get(group_name)
+            if (not isinstance(group, dict) or group.get("runner") != "unittest_modules"
+                    or not group.get("critical") or not isinstance(group.get("modules"), list)
+                    or not group["modules"] or any(
+                        not isinstance(n, str) or not n.startswith("tests.test_")
+                        for n in group["modules"])):
+                raise ValueError("Baseline critical domain group missing: " + group_name)
+            module_names.update(group["modules"])
     if "ci" in domains:
         module_names.update(base_ci)
         for name in previous_tests:
