@@ -7,6 +7,7 @@ import unittest
 from copy import deepcopy
 from unittest.mock import patch
 
+from tools.ci_smart_host_proof import HOST_CONTRACTS, REQUIRED_METRICS
 from tools.ci_required_certification import (
     _REQUIRED_FULL_STEPS, _SCOPED_HIGH_STEPS, candidate_paths, classify_merge_route, evaluate_merge,
     retrieve_full_proofs, validate_full_run, validate_scoped_high_run, validate_domain_run,
@@ -76,6 +77,20 @@ def domain_job():
     }
 
 
+def smart_host_jobs():
+    return [
+        {
+            "run_id": 418, "head_sha": HEAD, "name": name,
+            "labels": [runner], "status": "completed", "conclusion": "success",
+            "steps": [
+                {"name": stage, "status": "completed", "conclusion": "success"}
+                for stage in stages
+            ],
+        }
+        for name, (runner, stages) in HOST_CONTRACTS.items()
+    ]
+
+
 def decide(paths, *, runs=None, jobs=None, safe="success"):
     return evaluate_merge(
         candidate_sha=HEAD, base_sha=BASE, paths=paths,
@@ -113,18 +128,14 @@ class CertificationMergeGateTests(unittest.TestCase):
             self.assertEqual(evaluate_merge(**args)["status"], "BLOCKED")
             record = full_record()
             record["event"] = "pull_request"
-            proof = full_job()
-            proof["steps"] = [
-                {"name": name, "status": "completed", "conclusion": "success"}
-                for name in _SCOPED_HIGH_STEPS
-            ] + [{
-                "name": "Run full Atlas phase certification gate",
-                "status": "completed", "conclusion": "skipped",
-            }]
-            accepted = evaluate_merge(**args, runs=[record], jobs_by_run={418: [proof, safe_job()]})
+            proof = domain_job()
+            specialists = smart_host_jobs()
+            accepted = evaluate_merge(**args, runs=[record],
+                                      jobs_by_run={418: [proof, safe_job(), *specialists]})
             self.assertEqual(accepted["status"], "PASS_SMART_AUTHENTICATED_NOT_FULL")
             self.assertIsNone(accepted["full_evidence_run"])
             self.assertEqual(accepted["scoped_evidence_run"], 418)
+            self.assertEqual(set(accepted["metric_checks_host_attested"]), set(REQUIRED_METRICS))
             # The independent Doctor planner may still demand FULL for real
             # metric dependencies; a genuine host-verified FULL must pass.
             real_full = full_job()
@@ -151,7 +162,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                     if mutation == "missing_pr_list": bad_run["pull_requests"] = []
                     if mutation == "wrong_head_repo": bad_run["pull_requests"][0]["head"]["repo"]["id"] = 999
                     self.assertEqual(evaluate_merge(**args, runs=[bad_run],
-                                      jobs_by_run={418: [bad_job, safe_job()]})["status"], "BLOCKED")
+                                      jobs_by_run={418: [bad_job, safe_job(), *specialists]})["status"], "BLOCKED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "tools/ci_scope_gate.py"],
                                                    root=root)["route"], "FULL_REQUIRED")
             self.assertEqual(classify_merge_route([HIGH_SOURCE, "app/core/json_store.py"],
@@ -160,6 +171,32 @@ class CertificationMergeGateTests(unittest.TestCase):
                 runs=[record], jobs_by_run={418: [proof]})["status"], "BLOCKED")
             source.unlink()
             self.assertEqual(classify_merge_route([HIGH_SOURCE], root=root)["route"], "FULL_REQUIRED")
+
+    def test_old_scoped_host_pass_does_not_mislabel_high_without_metrics(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / HIGH_SOURCE
+            source.parent.mkdir(parents=True)
+            source.write_text("pass\n")
+            for module in REQUIRED_TESTS:
+                file = root / Path(*module.split(".")).with_suffix(".py")
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_text("pass\n")
+            record = full_record()
+            record["event"] = "pull_request"
+            legacy = full_job()
+            legacy["steps"] = [
+                {"name": n, "status": "completed", "conclusion": "success"}
+                for n in _SCOPED_HIGH_STEPS
+            ] + [{"name": "Run full Atlas phase certification gate",
+                  "status": "completed", "conclusion": "skipped"}]
+            result = evaluate_merge(
+                candidate_sha=HEAD, base_sha=BASE, paths=[HIGH_SOURCE],
+                safe_validation="success", repo=REPO, now=NOW, root=root,
+                pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF,
+                runs=[record], jobs_by_run={418: [legacy, safe_job()]})
+            self.assertEqual(result["status"], "BLOCKED")
 
     def test_completed_pr_cannot_pass_when_public_safe_validation_was_skipped(self):
         run = full_record()
