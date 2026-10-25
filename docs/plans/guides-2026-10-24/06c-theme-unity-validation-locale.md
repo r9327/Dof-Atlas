@@ -130,7 +130,7 @@ Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
 Remove-Item Env:ATLAS_THEME -ErrorAction SilentlyContinue
 ```
 
-Les captures proviennent de vraies vues Qt, **pas d'une maquette**. La sonde consigne également la croissance du nombre de QWidget après cinq cycles d'échauffement : si elle dépasse 5, elle rend `WIDGET_GROWTH` et échoue. Les écarts de mémoire restent des mesures à examiner, pas une certification automatique. L'état écrit `MEASURED_NOT_CERTIFIED` signifie seulement que les cycles ont été exécutés ; il faut examiner les graphiques/valeurs et les vrais affichages Windows. `QT_SCALE_FACTOR` simule la mise à l'échelle Qt en offscreen et ne remplace pas une vérification sur moniteurs 100/125/150 %.
+Les captures proviennent de vraies vues Qt, **pas d'une maquette**. Pour 1 à 9 cycles, le rapport marque `SMOKE_NOT_CERTIFIED` et `widget_stability=NOT_EVALUATED` : un simple aller-retour ne doit jamais être interprété comme une stabilité RAM/widget. Dès 10 cycles, la sonde consigne également la croissance du nombre de QWidget après cinq cycles d'échauffement : si elle dépasse 5, elle rend `WIDGET_GROWTH` et échoue. Les écarts de mémoire restent des mesures à examiner, pas une certification automatique. L'état écrit `MEASURED_NOT_CERTIFIED` signifie seulement que les cycles ont été exécutés ; il faut examiner les graphiques/valeurs et les vrais affichages Windows. `QT_SCALE_FACTOR` simule la mise à l'échelle Qt en offscreen et ne remplace pas une vérification sur moniteurs 100/125/150 %.
 
 Audit d'intégrité des ressources (local et sans Qt/CI) :
 

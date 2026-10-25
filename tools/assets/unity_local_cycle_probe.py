@@ -56,6 +56,32 @@ def working_set_bytes() -> int | None:
     return int(counters.WorkingSetSize)
 
 
+def cycle_metrics(samples: list[dict], cycles_completed: int) -> dict:
+    """No false widget-stability PASS for short smoke runs."""
+    if cycles_completed < 1 or len(samples) != cycles_completed + 1:
+        raise ValueError("baseline plus one sample per cycle required")
+    warmup = min(5, cycles_completed)
+    first, warm, last = samples[0], samples[warmup], samples[-1]
+    result = {
+        "widget_delta_after_cycles": last["widgets"] - first["widgets"],
+        "widget_growth_after_warmup": last["widgets"] - warm["widgets"],
+    }
+    for field, prior in (
+        ("working_set_delta_bytes", first),
+        ("working_set_growth_after_warmup_bytes", warm),
+    ):
+        if prior["working_set_bytes"] is not None and last["working_set_bytes"] is not None:
+            result[field] = last["working_set_bytes"] - prior["working_set_bytes"]
+    if cycles_completed < 10:
+        result["widget_stability"] = "NOT_EVALUATED"
+        result["status"] = "SMOKE_NOT_CERTIFIED"
+    else:
+        stable = result["widget_growth_after_warmup"] <= 5
+        result["widget_stability"] = "PASS" if stable else "FAIL"
+        result["status"] = "MEASURED_NOT_CERTIFIED" if stable else "WIDGET_GROWTH"
+    return result
+
+
 def run(output: Path, cycles: int) -> dict:
     # All source imports are delayed until after the data-root isolation.
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -170,34 +196,7 @@ def run(output: Path, cycles: int) -> dict:
                 measure(idx + 1)
                 result["cycles_completed"] += 1
             screenshot("catalog-after")
-            result["widget_delta_after_cycles"] = (
-                samples[-1]["widgets"] - samples[0]["widgets"]
-            )
-            if (samples[0]["working_set_bytes"] is not None
-                    and samples[-1]["working_set_bytes"] is not None):
-                result["working_set_delta_bytes"] = (
-                    samples[-1]["working_set_bytes"] - samples[0]["working_set_bytes"]
-                )
-            # Compare after initial one-time lazy construction; report an
-            # observed leak instead of automatically declaring every run OK.
-            warmup = min(5, len(samples) - 1)
-            result["widget_growth_after_warmup"] = (
-                samples[-1]["widgets"] - samples[warmup]["widgets"]
-            )
-            result["widget_stability"] = (
-                "PASS" if result["widget_growth_after_warmup"] <= 5 else "FAIL"
-            )
-            if (samples[warmup]["working_set_bytes"] is not None
-                    and samples[-1]["working_set_bytes"] is not None):
-                result["working_set_growth_after_warmup_bytes"] = (
-                    samples[-1]["working_set_bytes"]
-                    - samples[warmup]["working_set_bytes"]
-                )
-            result["status"] = (
-                "MEASURED_NOT_CERTIFIED"
-                if result["widget_stability"] == "PASS"
-                else "WIDGET_GROWTH"
-            )
+            result.update(cycle_metrics(samples, result["cycles_completed"]))
             page.close()
             page.deleteLater()
             settle()
@@ -233,7 +232,7 @@ def main() -> int:
     report = run(args.output, args.cycles)
     print(f"{report['status']} {report['cycles_completed']}/{args.cycles} cycles")
     print(f"Evidence: {args.output / 'report.json'}")
-    return 0 if report["status"] == "MEASURED_NOT_CERTIFIED" else 1
+    return 0 if report["status"] in ("MEASURED_NOT_CERTIFIED", "SMOKE_NOT_CERTIFIED") else 1
 
 
 if __name__ == "__main__":

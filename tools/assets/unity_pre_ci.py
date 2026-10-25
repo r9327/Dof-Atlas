@@ -32,6 +32,7 @@ SOURCE_FILES = (
     "tools/assets/inspect_unity_assets.py",
     "tools/assets/clean_unity_wallpaper.py",
     "tools/assets/unity_local_cycle_probe.py",
+    "tests/test_unity_cycle_metrics.py",
     "tests/test_guide_library_home.py",
     "tests/test_unity_skin.py",
     "tests/test_unity_assets_inventory.py",
@@ -45,6 +46,7 @@ STDLIB_TESTS = (
     "tests/test_distribution_package.py",
     "tests/test_distribution_export.py",
     "tests/test_unity_pre_ci_runner.py",
+    "tests/test_unity_cycle_metrics.py",
 )
 QT_TESTS = (
     "tests/test_unity_skin.py",
