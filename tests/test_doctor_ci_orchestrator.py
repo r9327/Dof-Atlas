@@ -70,6 +70,21 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(selection['workflows']['json-focused-data-contract']['selected'])
         self.assertTrue(selection['workflows']['ai-context-ci']['selected'])
 
+    def test_modular_domain_requires_independent_benchmark_even_without_path_hit(self):
+        from tools.ci_domain_certification import plan_domains
+        cases = [
+            (['tools/benchmark_phase8_memory.py'], 'phase8-memory-benchmark'),
+            (['app/modules/encyclopedia/providers/provider.py'], 'encyclopedia-provider-import'),
+            (['data/large_file_contracts.json'], 'json-focused-data-contract'),
+            (['main.py'], 'phase8-preload-benchmark'),
+        ]
+        for paths, required in cases:
+            domain = plan_domains(base_sha='a' * 40, candidate_sha='b' * 40, paths=paths)
+            r = select_workflows(paths, event='pull_request', phase_route={'route': 'FULL'},
+                                 ui_plan=UI_NONE, tooling_scope=False, domain_plan=domain)
+            with self.subTest(paths=paths):
+                self.assertTrue(r['workflows'][required]['selected'])
+
     def test_unknown_or_untrusted_domain_cannot_disable_specialists(self):
         paths = ['tools/atlas_doctor_lib/ci_orchestrator.py']
         forged = {'status': 'READY_TO_EXECUTE', 'changed_paths': paths,
