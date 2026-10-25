@@ -203,3 +203,33 @@ timings and cross-domain coverage. The Phase/release frozen Guide baseline
 still requires its own release certification on main and has not been weakened.
 There is no claim of automatic cross-SHA evidence equivalence or an enabled
 server-side branch ruleset.
+
+## Second modular readiness audit — empirical GitHub failures (25 October 2026)
+
+[Ready run #40147312860](https://github.com/r9327/Dof-Atlas/actions/runs/40147312860)
+proved the new Doctor plan and multiple independent specialists execute, but did
+**not** certify the candidate. Two actual failures exposed previously untested
+contracts: (1) legacy `test_main_phase_evidence` and
+`test_public_pr_ci_guardrails` fixtures still referred to the old FULL job
+name, and (2) legitimate **negative** Craft retained-RSS delta (`-0.55 MB`)
+was incorrectly rejected as if it were an absolute negative process RSS.
+Both are fixed. Only signed **retained deltas** now permit negative finite
+measurements; all absolute RSS, positive-stage and peak constraints remain
+strict and the Craft **2.10 MB hard ceiling is unchanged**. The Ubuntu Draft
+preflight now directly exercises these contracts before Windows jobs.
+
+The Windows PR domain runner now independently materializes only the data
+needed by its exact selected owners: pinned Quest/Guide catalogue (and
+authenticated LFS fixtures) for consumer/UI/startup/data domains, and the
+pinned Craft seed only for Craft/data domains. Its successful fixture step is
+part of the mandatory GitHub-hosted PR domain proof. A CI-only change
+downloads neither catalogue nor Craft seed.
+
+**Still pending:** successful actual Windows domain test execution and
+independent merge-policy attestation at the final SHA. The active `main`
+ruleset requires `Public PR / Safe Validation`, one approving reviewer,
+a CODEOWNER review and all review threads resolved; it does **not** yet
+require the new `Certification Policy / Merge Gate` status. That required
+check addition needs authorized repository administration; this PR does not
+have rights to make it. The main/release FULL is independently retained
+until modular release equivalence is demonstrated.
