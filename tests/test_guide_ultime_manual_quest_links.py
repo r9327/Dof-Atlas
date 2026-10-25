@@ -95,6 +95,8 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
             self.assertFalse(buttons[0].icon().isNull())
             self.assertGreaterEqual(buttons[0].width(), 30)
             self.assertEqual(buttons[0].focusPolicy(), Qt.StrongFocus)
+            self.assertEqual(buttons[0]._tooltip_timer.interval(), 350)
+            self.assertTrue(buttons[0]._tooltip_timer.isSingleShot())
             self.assertEqual(buttons[0].toolTip(), "Quête de test")
             self.assertEqual(buttons[0].accessibleName(), "Quête de test")
 

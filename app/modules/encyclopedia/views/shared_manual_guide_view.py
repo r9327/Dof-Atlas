@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
@@ -66,19 +67,42 @@ _PREPARATION_QUANTITY_RE = re.compile(
 )
 
 
-def _guide_symbol_icon(widget: QWidget, symbol: str, *, size: int = 18) -> QIcon:
+def _guide_symbol_icon(
+    widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
+) -> QIcon:
     """Draw small semantic icons without font glyph or platform-theme drift."""
 
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.6)
+    pen = QPen(QColor(color or PALETTE["TEXT_SOFT"]), 1.6)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
     painter.setPen(pen)
     painter.setBrush(Qt.NoBrush)
-    if symbol == "settings":
+    if symbol == "target":
+        painter.drawEllipse(QPointF(9, 9), 5.3, 5.3)
+        painter.drawEllipse(QPointF(9, 9), 2.2, 2.2)
+        painter.drawLine(QPointF(9, 1), QPointF(9, 5))
+        painter.drawLine(QPointF(9, 13), QPointF(9, 17))
+        painter.drawLine(QPointF(1, 9), QPointF(5, 9))
+        painter.drawLine(QPointF(13, 9), QPointF(17, 9))
+    elif symbol == "cube":
+        painter.drawPolyline([QPointF(9, 2), QPointF(16, 5.5), QPointF(9, 9), QPointF(2, 5.5), QPointF(9, 2)])
+        painter.drawPolyline([QPointF(2, 5.5), QPointF(2, 13), QPointF(9, 17), QPointF(16, 13), QPointF(16, 5.5)])
+        painter.drawLine(QPointF(9, 9), QPointF(9, 17))
+    elif symbol == "trophy":
+        painter.drawRoundedRect(QRectF(5, 2, 8, 9), 2, 2)
+        painter.drawArc(QRectF(1.5, 2.5, 6.5, 8), 125 * 16, 205 * 16)
+        painter.drawArc(QRectF(10, 2.5, 6.5, 8), 210 * 16, 205 * 16)
+        painter.drawLine(QPointF(9, 11), QPointF(9, 15))
+        painter.drawLine(QPointF(5, 16), QPointF(13, 16))
+    elif symbol == "guide":
+        painter.drawPolyline([QPointF(9, 4), QPointF(6, 2.5), QPointF(2, 3.5), QPointF(2, 14), QPointF(6, 13), QPointF(9, 15)])
+        painter.drawPolyline([QPointF(9, 4), QPointF(12, 2.5), QPointF(16, 3.5), QPointF(16, 14), QPointF(12, 13), QPointF(9, 15)])
+        painter.drawLine(QPointF(9, 4), QPointF(9, 15))
+    elif symbol == "settings":
         center = QPointF(size / 2, size / 2)
         painter.drawEllipse(center, 3.0, 3.0)
         painter.drawEllipse(center, 5.6, 5.6)
@@ -827,6 +851,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
+        # Qt's default layout minimum otherwise forces the guide wider than
+        # the available viewport, preventing the compact labels from activating.
+        root.setSizeConstraint(QLayout.SetNoConstraint)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
@@ -882,23 +909,72 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
+        """One left donut, three horizontally expanding metrics, three real panel controls."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
-        layout = QVBoxLayout(header)
-        layout.setContentsMargins(12, 9, 12, 10)
-        layout.setSpacing(8)
+        outer = QHBoxLayout(header)
+        outer.setContentsMargins(10, 6, 10, 7)
+        outer.setSpacing(10)
 
+        self.progress_donut = _GuideProgressDonut()
+        outer.addWidget(self.progress_donut, 0, Qt.AlignVCenter)
+
+        right = QVBoxLayout()
+        right.setSpacing(6)
+        outer.addLayout(right, 1)
+
+        # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
-        title_row.setSpacing(8)
-        self.guide_button = AtlasButton("Guides")
+        title_row.setSpacing(6)
+        self.guide_button = AtlasButton("←")
         self.guide_button.setObjectName("GuideManualGuideButton")
+        self.guide_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
+        self.guide_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
+        self.guide_button.setMaximumWidth(35)
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
         title_row.addWidget(self.guide_button)
+        guide_icon = QLabel()
+        guide_icon.setObjectName("GuideCompactTitleIcon")
+        guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
+        guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
+        guide_icon.setFixedSize(16, 16)
+        title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
+        self.guide_title_label.setMinimumWidth(0)
+        self.guide_title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.guide_title_label.setToolTip(self._guide_title())
         title_row.addWidget(self.guide_title_label, 1)
+
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setPrefix("Fiche ")
+        self.page_jump.setRange(1, max(1, len(self.service.cards)))
+        self.page_jump.setMaximumWidth(115)
+        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.page_jump.valueChanged.connect(
+            lambda value: self._show_index(value - 1)
+        )
+        title_row.addWidget(self.page_jump)
+        self.current_button = QPushButton("Actuelle")
+        self.current_button.setObjectName("GuideCompactCurrentButton")
+        self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
+        self.current_button.clicked.connect(self.go_active)
+        title_row.addWidget(self.current_button)
+        # Compatibility-only sheet position; sheet title appears once below.
+        self.nav_page_label = QLabel(self)
+        self.nav_page_label.setObjectName("GuideManualNavPage")
+        self.nav_page_label.setVisible(False)
+        self.overlay_button = QToolButton()
+        self.overlay_button.setObjectName("GuideCompactOverlayButton")
+        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
+        self.overlay_button.setIconSize(QSize(16, 16))
+        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
+        self.overlay_button.setAccessibleName("Overlay")
+        self.overlay_button.setEnabled(False)
+        title_row.addWidget(self.overlay_button)
         self.settings_button = QToolButton()
         self.settings_button.setObjectName("GuideCompactSettingsButton")
         self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
@@ -907,86 +983,63 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_button.setAccessibleName("Paramètres du Guide")
         self.settings_button.setCheckable(True)
         title_row.addWidget(self.settings_button)
-        layout.addLayout(title_row)
+        right.addLayout(title_row)
 
+        # Row 2: THREE horizontal, equal-width blocks (never vertical stack).
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
-        self.progress_donut = _GuideProgressDonut()
-        metrics.addWidget(self.progress_donut)
-        bars = QGridLayout()
-        bars.setHorizontalSpacing(8)
-        bars.setVerticalSpacing(3)
+        self._metric_caption_labels: dict[str, QLabel] = {}
+        def add_metric(
+            name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
+        ) -> None:
+            block = QVBoxLayout()
+            block.setSpacing(2)
+            caption = QHBoxLayout()
+            caption.setSpacing(4)
+            icon = QLabel()
+            icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
+            icon.setPixmap(
+                _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
+            )
+            icon.setFixedSize(16, 16)
+            caption.addWidget(icon)
+            caption_label = QLabel(name)
+            caption_label.setToolTip(name)
+            caption_label.setMinimumWidth(0)
+            self._metric_caption_labels[name] = caption_label
+            caption.addWidget(caption_label)
+            caption.addStretch(1)
+            value.setObjectName("GuideCompactMetricValue")
+            caption.addWidget(value)
+            block.addLayout(caption)
+            bar.setTextVisible(False)
+            bar.setFixedHeight(7)
+            block.addWidget(bar)
+            metrics.addLayout(block, 1)
 
         self.route_bar = GuideManualProgressBar()
         self.route_bar.setObjectName("GuideManualProgress")
-        self.route_bar.setTextVisible(False)
-        self.route_bar.setFixedHeight(7)
         self.route_bar.setCursor(Qt.PointingHandCursor)
         self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        self.route_progress_label = QLabel("Route")
-        self.route_progress_label.setObjectName("GuideCompactMetricValue")
-        bars.addWidget(QLabel("Route"), 0, 0)
-        bars.addWidget(self.route_bar, 0, 1)
-        bars.addWidget(self.route_progress_label, 0, 2)
+        self.route_progress_label = QLabel("—")
+        add_metric("Route", "target", "RED", self.route_bar, self.route_progress_label)
 
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_bar.setTextVisible(False)
-        self.preparation_bar.setFixedHeight(7)
         self.preparation_progress_label = QLabel("—")
-        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
-        bars.addWidget(QLabel("Préparation"), 1, 0)
-        bars.addWidget(self.preparation_bar, 1, 1)
-        bars.addWidget(self.preparation_progress_label, 1, 2)
+        add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
         self.success_bar = QProgressBar()
         self.success_bar.setObjectName("GuideCompactSuccessProgress")
-        self.success_bar.setTextVisible(False)
-        self.success_bar.setFixedHeight(7)
         self.success_progress_label = QLabel("—")
-        self.success_progress_label.setObjectName("GuideCompactMetricValue")
-        bars.addWidget(QLabel("Succès"), 2, 0)
-        bars.addWidget(self.success_bar, 2, 1)
-        bars.addWidget(self.success_progress_label, 2, 2)
-        bars.setColumnStretch(1, 1)
-        metrics.addLayout(bars, 1)
-        layout.addLayout(metrics)
+        add_metric("Succès", "trophy", "YELLOW", self.success_bar, self.success_progress_label)
+        right.addLayout(metrics)
 
-        actions = QHBoxLayout()
-        actions.setSpacing(7)
-        self.page_jump = QSpinBox()
-        self.page_jump.setObjectName("GuideCompactPageJump")
-        self.page_jump.setPrefix("Fiche ")
-        self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setToolTip("Numéro de la fiche à ouvrir")
-        actions.addWidget(self.page_jump)
-        self.page_jump_button = QPushButton("Aller à la fiche")
-        self.page_jump_button.setObjectName("GuideCompactJumpButton")
-        self.page_jump_button.setIcon(_guide_symbol_icon(self.page_jump_button, "location"))
-        self.page_jump_button.clicked.connect(
-            lambda _checked=False: self._show_index(self.page_jump.value() - 1)
-        )
-        actions.addWidget(self.page_jump_button)
-        self.current_button = QPushButton("Actuelle")
-        self.current_button.setObjectName("GuideCompactCurrentButton")
-        self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
-        self.current_button.clicked.connect(self.go_active)
-        actions.addWidget(self.current_button)
-        # Kept as the compatibility sink for the shared navigation base. The
-        # visible page identity lives once in GuideSheetMeta.
-        self.nav_page_label = QLabel(self)
-        self.nav_page_label.setObjectName("GuideManualNavPage")
-        self.nav_page_label.setVisible(False)
-        actions.addStretch(1)
-        self.overlay_button = QToolButton()
-        self.overlay_button.setObjectName("GuideCompactOverlayButton")
-        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
-        self.overlay_button.setIconSize(QSize(16, 16))
-        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
-        self.overlay_button.setAccessibleName("Overlay")
-        self.overlay_button.setEnabled(False)
-        actions.addWidget(self.overlay_button)
-        layout.addLayout(actions)
+        # Row 3: populated by the existing preparation, summary and participant
+        # builders. Their original panels/signals remain owned by those builders.
+        self.header_actions_row = QHBoxLayout()
+        self.header_actions_row.setSpacing(7)
+        right.addLayout(self.header_actions_row)
 
         self.settings_panel = QFrame()
         self.settings_panel.setObjectName("GuideCompactSettingsPanel")
@@ -1001,22 +1054,24 @@ class SharedGuideManualView(GuideUltimeManualView):
         settings_layout.addStretch(1)
         self.settings_panel.setVisible(False)
         self.settings_button.toggled.connect(self.settings_panel.setVisible)
-        layout.addWidget(self.settings_panel)
+        right.addWidget(self.settings_panel)
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
         self.preparation_button = QToolButton()
         self.preparation_button.setObjectName("GuidePreparationToggle")
-        self.preparation_button.setText("Préparation générale du guide")
+        self.preparation_button.setText("Préparation")
         self.preparation_button.setIcon(
             _guide_symbol_icon(self.preparation_button, "clipboard")
         )
         self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.preparation_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.preparation_button.setMinimumHeight(32)
         self.preparation_button.setArrowType(Qt.RightArrow)
         self.preparation_button.setCheckable(True)
         self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        root.addWidget(self.preparation_button)
+        self.header_actions_row.addWidget(self.preparation_button, 1)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1083,18 +1138,22 @@ class SharedGuideManualView(GuideUltimeManualView):
             _guide_symbol_icon(self.participants_button, "people")
         )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.participants_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.participants_button.setMinimumHeight(32)
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        top.addWidget(self.participants_button)
         self.summary_button = QToolButton()
         self.summary_button.setObjectName("GuideSummaryButton")
         self.summary_button.setText("Sommaire")
         self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
         self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.summary_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.summary_button.setMinimumHeight(32)
         self.summary_button.setArrowType(Qt.RightArrow)
         self.summary_button.setCheckable(True)
         self.summary_button.setCursor(Qt.PointingHandCursor)
-        top.addWidget(self.summary_button)
+        self.header_actions_row.addWidget(self.summary_button, 1)
+        self.header_actions_row.addWidget(self.participants_button, 1)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1131,6 +1190,35 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _guide_title(self) -> str:
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
+
+    def _sync_compact_action_labels(self) -> None:
+        """Preserve clickable actions and screen-reader names when space is scarce."""
+        if not hasattr(self, "participants_button"):
+            return
+        count = len(self.selected_participant_keys())
+        full_label = f"Mes personnages · {count}"
+        narrow = self.width() < 520
+        self.participants_button.setText(str(count) if narrow else full_label)
+        for name, label in getattr(self, "_metric_caption_labels", {}).items():
+            label.setText("Prép." if narrow and name == "Préparation" else name)
+        self.participants_button.setAccessibleName(full_label)
+        self.participants_button.setToolTip(
+            "Choisir les identités stables utilisées par la progression et les déplacements."
+        )
+        if hasattr(self, "current_button"):
+            current_label = str(self.current_button.property("guideFullText") or "Actuelle")
+            self.current_button.setText("" if narrow else current_label)
+            self.current_button.setAccessibleName(current_label)
+            self.current_button.setToolTip(
+                "Revenir à la fiche actuelle" if current_label == "Actuelle"
+                else "Toutes les fiches sont terminées."
+            ) if narrow else None
+            self.page_jump.setMaximumWidth(93 if narrow else 115)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
+        super().resizeEvent(event)
+        if hasattr(self, "participants_button"):
+            self._sync_compact_action_labels()
 
     def _participant_source_signature(self) -> tuple[object, ...]:
         from app.pages.quest_character_cache import quest_character_source_signature
@@ -1186,10 +1274,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             empty.setObjectName("GuideParticipantsEmpty")
             self.participants_layout.addWidget(empty)
         self.participants_layout.addStretch(1)
-        self.participants_button.setText(f"Mes personnages · {len(selected)}")
-        self.participants_button.setToolTip(
-            "Choisir les identités stables utilisées par la progression et les déplacements."
-        )
+        self._sync_compact_action_labels()
 
     @staticmethod
     def _participant_tooltip(character, class_label: str, progress: int | None) -> str:
@@ -1680,7 +1765,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
-        self.preparation_progress_label.setText(f"{ready} / {total}" if total else "—")
+        self.preparation_progress_label.setText(
+            f"{max(0, min(100, round(ready * 100 / total)))} %" if total else "—"
+        )
 
     def _participant_toggled(self, character_key: str, checked: bool) -> None:
         selected = list(self.selected_participant_keys())
@@ -1689,9 +1776,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         elif not checked:
             selected = [key for key in selected if key != character_key]
         self.participant_service.save_selected_keys(selected)
-        self.participants_button.setText(
-            f"Mes personnages · {len(self.selected_participant_keys())}"
-        )
+        self._sync_compact_action_labels()
         self._preparation_loaded = False
         self._preparation_needs = ()
         if self.preparation_button.isChecked():
@@ -1802,7 +1887,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             percent = min(100, round(completed * 100 / total)) if total > 0 else None
             self.route_bar.setRange(0, max(1, total))
             self.route_bar.setValue(completed)
-            self.route_progress_label.setText(f"{completed} / {total}")
+            self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
         else:
             self.route_bar.setRange(0, 1)
@@ -1830,7 +1915,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.success_bar.setRange(0, max(1, success_total))
         self.success_bar.setValue(success_done)
         self.success_progress_label.setText(
-            f"{success_done} / {success_total}" if success_total else "—"
+            f"{max(0, min(100, round(success_done * 100 / success_total)))} %"
+            if success_total else "—"
         )
         self._update_preparation_progress()
 
@@ -1850,7 +1936,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         route_finished = bool(keys) and bool(progress_rows) and all(
             total > 0 and completed >= total for completed, total in progress_rows
         )
-        self.current_button.setText("Terminé" if route_finished else "Actuelle")
+        self.current_button.setProperty(
+            "guideFullText", "Terminé" if route_finished else "Actuelle"
+        )
+        self._sync_compact_action_labels()
         self.current_button.setEnabled(actual_index is not None)
         self.current_button.setToolTip(
             "Toutes les fiches sont terminées pour les personnages sélectionnés."

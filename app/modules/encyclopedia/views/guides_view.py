@@ -2336,7 +2336,7 @@ class GuidesView(QWidget):
         if not show_steps:
             self.splitter.setStretchFactor(0, 0)
             self.splitter.setStretchFactor(1, 70)
-            self.splitter.setStretchFactor(2, 30)
+            self.splitter.setStretchFactor(2, 0)
             self.left_panel.setMinimumWidth(0)
             self.left_panel.setMaximumWidth(0)
             self.center_panel.setMinimumWidth(340)
@@ -2351,14 +2351,14 @@ class GuidesView(QWidget):
             self.left_panel.setMaximumWidth(GUIDE_STEPS_COLLAPSED_WIDTH)
             self.splitter.setStretchFactor(0, 0)
             self.splitter.setStretchFactor(1, 62)
-            self.splitter.setStretchFactor(2, 30)
+            self.splitter.setStretchFactor(2, 0)
             self._set_classic_splitter_sizes(GUIDE_STEPS_COLLAPSED_WIDTH, 260)
             return
         self.left_panel.setMinimumWidth(GUIDE_STEPS_OPEN_WIDTH)
         self.left_panel.setMaximumWidth(GUIDE_STEPS_OPEN_WIDTH)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 50)
-        self.splitter.setStretchFactor(2, 30)
+        self.splitter.setStretchFactor(2, 0)
         self._set_classic_splitter_sizes(GUIDE_STEPS_OPEN_WIDTH, 260)
 
     @staticmethod

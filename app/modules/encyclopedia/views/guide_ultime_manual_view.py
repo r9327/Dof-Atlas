@@ -66,6 +66,37 @@ def _quest_shortcut_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+class _QuestShortcutButton(QToolButton):
+    """Only inline quest links use the accelerated tooltip delay."""
+
+    TOOLTIP_DELAY_MS = 350
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._tooltip_timer = QTimer(self)
+        self._tooltip_timer.setSingleShot(True)
+        self._tooltip_timer.setInterval(self.TOOLTIP_DELAY_MS)
+        self._tooltip_timer.timeout.connect(self._show_quest_tooltip)
+
+    def enterEvent(self, event) -> None:
+        super().enterEvent(event)
+        self._tooltip_timer.start()
+
+    def leaveEvent(self, event) -> None:
+        self._tooltip_timer.stop()
+        QToolTip.hideText()
+        super().leaveEvent(event)
+
+    def _show_quest_tooltip(self) -> None:
+        if self.underMouse() and self.toolTip():
+            QToolTip.showText(
+                self.mapToGlobal(self.rect().bottomLeft()),
+                self.toolTip(),
+                self,
+                self.rect(),
+            )
+
+
 class GuideManualProgressBar(QProgressBar):
     """Completion bar that also acts as a route scrubber without mutating progress."""
 
@@ -249,7 +280,7 @@ class GuideUltimeManualCard(QFrame):
             if not name:
                 continue
             self._shown_quest_ids.add(int(quest_id))
-            button = QToolButton()
+            button = _QuestShortcutButton()
             button.setObjectName("GuideManualQuestInlineButton")
             button.setIcon(_quest_shortcut_icon())
             button.setIconSize(QSize(18, 18))
