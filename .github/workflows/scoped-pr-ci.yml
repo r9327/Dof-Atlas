@@ -95,6 +95,19 @@ jobs:
             --expected-sha "$CANDIDATE_SHA" \
             --event pull_request \
             --output artifacts/doctor_ci/plan.json --json
+          # A Draft must expose unowned/suspicious paths before costly Ready
+          # Windows execution, never just succeed on the outer Doctor plan.
+          python - <<'PYDOMAIN'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path("artifacts/doctor_ci/plan.json").read_text(encoding="utf-8"))
+          domain = plan.get("domain_plan") or {}
+          if domain.get("status") != "READY_TO_EXECUTE":
+              raise SystemExit("PR domain closure BLOCKED: "
+                               + str(domain.get("unknown_paths"))
+                               + "; " + str(domain.get("reasons")))
+          print("Exact-SHA Draft domain closure: READY_TO_EXECUTE")
+          PYDOMAIN
           python -m tools.ci_pr_audit \
             --plan artifacts/doctor_ci/plan.json \
             --report artifacts/doctor_ci/pr_mini_audit.json \
