@@ -105,6 +105,27 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ui", "data"})
     if path == "tools/assets/import_dofus_unity_ui.ps1":
         return frozenset({"ci", "ui"})
+    # PR #254's local proof tools cross these real consumers. Enumerate
+    # exact paths rather than permitting an unreviewed tools/assets wildcard.
+    if path in {
+        "tools/assets/clean_unity_wallpaper.py",
+        "tools/assets/inspect_unity_assets.py",
+    }:
+        return frozenset({"ci", "ui", "data"})
+    if path == "tools/assets/unity_local_cycle_probe.py":
+        return frozenset({"ci", "guides", "ui"})
+    if path == "tools/assets/unity_pre_ci.py":
+        return frozenset({"ci", "guides", "ui", "startup", "data"})
+    if path == "scripts/windows/package_release.py":
+        return frozenset({"ci", "ui", "startup", "data"})
+    if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
+        return frozenset({"ci", "startup"})
+    if path == "tests/test_unity_assets_inventory.py":
+        return frozenset({"ui", "data"})
+    if path == "tests/test_unity_cycle_metrics.py":
+        return frozenset({"guides", "ui"})
+    if path == "tests/test_unity_wallpaper_cleaner.py":
+        return frozenset({"ui", "data"})
     if path == "tests/test_unity_skin.py":
         return frozenset({"ui"})
     if path == "tests/test_distribution_export.py":

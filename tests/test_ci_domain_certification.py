@@ -111,6 +111,36 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertEqual(owners_for(path), frozenset(), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED", path)
 
+    def test_pr254_local_proofs_and_packaging_close_domains_without_wildcards(self):
+        # Exact 10 paths independently identified by the Draft CI failure.
+        expected = {
+            "scripts/windows/package_release.py": {"ci", "ui", "startup", "data"},
+            "tests/test_distribution_package.py": {"ci", "startup"},
+            "tests/test_unity_assets_inventory.py": {"ui", "data"},
+            "tests/test_unity_cycle_metrics.py": {"guides", "ui"},
+            "tests/test_unity_pre_ci_runner.py": {"ci", "startup"},
+            "tests/test_unity_wallpaper_cleaner.py": {"ui", "data"},
+            "tools/assets/clean_unity_wallpaper.py": {"ci", "ui", "data"},
+            "tools/assets/inspect_unity_assets.py": {"ci", "ui", "data"},
+            "tools/assets/unity_local_cycle_probe.py": {"ci", "guides", "ui"},
+            "tools/assets/unity_pre_ci.py": {"ci", "guides", "ui", "startup", "data"},
+        }
+        for path, owners in expected.items():
+            self.assertEqual(owners_for(path), frozenset(owners), path)
+        route = self.route(sorted(expected))
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        self.assertEqual(
+            route["domains"], ["ci", "guides", "ui", "startup", "data"]
+        )
+        for path in (
+            "tools/assets/unknown_installer.py",
+            "scripts/windows/unreviewed_export.py",
+            "tests/test_unity_unknown_example.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
     def test_lanyel_shared_manual_ui_test_has_both_owners(self):
         path = "tests/test_lanyel_shared_manual_ui.py"
         self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
