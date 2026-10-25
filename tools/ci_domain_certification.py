@@ -82,6 +82,31 @@ def owners_for(path: str) -> frozenset[str]:
         # All four concrete guide readers have both Guide logic and Qt clients.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/modules/encyclopedia/views/encyclopedia_page.py",
+        "app/modules/encyclopedia/views/guide_catalog_view.py",
+        "app/modules/encyclopedia/views/guide_featured_home.py",
+        "app/modules/encyclopedia/views/guide_library_sources.py",
+        "app/modules/encyclopedia/widgets/guide_card.py",
+    }:
+        # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
+        return frozenset({"guides", "ui"})
+    if path.startswith("app/assets/themes/dofus_unity/"):
+        # Owned *only* as UI/data inputs, not approved for redistribution.
+        if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:
+            return frozenset({"ui", "data"})
+        return frozenset()
+    if path.startswith("docs/design/dofus-unity/"):
+        # Narrow source-asset inventory; unknown executable formats stay blocked.
+        if Path(path).suffix.lower() in {".zip", ".md", ".json"}:
+            return frozenset({"ui", "data"})
+        return frozenset()
+    if path == "docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv":
+        return frozenset({"ui", "data"})
+    if path == "tools/assets/import_dofus_unity_ui.ps1":
+        return frozenset({"ci", "ui"})
+    if path == "tests/test_unity_skin.py":
+        return frozenset({"ui"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
     if path.startswith("app/pages/quest_"):

@@ -7,10 +7,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.windows.export_app_repository import export
+from scripts.windows.export_app_repository import export, selected_runtime_path
 
 
 class ExportTests(unittest.TestCase):
+    def test_unlicensed_unity_references_never_enter_app_mirror(self):
+        for path in (
+            "app/assets/themes/dofus_unity/background_selection_original.png",
+            "app/assets/themes/dofus_unity/fonts/Lexend-Regular.ttf",
+            "app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+            "app/assets/themes/dofus_unity/references/logoDofus.png",
+            "docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+        ):
+            self.assertFalse(selected_runtime_path(path), path)
+        self.assertTrue(selected_runtime_path("app/ui/unity_skin.py"))
+
     def test_export_runtime_and_keep_essential_icons(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

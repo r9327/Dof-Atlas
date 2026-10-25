@@ -69,6 +69,43 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "BLOCKED",
         )
 
+    def test_guide_catalog_and_local_skin_assets_have_real_domain_owners(self):
+        guide_paths = [
+            "app/modules/encyclopedia/views/encyclopedia_page.py",
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/modules/encyclopedia/views/guide_featured_home.py",
+            "app/modules/encyclopedia/views/guide_library_sources.py",
+            "app/modules/encyclopedia/widgets/guide_card.py",
+        ]
+        asset_paths = [
+            "app/assets/themes/dofus_unity/background_selection_original.png",
+            "app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+            "app/assets/themes/dofus_unity/fonts/Lexend-Regular.ttf",
+            "docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+            "docs/design/dofus-unity/sources_manifest.json",
+            "docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv",
+        ]
+        for path in guide_paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}), path)
+        for path in asset_paths:
+            self.assertEqual(owners_for(path), frozenset({"ui", "data"}), path)
+        self.assertEqual(owners_for("tools/assets/import_dofus_unity_ui.ps1"),
+                         frozenset({"ci", "ui"}))
+        self.assertEqual(owners_for("tests/test_unity_skin.py"), frozenset({"ui"}))
+        route = self.route(guide_paths + asset_paths + [
+            "tools/assets/import_dofus_unity_ui.ps1", "tests/test_unity_skin.py",
+        ])
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        for path in (
+            "app/assets/themes/dofus_unity/malware.exe",
+            "docs/design/dofus-unity/sources/run.sh",
+            "app/modules/encyclopedia/views/guide_unknown_new.py",
+            "tests/test_unknown_misc_case.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
     def test_lanyel_shared_manual_ui_test_has_both_owners(self):
         path = "tests/test_lanyel_shared_manual_ui.py"
         self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
