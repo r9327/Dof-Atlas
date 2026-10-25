@@ -83,6 +83,16 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         self.assertEqual(right.row_for_guide("dofus_sylvestre"), -1)
         self.assertEqual(right.rowCount(), 2)
 
+    def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
+        # High DPI / vertically stacked columns may leave less than 215px.
+        self.assertEqual(GuideCatalogView._grid_cell_width(0), 0)
+        for viewport_width in (1, 120, 180, 214, 229, 230, 319, 320, 459, 460, 610, 730, 1024):
+            with self.subTest(viewport_width=viewport_width):
+                cell_width = GuideCatalogView._grid_cell_width(viewport_width)
+                self.assertGreaterEqual(cell_width, 1)
+                self.assertLessEqual(cell_width, viewport_width)
+                self.assertLessEqual(cell_width, 320)
+
     def test_lazy_home_search_navigation_and_responsive_grid(self) -> None:
         provider = _CatalogProvider()
         with tempfile.TemporaryDirectory() as directory:

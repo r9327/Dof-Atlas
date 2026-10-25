@@ -453,11 +453,22 @@ class GuideCatalogView(QWidget):
         width = self.home_dofus_list.viewport().width()
         if width <= 0:
             return
-        columns = max(1, width // 230)
-        cell_width = max(215, min(320, width // columns))
+        cell_width = self._grid_cell_width(width)
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
+
+    @staticmethod
+    def _grid_cell_width(viewport_width: int) -> int:
+        """Never create a grid cell wider than its actual viewport.
+
+        A 215px minimum clipped the last card when the panel was narrower
+        (notably in the stacked layout or at high Windows DPI).
+        """
+        if viewport_width <= 0:
+            return 0
+        columns = max(1, viewport_width // 230)
+        return min(320, max(1, viewport_width // columns))
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

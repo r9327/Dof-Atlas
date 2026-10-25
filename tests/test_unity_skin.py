@@ -44,7 +44,7 @@ class UnitySkinTests(unittest.TestCase):
             sprites.mkdir()
             source = QImage(48, 24, QImage.Format_ARGB32)
             source.fill(0xff5262a1)
-            self.assertTrue(source.save(str(asset_dir / "background_selection_original.png")))
+            self.assertTrue(source.save(str(asset_dir / "background_selection_clean.png")))
             for state in ("normal", "over", "pressed", "disabled"):
                 self.assertTrue(source.save(str(sprites / f"btn_green_{state}.png")))
             self.assertTrue(source.save(str(sprites / "Assets_UI_Themes_Figma_menuIcons_1x_guide-png.png")))
@@ -81,12 +81,12 @@ class UnitySkinTests(unittest.TestCase):
                 with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
                     self.assertIsNone(wallpaper_path())
                 with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
-                    self.assertEqual(wallpaper_path(), original)
+                    self.assertIsNone(wallpaper_path())
                     cleaned.write_bytes(b"approved-derived-image")
                     self.assertEqual(wallpaper_path(), cleaned)
                     self.assertEqual(original.read_bytes(), b"unchanged-original")
                     cleaned.unlink()
-                    self.assertEqual(wallpaper_path(), original)
+                    self.assertIsNone(wallpaper_path())
 
     def test_global_widget_families_and_focus_stay_themable(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):

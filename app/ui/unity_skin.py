@@ -44,18 +44,16 @@ def unity_enabled() -> bool:
 
 
 def wallpaper_path() -> Path | None:
-    """Prefer a separately prepared, non-destructive image over the reference.
+    """Use only the local *cleaned* wallpaper, never the raw game screenshot.
 
-    Neither asset is part of the public App export without redistribution rights.
-    The original is never edited at runtime or overwritten by Atlas.
+    The original contains the three unwanted native HUD icons. Until a local
+    derived PNG is verified, painting the neutral Unity palette is preferable
+    to silently rendering the wrong UI. Neither image is publicly packaged.
     """
     if not unity_enabled():
         return None
-    for name in ("background_selection_clean.png", "background_selection_original.png"):
-        candidate = _ASSETS / name
-        if candidate.is_file():
-            return candidate
-    return None
+    cleaned = _ASSETS / "background_selection_clean.png"
+    return cleaned if cleaned.is_file() else None
 
 
 def _sprite_url(filename: str) -> str | None:
