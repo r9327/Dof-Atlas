@@ -28,6 +28,7 @@ _SHA = re.compile(r"^[0-9a-f]{40}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _MAX_PROOF_AGE = timedelta(days=7)
 _CERT_WORKFLOW = ".github/workflows/phase-certification.yml"
+_CERT_JOB = "Phase Certification / Domain or Release Validation"
 _REQUIRED_FULL_STEPS = (
     "Verify exact certification checkout",
     "Materialize certification LFS fixtures",
@@ -159,7 +160,7 @@ def validate_full_run(
         raise ValueError("Stale or inconsistent FULL proof")
     full_jobs = [
         job for job in jobs
-        if job.get("name") == "Phase Certification / Full Validation"
+        if job.get("name") == _CERT_JOB
     ]
     if len(full_jobs) != 1:
         raise ValueError("Missing or ambiguous real FULL job")
@@ -214,6 +215,60 @@ def _verify_smart_pr_identity(
         raise ValueError("SMART proof belongs to a different PR, base or branch")
 
 
+
+_DOMAIN_HOST_STEPS = (
+    "Verify exact certification checkout",
+    "Run independently required domain certification",
+    "Enforce phase certification verdict",
+)
+
+
+def validate_domain_run(
+    run: dict[str, Any], jobs: list[dict[str, Any]], *,
+    candidate_sha: str, repo: str, now: datetime,
+    base_sha: str, pr_number: int, head_ref: str, base_ref: str,
+) -> None:
+    """Only a real GitHub-hosted PR run attests selected domain execution.
+
+    No PR-produced JSON or self-reported module list is treated as a host PASS.
+    The independent Public PR Safe Validation must also have succeeded on this
+    same run and verifies all selected specialist job results.
+    """
+    if run.get("head_sha") != candidate_sha or run.get("event") != "pull_request":
+        raise ValueError("Domain run does not match the candidate PR SHA")
+    _verify_smart_pr_identity(run, candidate_sha=candidate_sha, base_sha=base_sha,
+                              pr_number=pr_number, head_ref=head_ref, base_ref=base_ref)
+    if (run.get("repository") or {}).get("full_name") != repo:
+        raise ValueError("Domain run belongs to a different repository")
+    path = str(run.get("path") or "")
+    if not (path == _CERT_WORKFLOW or path.startswith(_CERT_WORKFLOW + "@")
+            or f"/{_CERT_WORKFLOW}@" in path):
+        raise ValueError("Wrong host domain certification workflow")
+    created = _parsed_date(run.get("created_at", ""))
+    completed = _parsed_date(run.get("updated_at", ""))
+    if (created > now + timedelta(minutes=5) or completed > now + timedelta(minutes=5)
+            or completed < created or now - completed > _MAX_PROOF_AGE):
+        raise ValueError("Stale or inconsistent domain run")
+    _require_authenticated_run_state(run, jobs)
+    matched = [j for j in jobs if j.get("name") == _CERT_JOB]
+    if len(matched) != 1:
+        raise ValueError("Domain certification host job missing or ambiguous")
+    job = matched[0]
+    if (job.get("run_id") != run.get("id") or job.get("status") != "completed"
+            or job.get("conclusion") != "success"):
+        raise ValueError("Domain certification host job did not PASS")
+    steps = job.get("steps")
+    if not isinstance(steps, list):
+        raise ValueError("Missing domain host step inventory")
+    for name in _DOMAIN_HOST_STEPS:
+        rows = [step for step in steps if step.get("name") == name]
+        if len(rows) != 1 or rows[0].get("status") != "completed" or rows[0].get("conclusion") != "success":
+            raise ValueError("Domain host step unverified: " + name)
+    full = [step for step in steps if step.get("name") == "Run full Atlas phase certification gate"]
+    if len(full) != 1 or full[0].get("conclusion") != "skipped":
+        raise ValueError("Domain proof must not conceal a FULL_SUITE")
+
+
 def validate_scoped_high_run(
     run: dict[str, Any], jobs: list[dict[str, Any]], *,
     candidate_sha: str, repo: str, now: datetime,
@@ -242,7 +297,7 @@ def validate_scoped_high_run(
             or finished < created or now - finished > _MAX_PROOF_AGE):
         raise ValueError("Stale or invalid SMART host evidence")
     matched = [job for job in jobs
-               if job.get("name") == "Phase Certification / Full Validation"]
+               if job.get("name") == _CERT_JOB]
     if len(matched) != 1:
         raise ValueError("Missing or ambiguous host Phase job for SMART")
     job = matched[0]
@@ -298,6 +353,26 @@ def evaluate_merge(
     if safe_validation != "success":
         result["reasons"].append("Public PR / Safe Validation was not successful")
         return result
+    # PR-only domain certification supersedes the generic FULL requirement
+    # ONLY with real GitHub host evidence for the exact PR and its independently
+    # successful Safe Validation. A missing/incomplete proof remains BLOCKED.
+    if route["route"] in {"SMART", "FULL_REQUIRED"}:
+        for run in runs or []:
+            try:
+                validate_domain_run(
+                    run, (jobs_by_run or {}).get(run.get("id"), []),
+                    candidate_sha=candidate_sha, repo=repo, now=now,
+                    base_sha=base_sha, pr_number=pr_number,
+                    head_ref=head_ref, base_ref=base_ref,
+                )
+                result["status"] = "PASS_DOMAINS_AUTHENTICATED_NOT_PHASE_RELEASE"
+                result["domain_evidence_run"] = run["id"]
+                result["reasons"].append(
+                    "Exact PR SHA domain owner tests and independent selected specialists passed; FULL/phase release not claimed")
+                return result
+            except (ValueError, TypeError, AttributeError):
+                pass
+
     if route["route"] == "SCOPED":
         result["status"] = "PASS_SCOPED_NOT_FULL"
         result["reasons"].append("Exact-HEAD Public PR / Safe Validation passed; FULL not required by route")
