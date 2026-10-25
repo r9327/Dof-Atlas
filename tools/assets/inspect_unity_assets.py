@@ -36,6 +36,51 @@ def png_info(path: Path) -> tuple[int, int, int]:
     return width, height, colour
 
 
+def png_chunk_integrity(path: Path) -> bool:
+    """Stream-check every PNG chunk CRC, IDAT presence and terminal IEND.
+
+    Return whether the image stores an alpha channel or tRNS transparency.
+    A CRC-valid PNG is still not proof of correct pixel rendering in Qt.
+    """
+    _, _, colour = png_info(path)
+    transparency = colour in (4, 6)
+    saw_image_data = False
+    saw_end = False
+    with path.open("rb") as stream:
+        if stream.read(8) != PNG_MAGIC:
+            raise ValueError("bad PNG signature")
+        for _ in range(100000):
+            header = stream.read(8)
+            if len(header) != 8:
+                raise ValueError("truncated PNG before IEND")
+            length, kind = struct.unpack(">I4s", header)
+            if length > 64 * 1024 * 1024:
+                raise ValueError("oversized PNG chunk")
+            crc = zlib.crc32(kind)
+            remaining = length
+            while remaining:
+                block = stream.read(min(remaining, 1024 * 1024))
+                if not block:
+                    raise ValueError("truncated PNG chunk")
+                crc = zlib.crc32(block, crc)
+                remaining -= len(block)
+            suffix = stream.read(4)
+            if len(suffix) != 4 or crc != struct.unpack(">I", suffix)[0]:
+                raise ValueError("PNG chunk CRC mismatch")
+            if kind == b"tRNS":
+                transparency = True
+            if kind == b"IDAT":
+                saw_image_data = True
+            if kind == b"IEND":
+                if length or stream.read(1):
+                    raise ValueError("invalid PNG terminal IEND")
+                saw_end = True
+                break
+    if not saw_end or not saw_image_data:
+        raise ValueError("missing IDAT or IEND")
+    return transparency
+
+
 def inventory(root: Path) -> dict:
     root = root.resolve()
     issues: list[str] = []
@@ -58,6 +103,7 @@ def inventory(root: Path) -> dict:
             continue
         try:
             width, height, colour = png_info(path)
+            transparency = png_chunk_integrity(path)
         except (OSError, ValueError) as exc:
             issues.append(f"invalid PNG {name}: {exc}")
             continue
@@ -66,7 +112,8 @@ def inventory(root: Path) -> dict:
         hashes[digest].append(name)
         images.append({
             "file": name, "width": width, "height": height,
-            "colour_type": colour, "sha256": digest,
+            "colour_type": colour, "has_transparency": transparency,
+            "chunk_crc_verified": True, "sha256": digest,
         })
         if name == "background_selection_original.png" and (
             (width, height) != (1919, 1079) or digest != BACKGROUND_SHA256
@@ -99,7 +146,7 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(f"Sprites: {result['sprites']}/46 | TTF references: {result['reference_fonts']}/10")
-        print(f"PNG headers checked: {len(result['images'])} | duplicate sets: {len(result['duplicate_png_content'])}")
+        print(f"PNG chunks CRC checked: {len(result['images'])} | duplicate sets: {len(result['duplicate_png_content'])}")
         for issue in result["issues"]:
             print(f"ERROR: {issue}")
         print("Rights: NOT VERIFIED; reference assets must not be redistributed")

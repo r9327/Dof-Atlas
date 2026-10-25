@@ -7,7 +7,7 @@ import unittest
 import zlib
 from pathlib import Path
 
-from tools.assets.inspect_unity_assets import PNG_MAGIC, inventory, png_info
+from tools.assets.inspect_unity_assets import PNG_MAGIC, inventory, png_info, png_chunk_integrity
 
 
 def fake_header(width: int = 48, height: int = 24) -> bytes:
@@ -25,6 +25,31 @@ class UnityAssetInventoryTests(unittest.TestCase):
             path.write_bytes(fake_header(48, 24)[:-1] + b"0")
             with self.assertRaisesRegex(ValueError, "CRC"):
                 png_info(path)
+
+
+    def test_complete_png_chunks_and_alpha(self) -> None:
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            payload = kind + data
+            return (struct.pack(">I", len(data)) + payload
+                    + struct.pack(">I", zlib.crc32(payload)))
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "complete.png"
+            image = (PNG_MAGIC + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+                     + chunk(b"IDAT", zlib.compress(bytes((0, 255, 0, 0, 255))))
+                     + chunk(b"IEND", b""))
+            path.write_bytes(image)
+            self.assertTrue(png_chunk_integrity(path))
+            # A damaged compressed-data chunk must not be marked valid.
+            damaged = bytearray(image)
+            damaged[47] ^= 1
+            path.write_bytes(damaged)
+            with self.assertRaisesRegex(ValueError, "CRC"):
+                png_chunk_integrity(path)
+            # The header alone is insufficient: IDAT and IEND must exist.
+            path.write_bytes(fake_header())
+            with self.assertRaisesRegex(ValueError, "truncated"):
+                png_chunk_integrity(path)
 
     def test_inventory_fails_closed_without_required_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
