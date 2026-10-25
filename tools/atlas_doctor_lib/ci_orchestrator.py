@@ -141,11 +141,18 @@ def plan_ci(root: Path, *, base_ref: str, candidate_sha: str, event: str,
     ui = classify_ui(root, paths, candidate_sha=candidate_sha, base_sha=base, deleted=deleted)
     result = select_workflows(paths, event=event, phase_route=route, ui_plan=ui, deleted=deleted,
         tooling_scope=tooling_eligible(paths, deleted=deleted, root=root, base_sha=base))
+    from tools.ci_domain_certification import plan_domains
+    domain_plan = plan_domains(base_sha=base, candidate_sha=candidate_sha,
+                               paths=paths, deleted=deleted)
+    execution_mode = ('PR_DOMAIN_MODULES' if event == 'pull_request' and result['phase']
+                      else 'RELEASE_FULL' if event in {'push', 'workflow_dispatch'}
+                      else 'FOCUSED_CONTRACTS')
     return {
         'schema_version': 1, 'status': 'PLANNED', 'candidate_sha': candidate_sha,
         'base_sha': base, 'event': event, 'risk': classify_risk(paths)['risk'],
         'changed_paths': paths, 'deleted_paths': deleted,
-        'phase_route': route, 'ui_plan': ui, **result,
+        'phase_route': route, 'ui_plan': ui, 'execution_mode': execution_mode,
+        'domain_plan': domain_plan, **result,
         'tests_executed': False, 'phase_certified': False, 'merge_authorized': False,
     }
 
