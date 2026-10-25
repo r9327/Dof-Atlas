@@ -233,3 +233,16 @@ require the new `Certification Policy / Merge Gate` status. That required
 check addition needs authorized repository administration; this PR does not
 have rights to make it. The main/release FULL is independently retained
 until modular release equivalence is demonstrated.
+
+## Dépôt à mainteneur unique — configuration GitHub à appliquer
+
+Dans Settings → Rules → Rulesets → « Protect Dof'Atlas main » :
+
+- Désactiver les approbations requises (nombre **0**) et la revue CODEOWNER obligatoire : l'auteur unique ne peut pas s'auto-approuver.
+- Conserver la résolution des conversations et les vérifications strictes sur une branche à jour.
+- Conserver `Public PR / Safe Validation` et rendre aussi obligatoire `Certification Policy / Merge Gate`.
+- Supprimer le bypass permanent du propriétaire pour empêcher toute fusion sans preuve CI, sauf dérogation d'urgence explicitement décidée.
+
+Le fichier `.github/CODEOWNERS` reste utile pour documenter l'ownership, même sans revue obligatoire. **Ce document ne modifie pas les règles serveur** : un administrateur doit appliquer et vérifier cette configuration dans GitHub.
+
+Le workflow `Phase Certification` relance les validations sur chaque nouveau commit **Ready** (SHA exact), mais évite les validations lourdes sur les commits **Draft**, qui passent seulement par `Scoped PR Feedback`. Le canary HIGH → SMART sera testé dans une PR applicative distincte **après fusion du mécanisme sur `main`** : modifier uniquement `app/modules/encyclopedia/services/guide_progress_service.py` et les tests expressément autorisés, vérifier le routage SMART et les preuves Windows/GitHub sans prétendre à une certification FULL.

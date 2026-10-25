@@ -551,9 +551,13 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         event_types = pr_trigger.split("\n    types:\n", 1)[1]
         self.assertEqual(
             [line.strip() for line in event_types.splitlines() if line.strip()],
-            ["- ready_for_review"],
-            "Draft development must not rerun certification on every push",
+            ["- ready_for_review", "- synchronize"],
+            "Ready PR commits must recertify; Draft pushes remain cheap",
         )
+        doctor_plan = source.split("  doctor-plan:", 1)[1].split("  focused-validation:", 1)[0]
+        self.assertIn("if: github.event_name != 'pull_request' || github.event.pull_request.draft == false", doctor_plan)
+        self.assertIn("if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false", source)
+        self.assertIn("if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)", source)
         self.assertIn("github.event_name == 'push'", source)
         self.assertIn("github.event.before", source)
         self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
