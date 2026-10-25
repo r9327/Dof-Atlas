@@ -110,7 +110,11 @@ class ModularDomainRoutingTests(unittest.TestCase):
         from tools import ci_domain_certification as domain
         base_policy = json.dumps({
             "schema_version": 1,
-            "groups": {"CI_INTEGRITY": {"modules": ["tests.test_doctor_ci_orchestrator"]}},
+            "groups": {
+                "CI_INTEGRITY": {"runner": "unittest_modules", "critical": True, "modules": ["tests.test_doctor_ci_orchestrator"]},
+                "ASYNC_LIFECYCLE": {"runner": "unittest_modules", "critical": True, "modules": ["tests.test_domain_mock_case"]},
+                "RESOURCE_BUDGETS": {"runner": "unittest_modules", "critical": True, "modules": ["tests.test_domain_mock_case"]},
+            },
         })
         def git(*args):
             if args == ("rev-parse", "HEAD"):
@@ -122,7 +126,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             raise AssertionError("Unanticipated Git trust input: " + str(args))
         plan = self.route(["app/pages/craft_page.py"])
         for behavior in ("ok", "skipped", "failure"):
-            module = types.ModuleType("atlas_domain_mock_case")
+            module = types.ModuleType("tests.test_domain_mock_case")
             def do_test(self, kind=behavior):
                 if kind == "skipped":
                     self.skipTest("Mandatory testcase was skipped")
@@ -149,7 +153,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
         from pathlib import Path
         from tools import ci_domain_certification as domain
         policy = json.dumps({"schema_version": 1, "groups": {
-            "CI_INTEGRITY": {"modules": ["tests.test_doctor_ci_orchestrator"]}}})
+            "CI_INTEGRITY": {"runner": "unittest_modules", "critical": True, "modules": ["tests.test_doctor_ci_orchestrator"]},
+            "ARCHITECTURE": {"runner": "unittest_modules", "critical": True, "modules": ["tests.test_project_guardrails"]},
+        }})
         def git(*args):
             if args == ("rev-parse", "HEAD"):
                 return H
