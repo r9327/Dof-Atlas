@@ -94,6 +94,21 @@ def unity_skin_stylesheet() -> str:
         "QWidget#worldScanPage, QWidget#QuestsPage, "
         "QWidget#PlaceholderPage, QWidget#SettingsPage, "
         "QWidget[atlasUnityPage=\"true\"] { background: transparent; }",
+        # The legacy Guides QSS names these roots explicitly and paints them
+        # opaque. Higher-level atlasUnityPage cannot override ID selectors.
+        "QWidget#GuidesView, QWidget#GuidesHomePage, "
+        "QWidget#GuidesHomeContent, QWidget#GuidesDetailPage, "
+        "QWidget#GuideLeftPanelContent, QWidget#GuideCenterPanelContent, "
+        "QWidget#GuideRightPanelContent { background: transparent; }",
+        # Real guide panels remain legible, but they no longer blot out the sky.
+        "QFrame#GuideHeader, QFrame#GuideBreadcrumb, "
+        "QFrame#GuidesHomeCategory, QFrame#GuidesHomeProgressionColumn, "
+        "QFrame#GuideLeftPanel, QFrame#GuideCenterPanel, "
+        "QFrame#GuideRightPanel, QFrame#GuidesHomeSubCategory { "
+        "background: rgba(27, 39, 70, 0.88); "
+        "border: 1px solid #475F89; }",
+        "QListView#GuidesHomeDofusGrid { "
+        "background: rgba(21, 32, 59, 0.45); }",
         "QScrollArea { background: rgba(21, 29, 50, 0.35); border: none; }",
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.

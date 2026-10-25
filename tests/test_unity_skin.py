@@ -99,6 +99,9 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn("rgba(27, 39, 70, 0.78)", style)
         self.assertIn('QWidget[atlasUnityPage="true"]', style)
         self.assertIn("QPushButton#FeaturedGuideOpen:focus", style)
+        for root_name in ("GuidesView", "GuidesHomePage", "GuidesHomeContent", "GuidesDetailPage"):
+            self.assertIn(f"QWidget#{root_name}", style)
+        self.assertIn("QListView#GuidesHomeDofusGrid", style)
         self.assertIn("border-image: none", style)
         self.assertIn("selection-color: #F1F6FB", style)
         # This final rule must not be masked by the normal/hover sprite rule.
