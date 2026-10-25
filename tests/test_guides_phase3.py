@@ -762,6 +762,7 @@ class GuidePhase3Tests(unittest.TestCase):
             self.assertTrue(view.right_panel.isHidden())
             self.assertEqual(toggle.text(), "‹")
             self.assertTrue(view.show_quest_detail(1654))
+            self.assertIn(TURQUOISE_GUIDE_ID, view.right_panel_scroll_positions)
             self.assertTrue(toggle.isHidden())
             self.assertTrue(view._right_panel_collapsed)
             view.show_guide_overview(TURQUOISE_GUIDE_ID)

@@ -1183,6 +1183,8 @@ class GuidesView(QWidget):
         self.state = self.CATALOG
         self.expanded_chapters: dict[str, set[str]] = {}
         self.guide_scroll_positions: dict[str, int] = {}
+        self.right_panel_scroll_positions: dict[str, int] = {}
+        self._right_panel_rendered_guide_id = ""
         self.quest_nav_scroll_positions: dict[str, int] = {}
         self.current_series_by_guide: dict[str, str] = {}
         self.guide_prerequisites_expanded: dict[str, bool] = {}
@@ -1692,6 +1694,7 @@ class GuidesView(QWidget):
         if guide is None:
             self.status_callback("Guide introuvable.")
             return False
+        self._remember_right_panel_scroll()
         self.current_guide_id = guide.id
         self.current_quest_id = None
         self._ensure_chapters_initialized(guide)
@@ -1703,14 +1706,19 @@ class GuidesView(QWidget):
         guide = self.provider.get_by_id(str(guide_id))
         if guide is None:
             return
+        self._remember_right_panel_scroll()
         self._ensure_detail_page()
         previous_position = self.guide_scroll_positions.get(guide.id, 0) if preserve_scroll else 0
+        right_position = self.right_panel_scroll_positions.get(guide.id, 0)
         self.current_guide_id = guide.id
         self.current_quest_id = None
         self.state = self.GUIDE_OVERVIEW
         self._ensure_selected_series(guide)
         self._ensure_chapters_initialized(guide)
         self._configure_detail_layout(guide, False)
+        self._right_panel_rendered_guide_id = (
+            "" if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS" else guide.id
+        )
         self.detail_header.setVisible(True)
         self._render_header(guide)
         self._render_breadcrumb(guide)
@@ -1731,6 +1739,11 @@ class GuidesView(QWidget):
             0,
             lambda value=previous_position: self.center_scroll.verticalScrollBar().setValue(value),
         )
+        for delay in (0, 50):
+            _single_shot(
+                self, delay,
+                lambda value=right_position: self.right_scroll.verticalScrollBar().setValue(value),
+            )
 
     def _render_continuous_source_guide(self, guide: Guide) -> None:
         """Render verified source steps without mixing in legacy quest series."""
@@ -1821,6 +1834,7 @@ class GuidesView(QWidget):
             return False
         if self.state == self.GUIDE_OVERVIEW:
             self.guide_scroll_positions[guide.id] = self.center_scroll.verticalScrollBar().value()
+            self._remember_right_panel_scroll()
         elif self.state == self.QUEST_DETAIL:
             self.quest_nav_scroll_positions[guide.id] = self.left_scroll.verticalScrollBar().value()
         previous_left = self.quest_nav_scroll_positions.get(guide.id, 0) if preserve_scroll else self.left_scroll.verticalScrollBar().value()
@@ -2273,6 +2287,20 @@ class GuidesView(QWidget):
         self.expanded_chapters[guide.id] = {ref[1].id}
         self.show_guide_overview(guide.id, preserve_scroll=False)
 
+    def _remember_right_panel_scroll(self) -> None:
+        if (
+            self.detail_page is None
+            or self.state != self.GUIDE_OVERVIEW
+            or not self.current_guide_id
+            or self.current_guide_id != self._right_panel_rendered_guide_id
+        ):
+            return
+        if self._right_panel_collapsed:
+            position = self._right_panel_scroll_position
+        else:
+            position = self.right_scroll.verticalScrollBar().value()
+        self.right_panel_scroll_positions[self.current_guide_id] = position
+
     def _toggle_right_panel(self) -> None:
         """Explicit right-column rail: preserve width and scroll across guides."""
         sizes = self.splitter.sizes()
@@ -2280,6 +2308,8 @@ class GuidesView(QWidget):
             if len(sizes) == 3 and sizes[2] > 0:
                 self._right_panel_saved_width = max(220, sizes[2])
             self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
+            if self.current_guide_id:
+                self.right_panel_scroll_positions[self.current_guide_id] = self._right_panel_scroll_position
             self._right_panel_collapsed = True
         else:
             self._right_panel_collapsed = False
@@ -2300,11 +2330,12 @@ class GuidesView(QWidget):
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
         if not hidden:
+            position = self.right_panel_scroll_positions.get(
+                self.current_guide_id or "", 0
+            )
             _single_shot(
                 self, 0,
-                lambda: self.right_scroll.verticalScrollBar().setValue(
-                    self._right_panel_scroll_position
-                ),
+                lambda value=position: self.right_scroll.verticalScrollBar().setValue(value),
             )
 
     def _set_classic_splitter_sizes(self, left_width: int, center_min_width: int) -> None:

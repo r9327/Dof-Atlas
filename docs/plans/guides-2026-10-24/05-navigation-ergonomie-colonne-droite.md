@@ -13,6 +13,7 @@
 - [x] Le centre du lecteur classique reçoit seul l'espace supplémentaire ; la largeur mémorisée du panneau droit reste fixe.
 - [x] La recherche locale du Sommaire est réappliquée après reconstruction de sa liste, avec test de navigation Sommaire ouvert.
 - [x] Le bouton de la colonne droite est masqué dans la fiche Quête et restauré dans le lecteur classique.
+- [x] La position de défilement droite est mémorisée par guide lors des navigations et restaurée après reconstruction Qt.
 - [x] Déplacements directs : commande /travel validée, exclusion des destinataires hors ligne/inconnus, copie plutôt qu'envoi en l'absence de cible. Aucun /zaap déduit.
 - [x] Actions contiguës sur même position chiffrée : regroupement visuel compact sans concaténation du texte, sans suppression de ligne et sans modification métier.
 - [x] Ajout d'un test de lien Quête depuis la deuxième fiche, avec guide_index et manual_stage_id exacts.
