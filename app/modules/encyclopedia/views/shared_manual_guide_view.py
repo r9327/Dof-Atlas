@@ -482,8 +482,22 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         heading.setObjectName("GuideManualSectionTitle")
         layout.addWidget(heading)
 
+        # Share only presentation containers for contiguous, proven map
+        # coordinates. Preserve each authored action, its click targets and
+        # exact ordering; never fuse objectives or infer that a zone is a map.
+        def group_key(row: dict[str, Any]) -> str:
+            if section_key != "now" or str(row.get("kind") or "") != "action":
+                return ""
+            if self._is_combat_row("action", str(row.get("text") or "")):
+                return ""
+            key = self._position_key(str(row.get("position") or ""))
+            return key if re.fullmatch(r"-?\d+,-?\d+", key) else ""
+
+        group_keys = [group_key(row) for row in visible]
+        group_layout = None
+        group_position = ""
         combat_heading_added = False
-        for row in visible:
+        for row_index, row in enumerate(visible):
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
             kind = str(row.get("kind") or "")
@@ -547,16 +561,39 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             row_layout.addWidget(line, 1)
             if section_key == "now":
                 self._add_inline_quest_links(row_layout, row)
-            layout.addWidget(row_widget)
+
+            current_key = group_keys[row_index]
+            adjacent = bool(current_key) and (
+                (row_index > 0 and group_keys[row_index - 1] == current_key)
+                or (
+                    row_index + 1 < len(group_keys)
+                    and group_keys[row_index + 1] == current_key
+                )
+            )
+            if adjacent:
+                if group_layout is None or group_position != current_key:
+                    group = QFrame()
+                    group.setObjectName("GuideManualActionGroup")
+                    group_layout = QVBoxLayout(group)
+                    group_layout.setContentsMargins(0, 0, 0, 0)
+                    group_layout.setSpacing(2)
+                    layout.addWidget(group)
+                    group_position = current_key
+                group_layout.addWidget(row_widget)
+            else:
+                group_layout = None
+                group_position = ""
+                layout.addWidget(row_widget)
+            target_layout = group_layout if adjacent else layout
 
             combat_targets = self._combat_targets_for_row(row, section_key)
             if combat_targets and not combat_heading_added:
                 combat_heading = QLabel("Faire les combats :")
                 combat_heading.setObjectName("GuideManualCombatTargetsTitle")
-                layout.addWidget(combat_heading)
+                target_layout.addWidget(combat_heading)
                 combat_heading_added = True
             for target in combat_targets:
-                self._add_combat_target(layout, target)
+                self._add_combat_target(target_layout, target)
 
         root.addWidget(frame)
 
@@ -1339,6 +1376,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, index)
             self.summary_list.addItem(item)
+        # Rebuilding the model must not silently discard the active search.
+        self._filter_summary(self.summary_search.text())
 
     def _filter_summary(self, value: str) -> None:
         needle = normalize_text(value)
