@@ -181,6 +181,7 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         preflight = workflow.split('      - name: Fail fast on changed test regressions before FULL', 1)[1].split(
             '      - name: Preserve modular certification failure or timeout evidence', 1)[0]
         self.assertIn("github.event_name != 'pull_request'", preflight)
+        self.assertNotIn("github.event_name == 'pull_request'", preflight)
         self.assertIn('timeout-minutes: 12', preflight)
         self.assertIn('continue-on-error: true', preflight)
         self.assertIn('02b_diff_preflight.json', preflight)
@@ -188,6 +189,8 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("'DIFF_TARGETS', policy['groups']['DIFF_TARGETS']", preflight)
         self.assertIn("if report['exit_code'] != 0:", preflight)
         self.assertIn("steps.diff_preflight.outcome == 'success'", workflow)
+        full = workflow.split('      - name: Run full Atlas phase certification gate', 1)[1]
+        self.assertIn("steps.diff_preflight.outcome == 'success'", full)
 
     def test_app_ci_full_gate_materializes_catalog_before_full_discovery(self) -> None:
         source = self._workflow("app-ci.yml")

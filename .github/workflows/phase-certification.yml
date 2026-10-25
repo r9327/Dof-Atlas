@@ -11,16 +11,16 @@ on:
   push:
     branches:
       - main
-  # Every PR is developed as Draft. Certify once its complete candidate is
-  # explicitly marked Ready for review, never on every intermediate commit.
-  # Fixes after a failed final certification require manual workflow_dispatch
-  # on the updated branch/SHA. Keep main push certification unchanged.
+  # Draft pushes use only cheap Scoped PR Feedback. Ready PR commits
+  # recertify automatically on their new exact HEAD.
+  # Preserve independent main push and explicit release FULL.
   pull_request:
     branches:
       - main
       - phase8/peak250-guide-worker-v1
     types:
       - ready_for_review
+      - synchronize
 
 permissions:
   contents: read
@@ -47,6 +47,7 @@ defaults:
 
 jobs:
   doctor-plan:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: Doctor / CI Plan
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -506,7 +507,6 @@ jobs:
         id: diff_preflight
         if: >-
           github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
-          github.event_name == 'pull_request' &&
           steps.catalog.outcome == 'success' &&
           steps.inputs_before.outcome == 'success'
         timeout-minutes: 12
@@ -658,7 +658,7 @@ jobs:
           github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
           steps.inputs_before.outcome == 'success' &&
           steps.catalog.outcome == 'success' &&
-          (github.event_name != 'pull_request' || steps.diff_preflight.outcome == 'success')
+          steps.diff_preflight.outcome == 'success'
         continue-on-error: true
         run: |
           $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -904,7 +904,7 @@ jobs:
 
   pr-fast-validation:
     needs: doctor-plan
-    if: always() && github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false
     name: Doctor / PR FAST
     runs-on: windows-latest
     timeout-minutes: 45
@@ -1146,7 +1146,7 @@ jobs:
     # this local status must NOT succeed when evidence is missing.
     name: Certification Policy / Merge Gate
     needs: [doctor-plan, safe-validation, certify]
-    if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.doctor-plan.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1257,7 +1257,7 @@ jobs:
 
   safe-validation:
     name: Public PR / Safe Validation
-    if: always() && github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false
     needs: [doctor-plan, focused-validation, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -1282,7 +1282,7 @@ jobs:
 
   doctor-verdict:
     name: Doctor / CI Verdict
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     needs: [doctor-plan, focused-validation, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
