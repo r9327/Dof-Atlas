@@ -87,6 +87,11 @@ class ModularDomainRoutingTests(unittest.TestCase):
                     ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
         self.assertIn("name: Phase Certification / Domain or Release Validation", workflow)
         self.assertIn("Run independently required domain certification", workflow)
+        self.assertIn("Materialize selected domain fixtures", workflow)
+        self.assertIn('if ($needsCatalog)', workflow)
+        self.assertIn('if ($needsCraft)', workflow)
+        self.assertIn('python -m scripts.windows.quest_assets --download', workflow)
+        self.assertIn('python -m scripts.windows.craft_seed --download', workflow)
         self.assertIn("tools.ci_domain_certification", workflow)
         self.assertIn("github.event_name == 'pull_request'", workflow)
         full_step = workflow.split(
