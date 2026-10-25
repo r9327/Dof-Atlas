@@ -117,8 +117,8 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "a7f2f85a04ff25af2ecc6a44b4b7dc043d9d1369",
-      "type": "tree"
+      "type": "tree",
+      "sha": "acdfe890d9bb91421f38664523c8c64460d5b91b"
     },
     "data": {
       "mode": "040000",
