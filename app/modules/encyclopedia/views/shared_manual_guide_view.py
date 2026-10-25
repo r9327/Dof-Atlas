@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
@@ -850,6 +851,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
+        # Qt's default layout minimum otherwise forces the guide wider than
+        # the available viewport, preventing the compact labels from activating.
+        root.setSizeConstraint(QLayout.SetNoConstraint)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
@@ -940,6 +944,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
         self.guide_title_label.setMinimumWidth(0)
+        self.guide_title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.guide_title_label.setToolTip(self._guide_title())
         title_row.addWidget(self.guide_title_label, 1)
 
@@ -983,6 +988,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Row 2: THREE horizontal, equal-width blocks (never vertical stack).
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
+        self._metric_caption_labels: dict[str, QLabel] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
@@ -997,7 +1003,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             icon.setFixedSize(16, 16)
             caption.addWidget(icon)
-            caption.addWidget(QLabel(name))
+            caption_label = QLabel(name)
+            caption_label.setToolTip(name)
+            caption_label.setMinimumWidth(0)
+            self._metric_caption_labels[name] = caption_label
+            caption.addWidget(caption_label)
             caption.addStretch(1)
             value.setObjectName("GuideCompactMetricValue")
             caption.addWidget(value)
@@ -1189,6 +1199,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         full_label = f"Mes personnages · {count}"
         narrow = self.width() < 520
         self.participants_button.setText(str(count) if narrow else full_label)
+        for name, label in getattr(self, "_metric_caption_labels", {}).items():
+            label.setText("Prép." if narrow and name == "Préparation" else name)
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."

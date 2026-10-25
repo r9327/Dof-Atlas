@@ -215,12 +215,15 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.current_button.accessibleName(), "Actuelle")
             self.assertTrue(view.current_button.icon().isNull() is False)
             self.assertEqual(view.page_jump.maximumWidth(), 93)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
             view.resize(960, 640)
             QApplication.processEvents()
             self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
             self.assertEqual(view.current_button.text(), "Actuelle")
             self.assertEqual(view.page_jump.maximumWidth(), 115)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
         finally:
             view.close()
 
