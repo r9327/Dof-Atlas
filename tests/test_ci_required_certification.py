@@ -9,7 +9,8 @@ from unittest.mock import patch
 
 from tools.ci_required_certification import (
     _REQUIRED_FULL_STEPS, _SCOPED_HIGH_STEPS, candidate_paths, classify_merge_route, evaluate_merge,
-    retrieve_full_proofs, validate_full_run, validate_scoped_high_run,
+    retrieve_full_proofs, validate_full_run, validate_scoped_high_run, validate_domain_run,
+    _DOMAIN_HOST_STEPS,
 )
 
 NOW = datetime(2026, 10, 14, 20, 0, tzinfo=timezone.utc)
@@ -50,12 +51,27 @@ def safe_job():
 def full_job():
     return {
         "run_id": 418,
-        "name": "Phase Certification / Full Validation",
+        "name": "Phase Certification / Domain or Release Validation",
         "status": "completed",
         "conclusion": "success",
         "steps": [
             {"name": name, "status": "completed", "conclusion": "success"}
             for name in _REQUIRED_FULL_STEPS
+        ],
+    }
+
+
+
+def domain_job():
+    return {
+        "run_id": 418,
+        "name": "Phase Certification / Domain or Release Validation",
+        "status": "completed", "conclusion": "success",
+        "steps": [
+            *({"name": n, "status": "completed", "conclusion": "success"}
+              for n in _DOMAIN_HOST_STEPS),
+            {"name": "Run full Atlas phase certification gate",
+             "status": "completed", "conclusion": "skipped"},
         ],
     }
 
@@ -273,6 +289,47 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertEqual(len(runs), 3)
         self.assertEqual(set(by_run), {418})
         self.assertEqual(fetch.call_count, 2)
+
+
+    def test_real_domain_pr_proof_replaces_full_only_with_host_attestation(self):
+        run = full_record()
+        run["event"] = "pull_request"
+        kwargs = dict(candidate_sha=HEAD, base_sha=BASE,
+                      paths=["tools/ci_scope_gate.py", "app/local_data_cache.py"],
+                      safe_validation="success", repo=REPO, now=NOW,
+                      runs=[run], jobs_by_run={418: [domain_job(), safe_job()]},
+                      pr_number=PR_NUMBER, head_ref=HEAD_REF, base_ref=BASE_REF)
+        result = evaluate_merge(**kwargs)
+        self.assertEqual(result["status"], "PASS_DOMAINS_AUTHENTICATED_NOT_PHASE_RELEASE")
+        self.assertEqual(result["domain_evidence_run"], 418)
+        self.assertIsNone(result["full_evidence_run"])
+        for delta in ({"pr_number": 1}, {"base_sha": "c" * 40},
+                      {"safe_validation": "failure"}, {"head_ref": "other"}):
+            with self.subTest(delta=delta):
+                self.assertEqual(evaluate_merge(**{**kwargs, **delta})["status"], "BLOCKED")
+
+    def test_domain_host_proof_fails_on_skipped_selected_tests_or_fake_full(self):
+        run = full_record()
+        run["event"] = "pull_request"
+        params = dict(candidate_sha=HEAD, base_sha=BASE, repo=REPO,
+                      now=NOW, pr_number=PR_NUMBER, head_ref=HEAD_REF,
+                      base_ref=BASE_REF)
+        validate_domain_run(run, [domain_job(), safe_job()], **params)
+        for stage in ("Verify exact certification checkout",
+                      "Run independently required domain certification",
+                      "Enforce phase certification verdict"):
+            bad = domain_job()
+            for step in bad["steps"]:
+                if step["name"] == stage:
+                    step["conclusion"] = "skipped"
+            with self.subTest(stage=stage), self.assertRaises(ValueError):
+                validate_domain_run(run, [bad, safe_job()], **params)
+        malicious = domain_job()
+        malicious["steps"][-1]["conclusion"] = "success"
+        with self.assertRaises(ValueError):
+            validate_domain_run(run, [malicious, safe_job()], **params)
+        with self.assertRaises(ValueError):
+            validate_domain_run(run, [domain_job()], **params)
 
     def test_required_full_without_proof_fails_closed(self):
         result = decide(["tools/atlas_integrity.py"])
