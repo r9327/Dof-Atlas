@@ -57,6 +57,16 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(self.route(["local_dofus_data/config.py"])["domains"],
                          ["craft", "quests", "guides", "data"])
 
+    def test_smart_host_proof_is_explicit_ci_owner_without_weakening_unknowns(self):
+        path = "tools/ci_smart_host_proof.py"
+        self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route([path, "tests/test_ci_smart_host_proof.py"])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("tools/unknown_new_policy.py"), frozenset())
+        self.assertEqual(self.route(["tools/unknown_new_policy.py"])["status"], "BLOCKED")
+
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])
         self.assertEqual(plan["status"], "BLOCKED")
