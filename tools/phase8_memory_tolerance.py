@@ -19,10 +19,11 @@ def hard_limit(target_mb: float) -> float:
     return target * (1.0 + MARGIN)
 
 
-def classify(measured_mb: float, target_mb: float) -> str:
+def classify(measured_mb: float, target_mb: float, *, allow_negative: bool = False) -> str:
     """PASS within target, WARNING within +5%, FAIL beyond or invalid."""
     try:
-        measured = require_memory_observation(measured_mb, label="measured_mb")
+        measured = require_memory_observation(measured_mb, label="measured_mb",
+                                              allow_negative=allow_negative)
     except ValueError:
         return "FAIL"
     limit = hard_limit(target_mb)
@@ -33,12 +34,17 @@ def classify(measured_mb: float, target_mb: float) -> str:
     return "PASS"
 
 
-def require_memory_observation(raw: object, *, label: str, positive: bool = False) -> float:
-    """Only actual finite numeric measurements count as memory evidence."""
+def require_memory_observation(raw: object, *, label: str, positive: bool = False,
+                               allow_negative: bool = False) -> float:
+    """Only actual finite numeric measurements count as memory evidence.
+
+    Absolute RSS cannot be negative. A retained RSS *difference* can be
+    negative when returning Home releases more RAM than was added by Craft.
+    """
     if type(raw) not in (int, float):
         raise ValueError(f"Invalid or missing memory observation: {label}")
     measured = float(raw)
-    if not isfinite(measured) or measured < 0 or (positive and measured == 0):
+    if not isfinite(measured) or (measured < 0 and not allow_negative) or (positive and measured <= 0):
         raise ValueError(f"Non-finite or impossible memory observation: {label}")
     return measured
 
