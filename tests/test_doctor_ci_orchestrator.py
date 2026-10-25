@@ -53,6 +53,34 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
                 self.assertTrue(self.select([HIGH_SOURCE], **kwargs)['full'])
         self.assertTrue(self.select([HIGH_SOURCE, 'app/core/json_store.py'])['full'])
 
+    def test_exact_domain_ci_only_skips_unrelated_user_journeys(self):
+        from tools.ci_domain_certification import plan_domains
+        paths = ['tools/atlas_doctor_lib/ci_orchestrator.py',
+                 '.github/workflows/phase-certification.yml']
+        domain = plan_domains(base_sha='a' * 40, candidate_sha='b' * 40,
+                              paths=paths)
+        selection = select_workflows(
+            paths, event='pull_request', phase_route={'route': 'FULL'},
+            ui_plan=UI_NONE, tooling_scope=False, domain_plan=domain)
+        self.assertTrue(selection['phase'])
+        self.assertTrue(selection['full'])  # risk label, not PR execution
+        self.assertFalse(selection['specialist_fallback'])
+        self.assertFalse(selection['workflows']['doctor-certification']['selected'])
+        self.assertFalse(selection['workflows']['encyclopedia-provider-import']['selected'])
+        self.assertFalse(selection['workflows']['json-focused-data-contract']['selected'])
+        self.assertTrue(selection['workflows']['ai-context-ci']['selected'])
+
+    def test_unknown_or_untrusted_domain_cannot_disable_specialists(self):
+        paths = ['tools/atlas_doctor_lib/ci_orchestrator.py']
+        forged = {'status': 'READY_TO_EXECUTE', 'changed_paths': paths,
+                  'domains': ['craft'], 'deleted_paths': [], 'unknown_paths': []}
+        selection = select_workflows(
+            paths, event='pull_request', phase_route={'route': 'FULL'},
+            ui_plan=UI_NONE, tooling_scope=False, domain_plan=forged)
+        self.assertTrue(selection['specialist_fallback'])
+        self.assertTrue(selection['workflows']['doctor-certification']['selected'])
+        self.assertTrue(selection['workflows']['json-focused-data-contract']['selected'])
+
     def test_unknown_or_deleted_changes_fall_back_to_real_full(self):
         for kwargs in ({'route': {}}, {'route': {'route': 'INVALID'}}, {'deleted': ['app/old.py']},
                        {'ui': {'status': 'REVIEW_REQUIRED'}}):
