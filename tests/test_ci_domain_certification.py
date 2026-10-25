@@ -136,8 +136,14 @@ class ModularDomainRoutingTests(unittest.TestCase):
             case = type("Fixture", (unittest.TestCase,), {"test_domain": do_test})
             case.__module__ = module.__name__
             module.Fixture = case
+            # The real tests package starts Qt at import time; these stdlib
+            # tests execute on Ubuntu without installing PySide6. A synthetic
+            # package models only unittest name resolution, not application Qt.
+            fake_tests = types.ModuleType("tests")
+            fake_tests.__path__ = []
+            fake_tests.test_domain_mock_case = module
             with self.subTest(behavior=behavior), \
-                 patch.dict(sys.modules, {module.__name__: module}), \
+                 patch.dict(sys.modules, {"tests": fake_tests, module.__name__: module}), \
                  patch.object(domain, "_git", side_effect=git), \
                  patch.object(domain, "_module_sources", return_value=[module.__name__]):
                 evidence = domain.execute_domain_tests(plan, root=Path(__file__).resolve().parents[1], base_sha=B)
