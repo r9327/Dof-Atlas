@@ -337,6 +337,51 @@ jobs:
       - name: Prepare certification logs
         run: New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
 
+      - name: Materialize selected domain fixtures
+        id: domain_fixtures
+        if: github.event_name == 'pull_request'
+        run: |
+          # Selectors from the exact Git merge-base, not the PR title.
+          & python -m tools.ci_domain_certification `
+            --base-sha "$env:BASE_SHA" `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/domain_plan.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $plan = Get-Content -LiteralPath "artifacts/phase_certification/domain_plan.json" -Raw | ConvertFrom-Json
+          if ($plan.status -ne "READY_TO_EXECUTE") {
+            throw "Cannot materialize fixtures for an unproven domain plan"
+          }
+          $owners = @($plan.domains)
+          $needsCatalog = @($owners | Where-Object { $_ -in @("quests", "guides", "data", "ui", "startup") }).Count -gt 0
+          $needsCraft = @($owners | Where-Object { $_ -in @("craft", "data") }).Count -gt 0
+          if ($needsCatalog) {
+            Write-Host "Domain fixture: canonical pinned Quest/Guide catalogue required"
+            git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
+            if ($LASTEXITCODE -ne 0) { throw "Domain LFS materialization failed" }
+            $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+            if (Test-Path -LiteralPath $catalog) {
+              Remove-Item -LiteralPath $catalog -Recurse -Force
+            }
+            python -m scripts.windows.quest_assets --download
+            if ($LASTEXITCODE -ne 0) { throw "Pinned Quest catalog materialization failed" }
+            @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Domain QuestCatalog fixture: {count} quests")
+          if count < 1900:
+              raise SystemExit("Domain Quest catalogue incomplete")
+          '@ | python -
+            if ($LASTEXITCODE -ne 0) { throw "Domain Quest catalog integrity failed" }
+          }
+          if ($needsCraft) {
+            Write-Host "Domain fixture: pinned Craft seed required"
+            git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+            if ($LASTEXITCODE -ne 0) { throw "Domain Craft input LFS materialization failed" }
+            python -m scripts.windows.craft_seed --download
+            if ($LASTEXITCODE -ne 0) { throw "Pinned Craft seed materialization failed" }
+          }
+          Write-Host "Only selected domain fixtures were prepared; release FULL remains separate."
+
       - name: Run independently required domain certification
         id: domains
         if: github.event_name == 'pull_request'
