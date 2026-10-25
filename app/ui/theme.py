@@ -2472,7 +2472,7 @@ QLabel#GuideBreadcrumbCurrent {
 }
 
 #GuideManualProgress::chunk {
-    background: @GREEN;
+    background: @RED;
     border-radius: 2px;
 }
 
@@ -2535,9 +2535,13 @@ QProgressBar#GuideCompactSuccessProgress {
     border-radius: 3px;
 }
 
-QProgressBar#GuideCompactPreparationProgress::chunk,
-QProgressBar#GuideCompactSuccessProgress::chunk {
+QProgressBar#GuideCompactPreparationProgress::chunk {
     background: @GREEN;
+    border-radius: 2px;
+}
+
+QProgressBar#GuideCompactSuccessProgress::chunk {
+    background: @YELLOW;
     border-radius: 2px;
 }
 

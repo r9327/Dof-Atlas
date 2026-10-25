@@ -203,6 +203,27 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_narrow_layout_preserves_named_actions(self) -> None:
+        _service, view = self._view()
+        try:
+            view.resize(490, 320)
+            QApplication.processEvents()
+            self.assertLess(view.width(), 520)
+            self.assertEqual(view.participants_button.text(), "1")
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "")
+            self.assertEqual(view.current_button.accessibleName(), "Actuelle")
+            self.assertTrue(view.current_button.icon().isNull() is False)
+            self.assertEqual(view.page_jump.maximumWidth(), 93)
+
+            view.resize(960, 640)
+            QApplication.processEvents()
+            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "Actuelle")
+            self.assertEqual(view.page_jump.maximumWidth(), 115)
+        finally:
+            view.close()
+
     def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
         service, view = self._view()
         try:
@@ -232,7 +253,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
             self.assertEqual(view.guide_button.text(), "←")
-            self.assertEqual(view.guide_button.accessibleName(), "Retour à l'accueil des guides")
+            self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
             view.close()

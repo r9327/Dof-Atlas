@@ -333,6 +333,11 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 ],
             )
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
+            for symbol in ("Target", "Cube", "Trophy"):
+                metric_icon = compact.findChild(QLabel, f"GuideCompactMetricIcon{symbol}")
+                self.assertIsNotNone(metric_icon)
+                self.assertFalse(metric_icon.pixmap().isNull())
+            self.assertIsNotNone(compact.findChild(QLabel, "GuideCompactTitleIcon"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideParticipantsButton"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideSummaryButton"))

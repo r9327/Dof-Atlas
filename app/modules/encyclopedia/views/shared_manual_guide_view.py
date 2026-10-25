@@ -66,19 +66,42 @@ _PREPARATION_QUANTITY_RE = re.compile(
 )
 
 
-def _guide_symbol_icon(widget: QWidget, symbol: str, *, size: int = 18) -> QIcon:
+def _guide_symbol_icon(
+    widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
+) -> QIcon:
     """Draw small semantic icons without font glyph or platform-theme drift."""
 
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.6)
+    pen = QPen(QColor(color or PALETTE["TEXT_SOFT"]), 1.6)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
     painter.setPen(pen)
     painter.setBrush(Qt.NoBrush)
-    if symbol == "settings":
+    if symbol == "target":
+        painter.drawEllipse(QPointF(9, 9), 5.3, 5.3)
+        painter.drawEllipse(QPointF(9, 9), 2.2, 2.2)
+        painter.drawLine(QPointF(9, 1), QPointF(9, 5))
+        painter.drawLine(QPointF(9, 13), QPointF(9, 17))
+        painter.drawLine(QPointF(1, 9), QPointF(5, 9))
+        painter.drawLine(QPointF(13, 9), QPointF(17, 9))
+    elif symbol == "cube":
+        painter.drawPolyline([QPointF(9, 2), QPointF(16, 5.5), QPointF(9, 9), QPointF(2, 5.5), QPointF(9, 2)])
+        painter.drawPolyline([QPointF(2, 5.5), QPointF(2, 13), QPointF(9, 17), QPointF(16, 13), QPointF(16, 5.5)])
+        painter.drawLine(QPointF(9, 9), QPointF(9, 17))
+    elif symbol == "trophy":
+        painter.drawRoundedRect(QRectF(5, 2, 8, 9), 2, 2)
+        painter.drawArc(QRectF(1.5, 2.5, 6.5, 8), 125 * 16, 205 * 16)
+        painter.drawArc(QRectF(10, 2.5, 6.5, 8), 210 * 16, 205 * 16)
+        painter.drawLine(QPointF(9, 11), QPointF(9, 15))
+        painter.drawLine(QPointF(5, 16), QPointF(13, 16))
+    elif symbol == "guide":
+        painter.drawPolyline([QPointF(9, 4), QPointF(6, 2.5), QPointF(2, 3.5), QPointF(2, 14), QPointF(6, 13), QPointF(9, 15)])
+        painter.drawPolyline([QPointF(9, 4), QPointF(12, 2.5), QPointF(16, 3.5), QPointF(16, 14), QPointF(12, 13), QPointF(9, 15)])
+        painter.drawLine(QPointF(9, 4), QPointF(9, 15))
+    elif symbol == "settings":
         center = QPointF(size / 2, size / 2)
         painter.drawEllipse(center, 3.0, 3.0)
         painter.drawEllipse(center, 5.6, 5.6)
@@ -901,15 +924,23 @@ class SharedGuideManualView(GuideUltimeManualView):
         title_row.setSpacing(6)
         self.guide_button = AtlasButton("←")
         self.guide_button.setObjectName("GuideManualGuideButton")
-        self.guide_button.setToolTip("Retour à l'accueil des guides")
-        self.guide_button.setAccessibleName("Retour à l'accueil des guides")
+        self.guide_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
+        self.guide_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
         self.guide_button.setMaximumWidth(35)
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
         title_row.addWidget(self.guide_button)
+        guide_icon = QLabel()
+        guide_icon.setObjectName("GuideCompactTitleIcon")
+        guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
+        guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
+        guide_icon.setFixedSize(16, 16)
+        title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
+        self.guide_title_label.setMinimumWidth(0)
+        self.guide_title_label.setToolTip(self._guide_title())
         title_row.addWidget(self.guide_title_label, 1)
 
         self.page_jump = QSpinBox()
@@ -952,10 +983,20 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Row 2: THREE horizontal, equal-width blocks (never vertical stack).
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
-        def add_metric(name: str, bar: QProgressBar, value: QLabel) -> None:
+        def add_metric(
+            name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
+        ) -> None:
             block = QVBoxLayout()
             block.setSpacing(2)
             caption = QHBoxLayout()
+            caption.setSpacing(4)
+            icon = QLabel()
+            icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
+            icon.setPixmap(
+                _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
+            )
+            icon.setFixedSize(16, 16)
+            caption.addWidget(icon)
             caption.addWidget(QLabel(name))
             caption.addStretch(1)
             value.setObjectName("GuideCompactMetricValue")
@@ -971,17 +1012,17 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.route_bar.setCursor(Qt.PointingHandCursor)
         self.route_bar.navigationRequested.connect(self._jump_from_progress)
         self.route_progress_label = QLabel("—")
-        add_metric("Route", self.route_bar, self.route_progress_label)
+        add_metric("Route", "target", "RED", self.route_bar, self.route_progress_label)
 
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
         self.preparation_progress_label = QLabel("—")
-        add_metric("Préparation", self.preparation_bar, self.preparation_progress_label)
+        add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
         self.success_bar = QProgressBar()
         self.success_bar.setObjectName("GuideCompactSuccessProgress")
         self.success_progress_label = QLabel("—")
-        add_metric("Succès", self.success_bar, self.success_progress_label)
+        add_metric("Succès", "trophy", "YELLOW", self.success_bar, self.success_progress_label)
         right.addLayout(metrics)
 
         # Row 3: populated by the existing preparation, summary and participant
@@ -1140,6 +1181,33 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
 
+    def _sync_compact_action_labels(self) -> None:
+        """Preserve clickable actions and screen-reader names when space is scarce."""
+        if not hasattr(self, "participants_button"):
+            return
+        count = len(self.selected_participant_keys())
+        full_label = f"Mes personnages · {count}"
+        narrow = self.width() < 520
+        self.participants_button.setText(str(count) if narrow else full_label)
+        self.participants_button.setAccessibleName(full_label)
+        self.participants_button.setToolTip(
+            "Choisir les identités stables utilisées par la progression et les déplacements."
+        )
+        if hasattr(self, "current_button"):
+            current_label = str(self.current_button.property("guideFullText") or "Actuelle")
+            self.current_button.setText("" if narrow else current_label)
+            self.current_button.setAccessibleName(current_label)
+            self.current_button.setToolTip(
+                "Revenir à la fiche actuelle" if current_label == "Actuelle"
+                else "Toutes les fiches sont terminées."
+            ) if narrow else None
+            self.page_jump.setMaximumWidth(93 if narrow else 115)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
+        super().resizeEvent(event)
+        if hasattr(self, "participants_button"):
+            self._sync_compact_action_labels()
+
     def _participant_source_signature(self) -> tuple[object, ...]:
         from app.pages.quest_character_cache import quest_character_source_signature
 
@@ -1194,10 +1262,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             empty.setObjectName("GuideParticipantsEmpty")
             self.participants_layout.addWidget(empty)
         self.participants_layout.addStretch(1)
-        self.participants_button.setText(f"Mes personnages · {len(selected)}")
-        self.participants_button.setToolTip(
-            "Choisir les identités stables utilisées par la progression et les déplacements."
-        )
+        self._sync_compact_action_labels()
 
     @staticmethod
     def _participant_tooltip(character, class_label: str, progress: int | None) -> str:
@@ -1699,9 +1764,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         elif not checked:
             selected = [key for key in selected if key != character_key]
         self.participant_service.save_selected_keys(selected)
-        self.participants_button.setText(
-            f"Mes personnages · {len(self.selected_participant_keys())}"
-        )
+        self._sync_compact_action_labels()
         self._preparation_loaded = False
         self._preparation_needs = ()
         if self.preparation_button.isChecked():
@@ -1861,7 +1924,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         route_finished = bool(keys) and bool(progress_rows) and all(
             total > 0 and completed >= total for completed, total in progress_rows
         )
-        self.current_button.setText("Terminé" if route_finished else "Actuelle")
+        self.current_button.setProperty(
+            "guideFullText", "Terminé" if route_finished else "Actuelle"
+        )
+        self._sync_compact_action_labels()
         self.current_button.setEnabled(actual_index is not None)
         self.current_button.setToolTip(
             "Toutes les fiches sont terminées pour les personnages sélectionnés."
