@@ -51,6 +51,24 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("app/modules/encyclopedia/views/unknown.py"), frozenset())
 
+    def test_classic_and_manual_guide_readers_require_both_domains(self):
+        paths = [
+            "app/modules/encyclopedia/views/guides_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        ]
+        for path in paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["guides", "ui"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(
+            self.route(["app/modules/encyclopedia/views/another_reader.py"])["status"],
+            "BLOCKED",
+        )
+
     def test_lanyel_shared_manual_ui_test_has_both_owners(self):
         path = "tests/test_lanyel_shared_manual_ui.py"
         self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
