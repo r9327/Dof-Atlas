@@ -126,6 +126,7 @@ def plan_domains(*, base_sha: str, candidate_sha: str, paths: list[str],
     return {
         "schema_version": 1, "kind": "atlas_independent_domain_plan",
         "base_sha": base_sha, "candidate_sha": candidate_sha,
+        "changed_paths": paths,
         "status": "BLOCKED" if problems else "READY_TO_EXECUTE",
         "domains": groups, "domain_paths": domain_paths,
         "unknown_paths": sorted(unknown), "deleted_paths": sorted(set(deleted)),
