@@ -275,7 +275,7 @@ jobs:
       needs.doctor-plan.outputs.phase == 'true' &&
       (github.event_name != 'pull_request' ||
        needs.pre-full-gate.result == 'success')
-    name: Phase Certification / Full Validation
+    name: Phase Certification / Domain or Release Validation
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
@@ -336,9 +336,21 @@ jobs:
       - name: Prepare certification logs
         run: New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
 
+      - name: Run independently required domain certification
+        id: domains
+        if: github.event_name == 'pull_request'
+        run: |
+          # No application-wide FULL_SUITE on PRs. Each changed owner has to
+          # execute its exact-domain tests; an unknown owner is BLOCKED.
+          & python -X faulthandler -m tools.ci_domain_certification `
+            --base-sha "$env:BASE_SHA" `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/domain_plan.json" --execute
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Materialize certification LFS fixtures
         id: lfs
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/01_lfs.log"
@@ -367,7 +379,7 @@ jobs:
 
       - name: Materialize local Dofus catalog
         id: catalog
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/02_catalog.log"
@@ -436,7 +448,7 @@ jobs:
 
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -447,7 +459,7 @@ jobs:
       - name: Fail fast on changed test regressions before FULL
         id: diff_preflight
         if: >-
-          steps.route.outputs.run_full == 'true' &&
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
           github.event_name == 'pull_request' &&
           steps.catalog.outcome == 'success' &&
           steps.inputs_before.outcome == 'success'
@@ -513,7 +525,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
 
       - name: Preserve preflight failure or timeout evidence
-        if: always() && github.event_name == 'pull_request' && steps.route.outputs.run_full == 'true' && steps.diff_preflight.outcome != 'success'
+        if: always() && github.event_name == 'pull_request' && github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && steps.diff_preflight.outcome != 'success'
         shell: pwsh
         run: |
           $target = "artifacts/phase_certification/02b_diff_preflight.json"
@@ -536,7 +548,7 @@ jobs:
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
-          steps.route.outputs.run_full == 'true' &&
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
           (github.event_name == 'workflow_dispatch' ||
            github.event_name == 'push' ||
            (github.event_name == 'pull_request' &&
@@ -597,7 +609,7 @@ jobs:
       - name: Run full Atlas phase certification gate
         id: certification
         if: >-
-          steps.route.outputs.run_full == 'true' &&
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
           steps.inputs_before.outcome == 'success' &&
           steps.catalog.outcome == 'success' &&
           (github.event_name != 'pull_request' || steps.diff_preflight.outcome == 'success')
@@ -617,7 +629,7 @@ jobs:
 
       - name: Verify public dataset inputs did not change during validation
         id: inputs_after
-        if: steps.route.outputs.run_full == 'true' && always()
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -643,7 +655,7 @@ jobs:
 
       - name: Compare Doctor plan with actual exact-SHA FULL evidence
         id: doctor_shadow
-        if: steps.route.outputs.run_full == 'true' && always()
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           $full = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -663,6 +675,40 @@ jobs:
         id: phase_verdict
         if: always()
         run: |
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            # Modular PR evidence is a domain certificate, never a historical
+            # FULL or a release/Guide Phase certification.
+            if ("${{ steps.domains.outcome }}" -ne "success") {
+              throw "DOMAIN CERTIFICATION: blocked or missing exact-domain tests"
+            }
+            $p = Get-Content "artifacts/phase_certification/domain_plan.json" -Raw | ConvertFrom-Json
+            $proof = Get-Content "artifacts/phase_certification/domain_test_evidence.json" -Raw | ConvertFrom-Json
+            if ($p.status -ne "READY_TO_EXECUTE" -or
+                $p.candidate_sha -ne $env:CANDIDATE_SHA -or
+                $p.base_sha -ne $env:BASE_SHA -or
+                $p.unknown_paths.Count -ne 0 -or $p.deleted_paths.Count -ne 0 -or
+                $p.domains.Count -lt 1 -or
+                $proof.status -ne "PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED" -or
+                $proof.candidate_sha -ne $env:CANDIDATE_SHA -or
+                $proof.base_sha -ne $env:BASE_SHA -or
+                $proof.full_suite_executed -ne $false -or
+                $proof.phase_certified -ne $false -or
+                $proof.merge_authorized -ne $false -or
+                $proof.tests_run -lt 1) {
+              throw "DOMAIN CERTIFICATION: missing/invalid exact-SHA domain proof"
+            }
+            Write-Host "DOMAIN CERTIFICATION: PASS (NOT FULL/PHASE RELEASE)"
+            Write-Host "Domains: $($p.domains -join ', ')"
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## DOMAIN CERTIFICATION: PASS"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Exact SHA: $env:CANDIDATE_SHA"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Selected domains: $($p.domains -join ', ')"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Tests executed: $($proof.tests_run)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- FULL_SUITE not executed. Phase/release not certified."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- All independently selected specialist jobs and Public PR Safe Validation must also pass."
+            }
+            exit 0
+          }
           if ("${{ steps.reuse.outputs.reuse_full }}" -eq "true") {
             if ("${{ steps.reuse.outcome }}" -ne "success" -or
                 "${{ steps.route.outcome }}" -ne "skipped" -or
