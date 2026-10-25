@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import tempfile
 import unittest
 
+from pathlib import Path
+from unittest.mock import patch
 from PIL import Image, ImageDraw
 
-from tools.assets.clean_unity_wallpaper import parse_box, repair_sky, validate_boxes
+from tools.assets.clean_unity_wallpaper import parse_box, repair_sky, validate_boxes, canvas_box, main
 
 
 class WallpaperCleanerTests(unittest.TestCase):
@@ -27,6 +30,23 @@ class WallpaperCleanerTests(unittest.TestCase):
             self.assertEqual(repaired.getpixel((x+7, y+7))[:3], original.getpixel((x+7, y+7)))
         self.assertEqual(repaired.getpixel((100, 100)), image.convert("RGBA").getpixel((100, 100)))
         self.assertEqual(image.getpixel((207, 17)), (0, 0, 0))
+
+    def test_crop_drag_maps_back_to_exact_original_coordinates(self):
+        self.assertEqual(canvas_box((100, 90), (50, 20), (1055, 0), (864, 430)), (1105, 20, 50, 70))
+        self.assertEqual(canvas_box((-20, -10), (900, 500), (1055, 0), (864, 430)), (1055, 0, 864, 430))
+
+    def test_cli_requires_exact_original_and_leaves_no_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "missing.png"
+            output = Path(directory) / "clean.png"
+            arguments = ["clean_unity_wallpaper", "--source", str(source),
+                         "--output", str(output), "--box", "1200,20,20,20",
+                         "--box", "1300,20,20,20", "--box", "1400,20,20,20"]
+            with patch("sys.argv", arguments), patch("sys.stderr"):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
 
     def test_invalid_areas_and_coordinates_rejected(self):
         with self.assertRaises(ValueError):

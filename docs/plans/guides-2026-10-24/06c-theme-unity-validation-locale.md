@@ -46,12 +46,22 @@ canonique de la capture 1919×1079 avant toute opération. Il reconstruit
 localement le ciel à partir des quatre bords de chaque zone, sans toucher
 aux pixels en dehors des zones ni au PNG d'origine.
 
-Après relevé exact des coordonnées sur l'image source, depuis la racine du
-dépôt, remplacer chacune des valeurs `x,y,w,h` par la boîte correspondante :
+Pour sélectionner les trois icônes **sans relever leurs coordonnées à
+la main**, depuis la racine du dépôt Windows, exécuter :
 
 ```powershell
-py -3.13 -m tools.assets.clean_unity_wallpaper --box x1,y1,w1,h1 --box x2,y2,w2,h2 --box x3,y3,w3,h3 --preview artifacts/unity-mask-review.png
+py -3.13 -m tools.assets.clean_unity_wallpaper --interactive --preview artifacts/unity-mask-review.png
 ```
+
+Une fenêtre ouvre la zone supérieure droite de la capture à résolution
+native. Glisser trois rectangles précis sur les icônes, utiliser « Annuler
+la dernière zone » si besoin, puis « Valider les 3 zones ». La fenêtre
+refuse une sélection hors limites ou chevauchante ; « Quitter sans
+enregistrer » ne génère aucun dérivé. Le mode console avec trois `--box
+x,y,w,h` reste disponible pour la reproduction exacte de la retouche.
+Les tests de sélection (coordonnées inversées/clampées) et de réparation
+sur ciel synthétique passent localement ; l'interface graphique elle-même
+n'est pas testée sous Windows ici.
 
 Le résultat est un PNG local `background_selection_clean.png` utilisé en
 priorité par le thème Unity. **Examiner la capture et la réparation avant
