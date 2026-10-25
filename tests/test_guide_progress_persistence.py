@@ -30,6 +30,24 @@ class GuideProgressPersistenceTests(unittest.TestCase):
             fresh.manual_steps("character:1", "guide_a"),
         )
 
+    def test_manual_steps_returns_caller_owned_copy(self) -> None:
+        service = GuideProgressService(self.path)
+        service.set_manual_step_completed("character:1", "guide_a", "stage:a", True)
+
+        returned = service.manual_steps("character:1", "guide_a")
+        returned.remove("stage:a")
+        returned.add("stage:synthetic")
+
+        self.assertEqual(
+            {"stage:a"}, service.manual_steps("character:1", "guide_a")
+        )
+        self.assertTrue(
+            service.is_manual_step_completed("character:1", "guide_a", "stage:a")
+        )
+        self.assertFalse(
+            service.is_manual_step_completed("character:1", "guide_a", "stage:synthetic")
+        )
+
     def test_batch_expected_states_reject_stale_snapshot_without_partial_write(self) -> None:
         first = GuideProgressService(self.path)
         second = GuideProgressService(self.path)

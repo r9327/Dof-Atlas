@@ -96,6 +96,7 @@ class GuideProgressService:
         return snapshot
 
     def manual_steps(self, character_key: str, guide_id: str) -> set[str]:
+        """Return a detached set; callers must not mutate cached snapshots."""
         # Public callers keep receiving an isolated mutable set while hot
         # membership checks below share the immutable cached snapshot.
         return set(self._manual_steps_snapshot(character_key, guide_id))
