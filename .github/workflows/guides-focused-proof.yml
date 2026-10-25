@@ -62,15 +62,20 @@ jobs:
           } else {
             Write-Host "Preparation model not part of this candidate; skipped by scope."
           }
-      - name: Read-only preparation Qt preview if present
+      - name: Isolated Qt preparation and atomic Ready tests if present
         shell: pwsh
         run: |
-          if (Select-String -LiteralPath "tests/test_lanyel_shared_manual_ui.py" -Pattern "def test_preparation_without_selected_characters_is_read_only" -Quiet) {
-            python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_preparation_without_selected_characters_is_read_only
+          if (Test-Path -LiteralPath "tests/test_guide_preparation_model_qt.py") {
+            python -X faulthandler -m unittest -v tests.test_guide_preparation_model_qt
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } else {
-            Write-Host "Preparation preview Qt case absent from this candidate."
+            Write-Host "Focused preparation Qt test not in this candidate."
           }
+      - name: Real Qt preparation navigation and typed resource filters
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy

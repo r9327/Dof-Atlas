@@ -495,16 +495,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_objects(self) -> None:
+    def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters(self) -> None:
         service = _FakeManualUiService()
+        # Explicit consumable evidence permits adding separate incomplete stages;
+        # duplicate lines on one card remain display mirrors, not extra purchases.
         service.cards[0]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
             {"item_id": 20, "name": "Pierre d'âme moyenne", "quantity": 1},
             {"item_id": 30, "name": "Clef de test", "quantity": 2},
         ]
         service.cards[1]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 2},
+            {"item_id": 10, "name": "Potion de test", "quantity": 2, "consumable": True},
         ]
         service.card_auto_complete = lambda key, card: (
             key == "character:2" and card is service.cards[0]
@@ -530,18 +532,42 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 for label in row.findChildren(QLabel)
             ]
             self.assertIn("0 / 1 prêts", summaries)
-            objects = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == "Objets"
-            )
-            objects.click()
+            # Tout must retain both special resources and their authored
+            # quantities; neither belongs to the generic "Objets" filter.
+            categories = {need.name: need.category for need in view._preparation_needs}
+            self.assertEqual(categories["Pierre d'âme moyenne"], "Pierres d'âme")
+            self.assertEqual(categories["Clef de test"], "Clefs")
             labels = [
                 label.text()
-                for label in view.findChildren(QLabel, "GuidePreparationRowLabel")
+                for label in view.preparation_panel.findChildren(
+                    QLabel, "GuidePreparationRowLabel"
+                )
             ]
             self.assertTrue(any("Pierre d'âme moyenne" in label for label in labels))
             self.assertTrue(any("Clef de test" in label for label in labels))
+            for filter_key, expected in (
+                ("Pierres d'âme", "Pierre d'âme moyenne"),
+                ("Clefs", "Clef de test"),
+            ):
+                button = next(
+                    button for button in view.preparation_filter_group.buttons()
+                    if button.property("filterKey") == filter_key
+                )
+                button.click()
+                QApplication.processEvents()
+                selected_rows = [
+                    view.preparation_rows_layout.itemAt(i).widget()
+                    for i in range(view.preparation_rows_layout.count())
+                ]
+                displayed = [
+                    label.text()
+                    for widget in selected_rows if widget is not None
+                    for label in widget.findChildren(QLabel, "GuidePreparationRowLabel")
+                ]
+                self.assertTrue(
+                    any(expected in label for label in displayed),
+                    f"{expected} missing from {filter_key}: {displayed!r}",
+                )
         finally:
             view.close()
 
