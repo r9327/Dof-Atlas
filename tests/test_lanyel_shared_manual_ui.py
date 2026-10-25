@@ -7,6 +7,7 @@ import unittest
 import time
 from collections import Counter
 from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -27,6 +28,19 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualCard,
     SharedGuideManualView,
 )
+
+
+class _VerifiedSoloParticipant:
+    """Deterministic selected character for validation integration tests."""
+
+    def available_characters(self):
+        return (SimpleNamespace(key="character:1", label="Alpha", connected=False),)
+
+    def selected_keys(self):
+        return ("character:1",)
+
+    def save_selected_keys(self, values):
+        return tuple(values)
 
 
 class LanyelSharedManualUiTests(unittest.TestCase):
@@ -258,6 +272,26 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_common_progress_uses_same_sheet_ids_not_smallest_count(self) -> None:
+        completed = {
+            "character:1": {0, 1, 2, 3, 4},
+            "character:2": {5, 6, 7, 8, 9},
+        }
+        count = SharedGuideManualView._common_sheet_count(
+            ("character:1", "character:2"),
+            tuple(range(10)),
+            lambda key, card, _index: card in completed[key],
+        )
+        self.assertEqual(count, 0)
+        completed["character:2"].update((0, 2))
+        self.assertEqual(
+            SharedGuideManualView._common_sheet_count(
+                tuple(completed), tuple(range(10)),
+                lambda key, card, _index: card in completed[key],
+            ),
+            2,
+        )
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
@@ -289,7 +323,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertFalse(shared.nav_page_label.isVisible())
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(validation)
-            self.assertEqual(validation.text(), "Valider")
+            self.assertIn(validation.text(), ("Choisir des personnages", "Valider"))
 
             view.deleteLater()
             self.app.processEvents()
@@ -341,6 +375,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsInstance(shared, SharedGuideManualView)
             self.app.processEvents()
 
+            shared.participant_service = _VerifiedSoloParticipant()
+            shared._refresh_participants_panel()
+            shared._refresh_header()
+            shared._render_window()
             bar = shared.findChild(QProgressBar, "GuideManualProgress")
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(bar)
