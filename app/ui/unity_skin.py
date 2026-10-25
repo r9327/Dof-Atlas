@@ -97,7 +97,8 @@ def unity_skin_stylesheet() -> str:
         # The legacy Guides QSS names these roots explicitly and paints them
         # opaque. Higher-level atlasUnityPage cannot override ID selectors.
         "QWidget#GuidesView, QWidget#GuidesHomePage, "
-        "QWidget#GuidesHomeContent, QWidget#GuidesDetailPage, "
+        "QWidget#GuidesHomeContent, QWidget#GuideLibraryResults, "
+        "QWidget#GuidesDetailPage, "
         "QWidget#GuideLeftPanelContent, QWidget#GuideCenterPanelContent, "
         "QWidget#GuideRightPanelContent { background: transparent; }",
         # Real guide panels remain legible, but they no longer blot out the sky.

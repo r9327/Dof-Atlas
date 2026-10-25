@@ -76,6 +76,31 @@ class GuideLibraryHomeTests(unittest.TestCase):
         visible_ids = {entry.source_id for entry in selected}
         self.assertTrue({2247, 2285, 2290}.isdisjoint(visible_ids))
 
+    def test_unity_catalog_inner_roots_and_featured_card_alpha(self):
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
+            with tempfile.TemporaryDirectory() as directory:
+                view = GuideCatalogView(
+                    lambda _message: None, provider=_Provider(),
+                    quest_progress_path=Path(directory) / "progress.json",
+                    defer_runtime=True,
+                )
+                try:
+                    self.assertEqual(
+                        view.home_scroll.widget().objectName(), "GuidesHomeContent"
+                    )
+                    self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
+                    for card in view.featured_cards.values():
+                        self.assertIn("rgba(27, 39, 70, 0.88)", card.styleSheet())
+                    self.assertIn(
+                        "rgba(27, 39, 70, 0.88)",
+                        view.home_metadata_list.styleSheet(),
+                    )
+                finally:
+                    view.deleteLater()
+                    self.app.processEvents()
+
     def test_two_featured_cards_and_stable_alignment_tree(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:

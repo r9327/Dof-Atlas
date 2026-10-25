@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
+from app.ui.unity_skin import unity_enabled
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
@@ -84,6 +85,7 @@ class GuideCatalogView(QWidget):
         self.home_scroll.setFrameShape(QFrame.NoFrame)
         self.home_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         content = QWidget(self.home_scroll)
+        content.setObjectName("GuidesHomeContent")
         root = QVBoxLayout(content)
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
@@ -146,6 +148,7 @@ class GuideCatalogView(QWidget):
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
 
         self.library_right = QWidget(self)
+        self.library_right.setObjectName("GuideLibraryResults")
         result_layout = QVBoxLayout(self.library_right)
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(6)
@@ -162,11 +165,17 @@ class GuideCatalogView(QWidget):
         # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
         self.home_metadata_list.setAlternatingRowColors(False)
         self.home_metadata_list.setMaximumHeight(148)
+        # Keep the disabled metadata legible; unlike the default opaque Atlas
+        # panel, the optional Unity skin leaves some of the sky visible.
+        metadata_background = (
+            "rgba(27, 39, 70, 0.88)"
+            if unity_enabled() else PALETTE["PANEL"]
+        )
         self.home_metadata_list.setStyleSheet(
-            f"QListWidget#GuideLibraryUnavailableList {{ background: {PALETTE['PANEL']};"
+            f"QListWidget#GuideLibraryUnavailableList {{ background: {metadata_background};"
             f" color: {PALETTE['TEXT_MUTED']}; border: 1px solid {PALETTE['BORDER']}; }}"
             f"QListWidget#GuideLibraryUnavailableList::item {{ padding: 4px 8px;"
-            f" background: {PALETTE['PANEL']}; color: {PALETTE['TEXT_MUTED']}; }}"
+            f" background: {metadata_background}; color: {PALETTE['TEXT_MUTED']}; }}"
             f"QListWidget#GuideLibraryUnavailableList::item:disabled {{"
             f" color: {PALETTE['TEXT_MUTED']}; }}"
         )

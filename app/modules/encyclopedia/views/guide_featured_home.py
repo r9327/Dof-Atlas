@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
-from app.ui.unity_skin import sprite_icon_path
+from app.ui.unity_skin import sprite_icon_path, unity_enabled
 
 
 FEATURED = (
@@ -31,8 +31,14 @@ class FeaturedGuideCard(QFrame):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName(title)
+        # A widget-local stylesheet overrides the global Unity QSS. Keep
+        # the Atlas default unchanged, but give Unity its intended alpha.
+        card_background = (
+            "rgba(27, 39, 70, 0.88)"
+            if unity_enabled() else PALETTE["PANEL_2"]
+        )
         self.setStyleSheet(
-            "#GuideFeaturedCard { background: " + PALETTE["PANEL_2"]
+            "#GuideFeaturedCard { background: " + card_background
             + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
             + "; border-radius: 8px; }"
             "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"

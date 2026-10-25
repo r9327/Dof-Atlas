@@ -102,6 +102,7 @@ class UnitySkinTests(unittest.TestCase):
         for root_name in ("GuidesView", "GuidesHomePage", "GuidesHomeContent", "GuidesDetailPage"):
             self.assertIn(f"QWidget#{root_name}", style)
         self.assertIn("QListView#GuidesHomeDofusGrid", style)
+        self.assertIn("QWidget#GuideLibraryResults", style)
         self.assertIn("border-image: none", style)
         self.assertIn("selection-color: #F1F6FB", style)
         # This final rule must not be masked by the normal/hover sprite rule.
