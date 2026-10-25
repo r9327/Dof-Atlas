@@ -91,8 +91,8 @@ def owners_for(path: str) -> frozenset[str]:
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
         if leaf.startswith(("ci_", "doctor_", "phase_", "atlas_integrity", "atlas_meta",
-                            "meta_integrity", "public_pr_", "security_hardening",
-                            "repository_git", "generated_file")):
+                            "meta_integrity", "main_phase_evidence", "public_pr_",
+                            "security_hardening", "repository_git", "generated_file")):
             return frozenset({"ci"})
         if any(token in leaf for token in ("craft", "memory", "preload")):
             return frozenset({"craft"})
