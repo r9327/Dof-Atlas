@@ -158,6 +158,16 @@ class Phase8MemoryAdvisoryPolicyTests(unittest.TestCase):
         self.assertNotEqual(blocked_craft.returncode, 0)
         self.assertIn("craft_retained_tree_delta_mb", blocked_craft.stderr)
 
+    def test_negative_retained_delta_is_genuine_improvement_not_invalid_rss(self) -> None:
+        payload = metric_payload()
+        payload["metrics"]["craft_retained_tree_delta_mb"] = -0.55
+        result = run_validation(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("craft_retained_tree_delta_mb", result.stdout)
+        payload["metrics"]["craft_retained_tree_delta_mb"] = 2.66
+        blocked = run_validation(payload)
+        self.assertNotEqual(blocked.returncode, 0)
+
     def test_invalid_required_observations_block_even_below_memory_limits(self) -> None:
         for key, value in (("stage", True), ("stage", "90.0"),
                            ("peak", None), ("peak", 0),
