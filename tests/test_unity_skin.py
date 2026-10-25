@@ -98,6 +98,8 @@ class UnitySkinTests(unittest.TestCase):
             self.assertIn(selector, style)
         self.assertIn("rgba(27, 39, 70, 0.78)", style)
         self.assertIn('QWidget[atlasUnityPage="true"]', style)
+        self.assertIn("QPushButton#FeaturedGuideOpen:focus", style)
+        self.assertIn("border-image: none", style)
         self.assertIn("selection-color: #F1F6FB", style)
         # This final rule must not be masked by the normal/hover sprite rule.
         self.assertEqual(

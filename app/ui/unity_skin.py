@@ -192,6 +192,17 @@ def unity_skin_stylesheet() -> str:
         "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
         "border: 2px solid #D9EAF2; }"
     )
+    # ID-specific sprite rules otherwise outrank a generic :focus selector.
+    # A visible focus outline takes priority over decorative border-images.
+    focus_button_names = (
+        "PrimaryActionButton", "primaryButton", "HomeContinueButton",
+        "FeaturedGuideOpen", "SecondaryButton", "secondaryButton",
+        "GuideManualNavButton", "TopNavSettings",
+    )
+    rules.append(
+        ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
+        + " { border: 2px solid #D9EAF2; border-image: none; }"
+    )
     return "\n".join(rules)
 
 
