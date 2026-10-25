@@ -13,7 +13,7 @@ Ce document complète la spécification 06b. Il ne constitue **ni une certificat
 
 ### Sonde locale réelle des cycles Qt (sans GitHub Actions)
 
-Sur Windows, une fois les dépendances **déjà prévues** par le dépôt installées, cette commande ouvre les vrais widgets Encyclopédie/Guides en environnement utilisateur temporaire isolé, clique la carte puis utilise le signal de retour du Guide. Elle répète ce parcours 30 fois, relève le nombre de QWidget et le working set résident Windows (incluant éventuellement des pages partagées), capture trois PNG Qt et écrit un JSON. Elle **ne valide ni l'EXE ni le rendu sur des moniteurs physiques**.
+Sur Windows, une fois les dépendances **déjà prévues** par le dépôt installées, cette commande ouvre les vrais widgets Encyclopédie/Guides en environnement utilisateur temporaire isolé, clique la carte puis le vrai bouton de retour du Guide. Elle répète ce parcours 30 fois, relève le nombre de QWidget et le working set résident Windows (incluant éventuellement des pages partagées), capture trois PNG Qt et écrit un JSON. Elle **ne valide ni l'EXE ni le rendu sur des moniteurs physiques**.
 
 ```powershell
 $env:ATLAS_THEME = "dofus_unity"
@@ -26,7 +26,7 @@ Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
 Remove-Item Env:ATLAS_THEME -ErrorAction SilentlyContinue
 ```
 
-Les captures proviennent de vraies vues Qt, **pas d'une maquette**. L'état écrit `MEASURED_NOT_CERTIFIED` signifie seulement que les cycles ont été exécutés ; il faut examiner les graphiques/valeurs et les vrais affichages Windows. `QT_SCALE_FACTOR` simule la mise à l'échelle Qt en offscreen et ne remplace pas une vérification sur moniteurs 100/125/150 %.
+Les captures proviennent de vraies vues Qt, **pas d'une maquette**. La sonde consigne également la croissance du nombre de QWidget après cinq cycles d'échauffement : si elle dépasse 5, elle rend `WIDGET_GROWTH` et échoue. Les écarts de mémoire restent des mesures à examiner, pas une certification automatique. L'état écrit `MEASURED_NOT_CERTIFIED` signifie seulement que les cycles ont été exécutés ; il faut examiner les graphiques/valeurs et les vrais affichages Windows. `QT_SCALE_FACTOR` simule la mise à l'échelle Qt en offscreen et ne remplace pas une vérification sur moniteurs 100/125/150 %.
 
 Audit d'intégrité des ressources (local et sans Qt/CI) :
 

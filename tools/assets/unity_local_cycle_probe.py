@@ -77,7 +77,7 @@ def run(output: Path, cycles: int) -> dict:
             # Imports must see the temporary isolated user-data root.
             from PySide6.QtCore import QCoreApplication, QEvent, Qt
             from PySide6.QtTest import QTest
-            from PySide6.QtWidgets import QWidget
+            from PySide6.QtWidgets import QWidget, QPushButton
             from shiboken6 import isValid
             from tools.atlas_doctor_lib.doctor_ui_qt import build_scene, settle
             from app.modules.encyclopedia.constants import GUIDES_TAB
@@ -142,10 +142,27 @@ def run(output: Path, cycles: int) -> dict:
                 if idx == 0:
                     screenshot("guide-open")
                 rich = page.guides_view
-                if not hasattr(rich, "catalogRequested"):
-                    raise RuntimeError("Guide missing catalogRequested navigation signal")
-                # Exercise the actual wired signal, not a direct model reset.
-                rich.catalogRequested.emit()
+                # Navigate through the *real* visible back control, not by
+                # artificially emitting catalogRequested from the probe.
+                if guide_id == "guide_complet":
+                    manual = rich.stack.currentWidget()
+                    back = getattr(manual, "guide_button", None)
+                    if back is None or not back.isVisible() or not back.isEnabled():
+                        raise RuntimeError("Guide Ultime back button unavailable")
+                    QTest.mouseClick(back, Qt.LeftButton)
+                    settle()
+                    # If the user browsed away from the active sheet, the
+                    # first click returns to that sheet before leaving.
+                    if page.guides_view is rich:
+                        QTest.mouseClick(back, Qt.LeftButton)
+                else:
+                    back = next((
+                        button for button in rich.findChildren(QPushButton, "GuideBreadcrumbButton")
+                        if button.text() == "Guides" and button.isVisible() and button.isEnabled()
+                    ), None)
+                    if back is None:
+                        raise RuntimeError("Sylvestre breadcrumb back button unavailable")
+                    QTest.mouseClick(back, Qt.LeftButton)
                 if not settle(lambda: isinstance(page.guides_view, GuideCatalogView), timeout=8.0):
                     raise RuntimeError(f"cycle {idx + 1}: catalog return failed")
                 if not page.guides_view._runtime_ready:
@@ -161,7 +178,26 @@ def run(output: Path, cycles: int) -> dict:
                 result["working_set_delta_bytes"] = (
                     samples[-1]["working_set_bytes"] - samples[0]["working_set_bytes"]
                 )
-            result["status"] = "MEASURED_NOT_CERTIFIED"
+            # Compare after initial one-time lazy construction; report an
+            # observed leak instead of automatically declaring every run OK.
+            warmup = min(5, len(samples) - 1)
+            result["widget_growth_after_warmup"] = (
+                samples[-1]["widgets"] - samples[warmup]["widgets"]
+            )
+            result["widget_stability"] = (
+                "PASS" if result["widget_growth_after_warmup"] <= 5 else "FAIL"
+            )
+            if (samples[warmup]["working_set_bytes"] is not None
+                    and samples[-1]["working_set_bytes"] is not None):
+                result["working_set_growth_after_warmup_bytes"] = (
+                    samples[-1]["working_set_bytes"]
+                    - samples[warmup]["working_set_bytes"]
+                )
+            result["status"] = (
+                "MEASURED_NOT_CERTIFIED"
+                if result["widget_stability"] == "PASS"
+                else "WIDGET_GROWTH"
+            )
             page.close()
             page.deleteLater()
             settle()

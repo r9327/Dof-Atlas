@@ -1107,6 +1107,12 @@ class CollapsibleInfoSection(QFrame):
 class GuidesView(QWidget):
     """Catalogue Guides, vue guide et vue quête dans l'onglet Guides."""
 
+    # EncyclopediaPage owns the lightweight catalogue. Its navigation binds
+    # both signals before the rich view is shown; missing signals previously
+    # crashed the first optimized-card click on the full Guide transition.
+    catalogRequested = Signal()
+    achievementRuntimeRequested = Signal()
+
     CATALOG = "CATALOG"
     GUIDE_OVERVIEW = "GUIDE_OVERVIEW"
     QUEST_DETAIL = "QUEST_DETAIL"
@@ -1135,6 +1141,7 @@ class GuidesView(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuidesView")
+        self._catalog_external_owner = False
 
         self.guide_ultime_service: GuideUltimeManualRuntimeService | None = None
         self.guide_ultime_view: GuideUltimeManualView | None = None
@@ -1895,6 +1902,12 @@ class GuidesView(QWidget):
 
 
     def show_home(self) -> None:
+        # The hosting Encyclopedia must dispose the rich page and restore the
+        # one supported compact catalogue; do not expose the legacy rich home.
+        # Standalone GuidesView keeps its historical self-contained behavior.
+        if self._catalog_external_owner:
+            self.catalogRequested.emit()
+            return
         self.current_guide_id = None
         self.current_quest_id = None
         self.state = self.CATALOG

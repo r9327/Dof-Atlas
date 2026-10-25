@@ -1333,6 +1333,7 @@ class EncyclopediaPage(QWidget):
         )
         view.achievementRuntimeRequested.connect(self.request_achievement_warmup)
         view.catalogRequested.connect(self._restore_guides_catalog_home)
+        view._catalog_external_owner = True
         self.guides_view = view
         self.replace_tab_widget(GUIDES_TAB, view)
 

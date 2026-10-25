@@ -101,6 +101,44 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.deleteLater()
                     self.app.processEvents()
 
+    def test_rich_guides_signals_and_external_catalog_navigation(self):
+        from app.modules.encyclopedia.views.guides_view import GuidesView
+
+        # The lazy Encyclopedia wires these Qt signals on the rich GuidesView.
+        # Regression: both were missing, raising AttributeError on first open.
+        self.assertTrue(hasattr(GuidesView, "catalogRequested"))
+        self.assertTrue(hasattr(GuidesView, "achievementRuntimeRequested"))
+
+        requested = []
+        fake = SimpleNamespace(
+            _catalog_external_owner=True,
+            catalogRequested=SimpleNamespace(emit=lambda: requested.append("catalog")),
+        )
+        GuidesView.show_home(fake)
+        self.assertEqual(requested, ["catalog"])
+
+        # Outside Encyclopedia the historical embedded home still works.
+        page = object()
+        switched = []
+        standalone = SimpleNamespace(
+            _catalog_external_owner=False,
+            catalogRequested=SimpleNamespace(emit=lambda: requested.append("wrong")),
+            current_guide_id="guide_complet",
+            current_quest_id=42,
+            state="GUIDE_OVERVIEW",
+            CATALOG="CATALOG",
+            refresh_home=lambda: switched.append("refresh"),
+            stack=SimpleNamespace(setCurrentWidget=switched.append),
+            home_page=page,
+            status_callback=lambda text: switched.append(text),
+        )
+        GuidesView.show_home(standalone)
+        self.assertEqual(standalone.state, "CATALOG")
+        self.assertIsNone(standalone.current_guide_id)
+        self.assertIsNone(standalone.current_quest_id)
+        self.assertIn(page, switched)
+        self.assertEqual(requested, ["catalog"])
+
     def test_two_featured_cards_and_stable_alignment_tree(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:
