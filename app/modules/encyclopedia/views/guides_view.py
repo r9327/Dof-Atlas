@@ -2325,6 +2325,8 @@ class GuidesView(QWidget):
 
     def _configure_detail_layout(self, guide: Guide, quest_detail: bool) -> None:
         if quest_detail:
+            # This toggle controls the classical splitter, not the Quest widget.
+            self.right_panel_toggle.setVisible(False)
             self.detail_stack.setCurrentWidget(self.quest_detail_view)
             return
         self.detail_stack.setCurrentWidget(self.splitter)

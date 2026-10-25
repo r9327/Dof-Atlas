@@ -376,11 +376,27 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         return tuple(self.participant_service.selected_keys())
 
     def _launch_travel_command(self, command: str) -> bool:
+        # A saved selection is not evidence that an identity is still connected.
+        # Only direct, structurally valid /travel commands reach the launcher.
+        # Zaaps require independently verified routing; never infer one here.
+        normalized = str(command or "").strip()
+        eligible = {
+            row.key
+            for row in self.participant_service.available_characters()
+            if bool(row.connected)
+        }
+        recipients = tuple(
+            key for key in self.selected_participant_keys() if key in eligible
+        )
         callback = self.travel_callback
-        if not callable(callback):
-            QApplication.clipboard().setText(command)
+        if (
+            not callable(callback)
+            or not re.fullmatch(r"/travel -?\d+,-?\d+", normalized)
+            or not recipients
+        ):
+            QApplication.clipboard().setText(normalized)
             return False
-        callback(command, self.selected_participant_keys())
+        callback(normalized, recipients)
         return True
 
     def _build_ui(self) -> None:

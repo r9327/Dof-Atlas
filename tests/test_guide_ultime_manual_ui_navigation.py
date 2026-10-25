@@ -307,11 +307,37 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             current_sheet._copy_link_target("travel-copy:1,-1")
             self.assertEqual(
                 calls,
-                [("/travel 1,-1", ("character:1", "character:2"))],
+                [("/travel 1,-1", ("character:1",))],
             )
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
             self.assertTrue(any("participants sélectionnés" in text for text in texts))
+        finally:
+            view.close()
+
+    def test_travel_refuses_unverified_offline_or_empty_recipients(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        sends: list[tuple[str, tuple[str, ...]]] = []
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: sends.append((command, keys)),
+        )
+        try:
+            participants.selected = ["character:2", "character:999"]
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+
+            participants.selected = ["character:1", "character:2", "character:999"]
+            self.assertTrue(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
+
+            self.assertFalse(view._launch_travel_command("/zaap 4,-8"))
+            self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
+            self.assertEqual(QApplication.clipboard().text(), "/zaap 4,-8")
         finally:
             view.close()
 

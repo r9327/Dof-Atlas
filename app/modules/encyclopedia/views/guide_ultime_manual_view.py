@@ -475,8 +475,12 @@ class GuideUltimeManualCard(QFrame):
             return
         travel_callback = getattr(self, "travel_command_callback", None)
         if value.startswith("/travel ") and callable(travel_callback):
-            travel_callback(value)
-            QToolTip.showText(QCursor.pos(), "Déplacement demandé", self)
+            launched = bool(travel_callback(value))
+            QToolTip.showText(
+                QCursor.pos(),
+                "Déplacement demandé" if launched else "Commande copiée",
+                self,
+            )
             QTimer.singleShot(800, QToolTip.hideText)
             return
         QApplication.clipboard().setText(value)
