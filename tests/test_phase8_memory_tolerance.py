@@ -27,6 +27,8 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
         self.assertEqual(classify(2.60, 2.0), "FAIL")
         self.assertEqual(classify(2.05, 2.0), "WARNING")
         self.assertEqual(classify(1.91, 2.0), "PASS")
+        self.assertEqual(classify(-0.55, 2.0), "FAIL")  # Invalid absolute RSS.
+        self.assertEqual(classify(-0.55, 2.0, allow_negative=True), "PASS")
 
     def test_invalid_and_missing_memory_evidence_cannot_pass(self):
         for invalid in (float("nan"), float("inf"), -1.0):
@@ -53,6 +55,7 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
     def test_required_memory_evidence_rejects_coercion_and_missing_values(self):
         self.assertEqual(require_memory_observation(0.0, label="retained"), 0.0)
         self.assertEqual(require_memory_observation(95.0, label="preload", positive=True), 95.0)
+        self.assertEqual(require_memory_observation(-0.55, label="craft_retained_tree_delta_mb", allow_negative=True), -0.55)
         for value in (None, True, False, "0", "95", float("nan"), float("inf"), -1):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 require_memory_observation(value, label="required", positive=True)
@@ -66,12 +69,13 @@ class Phase8MemoryToleranceTests(unittest.TestCase):
         )
         self.assertIn("classify, hard_limit, require_peak_tree_rss, require_memory_observation", workflow)
         self.assertIn("require_memory_observation(row.get(kind)", workflow)
-        self.assertIn("require_memory_observation(metrics.get(metric)", workflow)
+        self.assertIn("require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)", workflow)
+        self.assertIn("classify(measured, budget, allow_negative=True)", workflow)
         self.assertIn("peak_tree = require_peak_tree_rss(metrics, preload_mb=preload_mb)", workflow)
         self.assertNotIn('metrics.get("peak_tree_rss_mb") or 0.0', workflow)
         self.assertIn('preload_status = classify(preload_mb, preload_target_mb)', workflow)
         self.assertIn('peak_hard_limit_mb = hard_limit(peak_target_mb)', workflow)
-        self.assertIn('state = classify(measured, budget)', workflow)
+        self.assertIn('state = classify(measured, budget, allow_negative=True)', workflow)
         self.assertIn('if state == "FAIL":', workflow)
         self.assertIn('if state == "WARNING":', workflow)
         self.assertNotIn('float(metrics[metric])', workflow)
