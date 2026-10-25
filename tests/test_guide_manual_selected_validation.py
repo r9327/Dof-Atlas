@@ -208,7 +208,8 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.view._refresh_participants_panel()
         self.view._refresh_header()
         self.assertEqual(self.view._participant_buttons["character:1"].progress, 0)
-        self.assertEqual(self.view.route_progress_label.text(), "0 / 2")
+        self.assertEqual(self.view.route_progress_label.text(), "0 %")
+        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (0, 2))
         self.assertEqual(self.view.progress_donut._percent, 0)
 
     def test_external_progress_refresh_updates_existing_portrait(self) -> None:
@@ -236,7 +237,8 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
             "character:2", self.service.progress_id, self.service.page_key(second, 1), True,
         )
         self.view.refresh()
-        self.assertEqual(self.view.route_progress_label.text(), "0 / 2")
+        self.assertEqual(self.view.route_progress_label.text(), "0 %")
+        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (0, 2))
         self.assertEqual(self.view.progress_donut._percent, 0)
 
     def test_last_click_refreshes_completed_state_without_reopening_guide(self) -> None:
@@ -251,7 +253,8 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self._show_sheet(1)
         self.view.validation_layout.itemAt(0).widget().click()
         QApplication.processEvents()
-        self.assertEqual(self.view.route_progress_label.text(), "2 / 2")
+        self.assertEqual(self.view.route_progress_label.text(), "100 %")
+        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
         self.assertEqual(self.view.current_button.text(), "Terminé")
         self.assertFalse(self.view.current_button.isEnabled())
         self.assertEqual(
@@ -268,7 +271,8 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
                 True,
             )
         self.view.refresh()
-        self.assertEqual(self.view.route_progress_label.text(), "2 / 2")
+        self.assertEqual(self.view.route_progress_label.text(), "100 %")
+        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
         self.assertFalse(self.view.current_button.isEnabled())
 
 
