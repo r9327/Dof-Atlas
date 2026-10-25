@@ -49,22 +49,31 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci"})
     if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
+    # Shared data APIs are consumed by Craft and Quest/Guide loaders; a file
+    # label alone cannot prove the change is Craft-only. Until a separately
+    # authenticated symbol/call-graph closure exists, retain all consumers.
+    if path == "app/local_data_cache.py":
+        return frozenset({"craft", "quests", "guides", "data"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
+    if path.startswith("app/pages/quest_"):
+        return frozenset({"ui", "quests"})
+    if path.startswith("app/pages/guide_") or path.startswith("app/pages/achievement_"):
+        return frozenset({"ui", "guides"})
     if path.startswith("app/ui/") or path.startswith("app/pages/"):
         return frozenset({"ui"})
     if path.startswith("local_dofus_data/") or path.startswith("data/"):
-        return frozenset({"data", "craft", "quests"})
+        return frozenset({"data", "craft", "quests", "guides"})
     if path.startswith("app/core/") and any(
         token in path for token in ("identity", "character", "json_store", "progress")
     ):
         return frozenset({"identity", "guides"})
     if path in {"main.py", "launch.py", "sitecustomize.py", "requirements-pyside.txt"}:
-        return frozenset({"startup", "ui", "craft", "quests", "guides"})
+        return frozenset({"startup", "ui", "craft", "quests", "guides", "identity", "data"})
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
         if leaf.startswith(("ci_", "doctor_", "phase_", "atlas_integrity", "atlas_meta",
