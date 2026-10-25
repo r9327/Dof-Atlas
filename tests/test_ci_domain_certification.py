@@ -30,7 +30,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(plan["merge_authorized"])
 
     def test_craft_and_policy_changes_require_both_and_not_quests(self):
-        plan = self.route(["app/local_data_cache.py", "tools/ci_scope_gate.py",
+        plan = self.route(["app/pages/craft_page.py", "tools/ci_scope_gate.py",
                            "tests/test_craft_adapter_release.py"])
         self.assertEqual(plan["domains"], ["ci", "craft"])
         self.assertEqual(plan["status"], "READY_TO_EXECUTE")
@@ -38,9 +38,17 @@ class ModularDomainRoutingTests(unittest.TestCase):
 
     def test_real_quest_owner_selects_quests(self):
         self.assertEqual(self.route(["app/quest_catalog.py"])["domains"], ["quests"])
-        self.assertEqual(self.route(["app/pages/quest_page.py"])["domains"], ["ui"])
+        self.assertEqual(self.route(["app/pages/quest_page.py"])["domains"], ["quests", "ui"])
         self.assertEqual(self.route(["main.py"])["domains"],
-                         ["craft", "quests", "guides", "ui", "startup"])
+                         ["craft", "quests", "guides", "ui", "startup", "identity", "data"])
+
+    def test_shared_data_api_requires_all_current_consumers(self):
+        plan = self.route(["app/local_data_cache.py", "tools/ci_scope_gate.py"])
+        self.assertEqual(plan["domains"], ["ci", "craft", "quests", "guides", "data"])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route(["app/pages/guide_page.py"])["domains"], ["guides", "ui"])
+        self.assertEqual(self.route(["local_dofus_data/config.py"])["domains"],
+                         ["craft", "quests", "guides", "data"])
 
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])
