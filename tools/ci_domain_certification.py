@@ -217,8 +217,23 @@ def execute_domain_tests(plan: dict[str, Any], *, root: Path, base_sha: str) -> 
     domains = plan.get("domains")
     if not isinstance(domains, list) or not domains or len(domains) != len(set(domains)):
         raise ValueError("No closed-world domain inventory")
-    # The minimum CI contracts are loaded from the baseline, not a potentially
-    # changed candidate policy; no reduction of the mandatory CI owner list.
+    # Baseline policy and baseline CI contract registry must remain an exact
+    # lower bound even when the PR changes its own candidate routing code.
+    import ast
+    baseline_ci_registry = _git("show", f"{base_sha}:tools/atlas_doctor_lib/ci_tooling_scope.py")
+    parsed = ast.parse(baseline_ci_registry)
+    previous_tests = None
+    for node in parsed.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "TESTS" for target in node.targets
+        ):
+            previous_tests = ast.literal_eval(node.value)
+    if (not isinstance(previous_tests, tuple) or not previous_tests
+            or any(not isinstance(item, str) for item in previous_tests)):
+        raise ValueError("Cannot independently authenticate original CI test registry")
+    from tools.atlas_doctor_lib.ci_tooling_scope import TESTS as candidate_ci_tests
+    if not set(previous_tests) <= set(candidate_ci_tests):
+        raise ValueError("Candidate removed mandatory baseline CI contracts")
     prior = json.loads(_git("show", f"{base_sha}:tools/atlas_integrity_policy.json"))
     if prior.get("schema_version") != 1:
         raise ValueError("Unrecognized baseline policy")
@@ -228,6 +243,11 @@ def execute_domain_tests(plan: dict[str, Any], *, root: Path, base_sha: str) -> 
     module_names: set[str] = set()
     if "ci" in domains:
         module_names.update(base_ci)
+        for name in previous_tests:
+            path = root / "tests" / ("test_" + name + ".py")
+            if not path.is_file() or path.is_symlink():
+                raise ValueError("Missing baseline CI module: " + name)
+            module_names.add("tests.test_" + name)
     for domain in domains:
         if domain == "metadata":
             continue
