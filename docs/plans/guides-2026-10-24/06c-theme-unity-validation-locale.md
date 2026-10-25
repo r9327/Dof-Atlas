@@ -45,26 +45,56 @@ l'installateur/EXE, ni les workflows CI. Le lanceur a été testé sur un
 dépôt synthétique propre et deux cas d'échec contrôlés ; ce succès de fixture
 n'est pas un verdict du code Atlas complet.
 
+## Fond source authentique — audit local du 25 octobre 2026
+
+L'archive originale fournie a été retrouvée et vérifiée **hors CI**.
+Le fond PNG 1919×1079 correspond exactement au SHA-256
+`3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb`.
+Les 46 sprites, le logo de référence et les 10 TTF ont pu être relus depuis
+l'archive d'assets : **48 PNG ont des chunks/CRC valides**, et les 10 fichiers
+de police ont une signature TrueType valide. Il s'agit d'un audit
+d'intégrité local, **pas d'une revue des licences**.
+
+Constat important sur la capture : les trois icônes partagent un fond sombre
+continu, collé **aux bords supérieur et droit** du PNG. Les trois
+rectangles intérieurs proposés initialement ne conviennent pas : ils laissent
+le fond sombre et la troisième icône en bord d'image. Le réparateur accepte
+désormais la zone commune exacte du PNG dont le SHA est vérifié :
+
+```powershell
+py -3.13 -m tools.assets.clean_unity_wallpaper --corner-toolbar --preview artifacts/unity-mask-review.png
+```
+
+Ce mode emploie le rectangle contrôlé `(1818, 0, 101, 39)` et une
+interpolation **depuis les bords gauche et bas seulement**, car les deux
+autres bords ne possèdent pas de pixels voisins. L'exécution locale sur
+la vraie capture a réussi : seule la zone `(1818, 0)–(1919, 39)` change,
+l'original reste inchangé. Le résultat est une **référence locale**,
+non distribuée via Git ou l'EXE, et doit encore être jugé visuellement
+sur le poste cible. Les tests Python, y compris le rectangle de bord
+sur ciel synthétique, sont au vert (5 tests).
+
 ## Nettoyage local du fond Unity (sans modifier l'original)
 
 Le réparateur `tools/assets/clean_unity_wallpaper.py` (Pillow déjà épinglé
 dans les dépendances Windows) est prêt et testé sur un ciel synthétique avec
-trois icônes artificielles. Il exige **trois rectangles relevés sur la vraie
-capture**, contrôlés pour rester en haut à droite, et confirme le SHA-256
+trois icônes artificielles. Il accepte soit **une zone de bandeau en
+coin**, soit trois masques intérieurs, et confirme le SHA-256
 canonique de la capture 1919×1079 avant toute opération. Il reconstruit
 localement le ciel à partir des quatre bords de chaque zone, sans toucher
 aux pixels en dehors des zones ni au PNG d'origine.
 
-Pour sélectionner les trois icônes **sans relever leurs coordonnées à
-la main**, depuis la racine du dépôt Windows, exécuter :
+Pour ajuster manuellement le bandeau de coin par glisser-déposer,
+depuis la racine du dépôt Windows, exécuter :
 
 ```powershell
 py -3.13 -m tools.assets.clean_unity_wallpaper --interactive --preview artifacts/unity-mask-review.png
 ```
 
 Une fenêtre ouvre la zone supérieure droite de la capture à résolution
-native. Glisser trois rectangles précis sur les icônes, utiliser « Annuler
-la dernière zone » si besoin, puis « Valider les 3 zones ». La fenêtre
+native. Glisser **un rectangle englobant tout le bandeau** jusqu'aux
+bords supérieur et droit, ou trois rectangles intérieurs, puis valider.
+La fenêtre
 refuse une sélection hors limites ou chevauchante ; « Quitter sans
 enregistrer » ne génère aucun dérivé. Le mode console avec trois `--box
 x,y,w,h` reste disponible pour la reproduction exacte de la retouche.

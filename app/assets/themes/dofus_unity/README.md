@@ -14,3 +14,10 @@ Le script local `py -3.13 -m tools.assets.clean_unity_wallpaper` prépare
 une version dérivée non destructive quand les trois rectangles exacts sont
 relevés. Ce PNG dérivé reste une **référence locale non redistribuable**
 jusqu'à décision sur les droits. Voir `06c-theme-unity-validation-locale.md`.
+
+**Fond vérifié sur les octets d'origine :** le bandeau des trois icônes
+touche le coin haut droit. Utiliser la commande locale
+`py -3.13 -m tools.assets.clean_unity_wallpaper --corner-toolbar`
+pour générer `background_selection_clean.png` sans modifier l'original.
+Ce dérivé est ignoré par Git et exclu des distributions ; l'audit
+d'intégrité n'établit aucune licence de redistribution.

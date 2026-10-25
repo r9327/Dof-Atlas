@@ -1,8 +1,10 @@
 """Create a local-only, non-destructive DOFUS Unity background without 3 HUD icons.
 
-Identify and enter THREE bounding boxes (x,y,width,height) covering the icons
-in the top-right of the 1919x1079 original. The algorithm reconstructs the
-sky from all four edges of each box; review the result visually before using.
+On the SHA-256 verified 1919x1079 original, --corner-toolbar removes the
+continuous three-button HUD strip at the top-right image edges. Otherwise
+select one edge-aligned toolbar box or three interior icon boxes. An interior
+box interpolates four edges; a corner box extrapolates left/bottom sky.
+Always inspect the local result; it is never approved for redistribution.
 
 This tool never modifies the source and never grants publication rights.
 """
@@ -17,6 +19,9 @@ from PIL import Image, ImageDraw
 _ASSETS = Path(__file__).resolve().parents[2] / "app/assets/themes/dofus_unity"
 SOURCE_SHA256 = "3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb"
 SOURCE_SIZE = (1919, 1079)
+# Measured on the SHA-256 verified original; includes all three buttons AND
+# the continuous dark backing strip flush with the top/right PNG edges.
+SOURCE_CORNER_TOOLBAR = (1818, 0, 101, 39)
 
 
 def parse_box(value: str) -> tuple[int, int, int, int]:
@@ -31,8 +36,17 @@ def parse_box(value: str) -> tuple[int, int, int, int]:
 
 def validate_boxes(size: tuple[int, int], boxes: list[tuple[int, int, int, int]]) -> None:
     width, height = size
+    # The original's three buttons share ONE backing strip at the top-right
+    # corner. Three separate interior masks leave that backing strip behind.
+    if len(boxes) == 1:
+        x, y, w, h = boxes[0]
+        if not (x >= round(width * 0.7) and y == 0 and x > 0
+                and x + w == width and 1 <= w <= width // 4
+                and 1 <= h <= height // 8 and h < height):
+            raise ValueError("single toolbar box must cover the top-right edge")
+        return
     if len(boxes) != 3:
-        raise ValueError("exactly three icon boxes required")
+        raise ValueError("use three interior boxes or one complete corner toolbar")
     for i, (x, y, w, h) in enumerate(boxes):
         if not (x >= round(width * 0.60) and y <= round(height * 0.35)):
             raise ValueError(f"box {i + 1} is not in the upper-right area")
@@ -53,6 +67,19 @@ def repair_sky(source: Image.Image, boxes: list[tuple[int, int, int, int]]) -> I
     src = original.load()
     dst = edited.load()
     for x, y, w, h in boxes:
+        if y == 0 and x + w == original.width:
+            # At the image's top/right borders there are NO pixels above or
+            # to the right to sample. A two-edge Coons extrapolation uses the
+            # uninterrupted sky just left/below the *whole* HUD strip.
+            corner = src[x - 1, h]
+            for iy in range(h):
+                left = src[x - 1, iy]
+                for ix in range(w):
+                    below = src[x + ix, h]
+                    rgb = tuple(max(0, min(255, left[c] + below[c] - corner[c]))
+                                for c in range(3))
+                    dst[x + ix, iy] = (*rgb, src[x + ix, iy][3])
+            continue
         corners = (
             src[x - 1, y - 1], src[x + w, y - 1],
             src[x - 1, y + h], src[x + w, y + h],
@@ -100,9 +127,9 @@ def select_boxes_interactively(image: Image.Image) -> list[tuple[int, int, int, 
     crop = image.crop((xoff, yoff, width, round(height * 0.40))).convert("RGB")
     cw, ch = crop.size
     window = tk.Tk()
-    window.title("DOFUS Unity - sélectionner les trois icônes (local uniquement)")
+    window.title("DOFUS Unity - sélectionner le bandeau en coin (local uniquement)")
     window.resizable(False, False)
-    info = tk.Label(window, text="Glisser une zone autour de chaque icône (3 au total). Annuler la dernière zone si besoin.")
+    info = tk.Label(window, text="Encadrer le bandeau entier en coin (1 zone), ou choisir 3 zones intérieures.")
     info.pack(padx=12, pady=(12, 4))
     canvas = tk.Canvas(window, width=cw, height=ch, highlightthickness=1, highlightbackground="#555")
     canvas.pack(padx=12, pady=4)
@@ -168,10 +195,10 @@ def select_boxes_interactively(image: Image.Image) -> list[tuple[int, int, int, 
     buttons = tk.Frame(window)
     buttons.pack(pady=(5, 12))
     tk.Button(buttons, text="Annuler la dernière zone", command=undo).pack(side="left", padx=6)
-    tk.Button(buttons, text="Valider les 3 zones", command=finish).pack(side="left", padx=6)
+    tk.Button(buttons, text="Valider 1 bandeau / 3 zones", command=finish).pack(side="left", padx=6)
     tk.Button(buttons, text="Quitter sans enregistrer", command=window.destroy).pack(side="left", padx=6)
     window.mainloop()
-    if len(result) != 3:
+    if len(result) not in (1, 3):
         raise ValueError("sélection annulée ; aucun PNG produit")
     return result
 
@@ -185,15 +212,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=_ASSETS / "background_selection_original.png")
     parser.add_argument("--output", type=Path, default=_ASSETS / "background_selection_clean.png")
-    parser.add_argument("--interactive", action="store_true", help="select three icons on the original image")
+    parser.add_argument("--interactive", action="store_true", help="select complete corner strip on original image")
+    parser.add_argument("--corner-toolbar", action="store_true", help="use reviewed HUD strip bounds for verified original")
     parser.add_argument("--box", dest="boxes", type=parse_box, action="append", default=[],
-                        help="bounding box x,y,width,height; repeat exactly 3 times")
+                        help="one entire top-right strip or three interior icon boxes")
     parser.add_argument("--preview", type=Path, help="optional separate PNG with red outlines before repair")
     args = parser.parse_args()
-    if args.interactive and args.boxes:
-        parser.error("choose either --interactive or --box, not both")
-    if not args.interactive and len(args.boxes) != 3:
-        parser.error("specify three --box coordinates or use --interactive")
+    if sum(bool(value) for value in (args.interactive, args.corner_toolbar, args.boxes)) != 1:
+        parser.error("choose --corner-toolbar, --interactive or --box")
+    if args.corner_toolbar:
+        args.boxes = [SOURCE_CORNER_TOOLBAR]
+    if not args.interactive and len(args.boxes) not in (1, 3):
+        parser.error("use one full-edge toolbar --box or three icon --box values")
     if args.source.resolve() == args.output.resolve():
         parser.error("output must not overwrite the original")
     if args.preview and args.preview.resolve() in {args.source.resolve(), args.output.resolve()}:

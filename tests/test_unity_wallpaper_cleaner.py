@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 from PIL import Image, ImageDraw
 
-from tools.assets.clean_unity_wallpaper import parse_box, repair_sky, validate_boxes, canvas_box, main
+from tools.assets.clean_unity_wallpaper import parse_box, repair_sky, validate_boxes, canvas_box, main, SOURCE_CORNER_TOOLBAR
 
 
 class WallpaperCleanerTests(unittest.TestCase):
@@ -47,6 +47,24 @@ class WallpaperCleanerTests(unittest.TestCase):
                     main()
             self.assertEqual(raised.exception.code, 2)
             self.assertFalse(output.exists())
+
+    def test_top_right_single_toolbar_including_both_borders(self):
+        width, height = 300, 150
+        original = Image.new("RGB", (width, height))
+        pix = original.load()
+        for y in range(height):
+            for x in range(width):
+                pix[x, y] = (x // 2, y // 2 + 30, 100)
+        changed = original.copy()
+        # The complete dark background of all three icons touches two edges.
+        ImageDraw.Draw(changed).rectangle((260, 0, 299, 17), fill=(0, 0, 0))
+        repaired = repair_sky(changed, [(260, 0, 40, 18)])
+        self.assertEqual(repaired.getpixel((280, 8))[:3], original.getpixel((280, 8)))
+        self.assertEqual(repaired.getpixel((299, 0))[:3], original.getpixel((299, 0)))
+        self.assertEqual(repaired.getpixel((259, 8)), changed.convert("RGBA").getpixel((259, 8)))
+        self.assertEqual(changed.getpixel((280, 8)), (0, 0, 0))
+        with self.assertRaises(ValueError):
+            validate_boxes((300, 150), [(259, 0, 40, 18)])
 
     def test_invalid_areas_and_coordinates_rejected(self):
         with self.assertRaises(ValueError):
