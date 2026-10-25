@@ -297,9 +297,9 @@ jobs:
           for metric, budget in retained_budgets_mb.items():
               # The original limit is still the target. Do not silently label
               # tolerated overshoot as PASS or widen the tolerance beyond 5%.
-              measured = require_memory_observation(metrics.get(metric), label=metric)
+              measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)
               limit = hard_limit(budget)
-              state = classify(measured, budget)
+              state = classify(measured, budget, allow_negative=True)
               if state == "FAIL":
                   raise SystemExit(
                       f"retained memory tolerance exceeded for {metric}: "
