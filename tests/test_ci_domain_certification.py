@@ -102,6 +102,68 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertIn('full_suite_executed', enforce)
         self.assertIn('merge_authorized', enforce)
 
+    def test_domain_executor_rejects_failed_skipped_and_missing_tests(self):
+        import json
+        import sys
+        import types
+        from pathlib import Path
+        from tools import ci_domain_certification as domain
+        base_policy = json.dumps({
+            "schema_version": 1,
+            "groups": {"CI_INTEGRITY": {"modules": ["tests.test_doctor_ci_orchestrator"]}},
+        })
+        def git(*args):
+            if args == ("rev-parse", "HEAD"):
+                return H
+            if args == ("show", f"{B}:tools/atlas_integrity_policy.json"):
+                return base_policy
+            if args == ("show", f"{B}:tools/atlas_doctor_lib/ci_tooling_scope.py"):
+                return 'TESTS = ("doctor_ci_orchestrator",)'
+            raise AssertionError("Unanticipated Git trust input: " + str(args))
+        plan = self.route(["app/pages/craft_page.py"])
+        for behavior in ("ok", "skipped", "failure"):
+            module = types.ModuleType("atlas_domain_mock_case")
+            def do_test(self, kind=behavior):
+                if kind == "skipped":
+                    self.skipTest("Mandatory testcase was skipped")
+                if kind == "failure":
+                    self.fail("Intentional mandatory test failure")
+                self.assertTrue(True)
+            case = type("Fixture", (unittest.TestCase,), {"test_domain": do_test})
+            case.__module__ = module.__name__
+            module.Fixture = case
+            with self.subTest(behavior=behavior), \
+                 patch.dict(sys.modules, {module.__name__: module}), \
+                 patch.object(domain, "_git", side_effect=git), \
+                 patch.object(domain, "_module_sources", return_value=[module.__name__]):
+                evidence = domain.execute_domain_tests(plan, root=Path(__file__).resolve().parents[1], base_sha=B)
+                self.assertEqual(evidence["tests_run"], 1)
+                self.assertFalse(evidence["phase_certified"])
+                self.assertFalse(evidence["merge_authorized"])
+                self.assertFalse(evidence["full_suite_executed"])
+                status = "PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED" if behavior == "ok" else "BLOCKED"
+                self.assertEqual(evidence["status"], status)
+
+    def test_executor_cannot_remove_existing_baseline_ci_contracts(self):
+        import json
+        from pathlib import Path
+        from tools import ci_domain_certification as domain
+        policy = json.dumps({"schema_version": 1, "groups": {
+            "CI_INTEGRITY": {"modules": ["tests.test_doctor_ci_orchestrator"]}}})
+        def git(*args):
+            if args == ("rev-parse", "HEAD"):
+                return H
+            if args == ("show", f"{B}:tools/atlas_doctor_lib/ci_tooling_scope.py"):
+                return 'TESTS = ("legacy_mandatory_dropped",)'
+            if args == ("show", f"{B}:tools/atlas_integrity_policy.json"):
+                return policy
+            raise AssertionError("Unexpected baseline provenance request")
+        with patch.object(domain, "_git", side_effect=git), self.assertRaisesRegex(
+            ValueError, "Candidate removed mandatory baseline CI contracts"
+        ):
+            domain.execute_domain_tests(self.route(["tools/ci_scope_gate.py"]),
+                                        root=Path(__file__).resolve().parents[1], base_sha=B)
+
     def test_a_metadata_only_diff_is_not_application_certification(self):
         plan = self.route(["docs/readme.md", ".ai/context_index.json"])
         self.assertEqual(plan["domains"], ["metadata"])
