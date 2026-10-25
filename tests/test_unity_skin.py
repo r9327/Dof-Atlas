@@ -13,7 +13,10 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from app.ui import unity_skin
-from app.ui.unity_skin import UNITY_PALETTE, unity_enabled, unity_skin_stylesheet, sprite_icon_path, UnityBackdrop
+from app.ui.unity_skin import (
+    UNITY_PALETTE, UnityBackdrop, unity_enabled, unity_skin_stylesheet,
+    sprite_icon_path, wallpaper_path,
+)
 
 
 class UnitySkinTests(unittest.TestCase):
@@ -67,6 +70,42 @@ class UnitySkinTests(unittest.TestCase):
                 backdrop.close()
                 backdrop.deleteLater()
                 self.app.processEvents()
+
+    def test_clean_wallpaper_has_priority_without_mutating_original(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            asset_dir = Path(directory)
+            original = asset_dir / "background_selection_original.png"
+            cleaned = asset_dir / "background_selection_clean.png"
+            original.write_bytes(b"unchanged-original")
+            with patch.object(unity_skin, "_ASSETS", asset_dir):
+                with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
+                    self.assertIsNone(wallpaper_path())
+                with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
+                    self.assertEqual(wallpaper_path(), original)
+                    cleaned.write_bytes(b"approved-derived-image")
+                    self.assertEqual(wallpaper_path(), cleaned)
+                    self.assertEqual(original.read_bytes(), b"unchanged-original")
+                    cleaned.unlink()
+                    self.assertEqual(wallpaper_path(), original)
+
+    def test_global_widget_families_and_focus_stay_themable(self) -> None:
+        with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
+            style = unity_skin_stylesheet()
+        for selector in (
+            "QTreeWidget", "QTabWidget::pane", "QToolTip", "QProgressBar",
+            "QTableView", "QPlainTextEdit", "QHeaderView::section",
+        ):
+            self.assertIn(selector, style)
+        self.assertIn("rgba(27, 39, 70, 0.78)", style)
+        self.assertIn('QWidget[atlasUnityPage="true"]', style)
+        self.assertIn("selection-color: #F1F6FB", style)
+        # This final rule must not be masked by the normal/hover sprite rule.
+        self.assertEqual(
+            style.rfind("QPushButton:focus"),
+            style.rfind("QPushButton:focus, QToolButton:focus"),
+        )
+        with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
+            self.assertEqual(unity_skin_stylesheet(), "")
 
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])

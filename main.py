@@ -1729,6 +1729,8 @@ class AtlasWindow(QMainWindow):
 
     def loading_page(self, name: str) -> QWidget:
         page = QWidget()
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(8, 6, 8, 8)
         title = AtlasPageTitle(name)
@@ -1740,6 +1742,9 @@ class AtlasWindow(QMainWindow):
         return page
 
     def register_page(self, name: str, page: QWidget) -> int:
+        # The shell paints the wallpaper once; page roots must not hide it.
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         index = self.stack.addWidget(page)
         self.page_indexes[name] = index
         self.page_widgets[name] = page
@@ -1896,6 +1901,8 @@ class AtlasWindow(QMainWindow):
         page = factory()
         if page is None:
             return None
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         self.page_factories.pop(name, None)
         self.stack.insertWidget(index, page)
         if old_page is not None and self.stack.currentWidget() is old_page:

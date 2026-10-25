@@ -44,8 +44,18 @@ def unity_enabled() -> bool:
 
 
 def wallpaper_path() -> Path | None:
-    candidate = _ASSETS / "background_selection_original.png"
-    return candidate if unity_enabled() and candidate.is_file() else None
+    """Prefer a separately prepared, non-destructive image over the reference.
+
+    Neither asset is part of the public App export without redistribution rights.
+    The original is never edited at runtime or overwritten by Atlas.
+    """
+    if not unity_enabled():
+        return None
+    for name in ("background_selection_clean.png", "background_selection_original.png"):
+        candidate = _ASSETS / name
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _sprite_url(filename: str) -> str | None:
@@ -81,9 +91,31 @@ def unity_skin_stylesheet() -> str:
         "QWidget#AtlasUnityBackdrop { background: transparent; }",
         "QStackedWidget#AtlasUnityStack, QWidget#HomePage, "
         "QWidget#EncyclopediaPage, QWidget#organizerPage, "
-        "QWidget#PlaceholderPage, QWidget#SettingsPage { background: transparent; }",
+        "QWidget#worldScanPage, QWidget#QuestsPage, "
+        "QWidget#PlaceholderPage, QWidget#SettingsPage, "
+        "QWidget[atlasUnityPage=\"true\"] { background: transparent; }",
         "QScrollArea { background: rgba(21, 29, 50, 0.35); border: none; }",
         "QScrollArea > QWidget > QWidget { background: transparent; }",
+        # Shared widget families, never changes their existing geometry or actions.
+        "QGroupBox, QTabWidget::pane { "
+        "background: rgba(27, 39, 70, 0.78); color: #F1F6FB; "
+        "border: 1px solid #475F89; border-radius: 6px; }",
+        "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
+        "background: rgba(21, 32, 59, 0.92); color: #F1F6FB; "
+        "alternate-background-color: rgba(33, 49, 84, 0.88); "
+        "selection-background-color: #344978; selection-color: #F1F6FB; "
+        "border: 1px solid #475F89; }",
+        "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
+        "color: #F1F6FB; border: 1px solid #475F89; }",
+        "QTabBar::tab { background: rgba(25, 38, 75, 0.93); "
+        "color: #D9EAF2; border: 1px solid #475F89; }",
+        "QTabBar::tab:hover { background: #2C3C69; }",
+        "QTabBar::tab:selected { color: #F1F6FB; background: #344978; }",
+        "QToolTip { background: #192657; color: #F1F6FB; "
+        "border: 1px solid #7B9BC8; padding: 4px; }",
+        "QProgressBar { background: rgba(21, 32, 59, 0.85); "
+        "color: #F1F6FB; border: 1px solid #475F89; "
+        "text-align: center; }",
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
@@ -95,11 +127,11 @@ def unity_skin_stylesheet() -> str:
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
         "border: 1px solid #617CA6; }",
-        "QLineEdit, QComboBox, QSpinBox, QTextEdit { "
+        "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
+        "QPlainTextEdit { "
         "background: rgba(20, 29, 55, 0.96); color: #F1F6FB; "
         "border: 1px solid #617CA6; }",
-        "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
-        "QComboBox:focus, QLineEdit:focus { border: 2px solid #D9EAF2; }",
+        # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
         'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
     ]
@@ -141,13 +173,6 @@ def unity_skin_stylesheet() -> str:
         "QPushButton#TopNavSettings",
         "btn_green_small", 6,
     )
-    for pseudo, name in (
-        ("", "btn_arrow_pagination_normal.png"),
-        (":hover", "btn_arrow_pagination_over.png"),
-        (":pressed", "btn_arrow_pagination_pressed.png"),
-        (":disabled", "btn_arrow_pagination_disabled.png"),
-    ):
-        add_border("QPushButton#GuideManualNavButton" + pseudo, name, 5)
     normal = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_normal-png.png")
     checked = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_selected-png.png")
     if normal and checked:
@@ -161,6 +186,12 @@ def unity_skin_stylesheet() -> str:
             'QTabBar::tab:selected { border: 6px solid transparent;'
             f' border-image: url("{selected_tab}") 6 6 6 6 stretch stretch; }}'
         )
+    # Keep keyboard focus visible even when the button has a border-image.
+    rules.append(
+        "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
+        "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
+        "border: 2px solid #D9EAF2; }"
+    )
     return "\n".join(rules)
 
 
