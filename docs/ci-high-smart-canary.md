@@ -151,3 +151,42 @@ This is a source-level hypothesis **not a proven memory fix** until a fresh
 real Windows benchmark reports `craft_retained_tree_delta_mb <= 2.10 MB`.
 If the delta remains elevated, investigate Qt/native allocations and imported
 modules rather than adjusting the budget or faking release evidence.
+
+
+## Modular PR certification: no application-wide FULL_SUITE on PRs
+
+On a PR, Doctor now distinguishes `execution_mode=PR_DOMAIN_MODULES` from
+the historical `phase_route=FULL` risk classification. That old risk marker
+does **not** mean the PR will run a monolithic FULL. The Phase job
+`Phase Certification / Domain or Release Validation` executes
+`tools.ci_domain_certification --execute` for exact-SHA owner domains.
+The actual `Run full Atlas phase certification gate` step is skipped for PRs.
+A release/push/explicit manual run still retains the old independent FULL
+while the release baseline contract is migrated separately.
+
+The independent selector is closed-world and has distinct owners for CI/trust,
+Craft, Quests, Guides, UI, startup, identity and data; the PR's documentation
+or title cannot downscope it. A tooling-only PR selects only CI contracts,
+and a CI+Craft PR selects those two owners rather than replaying every Guide
+and Quest unittest. Deleted/renamed files, unowned code, absent baseline CI
+modules, or changed routing that removes previous mandatory CI tests
+**BLOCK** rather than automatically skipping a consumer or making a fake PASS.
+
+The Windows domain runner compares exact candidate/base SHAs, uses the
+immutable base version of the CI policy and baseline test registry, discovers
+all mapped modules plus **every modified test file**, records all terminal
+test identities, and refuses skipped, failed, missing, or duplicated test
+results. Its `domain_test_evidence.json` is **not** a release certificate;
+the GitHub host verifies the real domain step, successful final Phase job
+verdict, absence of FULL execution and independently successful Public PR /
+Safe Validation (which checks all Doctor-selected specialist results).
+The independent merge policy distinguishes the new status
+`PASS_DOMAINS_AUTHENTICATED_NOT_PHASE_RELEASE` from
+`PASS_FULL_AUTHENTICATED`.
+
+Caution: this is a structural cutover on the PR branch, **not yet a verified
+domain-certification CI run**. The first Ready run must confirm the new tests,
+timings and cross-domain coverage. The Phase/release frozen Guide baseline
+still requires its own release certification on main and has not been weakened.
+There is no claim of automatic cross-SHA evidence equivalence or an enabled
+server-side branch ruleset.
