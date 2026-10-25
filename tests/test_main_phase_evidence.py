@@ -43,7 +43,7 @@ def jobs(*, failed_step=None, skipped_full=False):
     return {
         "total_count": 1,
         "jobs": [{
-            "name": "Phase Certification / Full Validation",
+            "name": "Phase Certification / Domain or Release Validation",
             "head_sha": SHA,
             "status": "completed",
             "conclusion": "success",

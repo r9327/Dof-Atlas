@@ -137,11 +137,14 @@ class _PreparationNeed:
     item_id: int | None
     name: str
     category: str
-    required_by_character: tuple[tuple[str, int], ...]
+    required_by_character: tuple[tuple[str, int | None], ...]
+    confidence_by_character: tuple[tuple[str, str], ...] = ()
+    sources: tuple[str, ...] = ()
 
     @property
-    def required_total(self) -> int:
-        return sum(quantity for _key, quantity in self.required_by_character)
+    def required_total(self) -> int | None:
+        values = [quantity for _key, quantity in self.required_by_character]
+        return sum(values) if all(value is not None for value in values) else None
 
 
 class _GuideProgressDonut(QWidget):
@@ -149,12 +152,12 @@ class _GuideProgressDonut(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._percent = 0
+        self._percent: int | None = None
         self.setObjectName("GuideCompactDonut")
         self.setFixedSize(66, 66)
 
-    def set_percent(self, value: int) -> None:
-        value = max(0, min(100, int(value)))
+    def set_percent(self, value: int | None) -> None:
+        value = None if value is None else max(0, min(100, int(value)))
         if value == self._percent:
             return
         self._percent = value
@@ -171,9 +174,11 @@ class _GuideProgressDonut(QWidget):
         painter.drawArc(ring, 0, 360 * 16)
         pen.setColor(self.palette().highlight().color())
         painter.setPen(pen)
-        painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
+        if self._percent is not None:
+            painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
         painter.setPen(self.palette().text().color())
-        painter.drawText(self.rect(), Qt.AlignCenter, f"{self._percent} %")
+        painter.drawText(self.rect(), Qt.AlignCenter,
+                         f"{self._percent} %" if self._percent is not None else "—")
 
 
 class _ParticipantPortraitButton(QToolButton):
@@ -183,12 +188,12 @@ class _ParticipantPortraitButton(QToolButton):
         self,
         character_key: str,
         *,
-        progress: int,
+        progress: int | None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.character_key = str(character_key)
-        self.progress = max(0, min(100, int(progress)))
+        self.progress = None if progress is None else max(0, min(100, int(progress)))
         self.setObjectName("GuideParticipantPortrait")
         self.setCheckable(True)
         self.setFixedSize(42, 42)
@@ -207,11 +212,12 @@ class _ParticipantPortraitButton(QToolButton):
         pen = QPen(color, 3)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
-        painter.drawArc(
-            self.rect().adjusted(2, 2, -2, -2),
-            90 * 16,
-            -round(360 * 16 * self.progress / 100),
-        )
+        if self.progress is not None:
+            painter.drawArc(
+                self.rect().adjusted(2, 2, -2, -2),
+                90 * 16,
+                -round(360 * 16 * self.progress / 100),
+            )
 
 
 class SharedGuideManualCard(GuideUltimeManualCard):
@@ -227,6 +233,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         *,
         travel_command_callback=None,
         show_header_title: bool = True,
+        page_validation_callback=None,
     ) -> None:
         QFrame.__init__(self, parent)
         self.service = service
@@ -344,7 +351,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.page_check.setCheckable(True)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
         self.page_check.setEnabled(not automatic and not blocking)
-        if not automatic and not blocking:
+        if page_validation_callback is not None:
+            # Shared Guide owns selection-aware writes; do not also write to the
+            # fallback global character through the legacy card handler.
+            self.page_check.toggled.connect(page_validation_callback)
+        elif not automatic and not blocking:
             self.page_check.setToolTip(
                 "Valider cette fiche. La progression automatique reste prioritaire lorsqu’Atlas dispose de la preuve."
             )
@@ -811,7 +822,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
+        self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
         self._preparation_loaded = False
+        self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -1018,7 +1031,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         filters.setSpacing(5)
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Métiers", "Potions", "Objets"):
+        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
             button = QPushButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
@@ -1127,7 +1140,25 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
 
+    def _participant_source_signature(self) -> tuple[object, ...]:
+        from app.pages.quest_character_cache import quest_character_source_signature
+
+        service = self.participant_service
+        profile_path = getattr(service, "profile_path", None)
+        client_index_path = getattr(service, "client_index_path", None)
+        binding_path = getattr(service, "binding_path", None)
+        if any(path is None for path in (profile_path, client_index_path, binding_path)):
+            # Some in-memory participant providers expose no files. Never
+            # guess a source signature or turn their absence into a UI crash.
+            return ("in_memory_participants", id(service))
+        return quest_character_source_signature(
+            profile_path,
+            client_index_path,
+            binding_path=binding_path,
+        )
+
     def _refresh_participants_panel(self) -> None:
+        self._last_participant_source_signature = self._participant_source_signature()
         while self.participants_layout.count():
             item = self.participants_layout.takeAt(0)
             widget = item.widget()
@@ -1150,11 +1181,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 button.setIcon(
                     button.style().standardIcon(QStyle.SP_DirHomeIcon)
                 )
-            status = "en ligne" if character.connected else "hors ligne"
-            button.setToolTip(
-                f"{character.label} · {class_label or 'classe inconnue'} · "
-                f"{progress} % · {status}"
-            )
+            button.setProperty("guideClassLabel", class_label)
+            button.setToolTip(self._participant_tooltip(character, class_label, progress))
             button.setAccessibleName(character.label)
             button.toggled.connect(
                 lambda checked, key=character.key: self._participant_toggled(key, checked)
@@ -1171,33 +1199,51 @@ class SharedGuideManualView(GuideUltimeManualView):
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
 
+    @staticmethod
+    def _participant_tooltip(character, class_label: str, progress: int | None) -> str:
+        status = "en ligne" if character.connected else "hors ligne"
+        progress_label = f"{progress} %" if progress is not None else "progression inconnue"
+        return (
+            f"{character.label} · {class_label or 'classe inconnue'} · "
+            f"{progress_label} · {status}"
+        )
+
+    def _refresh_participant_progress(self) -> None:
+        """Refresh external progress without rebuilding portrait widgets."""
+        for character in self.participant_service.available_characters():
+            button = self._participant_buttons.get(character.key)
+            if button is None:
+                continue
+            progress = self._participant_progress(character.key)
+            if button.progress != progress:
+                button.progress = progress
+                button.update()
+            class_label = str(button.property("guideClassLabel") or "")
+            button.setToolTip(self._participant_tooltip(character, class_label, progress))
+
     def _participant_icon(self, character) -> tuple[str, str]:
-        try:
-            from app.pages.organizer.common import (
-                DOFUS_CLASS_DEFINITIONS,
-                class_icon_path_for_window_name,
-                dofus_class_key_for_character_name,
-                dofus_class_key_from_window_name,
-            )
+        """Render portraits from the verified identity, never a window-name guess."""
+        from app.pages.organizer.common import (
+            DOFUS_CLASS_DEFINITIONS,
+            class_icon_candidates,
+        )
 
-            class_key = (
-                dofus_class_key_for_character_name(character.label)
-                or dofus_class_key_from_window_name(character.label)
-            )
-            path = class_icon_path_for_window_name(character.label)
-            label = str(
-                DOFUS_CLASS_DEFINITIONS.get(class_key or "", {}).get("label", "")
-            )
-            return (str(path) if path is not None else "", label)
-        except (ImportError, OSError, TypeError, ValueError):
+        class_key = str(getattr(character, "class_key", "") or "").strip().casefold()
+        definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
+        if not definition:
             return "", ""
+        label = str(definition["label"])
+        for path in class_icon_candidates(class_key):
+            if path.is_file():
+                return str(path), label
+        return "", label
 
-    def _participant_progress(self, character_key: str) -> int:
+    def _participant_progress(self, character_key: str) -> int | None:
         try:
             completed, total = self.service.route_sheet_progress(character_key)
         except (AttributeError, KeyError, TypeError, ValueError):
-            return 0
-        return min(100, round(completed * 100 / total)) if total > 0 else 0
+            return None
+        return min(100, round(completed * 100 / total)) if total > 0 else None
 
     def _summary_toggled(self, opened: bool) -> None:
         self.summary_panel.setVisible(bool(opened))
@@ -1247,10 +1293,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
 
     def _progress_participant_keys(self) -> tuple[str, ...]:
-        selected = tuple(self.selected_participant_keys())
-        if selected:
-            return selected
-        return (self.character_key,) if str(self.character_key).startswith("character:") else ()
+        # A global character is a browsing context, never implicit consent to
+        # change that character's saved progression.
+        known = {row.key for row in self.participant_service.available_characters()}
+        return tuple(key for key in self.selected_participant_keys() if key in known)
 
     def _card_complete(self, character_key: str, card: dict[str, Any], index: int) -> bool:
         state_getter = getattr(self.service, "card_state", None)
@@ -1334,43 +1380,55 @@ class SharedGuideManualView(GuideUltimeManualView):
         return tuple(rows)
 
     def _load_preparation_needs(self) -> None:
-        participant_keys = tuple(self.selected_participant_keys())
+        from app.modules.encyclopedia.services.guide_preparation_model import (
+            aggregate_remaining,
+        )
+
+        # A browsing character is never consent for Prêt. The no-selection
+        # state remains readable without manufacturing an inventory/progress ID.
+        participant_keys = self._progress_participant_keys()
         if not participant_keys:
+            summary = aggregate_remaining((card, False) for card in self.service.cards)
+            self._preparation_preview = tuple(
+                (need.category, need.name, need.quantity or 0) for need in summary
+            )
             self._preparation_needs = ()
             self._preparation_loaded = True
             self._update_preparation_progress()
             return
 
-        aggregated: dict[
-            tuple[str, str],
-            dict[str, Any],
-        ] = {}
+        self._preparation_preview = ()
+        aggregated: dict[tuple[str, str], dict[str, Any]] = {}
+        sections_getter = getattr(self.service, "manual_sections_for_card", None)
         for character_key in participant_keys:
-            for index, card in enumerate(self.service.cards):
-                if self._card_complete(character_key, card, index):
-                    continue
-                seen_on_card: set[str] = set()
-                for item_id, name, quantity, category in self._requirements_from_card(
-                    self.service,
-                    character_key,
-                    card,
-                ):
-                    item_key = self._preparation_item_key(item_id, name)
-                    if item_key in seen_on_card:
-                        continue
-                    seen_on_card.add(item_key)
-                    key = (item_key, category)
-                    row = aggregated.setdefault(
-                        key,
-                        {
-                            "item_id": item_id,
-                            "name": name,
-                            "category": category,
-                            "required": {},
-                        },
+            # No full Qt card materialization; one bounded data traversal for
+            # each explicitly selected verified identity.
+            rows = (
+                (card, self._card_complete(character_key, card, index))
+                for index, card in enumerate(self.service.cards)
+            )
+            for need in aggregate_remaining(
+                rows,
+                sections_for_card=(
+                    lambda card, key=character_key: (
+                        None if "_manual_stage_payload" in card else
+                        sections_getter(key, card) if callable(sections_getter)
+                        else card.get("manual_sections", {})
                     )
-                    required = row["required"]
-                    required[character_key] = int(required.get(character_key, 0)) + quantity
+                ),
+            ):
+                item_key = self._preparation_item_key(need.item_id, need.name)
+                row = aggregated.setdefault(
+                    (item_key, need.category),
+                    {
+                        "item_id": need.item_id, "name": need.name,
+                        "category": need.category, "required": {},
+                        "confidence": {}, "sources": set(),
+                    },
+                )
+                row["required"][character_key] = need.quantity
+                row["confidence"][character_key] = need.confidence
+                row["sources"].update(need.sources)
 
         self._preparation_needs = tuple(
             _PreparationNeed(
@@ -1379,6 +1437,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 name=row["name"],
                 category=row["category"],
                 required_by_character=tuple(sorted(row["required"].items())),
+                confidence_by_character=tuple(sorted(row["confidence"].items())),
+                sources=tuple(sorted(row["sources"])),
             )
             for (item_key, _category), row in sorted(
                 aggregated.items(),
@@ -1400,12 +1460,42 @@ class SharedGuideManualView(GuideUltimeManualView):
         return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
 
     def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
-        setter = getattr(self.service, "set_manual_checked", None)
-        if not callable(setter):
-            return
         key = self._ready_progress_key(need)
-        for character_key, _quantity in need.required_by_character:
-            setter(character_key, key, bool(checked))
+        known = set(self._progress_participant_keys())
+        keys = tuple(character_key for character_key, _quantity in need.required_by_character
+                     if character_key in known)
+        getter = getattr(self.service, "manual_checked", None)
+        batcher = getattr(getattr(self.service, "guide_progress", None),
+                          "set_manual_steps_for_characters", None)
+        setter = getattr(self.service, "set_manual_checked", None)
+        if not keys or not callable(getter):
+            return
+        expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
+        if all(value == bool(checked) for value in expected.values()):
+            return
+        if callable(batcher):
+            from app.modules.encyclopedia.services.guide_ultime_generated_service import (
+                GUIDE_ULTIME_PROGRESS_ID,
+            )
+            progress_id = str(getattr(self.service, "progress_id", None)
+                              or GUIDE_ULTIME_PROGRESS_ID)
+            try:
+                batcher(keys, progress_id, key, bool(checked),
+                        expected_completed=expected)
+            except RuntimeError:
+                # Atomic compare-and-swap rejected concurrent progress edits;
+                # never overwrite the other instance's work.
+                self.service.reload_progress()
+                self.validation_host.setToolTip(
+                    "Préparation modifiée ailleurs ; actualisez les besoins."
+                )
+        elif len(keys) == 1 and callable(setter):
+            setter(keys[0], key, bool(checked))
+        else:
+            self.validation_host.setToolTip(
+                "Sauvegarde atomique multi-personnages indisponible."
+            )
+            return
         checked_button = self.preparation_filter_group.checkedButton()
         current_filter = str(
             checked_button.property("filterKey") if checked_button is not None else "Tout"
@@ -1422,21 +1512,70 @@ class SharedGuideManualView(GuideUltimeManualView):
                 widget.setParent(None)
                 widget.deleteLater()
 
+    def _show_more_preparation(self) -> None:
+        self._preparation_visible_limit += 80
+        checked = self.preparation_filter_group.checkedButton()
+        current_filter = str(
+            checked.property("filterKey") if checked is not None else "Tout"
+        )
+        self._render_preparation(current_filter)
+
+    def _append_preparation_more(self, remaining: int) -> None:
+        if remaining <= 0:
+            return
+        button = QPushButton(f"Afficher la suite ({remaining} besoins restants)")
+        button.setObjectName("GuidePreparationShowMore")
+        button.clicked.connect(lambda _checked=False: self._show_more_preparation())
+        self.preparation_rows_layout.addWidget(button)
+
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         if not self.selected_participant_keys():
-            label = QLabel("Sélectionne au moins un personnage dans Mes personnages.")
+            label = QLabel("Aperçu des préparatifs · sélectionne un personnage pour activer Prêt.")
             label.setObjectName("GuidePreparationEmpty")
+            label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
+            preview = self._preparation_preview
+            if selected_filter != "Tout":
+                preview = tuple(row for row in preview if row[0] == selected_filter)
+            if not preview:
+                self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
+            else:
+                # Read-only text, no checkbox and no anonymous persistence.
+                visible = preview[:self._preparation_visible_limit]
+                lines = [f"• {quantity if quantity else '?'} × {name} ({category})"
+                         for category, name, quantity in visible]
+                details = QLabel(chr(10).join(lines))
+                details.setObjectName("GuidePreparationPreview")
+                details.setWordWrap(True)
+                details.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                self.preparation_rows_layout.addWidget(details)
+                self._append_preparation_more(
+                    len(preview) - self._preparation_visible_limit
+                )
+            self.preparation_rows_layout.addStretch(1)
             return
 
         if selected_filter == "Tout":
-            for category in ("Métiers", "Potions", "Objets"):
-                matching = [
-                    need
-                    for need in self._preparation_needs
-                    if need.category == category and not self._is_soul_stone(need.name)
-                ]
+            groups = (
+                ("Prérequis", lambda need: need.category == "Prérequis"),
+                ("Métiers", lambda need: need.category == "Métiers"),
+                ("Potions", lambda need: need.category == "Potions"),
+                ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
+                 or self._is_soul_stone(need.name)),
+                ("Clefs", lambda need: need.category == "Clefs"),
+                ("Objets", lambda need: need.category == "Objets"
+                 and not self._is_soul_stone(need.name)),
+            )
+            if not self._preparation_needs:
+                empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
+                empty.setObjectName("GuidePreparationEmpty")
+                self.preparation_rows_layout.addWidget(empty)
+            rendered_count = 0
+            for category, predicate in groups:
+                matching = [need for need in self._preparation_needs if predicate(need)]
+                if not matching:
+                    continue
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
                 row = QHBoxLayout(summary)
@@ -1446,6 +1585,13 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
                 self.preparation_rows_layout.addWidget(summary)
+                available = max(0, self._preparation_visible_limit - rendered_count)
+                for need in matching[:available]:
+                    self.preparation_rows_layout.addWidget(self._preparation_row(need))
+                rendered_count += min(len(matching), available)
+            self._append_preparation_more(
+                len(self._preparation_needs) - rendered_count
+            )
             self.preparation_rows_layout.addStretch(1)
             return
 
@@ -1457,8 +1603,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             label.setObjectName("GuidePreparationEmpty")
             self.preparation_rows_layout.addWidget(label)
             return
-        for need in matching:
+        for need in matching[:self._preparation_visible_limit]:
             self.preparation_rows_layout.addWidget(self._preparation_row(need))
+        self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
 
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
@@ -1470,8 +1617,21 @@ class SharedGuideManualView(GuideUltimeManualView):
         top = QHBoxLayout()
         top.setSpacing(6)
         ready = self._need_ready(need)
-        status = "Prêt" if ready else f"? / {need.required_total} · quantité à confirmer"
-        label = QLabel(f"{need.name} — {status}")
+        confirmed = sum(
+            1 for character_key, _quantity in need.required_by_character
+            if callable(getattr(self.service, "manual_checked", None))
+            and self.service.manual_checked(character_key, self._ready_progress_key(need))
+        )
+        total = len(need.required_by_character)
+        quantity = need.required_total
+        amount = (
+            "" if need.category in {"Prérequis", "Métiers"}
+            else f"{quantity} × " if quantity is not None else "? × "
+        )
+        status = "Prêt" if ready else f"{confirmed}/{total} prêts"
+        label = QLabel(f"{amount}{need.name} — {status}")
+        label.setToolTip(" ; ".join(need.sources[:8])
+                         or "Quantité ou provenance à confirmer")
         label.setObjectName("GuidePreparationRowLabel")
         top.addWidget(label, 1)
         ready_button = QToolButton()
@@ -1480,7 +1640,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.setIconSize(QSize(14, 14))
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
-        ready_button.setToolTip("Déclarer Prêt pour les participants concernés")
+        ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        if len(need.required_by_character) > 1 and not callable(
+            getattr(getattr(self.service, "guide_progress", None),
+                    "set_manual_steps_for_characters", None)
+        ):
+            ready_button.setEnabled(False)
+            ready_button.setToolTip("Sauvegarde atomique indisponible")
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
@@ -1501,7 +1667,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             for character in self.participant_service.available_characters()
         }
         for character_key, quantity in need.required_by_character:
-            detail = QLabel(f"{labels_by_key.get(character_key, character_key)} : besoin {quantity}")
+            detail = QLabel(
+                f"{labels_by_key.get(character_key, character_key)} : "
+                f"besoin {quantity if quantity is not None else 'à confirmer'}"
+            )
             detail.setObjectName("GuidePreparationParticipantNeed")
             details_layout.addWidget(detail)
         details.setVisible(False)
@@ -1519,7 +1688,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
-        self.preparation_progress_label.setText(f"{ready} / {total}" if total else "—")
+        self.preparation_progress_label.setText(
+            f"{max(0, min(100, round(ready * 100 / total)))} %" if total else "—"
+        )
 
     def _participant_toggled(self, character_key: str, checked: bool) -> None:
         selected = list(self.selected_participant_keys())
@@ -1540,6 +1711,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 str(checked_button.property("filterKey") if checked_button else "Tout")
             )
         self._refresh_header()
+        # Selection changes must immediately replace the live Valider control.
+        self._render_window()
 
     def _actual_index_for_participants(self) -> int | None:
         keys = self._progress_participant_keys()
@@ -1548,13 +1721,24 @@ class SharedGuideManualView(GuideUltimeManualView):
         indexes: list[int] = []
         for character_key in keys:
             try:
+                done, total = self.service.route_sheet_progress(character_key)
+                if total <= 0:
+                    return None  # Unknown route: do not invent a current sheet.
+                if done >= total:
+                    continue  # All sheets completed: no phantom final-sheet target.
                 indexes.append(int(self.service.first_incomplete_index(character_key)))
             except (AttributeError, KeyError, TypeError, ValueError):
                 return None
-        return max(0, min(len(self.service.cards) - 1, min(indexes)))
+        return max(0, min(len(self.service.cards) - 1, min(indexes))) if indexes else None
 
     def refresh(self, *, reset_to_active: bool = False) -> None:
         self.service.reload_progress()
+        if self._participant_source_signature() != getattr(
+            self, "_last_participant_source_signature", None
+        ):
+            self._refresh_participants_panel()
+        else:
+            self._refresh_participant_progress()
         if not self.service.available:
             self._render_missing_data()
             return
@@ -1582,7 +1766,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         previous = self.active_index
         actual_index = self._actual_index_for_participants()
         if actual_index is None:
+            # End-of-route and empty-selection transitions must replace the
+            # live validation button, not keep its previous checked/label state.
+            self._refresh_participants_panel()
             self._refresh_header()
+            self._render_window()
             return
         self.active_index = actual_index
         moved = self.view_index == previous and actual_index != previous
@@ -1594,6 +1782,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._refresh_header()
         self._render_window(reset_scroll=moved)
 
+    @staticmethod
+    def _common_sheet_count(keys, cards, is_complete) -> int:
+        """Count sheet identities completed by ALL selected characters."""
+        return sum(
+            1 for index, card in enumerate(cards)
+            if all(is_complete(key, card, index) for key in keys)
+        )
+
     def _refresh_header(self) -> None:
         keys = self._progress_participant_keys()
         progress_rows: list[tuple[int, int]] = []
@@ -1603,19 +1799,26 @@ class SharedGuideManualView(GuideUltimeManualView):
             except (AttributeError, KeyError, TypeError, ValueError):
                 progress_rows = []
                 break
-        if progress_rows:
+        if progress_rows and all(total > 0 for _completed, total in progress_rows):
             total = max(total for _completed, total in progress_rows)
-            completed = min(completed for completed, _total in progress_rows)
-            percent = min(100, round(completed * 100 / total)) if total > 0 else 0
+            # Common progress is the intersection of completed sheet IDs.
+            # The minimum of two counts is not evidence of shared completion.
+            if len(keys) > 1:
+                completed = self._common_sheet_count(
+                    keys, self.service.cards, self._card_complete,
+                )
+            else:
+                completed = min(done for done, _total in progress_rows)
+            percent = min(100, round(completed * 100 / total)) if total > 0 else None
             self.route_bar.setRange(0, max(1, total))
             self.route_bar.setValue(completed)
-            self.route_progress_label.setText(f"{completed} / {total}")
+            self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
         else:
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
-            self.progress_donut.set_percent(0)
+            self.progress_donut.set_percent(None)
 
         success_rows: list[tuple[int, int]] = []
         progress_getter = getattr(self.service, "progress", None)
@@ -1637,7 +1840,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.success_bar.setRange(0, max(1, success_total))
         self.success_bar.setValue(success_done)
         self.success_progress_label.setText(
-            f"{success_done} / {success_total}" if success_total else "—"
+            f"{max(0, min(100, round(success_done * 100 / success_total)))} %"
+            if success_total else "—"
         )
         self._update_preparation_progress()
 
@@ -1654,11 +1858,18 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
         actual_index = self._actual_index_for_participants()
+        route_finished = bool(keys) and bool(progress_rows) and all(
+            total > 0 and completed >= total for completed, total in progress_rows
+        )
+        self.current_button.setText("Terminé" if route_finished else "Actuelle")
         self.current_button.setEnabled(actual_index is not None)
         self.current_button.setToolTip(
-            "Revenir à la première fiche encore nécessaire pour au moins un participant."
-            if actual_index is not None
-            else "Étape actuelle indisponible : progression non déterminable."
+            "Toutes les fiches sont terminées pour les personnages sélectionnés."
+            if route_finished else (
+                "Revenir à la première fiche encore nécessaire pour au moins un participant."
+                if actual_index is not None
+                else "Sélectionnez des personnages pour retrouver leur fiche actuelle."
+            )
         )
 
     def _restore_route_lock_state(self) -> None:
@@ -1716,6 +1927,82 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._refresh_participants_panel()
         self._restore_route_lock_state()
 
+    def _validation_status(self, card: dict[str, Any], index: int):
+        keys = self._progress_participant_keys()
+        statuses = []
+        for key in keys:
+            automatic = bool(self.service.card_auto_complete(key, card))
+            manual = bool(self.service.page_checked(key, card, index))
+            blocking = getattr(self.service, "manual_order_choice_blocking", None)
+            blocked = bool(callable(blocking) and blocking(key, card))
+            statuses.append((key, automatic, manual, blocked))
+        return statuses
+
+    def _sync_validation_control(self, button: QPushButton, card: dict[str, Any], index: int) -> None:
+        statuses = self._validation_status(card, index)
+        all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
+        blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
+        reversible = any(manual for _, _, manual, _ in statuses)
+        batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
+        page_key = getattr(self.service, "page_key", None)
+        enabled = bool(statuses) and callable(batcher) and callable(page_key) and not blocked and (not all_done or reversible)
+        if not statuses:
+            label, hint = "Choisir des personnages", "Sélectionnez un ou plusieurs personnages vérifiés dans Mes personnages."
+        elif blocked:
+            label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
+        elif all_done and reversible:
+            label, hint = "Annuler validation", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
+        elif all_done:
+            label, hint = "Validé ✓", "Fiche déjà validée automatiquement pour tous les personnages sélectionnés."
+        else:
+            label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
+        if statuses and (not callable(batcher) or not callable(page_key)):
+            hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
+        button.blockSignals(True)
+        try:
+            button.setChecked(all_done)
+            button.setText(label)
+            button.setEnabled(enabled)
+            button.setToolTip(hint)
+        finally:
+            button.blockSignals(False)
+
+    def _page_toggled_for_participants(self, card: dict[str, Any], index: int, checked: bool) -> None:
+        # Ignore deferred signals from an old card after navigation.
+        if index != self.view_index or index >= len(self.service.cards) or self.service.cards[index] is not card:
+            return
+        self.service.reload_progress()
+        statuses = self._validation_status(card, index)
+        all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
+        blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
+        if not statuses or blocked or checked == all_done:
+            self._render_window()
+            return
+        # A mixed team click fills only incomplete manual states; undo removes
+        # only manually checked states without erasing quest/success evidence.
+        targets = (
+            tuple(key for key, auto, manual, _ in statuses if not auto and not manual)
+            if checked else tuple(key for key, _, manual, _ in statuses if manual)
+        )
+        batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
+        page_key = getattr(self.service, "page_key", None)
+        if not targets or not callable(batcher) or not callable(page_key):
+            self._render_window()
+            return
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import GUIDE_ULTIME_PROGRESS_ID
+        progress_id = str(getattr(self.service, "progress_id", None) or GUIDE_ULTIME_PROGRESS_ID)
+        try:
+            batcher(
+                targets, progress_id, page_key(card, index), checked,
+                expected_completed={key: manual for key, _, manual, _ in statuses if key in targets},
+            )
+        except RuntimeError:
+            # Another instance updated the same page after we read its state.
+            # The compare-and-swap service rejects the entire stale batch.
+            self.validation_host.setToolTip("Progression modifiée ailleurs ; l’état a été rechargé.")
+        finally:
+            self._follow_active_after_progress_change()
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._clear_cards()
         if not self.service.cards:
@@ -1734,7 +2021,11 @@ class SharedGuideManualView(GuideUltimeManualView):
                 else None
             ),
             show_header_title=False,
+            page_validation_callback=lambda checked, sheet=card, sheet_index=index: (
+                self._page_toggled_for_participants(sheet, sheet_index, bool(checked))
+            ),
         )
+        self._sync_validation_control(widget.page_check, card, index)
         widget.questRequested.connect(self._open_quest_from_card)
         self._set_validation_widget(widget.page_check)
         self.cards_layout.addWidget(widget)

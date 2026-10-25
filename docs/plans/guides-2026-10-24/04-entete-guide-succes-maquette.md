@@ -1,6 +1,6 @@
 # [PLAN 04/07] Guide Succès Opti : en-tête EXACT de la maquette
 
-> **DRAFT PLAN SEUL — aucune fonctionnalité implémentée. Ne jamais fusionner avant développement + CI finale.**
+> **En-tête implémenté dans cette PR. Certification Qt/Windows et comparaison avec la maquette originale restent nécessaires avant fusion.**
 
 **Objectif :** Refaire EXCLUSIVEMENT l'en-tête du Guide Succès selon le dernier screenshot validé dans la conversation. La capture sert UNIQUEMENT pour l'en-tête, jamais pour le contenu en dessous.
 

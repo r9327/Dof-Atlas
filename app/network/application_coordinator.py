@@ -8,6 +8,8 @@ from queue import Empty, Queue
 from time import monotonic
 from typing import Any, Callable, Iterable, TYPE_CHECKING
 
+from app.validation_log import record_validation
+
 if TYPE_CHECKING:
     from app.network.progress_bridge import EventApplicationResult, NetworkProgressBridge
     from app.quest_catalog import QuestCatalog
@@ -576,6 +578,13 @@ class NetworkApplicationCoordinator:
             if status == self._last_status:
                 return
             self._last_status = status
+        record_validation("network_status", running=status.running,
+                          calibrating=status.calibrating, reason=status.reason,
+                          mapping_present=status.mapping_path is not None,
+                          catchup_ready=status.catchup_ready,
+                          completed=status.distinct_completion_count,
+                          journal_observed=status.quest_journal_observation_count,
+                          journal_verified=status.quest_journal_verified_count)
         self.logger.info("Network status: reason=%s running=%s calibrating=%s",
                          status.reason, status.running, status.calibrating)
         self._statuses.put(status)

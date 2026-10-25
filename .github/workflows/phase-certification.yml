@@ -11,16 +11,16 @@ on:
   push:
     branches:
       - main
-  # Every PR is developed as Draft. Certify once its complete candidate is
-  # explicitly marked Ready for review, never on every intermediate commit.
-  # Fixes after a failed final certification require manual workflow_dispatch
-  # on the updated branch/SHA. Keep main push certification unchanged.
+  # Draft pushes use only cheap Scoped PR Feedback. Ready PR commits
+  # recertify automatically on their new exact HEAD.
+  # Preserve independent main push and explicit release FULL.
   pull_request:
     branches:
       - main
       - phase8/peak250-guide-worker-v1
     types:
       - ready_for_review
+      - synchronize
 
 permissions:
   contents: read
@@ -47,6 +47,7 @@ defaults:
 
 jobs:
   doctor-plan:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: Doctor / CI Plan
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -82,7 +83,13 @@ jobs:
           python-version: "3.13"
       - name: Test routing failure boundaries
         shell: bash
-        run: python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v
+        run: |
+          # Discover -s tests avoids importing tests/__init__.py (which starts Qt).
+          python -m unittest discover -s tests -p test_doctor_ci_orchestrator.py -v
+          python -m unittest discover -s tests -p test_ci_pr_audit.py -v
+          python -m unittest discover -s tests -p test_ci_domain_certification.py -v
+          python -m unittest discover -s tests -p test_ci_timing_observer.py -v
+          python -m unittest discover -s tests -p test_craft_adapter_release.py -v
       - name: Determine required CI from exact Git diff
         id: plan
         shell: bash
@@ -92,6 +99,7 @@ jobs:
           python -m tools.atlas_doctor ci --base-ref "$BASE_SHA" --expected-sha "$CANDIDATE_SHA" --event "$DOCTOR_EVENT" --output artifacts/doctor_ci/plan.json --github-output "$GITHUB_OUTPUT" --json
       - name: Explain Doctor selection
         if: always()
+        continue-on-error: true
         shell: bash
         run: |
           if [ -f artifacts/doctor_ci/plan.json ]; then
@@ -107,13 +115,19 @@ jobs:
                   f.write(f"- {name}: {'RUN' if route['selected'] else 'NOT_APPLICABLE'} — {'; '.join(route['reasons'])}\n")
               f.write('\nSelection is not execution or certification.\n')
           PYPLAN
+            python -m tools.ci_pr_audit \
+              --plan artifacts/doctor_ci/plan.json \
+              --report artifacts/doctor_ci/pr_mini_audit.json \
+              --summary "$GITHUB_STEP_SUMMARY"
           fi
       - name: Store exact-SHA Doctor plan
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-ci-plan-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/plan.json
+          path: |
+            artifacts/doctor_ci/plan.json
+            artifacts/doctor_ci/pr_mini_audit.json
           if-no-files-found: error
 
   focused-validation:
@@ -213,10 +227,57 @@ jobs:
             artifacts/doctor_ci/ui_regression_watch.json
           if-no-files-found: error
 
+  pre-full-gate:
+    # PR only. Every independent job chosen by the exact-SHA Doctor plan
+    # must finish successfully BEFORE allocating a costly FULL runner.
+    # No cycle: certify and the two final verdict jobs are not prerequisites.
+    name: Doctor / Pre-FULL Contract Gate
+    needs: [doctor-plan, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success' && needs.doctor-plan.outputs.phase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Reject failed, cancelled, skipped or unverified selected contracts before FULL
+        shell: python
+        env:
+          DOCTOR_RESULTS: ${{ toJSON(needs) }}
+          DOCTOR_REQUIRED: ${{ needs.doctor-plan.outputs.required_jobs }}
+        run: |
+          import json
+          import os
+
+          jobs = json.loads(os.environ['DOCTOR_RESULTS'])
+          if jobs.get('doctor-plan', {}).get('result') != 'success':
+              raise SystemExit('Pre-FULL blocked: no successful Doctor CI plan')
+          required = json.loads(os.environ['DOCTOR_REQUIRED'])
+          if not isinstance(required, list) or not required or 'certify' not in required:
+              raise SystemExit('Pre-FULL blocked: malformed required job inventory')
+          for name in required:
+              if name == 'certify':
+                  continue  # This future job cannot attest to itself.
+              actual = jobs.get(name, {}).get('result')
+              if actual != 'success':
+                  raise SystemExit(f'Pre-FULL blocked: {name} is {actual!r}, expected success')
+          # An explicitly failed independent specialist cannot be hidden as
+          # optional or by an incomplete plan.
+          for name, row in jobs.items():
+              if row.get('result') in ('failure', 'cancelled'):
+                  raise SystemExit(f'Pre-FULL blocked: independent {name} failed/cancelled')
+          print('Independent exact-SHA PR contracts: PASS; FULL may start if required.')
+
   certify:
-    needs: doctor-plan
-    if: needs.doctor-plan.outputs.phase == 'true'
-    name: Phase Certification / Full Validation
+    # The PR pre-FULL gate waits for EVERY independently selected specialist;
+    # push and explicit dispatch retain their existing FULL policy.
+    # FULL. A failed selected benchmark must prevent a wasted 120-minute job,
+    # not merely turn Public PR / Safe Validation red after the FULL finishes.
+    needs: [doctor-plan, pre-full-gate]
+    if: >-
+      always() &&
+      needs.doctor-plan.result == 'success' &&
+      needs.doctor-plan.outputs.phase == 'true' &&
+      (github.event_name != 'pull_request' ||
+       needs.pre-full-gate.result == 'success')
+    name: Phase Certification / Domain or Release Validation
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
@@ -277,9 +338,66 @@ jobs:
       - name: Prepare certification logs
         run: New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
 
+      - name: Materialize selected domain fixtures
+        id: domain_fixtures
+        if: github.event_name == 'pull_request'
+        run: |
+          # Selectors from the exact Git merge-base, not the PR title.
+          & python -m tools.ci_domain_certification `
+            --base-sha "$env:BASE_SHA" `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/domain_plan.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $plan = Get-Content -LiteralPath "artifacts/phase_certification/domain_plan.json" -Raw | ConvertFrom-Json
+          if ($plan.status -ne "READY_TO_EXECUTE") {
+            throw "Cannot materialize fixtures for an unproven domain plan"
+          }
+          $owners = @($plan.domains)
+          $needsCatalog = @($owners | Where-Object { $_ -in @("quests", "guides", "data", "ui", "startup") }).Count -gt 0
+          $needsCraft = @($owners | Where-Object { $_ -in @("craft", "data") }).Count -gt 0
+          if ($needsCatalog) {
+            Write-Host "Domain fixture: canonical pinned Quest/Guide catalogue required"
+            git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
+            if ($LASTEXITCODE -ne 0) { throw "Domain LFS materialization failed" }
+            $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+            if (Test-Path -LiteralPath $catalog) {
+              Remove-Item -LiteralPath $catalog -Recurse -Force
+            }
+            python -m scripts.windows.quest_assets --download
+            if ($LASTEXITCODE -ne 0) { throw "Pinned Quest catalog materialization failed" }
+            @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Domain QuestCatalog fixture: {count} quests")
+          if count < 1900:
+              raise SystemExit("Domain Quest catalogue incomplete")
+          '@ | python -
+            if ($LASTEXITCODE -ne 0) { throw "Domain Quest catalog integrity failed" }
+          }
+          if ($needsCraft) {
+            Write-Host "Domain fixture: pinned Craft seed required"
+            git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+            if ($LASTEXITCODE -ne 0) { throw "Domain Craft input LFS materialization failed" }
+            python -m scripts.windows.craft_seed --download
+            if ($LASTEXITCODE -ne 0) { throw "Pinned Craft seed materialization failed" }
+          }
+          Write-Host "Only selected domain fixtures were prepared; release FULL remains separate."
+
+      - name: Run independently required domain certification
+        id: domains
+        if: github.event_name == 'pull_request'
+        run: |
+          # No application-wide FULL_SUITE on PRs. Each changed owner has to
+          # execute its exact-domain tests; an unknown owner is BLOCKED.
+          & python -X faulthandler -m tools.ci_domain_certification `
+            --base-sha "$env:BASE_SHA" `
+            --candidate-sha "$env:CANDIDATE_SHA" `
+            --output "artifacts/phase_certification/domain_plan.json" --execute
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Materialize certification LFS fixtures
         id: lfs
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/01_lfs.log"
@@ -308,7 +426,7 @@ jobs:
 
       - name: Materialize local Dofus catalog
         id: catalog
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/02_catalog.log"
@@ -377,7 +495,7 @@ jobs:
 
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
-        if: steps.route.outputs.run_full == 'true'
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -385,13 +503,103 @@ jobs:
             --output "artifacts/phase_certification/inputs_before.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Fail fast on changed test regressions before FULL
+        id: diff_preflight
+        if: >-
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
+          steps.catalog.outcome == 'success' &&
+          steps.inputs_before.outcome == 'success'
+        timeout-minutes: 12
+        continue-on-error: true
+        run: |
+          # Use Atlas Integrity's canonical DIFF_TARGETS command; this is
+          # extra early failure detection, not a replacement for FULL_SUITE.
+          @'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          from tools.atlas_integrity import (
+              CommandExecutor, _command_for_group, changed_files,
+              load_policy, repository_head,
+          )
+
+          root = Path.cwd()
+          expected_sha = os.environ['CANDIDATE_SHA']
+          actual_sha = repository_head(root)
+          if actual_sha != expected_sha:
+              raise SystemExit('DIFF_TARGETS preflight SHA mismatch')
+          base_ref = os.environ['CERT_BASE_REF']
+          changed = changed_files(root, base_ref)
+          policy = load_policy(root)
+          command = _command_for_group(
+              'DIFF_TARGETS', policy['groups']['DIFF_TARGETS'],
+              root=root, base_ref=base_ref, changed=changed,
+          )
+          out = root / 'artifacts/phase_certification'
+          out.mkdir(parents=True, exist_ok=True)
+          report = {
+              'schema_version': 1, 'candidate_sha': actual_sha,
+              'base_ref': base_ref, 'changed_files': changed,
+              'group': 'DIFF_TARGETS', 'preflight_only': True,
+              'full_suite_executed': False, 'phase_certified': False,
+          }
+          if command is None:
+              report.update(status='PASS_NO_CHANGED_TESTS', exit_code=0, test_count=0)
+          else:
+              result = CommandExecutor().run(command, root)
+              code = result.get('exit_code')
+              if type(code) is not int:
+                  raise SystemExit('Invalid canonical DIFF_TARGETS result')
+              output = str(result.get('stdout', '')) + '\n' + str(result.get('stderr', ''))
+              (out / '02b_diff_preflight.log').write_text(output, encoding='utf-8')
+              report.update(
+                  status='PASS' if code == 0 else 'FAIL',
+                  exit_code=code,
+                  duration_seconds=result.get('duration_seconds'),
+                  command=command,
+              )
+          (out / '02b_diff_preflight.json').write_text(
+              json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+          )
+          print('DIFF_TARGETS early preflight:', report['status'],
+                'candidate:', actual_sha, 'FULL remains independently required')
+          if report['exit_code'] != 0:
+              print('Changed tests failed. Skipping expensive FULL; no certification granted.', file=sys.stderr)
+              sys.exit(1)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
+
+      - name: Preserve modular certification failure or timeout evidence
+        if: always() && github.event_name == 'pull_request' && steps.domains.outcome != 'success'
+        shell: pwsh
+        run: |
+          $target = "artifacts/phase_certification/02c_domain_failure.json"
+          if (-not (Test-Path -LiteralPath $target)) {
+            New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
+            [ordered]@{
+              schema_version = 1
+              candidate_sha = $env:CANDIDATE_SHA
+              base_ref = $env:CERT_BASE_REF
+              group = "PR_DOMAIN_CERTIFICATION"
+              preflight_only = $false
+              full_suite_executed = $false
+              phase_certified = $false
+              status = "INCOMPLETE_OR_FAILED"
+              github_step_outcome = "${{ steps.domains.outcome }}"
+              reason = "Required exact-SHA domain certification failed, skipped or timed out."
+            } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $target -Encoding utf8
+          }
+
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
-          steps.route.outputs.run_full == 'true' &&
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
           (github.event_name == 'workflow_dispatch' ||
            github.event_name == 'push' ||
-           (github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, 'Phase 7B')))
+           (github.event_name == 'pull_request' &&
+            steps.diff_preflight.outcome == 'success' &&
+            startsWith(github.event.pull_request.title, 'Phase 7B')))
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/06_timing_performance.log"
@@ -446,7 +654,11 @@ jobs:
 
       - name: Run full Atlas phase certification gate
         id: certification
-        if: steps.route.outputs.run_full == 'true' && steps.inputs_before.outcome == 'success'
+        if: >-
+          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
+          steps.inputs_before.outcome == 'success' &&
+          steps.catalog.outcome == 'success' &&
+          steps.diff_preflight.outcome == 'success'
         continue-on-error: true
         run: |
           $report = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -463,7 +675,7 @@ jobs:
 
       - name: Verify public dataset inputs did not change during validation
         id: inputs_after
-        if: steps.route.outputs.run_full == 'true' && always()
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -489,7 +701,7 @@ jobs:
 
       - name: Compare Doctor plan with actual exact-SHA FULL evidence
         id: doctor_shadow
-        if: steps.route.outputs.run_full == 'true' && always()
+        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           $full = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -505,20 +717,44 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host "Doctor exact-SHA shadow pair recorded; no FULL waiver granted"
 
-      - name: Upload certification logs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/phase_certification/**
-            artifacts/ci_guide_ultime_logs/**
-          if-no-files-found: warn
-          retention-days: 30
-
       - name: Enforce phase certification verdict
+        id: phase_verdict
         if: always()
         run: |
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            # Modular PR evidence is a domain certificate, never a historical
+            # FULL or a release/Guide Phase certification.
+            if ("${{ steps.domains.outcome }}" -ne "success") {
+              throw "DOMAIN CERTIFICATION: blocked or missing exact-domain tests"
+            }
+            $p = Get-Content "artifacts/phase_certification/domain_plan.json" -Raw | ConvertFrom-Json
+            $proof = Get-Content "artifacts/phase_certification/domain_test_evidence.json" -Raw | ConvertFrom-Json
+            if ($p.status -ne "READY_TO_EXECUTE" -or
+                $p.candidate_sha -ne $env:CANDIDATE_SHA -or
+                $p.base_sha -ne $env:BASE_SHA -or
+                $p.unknown_paths.Count -ne 0 -or $p.deleted_paths.Count -ne 0 -or
+                $p.domains.Count -lt 1 -or
+                $proof.status -ne "PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED" -or
+                $proof.candidate_sha -ne $env:CANDIDATE_SHA -or
+                $proof.base_sha -ne $env:BASE_SHA -or
+                $proof.full_suite_executed -ne $false -or
+                $proof.phase_certified -ne $false -or
+                $proof.merge_authorized -ne $false -or
+                $proof.tests_run -lt 1) {
+              throw "DOMAIN CERTIFICATION: missing/invalid exact-SHA domain proof"
+            }
+            Write-Host "DOMAIN CERTIFICATION: PASS (NOT FULL/PHASE RELEASE)"
+            Write-Host "Domains: $($p.domains -join ', ')"
+            if ($env:GITHUB_STEP_SUMMARY) {
+              Add-Content $env:GITHUB_STEP_SUMMARY "## DOMAIN CERTIFICATION: PASS"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Exact SHA: $env:CANDIDATE_SHA"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Selected domains: $($p.domains -join ', ')"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- Tests executed: $($proof.tests_run)"
+              Add-Content $env:GITHUB_STEP_SUMMARY "- FULL_SUITE not executed. Phase/release not certified."
+              Add-Content $env:GITHUB_STEP_SUMMARY "- All independently selected specialist jobs and Public PR Safe Validation must also pass."
+            }
+            exit 0
+          }
           if ("${{ steps.reuse.outputs.reuse_full }}" -eq "true") {
             if ("${{ steps.reuse.outcome }}" -ne "success" -or
                 "${{ steps.route.outcome }}" -ne "skipped" -or
@@ -620,9 +856,55 @@ jobs:
             }
           }
 
+      - name: Record final Phase outcome diagnostics
+        if: always()
+        continue-on-error: true
+        shell: python
+        env:
+          PHASE_ROUTE_OUTCOME: ${{ steps.route.outcome }}
+          PHASE_FULL_OUTCOME: ${{ steps.certification.outcome }}
+          PHASE_SCOPED_OUTCOME: ${{ steps.scoped.outcome }}
+          PHASE_PREFLIGHT_OUTCOME: ${{ steps.diff_preflight.outcome }}
+          PHASE_VERDICT_OUTCOME: ${{ steps.phase_verdict.outcome }}
+        run: |
+          import json, os
+          from pathlib import Path
+          target = Path("artifacts/phase_certification/05_phase_outcome.json")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          outcomes = {
+              key: os.environ.get(key, "unknown") for key in (
+                  "PHASE_ROUTE_OUTCOME", "PHASE_FULL_OUTCOME",
+                  "PHASE_SCOPED_OUTCOME", "PHASE_PREFLIGHT_OUTCOME",
+                  "PHASE_VERDICT_OUTCOME"
+              )
+          }
+          good = outcomes["PHASE_VERDICT_OUTCOME"] == "success"
+          canonical = Path("artifacts/phase_certification/04_phase_verdict.json").is_file()
+          target.write_text(json.dumps({
+              "schema_version": 1, "kind": "atlas_phase_step_diagnostics",
+              "candidate_sha": os.environ.get("CANDIDATE_SHA"),
+              "base_ref": os.environ.get("CERT_BASE_REF"),
+              "status": "STEP_SUCCEEDED_NOT_CERTIFICATE" if good else "NOT_CERTIFIED",
+              "canonical_phase_verdict_present": canonical,
+              "steps": outcomes,
+              "certified": False,
+              "note": "Diagnostic only. Certification requires the canonical verdict or independent host-verified reuse, never this file.",
+          }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+      - name: Upload certification logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phase-certification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/phase_certification/**
+            artifacts/ci_guide_ultime_logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
   pr-fast-validation:
     needs: doctor-plan
-    if: always() && github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false
     name: Doctor / PR FAST
     runs-on: windows-latest
     timeout-minutes: 45
@@ -859,12 +1141,12 @@ jobs:
           Write-Host "Dependency Review verdict: success"
 
   certification-policy:
-    # Stage 1: expose and smoke-test the *real check context* on PRs without
-    # updating remote branch protection. Stage 2 (admin operation) activates
-    # --enforce true and adds this context to the ruleset after a real PR smoke.
+    # Hard fail-closed host verification of the exact PR domain certificate.
+    # Branch-protection/ruleset updates remain a separate admin operation;
+    # this local status must NOT succeed when evidence is missing.
     name: Certification Policy / Merge Gate
     needs: [doctor-plan, safe-validation, certify]
-    if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.doctor-plan.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -890,13 +1172,19 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           SAFE_VALIDATION: ${{ needs.safe-validation.result }}
-          ATLAS_CERT_POLICY_ENFORCE: "false"
+          ATLAS_CERT_POLICY_ENFORCE: "true"
         run: |
           python -m tools.ci_required_certification \
             --candidate-sha "$CANDIDATE_SHA" \
             --base-sha "$BASE_SHA" \
             --repo "$GITHUB_REPOSITORY" \
+            --pr-number "$PR_NUMBER" \
+            --head-ref "$PR_HEAD_REF" \
+            --base-ref "$PR_BASE_REF" \
             --safe-result "$SAFE_VALIDATION" \
             --enforce "$ATLAS_CERT_POLICY_ENFORCE" \
             --output artifacts/cert_policy/merge_gate.json
@@ -969,7 +1257,7 @@ jobs:
 
   safe-validation:
     name: Public PR / Safe Validation
-    if: always() && github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false
     needs: [doctor-plan, focused-validation, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -994,11 +1282,119 @@ jobs:
 
   doctor-verdict:
     name: Doctor / CI Verdict
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     needs: [doctor-plan, focused-validation, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      # Pure observability on the existing final runner: no tests skipped and
+      # no extra runner allocated. Running job is excluded from the totals.
+      - name: Publish measured CI job timings (advisory)
+        shell: bash
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYTIMINGS'
+          import json, os
+          from datetime import datetime
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          run_id = os.environ["GITHUB_RUN_ID"]
+          url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
+          request = Request(url, headers={
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "atlas-ci-timing-observer",
+          })
+          try:
+              with urlopen(request, timeout=12) as response:
+                  result = json.load(response)
+              jobs = result["jobs"]
+              if not isinstance(jobs, list) or result.get("total_count", 0) > len(jobs):
+                  raise ValueError("Incomplete job inventory: timing totals withheld")
+              measured = []
+              excluded = []
+              skipped = 0
+              for job in jobs:
+                  label = str(job.get("name", "unknown")).replace("|", "/").replace("\n", " ").replace("\r", " ")
+                  if job.get("conclusion") == "skipped":
+                      # GitHub can return completed_at one second BEFORE
+                      # started_at for a job that never ran (observed in run
+                      # #40140997450). Skipped jobs consume no test runner time.
+                      skipped += 1
+                      continue
+                  if job.get("status") != "completed" or not job.get("started_at") or not job.get("completed_at"):
+                      excluded.append((label, "pending or missing timestamps"))
+                      continue
+                  try:
+                      start = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                      end = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                      seconds = (end - start).total_seconds()
+                      if seconds < 0:
+                          raise ValueError("negative GitHub timestamp interval")
+                  except (ValueError, TypeError, AttributeError) as exc:
+                      excluded.append((label, type(exc).__name__))
+                      continue  # Never silently coerce an invalid interval to zero.
+                  measured.append((label, seconds, str(job.get("conclusion") or "unknown"), start, end))
+              measured.sort(key=lambda row: (-row[1], row[0]))
+              # This is elapsed sum, not billing; separate invoiced minutes
+              # require GitHub billing records and runner-specific rounding.
+              # Sum of parallel job intervals is NOT actual billed minutes.
+              total = sum(row[1] for row in measured)
+              span = ((max(row[4] for row in measured) -
+                       min(row[3] for row in measured)).total_seconds()
+                      if measured else None)
+              failed = [row for row in measured if row[2] in ("failure", "cancelled", "timed_out")]
+              earliest = min(failed, key=lambda row: row[4]) if failed else None
+              report = {
+                  "schema_version": 1, "kind": "atlas_ci_job_timing_observations",
+                  "status": "ADVISORY_PARTIAL" if excluded else "ADVISORY",
+                  "run_id": run_id, "observed_jobs": len(jobs),
+                  "measured_jobs": len(measured), "skipped_jobs": skipped,
+                  "excluded": [{"job": name, "reason": why} for name, why in excluded],
+                  "sum_completed_job_seconds": round(total, 3),
+                  "observed_wall_span_seconds": round(span, 3) if span is not None else None,
+                  "first_failed_job": earliest[0] if earliest else None,
+                  "first_failed_at": earliest[4].isoformat() if earliest else None,
+                  "jobs": [{"name": name, "seconds": round(seconds, 3),
+                            "conclusion": status}
+                           for name, seconds, status, _, _ in measured],
+                  "certified": False, "tests_executed": False,
+                  "note": "Advisory snapshot. Parallel job sums are NOT billing. The current running verdict is excluded.",
+              }
+              output = Path("artifacts/doctor_ci/job_timings.json")
+              output.parent.mkdir(parents=True, exist_ok=True)
+              output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+              with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
+                  stream.write("\n## Doctor — CI timing observations (advisory)\n")
+                  stream.write(f"Completed jobs: {len(measured)}/{len(jobs)}; skipped: {skipped}; invalid/pending: {len(excluded)}.\n")
+                  stream.write(f"Summed completed job durations: **{total / 60:.1f} min** (parallel overlap, NOT billed minutes).\n")
+                  if span is not None:
+                      stream.write(f"Observed run span: **{span / 60:.1f} min** (not a dependency-graph critical path).\n")
+                  if earliest:
+                      stream.write(f"First completed failure: **{earliest[0]}** at {earliest[4].isoformat()}.\n")
+                  stream.write("| Completed job | Duration | Result |\n|---|---:|---|\n")
+                  for name, seconds, status, _, _ in measured[:20]:
+                      stream.write(f"| {name} | {seconds / 60:.2f} min | {status} |\n")
+                  for name, reason in excluded[:12]:
+                      stream.write(f"- Excluded observation: {name} ({reason}); not counted as zero.\n")
+                  stream.write("Pending/current job excluded; estimates of saved FULL minutes are NOT claimed. This is not certification proof.\n")
+          except (OSError, KeyError, TypeError, ValueError) as exc:
+              print(f"CI timing observation unavailable (advisory): {type(exc).__name__}: {exc}")
+          PYTIMINGS
+      - name: Archive measured CI timings (advisory)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-ci-timings-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_ci/job_timings.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Reject failed or skipped selected CI
         shell: python
         env:

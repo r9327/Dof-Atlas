@@ -655,12 +655,16 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
         app, stages, "after_guide_home_stabilized", 1.50
     )
 
+    craft_adapter_loaded_before = "local_dofus_data.compatibility_adapter" in sys.modules
     sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
     _capture(app, stages, "craft_active")
     sampler.set_phase("craft_home")
     window.show_page("Home")
     after_craft_home = _capture(app, stages, "after_craft_home", 0.75)
+    # Read-only module presence AFTER the RSS checkpoint; no SQL import, no
+    # memory trim, no change to the existing retention threshold.
+    craft_adapter_loaded_after = "local_dofus_data.compatibility_adapter" in sys.modules
     before_equipment = _capture(app, stages, "before_equipment_home", 0.05)
 
     sampler.set_phase("equipment_open")
@@ -818,6 +822,8 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
             craft_home_tree - guide_home_tree,
             2,
         ),
+        "craft_adapter_module_loaded_before": craft_adapter_loaded_before,
+        "craft_adapter_module_loaded_after": craft_adapter_loaded_after,
         "equipment_tree_delta_active_mb": round(active_tree - before_tree, 2),
         "equipment_tree_delta_after_home_mb": round(after_tree - before_tree, 2),
         "equipment_tree_delta_stabilized_mb": round(stable_tree - before_tree, 2),

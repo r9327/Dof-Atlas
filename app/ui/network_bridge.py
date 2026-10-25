@@ -5,6 +5,8 @@ from typing import Any, Iterable, TYPE_CHECKING
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
+from app.validation_log import record_validation
+
 _PROGRESS_REFRESH_DEBOUNCE_MS = 120
 
 
@@ -144,6 +146,9 @@ class NetworkUiBridge(QObject):
                 active_character = str(result.character_key)
             if result.changed and result.character_key:
                 changed_characters.add(str(result.character_key))
+        if active_character or changed_characters:
+            record_validation("network_progress", changed=len(changed_characters),
+                              activated=bool(active_character))
         if active_character:
             self.characterActivated.emit(active_character)
         if changed_characters:

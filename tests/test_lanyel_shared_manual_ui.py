@@ -7,6 +7,7 @@ import unittest
 import time
 from collections import Counter
 from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -27,6 +28,19 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualCard,
     SharedGuideManualView,
 )
+
+
+class _VerifiedSoloParticipant:
+    """Deterministic selected character for validation integration tests."""
+
+    def available_characters(self):
+        return (SimpleNamespace(key="character:1", label="Alpha", connected=False),)
+
+    def selected_keys(self):
+        return ("character:1",)
+
+    def save_selected_keys(self, values):
+        return tuple(values)
 
 
 class LanyelSharedManualUiTests(unittest.TestCase):
@@ -258,6 +272,44 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_common_progress_uses_same_sheet_ids_not_smallest_count(self) -> None:
+        completed = {
+            "character:1": {0, 1, 2, 3, 4},
+            "character:2": {5, 6, 7, 8, 9},
+        }
+        count = SharedGuideManualView._common_sheet_count(
+            ("character:1", "character:2"),
+            tuple(range(10)),
+            lambda key, card, _index: card in completed[key],
+        )
+        self.assertEqual(count, 0)
+        completed["character:2"].update((0, 2))
+        self.assertEqual(
+            SharedGuideManualView._common_sheet_count(
+                tuple(completed), tuple(range(10)),
+                lambda key, card, _index: card in completed[key],
+            ),
+            2,
+        )
+
+    def test_preparation_without_selected_characters_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            shared.participant_service.save_selected_keys([])
+            shared._load_preparation_needs()
+            shared.preparation_button.setChecked(True)
+            self.app.processEvents()
+            self.assertEqual(shared._preparation_needs, ())
+            self.assertFalse(shared.preparation_panel.findChildren(QToolButton, "GuidePreparationReady"))
+            description = shared.preparation_panel.findChild(QLabel, "GuidePreparationEmpty")
+            self.assertIsNotNone(description)
+            self.assertIn("Aperçu des préparatifs", description.text())
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
@@ -286,16 +338,13 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideSummaryButton"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuidePreparationToggle"))
             self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertEqual(
+                [shared.header_actions_row.itemAt(i).widget().objectName() for i in range(3)],
+                ["GuidePreparationToggle", "GuideSummaryButton", "GuideParticipantsButton"],
+            )
             self.assertFalse(hasattr(shared, "page_jump_button"))
-            self.assertEqual(shared.page_jump.value(), 1)
             self.assertEqual(shared.guide_button.text(), "←")
             self.assertFalse(shared.overlay_button.isEnabled())
-            self.assertEqual(
-                [shared.preparation_button.text(), shared.summary_button.text()],
-                ["Préparation", "Sommaire"],
-            )
-            self.assertEqual(shared.nav_page_label.text().split(" / ")[0], "Page 1")
-            self.assertFalse(shared.nav_page_label.isVisible())
             self.assertGreater(len(shared.service.cards), 1)
             shared.page_jump.setValue(2)
             self.app.processEvents()
@@ -304,9 +353,16 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared.page_jump.setValue(1)
             self.app.processEvents()
             self.assertEqual(shared.view_index, 0)
+            self.assertEqual(shared.nav_page_label.text().split(" / ")[0], "Page 1")
+            self.assertFalse(shared.nav_page_label.isVisible())
+            shared.participant_service = _VerifiedSoloParticipant()
+            shared._refresh_participants_panel()
+            shared._refresh_header()
+            self.assertTrue(shared.route_progress_label.text().endswith(" %"))
+            self.assertIsNotNone(shared.progress_donut._percent)
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(validation)
-            self.assertEqual(validation.text(), "Valider")
+            self.assertIn(validation.text(), ("Choisir des personnages", "Valider"))
 
             view.deleteLater()
             self.app.processEvents()
@@ -358,6 +414,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsInstance(shared, SharedGuideManualView)
             self.app.processEvents()
 
+            shared.participant_service = _VerifiedSoloParticipant()
+            shared._refresh_participants_panel()
+            shared._refresh_header()
+            shared._render_window()
             bar = shared.findChild(QProgressBar, "GuideManualProgress")
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(bar)

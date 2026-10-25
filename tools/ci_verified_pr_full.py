@@ -76,11 +76,11 @@ def verify_job(body: dict, head: str) -> None:
     jobs = body.get("jobs")
     if not isinstance(jobs, list) or not jobs or body.get("total_count") != len(jobs):
         raise ValueError("Incomplete PR job results")
-    full_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == "Phase Certification / Full Validation"]
+    full_jobs = [j for j in jobs if isinstance(j, dict) and j.get("name") == "Phase Certification / Domain or Release Validation"]
     if len(full_jobs) != 1:
         raise ValueError("Missing or ambiguous Phase FULL job")
     job = full_jobs[0]
-    if (job.get("name") != "Phase Certification / Full Validation"
+    if (job.get("name") != "Phase Certification / Domain or Release Validation"
             or job.get("head_sha") not in (None, head)
             or job.get("conclusion") != "success" or job.get("status") != "completed"):
         raise ValueError("No successful FULL job")

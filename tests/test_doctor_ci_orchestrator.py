@@ -33,6 +33,69 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(p['workflows']['phase8-preload-benchmark']['selected'])
         self.assertTrue(p['workflows']['phase8-memory-benchmark']['selected'])
 
+    def test_high_smart_canary_keeps_phase_and_specialists_but_not_full(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE
+        selection = self.select([HIGH_SOURCE], route={'route': 'SCOPED'})
+        self.assertTrue(selection['phase'])
+        self.assertFalse(selection['full'])
+        self.assertFalse(selection['tooling_only'])
+        self.assertFalse(selection['specialist_fallback'])
+        # SMART can only optimize PR feedback, never a main/release push.
+        self.assertTrue(self.select([HIGH_SOURCE], event='push')['full'])
+        self.assertTrue(self.select([HIGH_SOURCE], event='workflow_dispatch')['full'])
+        self.assertTrue(selection['workflows']['phase8_memory_benchmark']['selected'] if
+                        'phase8_memory_benchmark' in selection['workflows']
+                        else selection['workflows']['phase8-memory-benchmark']['selected'])
+        for kwargs in ({'route': {'route': 'FULL'}},
+                       {'deleted': [HIGH_SOURCE]},
+                       {'ui': {'status': 'REVIEW_REQUIRED'}}):
+            with self.subTest(kwargs=kwargs):
+                self.assertTrue(self.select([HIGH_SOURCE], **kwargs)['full'])
+        self.assertTrue(self.select([HIGH_SOURCE, 'app/core/json_store.py'])['full'])
+
+    def test_exact_domain_ci_only_skips_unrelated_user_journeys(self):
+        from tools.ci_domain_certification import plan_domains
+        paths = ['tools/atlas_doctor_lib/ci_orchestrator.py',
+                 '.github/workflows/phase-certification.yml']
+        domain = plan_domains(base_sha='a' * 40, candidate_sha='b' * 40,
+                              paths=paths)
+        selection = select_workflows(
+            paths, event='pull_request', phase_route={'route': 'FULL'},
+            ui_plan=UI_NONE, tooling_scope=False, domain_plan=domain)
+        self.assertTrue(selection['phase'])
+        self.assertTrue(selection['full'])  # risk label, not PR execution
+        self.assertFalse(selection['specialist_fallback'])
+        self.assertFalse(selection['workflows']['doctor-certification']['selected'])
+        self.assertFalse(selection['workflows']['encyclopedia-provider-import']['selected'])
+        self.assertFalse(selection['workflows']['json-focused-data-contract']['selected'])
+        self.assertTrue(selection['workflows']['ai-context-ci']['selected'])
+
+    def test_modular_domain_requires_independent_benchmark_even_without_path_hit(self):
+        from tools.ci_domain_certification import plan_domains
+        cases = [
+            (['tools/benchmark_phase8_memory.py'], 'phase8-memory-benchmark'),
+            (['app/modules/encyclopedia/providers/provider.py'], 'encyclopedia-provider-import'),
+            (['data/large_file_contracts.json'], 'json-focused-data-contract'),
+            (['main.py'], 'phase8-preload-benchmark'),
+        ]
+        for paths, required in cases:
+            domain = plan_domains(base_sha='a' * 40, candidate_sha='b' * 40, paths=paths)
+            r = select_workflows(paths, event='pull_request', phase_route={'route': 'FULL'},
+                                 ui_plan=UI_NONE, tooling_scope=False, domain_plan=domain)
+            with self.subTest(paths=paths):
+                self.assertTrue(r['workflows'][required]['selected'])
+
+    def test_unknown_or_untrusted_domain_cannot_disable_specialists(self):
+        paths = ['tools/atlas_doctor_lib/ci_orchestrator.py']
+        forged = {'status': 'READY_TO_EXECUTE', 'changed_paths': paths,
+                  'domains': ['craft'], 'deleted_paths': [], 'unknown_paths': []}
+        selection = select_workflows(
+            paths, event='pull_request', phase_route={'route': 'FULL'},
+            ui_plan=UI_NONE, tooling_scope=False, domain_plan=forged)
+        self.assertTrue(selection['specialist_fallback'])
+        self.assertTrue(selection['workflows']['doctor-certification']['selected'])
+        self.assertTrue(selection['workflows']['json-focused-data-contract']['selected'])
+
     def test_unknown_or_deleted_changes_fall_back_to_real_full(self):
         for kwargs in ({'route': {}}, {'route': {'route': 'INVALID'}}, {'deleted': ['app/old.py']},
                        {'ui': {'status': 'REVIEW_REQUIRED'}}):
@@ -98,6 +161,44 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(p['workflows']['json-focused-data-contract']['selected'])
         self.assertFalse(p['workflows']['atlas-windows-distribution']['selected'])
         self.assertFalse(p['workflows']['doctor-runtime-perf']['selected'])
+
+    def test_mixed_guide_and_verified_qt_detector_keeps_full_but_not_all_specialists(self):
+        paths = [
+            'app/modules/encyclopedia/views/shared_manual_guide_view.py',
+            'tools/atlas_doctor_lib/doctor_ui_qt.py',
+            'tests/test_guide_manual_selected_validation.py',
+        ]
+        covered_ui = {'status': 'UI_REQUIRED', 'selected_scenarios': [
+            'validator-smoke', 'achievement-detail', 'guides-success',
+            'guides-lanyel', 'guide-quests',
+        ]}
+        routed = self.select(paths, route={'route': 'FULL'}, ui=covered_ui)
+        self.assertTrue(routed['phase'])
+        self.assertTrue(routed['full'])  # Never waive the mandatory FULL.
+        self.assertFalse(routed['specialist_fallback'])
+        self.assertTrue(routed['workflows']['doctor-ui']['selected'])
+        self.assertTrue(routed['workflows']['phase8-memory-benchmark']['selected'])
+        self.assertTrue(routed['workflows']['phase8-preload-benchmark']['selected'])
+        self.assertFalse(routed['workflows']['atlas-windows-distribution']['selected'])
+        self.assertFalse(routed['workflows']['json-focused-data-contract']['selected'])
+        self.assertFalse(routed['workflows']['encyclopedia-provider-import']['selected'])
+
+        # An incomplete UI campaign, unknown policy or other trust owner
+        # must still dispatch the exhaustive specialist safety fallback.
+        for kwargs in (
+            {'ui': {'status': 'REVIEW_REQUIRED', 'selected_scenarios': ['validator-smoke']}},
+            {'ui': {'status': 'UI_REQUIRED', 'selected_scenarios': ['validator-smoke']}},
+            {'route': {}},
+        ):
+            with self.subTest(kwargs=kwargs):
+                self.assertTrue(self.select(paths, route=kwargs.get('route', {'route': 'FULL'}),
+                                            ui=kwargs.get('ui', covered_ui))['specialist_fallback'])
+        unknown_trust = self.select(
+            [paths[0], 'tools/atlas_doctor_lib/runtime_observation.py'],
+            route={'route': 'FULL'}, ui=covered_ui,
+        )
+        self.assertTrue(unknown_trust['full'])
+        self.assertTrue(unknown_trust['specialist_fallback'])
 
     def test_known_workflow_uses_focused_ci_contracts_without_application_full(self):
         p = self.select(['.github/workflows/phase-certification.yml'])
@@ -309,6 +410,45 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 plan_ci(root, base_ref=base, candidate_sha=head, event='pull_request', output=root / 'plan.json')
 
+    def test_pre_full_contract_gate_is_executable_fail_closed(self):
+        central = (ROOT / '.github/workflows/phase-certification.yml').read_text(
+            encoding='utf-8'
+        )
+        job = central.split('  pre-full-gate:', 1)[1].split('  certify:', 1)[0]
+        script = textwrap.dedent(job.split('        run: |', 1)[1])
+        successful = {
+            'doctor-plan': {'result': 'success'},
+            'pr-fast-validation': {'result': 'success'},
+            'doctor_certification': {'result': 'success'},
+            'phase8_memory_benchmark': {'result': 'success'},
+            'signature_report': {'result': 'skipped'},  # Unselected optional job.
+        }
+        required = ['certify', 'pr-fast-validation', 'doctor_certification',
+                    'phase8_memory_benchmark']
+        def execute(rows, mandatory):
+            env = {**os.environ, 'DOCTOR_REQUIRED': json.dumps(mandatory),
+                   'DOCTOR_RESULTS': json.dumps(rows)}
+            return subprocess.run([sys.executable, '-c', script], env=env,
+                                  text=True, capture_output=True)
+        ok = execute(successful, required)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        for key, status in (
+            ('pr-fast-validation', 'failure'),
+            ('doctor_certification', 'cancelled'),
+            ('phase8_memory_benchmark', 'skipped'),
+            ('phase8_memory_benchmark', 'failure'),
+        ):
+            rows = json.loads(json.dumps(successful))
+            rows[key]['result'] = status
+            with self.subTest(job=key, status=status):
+                self.assertNotEqual(execute(rows, required).returncode, 0)
+        rows = json.loads(json.dumps(successful))
+        rows['signature_report']['result'] = 'failure'
+        self.assertNotEqual(execute(rows, required).returncode, 0)
+        self.assertNotEqual(execute(successful, ['certify', 'unknown_job']).returncode, 0)
+        self.assertNotEqual(execute(successful, []).returncode, 0)
+        self.assertNotEqual(execute(successful, ['pr-fast-validation']).returncode, 0)
+
     def test_actual_final_verdict_rejects_skipped_failed_or_cancelled_selected_ci(self):
         source = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
         script = textwrap.dedent(source.rsplit('        run: |\n', 1)[1])
@@ -320,6 +460,21 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         for value in ('{}', '{"doctor-plan":{"result":"failure"}}'):
             env = {**os.environ, 'DOCTOR_REQUIRED': '', 'DOCTOR_RESULTS': value}
             self.assertNotEqual(subprocess.run([sys.executable, '-c', script], env=env, capture_output=True).returncode, 0)
+
+    def test_job_timing_observer_cannot_replace_or_weaken_verdict(self):
+        source = (ROOT / ".github/workflows/phase-certification.yml").read_text(
+            encoding="utf-8")
+        verdict = source.split("  doctor-verdict:", 1)[1]
+        observer = verdict.split("      - name: Publish measured CI job timings (advisory)", 1)[1].split(
+            "      - name: Reject failed or skipped selected CI", 1)[0]
+        self.assertIn("continue-on-error: true", observer)
+        self.assertIn("jobs?per_page=100", observer)
+        self.assertIn("started_at", observer)
+        self.assertIn("completed_at", observer)
+        self.assertIn("not billing", observer)
+        self.assertIn("Required CI did not succeed", verdict)
+        self.assertNotIn("continue-on-error: true", verdict.split(
+            "      - name: Reject failed or skipped selected CI", 1)[1])
 
     def test_single_automatic_entry_and_no_required_public_check_rename(self):
         registry = json.loads((ROOT / 'tools/atlas_doctor_lib/ci_routes.json').read_text(encoding='utf-8'))
@@ -336,7 +491,16 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertIn('name: Require successful Doctor plan', central)
         self.assertIn('if: always() && github.event_name == \'pull_request\'', central)
         certify = central.split('  certify:', 1)[1].split('    steps:', 1)[0]
-        self.assertIn('needs: doctor-plan', certify)
+        self.assertIn('needs: [doctor-plan, pre-full-gate]', certify)
+        self.assertIn("needs.pre-full-gate.result == 'success'", certify)
+        self.assertIn("needs.doctor-plan.result == 'success'", certify)
+        prereq = central.split('  pre-full-gate:', 1)[1].split('  certify:', 1)[0]
+        for name in ('pr-fast-validation', 'doctor_certification',
+                     'doctor_ui', 'phase8_memory_benchmark',
+                     'phase8_preload_benchmark', 'graphify_map'):
+            self.assertIn(name, prereq)
+        self.assertNotIn('certify,', prereq.split('needs: [', 1)[1].split(']', 1)[0])
+        self.assertNotIn('safe-validation', prereq.split('needs: [', 1)[1].split(']', 1)[0])
         self.assertNotIn('title', certify)
         self.assertNotIn('draft', certify)
         required_public = central.split('  safe-validation:', 1)[1].split('    steps:', 1)[0]

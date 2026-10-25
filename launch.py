@@ -4,6 +4,18 @@ from __future__ import annotations
 def main() -> int:
     import sys
 
+    # The elevated capture process runs the same frozen EXE, not a Python
+    # interpreter. Dispatch it before importing Qt or acquiring the GUI lock.
+    if getattr(sys, "frozen", False) and sys.argv[1:2] == ["--atlas-capture-helper"]:
+        from app.network.capture_helper import main as capture_main
+        return int(capture_main(sys.argv[2:]))
+
+    if getattr(sys, "frozen", False) and sys.argv[1:2] == ["--atlas-capture-smoke"]:
+        # An isolated packaging smoke: verifies helper imports without UAC,
+        # opening a capture socket or starting the GUI.
+        from app.network.capture_helper import main as capture_main
+        return 0 if callable(capture_main) else 2
+
     if sys.argv[1:2] == ["--atlas-package-smoke"]:
         from pathlib import Path
         import PySide6.QtWebEngineWidgets  # noqa: F401
