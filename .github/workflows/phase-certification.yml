@@ -525,24 +525,24 @@ jobs:
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
 
-      - name: Preserve preflight failure or timeout evidence
-        if: always() && github.event_name == 'pull_request' && github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && steps.diff_preflight.outcome != 'success'
+      - name: Preserve modular certification failure or timeout evidence
+        if: always() && github.event_name == 'pull_request' && steps.domains.outcome != 'success'
         shell: pwsh
         run: |
-          $target = "artifacts/phase_certification/02b_diff_preflight.json"
+          $target = "artifacts/phase_certification/02c_domain_failure.json"
           if (-not (Test-Path -LiteralPath $target)) {
             New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
             [ordered]@{
               schema_version = 1
               candidate_sha = $env:CANDIDATE_SHA
               base_ref = $env:CERT_BASE_REF
-              group = "DIFF_TARGETS"
-              preflight_only = $true
+              group = "PR_DOMAIN_CERTIFICATION"
+              preflight_only = $false
               full_suite_executed = $false
               phase_certified = $false
               status = "INCOMPLETE_OR_FAILED"
-              github_step_outcome = "${{ steps.diff_preflight.outcome }}"
-              reason = "Early regression preflight did not complete successfully (including timeout/skip)."
+              github_step_outcome = "${{ steps.domains.outcome }}"
+              reason = "Required exact-SHA domain certification failed, skipped or timed out."
             } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $target -Encoding utf8
           }
 
@@ -1217,15 +1217,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Archive measured CI timings (advisory)
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: doctor-ci-timings-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/job_timings.json
-          if-no-files-found: warn
-          retention-days: 30
       - name: Reject failed or skipped selected CI
         shell: python
         env:
@@ -1350,6 +1341,15 @@ jobs:
           except (OSError, KeyError, TypeError, ValueError) as exc:
               print(f"CI timing observation unavailable (advisory): {type(exc).__name__}: {exc}")
           PYTIMINGS
+      - name: Archive measured CI timings (advisory)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-ci-timings-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/doctor_ci/job_timings.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Reject failed or skipped selected CI
         shell: python
         env:
