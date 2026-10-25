@@ -36,6 +36,31 @@ l'installateur/EXE, ni les workflows CI. Le lanceur a été testé sur un
 dépôt synthétique propre et deux cas d'échec contrôlés ; ce succès de fixture
 n'est pas un verdict du code Atlas complet.
 
+## Nettoyage local du fond Unity (sans modifier l'original)
+
+Le réparateur `tools/assets/clean_unity_wallpaper.py` (Pillow déjà épinglé
+dans les dépendances Windows) est prêt et testé sur un ciel synthétique avec
+trois icônes artificielles. Il exige **trois rectangles relevés sur la vraie
+capture**, contrôlés pour rester en haut à droite, et confirme le SHA-256
+canonique de la capture 1919×1079 avant toute opération. Il reconstruit
+localement le ciel à partir des quatre bords de chaque zone, sans toucher
+aux pixels en dehors des zones ni au PNG d'origine.
+
+Après relevé exact des coordonnées sur l'image source, depuis la racine du
+dépôt, remplacer chacune des valeurs `x,y,w,h` par la boîte correspondante :
+
+```powershell
+py -3.13 -m tools.assets.clean_unity_wallpaper --box x1,y1,w1,h1 --box x2,y2,w2,h2 --box x3,y3,w3,h3 --preview artifacts/unity-mask-review.png
+```
+
+Le résultat est un PNG local `background_selection_clean.png` utilisé en
+priorité par le thème Unity. **Examiner la capture et la réparation avant
+utilisation** ; l'interpolation de ciel n'est pas une garantie de suppression
+invisible sur n'importe quelle texture. Ne pas publier ce dérivé dans Git
+ou un EXE tant que les droits des assets DOFUS ne sont pas confirmés.
+Aucun rectangle n'a été inventé, et aucune retouche de la vraie image
+n'est revendiquée ici faute d'accès aux octets originaux.
+
 ## Contrôles locaux à faire avant toute fusion
 
 ### Sonde locale réelle des cycles Qt (sans GitHub Actions)

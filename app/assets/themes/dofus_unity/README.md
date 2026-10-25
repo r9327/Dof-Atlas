@@ -9,3 +9,8 @@ Les polices du dossier `fonts` sont les copies extraites du client, **pas** des 
 Ne pas activer ces ressources par défaut dans la distribution publique tant que les droits ne sont pas clarifiés. Ne pas traiter la présence de ces fichiers comme une implémentation ni une certification du thème global.
 
 Références métier : `docs/plans/guides-2026-10-24/06b-theme-dofus-unity-global.md` et `06b-dofus-unity-asset-manifest.csv`.
+
+Le script local `py -3.13 -m tools.assets.clean_unity_wallpaper` prépare
+une version dérivée non destructive quand les trois rectangles exacts sont
+relevés. Ce PNG dérivé reste une **référence locale non redistribuable**
+jusqu'à décision sur les droits. Voir `06c-theme-unity-validation-locale.md`.

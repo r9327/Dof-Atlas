@@ -50,6 +50,26 @@ class PackagingTests(unittest.TestCase):
             self.assertTrue(install_release(target, archive, manifest))
             self.assertEqual(active_executable(target).read_bytes(), b"MZ-packaging-test")
 
+    def test_unlicensed_game_assets_excluded_at_every_frozen_layout(self):
+        from scripts.windows.package_release import _publishable
+
+        for filename in (
+            "_internal/app/assets/themes/dofus_unity/sprites/button.png",
+            "_internal/assets/themes/dofus_unity/background_selection_original.png",
+            "assets/themes/dofus_unity/fonts/extracted.ttf",
+            "_internal/docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+            "docs/design/dofus-unity/sources/atlas_unity_picto_source_02.zip",
+            "_internal/sources/Atlas_UI_Selection_Prete.zip",
+        ):
+            self.assertFalse(_publishable(Path(filename)), filename)
+        for filename in (
+            "AtlasApp.exe",
+            "_internal/data/local/zaaps.json",
+            "_internal/PySide6/QtWebEngineProcess.exe",
+            "_internal/app/ui/unity_skin.py",
+        ):
+            self.assertTrue(_publishable(Path(filename)), filename)
+
     def test_reject_unresolved_lfs_pointer(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

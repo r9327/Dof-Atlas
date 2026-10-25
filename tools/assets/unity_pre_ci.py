@@ -29,6 +29,7 @@ SOURCE_FILES = (
     "app/modules/encyclopedia/views/guides_view.py",
     "scripts/windows/package_release.py",
     "tools/assets/inspect_unity_assets.py",
+    "tools/assets/clean_unity_wallpaper.py",
     "tools/assets/unity_local_cycle_probe.py",
     "tests/test_guide_library_home.py",
     "tests/test_unity_skin.py",
@@ -36,6 +37,7 @@ SOURCE_FILES = (
     "tests/test_distribution_package.py",
     "tests/test_distribution_export.py",
     "tests/test_unity_pre_ci_runner.py",
+    "tests/test_unity_wallpaper_cleaner.py",
 )
 STDLIB_TESTS = (
     "tests/test_unity_assets_inventory.py",
@@ -143,8 +145,18 @@ def examine(root: Path, *, qt: bool = False, assets: bool = False) -> dict:
             root,
         )
         report["checks"]["asset_integrity"] = result
+        if importlib.util.find_spec("PIL") is None:
+            report["checks"]["wallpaper_cleaner"] = {
+                "status": "FAIL", "error": "Pillow missing",
+            }
+        else:
+            report["checks"]["wallpaper_cleaner"] = _run(
+                [sys.executable, "-c", RUN_TEST, "tests/test_unity_wallpaper_cleaner.py"],
+                root,
+            )
     else:
         report["checks"]["asset_integrity"] = {"status": "NOT_RUN"}
+        report["checks"]["wallpaper_cleaner"] = {"status": "NOT_RUN"}
     report["status"] = (
         "PASS" if all(
             item["status"] in ("PASS", "NOT_RUN")
