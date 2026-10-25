@@ -114,6 +114,17 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertIn('full_suite_executed', enforce)
         self.assertIn('merge_authorized', enforce)
 
+    def test_draft_preflight_blocks_unknown_domain_before_windows(self):
+        from pathlib import Path
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/scoped-pr-ci.yml").read_text(encoding="utf-8")
+        plan = workflow.index("--output artifacts/doctor_ci/plan.json --json")
+        closure = workflow.index("PR domain closure BLOCKED:")
+        report = workflow.index("python -m tools.ci_pr_audit")
+        self.assertLess(plan, closure)
+        self.assertLess(closure, report)
+        self.assertIn('domain.get("status") != "READY_TO_EXECUTE"', workflow)
+
     def test_domain_executor_rejects_failed_skipped_and_missing_tests(self):
         import json
         import sys
