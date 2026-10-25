@@ -93,6 +93,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui", "craft", "quests", "guides", "identity", "data"})
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
+        if leaf == "lanyel_shared_manual_ui":
+            return frozenset({"guides", "ui"})
         if leaf.startswith(("ci_", "doctor_", "phase_", "atlas_integrity", "atlas_meta",
                             "meta_integrity", "main_phase_evidence", "public_pr_",
                             "security_hardening", "repository_git", "generated_file")):

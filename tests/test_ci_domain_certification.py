@@ -51,6 +51,15 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("app/modules/encyclopedia/views/unknown.py"), frozenset())
 
+    def test_lanyel_shared_manual_ui_test_has_both_owners(self):
+        path = "tests/test_lanyel_shared_manual_ui.py"
+        self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
+        plan = self.route([path, "app/modules/encyclopedia/views/shared_manual_guide_view.py"])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["guides", "ui"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("tests/test_unknown_misc_case.py"), frozenset())
+
     def test_main_phase_evidence_is_critical_ci_domain_owner(self):
         from tools.ci_domain_certification import owners_for
         path = "tests/test_main_phase_evidence.py"
