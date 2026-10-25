@@ -570,7 +570,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("name: Verify exact certification checkout", source)
         self.assertIn("git rev-parse HEAD", source)
         self.assertIn("Certification checkout mismatch", source)
-        self.assertIn("name: Phase Certification / Full Validation", source)
+        self.assertIn("name: Phase Certification / Domain or Release Validation", source)
         self.assertIn("runs-on: windows-latest", source)
         self.assertIn("persist-credentials: false", source)
         self.assertIn("fetch-depth: 0", source)
