@@ -1339,6 +1339,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, index)
             self.summary_list.addItem(item)
+        # Rebuilding the model must not silently discard the active search.
+        self._filter_summary(self.summary_search.text())
 
     def _filter_summary(self, value: str) -> None:
         needle = normalize_text(value)

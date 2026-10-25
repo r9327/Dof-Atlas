@@ -11,6 +11,7 @@
 - [x] Colonne droite classique : bouton de rétraction/réouverture et mémorisation de la largeur en pixels, sans remise systématique à 230 px lors d'une navigation.
 - [x] Raccourci Quête par fiche : pictogramme dédié au thème, zone cliquable de 30 px, focus clavier, nom exact, infobulle locale à 350 ms et contexte de navigation conservés.
 - [x] Le centre du lecteur classique reçoit seul l'espace supplémentaire ; la largeur mémorisée du panneau droit reste fixe.
+- [x] La recherche locale du Sommaire est réappliquée après reconstruction de sa liste, avec test de navigation Sommaire ouvert.
 - [x] Tests de régression ajoutés pour le panneau droit et le bouton Quête (présents dans le code, non exécutés dans cet audit).
 - [ ] Validation Windows/DPI, navigation multi-guides, scroll, mémoire, Doctor et certification du SHA final.
 - [ ] Vérifier le Sommaire, les commandes de déplacement, les groupes d'actions et les scénarios N1 à N8.

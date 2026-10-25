@@ -315,6 +315,35 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+        _service, view = self._view()
+        try:
+            view.summary_button.click()
+            QApplication.processEvents()
+            self.assertTrue(view.summary_button.isChecked())
+            self.assertFalse(view.summary_panel.isHidden())
+            self.assertEqual(view.summary_list.count(), 2)
+
+            view.summary_search.setText("Deuxième")
+            self.assertTrue(view.summary_list.item(0).isHidden())
+            self.assertFalse(view.summary_list.item(1).isHidden())
+
+            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertEqual(view.view_index, 1)
+            self.assertTrue(view.summary_button.isChecked())
+            self.assertFalse(view.summary_panel.isHidden())
+            view.navigate_relative(-1)
+            self.assertEqual(view.view_index, 0)
+            self.assertFalse(view.summary_panel.isHidden())
+
+            view.summary_list.clear()
+            view._populate_summary()
+            self.assertEqual(view.summary_search.text(), "Deuxième")
+            self.assertTrue(view.summary_list.item(0).isHidden())
+            self.assertFalse(view.summary_list.item(1).isHidden())
+        finally:
+            view.close()
+
     def test_previous_next_and_validation_share_the_bottom_navigation_row(self) -> None:
         _service, view = self._view()
         try:
