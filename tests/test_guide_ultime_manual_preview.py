@@ -258,7 +258,8 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         button_source = inspect.getsource(GuideUltimeManualView._guide_button_clicked)
 
         self.assertNotIn('setObjectName("GuideBreadcrumb")', source)
-        self.assertIn('AtlasButton("Guides")', header_source)
+        self.assertIn('AtlasButton("←")', header_source)
+        self.assertIn('setAccessibleName("Retour à l\'accueil des guides")', header_source)
         self.assertIn('setObjectName("GuideManualGuideButton")', header_source)
         self.assertIn("self.view_index != self.active_index", button_source)
         self.assertIn("self.go_active()", button_source)
