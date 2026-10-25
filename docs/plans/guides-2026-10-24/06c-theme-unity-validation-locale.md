@@ -29,6 +29,15 @@ tests Qt offscreen et l'audit d'intégrité réel des assets :
 py -3.13 -m tools.assets.unity_pre_ci --qt --assets --report artifacts/unity-pre-ci-full.json
 ```
 
+Pour un préflight d'intégration, épingler le SHA exact affiché en tête
+de la PR (et non celui lu automatiquement dans la copie locale) :
+
+```powershell
+py -3.13 -m tools.assets.unity_pre_ci --qt --assets --expect-sha "COLLER_SHA_40_CARACTERES_DE_LA_PR" --report artifacts/unity-pre-ci-full.json
+```
+
+La vérification `git_revision` échoue en cas de SHA erroné, obsolète ou
+mal formé ; le rapport JSON contient le SHA attendu et celui observé.
 Un résultat `PASS` est **uniquement** un feu vert pour la portée des
 contrôles locaux. Le JSON comporte explicitement les limites de couverture :
 il ne certifie ni les droits, ni les captures de moniteurs physiques, ni

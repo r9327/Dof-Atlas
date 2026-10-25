@@ -15,6 +15,7 @@ import ast
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -79,7 +80,8 @@ def _run(command: list[str], root: Path, *, qt: bool = False, timeout: int = 180
         return {"status": "FAIL", "error": str(exc)}
 
 
-def examine(root: Path, *, qt: bool = False, assets: bool = False) -> dict:
+def examine(root: Path, *, qt: bool = False, assets: bool = False,
+            expected_sha: str | None = None) -> dict:
     root = root.resolve()
     report: dict = {
         "status": "FAIL", "pre_ci_only": True, "github_ci_launched": False,
@@ -99,9 +101,17 @@ def examine(root: Path, *, qt: bool = False, assets: bool = False) -> dict:
     head = revision.get("stdout_tail", "").strip()
     valid_head = (revision["status"] == "PASS" and len(head) == 40
                   and all(char in "0123456789abcdef" for char in head))
+    # Require the exact expected PR SHA when supplied: do not certify an
+    # outdated local clone because its own tests happen to pass.
+    sha_input_valid = (expected_sha is None or bool(re.fullmatch(r"[0-9a-f]{40}", expected_sha)))
+    sha_matches = (expected_sha is None or head == expected_sha)
     report["checks"]["git_revision"] = {
-        "status": "PASS" if valid_head else "FAIL",
+        "status": "PASS" if valid_head and sha_input_valid and sha_matches else "FAIL",
         "head_sha": head if valid_head else None,
+        "expected_sha": expected_sha,
+        "error": ("expected_sha must be a 40-character lowercase Git SHA"
+                  if not sha_input_valid else
+                  "HEAD differs from requested PR SHA" if not sha_matches else None),
     }
     if valid_head:
         report["head_sha"] = head
@@ -171,10 +181,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--expect-sha", help="require this exact 40-character PR HEAD SHA")
     parser.add_argument("--qt", action="store_true", help="also execute local offscreen Qt tests")
     parser.add_argument("--assets", action="store_true", help="also audit local unlicensed reference assets")
     args = parser.parse_args()
-    report = examine(args.root, qt=args.qt, assets=args.assets)
+    report = examine(args.root, qt=args.qt, assets=args.assets,
+                     expected_sha=args.expect_sha)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

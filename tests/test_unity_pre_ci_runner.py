@@ -35,6 +35,13 @@ class PreCiRunnerTests(unittest.TestCase):
             self.assertEqual(passing["status"], "PASS", passing["checks"])
             self.assertEqual(len(passing["head_sha"]), 40)
             self.assertFalse(passing["github_ci_launched"])
+            exact = examine(root, expected_sha=passing["head_sha"])
+            self.assertEqual(exact["checks"]["git_revision"]["status"], "PASS")
+            stale = examine(root, expected_sha="0" * 40)
+            self.assertEqual(stale["status"], "FAIL")
+            self.assertEqual(stale["checks"]["git_revision"]["status"], "FAIL")
+            invalid = examine(root, expected_sha="not-a-sha")
+            self.assertEqual(invalid["status"], "FAIL")
 
             broken_source = root / SOURCE_FILES[0]
             broken_source.write_text("def nope(:\n", encoding="utf-8")
