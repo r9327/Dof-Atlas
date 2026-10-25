@@ -137,11 +137,14 @@ class _PreparationNeed:
     item_id: int | None
     name: str
     category: str
-    required_by_character: tuple[tuple[str, int], ...]
+    required_by_character: tuple[tuple[str, int | None], ...]
+    confidence_by_character: tuple[tuple[str, str], ...] = ()
+    sources: tuple[str, ...] = ()
 
     @property
-    def required_total(self) -> int:
-        return sum(quantity for _key, quantity in self.required_by_character)
+    def required_total(self) -> int | None:
+        values = [quantity for _key, quantity in self.required_by_character]
+        return sum(values) if all(value is not None for value in values) else None
 
 
 class _GuideProgressDonut(QWidget):
@@ -819,7 +822,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
+        self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
         self._preparation_loaded = False
+        self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -1022,7 +1027,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         filters.setSpacing(5)
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Métiers", "Potions", "Objets"):
+        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
             button = QPushButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
@@ -1367,43 +1372,55 @@ class SharedGuideManualView(GuideUltimeManualView):
         return tuple(rows)
 
     def _load_preparation_needs(self) -> None:
-        participant_keys = tuple(self.selected_participant_keys())
+        from app.modules.encyclopedia.services.guide_preparation_model import (
+            aggregate_remaining,
+        )
+
+        # A browsing character is never consent for Prêt. The no-selection
+        # state remains readable without manufacturing an inventory/progress ID.
+        participant_keys = self._progress_participant_keys()
         if not participant_keys:
+            summary = aggregate_remaining((card, False) for card in self.service.cards)
+            self._preparation_preview = tuple(
+                (need.category, need.name, need.quantity or 0) for need in summary
+            )
             self._preparation_needs = ()
             self._preparation_loaded = True
             self._update_preparation_progress()
             return
 
-        aggregated: dict[
-            tuple[str, str],
-            dict[str, Any],
-        ] = {}
+        self._preparation_preview = ()
+        aggregated: dict[tuple[str, str], dict[str, Any]] = {}
+        sections_getter = getattr(self.service, "manual_sections_for_card", None)
         for character_key in participant_keys:
-            for index, card in enumerate(self.service.cards):
-                if self._card_complete(character_key, card, index):
-                    continue
-                seen_on_card: set[str] = set()
-                for item_id, name, quantity, category in self._requirements_from_card(
-                    self.service,
-                    character_key,
-                    card,
-                ):
-                    item_key = self._preparation_item_key(item_id, name)
-                    if item_key in seen_on_card:
-                        continue
-                    seen_on_card.add(item_key)
-                    key = (item_key, category)
-                    row = aggregated.setdefault(
-                        key,
-                        {
-                            "item_id": item_id,
-                            "name": name,
-                            "category": category,
-                            "required": {},
-                        },
+            # No full Qt card materialization; one bounded data traversal for
+            # each explicitly selected verified identity.
+            rows = (
+                (card, self._card_complete(character_key, card, index))
+                for index, card in enumerate(self.service.cards)
+            )
+            for need in aggregate_remaining(
+                rows,
+                sections_for_card=(
+                    lambda card, key=character_key: (
+                        None if "_manual_stage_payload" in card else
+                        sections_getter(key, card) if callable(sections_getter)
+                        else card.get("manual_sections", {})
                     )
-                    required = row["required"]
-                    required[character_key] = int(required.get(character_key, 0)) + quantity
+                ),
+            ):
+                item_key = self._preparation_item_key(need.item_id, need.name)
+                row = aggregated.setdefault(
+                    (item_key, need.category),
+                    {
+                        "item_id": need.item_id, "name": need.name,
+                        "category": need.category, "required": {},
+                        "confidence": {}, "sources": set(),
+                    },
+                )
+                row["required"][character_key] = need.quantity
+                row["confidence"][character_key] = need.confidence
+                row["sources"].update(need.sources)
 
         self._preparation_needs = tuple(
             _PreparationNeed(
@@ -1412,6 +1429,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 name=row["name"],
                 category=row["category"],
                 required_by_character=tuple(sorted(row["required"].items())),
+                confidence_by_character=tuple(sorted(row["confidence"].items())),
+                sources=tuple(sorted(row["sources"])),
             )
             for (item_key, _category), row in sorted(
                 aggregated.items(),
@@ -1433,12 +1452,42 @@ class SharedGuideManualView(GuideUltimeManualView):
         return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
 
     def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
-        setter = getattr(self.service, "set_manual_checked", None)
-        if not callable(setter):
-            return
         key = self._ready_progress_key(need)
-        for character_key, _quantity in need.required_by_character:
-            setter(character_key, key, bool(checked))
+        known = set(self._progress_participant_keys())
+        keys = tuple(character_key for character_key, _quantity in need.required_by_character
+                     if character_key in known)
+        getter = getattr(self.service, "manual_checked", None)
+        batcher = getattr(getattr(self.service, "guide_progress", None),
+                          "set_manual_steps_for_characters", None)
+        setter = getattr(self.service, "set_manual_checked", None)
+        if not keys or not callable(getter):
+            return
+        expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
+        if all(value == bool(checked) for value in expected.values()):
+            return
+        if callable(batcher):
+            from app.modules.encyclopedia.services.guide_ultime_generated_service import (
+                GUIDE_ULTIME_PROGRESS_ID,
+            )
+            progress_id = str(getattr(self.service, "progress_id", None)
+                              or GUIDE_ULTIME_PROGRESS_ID)
+            try:
+                batcher(keys, progress_id, key, bool(checked),
+                        expected_completed=expected)
+            except RuntimeError:
+                # Atomic compare-and-swap rejected concurrent progress edits;
+                # never overwrite the other instance's work.
+                self.service.reload_progress()
+                self.validation_host.setToolTip(
+                    "Préparation modifiée ailleurs ; actualisez les besoins."
+                )
+        elif len(keys) == 1 and callable(setter):
+            setter(keys[0], key, bool(checked))
+        else:
+            self.validation_host.setToolTip(
+                "Sauvegarde atomique multi-personnages indisponible."
+            )
+            return
         checked_button = self.preparation_filter_group.checkedButton()
         current_filter = str(
             checked_button.property("filterKey") if checked_button is not None else "Tout"
@@ -1455,21 +1504,70 @@ class SharedGuideManualView(GuideUltimeManualView):
                 widget.setParent(None)
                 widget.deleteLater()
 
+    def _show_more_preparation(self) -> None:
+        self._preparation_visible_limit += 80
+        checked = self.preparation_filter_group.checkedButton()
+        current_filter = str(
+            checked.property("filterKey") if checked is not None else "Tout"
+        )
+        self._render_preparation(current_filter)
+
+    def _append_preparation_more(self, remaining: int) -> None:
+        if remaining <= 0:
+            return
+        button = QPushButton(f"Afficher la suite ({remaining} besoins restants)")
+        button.setObjectName("GuidePreparationShowMore")
+        button.clicked.connect(lambda _checked=False: self._show_more_preparation())
+        self.preparation_rows_layout.addWidget(button)
+
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         if not self.selected_participant_keys():
-            label = QLabel("Sélectionne au moins un personnage dans Mes personnages.")
+            label = QLabel("Aperçu des préparatifs · sélectionne un personnage pour activer Prêt.")
             label.setObjectName("GuidePreparationEmpty")
+            label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
+            preview = self._preparation_preview
+            if selected_filter != "Tout":
+                preview = tuple(row for row in preview if row[0] == selected_filter)
+            if not preview:
+                self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
+            else:
+                # Read-only text, no checkbox and no anonymous persistence.
+                visible = preview[:self._preparation_visible_limit]
+                lines = [f"• {quantity if quantity else '?'} × {name} ({category})"
+                         for category, name, quantity in visible]
+                details = QLabel(chr(10).join(lines))
+                details.setObjectName("GuidePreparationPreview")
+                details.setWordWrap(True)
+                details.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                self.preparation_rows_layout.addWidget(details)
+                self._append_preparation_more(
+                    len(preview) - self._preparation_visible_limit
+                )
+            self.preparation_rows_layout.addStretch(1)
             return
 
         if selected_filter == "Tout":
-            for category in ("Métiers", "Potions", "Objets"):
-                matching = [
-                    need
-                    for need in self._preparation_needs
-                    if need.category == category and not self._is_soul_stone(need.name)
-                ]
+            groups = (
+                ("Prérequis", lambda need: need.category == "Prérequis"),
+                ("Métiers", lambda need: need.category == "Métiers"),
+                ("Potions", lambda need: need.category == "Potions"),
+                ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
+                 or self._is_soul_stone(need.name)),
+                ("Clefs", lambda need: need.category == "Clefs"),
+                ("Objets", lambda need: need.category == "Objets"
+                 and not self._is_soul_stone(need.name)),
+            )
+            if not self._preparation_needs:
+                empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
+                empty.setObjectName("GuidePreparationEmpty")
+                self.preparation_rows_layout.addWidget(empty)
+            rendered_count = 0
+            for category, predicate in groups:
+                matching = [need for need in self._preparation_needs if predicate(need)]
+                if not matching:
+                    continue
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
                 row = QHBoxLayout(summary)
@@ -1479,6 +1577,13 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
                 self.preparation_rows_layout.addWidget(summary)
+                available = max(0, self._preparation_visible_limit - rendered_count)
+                for need in matching[:available]:
+                    self.preparation_rows_layout.addWidget(self._preparation_row(need))
+                rendered_count += min(len(matching), available)
+            self._append_preparation_more(
+                len(self._preparation_needs) - rendered_count
+            )
             self.preparation_rows_layout.addStretch(1)
             return
 
@@ -1490,8 +1595,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             label.setObjectName("GuidePreparationEmpty")
             self.preparation_rows_layout.addWidget(label)
             return
-        for need in matching:
+        for need in matching[:self._preparation_visible_limit]:
             self.preparation_rows_layout.addWidget(self._preparation_row(need))
+        self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
 
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
@@ -1503,8 +1609,21 @@ class SharedGuideManualView(GuideUltimeManualView):
         top = QHBoxLayout()
         top.setSpacing(6)
         ready = self._need_ready(need)
-        status = "Prêt" if ready else f"? / {need.required_total} · quantité à confirmer"
-        label = QLabel(f"{need.name} — {status}")
+        confirmed = sum(
+            1 for character_key, _quantity in need.required_by_character
+            if callable(getattr(self.service, "manual_checked", None))
+            and self.service.manual_checked(character_key, self._ready_progress_key(need))
+        )
+        total = len(need.required_by_character)
+        quantity = need.required_total
+        amount = (
+            "" if need.category in {"Prérequis", "Métiers"}
+            else f"{quantity} × " if quantity is not None else "? × "
+        )
+        status = "Prêt" if ready else f"{confirmed}/{total} prêts"
+        label = QLabel(f"{amount}{need.name} — {status}")
+        label.setToolTip(" ; ".join(need.sources[:8])
+                         or "Quantité ou provenance à confirmer")
         label.setObjectName("GuidePreparationRowLabel")
         top.addWidget(label, 1)
         ready_button = QToolButton()
@@ -1513,7 +1632,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.setIconSize(QSize(14, 14))
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
-        ready_button.setToolTip("Déclarer Prêt pour les participants concernés")
+        ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        if len(need.required_by_character) > 1 and not callable(
+            getattr(getattr(self.service, "guide_progress", None),
+                    "set_manual_steps_for_characters", None)
+        ):
+            ready_button.setEnabled(False)
+            ready_button.setToolTip("Sauvegarde atomique indisponible")
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
@@ -1534,7 +1659,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             for character in self.participant_service.available_characters()
         }
         for character_key, quantity in need.required_by_character:
-            detail = QLabel(f"{labels_by_key.get(character_key, character_key)} : besoin {quantity}")
+            detail = QLabel(
+                f"{labels_by_key.get(character_key, character_key)} : "
+                f"besoin {quantity if quantity is not None else 'à confirmer'}"
+            )
             detail.setObjectName("GuidePreparationParticipantNeed")
             details_layout.addWidget(detail)
         details.setVisible(False)
