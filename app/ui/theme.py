@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
+from app.ui.unity_skin import UNITY_PALETTE, unity_enabled, unity_skin_stylesheet
+
 
 # Shared visual language: the home page's near-black surfaces, olive accent and
 # warm neutral text. Keep semantic names here so modules do not grow parallel
@@ -38,6 +40,10 @@ PALETTE = {
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #091214, stop:1 #081113)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5C7E1B, stop:1 #4B6816)",
 }
+
+if unity_enabled():
+    # Central token override: module QSS and shell share a single palette.
+    PALETTE.update(UNITY_PALETTE)
 
 TYPOGRAPHY = {
     "FONT_FAMILY": '"Segoe UI", Arial',
@@ -2472,7 +2478,7 @@ QLabel#GuideBreadcrumbCurrent {
 }
 
 #GuideManualProgress::chunk {
-    background: @GREEN;
+    background: @RED;
     border-radius: 2px;
 }
 
@@ -2535,9 +2541,13 @@ QProgressBar#GuideCompactSuccessProgress {
     border-radius: 3px;
 }
 
-QProgressBar#GuideCompactPreparationProgress::chunk,
-QProgressBar#GuideCompactSuccessProgress::chunk {
+QProgressBar#GuideCompactPreparationProgress::chunk {
     background: @GREEN;
+    border-radius: 2px;
+}
+
+QProgressBar#GuideCompactSuccessProgress::chunk {
+    background: @YELLOW;
     border-radius: 2px;
 }
 
@@ -3180,4 +3190,5 @@ def atlas_stylesheet(overrides: Mapping[str, str] | None = None) -> str:
     future theme variants change the whole application without rewriting QSS.
     """
 
-    return render_theme_template(_STYLE_TEMPLATE, overrides)
+    style = render_theme_template(_STYLE_TEMPLATE, overrides)
+    return style + "\n" + unity_skin_stylesheet() if unity_enabled() else style

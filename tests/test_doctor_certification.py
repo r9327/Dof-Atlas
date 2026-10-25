@@ -51,6 +51,43 @@ class AdaptiveCertificationTests(unittest.TestCase):
                 impact_provider=lambda *_: impact if impact is not None else source(),
             )
 
+    def test_bounded_high_scope_is_smart_only_with_complete_independent_evidence(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        target = self.root / HIGH_SOURCE
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("class GuideProgressService: pass\n")
+        for module in REQUIRED_TESTS:
+            (self.root / Path(*module.split(".")).with_suffix(".py")).write_text("pass\n")
+        modules = sorted(REQUIRED_TESTS)
+        focused = {"status": "TARGETED", "full_required": False,
+                   "modules": modules, "reasons": []}
+        def decide(impact):
+            with mock.patch.object(engine.ci_scope_gate, "classify_diff", return_value=focused), mock.patch.object(engine.ci_scope_gate, "_path_has_direct_test_coverage", return_value=True):
+                return engine.plan(self.root, [HIGH_SOURCE], base_sha=BASE,
+                                   head_sha=HEAD, impact_provider=lambda *_: impact)
+        valid = decide(source())
+        self.assertEqual(valid["risk"], "HIGH")
+        self.assertEqual(valid["profile"], "SMART", valid["reasons"])
+        self.assertEqual(valid["status"], "READY_TO_RUN_SCOPED")
+        self.assertTrue(valid["high_smart_candidate"])
+        self.assertEqual(valid["independent_verdict"]["status"], "POLICY_CONFORMING")
+        self.assertTrue(REQUIRED_TESTS <= set(valid["test_modules"]))
+        self.assertFalse(valid["validation"]["phase_certified"])
+        self.assertFalse(valid["validation"]["full_suite_waived"])
+        for impact, reason in (
+            (source(dynamic=[{"importer": "app/unknown.py"}]), "UNPROVEN_DYNAMIC_CONSUMERS"),
+            (source(status="REVIEW"), "INCOMPLETE_SOURCE_IMPACT"),
+            (source(consumers=["app/modules/encyclopedia/views/guides_view.py"]),
+             "HIGH_REQUIRED_METRICS_NOT_ATTESTED"),
+        ):
+            with self.subTest(reason=reason):
+                unsafe = decide(impact)
+                self.assertEqual(unsafe["status"], "FULL_REQUIRED")
+                self.assertIn(reason, unsafe["reasons"])
+                self.assertFalse(unsafe["high_smart_candidate"])
+        (self.root / "tests/test_progress_cross_surface_reload.py").unlink()
+        self.assertEqual(decide(source())["status"], "FULL_REQUIRED")
+
     def test_tiny_known_change_is_fast_without_full_claim(self):
         result = self.build()
         self.assertEqual(result["profile"], "FAST")

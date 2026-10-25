@@ -107,3 +107,11 @@ Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composan
 - Contrôle ZIP `Atlas-UI-Selection-Originale.zip` : 47 PNG, 10 TTF, 1 CSV, archive sans erreur CRC. Contrôle GitHub par lecture des blobs : `btn_green_normal.png`, `Lexend-Regular.ttf`, `Rowdies-Regular.ttf`, `logoDofus.png` et fond original, SHAs conformes.
 - **Fichiers intégrés ≠ thème appliqué :** aucun branchement global QSS/Qt/WebView, aucun retrait des trois icônes du fond ni test Doctor/Windows réalisé à ce stade. Conserver la PR en brouillon.
 - **Droits :** les familles de polices existent sous licence OFL en amont, mais les copies précises extraites du jeu, les sprites, le logo et la capture ne sont pas présumés libres. Ne pas produire ni publier de release réutilisant ces fichiers avant revue de licence/autorisations ; voir `app/assets/themes/dofus_unity/README.md`.
+
+
+## Progression d'intégration — synchronisation avec main après PR #253
+
+- [x] Base fusionnée sans écraser les modules de progression/navigation et les protections CI précédentes ; Doctor combine les contrôles #254 avec les scénarios #253.
+- [x] Première couche de thème local **opt-in** via `ATLAS_THEME=dofus_unity` : tokens sémantiques communs, vrais états de boutons/checkbox/onglets lorsque présents, bordures 9-slice, fond en couverture centrée sans distorsion, unique pixmap cachée par shell, focus clavier préservé et repli en absence de ressources.
+- [x] Par défaut, le thème Atlas reste intact ; aucune police extraite du jeu n'est enregistrée au runtime ni incluse par l'export Python-only vers l'App.
+- [ ] Nettoyage fidèle des trois icônes de la capture d'origine, intégration visuelle de toutes les pages/WebView, licence/autorisation des sprites et des fonts, mesures DPI et RAM Windows, contrôle réel du thème et certification du SHA final. Aucun PASS visuel ou licence n'est revendiqué.

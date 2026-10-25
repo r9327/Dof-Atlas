@@ -10,7 +10,9 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from app.constants import KEY_DEBUG_MODE, KEY_PRIMARY_WINDOW, KEY_SESSION_ORDER
 import app.pages.organizer_page as organizer
@@ -331,6 +333,167 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
 
                 self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
                 self.assertIn("identité ambiguë", statuses[-1])
+
+
+    def test_organizer_portrait_hint_does_not_claim_verified_character(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            with self.organizer_page(root) as (page, _profile, _client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots(
+                    [{"nom": "Alice - Feca", "hwnd": 101, "pid": 202}]
+                )
+                page.render_sessions()
+                labels = page.sessions_panel.findChildren(QLabel)
+                self.assertIn(
+                    "Feca (titre Unity, non vérifié)",
+                    [label.toolTip() for label in labels],
+                )
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]), ""
+                )
+
+                bindings.write_text(
+                    json.dumps({"characters": {"7": {
+                        "name": "Alice", "class_key": "feca", "pid": 202,
+                        "source": "verified_network_identity",
+                    }}}),
+                    encoding="utf-8",
+                )
+                page.render_sessions()
+                labels = page.sessions_panel.findChildren(QLabel)
+                self.assertIn("Feca", [label.toolTip() for label in labels])
+
+
+
+    def test_client_index_retains_raw_window_title_without_using_it_as_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.organizer_page(root) as (page, _profile, index):
+                page.sessions = page.build_session_slots([{
+                    "nom": "Alice - Feca 1",
+                    "detected_title": "Alice - Feca",
+                    "raw_title": "Alice - Feca - Release 77",
+                    "hwnd": 501, "pid": 502,
+                }])
+                page.export_client_index()
+                client = json.loads(index.read_text(encoding="utf-8"))["clients"][0]
+                self.assertEqual(client["raw_title"], "Alice - Feca - Release 77")
+                self.assertEqual(client["pid"], 502)
+                self.assertEqual(client["handle"], 501)
+                self.assertEqual(client["character_key"], "")
+
+
+
+    def test_duplicate_live_names_cannot_share_one_network_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps({"characters": {"77": {
+                    "name": "Alpha", "class_key": "iop", "pid": 101,
+                    "source": "verified_network_identity",
+                }}}),
+                encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, _profile, client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop 1", "hwnd": 11, "pid": 101},
+                    {"nom": "Alpha - Iop 2", "hwnd": 22, "pid": 102},
+                ])
+                self.assertEqual(
+                    [page.verified_character_token_for_session(row)
+                     for row in page.sessions[:2]],
+                    ["", ""],
+                )
+                page.export_client_index()
+                exported = json.loads(client_index.read_text(encoding="utf-8"))
+                self.assertEqual(
+                    [row["character_key"] for row in exported["clients"]],
+                    ["", ""],
+                )
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop", "hwnd": 33, "pid": 105}
+                ])
+                self.assertEqual(
+                    page.verified_character_token_for_session(page.sessions[0]),
+                    "character:77",
+                )
+
+
+
+    def test_favorite_button_click_persists_after_reorder_and_window_reconnect(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bindings = root / "network_character_bindings.json"
+            bindings.write_text(
+                json.dumps({"characters": {
+                    "77": {
+                        "name": "Alpha", "class_key": "iop",
+                        "pid": 101, "source": "verified_network_identity",
+                    },
+                    "88": {
+                        "name": "Beta", "class_key": "cra",
+                        "pid": 202, "source": "verified_network_identity",
+                    },
+                }}), encoding="utf-8",
+            )
+            with self.organizer_page(root) as (page, profile, client_index):
+                page.network_character_bindings_file = bindings
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop", "hwnd": 10, "pid": 101},
+                    {"nom": "Beta - Cra", "hwnd": 20, "pid": 202},
+                ])
+                page.render_sessions()
+                favorite_buttons = page.sessions_panel.findChildren(QPushButton)
+                favorite = next(
+                    button for button in favorite_buttons
+                    if button.objectName() == "FavoriteButton"
+                )
+                self.assertFalse(hasattr(favorite, "_atlas_drag_index"))
+                QTest.mouseClick(favorite, Qt.LeftButton)
+
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
+                    "character:77",
+                )
+                # A scan in reverse order must NOT change the canonical order.
+                # Exercise a real Organizer drag/reorder before reconnecting.
+                page.reorder_session(0, 1)
+                bindings.write_text(
+                    json.dumps({"characters": {
+                        "77": {
+                            "name": "Alpha", "class_key": "iop", "pid": 303,
+                            "source": "verified_network_identity",
+                        },
+                        "88": {
+                            "name": "Beta", "class_key": "cra", "pid": 202,
+                            "source": "verified_network_identity",
+                        },
+                    }}), encoding="utf-8",
+                )
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots([
+                    {"nom": "Beta - Cra", "hwnd": 20, "pid": 202},
+                    {"nom": "Alpha - Iop", "hwnd": 30, "pid": 303},
+                ])
+                page.export_client_index()
+                page.render_sessions()
+                clients = json.loads(client_index.read_text(encoding="utf-8"))["clients"]
+                self.assertEqual(
+                    [client["character_key"] for client in clients],
+                    ["character:88", "character:77"],
+                )
+                self.assertEqual(
+                    [client["primary"] for client in clients],
+                    [False, True],
+                )
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
+                    "character:77",
+                )
 
 
 if __name__ == "__main__":

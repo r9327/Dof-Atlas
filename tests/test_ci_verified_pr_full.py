@@ -28,7 +28,7 @@ RUN = {"name": "Phase Certification",
 
 def result(steps, head=MAIN):
     return {"total_count": 1, "jobs": [{
-        "name": "Phase Certification / Full Validation",
+        "name": "Phase Certification / Domain or Release Validation",
         "head_sha": head, "conclusion": "success", "status": "completed",
         "steps": [{"name": name, "conclusion": state} for name, state in steps.items()],
     }]}

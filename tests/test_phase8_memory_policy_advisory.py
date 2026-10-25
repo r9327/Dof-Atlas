@@ -7,6 +7,7 @@ Other budgets and evidence-integrity checks remain release gates.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -15,7 +16,8 @@ import unittest
 from pathlib import Path
 
 
-WORKFLOW = Path(__file__).resolve().parents[1] / ".github/workflows/phase8-memory-benchmark.yml"
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT / ".github/workflows/phase8-memory-benchmark.yml"
 STAGES = (
     "startup_stabilized",
     "after_preload",
@@ -79,6 +81,9 @@ def run_validation(payload: dict) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, "-c", validation_code()],
             cwd=root,
+            # The production workflow runs from the checkout; this isolated
+            # fixture also has to resolve its actual guardrail module.
+            env={**os.environ, "PYTHONPATH": str(ROOT) + os.pathsep + os.environ.get("PYTHONPATH", "")},
             text=True,
             capture_output=True,
             check=False,
@@ -118,21 +123,66 @@ class Phase8MemoryAdvisoryPolicyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("process-tree peak tolerance exceeded", result.stderr)
 
-    def test_preload_still_blocks(self) -> None:
+    def test_preload_five_percent_margin_warns_but_above_ceiling_blocks(self) -> None:
         payload = metric_payload()
-        for row in payload["metrics"]["stages"]:
-            if row["label"] == "after_preload":
-                row["tree_rss_mb"] = 95.01
-        result = run_validation(payload)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("preload memory budget exceeded", result.stderr)
+        preload = next(row for row in payload["metrics"]["stages"]
+                       if row["label"] == "after_preload")
+        preload["tree_rss_mb"] = 95.01
+        warning = run_validation(payload)
+        self.assertEqual(warning.returncode, 0, warning.stderr)
+        self.assertIn("Preload RAM above target (5% tolerance)", warning.stdout)
+        preload["tree_rss_mb"] = 99.75
+        allowed = run_validation(payload)
+        self.assertEqual(allowed.returncode, 0, allowed.stderr)
+        preload["tree_rss_mb"] = 99.76
+        blocked = run_validation(payload)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn("preload memory tolerance exceeded", blocked.stderr)
 
-    def test_retained_heap_still_blocks(self) -> None:
+    def test_retained_heap_margin_and_craft_overshoot(self) -> None:
         payload = metric_payload()
         payload["metrics"]["guide_retained_tree_delta_mb"] = 20.01
+        warning = run_validation(payload)
+        self.assertEqual(warning.returncode, 0, warning.stderr)
+        self.assertIn("Retained RAM above target (5% tolerance)", warning.stdout)
+        payload["metrics"]["guide_retained_tree_delta_mb"] = 21.01
+        blocked = run_validation(payload)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn("retained memory tolerance exceeded", blocked.stderr)
+        payload["metrics"]["guide_retained_tree_delta_mb"] = 13.0
+        payload["metrics"]["craft_retained_tree_delta_mb"] = 2.10
+        allowed_craft = run_validation(payload)
+        self.assertEqual(allowed_craft.returncode, 0, allowed_craft.stderr)
+        payload["metrics"]["craft_retained_tree_delta_mb"] = 2.66
+        blocked_craft = run_validation(payload)
+        self.assertNotEqual(blocked_craft.returncode, 0)
+        self.assertIn("craft_retained_tree_delta_mb", blocked_craft.stderr)
+
+    def test_negative_retained_delta_is_genuine_improvement_not_invalid_rss(self) -> None:
+        payload = metric_payload()
+        payload["metrics"]["craft_retained_tree_delta_mb"] = -0.55
         result = run_validation(payload)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("retained memory budget exceeded", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("craft_retained_tree_delta_mb", result.stdout)
+        payload["metrics"]["craft_retained_tree_delta_mb"] = 2.66
+        blocked = run_validation(payload)
+        self.assertNotEqual(blocked.returncode, 0)
+
+    def test_invalid_required_observations_block_even_below_memory_limits(self) -> None:
+        for key, value in (("stage", True), ("stage", "90.0"),
+                           ("peak", None), ("peak", 0),
+                           ("retained", True), ("retained", "0.1"),
+                           ("retained", float("nan"))):
+            payload = metric_payload()
+            if key == "stage":
+                payload["metrics"]["stages"][0]["tree_rss_mb"] = value
+            elif key == "peak":
+                payload["metrics"]["peak_tree_rss_mb"] = value
+            else:
+                payload["metrics"]["craft_retained_tree_delta_mb"] = value
+            with self.subTest(metric=key, value=value):
+                result = run_validation(payload)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
 
     def test_missing_required_evidence_still_blocks(self) -> None:
         payload = metric_payload()
