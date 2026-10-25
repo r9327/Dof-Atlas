@@ -10,6 +10,15 @@ BENCHMARK = ROOT / "tools" / "benchmark_phase8_memory.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "phase8-memory-benchmark.yml"
 
 
+def test_reusable_ram_workflow_does_not_cancel_independent_callers() -> None:
+    source = WORKFLOW.read_text(encoding="utf-8")
+    assert (
+        "group: dof-atlas-phase8-memory-"
+        "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+    ) in source
+    assert "cancel-in-progress: true" in source
+
+
 def test_memory_benchmark_keeps_required_stage_labels() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     tree = ast.parse(source)

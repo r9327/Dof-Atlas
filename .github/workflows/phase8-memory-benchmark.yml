@@ -17,7 +17,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: dof-atlas-phase8-memory-${{ github.event.pull_request.number || github.ref }}
+  # Separate independent callers (Phase Certification vs Guides Proof) so neither cancels the other.
+  group: dof-atlas-phase8-memory-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
