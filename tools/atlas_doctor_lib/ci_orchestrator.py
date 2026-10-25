@@ -123,6 +123,23 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
             # A PR plan may validate packaging but cannot publish a release.
             selected = event == 'pull_request' and (bool(hits) or specialist_fallback)
             reasons = ['PR packaging impact; publication retains independent host attestation']
+        if modular_ready:
+            owners = set(domain_plan['domains'])
+            # Independent domain obligations remain mandatory even when no
+            # matching path pattern exists in the legacy specialist registry.
+            required_by_domain = {
+                'phase8-memory-benchmark': {'craft'},
+                'phase8-preload-benchmark': {'startup'},
+                'doctor-runtime-perf': {'startup'},
+                'encyclopedia-provider-import': {'quests'},
+                'json-focused-data-contract': {'data', 'guides'},
+            }
+            if owners & required_by_domain.get(name, set()):
+                selected = True
+                reasons.append('Independent required domain benchmark/contract')
+            if name == 'doctor-ui' and 'ui' in owners:
+                selected = True
+                reasons.append('Required UI domain is impacted')
         decisions[name] = {'selected': selected, 'reasons': reasons or ['No changed consumer']}
     return {
         'phase': phase, 'full': full, 'docs_only': docs_only, 'tooling_only': tooling_only,
