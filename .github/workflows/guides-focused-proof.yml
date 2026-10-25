@@ -1,0 +1,88 @@
+name: Guides / Focused Windows Proof
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/guides-focused-proof.yml'
+      - 'tests/test_guide_manual_selected_validation.py'
+      - 'tests/test_guide_preparation_model.py'
+      - 'app/modules/encyclopedia/services/guide_preparation_model.py'
+      - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'app/pages/craft_page.py'
+      - 'tests/test_craft_minimal_lazy.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-guides-focused-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guide-targeted-windows:
+    name: Guides / Selected unit + Qt Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PYTHONUTF8: '1'
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact PR SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Verify SHA
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
+            throw "Checkout does not match exact candidate SHA"
+          }
+      - name: Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned runtime for focused Qt tests
+        shell: pwsh
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Targeted manual multi-character validation
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation
+      - name: Targeted preparation accounting if present
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath "tests/test_guide_preparation_model.py") {
+            python -X faulthandler -m unittest -v tests.test_guide_preparation_model
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "Preparation model not part of this candidate; skipped by scope."
+          }
+      - name: Isolated Qt preparation and atomic Ready tests if present
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath "tests/test_guide_preparation_model_qt.py") {
+            python -X faulthandler -m unittest -v tests.test_guide_preparation_model_qt
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "Focused preparation Qt test not in this candidate."
+          }
+      - name: Real Qt preparation navigation and typed resource filters
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Reconstructible Craft release regression
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy
+      - name: Provenance summary
+        if: always()
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## Guides targeted evidence'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- Exact PR head: " + $env:CANDIDATE_SHA)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- No FULL, no release certification, no fabricated identity.'

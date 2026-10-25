@@ -38,6 +38,7 @@ from app.storage import (
     write_text_atomic,
 )
 from app.windows_embed import EVENT_SYSTEM_FOREGROUND, scan_unity_sessions
+from app.validation_log import record_validation
 from .common import (
     RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
@@ -437,6 +438,17 @@ class CharacterSessionsMixin:
         name_class_matches: list[str] = []
         name_key = normalize_key(clean_auto_group_name(session_name(session)))
         class_key = dofus_class_key_from_window_name(session_name(session)) or ""
+        # Two live windows with the same displayed name and class cannot both
+        # own the same network identity, even if one PID matches an old binding.
+        live_matches = [
+            candidate
+            for candidate in self.sessions
+            if session_is_detected(candidate)
+            and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
+            and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key
+        ]
+        if len(live_matches) != 1:
+            return ""
         for character_id, row in self._verified_character_rows():
             token = f"character:{character_id}"
             try:
@@ -556,12 +568,17 @@ class CharacterSessionsMixin:
             session = {"nom": name, "hwnd": 0}
             token = self.primary_token_for_session(name, 0, session)
         if not token:
+            record_validation("organizer_favorite", selected=False, rejected=True,
+                              verified=False, detected=self.detected_session_count())
             self.status_callback(
                 f"Fenêtre principale non modifiée : identité ambiguë pour {name}."
             )
             return
         selected = self.session_is_primary(name, hwnd, current, session)
         self.profiles[KEY_PRIMARY_WINDOW] = "" if selected else token
+        record_validation("organizer_favorite", selected=not selected, rejected=False,
+                          verified=token.startswith("character:"),
+                          detected=self.detected_session_count())
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.render_sessions()
@@ -615,6 +632,7 @@ class CharacterSessionsMixin:
                     "index": client_index,
                     "label": f"Personnage {client_index}",
                     "name": name,
+                    "raw_title": str(session.get("raw_title") or name),
                     "character_name": clean_auto_group_name(name),
                     "class_key": dofus_class_key_from_window_name(name) or "",
                     "slot": slot_index + 1,
@@ -696,6 +714,12 @@ class CharacterSessionsMixin:
             )
         write_json(self._client_index_json(), payload)
         write_text_atomic(self._client_index_ini(), "\n".join(lines) + "\n")
+        verified = sum(bool(client["character_key"]) for client in clients)
+        record_validation("organizer_sessions", detected=len(clients),
+                          verified=verified, unverified=len(clients) - verified,
+                          primary=any(client["primary"] for client in clients),
+                          classes_verified=sum(bool(client["character_key"] and client["class_key"])
+                                               for client in clients))
 
     def resolve_client_binding(
         self,

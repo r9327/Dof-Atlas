@@ -81,6 +81,31 @@ class CraftMinimalLazyTests(unittest.TestCase):
         self.assertEqual(len(page._pending_result_items), 12)
         page.deleteLater()
 
+    def test_release_runtime_drops_reconstructible_craft_state(self) -> None:
+        from PySide6.QtWidgets import QListWidgetItem, QPushButton
+
+        page = CraftPage(Mock(), defer_runtime=True)
+        page._runtime_ready = True
+        page.guides = {"guides": {"Test": [{"resource": "Blé"}]}}
+        page.items = [{"name": "Item"}]
+        page.jobs = [{"name": "Job"}]
+        page.results.addItem(QListWidgetItem("Old item"))
+        page.selection_list.addItem(QListWidgetItem("Old selection"))
+        page.job_grid.addWidget(QPushButton("Unused"), 0, 0)
+
+        with patch("app.pages.craft_page.local_data_cache.release_adapter"):
+            page.release_runtime()
+
+        self.assertEqual(page.guides, {})
+        self.assertFalse(page.items)
+        self.assertFalse(page.jobs)
+        self.assertFalse(page._runtime_ready)
+        self.assertEqual(page.results.count(), 0)
+        self.assertEqual(page.selection_list.count(), 0)
+        self.assertEqual(page.job_grid.count(), 0)
+        page.deleteLater()
+        QApplication.processEvents()
+
     def test_recipe_read_error_is_visible_in_craft_status(self) -> None:
         status = Mock()
         page = CraftPage(status, defer_runtime=True)

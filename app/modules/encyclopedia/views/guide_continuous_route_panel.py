@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QCheckBox, QFrame, QHBoxLayout, QLabel, QListView, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -96,7 +96,7 @@ class ContinuousGuideRoutePanel(QWidget):
             row for row in available_characters
             if is_character_key(getattr(row, "key", ""))
         )
-        self._character_actions = {}
+        self._character_checks: dict[str, QCheckBox] = {}
         self.character_icon_buttons = {}
         self._summary_open = False
         self._preparation_open = False
@@ -110,25 +110,9 @@ class ContinuousGuideRoutePanel(QWidget):
         head.addWidget(self.position_label, 1)
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideContinuousCharactersButton")
-        self.participants_button.setPopupMode(QToolButton.InstantPopup)
+        self.participants_button.setCheckable(True)
+        self.participants_button.setAccessibleName("Choisir mes personnages")
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        self._characters_menu = QMenu(self.participants_button)
-        self.participants_button.setMenu(self._characters_menu)
-        for character in self.available_characters:
-            if character.key in self._character_actions:
-                continue
-            title = str(getattr(character, "label", "") or character.key)
-            if getattr(character, "connected", False) is False:
-                title += " (hors ligne)"
-            action = self._characters_menu.addAction(title)
-            action.setCheckable(True)
-            action.toggled.connect(
-                lambda checked, key=character.key: self._character_toggled(key, checked)
-            )
-            self._character_actions[character.key] = action
-        if not self._character_actions:
-            empty = self._characters_menu.addAction("Aucun personnage identifié")
-            empty.setEnabled(False)
         head.addWidget(self.participants_button)
         self.summary_toggle = QToolButton()
         self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
@@ -192,6 +176,44 @@ class ContinuousGuideRoutePanel(QWidget):
         detail.setContentsMargins(8, 8, 8, 8)
         detail.setSpacing(6)
         detail.addLayout(head)
+        # Stable, scroll-bounded participant panel. Only authenticated Atlas
+        # character keys are selectable, including known offline profiles.
+        self.characters_panel = QFrame(content)
+        self.characters_panel.setObjectName("GuideContinuousCharactersPanel")
+        panel_layout = QVBoxLayout(self.characters_panel)
+        panel_layout.setContentsMargins(6, 5, 6, 5)
+        self.characters_scroll = QScrollArea(self.characters_panel)
+        self.characters_scroll.setObjectName("GuideContinuousCharactersScroll")
+        self.characters_scroll.setWidgetResizable(True)
+        self.characters_scroll.setFrameShape(QFrame.NoFrame)
+        self.characters_scroll.setMaximumHeight(158)
+        choices = QWidget(self.characters_scroll)
+        choices_layout = QVBoxLayout(choices)
+        choices_layout.setContentsMargins(2, 2, 2, 2)
+        choices_layout.setSpacing(3)
+        for character in self.available_characters:
+            if character.key in self._character_checks:
+                continue
+            title = str(getattr(character, "label", "") or character.key)
+            if getattr(character, "connected", False) is False:
+                title += " (hors ligne)"
+            choice = QCheckBox(title, choices)
+            choice.setObjectName("GuideContinuousCharacterChoice")
+            choice.toggled.connect(
+                lambda checked, key=character.key: self._character_toggled(key, checked)
+            )
+            choices_layout.addWidget(choice)
+            self._character_checks[character.key] = choice
+        if not self._character_checks:
+            placeholder = QLabel("Aucun personnage identifié", choices)
+            placeholder.setObjectName("GuideContinuousCharactersEmpty")
+            choices_layout.addWidget(placeholder)
+        choices_layout.addStretch(1)
+        self.characters_scroll.setWidget(choices)
+        panel_layout.addWidget(self.characters_scroll)
+        self.characters_panel.setVisible(False)
+        self.participants_button.toggled.connect(self.characters_panel.setVisible)
+        detail.addWidget(self.characters_panel)
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideContinuousTitle")
         self.title_label.setTextFormat(Qt.PlainText)
@@ -287,7 +309,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.refresh()
 
     def _character_toggled(self, character_key: str, checked: bool) -> None:
-        if character_key not in self._character_actions:
+        if character_key not in self._character_checks:
             return
         keys = list(self.navigation.selected_character_keys)
         if checked and character_key not in keys:
@@ -427,12 +449,12 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         selected = set(position.selected_character_keys)
         self.participants_button.setText(f"Mes personnages ({len(selected)})")
-        for key, action in self._character_actions.items():
-            was_blocked = action.blockSignals(True)
+        for key, choice in self._character_checks.items():
+            was_blocked = choice.blockSignals(True)
             try:
-                action.setChecked(key in selected)
+                choice.setChecked(key in selected)
             finally:
-                action.blockSignals(was_blocked)
+                choice.blockSignals(was_blocked)
         for key, button in self.character_icon_buttons.items():
             button.set_progress(
                 self.navigation.completed_count(key), position.total_steps

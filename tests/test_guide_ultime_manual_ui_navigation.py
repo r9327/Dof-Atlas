@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from html import unescape
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -181,7 +182,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
     def _view(self) -> tuple[_FakeManualUiService, SharedGuideManualView]:
         service = _FakeManualUiService()
-        view = SharedGuideManualView(service, character_key="character:1")
+        view = SharedGuideManualView(
+            service, character_key="character:1", participant_service=_FakeParticipantService(),
+        )
         view.resize(560, 320)
         view.show()
         QApplication.processEvents()
@@ -190,12 +193,38 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 / 2")
+            self.assertEqual(view.route_progress_label.text(), "0 %")
+            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
+            self.assertEqual(view.progress_donut._percent, 0)
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
             self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
             self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
+        finally:
+            view.close()
+
+    def test_narrow_layout_preserves_named_actions(self) -> None:
+        _service, view = self._view()
+        try:
+            view.resize(490, 320)
+            QApplication.processEvents()
+            self.assertLess(view.width(), 520)
+            self.assertEqual(view.participants_button.text(), "1")
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "")
+            self.assertEqual(view.current_button.accessibleName(), "Actuelle")
+            self.assertTrue(view.current_button.icon().isNull() is False)
+            self.assertEqual(view.page_jump.maximumWidth(), 93)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
+
+            view.resize(960, 640)
+            QApplication.processEvents()
+            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.current_button.text(), "Actuelle")
+            self.assertEqual(view.page_jump.maximumWidth(), 115)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
         finally:
             view.close()
 
@@ -227,7 +256,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "Guides")
+            self.assertEqual(view.guide_button.text(), "←")
+            self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
             view.close()
@@ -278,11 +308,66 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             current_sheet._copy_link_target("travel-copy:1,-1")
             self.assertEqual(
                 calls,
-                [("/travel 1,-1", ("character:1", "character:2"))],
+                [("/travel 1,-1", ("character:1",))],
             )
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
             self.assertTrue(any("participants sélectionnés" in text for text in texts))
+        finally:
+            view.close()
+
+    def test_travel_refuses_unverified_offline_or_empty_recipients(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        sends: list[tuple[str, tuple[str, ...]]] = []
+        view = SharedGuideManualView(
+            service,
+            character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: sends.append((command, keys)),
+        )
+        try:
+            participants.selected = ["character:2", "character:999"]
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+
+            participants.selected = ["character:1", "character:2", "character:999"]
+            self.assertTrue(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
+
+            self.assertFalse(view._launch_travel_command("/zaap 4,-8"))
+            self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
+            self.assertEqual(QApplication.clipboard().text(), "/zaap 4,-8")
+        finally:
+            view.close()
+
+    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+        _service, view = self._view()
+        try:
+            view.summary_button.click()
+            QApplication.processEvents()
+            self.assertTrue(view.summary_button.isChecked())
+            self.assertFalse(view.summary_panel.isHidden())
+            self.assertEqual(view.summary_list.count(), 2)
+
+            view.summary_search.setText("Deuxième")
+            self.assertTrue(view.summary_list.item(0).isHidden())
+            self.assertFalse(view.summary_list.item(1).isHidden())
+
+            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertEqual(view.view_index, 1)
+            self.assertTrue(view.summary_button.isChecked())
+            self.assertFalse(view.summary_panel.isHidden())
+            view.navigate_relative(-1)
+            self.assertEqual(view.view_index, 0)
+            self.assertFalse(view.summary_panel.isHidden())
+
+            view.summary_list.clear()
+            view._populate_summary()
+            self.assertEqual(view.summary_search.text(), "Deuxième")
+            self.assertTrue(view.summary_list.item(0).isHidden())
+            self.assertFalse(view.summary_list.item(1).isHidden())
         finally:
             view.close()
 
@@ -354,6 +439,34 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
             self.assertEqual(len(buttons), 1)
             self.assertTrue(all(button.toolTip() == "Combat test" for button in buttons))
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data["manual_lines"] = [
+            {"kind": "action", "position": "[1,2]", "text": "Parler au PNJ."},
+            {"kind": "action", "position": "[1,2]", "text": "Prendre l'objet."},
+            {"kind": "action", "position": "[2,2]", "text": "Changer de carte."},
+            {"kind": "action", "position": "[1,2]", "text": "Revenir plus tard."},
+        ]
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            groups = card.findChildren(QFrame, "GuideManualActionGroup")
+            self.assertEqual(len(groups), 1)
+            grouped_rows = groups[0].findChildren(QFrame, "GuideManualLineRow")
+            self.assertEqual(len(grouped_rows), 2)
+            row_texts = [
+                unescape(row.findChild(QLabel).text()) for row in grouped_rows
+            ]
+            self.assertIn("Parler au PNJ", row_texts[0])
+            self.assertIn("Prendre l'objet", row_texts[1])
+            self.assertEqual(len(card.findChildren(QFrame, "GuideManualLineRow")), 4)
+            self.assertEqual(
+                card_data["manual_lines"][0]["text"], "Parler au PNJ."
+            )
         finally:
             card.page_check.deleteLater()
             card.close()
@@ -449,7 +562,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "1 / 2")
+            self.assertEqual(view.route_progress_label.text(), "50 %")
+            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.progress_donut._percent, 50)
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
         finally:
             view.close()
@@ -493,16 +608,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_objects(self) -> None:
+    def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters(self) -> None:
         service = _FakeManualUiService()
+        # Explicit consumable evidence permits adding separate incomplete stages;
+        # duplicate lines on one card remain display mirrors, not extra purchases.
         service.cards[0]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
-            {"item_id": 10, "name": "Potion de test", "quantity": 4},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
+            {"item_id": 10, "name": "Potion de test", "quantity": 4, "consumable": True},
             {"item_id": 20, "name": "Pierre d'âme moyenne", "quantity": 1},
             {"item_id": 30, "name": "Clef de test", "quantity": 2},
         ]
         service.cards[1]["a_preparer"] = [
-            {"item_id": 10, "name": "Potion de test", "quantity": 2},
+            {"item_id": 10, "name": "Potion de test", "quantity": 2, "consumable": True},
         ]
         service.card_auto_complete = lambda key, card: (
             key == "character:2" and card is service.cards[0]
@@ -528,18 +645,42 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 for label in row.findChildren(QLabel)
             ]
             self.assertIn("0 / 1 prêts", summaries)
-            objects = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == "Objets"
-            )
-            objects.click()
+            # Tout must retain both special resources and their authored
+            # quantities; neither belongs to the generic "Objets" filter.
+            categories = {need.name: need.category for need in view._preparation_needs}
+            self.assertEqual(categories["Pierre d'âme moyenne"], "Pierres d'âme")
+            self.assertEqual(categories["Clef de test"], "Clefs")
             labels = [
                 label.text()
-                for label in view.findChildren(QLabel, "GuidePreparationRowLabel")
+                for label in view.preparation_panel.findChildren(
+                    QLabel, "GuidePreparationRowLabel"
+                )
             ]
             self.assertTrue(any("Pierre d'âme moyenne" in label for label in labels))
             self.assertTrue(any("Clef de test" in label for label in labels))
+            for filter_key, expected in (
+                ("Pierres d'âme", "Pierre d'âme moyenne"),
+                ("Clefs", "Clef de test"),
+            ):
+                button = next(
+                    button for button in view.preparation_filter_group.buttons()
+                    if button.property("filterKey") == filter_key
+                )
+                button.click()
+                QApplication.processEvents()
+                selected_rows = [
+                    view.preparation_rows_layout.itemAt(i).widget()
+                    for i in range(view.preparation_rows_layout.count())
+                ]
+                displayed = [
+                    label.text()
+                    for widget in selected_rows if widget is not None
+                    for label in widget.findChildren(QLabel, "GuidePreparationRowLabel")
+                ]
+                self.assertTrue(
+                    any(expected in label for label in displayed),
+                    f"{expected} missing from {filter_key}: {displayed!r}",
+                )
         finally:
             view.close()
 

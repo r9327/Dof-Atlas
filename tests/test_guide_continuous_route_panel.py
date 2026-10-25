@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QComboBox, QMenu
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -76,7 +76,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         ):
             self.assertIs(control.parentWidget(), card)
         self.assertEqual(self.panel.position_label.text(), "FICHE 1")
-        self.assertFalse(self.panel._characters_menu.isVisible())
+        self.assertFalse(self.panel.characters_panel.isVisible())
+        self.assertEqual(self.panel.findChildren(QMenu), [])
+        self.assertEqual(self.panel.findChildren(QComboBox), [])
         self.addCleanup(self.panel.hide)
         self.panel.show()
         for width in (900, 1200):
@@ -92,6 +94,11 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                     self.panel.title_label.geometry().top(),
                 )
                 self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+                self.panel.participants_button.click()
+                self.assertTrue(self.panel.characters_panel.isVisibleTo(card))
+                self.assertTrue(card.rect().contains(self.panel.characters_panel.geometry()))
+                self.panel.participants_button.click()
+                self.assertFalse(self.panel.characters_panel.isVisible())
 
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
@@ -121,11 +128,11 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             available_characters=characters,
         )
         self.addCleanup(extra.deleteLater)
-        self.assertEqual(set(extra._character_actions), {"character:1", "character:2"})
-        self.assertIn("hors ligne", extra._character_actions["character:2"].text())
+        self.assertEqual(set(extra._character_checks), {"character:1", "character:2"})
+        self.assertIn("hors ligne", extra._character_checks["character:2"].text())
         updates = []
         extra.selectedCharactersChanged.connect(updates.append)
-        extra._character_actions["character:2"].trigger()
+        extra._character_checks["character:2"].click()
         self.assertEqual(
             extra.navigation.selected_character_keys,
             ("character:1", "character:2"),
@@ -134,9 +141,26 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(extra.participants_button.text(), "Mes personnages (2)")
         self.assertEqual(extra.navigation.position().completed_by_character,
                          {"character:1": 0, "character:2": 0})
-        extra._character_actions["character:1"].trigger()
+        extra._character_checks["character:1"].click()
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_character_panel_stays_open_during_manual_navigation(self):
+        characters = [SimpleNamespace(key="character:1", label="Alpha", connected=True)]
+        extra = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",), available_characters=characters,
+        )
+        self.addCleanup(extra.deleteLater)
+        extra.show()
+        self.addCleanup(extra.hide)
+        extra.participants_button.click()
+        self.assertTrue(extra.characters_panel.isVisible())
+        extra.next_button.click()
+        self.assertTrue(extra.characters_panel.isVisible())
+        extra.show_actual()
+        self.assertTrue(extra.characters_panel.isVisible())
+        extra.participants_button.click()
+        self.assertFalse(extra.characters_panel.isVisible())
 
     def test_class_portraits_are_clickable_and_follow_stable_character_keys(self):
         characters = [
@@ -155,8 +179,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         extra.selectedCharactersChanged.connect(received.append)
         extra.character_icon_buttons["character:2"].click()
         self.assertEqual(received[-1], ("character:1", "character:2"))
-        self.assertTrue(extra._character_actions["character:2"].isChecked())
-        extra._character_actions["character:1"].trigger()
+        self.assertTrue(extra._character_checks["character:2"].isChecked())
+        extra._character_checks["character:1"].click()
         self.assertFalse(extra.character_icon_buttons["character:1"].isChecked())
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
 
@@ -207,7 +231,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             )
             self.addCleanup(panel.deleteLater)
             panel.selectedCharactersChanged.connect(service.save_selected_keys)
-            panel._character_actions["character:2"].trigger()
+            panel._character_checks["character:2"].click()
             fresh = GuideParticipantService(profile, clients, bindings)
             self.assertEqual(fresh.selected_keys(), ("character:2",))
             reopened = ContinuousGuideRoutePanel(
@@ -215,7 +239,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 available_characters=fresh.available_characters(),
             )
             self.addCleanup(reopened.deleteLater)
-            self.assertTrue(reopened._character_actions["character:2"].isChecked())
+            self.assertTrue(reopened._character_checks["character:2"].isChecked())
             self.assertEqual(reopened.navigation.position().completed_by_character,
                              {"character:2": 0})
 
@@ -231,8 +255,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         received = []
         extra.selectedCharactersChanged.connect(received.append)
         extra.set_characters(("character:2",))
-        self.assertTrue(extra._character_actions["character:2"].isChecked())
-        self.assertFalse(extra._character_actions["character:1"].isChecked())
+        self.assertTrue(extra._character_checks["character:2"].isChecked())
+        self.assertFalse(extra._character_checks["character:1"].isChecked())
         self.assertEqual(received, [])
         self.assertEqual(extra.navigation.position().actual_step_id, "ganymede_2205_step_0001")
 

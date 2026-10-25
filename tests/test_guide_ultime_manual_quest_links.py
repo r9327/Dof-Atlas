@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
@@ -92,6 +93,10 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
             self.assertEqual(len(buttons), 1)
             self.assertEqual(buttons[0].text(), "")
             self.assertFalse(buttons[0].icon().isNull())
+            self.assertGreaterEqual(buttons[0].width(), 30)
+            self.assertEqual(buttons[0].focusPolicy(), Qt.StrongFocus)
+            self.assertEqual(buttons[0]._tooltip_timer.interval(), 350)
+            self.assertTrue(buttons[0]._tooltip_timer.isSingleShot())
             self.assertEqual(buttons[0].toolTip(), "Quête de test")
             self.assertEqual(buttons[0].accessibleName(), "Quête de test")
 
@@ -130,6 +135,32 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
             self.assertEqual(len(buttons), 1)
             self.assertEqual(buttons[0].toolTip(), "Quête de test")
             self.assertFalse(buttons[0].icon().isNull())
+        finally:
+            view.close()
+
+    def test_quest_link_keeps_second_sheet_origin_after_navigation(self) -> None:
+        service = _ManualQuestLinkService()
+        second = dict(service.cards[0])
+        second["manual_stage_id"] = "SECOND-STAGE"
+        service.cards.append(second)
+        view = GuideUltimeManualView(service, character_key="character:1")
+        contexts = []
+        view.navigate_entity = lambda *args, **kwargs: contexts.append(
+            (args, kwargs)
+        ) or True
+        view.show()
+        QApplication.processEvents()
+        try:
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            button = view.findChild(QToolButton, "GuideManualQuestInlineButton")
+            self.assertIsNotNone(button)
+            button.click()
+            self.assertEqual(view.view_index, 1)
+            self.assertEqual(contexts[-1][0], ("quest", 321))
+            self.assertEqual(contexts[-1][1]["guide_stage_id"], "SECOND-STAGE")
+            self.assertEqual(contexts[-1][1]["guide_index"], 1)
+            self.assertEqual(contexts[-1][1]["guide_id"], "guide_complet")
         finally:
             view.close()
 

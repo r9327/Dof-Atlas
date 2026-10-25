@@ -15,6 +15,7 @@ from typing import Iterable
 
 from tools import ai_context
 from tools.atlas_integrity import classify_risk
+from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS, eligible as high_smart_eligible
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,7 @@ KNOWN_COUPLED_MODULES = {
     "tools/ci_scope_gate.py": ("tests.test_ci_scope_gate",),
     "tools/ci_dev_tests.py": ("tests.test_ci_dev_tests",),
     "tools/atlas_doctor_lib/ci_history.py": ("tests.test_ci_history",),
+    HIGH_SOURCE: tuple(sorted(REQUIRED_TESTS)),
 }
 _SCOPED_TEST_RUNNER = """import sys
 import unittest
@@ -111,15 +113,23 @@ def classify_diff(root: Path, paths: Iterable[str], *, before_sha: str = "",
         reasons.append("INVALID_PATH")
 
     risks = classify_risk(changed)
-    if risks["risk"] in {"HIGH", "CRITICAL"}:
+    bounded_high = (risks["risk"] == "HIGH"
+                    and high_smart_eligible(root, changed, deleted=deleted))
+    if risks["risk"] in {"HIGH", "CRITICAL"} and not bounded_high:
         reasons.append(f"RISK_{risks['risk']}")
-    unclassified = [p for p in changed if ai_context.classify_path(p) == "repository"]
+    # Ordinary docs are explicitly allowed only inside the exact closed-world
+    # HIGH canary. Unknown files and policy docs are never exempted.
+    harmless_canary_doc = lambda p: (bounded_high and p.startswith("docs/")
+                                    and p.endswith(".md"))
+    unclassified = [p for p in changed if ai_context.classify_path(p) == "repository"
+                    and not harmless_canary_doc(p)]
     if unclassified:
         reasons.append("UNCLASSIFIED_PATHS")
     # Domain-level smoke tests are not sufficient to approve a mixed diff.
     # Every file must have an exact/co-located or explicitly coupled test,
     # except the generated index checked by the unchanged integrity gates.
-    uncovered = [p for p in changed if not _path_has_direct_test_coverage(root, p)]
+    uncovered = [p for p in changed if not harmless_canary_doc(p)
+                 and not _path_has_direct_test_coverage(root, p)]
     if uncovered:
         reasons.append("INSUFFICIENT_PATH_COVERAGE")
 

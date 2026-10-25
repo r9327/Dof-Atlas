@@ -73,3 +73,23 @@
 - [ ] Une correction après échec invalide les anciennes preuves et impose une certification finale du nouveau SHA ; ne jamais revendiquer de test non exécuté.
 - [ ] Préserver performances du chargement différé, intégrité, vraie identité des personnages, progression historique et ressources packagées dans l'EXE.
 - [ ] Ne pas intégrer la branche accidentelle fix/guide-opti-compact-controls-character-progress-20261024 ni modifier le contenu des fiches en dehors des périmètres explicitement listés.
+
+
+## Première tranche applicative : sélection de personnages intégrée
+
+Le lecteur `ContinuousGuideRoutePanel` possède désormais un panneau stable
+`GuideContinuousCharactersPanel` dans la fiche active. Ce panneau comporte
+des cases cochables (sans menu flottant ni combobox), un défilement borné,
+un état d'ouverture stable pendant la navigation et les portraits synchronisés.
+Les personnages hors ligne déjà identifiés restent sélectionnables ; les
+identifiants non vérifiés ne sont jamais promus en personnages Atlas.
+
+La progression manuelle et la sauvegarde par personnage passent toujours
+par `ContinuousGuideNavigation` et les services existants.
+Les tests Qt couvrent la sélection, les portraits, les retours en navigation
+et la persistance de l'état de l'interface.
+
+**Aucun cutover n'est activé par cette tranche.** Le manifeste, le catalogue,
+les payloads et les sauvegardes historiques ne sont pas modifiés. Le lecteur
+et les 20 routes préparées doivent encore passer les contrats complets
+avant toute activation nominative et avant certification finale.

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from tools.atlas_integrity import affected_groups, classify_risk
+from tools.atlas_doctor_lib.high_smart_scope import REQUIRED_TESTS, bounded_paths
 
 POLICY_ID = "doctor-adaptive-independent-policy-v1"
 
@@ -123,11 +124,21 @@ def enforce(plan: dict[str, Any]) -> dict[str, Any]:
     policy = plan.get("independent_policy")
     if not isinstance(policy, dict) or policy.get("policy_id") != POLICY_ID:
         errors.append("POLICY_NOT_PRESENT")
-    elif (policy.get("missing_contracts")
-          or policy.get("canonical_risk") in {"HIGH", "CRITICAL"}
-          or policy.get("root_of_trust_changed")):
-        if status != "FULL_REQUIRED":
-            errors.append("UNSAFE_SCOPE_DOWNGRADE")
+    else:
+        high_scope = (
+            policy.get("canonical_risk") == "HIGH"
+            and plan.get("high_smart_candidate") is True
+            and bounded_paths(plan.get("changed_paths", ()), deleted=plan.get("deleted_paths", ()))
+            and not policy.get("required_metrics")
+            and REQUIRED_TESTS <= set(plan.get("test_modules", ()))
+            and classify_risk(plan["changed_paths"])["risk"] == "HIGH"
+        )
+        if (policy.get("missing_contracts")
+                or policy.get("canonical_risk") == "CRITICAL"
+                or (policy.get("canonical_risk") == "HIGH" and not high_scope)
+                or policy.get("root_of_trust_changed")):
+            if status != "FULL_REQUIRED":
+                errors.append("UNSAFE_SCOPE_DOWNGRADE")
     if status == "READY_TO_RUN_SCOPED":
         if plan.get("reasons") or not plan.get("test_modules"):
             errors.append("INCOMPLETE_SCOPED_PLAN")
