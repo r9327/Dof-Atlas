@@ -442,6 +442,34 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data["manual_lines"] = [
+            {"kind": "action", "position": "[1,2]", "text": "Parler au PNJ."},
+            {"kind": "action", "position": "[1,2]", "text": "Prendre l'objet."},
+            {"kind": "action", "position": "[2,2]", "text": "Changer de carte."},
+            {"kind": "action", "position": "[1,2]", "text": "Revenir plus tard."},
+        ]
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            groups = card.findChildren(QFrame, "GuideManualActionGroup")
+            self.assertEqual(len(groups), 1)
+            grouped_rows = groups[0].findChildren(QFrame, "GuideManualLineRow")
+            self.assertEqual(len(grouped_rows), 2)
+            row_texts = [
+                row.findChild(QLabel).text() for row in grouped_rows
+            ]
+            self.assertIn("Parler au PNJ", row_texts[0])
+            self.assertIn("Prendre l'objet", row_texts[1])
+            self.assertEqual(len(card.findChildren(QFrame, "GuideManualLineRow")), 4)
+            self.assertEqual(
+                card_data["manual_lines"][0]["text"], "Parler au PNJ."
+            )
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
     def test_prepare_block_drops_only_exact_actions_already_done_now(self) -> None:
         duplicate_prepare = {
             "kind": "warning",

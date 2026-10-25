@@ -138,6 +138,32 @@ class GuideUltimeManualQuestLinkTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_quest_link_keeps_second_sheet_origin_after_navigation(self) -> None:
+        service = _ManualQuestLinkService()
+        second = dict(service.cards[0])
+        second["manual_stage_id"] = "SECOND-STAGE"
+        service.cards.append(second)
+        view = GuideUltimeManualView(service, character_key="character:1")
+        contexts = []
+        view.navigate_entity = lambda *args, **kwargs: contexts.append(
+            (args, kwargs)
+        ) or True
+        view.show()
+        QApplication.processEvents()
+        try:
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            button = view.findChild(QToolButton, "GuideManualQuestInlineButton")
+            self.assertIsNotNone(button)
+            button.click()
+            self.assertEqual(view.view_index, 1)
+            self.assertEqual(contexts[-1][0], ("quest", 321))
+            self.assertEqual(contexts[-1][1]["guide_stage_id"], "SECOND-STAGE")
+            self.assertEqual(contexts[-1][1]["guide_index"], 1)
+            self.assertEqual(contexts[-1][1]["guide_id"], "guide_complet")
+        finally:
+            view.close()
+
     def test_multiple_quests_do_not_attach_to_unrelated_actions(self) -> None:
         service = _ManualQuestLinkService()
         service.cards[0]["manual_quest_ids"] = [321, 654]
