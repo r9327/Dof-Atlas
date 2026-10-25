@@ -73,6 +73,27 @@ class ModularDomainRoutingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 exact_git_diff(B, H)
 
+    def test_pr_workflow_runs_domain_proofs_not_full_suite(self):
+        from pathlib import Path
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        self.assertIn("name: Phase Certification / Domain or Release Validation", workflow)
+        self.assertIn("Run independently required domain certification", workflow)
+        self.assertIn("tools.ci_domain_certification", workflow)
+        self.assertIn("github.event_name == 'pull_request'", workflow)
+        full_step = workflow.split(
+            "      - name: Run full Atlas phase certification gate", 1)[1].split(
+            "      - name: Verify public dataset inputs", 1)[0]
+        self.assertIn("github.event_name != 'pull_request'", full_step)
+        enforce = workflow.split(
+            "      - name: Enforce phase certification verdict", 1)[1].split(
+            "      - name: Record final Phase outcome diagnostics", 1)[0]
+        self.assertIn('steps.domains.outcome', enforce)
+        self.assertIn('PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED', enforce)
+        self.assertIn('DOMAIN CERTIFICATION: PASS (NOT FULL/PHASE RELEASE)', enforce)
+        self.assertIn('full_suite_executed', enforce)
+        self.assertIn('merge_authorized', enforce)
+
     def test_a_metadata_only_diff_is_not_application_certification(self):
         plan = self.route(["docs/readme.md", ".ai/context_index.json"])
         self.assertEqual(plan["domains"], ["metadata"])
