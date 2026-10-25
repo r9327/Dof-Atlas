@@ -9,6 +9,33 @@ Ce document complète la spécification 06b. Il ne constitue **ni une certificat
 - Le fond est chargé et dessiné une seule fois dans le shell, sans déformation des proportions. Si `background_selection_clean.png` est présent à côté de la capture originale, il prend priorité. La capture originale n'est jamais modifiée.
 - En l'absence de licence de redistribution, les sprites, captures et TTF extraits du jeu restent exclus de l'export App ; le thème Atlas distribué reste le repli sûr.
 
+## Préflight local reproductible — sans lancer de CI
+
+La commande suivante vérifie la présence et la syntaxe des fichiers concernés,
+la propreté des changements Git suivis, relève le SHA exact, et exécute en
+processus isolés les tests d'intégrité PNG, de packaging et d'export. Elle
+contourne volontairement l'import global `tests/__init__.py` (qui requiert
+PySide6 même pour les tests standard library). Elle **n'exécute aucune
+GitHub Action** et écrit un rapport JSON avec les contrôles exécutés ou non.
+
+```powershell
+py -3.13 -m tools.assets.unity_pre_ci --report artifacts/unity-pre-ci.json
+```
+
+Sur Windows après installation des dépendances PySide6, pour inclure les
+tests Qt offscreen et l'audit d'intégrité réel des assets :
+
+```powershell
+py -3.13 -m tools.assets.unity_pre_ci --qt --assets --report artifacts/unity-pre-ci-full.json
+```
+
+Un résultat `PASS` est **uniquement** un feu vert pour la portée des
+contrôles locaux. Le JSON comporte explicitement les limites de couverture :
+il ne certifie ni les droits, ni les captures de moniteurs physiques, ni
+l'installateur/EXE, ni les workflows CI. Le lanceur a été testé sur un
+dépôt synthétique propre et deux cas d'échec contrôlés ; ce succès de fixture
+n'est pas un verdict du code Atlas complet.
+
 ## Contrôles locaux à faire avant toute fusion
 
 ### Sonde locale réelle des cycles Qt (sans GitHub Actions)
@@ -17,6 +44,7 @@ Sur Windows, une fois les dépendances **déjà prévues** par le dépôt instal
 
 ```powershell
 $env:ATLAS_THEME = "dofus_unity"
+Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
 py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local-100
 $env:QT_SCALE_FACTOR = "1.25"
 py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local-125
