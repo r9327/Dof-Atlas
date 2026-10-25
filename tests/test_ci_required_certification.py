@@ -325,6 +325,7 @@ class CertificationMergeGateTests(unittest.TestCase):
                       base_ref=BASE_REF)
         validate_domain_run(run, [domain_job(), safe_job()], **params)
         for stage in ("Verify exact certification checkout",
+                      "Materialize selected domain fixtures",
                       "Run independently required domain certification",
                       "Enforce phase certification verdict"):
             bad = domain_job()
