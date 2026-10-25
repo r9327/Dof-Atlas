@@ -3,7 +3,7 @@
 Real production Guide/Encyclopedia widgets and data are used. This is not
 full AtlasWindow / EXE certification, and is never scheduled by GitHub Actions.
 Run on Windows from the repository root with Python 3.13 and the pinned runtime:
-    py -3.13 tools/assets/unity_local_cycle_probe.py --output artifacts/unity-local
+    py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 def working_set_bytes() -> int | None:
-    """Windows private-process working-set measurement; not Python heap size."""
+    """Windows process resident working set (may include shared pages)."""
     if sys.platform != "win32":
         return None
 
@@ -38,12 +38,20 @@ def working_set_bytes() -> int | None:
             ("PeakPagefileUsage", ctypes.c_size_t),
         ]
 
+    # Define exact Win32 signatures: default ctypes uses 32-bit int results,
+    # which would truncate HANDLE values on Windows x64.
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    kernel32.GetCurrentProcess.argtypes = []
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    psapi.GetProcessMemoryInfo.argtypes = [
+        wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD
+    ]
+    psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
     counters = Counters()
     counters.cb = ctypes.sizeof(counters)
-    process = ctypes.windll.kernel32.GetCurrentProcess()
-    if not ctypes.windll.psapi.GetProcessMemoryInfo(
-        process, ctypes.byref(counters), counters.cb
-    ):
+    process = kernel32.GetCurrentProcess()
+    if not psapi.GetProcessMemoryInfo(process, ctypes.byref(counters), counters.cb):
         raise OSError(ctypes.get_last_error(), "GetProcessMemoryInfo failed")
     return int(counters.WorkingSetSize)
 

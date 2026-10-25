@@ -13,15 +13,15 @@ Ce document complète la spécification 06b. Il ne constitue **ni une certificat
 
 ### Sonde locale réelle des cycles Qt (sans GitHub Actions)
 
-Sur Windows, une fois les dépendances **déjà prévues** par le dépôt installées, cette commande ouvre les vrais widgets Encyclopédie/Guides en environnement utilisateur temporaire isolé, clique la carte puis utilise le signal de retour du Guide. Elle répète ce parcours 30 fois, relève le nombre de QWidget et le working set Windows, capture trois PNG Qt et écrit un JSON. Elle **ne valide ni l'EXE ni le rendu sur des moniteurs physiques**.
+Sur Windows, une fois les dépendances **déjà prévues** par le dépôt installées, cette commande ouvre les vrais widgets Encyclopédie/Guides en environnement utilisateur temporaire isolé, clique la carte puis utilise le signal de retour du Guide. Elle répète ce parcours 30 fois, relève le nombre de QWidget et le working set résident Windows (incluant éventuellement des pages partagées), capture trois PNG Qt et écrit un JSON. Elle **ne valide ni l'EXE ni le rendu sur des moniteurs physiques**.
 
 ```powershell
 $env:ATLAS_THEME = "dofus_unity"
-py -3.13 tools/assets/unity_local_cycle_probe.py --output artifacts/unity-local-100
+py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local-100
 $env:QT_SCALE_FACTOR = "1.25"
-py -3.13 tools/assets/unity_local_cycle_probe.py --output artifacts/unity-local-125
+py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local-125
 $env:QT_SCALE_FACTOR = "1.5"
-py -3.13 tools/assets/unity_local_cycle_probe.py --output artifacts/unity-local-150
+py -3.13 -m tools.assets.unity_local_cycle_probe --output artifacts/unity-local-150
 Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
 Remove-Item Env:ATLAS_THEME -ErrorAction SilentlyContinue
 ```
