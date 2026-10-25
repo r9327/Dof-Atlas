@@ -268,6 +268,15 @@ class CertificationMergeGateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 candidate_paths(BASE, HEAD)
 
+    def test_merge_policy_is_enforced_and_depends_on_safe_validation(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
+        policy = workflow.split("  certification-policy:", 1)[1].split("  ai_context_ci:", 1)[0]
+        self.assertIn('ATLAS_CERT_POLICY_ENFORCE: "true"', policy)
+        self.assertIn("needs: [doctor-plan, safe-validation, certify]", policy)
+        self.assertIn('--enforce "$ATLAS_CERT_POLICY_ENFORCE"', policy)
+        self.assertNotIn('ATLAS_CERT_POLICY_ENFORCE: "false"', policy)
+
     def test_phase_workflow_supplies_pr_identity_to_merge_gate(self):
         text = (Path(__file__).resolve().parents[1] /
                 ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
