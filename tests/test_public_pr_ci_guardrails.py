@@ -57,7 +57,7 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
             },
         )
 
-    def test_ordinary_non_low_pr_materializes_catalog_but_phase_defers_to_full(self) -> None:
+    def test_ordinary_non_low_pr_catalog_and_domain_or_release_policy(self) -> None:
         for token in (
             "name: Classify Doctor risk",
             "from tools.atlas_integrity import changed_files, classify_risk",
@@ -83,7 +83,9 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         self.assertLess(catalog_index, heavy_index)
         self.assertLess(heavy_index, doctor_index)
         certification = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
-        self.assertIn("name: Phase Certification / Full Validation", certification)
+        self.assertIn("name: Phase Certification / Domain or Release Validation", certification)
+        self.assertIn("Materialize selected domain fixtures", certification)
+        self.assertIn("Run independently required domain certification", certification)
         self.assertIn("name: Materialize local Dofus catalog", certification)
         self.assertIn("name: Materialize certification LFS fixtures", certification)
         self.assertIn("tools.atlas_integrity full", certification)
@@ -150,13 +152,13 @@ class PublicPrCiGuardrailsTests(unittest.TestCase):
         full_job = certification.split("  certify:", 1)[1].split("    name:", 1)[0]
         self.assertIn(route, full_job)
         self.assertIn("needs.doctor-plan.result == 'success'", full_job)
-        self.assertIn("name: Phase Certification / Full Validation", certification)
+        self.assertIn("name: Phase Certification / Domain or Release Validation", certification)
         self.assertIn("tools.atlas_integrity full", certification)
 
     def test_phase_changed_tests_are_never_omitted_from_full_certification(self) -> None:
         cert = (ROOT / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")
         self.assertIn("tools.atlas_integrity full", cert)
-        self.assertIn("name: Phase Certification / Full Validation", cert)
+        self.assertIn("name: Phase Certification / Domain or Release Validation", cert)
         self.assertIn("changed-test DIFF_TARGETS are deferred", self.source)
 
     def test_dependency_review_failure_is_deferred_but_never_swallowed(self) -> None:
