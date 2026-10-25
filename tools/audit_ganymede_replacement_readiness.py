@@ -21,6 +21,7 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 GUIDES_DIR = Path("data/encyclopedia/guides")
 CATALOG = GUIDES_DIR / "catalog.json"
 CROSSWALK = GUIDES_DIR / "ganymede_source_crosswalk.json"
+CUTOVER_MANIFEST = GUIDES_DIR / "replacement_drafts/cutovers/cutover_manifest.json"
 
 
 def audit_ganymede_replacement_readiness(root: Path) -> dict:
@@ -40,6 +41,19 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         return {"status": "FAIL", "issues": [
             {"code": "invalid_catalog", "detail": str(exc)}
         ], "ready_to_replace": 0}
+
+    # A declaration is *not* a certificate. The actual staged route is still
+    # selected only through the signed payload/order validator below.
+    declarations: dict[str, dict] = {}
+    manifest_path = root / CUTOVER_MANIFEST
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest.get("schema_version") != 1 or not isinstance(manifest.get("guides"), dict):
+                raise ValueError("invalid cutover manifest schema")
+            declarations = manifest["guides"]
+        except (OSError, ValueError, TypeError, AttributeError) as exc:
+            issues.append({"code": "invalid_cutover_manifest", "detail": str(exc)})
 
     source_by_id = {
         row["ganymede_guide_id"]: row for row in source_entries
@@ -174,6 +188,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "legacy_step_count": old_steps,
             "legacy_guide_preserved": True,
             "legacy_progress_preserved": True,
+            "manual_ui_ready": entry.get("ganymede_manual_ui_ready") is True,
             "source_guides": sources,
             "replacement_active": replacement is not None,
             "replacement_staged": staged is not None,
@@ -195,6 +210,13 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
     for record in records:
         sources = record["source_guides"]
         unique_source = sources[0] if len(sources) == 1 else None
+        declaration = declarations.get(record["atlas_guide_id"])
+        if not isinstance(declaration, dict):
+            declaration = {}
+        # Report hashes as *declarations*, not as independent certification.
+        # A row becomes verified staged only if select_verified_replacement_path
+        # independently checked its signed payload and source step ordering.
+        route_staged = record["replacement_staged"]
         activation_matrix.append({
             "atlas_guide_id": record["atlas_guide_id"],
             "source_guide_id": (
@@ -210,7 +232,18 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "source_snapshot_verified": (
                 unique_source["source_snapshot_verified"] if unique_source else False
             ),
-            "route_staged": record["replacement_staged"],
+            "manifest_mode_declared": declaration.get("status"),
+            "manifest_source_guide_id_declared": declaration.get("source_guide_id"),
+            "manifest_step_count_declared": declaration.get("source_step_count"),
+            "manifest_payload_sha256_declared": declaration.get("payload_sha256"),
+            "manifest_order_fingerprint_declared": declaration.get("fingerprint"),
+            "source_order_and_payload_verified_for_staging": route_staged,
+            "manual_ui_ready": record["manual_ui_ready"],
+            "selected_runtime_route": (
+                "GANYMEDE_CONTINUOUS" if record["replacement_active"]
+                else "ATLAS_LEGACY"
+            ),
+            "route_staged": route_staged,
             "route_active": record["replacement_active"],
             "manual_only": record["source_trusted_manual_only"],
             "canonical_objectives_verified": record["canonical_objectives_verified"],

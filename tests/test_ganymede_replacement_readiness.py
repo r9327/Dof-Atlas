@@ -61,6 +61,14 @@ class ReplacementReadinessTests(unittest.TestCase):
             report["guide_reports"][0]["blockers"],
         )
 
+    def test_unmapped_source_does_not_invent_verified_manifest_hashes(self) -> None:
+        self._write(CROSSWALK, {"guides": []})
+        report = audit_ganymede_replacement_readiness(self.root)
+        row = report["activation_matrix"][0]
+        self.assertFalse(row["source_order_and_payload_verified_for_staging"])
+        self.assertIsNone(row["manifest_payload_sha256_declared"])
+        self.assertEqual(row["selected_runtime_route"], "ATLAS_LEGACY")
+
     def test_unmapped_local_dofus_is_explicitly_blocked(self) -> None:
         self._write(CROSSWALK, {"guides": []})
         report = audit_ganymede_replacement_readiness(self.root)
@@ -101,6 +109,16 @@ class ReplacementReadinessTests(unittest.TestCase):
         self.assertEqual({row["atlas_guide_id"] for row in matrix},
                          {row["atlas_guide_id"] for row in report["guide_reports"]})
         self.assertEqual(sum(row["route_staged"] for row in matrix), 20)
+        for row in matrix:
+            self.assertFalse(row["manual_ui_ready"])
+            self.assertEqual(row["selected_runtime_route"], "ATLAS_LEGACY")
+            if row["route_staged"]:
+                self.assertTrue(row["source_order_and_payload_verified_for_staging"])
+                self.assertEqual(row["manifest_mode_declared"], "TRUSTED_SOURCE_STEPS")
+                self.assertEqual(row["manifest_source_guide_id_declared"], row["source_guide_id"])
+                self.assertEqual(row["manifest_step_count_declared"], row["source_steps_expected"])
+                self.assertEqual(len(row["manifest_payload_sha256_declared"]), 64)
+                self.assertEqual(len(row["manifest_order_fingerprint_declared"]), 64)
         self.assertEqual(sum(row["route_active"] for row in matrix), 0)
         self.assertTrue(all(row["legacy_progress_preserved"] for row in matrix))
         self.assertTrue(all(row["source_guide_id"] is None for row in matrix
