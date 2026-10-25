@@ -19,6 +19,7 @@
 - [x] Ajout d'un test de lien Quête depuis la deuxième fiche, avec guide_index et manual_stage_id exacts.
 - [x] Tests de régression ajoutés pour le panneau droit et le bouton Quête (présents dans le code, non exécutés dans cet audit).
 - [ ] Validation Windows/DPI, navigation multi-guides, scroll, mémoire, Doctor et certification du SHA final.
+- [x] Après échec de certification au SHA 83a726f : restaurer la preuve de connexion dans le mock de déplacement, ajouter une issue fail-closed si le service ne fournit pas d'inventaire des personnages, et comparer le texte HTML de groupe après déséchappement. Deux régressions bloquantes identifiées parmi 1 475 tests de domaine.
 - [ ] Vérifier le Sommaire, les commandes de déplacement, les groupes d'actions et les scénarios N1 à N8.
 - [ ] Vérifier en UI Windows le délai réel des infobulles Quêtes et les dispositions de panneau droit.
 - [ ] Aucun résultat de test Qt n'est revendiqué dans ce document.

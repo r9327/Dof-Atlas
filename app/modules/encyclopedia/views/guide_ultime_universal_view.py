@@ -380,10 +380,14 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # Only direct, structurally valid /travel commands reach the launcher.
         # Zaaps require independently verified routing; never infer one here.
         normalized = str(command or "").strip()
+        available = getattr(self.participant_service, "available_characters", None)
+        # No verified connection inventory means no eligible recipients.
+        # Fail closed without propagating an AttributeError from a Qt event.
+        characters = available() if callable(available) else ()
         eligible = {
             row.key
-            for row in self.participant_service.available_characters()
-            if bool(row.connected)
+            for row in (characters or ())
+            if bool(getattr(row, "connected", False))
         }
         recipients = tuple(
             key for key in self.selected_participant_keys() if key in eligible

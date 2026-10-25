@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -161,6 +162,13 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
             def selected_keys():
                 return ("character:101", "character:202")
 
+            @staticmethod
+            def available_characters():
+                return (
+                    SimpleNamespace(key="character:101", connected=True),
+                    SimpleNamespace(key="character:202", connected=True),
+                )
+
         calls: list[tuple[str, tuple[str, ...]]] = []
         view = GuideUltimeUniversalView(
             self.service,
@@ -189,6 +197,27 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
             [("/travel 5,6", ("character:101", "character:202"))],
         )
         view.close()
+
+    def test_missing_verified_participant_inventory_never_sends_travel(self):
+        class _ParticipantsWithoutInventory:
+            @staticmethod
+            def selected_keys():
+                return ("character:101",)
+
+        sends = []
+        view = GuideUltimeUniversalView(
+            self.service,
+            character_key="hero",
+            quest_provider=self.provider,
+            participant_service=_ParticipantsWithoutInventory(),
+            travel_callback=lambda command, keys: sends.append((command, keys)),
+        )
+        try:
+            self.assertFalse(view._launch_travel_command("/travel 5,6"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 5,6")
+        finally:
+            view.close()
 
     def test_breadcrumb_is_directly_inside_guide_and_returns_to_guides(self):
         view = GuideUltimeUniversalView(self.service, character_key="hero", quest_provider=self.provider)

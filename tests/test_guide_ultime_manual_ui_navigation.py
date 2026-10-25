@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from html import unescape
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -458,7 +459,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             grouped_rows = groups[0].findChildren(QFrame, "GuideManualLineRow")
             self.assertEqual(len(grouped_rows), 2)
             row_texts = [
-                row.findChild(QLabel).text() for row in grouped_rows
+                unescape(row.findChild(QLabel).text()) for row in grouped_rows
             ]
             self.assertIn("Parler au PNJ", row_texts[0])
             self.assertIn("Prendre l'objet", row_texts[1])
