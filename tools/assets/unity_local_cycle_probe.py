@@ -52,14 +52,6 @@ def run(output: Path, cycles: int) -> dict:
     # All source imports are delayed until after the data-root isolation.
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
     os.environ["ATLAS_THEME"] = "dofus_unity"
-    from PySide6.QtCore import QCoreApplication, QEvent, Qt
-    from PySide6.QtTest import QTest
-    from PySide6.QtWidgets import QWidget
-    from shiboken6 import isValid
-    from tools.atlas_doctor_lib.doctor_ui_qt import build_scene, settle
-    from app.modules.encyclopedia.constants import GUIDES_TAB
-    from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
-
     output.mkdir(parents=True, exist_ok=True)
     samples: list[dict] = []
     result = {
@@ -74,6 +66,15 @@ def run(output: Path, cycles: int) -> dict:
     try:
         with tempfile.TemporaryDirectory(prefix="atlas-unity-probe-") as directory:
             os.environ["DOFUS_ATLAS_USER_ROOT"] = directory
+            # Imports must see the temporary isolated user-data root.
+            from PySide6.QtCore import QCoreApplication, QEvent, Qt
+            from PySide6.QtTest import QTest
+            from PySide6.QtWidgets import QWidget
+            from shiboken6 import isValid
+            from tools.atlas_doctor_lib.doctor_ui_qt import build_scene, settle
+            from app.modules.encyclopedia.constants import GUIDES_TAB
+            from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
             app, page, owner = build_scene(Path(directory))
             # build_scene already loaded the real provider and hydrated the
             # rich Guide; synchronize the application's readiness bit.
@@ -160,10 +161,15 @@ def run(output: Path, cycles: int) -> dict:
     except Exception as exc:
         result["error"] = f"{type(exc).__name__}: {exc}"
     finally:
-        if page is not None and isValid(page):
-            page.close()
-            page.deleteLater()
-            settle()
+        if page is not None:
+            # An import failure can happen before isValid/settle are defined.
+            is_valid = locals().get("isValid")
+            finish_events = locals().get("settle")
+            if callable(is_valid) and is_valid(page):
+                page.close()
+                page.deleteLater()
+                if callable(finish_events):
+                    finish_events()
         result["finished_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         (output / "report.json").write_text(
             json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
