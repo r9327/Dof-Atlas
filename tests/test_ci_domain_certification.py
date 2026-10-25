@@ -94,6 +94,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for("tests/test_unity_skin.py"), frozenset({"ui"}))
         self.assertEqual(owners_for("tests/test_distribution_export.py"),
                          frozenset({"ci", "startup"}))
+        self.assertEqual(owners_for("app/pages/_quests_page_impl.py"),
+                         frozenset({"quests", "ui"}))
         route = self.route(guide_paths + asset_paths + [
             "tools/assets/import_dofus_unity_ui.ps1", "tests/test_unity_skin.py",
             "tests/test_distribution_export.py",

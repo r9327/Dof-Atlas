@@ -112,6 +112,9 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "startup"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
+    if path == "app/pages/_quests_page_impl.py":
+        # Shared Quest HTML templates and their QWidget consumers.
+        return frozenset({"quests", "ui"})
     if path.startswith("app/pages/quest_"):
         return frozenset({"ui", "quests"})
     if path.startswith("app/pages/guide_") or path.startswith("app/pages/achievement_"):

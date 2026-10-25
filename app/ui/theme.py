@@ -46,7 +46,9 @@ if unity_enabled():
     PALETTE.update(UNITY_PALETTE)
 
 TYPOGRAPHY = {
-    "FONT_FAMILY": '"Segoe UI", Arial',
+    # Only system-installed Lexend/Rowdies are used; game-extracted TTF files
+    # are never registered or exported without verified redistribution rights.
+    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial' if unity_enabled() else '"Segoe UI", Arial',
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",

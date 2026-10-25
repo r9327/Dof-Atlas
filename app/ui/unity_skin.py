@@ -56,14 +56,52 @@ def _sprite_url(filename: str) -> str | None:
     return candidate.resolve().as_posix()
 
 
+def sprite_icon_path(icon: str) -> Path | None:
+    """Small, verified navigation pictograms for *local* skin only.
+
+    Callers keep their normal icon if the optional sprite is absent.
+    """
+    if not unity_enabled() or icon not in {
+        "guide", "quest", "success", "encyclopedia",
+        "character", "dofus", "map", "inventory",
+    }:
+        return None
+    filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
+    path = _ASSETS / "sprites" / filename
+    return path if path.is_file() else None
+
+
 def unity_skin_stylesheet() -> str:
-    """Global Qt controls, using 9-slice borders for verified local source sprites."""
+    """Global Qt controls, with 9-slice and local-only source sprites."""
     if not unity_enabled():
         return ""
     rules = [
+        # The wallpaper is painted once by the *parent* of all shell pages.
+        # Only root surfaces are translucent; data cards retain dark contrast.
         "QWidget#AtlasUnityBackdrop { background: transparent; }",
-        "QStackedWidget#AtlasUnityStack, QWidget#HomePage { background: transparent; }",
-        "QPushButton:focus, QToolButton:focus, QCheckBox:focus { border: 2px solid #D9EAF2; }",
+        "QStackedWidget#AtlasUnityStack, QWidget#HomePage, "
+        "QWidget#EncyclopediaPage, QWidget#organizerPage, "
+        "QWidget#PlaceholderPage, QWidget#SettingsPage { background: transparent; }",
+        "QScrollArea { background: rgba(21, 29, 50, 0.35); border: none; }",
+        "QScrollArea > QWidget > QWidget { background: transparent; }",
+        "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
+        "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
+        "QFrame#GuideFeaturedCard { "
+        "background: rgba(27, 39, 70, 0.88); border: 1px solid #617CA6; "
+        "border-radius: 9px; }",
+        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
+        "QFrame#GuidePreparationPanel { "
+        "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        "QDialog#AtlasDialog, QMenu { "
+        "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
+        "border: 1px solid #617CA6; }",
+        "QLineEdit, QComboBox, QSpinBox, QTextEdit { "
+        "background: rgba(20, 29, 55, 0.96); color: #F1F6FB; "
+        "border: 1px solid #617CA6; }",
+        "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
+        "QComboBox:focus, QLineEdit:focus { border: 2px solid #D9EAF2; }",
+        "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
+        'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
     ]
 
     def add_border(selectors: str, image: str, insets: int = 8) -> None:
@@ -74,14 +112,35 @@ def unity_skin_stylesheet() -> str:
                 f' border-image: url("{url}") {insets} {insets} {insets} {insets} stretch stretch; }}'
             )
 
-    primary = "QPushButton#PrimaryActionButton, QPushButton#FeaturedGuideOpen"
-    for pseudo, name in (
-        ("", "btn_green_normal.png"),
-        (":hover", "btn_green_over.png"),
-        (":pressed", "btn_green_pressed.png"),
-        (":disabled", "btn_green_disabled.png"),
-    ):
-        add_border(", ".join(selector + pseudo for selector in primary.split(", ")), name)
+    def sprites_for_states(selectors: str, root: str, insets: int = 8) -> None:
+        for pseudo, variant in (
+            ("", "normal"), (":hover", "over"),
+            (":pressed", "pressed"), (":disabled", "disabled"),
+        ):
+            add_border(
+                ", ".join(selector + pseudo for selector in selectors.split(", ")),
+                f"{root}_{variant}.png",
+                insets,
+            )
+
+    # Keep semantic colors / focus from shared theme; the sprite provides relief.
+    sprites_for_states(
+        "QPushButton#PrimaryActionButton, QPushButton#primaryButton, "
+        "QPushButton#HomeContinueButton, QPushButton#FeaturedGuideOpen",
+        "btn_green", 8,
+    )
+    sprites_for_states(
+        "QPushButton#SecondaryButton, QPushButton#secondaryButton",
+        "btn_yellow2", 8,
+    )
+    sprites_for_states(
+        "QPushButton#GuideManualNavButton",
+        "btn_arrow_pagination", 5,
+    )
+    sprites_for_states(
+        "QPushButton#TopNavSettings",
+        "btn_green_small", 6,
+    )
     for pseudo, name in (
         ("", "btn_arrow_pagination_normal.png"),
         (":hover", "btn_arrow_pagination_over.png"),

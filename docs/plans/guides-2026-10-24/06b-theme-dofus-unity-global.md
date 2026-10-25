@@ -115,3 +115,13 @@ Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composan
 - [x] Première couche de thème local **opt-in** via `ATLAS_THEME=dofus_unity` : tokens sémantiques communs, vrais états de boutons/checkbox/onglets lorsque présents, bordures 9-slice, fond en couverture centrée sans distorsion, unique pixmap cachée par shell, focus clavier préservé et repli en absence de ressources.
 - [x] Par défaut, le thème Atlas reste intact ; aucune police extraite du jeu n'est enregistrée au runtime ni incluse par l'export Python-only vers l'App.
 - [ ] Nettoyage fidèle des trois icônes de la capture d'origine, intégration visuelle de toutes les pages/WebView, licence/autorisation des sprites et des fonts, mesures DPI et RAM Windows, contrôle réel du thème et certification du SHA final. Aucun PASS visuel ou licence n'est revendiqué.
+
+## Complément de code — habillage Qt/HTML
+
+- [x] Palette et police centrale : Lexend/Rowdies **si installées légalement sur le système** ; aucun TTF extrait ne s'enregistre ni ne s'exporte automatiquement.
+- [x] Styles spécifiques transparents des racines d'accueil, Encyclopédie, Organizer, panneaux, listes et dialogues, avec cartes foncées lisibles.
+- [x] Boutons de navigation, actions primaires/secondaires, navigation, états hover/pressed/disabled, cases et onglets, focus Qt ; aucun remplacement fonctionnel de contrôles.
+- [x] Icône de Guide depuis le sprite local pour les deux cartes majeures seulement, sans chargement massif au démarrage.
+- [x] Texte HTML interne Quêtes utilise les mêmes tokens de police/palette Qt. La page Équipement ouvre un site **externe** : aucune injection CSS chez un tiers.
+- [x] Tests unitaires synthétiques supplémentaires pour les PNG locaux, les états de bouton, les vues transparentes, le bitmap unique et le fallback.
+- [ ] À prouver sur Windows : rendu exact DPI/mémoire, nettoyage du fond original des trois icônes et droits de distribution, captures de référence. Les assertions ci-dessus ne sont pas un PASS Windows.

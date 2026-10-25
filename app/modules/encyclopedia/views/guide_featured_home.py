@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+from app.ui.unity_skin import sprite_icon_path
 
 
 FEATURED = (
@@ -115,7 +116,9 @@ class FeaturedGuideCard(QFrame):
         if total > 0:
             self.progress.setValue(max(0, min(100, round(done * 100 / total))))
         self.artwork.clear()
-        self.open_button.setIcon(QIcon())
+        local_icon = sprite_icon_path("guide")
+        # Only two featured QIcons, backed by local assets when explicitly enabled.
+        self.open_button.setIcon(QIcon(str(local_icon)) if local_icon else QIcon())
         if usable:
             image_path = getattr(guide, "image_path", None)
             if image_path and Path(image_path).is_file():
