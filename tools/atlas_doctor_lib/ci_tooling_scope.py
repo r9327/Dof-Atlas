@@ -20,7 +20,8 @@ TESTS = (
     'doctor_scenario_runner', 'memory_policy_contract', 'generated_file_guardrails',
     'phase8_memory_policy_advisory', 'phase8_deep_comparison',
     'phase8_preload_benchmark_contract', 'doctor_github_provenance',
-    'phase8_memory_benchmark_contract', 'doctor_policy_authority', 'ai_context', 'doctor_ui',
+    'phase8_memory_benchmark_contract', 'phase8_memory_tolerance',
+    'doctor_policy_authority', 'ai_context', 'doctor_ui',
     # Developer-facing diagnosis only: tested but never application-certified.
     'atlas_doctor_capabilities', 'atlas_doctor_capability_evidence',
     'atlas_doctor_agent_protocol',
