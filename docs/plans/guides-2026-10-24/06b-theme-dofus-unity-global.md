@@ -79,7 +79,7 @@ Racine locale de l'extraction : `%USERPROFILE%\Documents\Atlas-Dofus-UI-Composan
 - WebView : harmonisation CSS basée sur les mêmes tokens ; ne pas appliquer des fonds opaques sur le ciel ; traiter séparément les contenus externes difficiles à styler.
 - Conserver objectName et property state déjà utilisés, connexions signals/slots, accessibles names, progression vérifiée, identité des personnages, cache image. Thème = présentation, pas refonte des comportements.
 - PR #252 garde exclusivement la géométrie de l'en-tête Guide Succès, PR #253 la colonne droite/navigation, PR #250 la validation multi-personnages. Ce complément DOFUS Unity à #254 **n'autorise aucun débordement fonctionnel ou re-layout** sur ces PRs.
-- Mettre à jour les exports/manifestes de distribution et les ressources disponibles hors ligne **uniquement après validation des droits** ; ne pas ajouter de LFS pointer non matérialisé ou un chemin `C:\Users\Rabsk\...` dans l'exécutable.
+- Mettre à jour les exports/manifestes de distribution et les ressources disponibles hors ligne **uniquement après validation des droits** ; ne jamais intégrer de pointeur LFS non matérialisé ni de chemin absolu propre à un poste dans l'exécutable.
 
 ## F. Critères d'acceptation
 
