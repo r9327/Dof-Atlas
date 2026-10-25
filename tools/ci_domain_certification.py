@@ -160,11 +160,128 @@ def exact_git_diff(base_sha: str, candidate_sha: str) -> tuple[list[str], list[s
     return changed, deleted
 
 
+
+def _module_sources(root: Path, domain: str) -> list[str]:
+    """Existing exact test modules only; never infer a PASS from an absent file."""
+    tests = root / "tests"
+    if domain == "ci":
+        from tools.atlas_doctor_lib.ci_tooling_scope import TESTS
+        prefixes = [f"test_{name}.py" for name in TESTS]
+        prefixes += ["test_ci_domain_certification.py"]
+        missing = [p for p in prefixes if not (tests / p).is_file()]
+        if missing:
+            raise ValueError("Missing mandatory CI test modules: " + ", ".join(missing))
+        return ["tests." + p[:-3] for p in prefixes]
+    if domain == "craft":
+        patterns = ("test_craft*.py", "test_phase8_memory*.py",
+                    "test_memory*.py", "test_phase8_preload*.py")
+    elif domain == "quests":
+        patterns = ("test_quest*.py", "test_encyclopedia_provider*.py",
+                    "test_encyclopedia_on_demand*.py")
+    elif domain == "guides":
+        patterns = ("test_guide*.py", "test_progress*.py",
+                    "test_achievement*.py")
+    elif domain == "ui":
+        patterns = ("test_doctor_ui_qt.py", "test_pyside*.py",
+                    "test_qt*.py", "test_quest_visuals*.py")
+    elif domain == "startup":
+        patterns = ("test_startup*.py", "test_main_startup*.py",
+                    "test_launcher*.py", "test_lazy*.py")
+    elif domain == "identity":
+        patterns = ("test_character*.py", "test_identity*.py",
+                    "test_progress_interprocess*.py")
+    elif domain == "data":
+        patterns = ("test_local_data*.py", "test_data*.py",
+                    "test_json*.py", "test_quest_catalog*.py")
+    else:
+        raise ValueError("Unrecognized certification domain: " + domain)
+    found = {p for pattern in patterns for p in tests.glob(pattern) if p.is_file()}
+    if not found:
+        raise ValueError("No real tests discovered for mandatory " + domain)
+    return ["tests." + p.stem for p in sorted(found)]
+
+
+def execute_domain_tests(plan: dict[str, Any], *, root: Path, base_sha: str) -> dict[str, Any]:
+    """Run every mapped test, all touched tests, and base-anchored CI contracts."""
+    import hashlib
+    import time
+    import unittest
+    from tools.atlas_full_suite_proof import ProofResult, ids
+
+    head = _git("rev-parse", "HEAD").strip()
+    if plan.get("status") != "READY_TO_EXECUTE" or plan.get("candidate_sha") != head:
+        raise ValueError("No valid exact-SHA domain plan")
+    if plan.get("base_sha") != base_sha or plan.get("deleted_paths") or plan.get("unknown_paths"):
+        raise ValueError("Domain coverage incomplete or stale")
+    domains = plan.get("domains")
+    if not isinstance(domains, list) or not domains or len(domains) != len(set(domains)):
+        raise ValueError("No closed-world domain inventory")
+    # The minimum CI contracts are loaded from the baseline, not a potentially
+    # changed candidate policy; no reduction of the mandatory CI owner list.
+    prior = json.loads(_git("show", f"{base_sha}:tools/atlas_integrity_policy.json"))
+    if prior.get("schema_version") != 1:
+        raise ValueError("Unrecognized baseline policy")
+    base_ci = prior.get("groups", {}).get("CI_INTEGRITY", {}).get("modules")
+    if not isinstance(base_ci, list) or not base_ci:
+        raise ValueError("Missing original CI certification obligations")
+    module_names: set[str] = set()
+    if "ci" in domains:
+        module_names.update(base_ci)
+    for domain in domains:
+        if domain == "metadata":
+            continue
+        module_names.update(_module_sources(root, domain))
+    # Every changed test is mandatory even when its domain is CI-adjacent.
+    for relative in plan.get("changed_paths", ()):
+        if relative.startswith("tests/test_") and relative.endswith(".py"):
+            test = root / relative
+            if not test.is_file() or test.is_symlink():
+                raise ValueError("Removed/unsafe changed test: " + relative)
+            module_names.add("tests." + test.stem)
+    mandatory = sorted(module_names)
+    loader = unittest.TestLoader()
+    suite = unittest.TestSuite([loader.loadTestsFromName(name) for name in mandatory])
+    if loader.errors:
+        raise ValueError("Unimportable mandatory domain test: " + "; ".join(loader.errors)[:1000])
+    expected = ids(suite) if mandatory else []
+    if mandatory and (not expected or len(set(expected)) != len(expected)):
+        raise ValueError("Empty or duplicated exact test identities")
+    started = time.perf_counter()
+    result = unittest.TextTestRunner(verbosity=2, resultclass=ProofResult).run(suite)
+    seconds = round(time.perf_counter() - started, 3)
+    statuses = result.completed
+    complete = bool((not mandatory or (len(statuses) == len(expected)
+        and result.testsRun == len(expected)
+        and set(k for k, _ in statuses) == set(expected)
+        and len(set(k for k, _ in statuses)) == len(expected)
+        and all(status == "ok" for _, status in statuses)))
+        and result.wasSuccessful())
+    return {
+        "schema_version": 1, "kind": "atlas_domain_tests_exact_sha",
+        "candidate_sha": head, "base_sha": base_sha,
+        "baseline_policy_sha256": hashlib.sha256(
+            _git("show", f"{base_sha}:tools/atlas_integrity_policy.json").encode()
+        ).hexdigest(),
+        "domains": domains, "required_modules": mandatory,
+        "expected_test_ids": sorted(expected), "successful_test_ids":
+            sorted(k for k, status in statuses if status == "ok"),
+        "tests_run": result.testsRun,
+        "duration_seconds": seconds,
+        "status": "PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED" if complete else "BLOCKED",
+        "tests_executed": True, "full_suite_executed": False,
+        "phase_certified": False, "merge_authorized": False,
+        "note": "Only domain tests. Independent required specialists and host CI verdict must also PASS.",
+    }
+
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-sha", required=True)
     parser.add_argument("--candidate-sha", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--execute", action="store_true",
+                        help="Run exact-SHA selected module tests on this Windows runner")
     args = parser.parse_args()
     head = _git("rev-parse", "HEAD").strip()
     if head != args.candidate_sha:
@@ -175,8 +292,19 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(outcome, indent=2, ensure_ascii=False) + "\n",
                            encoding="utf-8")
+    if outcome["status"] != "READY_TO_EXECUTE":
+        print("Modular domain selection BLOCKED:", outcome["reasons"])
+        return 1
+    if args.execute:
+        evidence = execute_domain_tests(outcome, root=Path.cwd(), base_sha=args.base_sha)
+        proof = args.output.with_name("domain_test_evidence.json")
+        proof.write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n",
+                         encoding="utf-8")
+        if evidence["status"] != "PASS_DOMAIN_TESTS_NOT_PHASE_CERTIFIED":
+            print("Modular tests BLOCKED; see", proof)
+            return 1
     print("Independent domains:", ", ".join(outcome["domains"]), "status:", outcome["status"])
-    return 0 if outcome["status"] == "READY_TO_EXECUTE" else 1
+    return 0
 
 
 if __name__ == "__main__":
