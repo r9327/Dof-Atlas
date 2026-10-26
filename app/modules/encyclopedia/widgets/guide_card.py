@@ -71,7 +71,8 @@ class GuideListModel(QAbstractListModel):
             levels = self._level_text(guide)
             title = self.display_title(guide)
             label = self.display_subtitle(guide)
-            return f"{title}\n{label}\n{levels}\n{done} / {total} {self._progress_word(guide, total)}                 {percent} %"
+            return (f"{title}\n{label}\n{levels}\n{done} / {total} {self._progress_word(guide, total)} · {percent} %"
+                    if total else f"{title}\n{label}\n{levels}\nProgression inconnue")
         if role == Qt.DecorationRole:
             image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
             if image_path.exists():
@@ -115,14 +116,19 @@ class GuideListModel(QAbstractListModel):
                 ("ALIGNEMENTS", [guide for guide in guides if guide.category == "alignements"]),
             )
         elif column == "right":
-            sections = (("DOFUS", [guide for guide in guides if guide.category == "dofus"]),)
+            # Legacy right-column contract: filter Dofus, without a fake grid item.
+            sections = (("", [guide for guide in guides if guide.category == "dofus"]),)
+        elif column == "catalog":
+            # The parent already selected the category, including Alignements.
+            sections = (("", list(guides)),)
         else:
             raise ValueError(f"Unknown Guide Home column: {column}")
         self.guides = []
         self.entries = []
         for title, section in sections:
             if section:
-                self.entries.append(title)
+                if title:
+                    self.entries.append(title)
                 self.entries.extend(section)
                 self.guides.extend(section)
         self.endResetModel()
@@ -153,13 +159,19 @@ class GuideListModel(QAbstractListModel):
         self._emit_guide_changed(str(guide_id))
 
     def display_title(self, guide: Guide) -> str:
-        return self.title_overrides.get(guide.id, guide.title)
+        title = self.title_overrides.get(guide.id, guide.title)
+        if guide.category == "dofus" and title.casefold().startswith("dofus "):
+            return title[6:] or title
+        return title
 
     def display_subtitle(self, guide: Guide) -> str:
         override = self.subtitle_overrides.get(guide.id)
         if override is not None:
             return override
         label = guide.category_label or guide.category
+        if guide.category == "dofus":
+            _done, total, state = self.progress_by_guide.get(guide.id, (0, 0, ""))
+            label = state if total > 0 and state else "Progression inconnue"
         status = " • Partiel" if guide.completeness_status == "partial" else ""
         return f"{label}{status}"
 
@@ -273,6 +285,7 @@ class GuideCardDelegate(QStyledItemDelegate):
         painter.setPen(QColor(PALETTE["TEXT"]))
         model = index.model()
         title = model.display_title(guide) if hasattr(model, "display_title") else guide.title
+        title = painter.fontMetrics().elidedText(title, Qt.ElideRight, max(0, text_right - text_left))
         painter.drawText(text_left, y, text_right - text_left, 18, Qt.AlignLeft | Qt.AlignVCenter, title)
 
         meta_font = QFont(option.font)
@@ -291,22 +304,27 @@ class GuideCardDelegate(QStyledItemDelegate):
             text_right - text_left,
             16,
             Qt.AlignLeft | Qt.AlignVCenter,
-            label,
+            painter.fontMetrics().elidedText(label, Qt.ElideRight, max(0, text_right - text_left)),
         )
 
         y += 15
-        painter.drawText(text_left, y, text_right - text_left, 14, Qt.AlignLeft | Qt.AlignVCenter, GuideListModel._level_text(guide))
+        level = GuideListModel._level_text(guide)
+        painter.drawText(text_left, y, text_right - text_left, 14, Qt.AlignLeft | Qt.AlignVCenter,
+                         painter.fontMetrics().elidedText(level, Qt.ElideRight, max(0, text_right - text_left)))
 
         y += 15
         painter.setPen(QColor(PALETTE["TEXT_SOFT"]))
-        painter.drawText(text_left, y, text_right - text_left - 50, 15, Qt.AlignLeft | Qt.AlignVCenter, f"{done} / {total} {GuideListModel._progress_word(guide, total)}")
-        painter.drawText(text_right - 48, y, 48, 15, Qt.AlignRight | Qt.AlignVCenter, f"{percent} %")
+        if total:
+            painter.drawText(text_left, y, text_right - text_left - 50, 15, Qt.AlignLeft | Qt.AlignVCenter, f"{done} / {total} {GuideListModel._progress_word(guide, total)}")
+            painter.drawText(text_right - 48, y, 48, 15, Qt.AlignRight | Qt.AlignVCenter, f"{percent} %")
+        else:
+            painter.drawText(text_left, y, text_right - text_left, 15, Qt.AlignLeft | Qt.AlignVCenter, "Progression inconnue")
 
         bar_rect = self.progress_rect(rect, text_left, text_right)
-        painter.setPen(QPen(QColor(PALETTE["BORDER_SOFT"]), 1))
-        painter.setBrush(QColor(PALETTE["SIDEBAR"]))
-        painter.drawRoundedRect(bar_rect, 3, 3)
         if total:
+            painter.setPen(QPen(QColor(PALETTE["BORDER_SOFT"]), 1))
+            painter.setBrush(QColor(PALETTE["SIDEBAR"]))
+            painter.drawRoundedRect(bar_rect, 3, 3)
             chunk = bar_rect.adjusted(1, 1, -1, -1)
             chunk.setWidth(max(0, int(chunk.width() * percent / 100)))
             painter.setPen(Qt.NoPen)

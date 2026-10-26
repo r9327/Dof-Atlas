@@ -77,7 +77,10 @@ class GuideCatalogFillTests(unittest.TestCase):
                 view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
                 for row in range(view.home_dofus_model.rowCount())
             ]
-            self.assertEqual([group for group in dofus_groups if group], ["DOFUS"])
+            # The DOFUS section title now lives outside the card grid. A fake
+            # list-model heading would consume an actual card cell.
+            self.assertEqual([group for group in dofus_groups if group], [])
+            self.assertTrue(view.home_dofus_model.guides)
             self.assertTrue(all(guide.category == "dofus" for guide in view.home_dofus_model.guides))
             view.select_guide("dofus_turquoise")
             self.app.processEvents()
@@ -187,7 +190,10 @@ class GuideCatalogFillTests(unittest.TestCase):
                 view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
                 for row in range(view.home_dofus_model.rowCount())
             ]
-            self.assertEqual([group for group in dofus_groups if group], ["DOFUS"])
+            # The DOFUS section title now lives outside the card grid. A fake
+            # list-model heading would consume an actual card cell.
+            self.assertEqual([group for group in dofus_groups if group], [])
+            self.assertTrue(view.home_dofus_model.guides)
             self.assertTrue(all(guide.category == "dofus" for guide in view.home_dofus_model.guides))
             view.set_search_text("incarnam")
             self.assertTrue(any(guide.id == "guide_complet" for guide in view.visible_guides))

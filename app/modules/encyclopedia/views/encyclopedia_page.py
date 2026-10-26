@@ -8,7 +8,7 @@ from threading import Thread, current_thread
 from typing import TYPE_CHECKING, Callable
 
 from PySide6.QtCore import QTimer, Qt, Signal
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QLineEdit, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from app.background_work import background_io_priority
 from app.core.character_identity import is_character_key
@@ -112,7 +112,6 @@ def _has_embedded_search(widget: object) -> bool:
     return type(widget).__name__ in {
         "AchievementsView",
         "DeferredAchievementGuidesView",
-        "GuideCatalogView",
         "LazyQuestsPage",
         "QuestsPage",
     }
@@ -248,13 +247,6 @@ class EncyclopediaPage(QWidget):
         header.addWidget(self.character_combo)
 
         header.addStretch(1)
-        self.search = QLineEdit()
-        self.search.setObjectName("EncyclopediaSearch")
-        self.search.setPlaceholderText("Recherche...")
-        self.search.setClearButtonEnabled(True)
-        self.search.setMinimumWidth(220)
-        self.search.textChanged.connect(self.on_search_changed)
-        header.addWidget(self.search, 1)
         root.addLayout(header)
 
         self.tabs = QTabWidget()
@@ -525,7 +517,6 @@ class EncyclopediaPage(QWidget):
             if callable(refresh):
                 refresh()
             self.sync_character_to_children()
-        self.on_search_changed(self.search.text())
         self.status_callback(
             f"Encyclopédie : {label} · module en préparation"
             if label in _BESTIARY_TABS else f"Encyclopédie : {label}"
@@ -542,13 +533,8 @@ class EncyclopediaPage(QWidget):
         tab_bar.update()
 
     def _sync_search_visibility_base(self) -> None:
-        widget = self.tabs.currentWidget()
-        embedded_search_active = _has_embedded_search(widget)
-        unavailable = self.current_tab_label() in _BESTIARY_TABS
-        self.search.setVisible(not (embedded_search_active or unavailable))
-        self.search.setEnabled(not (embedded_search_active or unavailable))
-        if (embedded_search_active or unavailable) and self.search.text():
-            self.search.clear()
+        """Compatibility hook: the Encyclopedia no longer has global search."""
+        return
 
     def navigate_to_entity(self, entity_type: str, entity_id: int | str, **context: object) -> bool:
         entity_type = str(entity_type)
@@ -578,8 +564,6 @@ class EncyclopediaPage(QWidget):
             self.ensure_tab_loaded(QUESTS_TAB)
         if self.quest_page is None:
             return False
-        if self.search.text():
-            self.search.clear()
         if self.quest_page.search.text():
             self.quest_page.search.clear()
         self.tabs.setCurrentIndex(ENCYCLOPEDIA_TABS.index(QUESTS_TAB))
@@ -873,7 +857,6 @@ class EncyclopediaPage(QWidget):
         if callable(refresh):
             refresh()
         self.sync_character_to_children()
-        self.on_search_changed(self.search.text())
         self.status_callback(f"Encyclopédie : {label}")
 
     def _on_tab_changed_indexed(self, index: int) -> None:
@@ -901,15 +884,8 @@ class EncyclopediaPage(QWidget):
         self._on_tab_changed_base(index)
 
     def _sync_search_visibility_indexed(self) -> None:
-        widget = self.tabs.currentWidget()
-        if isinstance(widget, EncyclopediaWarmupView):
-            self.search.setVisible(False)
-            self.search.setEnabled(False)
-            return
+        # Individual Quêtes, Succès and Sommaire searches remain untouched.
         self._sync_search_visibility_base()
-
-
-
 
     def _on_tab_changed_indexed_runtime(self, index: int) -> None:
         if index < 0:
@@ -963,17 +939,8 @@ class EncyclopediaPage(QWidget):
             header.setContentsMargins(0, 0, 0, 3)
 
     def sync_search_visibility(self) -> None:
-        widget = self.tabs.currentWidget() if hasattr(self, "tabs") else None
-        if isinstance(widget, EncyclopediaWarmupView):
-            # Keeping the row alive avoids the tab/search geometry jump that made
-            # the search field appear to sit on the tab bar during lazy swaps.
-            self.search.setVisible(True)
-            self.search.setEnabled(False)
-            self.search.setPlaceholderText("Chargement en cours…")
-            return
-        if hasattr(self, "search"):
-            self.search.setPlaceholderText("Recherche...")
-        self._sync_search_visibility_indexed()
+        """Kept for lazy-tab callers; no global Encyclopedia field exists."""
+        return
 
     def _start_full_guide_runtime(self) -> None:
         """Keep one stable Guide widget while its data loads off the UI thread."""
@@ -1366,6 +1333,7 @@ class EncyclopediaPage(QWidget):
         )
         view.achievementRuntimeRequested.connect(self.request_achievement_warmup)
         view.catalogRequested.connect(self._restore_guides_catalog_home)
+        view._catalog_external_owner = True
         self.guides_view = view
         self.replace_tab_widget(GUIDES_TAB, view)
 
@@ -1395,7 +1363,10 @@ class EncyclopediaPage(QWidget):
         search_text = str(getattr(previous, "search_text", "") or "")
         self.guides_view = None
         catalog = self.ensure_guides_view()
-        if self._guide_runtime_ready and not getattr(catalog, "_runtime_ready", False):
+        # Returning from an already-hydrated rich Guide must not expose a
+        # perpetual "Chargement des guides…" catalog while the separate
+        # background-ready flag is still false in an isolated/runtime scene.
+        if (self._guide_runtime_ready or getattr(previous, "_runtime_ready", False)) and not getattr(catalog, "_runtime_ready", False):
             catalog.hydrate_runtime(
                 graph=self._quest_graph,
                 initial_progress_by_guide=self._guide_progress_by_guide,

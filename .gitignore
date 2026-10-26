@@ -91,3 +91,6 @@ graphify-out/
 
 # Atlas Doctor — diagnostics temporaires reconstruisibles
 .ai/runtime/
+
+# Dérivé local du fond DOFUS Unity : jamais publier sans droits.
+/app/assets/themes/dofus_unity/background_selection_clean.png

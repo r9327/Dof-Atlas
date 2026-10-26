@@ -19,12 +19,33 @@ _MAX_GITHUB_RELEASE_ASSET_BYTES = 2 * 1024**3 - 1
 # Keep headroom below GitHub's strict 2 GiB-per-asset limit.
 _CHUNK_BYTES = 1792 * 1024**2
 _RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
+# Public builds cannot ship game-extracted theme sources without licence.
+_UNLICENSED_THEME_DIRECTORIES = (
+    ("assets", "themes", "dofus_unity"),
+    ("docs", "design", "dofus-unity"),
+)
+_UNLICENSED_THEME_ARCHIVE_PREFIXES = (
+    "atlas_unity_background_original",
+    "atlas_unity_picto_source_",
+    "atlas_ui_selection_prete",
+)
+
 
 
 def _publishable(relative: Path) -> bool:
     if relative.as_posix() in _RUNTIME_SEEDS:
         return True
     parts = relative.parts
+    folded = tuple(part.casefold() for part in parts)
+    if any(
+        tuple(folded[i:i + len(path)]) == path
+        for path in _UNLICENSED_THEME_DIRECTORIES
+        for i in range(len(folded) - len(path) + 1)
+    ):
+        return False
+    if (relative.suffix.casefold() == ".zip"
+            and folded[-1].startswith(_UNLICENSED_THEME_ARCHIVE_PREFIXES)):
+        return False
     if any(piece in _BLOCKED for piece in parts):
         return False
     if any(piece.lower() in ("data", "_internal") and parts[i + 1:i + 2] == ("local",)
