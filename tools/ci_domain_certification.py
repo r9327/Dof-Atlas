@@ -67,6 +67,12 @@ def owners_for(path: str) -> frozenset[str]:
     # Shared data APIs are consumed by Craft and Quest/Guide loaders; a file
     # label alone cannot prove the change is Craft-only. Until a separately
     # authenticated symbol/call-graph closure exists, retain all consumers.
+    # The standalone updater and Qt preload are shared startup/UI contracts.
+    # Keep this exact-path allowlist: unknown distribution modules stay blocked.
+    if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
+        return frozenset({"startup", "ui"})
+    if path == "app/ui/preload_popup.py":
+        return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
         return frozenset({"craft", "quests", "guides", "data"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
