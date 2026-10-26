@@ -100,6 +100,44 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 self.panel.participants_button.click()
                 self.assertFalse(self.panel.characters_panel.isVisible())
 
+    def test_current_step_displays_source_provenance_not_false_certification(self):
+        route = _source_route()
+        route["sections"][0]["steps"][0]["source_page"] = 4
+        route["sections"][0]["steps"][1]["source_page"] = True
+        panel = ContinuousGuideRoutePanel(route, self.store, ("character:1",))
+        self.addCleanup(panel.deleteLater)
+        self.assertIn("Ganymède #2205", panel.source_evidence_label.text())
+        self.assertIn("fiche 1/3", panel.source_evidence_label.text())
+        self.assertIn("page source 4", panel.source_evidence_label.text())
+        self.assertIn("non certifiées", panel.source_evidence_label.text())
+        panel.next_button.click()
+        self.assertIn("fiche 2/3", panel.source_evidence_label.text())
+        self.assertNotIn("page source", panel.source_evidence_label.text())
+
+    def test_manual_sheet_status_keeps_two_characters_independent(self):
+        first = "ganymede_2205_step_0001"
+        self.assertEqual(
+            self.panel.current_manual_label.text(),
+            "Cette fiche : 0/2 personnages cochés manuellement."
+        )
+        self.store.set_manual_step_completed("character:2", "dofus_cawotte", first, True)
+        self.panel.refresh()
+        self.assertIn("1/2", self.panel.current_manual_label.text())
+        self.assertEqual(self.panel.validate_button.text(), "Valider manuellement")
+        self.panel.validate_button.click()
+        self.assertTrue(self.store.is_manual_step_completed("character:1", "dofus_cawotte", first))
+        self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", first))
+        self.assertIn("2/2", self.panel.current_manual_label.text())
+        self.assertEqual(self.panel.validate_button.text(), "Décocher manuellement")
+        self.panel.next_button.click()
+        self.assertIn("0/2", self.panel.current_manual_label.text())
+        self.assertNotIn("0 %", self.panel.current_manual_label.text())
+        self.panel.set_characters(())
+        self.assertIn("sélectionnez un personnage", self.panel.current_manual_label.text())
+        self.assertFalse(self.panel.validate_button.isEnabled())
+        # No automatic quest or achievement completion is created by the view.
+        self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", first))
+
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"

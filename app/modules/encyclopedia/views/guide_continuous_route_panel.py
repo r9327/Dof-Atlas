@@ -224,6 +224,17 @@ class ContinuousGuideRoutePanel(QWidget):
         self.body_label.setTextFormat(Qt.PlainText)
         self.body_label.setWordWrap(True)
         detail.addWidget(self.body_label)
+        # Explicit provenance does not imply canonical quest/action validation.
+        self.source_evidence_label = QLabel()
+        self.source_evidence_label.setObjectName("GuideContinuousSourceEvidence")
+        self.source_evidence_label.setTextFormat(Qt.PlainText)
+        self.source_evidence_label.setWordWrap(True)
+        detail.addWidget(self.source_evidence_label)
+        self.current_manual_label = QLabel()
+        self.current_manual_label.setObjectName("GuideContinuousManualSheetStatus")
+        self.current_manual_label.setTextFormat(Qt.PlainText)
+        self.current_manual_label.setWordWrap(True)
+        detail.addWidget(self.current_manual_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
         self.preparation_toggle = self._button(
@@ -266,9 +277,10 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        self.validate_button = self._button("✓", "GuideContinuousValidate")
+        self.validate_button = self._button("Valider manuellement", "GuideContinuousValidate")
         self.validate_button.setToolTip(
-            "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
+            "Cocher/décocher cette fiche pour les personnages sélectionnés, "
+            "sans valider de quête ni de succès"
         )
         self.validate_button.clicked.connect(self.toggle_manual_current)
         nav.addWidget(self.validate_button)
@@ -471,6 +483,28 @@ class ContinuousGuideRoutePanel(QWidget):
             current is not None and bool(position.selected_character_keys)
         )
         self.validate_button.setVisible(current is not None)
+        if current is None:
+            self.current_manual_label.setText("Aucune fiche active à cocher.")
+            self.validate_button.setText("Valider manuellement")
+        elif not position.selected_character_keys:
+            self.current_manual_label.setText(
+                "Suivi manuel indisponible : sélectionnez un personnage identifié."
+            )
+            self.validate_button.setText("Valider manuellement")
+        else:
+            done_here = sum(
+                self.navigation.progress.is_manual_step_completed(
+                    key, self.navigation.guide_id, current
+                ) for key in position.selected_character_keys
+            )
+            total_here = len(position.selected_character_keys)
+            self.current_manual_label.setText(
+                f"Cette fiche : {done_here}/{total_here} personnages cochés manuellement."
+            )
+            self.validate_button.setText(
+                "Décocher manuellement" if done_here == total_here
+                else "Valider manuellement"
+            )
         travel = self._current_verified_travel()
         self.travel_button.setEnabled(travel is not None)
         if current is None:
@@ -480,6 +514,9 @@ class ContinuousGuideRoutePanel(QWidget):
                 if position.status == "NO_SELECTED_CHARACTER"
                 else "Toutes les fiches du parcours sont terminées."
             )
+            self.source_evidence_label.setText(
+                "Source Ganymède indicative · aucune action canonique certifiée."
+            )
             index = -1
         else:
             index = self.navigation.step_ids.index(current)
@@ -487,6 +524,13 @@ class ContinuousGuideRoutePanel(QWidget):
             self.title_label.setText(str(row.get("title") or f"Fiche {index + 1}"))
             self.body_label.setText(str(row.get("content") or
                                         "Actions de cette étape non renseignées."))
+            source_id = self.route["source_guide_id"]
+            page = row.get("source_page")
+            page_text = f" · page source {page}" if type(page) is int and page > 0 else ""
+            self.source_evidence_label.setText(
+                f"Ganymède #{source_id} · fiche {index + 1}/{position.total_steps}"
+                f"{page_text} · Actions indicatives, non certifiées."
+            )
         references = (
             visible_object_references(self.route, current) if current else ()
         )

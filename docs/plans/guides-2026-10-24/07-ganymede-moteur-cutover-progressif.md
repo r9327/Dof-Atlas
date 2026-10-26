@@ -93,3 +93,23 @@ et la persistance de l'état de l'interface.
 les payloads et les sauvegardes historiques ne sont pas modifiés. Le lecteur
 et les 20 routes préparées doivent encore passer les contrats complets
 avant toute activation nominative et avant certification finale.
+
+
+## Transparence du suivi de fiche Ganymède
+
+Le lecteur continue d'afficher une seule fiche à la fois, dans l'ordre de
+source. Chaque fiche affiche maintenant une provenance explicite
+(`source_guide_id`, rang exact, page de source **si fournie**), ainsi que la
+mention « Actions indicatives, non certifiées ». La page ne se déduit jamais
+du rang : un champ absent ou booléen n'est pas présenté comme une page réelle.
+
+L'état de la fiche courante affiche uniquement le nombre de **personnages
+sélectionnés** l'ayant cochée manuellement ; le bouton précise « Valider
+manuellement » ou « Décocher manuellement ». Sans sélection, aucune fausse
+progression et aucun acte manuel n'est possible. Les tests Qt ciblent deux
+personnages à progression distincte, navigation vers la fiche suivante,
+provenance et absence de validation automatique.
+
+**Aucune route Ganymède n'a été activée par ce changement.** Les anciens
+guides et sauvegardes restent inchangés. Les preuves Windows et la
+certification finale restent exigées avant une bascule.
