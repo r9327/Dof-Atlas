@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.background_work import install_preload_priority_bridge
+from app.ui.theme import PALETTE
 
 
 PRELOAD_TASK_ORDER = ("quests", "encyclopedia", "craft")
@@ -64,10 +65,9 @@ class PreloadProgressPopup(QDialog):
         layout.addWidget(title)
 
         subtitle = QLabel(
-            "Les données utiles sont préparées avant de te laisser naviguer. "
-            "L'interface reste responsive pendant le chargement."
+            "Atlas prépare les quêtes, guides et données métier avant l'ouverture. "
+            "Tu pourras naviguer dès la fin du préchargement."
         )
-        subtitle.setObjectName("PreloadPopupSubtitle")
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
 
@@ -108,22 +108,32 @@ class PreloadProgressPopup(QDialog):
         self.elapsed_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(self.elapsed_label)
 
+        # Style the Qt preload using the same palette as the main Atlas shell.
         self.setStyleSheet(
             "#PreloadProgressPopup {"
-            " background: #111821; border: 1px solid #334155; border-radius: 14px;"
+            f" background: {PALETTE['BG']}; border: 1px solid {PALETTE['BORDER']};"
+            " border-radius: 12px;"
             "}"
             "#PreloadPopupTitle {"
-            " color: #f8fafc; font-weight: 700; font-size: 18px;"
+            f" color: {PALETTE['TEXT']}; font-weight: 700; font-size: 19px;"
             "}"
             "#PreloadPopupSubtitle, #PreloadPopupCurrent, #PreloadPopupElapsed {"
-            " color: #aebccd; font-size: 12px;"
+            f" color: {PALETTE['TEXT_MUTED']}; font-size: 12px;"
             "}"
             "#PreloadTaskRow {"
-            " background: #18212c; border: 1px solid #29384a; border-radius: 8px;"
+            f" background: {PALETTE['PANEL']}; border: 1px solid {PALETTE['BORDER']};"
+            " border-radius: 8px;"
             "}"
-            "#PreloadTaskName { color: #edf3f8; font-weight: 600; }"
-            "#PreloadTaskStatus { color: #9fb0c2; font-weight: 600; }"
-            "#PreloadPopupProgress { min-height: 20px; }"
+            f"#PreloadTaskName {{ color: {PALETTE['TEXT']}; font-weight: 600; }}"
+            f"#PreloadTaskStatus {{ color: {PALETTE['GREEN']}; font-weight: 600; }}"
+            "#PreloadPopupProgress {"
+            f" background: {PALETTE['PANEL']}; color: {PALETTE['TEXT']};"
+            f" border: 1px solid {PALETTE['BORDER']}; border-radius: 6px;"
+            " text-align: center; min-height: 20px;"
+            "}"
+            "#PreloadPopupProgress::chunk {"
+            f" background: {PALETTE['GREEN']}; border-radius: 5px;"
+            "}"
         )
 
         self._has_started = False
