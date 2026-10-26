@@ -14,12 +14,14 @@ def _source() -> str:
 
 
 class SharedGuideVisualFlowContractTests(unittest.TestCase):
-    def test_progress_strip_is_built_before_scroll_and_bottom_navigation(self) -> None:
+    def test_compact_progress_header_is_built_before_scroll_and_bottom_navigation(self) -> None:
         source = _source()
-        progress = source.index("self._build_progress_strip(root)")
+        progress = source.index("self._build_compact_header(root)")
         scroll = source.index("self.scroll = QScrollArea()")
         navigation = source.index("nav = QFrame()")
         assert progress < scroll < navigation
+        assert "self.route_bar = GuideManualProgressBar()" in source
+        assert 'self.route_bar.setObjectName("GuideManualProgress")' in source
 
 
     def test_detached_combat_fallback_is_gone(self) -> None:
