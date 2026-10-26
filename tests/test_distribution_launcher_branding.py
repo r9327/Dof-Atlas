@@ -107,6 +107,21 @@ class OfficialAppReleaseTests(unittest.TestCase):
         self.assertIn("repository: r9327/Dof-Atlas-App", workflow)
         self.assertNotIn("--repo r9327/Dof-Atlas \\", workflow)
 
+    def test_windows_pr_candidate_build_is_unpublished_and_exact_branch_only(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/atlas-windows-distribution.yml").read_text(
+                        encoding="utf-8"
+                    )
+        self.assertIn(
+            "github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026'",
+            workflow,
+        )
+        self.assertIn("github.event.action == 'ready_for_review'", workflow)
+        self.assertIn("atlas-windows-full-candidate-", workflow)
+        self.assertIn("if: github.event_name == 'workflow_run'", workflow)
+        self.assertIn("gh release create", workflow)
+        self.assertIn("--repo r9327/Dof-Atlas-App", workflow)
+
 
 class LauncherAutomaticStartTests(unittest.TestCase):
     def test_no_release_change_starts_existing_exe_without_download(self):
