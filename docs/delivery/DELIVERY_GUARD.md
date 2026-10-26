@@ -31,7 +31,9 @@ contrôle n'est pas un registre cryptographiquement immuable d'historique.
 Pour un lot technique volontairement partiel : documenter explicitement dans
 l'issue les comportements finaux attendus et les reports autorisés. Enregistrer
 chacun de ces reports dans une **issue ouverte et distincte**, avec son ID, son
-responsable et son critère de résolution. Pas de retrait silencieux.
+responsable et son critère de résolution. Les reports de code ou de docs ne sont
+acceptés que si l'exigence source contient déjà `"allow_deferral": true`.
+Les exigences manuelles restent reportables avec suivi ouvert. Pas de retrait silencieux.
 
 ## 2. Rapport par PR — SHA strict
 
