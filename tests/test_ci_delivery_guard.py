@@ -144,7 +144,7 @@ class DeliveryGuardTests(unittest.TestCase):
         c = contract()
         c["requirements"][0]["allow_deferral"] = True
         def valid_followup(number):
-            return {"state": "open", "body": "DG-001: safe partial feature"}
+            return {"state": "open", "body": "DG-001: safe partial feature; DG-003: Windows acceptance pending"}
         self.assertEqual(
             self.check(c=c, r=r, fetch=valid_followup)["status"], "TRACKED_PARTIAL"
         )
