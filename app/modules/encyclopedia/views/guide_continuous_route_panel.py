@@ -364,7 +364,11 @@ class ContinuousGuideRoutePanel(QWidget):
         if not isinstance(value, Mapping):
             return None
         x, y = value.get("x"), value.get("y")
+        # A reviewed Ganymède quest-start binding already rejects impossible
+        # game coordinates. Apply the same fail-closed bound immediately before
+        # emitting commands, including for overlays supplied by other callers.
         if (type(x) is not int or type(y) is not int
+                or not (-10000 <= x <= 10000 and -10000 <= y <= 10000)
                 or -(2**31) in (x, y)):
             return None
         return x, y

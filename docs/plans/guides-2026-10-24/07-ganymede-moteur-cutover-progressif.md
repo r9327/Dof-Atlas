@@ -132,3 +132,7 @@ ancienne sélection persistée, en conservant l'ordre initial des participants.
 
 **Aucune bascule de route, modification de sauvegarde ni certification
 Windows n'est revendiquée par cette tranche.**
+
+La commande de déplacement d'une fiche est désormais rejetée au dernier point
+d'envoi si une coordonnée du trajet (destination ou Zaap) sort des bornes
+contrôlées par l'audit des départs canoniques ; le lecteur reste manuel.

@@ -526,6 +526,36 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(len(events), 1)
 
+    def test_implausible_runtime_coordinates_never_become_chat_commands(self):
+        route = _source_route()
+        first = "ganymede_2205_step_0001"
+        plan = {
+            "mode": "direct", "participant_keys": ["character:1"],
+            "destination": {"x": 10001, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": first,
+            "source_payload_sha256": certified_payload_sha256(route),
+            "evidence": "atlas:reviewed-quest-start:42:map:999",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            verified_travel_plans={first: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append(command))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
+        plan["destination"] = {"x": 5, "y": -18}
+        plan["zaap"] = {"x": -10001, "y": -56}
+        plan["mode"] = "zaap_then_travel"
+        plan["world"] = "Monde des Douze"
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertEqual(emitted, [])
+
     def test_travel_refuses_unregistered_keys_even_with_matching_plan(self):
         from copy import deepcopy
 
