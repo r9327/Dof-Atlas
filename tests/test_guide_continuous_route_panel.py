@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QComboBox, QMenu
+from PySide6.QtWidgets import QApplication, QComboBox, QMenu, QWidget
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -199,6 +199,43 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertTrue(extra.characters_panel.isVisible())
         extra.participants_button.click()
         self.assertFalse(extra.characters_panel.isVisible())
+
+    def test_thirty_real_widget_navigation_cycles_do_not_accumulate_children(self):
+        characters = [
+            SimpleNamespace(key="character:1", label="Alpha", connected=True),
+            SimpleNamespace(key="character:2", label="Beta", connected=False),
+        ]
+        panel = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",),
+            available_characters=characters,
+        )
+        self.addCleanup(panel.deleteLater)
+        panel.show()
+        self.addCleanup(panel.hide)
+        self.app.processEvents()
+
+        def cycle():
+            panel.participants_button.click()
+            panel.summary_toggle.click()
+            panel.next_button.click()
+            panel.previous_button.click()
+            panel.show_actual()
+            panel.summary_toggle.click()
+            panel.participants_button.click()
+
+        # One warm cycle allows Qt to create legitimate lazy viewport children.
+        cycle()
+        self.app.processEvents()
+        baseline = len(panel.findChildren(QWidget))
+        for _ in range(30):
+            cycle()
+        self.app.processEvents()
+        after = len(panel.findChildren(QWidget))
+        self.assertLessEqual(after - baseline, 5, (baseline, after))
+        self.assertFalse(panel.characters_panel.isVisible())
+        self.assertFalse(panel.summary.isVisible())
+        self.assertEqual(panel.navigation.selected_character_keys, ("character:1",))
+        self.assertFalse(self.store.manual_steps("character:1", "dofus_cawotte"))
 
     def test_class_portraits_are_clickable_and_follow_stable_character_keys(self):
         characters = [
