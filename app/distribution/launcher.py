@@ -23,8 +23,8 @@ from .install_location import runtime_root, set_runtime_root, relocate_runtime, 
 from .manifest import verify_file
 from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
-from .launcher_ui import (COLORS, add_header, add_footer, button_options,
-                          phase_for_message, progress_style)
+from .launcher_ui import (COLORS, add_header, button_options,
+                          display_message, progress_style)
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = runtime_root()
@@ -285,7 +285,7 @@ def main() -> int:
     choosing_install = ("--atlas-auto-install" not in sys.argv and (
         "--atlas-configure" in sys.argv or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
-    window.geometry("590x475" if choosing_install else "540x315")
+    window.geometry("520x425" if choosing_install else "470x252")
     window.resizable(False, False)
     window.configure(bg=COLORS["background"])
     try:
@@ -322,23 +322,19 @@ def main() -> int:
                   **button_options()).pack(pady=7)
     status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
-    phase = tk.StringVar(value="PRÉPARATION")
-    tk.Label(window, textvariable=phase, bg=COLORS["background"], fg=COLORS["accent"],
-             font=("Segoe UI", 9, "bold"), anchor="w").pack(fill="x", padx=30, pady=(16, 3))
     tk.Label(window, textvariable=status, bg=COLORS["background"], fg=COLORS["text"],
-             font=("Segoe UI", 10), wraplength=485, justify="left", anchor="w").pack(
-                 fill="x", padx=30, pady=(0, 10))
+             font=("Lexend", 10), wraplength=420, justify="center", anchor="center").pack(
+                 fill="x", padx=24, pady=(20, 12))
     style = ttk.Style(window)
     progress_style(style)
     percent = tk.IntVar(value=0)
     bar = ttk.Progressbar(window, orient="horizontal", mode="determinate", maximum=100,
                           variable=percent, style="Atlas.Horizontal.TProgressbar",
-                          length=480)
+                          length=408)
     bar.pack(pady=(0, 6))
     numeric = tk.StringVar(value="0 %")
     tk.Label(window, textvariable=numeric, bg=COLORS["background"], fg=COLORS["muted"],
-             font=("Segoe UI", 9)).pack()
-    add_footer(tk, window)
+             font=("Lexend", 9)).pack(pady=(5, 0))
     finished = False
     succeeded = False
     updater_visible = choosing_install
@@ -374,8 +370,7 @@ def main() -> int:
                 kind, payload = events.get_nowait()
                 if kind == "progress":
                     message, value = payload
-                    status.set(message)
-                    phase.set(phase_for_message(message))
+                    status.set(display_message(message))
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
                     if not updater_visible and _requires_updater_window(message):
@@ -389,7 +384,6 @@ def main() -> int:
                     finished = True
                     succeeded = False
                     status.set("Echec : " + str(payload))
-                    phase.set("ERREUR")
                     numeric.set("Journal : DofusAtlas/logs/updater.log")
                     if not updater_visible:
                         updater_visible = True
