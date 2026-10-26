@@ -37,6 +37,7 @@ def palette_for_theme(theme: str) -> dict[str, str]:
 
 
 COLORS = palette_for_theme(os.environ.get("ATLAS_THEME", ""))
+FONT_FAMILY = "Lexend" if os.environ.get("ATLAS_THEME", "").strip().casefold() == "dofus_unity" else "Segoe UI"
 
 # Exact existing Atlas application icon, not a substitute game logo.
 LOGO_PNG_BASE64 = (
@@ -178,7 +179,7 @@ def add_header(tk, window) -> None:
         pass
     tk.Label(
         header, text="Dofus Atlas", bg=COLORS["background"],
-        fg=COLORS["text"], font=("Lexend", 20, "bold"),
+        fg=COLORS["text"], font=(FONT_FAMILY, 20, "bold"),
     ).pack()
 
 
