@@ -17,7 +17,7 @@ ATLAS_PALETTE = {
     "text": "#F5F7F2",
     "muted": "#AEB7B1",
     "accent": "#9FC528",
-    "accent_hover": "#B9D94B",
+    "accent_hover": "#5C7E1B",
 }
 UNITY_PALETTE = {
     "background": "#151821",
