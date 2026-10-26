@@ -111,6 +111,27 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertEqual(owners_for(path), frozenset(), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED", path)
 
+    def test_launcher_ui_and_qt_preload_have_exact_shared_owners(self):
+        paths = [
+            "app/distribution/launcher.py",
+            "app/distribution/launcher_ui.py",
+            "app/ui/preload_popup.py",
+            "tests/test_distribution_launcher_branding.py",
+        ]
+        for path in paths[:3]:
+            self.assertEqual(owners_for(path), frozenset({"startup", "ui"}), path)
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ui", "startup"])
+        # Never approve arbitrary updater, helper or executable paths.
+        for path in (
+            "app/distribution/unreviewed_updater.py",
+            "app/distribution/new_helper.exe",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_pr254_local_proofs_and_packaging_close_domains_without_wildcards(self):
         # Exact 10 paths independently identified by the Draft CI failure.
         expected = {
