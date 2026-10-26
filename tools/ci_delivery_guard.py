@@ -118,6 +118,8 @@ def validate(
                     raise DeliveryError(f"{key}: missing tracked regression test file")
             done.append(key)
         elif status == "DEFERRED":
+            if specification["kind"] != "manual" and specification.get("allow_deferral") is not True:
+                raise DeliveryError(f"{key}: issue owner did not explicitly authorize deferral")
             number = row.get("followup_issue")
             note = row.get("safety_evidence")
             if (not isinstance(number, int) or isinstance(number, bool)
