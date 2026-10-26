@@ -199,7 +199,7 @@ def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None
     assert 'preload_status = classify(preload_mb, preload_target_mb)' in source
     assert 'preload memory tolerance exceeded' in source
     assert 'classify(peak_tree, peak_target_mb) == "FAIL"' in source
-    assert 'state = classify(measured, budget)' in source
+    assert 'state = classify(measured, budget, allow_negative=True)' in source
     assert 'if state == "FAIL":' in source
     assert 'if state == "WARNING":' in source
     assert 'measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)' in source
