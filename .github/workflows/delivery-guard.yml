@@ -52,6 +52,14 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Require a trusted baseline validator
+        working-directory: trusted
+        run: |
+          if ! test -f tools/ci_delivery_guard.py; then
+            echo "::error::Bootstrap only: main has no trusted Delivery Guard yet. Review this PR; do not mark this check PASS."
+            exit 1
+          fi
+
       - name: Run trusted independent regression tests
         working-directory: trusted
         run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
@@ -76,3 +84,22 @@ jobs:
           path: ${{ runner.temp }}/atlas-delivery-accounting.json
           if-no-files-found: ignore
           retention-days: 14
+
+  candidate-self-tests:
+    name: Atlas Delivery Guard / Candidate Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR HEAD with no persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          lfs: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Run candidate unit tests WITHOUT GitHub API credentials
+        run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
