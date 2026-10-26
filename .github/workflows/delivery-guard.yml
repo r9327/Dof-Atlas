@@ -57,11 +57,13 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
 
       - name: Verify originating issue against exact PR source SHA
-        working-directory: candidate
+        # Never start Python with the untrusted candidate as CWD (sitecustomize/import risk).
+        working-directory: trusted
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python "$GITHUB_WORKSPACE/trusted/tools/ci_delivery_guard.py" \
+          python -m tools.ci_delivery_guard \
+            --checkout "$GITHUB_WORKSPACE/candidate" \
             --event "$GITHUB_EVENT_PATH" \
             --output "$RUNNER_TEMP/atlas-delivery-accounting.json"
           cat "$RUNNER_TEMP/atlas-delivery-accounting.json" >> "$GITHUB_STEP_SUMMARY"
