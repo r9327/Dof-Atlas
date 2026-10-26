@@ -191,7 +191,14 @@ class DeliveryGuardTests(unittest.TestCase):
     def test_exact_git_diff_requires_actual_head(self):
         with patch("tools.ci_delivery_guard.subprocess.check_output", return_value=BASE + "\n"):
             with self.assertRaisesRegex(DeliveryError, "Wrong checkout"):
-                exact_changed_files(BASE, HEAD)
+                exact_changed_files(BASE, HEAD, checkout=self.root)
+
+    def test_runner_stays_in_trusted_checkout_with_token(self):
+        workflow = (Path(__file__).resolve().parents[1]
+                    / ".github/workflows/delivery-guard.yml").read_text(encoding="utf-8")
+        self.assertIn("working-directory: trusted", workflow)
+        self.assertIn('--checkout "$GITHUB_WORKSPACE/candidate"', workflow)
+        self.assertNotIn("working-directory: candidate", workflow)
 
     def test_workflow_event_fails_on_fork(self):
         import json
