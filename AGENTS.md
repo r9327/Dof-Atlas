@@ -13,6 +13,24 @@ For every non-trivial structural task, Graphify is mandatory before modifying co
 
 Read `ZERO_TRUST_RULES.md` for the permanent short contribution contract.
 
+## Atlas Delivery Guard (scope and forgotten-commit prevention)
+
+Before coding a non-trivial PR, open a separate GitHub issue containing the
+fixed-intent acceptance inventory (`ATLAS_DELIVERY_CONTRACT`), including
+Windows/DOFUS tests that cannot run in hosted CI. Keep stable requirement IDs.
+Use the matching `ATLAS_DELIVERY_REPORT` in the PR body at the exact final
+HEAD, with every source ID DONE or an explicitly authorized, open-issue-tracked
+DEFERRED. Follow `docs/delivery/DELIVERY_GUARD.md`; never remove promised
+criteria or convert NOT_RUN/manual checks to PASS. Code deferrals require
+`allow_deferral: true` in the source issue; human tests are never auto-certified.
+Agent context loss, multiple commits, and closing a PR do not cancel open
+follow-up issues. Atlas Bêta/Testeur is tracked in #265; activation of the
+required GitHub ruleset check is tracked in #266.
+
+Delivery Guard only verifies accounting and declared evidence. Doctor, required
+Phase checks, release proofs, independent review, and real-PC acceptance remain
+separate. A green Delivery Guard result is not a feature/phase certificate.
+
 ## Universal PR CI cadence (all current and future PRs)
 
 **Finish the entire scoped PR before running its GitHub CI certification.**
