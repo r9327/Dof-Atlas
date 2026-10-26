@@ -69,6 +69,78 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "BLOCKED",
         )
 
+    def test_guide_catalog_and_local_skin_assets_have_real_domain_owners(self):
+        guide_paths = [
+            "app/modules/encyclopedia/views/encyclopedia_page.py",
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/modules/encyclopedia/views/guide_featured_home.py",
+            "app/modules/encyclopedia/views/guide_library_sources.py",
+            "app/modules/encyclopedia/widgets/guide_card.py",
+        ]
+        asset_paths = [
+            "app/assets/themes/dofus_unity/background_selection_original.png",
+            "app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+            "app/assets/themes/dofus_unity/fonts/Lexend-Regular.ttf",
+            "docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+            "docs/design/dofus-unity/sources_manifest.json",
+            "docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv",
+        ]
+        for path in guide_paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}), path)
+        for path in asset_paths:
+            self.assertEqual(owners_for(path), frozenset({"ui", "data"}), path)
+        self.assertEqual(owners_for("tools/assets/import_dofus_unity_ui.ps1"),
+                         frozenset({"ci", "ui"}))
+        self.assertEqual(owners_for("tests/test_unity_skin.py"), frozenset({"ui"}))
+        self.assertEqual(owners_for("tests/test_distribution_export.py"),
+                         frozenset({"ci", "startup"}))
+        self.assertEqual(owners_for("app/pages/_quests_page_impl.py"),
+                         frozenset({"quests", "ui"}))
+        route = self.route(guide_paths + asset_paths + [
+            "tools/assets/import_dofus_unity_ui.ps1", "tests/test_unity_skin.py",
+            "tests/test_distribution_export.py",
+        ])
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        for path in (
+            "app/assets/themes/dofus_unity/malware.exe",
+            "docs/design/dofus-unity/sources/run.sh",
+            "app/modules/encyclopedia/views/guide_unknown_new.py",
+            "tests/test_unknown_misc_case.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
+    def test_pr254_local_proofs_and_packaging_close_domains_without_wildcards(self):
+        # Exact 10 paths independently identified by the Draft CI failure.
+        expected = {
+            "scripts/windows/package_release.py": {"ci", "ui", "startup", "data"},
+            "tests/test_distribution_package.py": {"ci", "startup"},
+            "tests/test_unity_assets_inventory.py": {"ui", "data"},
+            "tests/test_unity_cycle_metrics.py": {"guides", "ui"},
+            "tests/test_unity_pre_ci_runner.py": {"ci", "startup"},
+            "tests/test_unity_wallpaper_cleaner.py": {"ui", "data"},
+            "tools/assets/clean_unity_wallpaper.py": {"ci", "ui", "data"},
+            "tools/assets/inspect_unity_assets.py": {"ci", "ui", "data"},
+            "tools/assets/unity_local_cycle_probe.py": {"ci", "guides", "ui"},
+            "tools/assets/unity_pre_ci.py": {"ci", "guides", "ui", "startup", "data"},
+        }
+        for path, owners in expected.items():
+            self.assertEqual(owners_for(path), frozenset(owners), path)
+        route = self.route(sorted(expected))
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        self.assertEqual(
+            route["domains"], ["ci", "guides", "ui", "startup", "data"]
+        )
+        for path in (
+            "tools/assets/unknown_installer.py",
+            "scripts/windows/unreviewed_export.py",
+            "tests/test_unity_unknown_example.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
     def test_ganymede_cutover_and_ui_have_explicit_domain_owners(self):
         paths = {
             "app/modules/encyclopedia/views/guide_continuous_route_panel.py": {"guides", "ui"},

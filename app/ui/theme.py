@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
+from app.ui.unity_skin import UNITY_PALETTE, unity_enabled, unity_skin_stylesheet
+
 
 # Shared visual language: the home page's near-black surfaces, olive accent and
 # warm neutral text. Keep semantic names here so modules do not grow parallel
@@ -39,8 +41,14 @@ PALETTE = {
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5C7E1B, stop:1 #4B6816)",
 }
 
+if unity_enabled():
+    # Central token override: module QSS and shell share a single palette.
+    PALETTE.update(UNITY_PALETTE)
+
 TYPOGRAPHY = {
-    "FONT_FAMILY": '"Segoe UI", Arial',
+    # Only system-installed Lexend/Rowdies are used; game-extracted TTF files
+    # are never registered or exported without verified redistribution rights.
+    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial' if unity_enabled() else '"Segoe UI", Arial',
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
@@ -3184,4 +3192,5 @@ def atlas_stylesheet(overrides: Mapping[str, str] | None = None) -> str:
     future theme variants change the whole application without rewriting QSS.
     """
 
-    return render_theme_template(_STYLE_TEMPLATE, overrides)
+    style = render_theme_template(_STYLE_TEMPLATE, overrides)
+    return style + "\n" + unity_skin_stylesheet() if unity_enabled() else style

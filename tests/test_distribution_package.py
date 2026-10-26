@@ -28,6 +28,9 @@ class PackagingTests(unittest.TestCase):
             private = bundle / "_internal" / "data" / "local" / "quest_progress.json"
             private.parent.mkdir(parents=True, exist_ok=True)
             private.write_text('{"private":true}')
+            extracted = bundle / "_internal" / "app" / "assets" / "themes" / "dofus_unity" / "sprites" / "btn_green_normal.png"
+            extracted.parent.mkdir(parents=True, exist_ok=True)
+            extracted.write_bytes(b"unlicensed-test-fixture")
             output = root / "release"
             archive, manifest_path = package_release(bundle, output, "a" * 40,
                                                       "1.0.0", "2026.10", 1)
@@ -37,11 +40,35 @@ class PackagingTests(unittest.TestCase):
             self.assertIn("AtlasApp/_internal/PySide6/QtWebEngineProcess.exe", entries)
             self.assertNotIn("AtlasApp/_internal/data/local/quest_progress.json", entries)
             self.assertIn("AtlasApp/_internal/data/local/zaaps.json", entries)
+            self.assertNotIn(
+                "AtlasApp/_internal/app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+                entries,
+            )
             with zipfile.ZipFile(archive) as package:
                 self.assertEqual(set(package.namelist()), entries)
             target = root / "installed"
             self.assertTrue(install_release(target, archive, manifest))
             self.assertEqual(active_executable(target).read_bytes(), b"MZ-packaging-test")
+
+    def test_unlicensed_game_assets_excluded_at_every_frozen_layout(self):
+        from scripts.windows.package_release import _publishable
+
+        for filename in (
+            "_internal/app/assets/themes/dofus_unity/sprites/button.png",
+            "_internal/assets/themes/dofus_unity/background_selection_original.png",
+            "assets/themes/dofus_unity/fonts/extracted.ttf",
+            "_internal/docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+            "docs/design/dofus-unity/sources/atlas_unity_picto_source_02.zip",
+            "_internal/sources/Atlas_UI_Selection_Prete.zip",
+        ):
+            self.assertFalse(_publishable(Path(filename)), filename)
+        for filename in (
+            "AtlasApp.exe",
+            "_internal/data/local/zaaps.json",
+            "_internal/PySide6/QtWebEngineProcess.exe",
+            "_internal/app/ui/unity_skin.py",
+        ):
+            self.assertTrue(_publishable(Path(filename)), filename)
 
     def test_reject_unresolved_lfs_pointer(self):
         with tempfile.TemporaryDirectory() as directory:
