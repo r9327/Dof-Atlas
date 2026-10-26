@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QLabel, QProgressBar, QVBox
 
 from app.background_work import install_preload_priority_bridge
 from app.ui.components import atlas_application_icon
-from app.ui.theme import PALETTE
+from app.ui.theme import PALETTE, TYPOGRAPHY
 
 
 PRELOAD_TASK_ORDER = ("quests", "encyclopedia", "craft")
@@ -79,7 +79,7 @@ class PreloadProgressPopup(QDialog):
             "}"
             "#PreloadPopupTitle {"
             f" color: {PALETTE['TEXT']}; font-size: 22px; font-weight: 700;"
-            ' font-family: "Lexend", "Segoe UI";'
+            f" font-family: {TYPOGRAPHY['FONT_FAMILY']};"
             "}"
             "#PreloadPopupCurrent {"
             f" color: {PALETTE['TEXT_MUTED']}; font-size: 12px;"
