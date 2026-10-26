@@ -1,0 +1,62 @@
+name: Atlas Delivery Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+      - converted_to_draft
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: atlas-delivery-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  delivery-contract:
+    name: Atlas Delivery Guard / Delivery Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact untrusted PR source (no persist credentials)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Python for pure-stdlib accounting
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Run independent guard regression tests
+        run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
+
+      - name: Verify every originating issue requirement against exact PR SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m tools.ci_delivery_guard \
+            --event "$GITHUB_EVENT_PATH" \
+            --output "$RUNNER_TEMP/atlas-delivery-accounting.json"
+          cat "$RUNNER_TEMP/atlas-delivery-accounting.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve non-certifying accounting artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v6
+        with:
+          name: atlas-delivery-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/atlas-delivery-accounting.json
+          if-no-files-found: ignore
+          retention-days: 14
