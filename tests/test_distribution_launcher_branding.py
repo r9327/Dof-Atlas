@@ -15,47 +15,97 @@ from app.distribution import launcher, launcher_ui
 
 
 class LauncherBrandingTests(unittest.TestCase):
-    def test_uses_default_app_palette_without_importing_qt(self):
-        theme = (Path(__file__).resolve().parents[1] / "app/ui/theme.py").read_text(
-            encoding="utf-8"
-        )
-        for launcher_key, app_key in (
-            ("background", "BG"), ("panel", "PANEL"), ("border", "BORDER"),
-            ("text", "TEXT"), ("muted", "TEXT_MUTED"), ("accent", "GREEN"),
-        ):
-            value = launcher_ui.COLORS[launcher_key]
-            self.assertIn(f'"{app_key}": "{value}"', theme)
+    def test_both_palettes_match_real_app_ui_and_remain_stdlib_only(self):
+        root = Path(__file__).resolve().parents[1]
+        files = {
+            "": ("app/ui/theme.py", launcher_ui.ATLAS_PALETTE),
+            "dofus_unity": ("app/ui/unity_skin.py", launcher_ui.UNITY_PALETTE),
+        }
+        for theme, (source_path, palette) in files.items():
+            source = (root / source_path).read_text(encoding="utf-8")
+            with self.subTest(theme=theme):
+                self.assertEqual(launcher_ui.palette_for_theme(theme), palette)
+                for local, upstream in (
+                    ("background", "BG"), ("panel", "PANEL"), ("border", "BORDER"),
+                    ("text", "TEXT"), ("muted", "TEXT_MUTED"), ("accent", "GREEN"),
+                    ("accent_hover", "GREEN_HOVER"),
+                ):
+                    self.assertIn(f'"{upstream}": "{palette[local]}"', source)
         tree = ast.parse(inspect.getsource(launcher_ui))
         imports = [
-            node.module or ""
-            for node in ast.walk(tree)
+            node.module or "" for node in ast.walk(tree)
             if isinstance(node, ast.ImportFrom)
         ]
         self.assertFalse(any(name.startswith(("PySide6", "app.ui")) for name in imports))
 
-    def test_progress_labels_are_phases_not_fake_preload_percentages(self):
-        examples = {
-            "Verification des mises a jour...": "VÉRIFICATION GITHUB",
-            "Atlas est a jour": "VÉRIFICATION GITHUB",
-            "Differentiel : 30 %": "TÉLÉCHARGEMENT",
-            "Telechargement complet de la nouvelle version...": "TÉLÉCHARGEMENT",
-            "Installation differentielle...": "INSTALLATION",
-            "Lancement de Dofus Atlas...": "OUVERTURE D'ATLAS",
-            "Mise a jour indisponible — mode hors ligne": "MODE HORS LIGNE",
-        }
-        for message, expected in examples.items():
-            with self.subTest(message=message):
-                self.assertEqual(launcher_ui.phase_for_message(message), expected)
+    def test_embedded_logo_is_real_png_extracted_from_existing_atlas_icon(self):
+        import base64
+        import struct
+        data = base64.b64decode(launcher_ui.LOGO_PNG_BASE64, validate=True)
+        self.assertTrue(data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+        self.assertEqual(struct.unpack(">II", data[16:24]), (64, 64))
 
-    def test_branding_widgets_do_not_require_qt_or_real_window(self):
+    def test_no_menu_or_invented_secondary_titles_in_normal_launch(self):
+        source = inspect.getsource(launcher.main)
+        self.assertIn("add_header(tk, window)", source)
+        self.assertNotIn("add_footer(", source)
+        self.assertNotIn("phase_for_message", source)
+        self.assertNotIn("ATLAS  /  DESKTOP", inspect.getsource(launcher_ui))
+        for text in ("Menu", "À propos", "Lancement, mises à jour et préparation"):
+            self.assertNotIn(text, source)
+        examples = {
+            "Differentiel : 30 %": "Téléchargement des fichiers modifiés…",
+            "Telechargement : 60 %": "Téléchargement de la mise à jour…",
+            "Installation differentielle...": "Installation des fichiers modifiés…",
+            "Verification des mises a jour...": "Verification des mises a jour...",
+        }
+        for status, expected in examples.items():
+            self.assertEqual(launcher_ui.display_message(status), expected)
+
+    def test_branding_widgets_are_stdlib_and_have_only_logo_and_title(self):
         tk, window, style = MagicMock(), MagicMock(), MagicMock()
         launcher_ui.add_header(tk, window)
-        launcher_ui.add_footer(tk, window)
         launcher_ui.progress_style(style)
         style.theme_use.assert_called_once_with("clam")
         style.configure.assert_called_once()
+        self.assertEqual(tk.Label.call_count, 2)
         self.assertEqual(launcher_ui.button_options()["bg"],
                          launcher_ui.COLORS["accent"])
+
+    def test_preload_has_exact_same_minimal_surface_and_real_state_progress(self):
+        source = (Path(__file__).resolve().parents[1] /
+                  "app/ui/preload_popup.py").read_text(encoding="utf-8")
+        for required in (
+            "atlas_application_icon", 'QLabel("Dofus Atlas")',
+            'self.current_label = QLabel(', 'self.progress = QProgressBar()',
+            "PRELOAD_TASK_ORDER", "self.progress.setValue(completed)",
+            "readyForMainWindow.emit()",
+        ):
+            self.assertIn(required, source)
+        for forbidden in ("PreloadTaskRow", "PreloadPopupElapsed", "Recherche des Dofus"):
+            self.assertNotIn(forbidden, source)
+
+
+class OfficialAppReleaseTests(unittest.TestCase):
+    def test_public_release_is_exclusively_in_dof_atlas_app(self):
+        from app.distribution import release_client
+        repo = "r9327/Dof-Atlas-App"
+        self.assertEqual(release_client.REPO, repo)
+        self.assertEqual(
+            release_client.API_URL,
+            f"https://api.github.com/repos/{repo}/releases/latest",
+        )
+        self.assertEqual(
+            release_client.CHANNEL_URL,
+            f"https://github.com/{repo}/releases/latest/download/atlas-channel.json",
+        )
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/atlas-windows-distribution.yml").read_text(
+                        encoding="utf-8"
+                    )
+        self.assertIn("--repo r9327/Dof-Atlas-App", workflow)
+        self.assertIn("repository: r9327/Dof-Atlas-App", workflow)
+        self.assertNotIn("--repo r9327/Dof-Atlas \\", workflow)
 
 
 class LauncherAutomaticStartTests(unittest.TestCase):
