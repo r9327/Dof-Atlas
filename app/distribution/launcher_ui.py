@@ -151,6 +151,19 @@ LOGO_PNG_BASE64 = (
 )
 
 
+def display_message(message: str) -> str:
+    """Keep one useful status line, without duplicated transfer percentages."""
+    for prefix, description in (
+        ("Differentiel :", "Téléchargement des fichiers modifiés…"),
+        ("Telechargement :", "Téléchargement de la mise à jour…"),
+        ("Installation differentielle", "Installation des fichiers modifiés…"),
+        ("Verification des fichiers", "Vérification des fichiers…"),
+    ):
+        if message.startswith(prefix):
+            return description
+    return message
+
+
 def add_header(tk, window) -> None:
     """Only product icon and application title, no navigation or decorative UI."""
     header = tk.Frame(window, bg=COLORS["background"])
