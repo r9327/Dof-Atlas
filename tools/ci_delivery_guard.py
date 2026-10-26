@@ -109,12 +109,14 @@ def validate(
             paths = declared_paths(row, "evidence_files")
             if not set(paths) & changed:
                 raise DeliveryError(f"{key}: no concrete changed file supports DONE")
-            if not all((checkout / p).is_file() for p in paths):
+            if not all((checkout / p).is_file() and not (checkout / p).is_symlink()
+                       for p in paths):
                 raise DeliveryError(f"{key}: evidence file missing in exact checkout")
             if specification["kind"] == "code":
                 tests = declared_paths(row, "test_files")
                 if not all(p.startswith("tests/test_") and p.endswith(".py")
-                           and (checkout / p).is_file() for p in tests):
+                           and (checkout / p).is_file()
+                           and not (checkout / p).is_symlink() for p in tests):
                     raise DeliveryError(f"{key}: missing tracked regression test file")
             done.append(key)
         elif status == "DEFERRED":
@@ -165,17 +167,17 @@ def github_issue(repo: str, number: int) -> dict:
         raise DeliveryError("Invalid GitHub issue API response") from exc
 
 
-def exact_changed_files(base_sha: str, head_sha: str) -> set[str]:
+def exact_changed_files(base_sha: str, head_sha: str, *, checkout: Path) -> set[str]:
     if not SHA.fullmatch(base_sha) or not SHA.fullmatch(head_sha):
         raise DeliveryError("GitHub event missing exact base/head SHA")
     checkout_sha = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True, timeout=10
+        ["git", "rev-parse", "HEAD"], cwd=checkout, text=True, timeout=10
     ).strip()
     if checkout_sha != head_sha:
         raise DeliveryError("Wrong checkout: not PR source HEAD")
     result = subprocess.run(
         ["git", "diff", "--name-only", "-z", base_sha, head_sha],
-        capture_output=True, check=True, timeout=20,
+        capture_output=True, check=True, timeout=20, cwd=checkout,
     )
     names = [p.decode("utf-8") for p in result.stdout.split(b"\0") if p]
     if not names or not all(safe_path(p) for p in names):
@@ -206,7 +208,7 @@ def run(event: dict, *, checkout: Path, repo: str) -> dict:
         raise DeliveryError("The originating contract must be an open GitHub issue")
     contract = enclosed_json(issue.get("body"), CONTRACT_START, CONTRACT_END)
     return validate(
-        contract, report, changed=exact_changed_files(base, head),
+        contract, report, changed=exact_changed_files(base, head, checkout=checkout),
         checkout=checkout, head_sha=head,
         fetch_followup=lambda number: github_issue(repo, number),
     )
@@ -214,6 +216,7 @@ def run(event: dict, *, checkout: Path, repo: str) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--checkout", type=Path, required=True)
     parser.add_argument("--event", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -222,7 +225,7 @@ def main() -> int:
         if not REPO.fullmatch(repo):
             raise DeliveryError("Missing repository identity")
         event = json.loads(args.event.read_text(encoding="utf-8"))
-        result = run(event, checkout=Path.cwd(), repo=repo)
+        result = run(event, checkout=args.checkout.resolve(), repo=repo)
     except (DeliveryError, OSError, ValueError, subprocess.SubprocessError) as exc:
         print("DELIVERY_GUARD_BLOCKED:", str(exc))
         return 1
