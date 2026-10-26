@@ -251,6 +251,67 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
             "blockers": record["blockers"],
         })
 
+    # Alignments have branching/rank contracts different from Dofus routes.
+    # Inventory their source evidence separately; never interpret a Dofus UI
+    # readiness flag as permission to replace Bonta/Brakmar with a flat route.
+    alignment_activation_matrix: list[dict] = []
+    for entry in guide_entries:
+        if entry.get("category") != "alignements" or entry.get("enabled") is not True:
+            continue
+        atlas_id = entry.get("id")
+        links_for_guide = matched.get(atlas_id, [])
+        source_id = (links_for_guide[0].get("ganymede_guide_id")
+                     if len(links_for_guide) == 1 else None)
+        source = source_by_id.get(source_id)
+        blockers = ["ALIGNMENT_BRANCHES_AND_READER_NOT_CERTIFIED"]
+        if not links_for_guide:
+            blockers.append("NO_DIRECT_GANYMEDE_MAPPING")
+        elif len(links_for_guide) != 1:
+            blockers.append("AMBIGUOUS_SOURCE_MAPPING")
+        elif source is None:
+            blockers.append("SOURCE_NOT_INDEXED")
+        if len(links_for_guide) == 1 and links_for_guide[0].get("status") == "metadata_only":
+            blockers.append("SOURCE_METADATA_ONLY")
+
+        # This proves only that the legacy guide exists and has a stable ID,
+        # not that its progress can be migrated to different source steps.
+        legacy_valid = False
+        legacy_steps = None
+        try:
+            existing = json.loads((
+                root / GUIDES_DIR / entry["file"]
+            ).read_text(encoding="utf-8"))
+            if existing.get("id") != atlas_id:
+                raise ValueError("legacy alignment ID differs from catalog")
+            legacy_steps = sum(
+                len(section["steps"]) for section in existing["sections"]
+            )
+            legacy_valid = True
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            blockers.append("INVALID_LEGACY_ALIGNMENT")
+            issues.append({
+                "code": "invalid_legacy_alignment",
+                "detail": f"{atlas_id}: {exc}",
+            })
+        alignment_activation_matrix.append({
+            "atlas_guide_id": atlas_id,
+            "category": "alignements",
+            "source_guide_id": source_id,
+            "source_indexed_step_count": (
+                source.get("listed_step_count") if isinstance(source, dict) else None
+            ),
+            "source_mapping_status": (
+                links_for_guide[0].get("status") if len(links_for_guide) == 1 else None
+            ),
+            "legacy_step_count": legacy_steps,
+            "legacy_guide_valid": legacy_valid,
+            "manual_ui_ready_flag": entry.get("ganymede_manual_ui_ready") is True,
+            "source_branch_parity_verified": False,
+            "selected_runtime_route": "ATLAS_LEGACY",
+            "route_active": False,
+            "blockers": sorted(set(blockers)),
+        })
+
     mapped = sum(bool(record["source_guides"]) for record in records)
     ready = sum(record["ready_to_replace"] for record in records)
     activated = sum(record["replacement_active"] for record in records)
@@ -266,6 +327,9 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         "evidence_level": ("source_trusted_manual_only" if source_manual_count
                            else "migration_gate_not_route_generation"),
         "dofus_guides": len(records),
+        "source_indexed_guides_metadata_count": len(source_entries),
+        "alignment_guides": len(alignment_activation_matrix),
+        "alignment_activated_count": 0,
         "dofus_guides_with_direct_source_mapping": mapped,
         "dofus_guides_without_direct_source_mapping": [
             r["atlas_guide_id"] for r in records
@@ -290,6 +354,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         ),
         "guide_reports": records,
         "activation_matrix": activation_matrix,
+        "alignment_activation_matrix": alignment_activation_matrix,
         "issues": issues,
     }
 

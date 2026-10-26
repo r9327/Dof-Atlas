@@ -113,3 +113,22 @@ provenance et absence de validation automatique.
 **Aucune route Ganymède n'a été activée par ce changement.** Les anciens
 guides et sauvegardes restent inchangés. Les preuves Windows et la
 certification finale restent exigées avant une bascule.
+
+
+## Audit indépendant des alignements et identités de participants
+
+L'audit de préparation expose désormais deux matrices distinctes :
+`activation_matrix` (Dofus) et `alignment_activation_matrix`
+(Bonta/Brâkmar). Les alignements restent systématiquement sur
+`ATLAS_LEGACY` : ni un simple index Ganymède metadata_only, ni le
+drapeau de préparation UI d'un Dofus ne valide l'ordre des rangs, les branches
+des trois Ordres ou la sauvegarde des alignements. Le nombre d'étapes indexées
+est indiqué comme métadonnée et **ne constitue pas une preuve de parité**.
+
+La matrice distincte donne le guide Atlas, l'identifiant source, le nombre
+indicatif d'étapes, l'intégrité du guide historique et les bloqueurs explicites.
+Le lecteur élimine aussi les identifiants de personnage dupliqués dans une
+ancienne sélection persistée, en conservant l'ordre initial des participants.
+
+**Aucune bascule de route, modification de sauvegarde ni certification
+Windows n'est revendiquée par cette tranche.**

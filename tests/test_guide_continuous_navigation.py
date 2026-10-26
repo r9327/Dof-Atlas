@@ -63,6 +63,10 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
             ("character:2", "character:1"),
         )
         self.assertEqual(known_guide_participants(("character:1",), ()), ())
+        self.assertEqual(
+            known_guide_participants(("character:2", "character:2", "character:1"), characters),
+            ("character:2", "character:1"),
+        )
 
     def test_no_selected_character_means_no_imaginary_actual_step(self):
         nav = self._navigator()

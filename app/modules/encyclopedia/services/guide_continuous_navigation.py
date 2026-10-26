@@ -26,9 +26,15 @@ def known_guide_participants(
         key for row in available_characters
         if is_character_key(key := getattr(row, "key", ""))
     }
-    return tuple(
-        key for key in selected_keys if is_character_key(key) and key in available
-    )
+    # Old persisted selections may contain a repeated identity. Keep the
+    # first occurrence in a stable order instead of crashing when opening UI.
+    selected: list[str] = []
+    seen: set[str] = set()
+    for key in selected_keys:
+        if is_character_key(key) and key in available and key not in seen:
+            seen.add(key)
+            selected.append(key)
+    return tuple(selected)
 
 
 @dataclass(frozen=True, slots=True)

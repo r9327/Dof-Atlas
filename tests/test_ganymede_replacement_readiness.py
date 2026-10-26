@@ -90,11 +90,62 @@ class ReplacementReadinessTests(unittest.TestCase):
         self.assertIn("INVALID_LEGACY_GUIDE", report["guide_reports"][0]["blockers"])
         self.assertEqual(report["ready_to_replace"], 0)
 
+    def test_alignment_metadata_and_dofus_ui_flag_never_activate_routes(self) -> None:
+        catalog = json.loads((self.root / CATALOG).read_text(encoding="utf-8"))
+        catalog["guides"].append({
+            "id": "alignement_bonta", "category": "alignements",
+            "file": "alignement_bonta.json", "enabled": True,
+            "ganymede_manual_ui_ready": True,
+        })
+        self._write(CATALOG, catalog)
+        index = json.loads((self.root / INDEX).read_text(encoding="utf-8"))
+        index["guides"].append({
+            "ganymede_guide_id": 2249, "listed_step_count": 100,
+        })
+        self._write(INDEX, index)
+        crosswalk = json.loads((self.root / CROSSWALK).read_text(encoding="utf-8"))
+        crosswalk["guides"].append({
+            "ganymede_guide_id": 2249,
+            "atlas_guide_ids": ["alignement_bonta"],
+            "status": "metadata_only",
+        })
+        self._write(CROSSWALK, crosswalk)
+        self._write(GUIDES_DIR / "alignement_bonta.json", {
+            "id": "alignement_bonta",
+            "sections": [{"steps": [{"id": "rank_1"}]}],
+        })
+
+        report = audit_ganymede_replacement_readiness(self.root)
+        self.assertEqual(report["source_indexed_guides_metadata_count"], 2)
+        self.assertEqual(report["alignment_guides"], 1)
+        self.assertEqual(report["alignment_activated_count"], 0)
+        self.assertEqual(report["ready_to_replace"], 0)
+        row = report["alignment_activation_matrix"][0]
+        self.assertEqual(row["source_guide_id"], 2249)
+        self.assertEqual(row["source_indexed_step_count"], 100)
+        self.assertEqual(row["legacy_step_count"], 1)
+        self.assertTrue(row["legacy_guide_valid"])
+        self.assertTrue(row["manual_ui_ready_flag"])
+        self.assertFalse(row["source_branch_parity_verified"])
+        self.assertEqual(row["selected_runtime_route"], "ATLAS_LEGACY")
+        self.assertFalse(row["route_active"])
+        self.assertIn("SOURCE_METADATA_ONLY", row["blockers"])
+        self.assertIn("ALIGNMENT_BRANCHES_AND_READER_NOT_CERTIFIED", row["blockers"])
+
     def test_repository_dofus_routes_are_staged_without_breaking_legacy(self) -> None:
         report = audit_ganymede_replacement_readiness(ROOT)
         self.assertEqual(report["status"], "SOURCE_TRUSTED_MANUAL_STAGED",
                          report["issues"])
         self.assertEqual(report["dofus_guides"], 22)
+        self.assertEqual(report["source_indexed_guides_metadata_count"], 95)
+        self.assertEqual(report["alignment_guides"], 2)
+        self.assertEqual(report["alignment_activated_count"], 0)
+        alignment_matrix = report["alignment_activation_matrix"]
+        self.assertEqual({r["atlas_guide_id"] for r in alignment_matrix},
+                         {"alignement_bonta", "alignement_brakmar"})
+        self.assertEqual({r["source_guide_id"] for r in alignment_matrix}, {2249, 2263})
+        self.assertTrue(all(not r["route_active"] and r["legacy_guide_valid"]
+                            for r in alignment_matrix))
         self.assertEqual(report["dofus_guides_with_direct_source_mapping"], 20)
         self.assertEqual(
             set(report["dofus_guides_without_direct_source_mapping"]),
