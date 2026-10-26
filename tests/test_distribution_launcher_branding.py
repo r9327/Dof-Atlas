@@ -42,7 +42,7 @@ class LauncherBrandingTests(unittest.TestCase):
         import base64
         import struct
         data = base64.b64decode(launcher_ui.LOGO_PNG_BASE64, validate=True)
-        self.assertTrue(data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+        self.assertTrue(data.startswith(bytes.fromhex("89504e470d0a1a0a")))
         self.assertEqual(struct.unpack(">II", data[16:24]), (64, 64))
 
     def test_no_menu_or_invented_secondary_titles_in_normal_launch(self):
