@@ -30,6 +30,33 @@ Le workflow distribue uniquement après la réussite de la certification
 
 ## Parcours du lanceur unique
 
+**Contrat DEV → APP → launcher (destination obligatoire) :**
+- Dépôt de développement et certification : `r9327/Dof-Atlas`.
+- **Dépôt de distribution et unique hébergeur de la Release stable :
+  `r9327/Dof-Atlas-App`**. Le workflow de DEV pousse uniquement le runtime
+  certifié vers sa branche `main`, puis crée la Release stable et ses assets
+  dans **ce dépôt APP**, avec `gh release create --repo r9327/Dof-Atlas-App`.
+- Le launcher consulte exclusivement
+  `https://api.github.com/repos/r9327/Dof-Atlas-App/releases/latest`
+  (ou les replis publics officiels associés à ce même dépôt) et télécharge
+  exclusivement les assets correspondants. **Jamais une Release DEV, une PR,
+  un commit brut ou un changement non certifié de `main`.**
+- Les mises à jour différentielles, l'archive complète de secours et la
+  nouvelle version autonome du launcher doivent toutes appartenir à la
+  même Release stable de **Dof-Atlas-App**.
+- Si la synchronisation DEV → APP ou la publication échoue, aucune nouvelle
+  mise à jour n'est annoncée : le launcher conserve la version existante.
+
+**UI minimale (finition textuelle différée)** : sur une mise à jour, une seule
+fenêtre, avec **le logo Atlas existant, « Dofus Atlas », une ligne d'état
+technique réelle et une barre de progression avec pourcentage**. Pas de menu,
+navigation, pied de page, slogans ni phrases troll pour le moment.
+Le préchargement Qt reprend ce format et affiche la tâche fonctionnelle
+en cours (Quêtes, Guides/Succès ou Craft), sans lancer de doublons. Les couleurs
+et polices suivent le thème Atlas existant ou le thème local optionnel de la
+PR UI #254 (`ATLAS_THEME=dofus_unity`) ; les ressources extraites sans droit
+de redistribution confirmé ne sont pas intégrées à l'EXE.
+
 Le raccourci **Dofus Atlas** continue de pointer vers le même
 `DofusAtlas.exe`. Le lanceur reste léger (Tkinter/stdlib) et vérifie le
 **dernier paquet certifié publié sur GitHub Releases**, jamais le code brut
@@ -46,13 +73,14 @@ de `main` ou une PR. Le flux normal est automatique :
 4. **Après démarrage d'Atlas** : l'écran de préchargement Qt affiche l'état
    réel des Quêtes, Guides/Succès et Craft. Il reprend la même palette que
    le lanceur, sans refaire une seconde fois les opérations de chargement.
-5. **Nouveau lanceur disponible** : remplacement automatique signé par
+5. **Nouveau lanceur disponible** : remplacement automatique vérifié par
    empreinte SHA-256 via le helper de maintenance après activation saine.
    Le raccourci ne change jamais.
 
 Sur un démarrage normal sans mise à jour, le lanceur reste masqué : seul le
 préchargement propre à l'application est visible. Pendant une installation ou
-un téléchargement, son interface présente les phases et le progrès réels.
+un téléchargement, son interface n'affiche que le logo, le titre,
+l'opération réelle en cours et la progression, sans étapes ou menus supplémentaires.
 Les profils, personnages et progressions résident hors des slots remplaçables.
 Aucune mise à jour ne doit provenir d'un simple push non certifié.
 
