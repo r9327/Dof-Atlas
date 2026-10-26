@@ -23,7 +23,7 @@ from .install_location import runtime_root, set_runtime_root, relocate_runtime, 
 from .manifest import verify_file
 from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
-from .launcher_ui import (COLORS, add_header, button_options,
+from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style)
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
@@ -323,7 +323,7 @@ def main() -> int:
     status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
     tk.Label(window, textvariable=status, bg=COLORS["background"], fg=COLORS["text"],
-             font=("Lexend", 10), wraplength=420, justify="center", anchor="center").pack(
+             font=(FONT_FAMILY, 10), wraplength=420, justify="center", anchor="center").pack(
                  fill="x", padx=24, pady=(20, 12))
     style = ttk.Style(window)
     progress_style(style)
@@ -334,7 +334,7 @@ def main() -> int:
     bar.pack(pady=(0, 6))
     numeric = tk.StringVar(value="0 %")
     tk.Label(window, textvariable=numeric, bg=COLORS["background"], fg=COLORS["muted"],
-             font=("Lexend", 9)).pack(pady=(5, 0))
+             font=(FONT_FAMILY, 9)).pack(pady=(5, 0))
     finished = False
     succeeded = False
     updater_visible = choosing_install
