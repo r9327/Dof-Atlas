@@ -27,32 +27,46 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Checkout exact untrusted PR source (no persist credentials)
+      # Never execute a PR-authored validator with the GitHub API token.
+      # The trusted base provides the validator; candidate source is only inspected.
+      - name: Checkout trusted BASE validator
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
           fetch-depth: 0
           persist-credentials: false
           lfs: false
 
-      - name: Python for pure-stdlib accounting
+      - name: Checkout exact untrusted PR source for read-only inspection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Python for trusted pure-stdlib accounting
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
 
-      - name: Run independent guard regression tests
+      - name: Run trusted independent regression tests
+        working-directory: trusted
         run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
 
-      - name: Verify every originating issue requirement against exact PR SHA
+      - name: Verify originating issue against exact PR source SHA
+        working-directory: candidate
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python -m tools.ci_delivery_guard \
+          python "$GITHUB_WORKSPACE/trusted/tools/ci_delivery_guard.py" \
             --event "$GITHUB_EVENT_PATH" \
             --output "$RUNNER_TEMP/atlas-delivery-accounting.json"
           cat "$RUNNER_TEMP/atlas-delivery-accounting.json" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Preserve non-certifying accounting artifact
+      - name: Preserve explicitly non-certifying report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v6
         with:
