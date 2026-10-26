@@ -28,6 +28,41 @@ profils, installation vierge, reconnexion réseau, interruption et rollback.
 Le workflow distribue uniquement après la réussite de la certification
 `Phase Certification` de la branche `main` sur le SHA courant exact.
 
+## Parcours du lanceur unique
+
+Le raccourci **Dofus Atlas** continue de pointer vers le même
+`DofusAtlas.exe`. Le lanceur reste léger (Tkinter/stdlib) et vérifie le
+**dernier paquet certifié publié sur GitHub Releases**, jamais le code brut
+de `main` ou une PR. Le flux normal est automatique :
+
+1. **Version identique** : contrôle rapide de la Release, aucun téléchargement
+   ni écran de mise à jour ; démarrage direct d'`AtlasApp.exe`.
+2. **Version publiée plus récente** : téléchargement du différentiel vérifié
+   lorsque le SHA de base correspond à la version installée, vérification
+   et installation transactionnelle ; secours par archive complète si
+   le différentiel ne peut pas être appliqué.
+3. **GitHub inaccessible** : lancement de la dernière version locale viable,
+   sans effacer les données de l'utilisateur.
+4. **Après démarrage d'Atlas** : l'écran de préchargement Qt affiche l'état
+   réel des Quêtes, Guides/Succès et Craft. Il reprend la même palette que
+   le lanceur, sans refaire une seconde fois les opérations de chargement.
+5. **Nouveau lanceur disponible** : remplacement automatique signé par
+   empreinte SHA-256 via le helper de maintenance après activation saine.
+   Le raccourci ne change jamais.
+
+Sur un démarrage normal sans mise à jour, le lanceur reste masqué : seul le
+préchargement propre à l'application est visible. Pendant une installation ou
+un téléchargement, son interface présente les phases et le progrès réels.
+Les profils, personnages et progressions résident hors des slots remplaçables.
+Aucune mise à jour ne doit provenir d'un simple push non certifié.
+
+**Dépendance de publication :** la synchronisation DEV → APP ne rend pas
+automatiquement une version téléchargeable. La Release stable est créée
+uniquement après un résultat `Phase Certification` réussi sur le SHA exact
+et quand `ATLAS_DISTRIBUTION_ENABLED=true` avec un jeton de publication
+valide. Un échec de CI bloque donc volontairement les mises à jour du lanceur.
+Ne pas contourner ce garde-fou pour débloquer une mise à jour.
+
 ## Fonctionnement
 
 Un seul exécutable exposé à l'utilisateur : `DofusAtlas.exe` (launcher).
