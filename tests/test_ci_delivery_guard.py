@@ -133,6 +133,22 @@ class DeliveryGuardTests(unittest.TestCase):
                 with self.assertRaises(DeliveryError):
                     self.check(fetch=lambda _n: issue)
 
+    def test_code_deferral_needs_source_issue_owner_permission(self):
+        r = report()
+        r["requirements"][0] = {
+            "id": "DG-001", "status": "DEFERRED", "followup_issue": 51,
+            "safety_evidence": "Feature is disabled and kept out of Stable until follow-up.",
+        }
+        with self.assertRaisesRegex(DeliveryError, "did not explicitly authorize"):
+            self.check(r=r)
+        c = contract()
+        c["requirements"][0]["allow_deferral"] = True
+        def valid_followup(number):
+            return {"state": "open", "body": "DG-001: safe partial feature"}
+        self.assertEqual(
+            self.check(c=c, r=r, fetch=valid_followup)["status"], "TRACKED_PARTIAL"
+        )
+
     def test_manual_pass_claim_is_rejected(self):
         r = report()
         r["requirements"][2] = {
