@@ -14,6 +14,23 @@ from .install import read_state
 
 _PREFIX = re.compile(r"[0-9a-f]{20}\Z")
 _SLOT_INDEX = ".atlas-file-index.json"
+_PART_NAME = re.compile(r"atlas-windows[.]part[0-9]{4}(?:[.]download)?\\Z")
+
+
+def _link_or_junction(path: Path) -> bool:
+    return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+
+
+def _safe_part_cache(path: Path) -> bool:
+    """Never recursively delete unexpected content or NTFS reparse points."""
+    if not path.is_dir() or _link_or_junction(path):
+        return False
+    for child in path.iterdir():
+        if (_link_or_junction(child) or not child.is_file()
+                or not _PART_NAME.fullmatch(child.name)):
+            return False
+    return True
+
 
 
 def cleanup_verified_runtime(root: Path) -> tuple[int, int]:
@@ -27,14 +44,14 @@ def cleanup_verified_runtime(root: Path) -> tuple[int, int]:
     keep = {state.get("active"), state.get("previous")}
     removed_slots = 0
     versions = root / "versions"
-    if versions.is_dir() and not versions.is_symlink():
+    if versions.is_dir() and not _link_or_junction(versions):
         for item in versions.iterdir():
             # Require our own marker: never guess which unmarked directories
             # belong to Atlas, nor follow symlinks/junctions.
-            if item.name in keep or item.is_symlink() or not item.is_dir():
+            if item.name in keep or _link_or_junction(item) or not item.is_dir():
                 continue
             marker = item / _SLOT_INDEX
-            if marker.is_file() and not marker.is_symlink() and (item / "AtlasApp").is_dir():
+            if marker.is_file() and not _link_or_junction(marker) and (item / "AtlasApp").is_dir() and not _link_or_junction(item / "AtlasApp"):
                 try:
                     shutil.rmtree(item)
                     removed_slots += 1
@@ -43,9 +60,9 @@ def cleanup_verified_runtime(root: Path) -> tuple[int, int]:
     download_root = root / "downloads"
     removed_downloads = 0
     prefix = current_sha[:20]
-    if download_root.is_dir() and not download_root.is_symlink():
+    if download_root.is_dir() and not _link_or_junction(download_root):
         for item in download_root.iterdir():
-            if item.is_symlink() or item.name.startswith(prefix):
+            if _link_or_junction(item) or item.name.startswith(prefix):
                 continue
             base = item.name[:20]
             if not _PREFIX.fullmatch(base):
@@ -57,7 +74,7 @@ def cleanup_verified_runtime(root: Path) -> tuple[int, int]:
                 continue
             try:
                 if suffix == "-parts":
-                    if not item.is_dir() or any(p.is_symlink() for p in item.rglob("*")):
+                    if not _safe_part_cache(item):
                         continue
                     shutil.rmtree(item)
                 elif item.is_file():
