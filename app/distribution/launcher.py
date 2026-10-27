@@ -16,7 +16,8 @@ from .install import (
     active_executable, install_release, mark_healthy, read_state, rollback_pending, slot_path,
 )
 from .release_client import UpdateError, download_archive, latest_release
-from .disk_space import ensure_space
+from .disk_space import ensure_space, ensure_delta_space
+from .cleanup import cleanup_verified_runtime
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 from .install_location import runtime_root, set_runtime_root, relocate_runtime, has_saved_location
@@ -157,6 +158,8 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 can_delta = (
                     remote.manifest.delta is not None
                     and remote.delta_url is not None
+                    # Use differential only when it actually saves bandwidth.
+                    and remote.manifest.delta.archive_size < remote.archive_size
                     and prior.get("source_sha") == remote.manifest.delta.base_source_sha
                     and not prior.get("pending")
                 )
@@ -164,6 +167,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     report("Telechargement des fichiers modifies...", 10)
                     archive = None
                     try:
+                        ensure_delta_space(remote.manifest, ROOT)
                         archive = download_archive(
                             remote, ROOT / "downloads",
                             lambda done, total: report(
@@ -241,6 +245,14 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 schedule_launcher_upgrade(remote, ROOT / "downloads", report)
             except (UpdateError, OSError, ValueError) as exc:
                 log.warning("Launcher upgrade deferred: %s", exc)
+        # Never clean before healthy activation; old slot remains for rollback.
+        try:
+            removed_slots, removed_caches = cleanup_verified_runtime(ROOT)
+            if removed_slots or removed_caches:
+                log.info("Cleanup completed: slots=%s caches=%s",
+                         removed_slots, removed_caches)
+        except (OSError, UpdateError) as exc:
+            log.info("Best-effort cache cleanup skipped: %s", exc)
         report("Dofus Atlas est pret", 100)
     finally:
         _run_handle.close()

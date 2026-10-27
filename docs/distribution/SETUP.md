@@ -239,6 +239,43 @@ Le job ciblé **Focused updater + transfer contracts** construit un export tempo
 
 Il ne pousse rien vers le dépôt de distribution et ne contient **ni Doctor, ni Graphify**, seulement leurs principes de contrôle d'inventaire et de graphe. Une destination symbolique ou un SHA incohérent bloque explicitement la certification. Les contrôles Doctor/Graphify et la compilation Windows sont toujours séparés.
 
+## Optimisation de l'installation et du téléchargement (PR dédiée)
+
+- La Release reste **exclusivement** sur `r9327/Dof-Atlas-App` : aucun
+  exécutable ou paquet n'est téléchargé depuis le dépôt DEV ou les branches.
+- Le lanceur préfère le delta seulement si le SHA installé est compatible
+  **et si l'archive différentielle est plus petite** que la complète. Sinon il
+  utilise la Release complète certifiée ; si le delta échoue, le ZIP complet
+  reste la voie de secours.
+- Une Release multipart suffisamment volumineuse utilise au maximum **trois
+  téléchargements parallèles**, sans perdre la reprise HTTP `Range`,
+  les contrôles de taille, de chemin HTTPS et de SHA-256 de **chaque** partie,
+  suivis du contrôle de l'archive assemblée.
+- L'installateur enregistre dans chaque slot un index local des tailles
+  et empreintes du manifeste après vérification. Lors d'un ZIP complet, seuls
+  les fichiers annoncés inchangés par les deux manifestes sont candidats à
+  une réutilisation locale, **toujours re-vérifiés SHA-256**. Un fichier altéré
+  ou manquant est repris depuis le ZIP officiel. Un ancien slot sans index
+  est simplement extrait depuis le ZIP (pas de double copie spéculative).
+  L'index local est un accélérateur non fiable, **jamais** une autorité.
+- Les fichiers inchangés peuvent bénéficier de la **copie sur écriture ReFS
+  (block cloning)** sur disque Windows compatible, après quoi le contenu
+  cloné est vérifié contre le manifeste. **Aucun hardlink NTFS n'est créé**
+  entre deux versions : il compromettrait l'isolation du rollback.
+  Sur NTFS et sur les supports incompatibles, le chemin sûr reste la copie
+  en lecture unique avec vérification.
+- L'espace libre pour le delta est vérifié avant le téléchargement, en
+  conservant l'ancienne version et une marge de sécurité. Le gain ReFS
+  n'est pas présumé dans la réserve disque.
+- Les mises à jour gardent leurs slots transactionnels, le contrôle de
+  santé de l'application, le fallback hors ligne et le retour à la version
+  précédente. Aucun gain théorique ne justifie de supprimer les SHA ou le
+  rollback.
+
+La vitesse réelle dépend du réseau, de la taille des fichiers changés et du
+système de fichiers. Une revue CI et un test de bout en bout sur Windows
+doivent précéder toute fusion et toute nouvelle Release APP.
+
 ## Choix du disque et vérification rapide
 
 Le `DofusAtlasSetup.exe` interactif propose de choisir le dossier des fichiers

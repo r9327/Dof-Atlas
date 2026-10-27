@@ -111,6 +111,34 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertEqual(owners_for(path), frozenset(), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED", path)
 
+    def test_smart_installer_paths_have_explicit_shared_owners(self):
+        reviewed = (
+            "app/distribution/install.py",
+            "app/distribution/release_client.py",
+            "app/distribution/disk_space.py",
+            "app/distribution/file_clone.py",
+            "app/distribution/cleanup.py",
+            "app/distribution/install_location.py",
+            "tests/test_distribution_disk_space.py",
+            "tests/test_distribution_smart_update.py",
+            "tests/test_distribution_packaging.py",
+        )
+        for path in reviewed:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    owners_for(path), frozenset({"ci", "startup", "data"})
+                )
+        plan = self.route(list(reviewed))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        # Deliberately refuse not-yet-reviewed updater modules and tests.
+        self.assertFalse(owners_for("app/distribution/unchecked_helper.py"))
+        self.assertFalse(owners_for("tests/test_distribution_new_unchecked.py"))
+        self.assertEqual(
+            self.route(["app/distribution/unchecked_helper.py"])["status"],
+            "BLOCKED",
+        )
+
     def test_launcher_ui_and_qt_preload_have_exact_shared_owners(self):
         paths = [
             "app/distribution/launcher.py",

@@ -69,6 +69,21 @@ def owners_for(path: str) -> frozenset[str]:
     # authenticated symbol/call-graph closure exists, retain all consumers.
     # The standalone updater and Qt preload are shared startup/UI contracts.
     # Keep this exact-path allowlist: unknown distribution modules stay blocked.
+    # Reviewed smart-update surface: explicit paths only. Files are shared by
+    # launcher, release/asset integrity and runtime data. Never add a wildcard:
+    # any future distribution helper must acquire its own ownership review.
+    if path in {
+        "app/distribution/install.py",
+        "app/distribution/release_client.py",
+        "app/distribution/disk_space.py",
+        "app/distribution/file_clone.py",
+        "app/distribution/cleanup.py",
+        "app/distribution/install_location.py",
+        "tests/test_distribution_disk_space.py",
+        "tests/test_distribution_smart_update.py",
+        "tests/test_distribution_packaging.py",
+    }:
+        return frozenset({"ci", "startup", "data"})
     if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
         return frozenset({"startup", "ui"})
     if path == "app/ui/preload_popup.py":
