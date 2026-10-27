@@ -73,8 +73,8 @@ def classify_failure(run: dict[str, Any], jobs: dict[str, Any],
             or (run.get("repository") or {}).get("full_name") != repo):
         reasons.append("UNVERIFIED_FAILED_PR_RUN")
     if (pr.get("number") != pr_number or pr.get("state") != "open"
-            or (pr.get("head") or {}).get("repo", {}).get("full_name") != repo
-            or (pr.get("base") or {}).get("repo", {}).get("full_name") != repo):
+            or ((pr.get("head") or {}).get("repo") or {}).get("full_name") != repo
+            or ((pr.get("base") or {}).get("repo") or {}).get("full_name") != repo):
         reasons.append("UNTRUSTED_FORK_OR_CLOSED_PR")
     head = (pr.get("head") or {}).get("sha")
     ref = (pr.get("head") or {}).get("ref")
@@ -153,7 +153,7 @@ def regenerate_index(candidate: Path, report: dict[str, Any]) -> bytes:
     if not changed or not ai_context.check_index(candidate):
         raise ValueError("Canonical index regeneration failed")
     changed_paths = _git(candidate, "status", "--porcelain", "--untracked-files=all")
-    if changed_paths not in {f" M {INDEX}", f"?? {INDEX}"}:
+    if changed_paths not in {f"M {INDEX}", f"?? {INDEX}"}:
         raise ValueError("Repair modified unexpected paths")
     raw = dest.read_bytes()
     if len(raw) > 200_000 or raw.decode("utf-8") != ai_context.render_index(
