@@ -161,6 +161,58 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertFalse(dst.exists())
 
 
+class CleanupSafetyTests(unittest.TestCase):
+    def test_keep_rollback_and_current_cache_remove_only_known_stale_files(self):
+        from app.distribution.cleanup import cleanup_verified_runtime
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = ReuseInstallerTests()._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            first_slot = read_state(runtime)["active"]
+            second, newer = ReuseInstallerTests()._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            self.assertEqual(cleanup_verified_runtime(runtime), (0, 0))  # pending
+            mark_healthy(runtime)
+            third, latest = ReuseInstallerTests()._package(root, "c" * 40, "v3", change=b"newer")
+            install_release(runtime, third, latest)
+            mark_healthy(runtime)
+            state = read_state(runtime)
+            self.assertEqual(state["previous"], "v2-" + "b" * 12)
+            caches = runtime / "downloads"
+            caches.mkdir()
+            stale = caches / ("a" * 20 + ".zip")
+            stale.write_bytes(b"stale")
+            current = caches / ("c" * 20 + ".zip")
+            current.write_bytes(b"repair cache")
+            unrelated = caches / "personal.zip"
+            unrelated.write_bytes(b"keep")
+            old_slot = slot_path(runtime, first_slot)
+            self.assertTrue(old_slot.is_dir())
+            self.assertEqual(cleanup_verified_runtime(runtime), (1, 1))
+            self.assertFalse(old_slot.exists())
+            self.assertTrue(slot_path(runtime, state["previous"]).is_dir())
+            self.assertTrue(slot_path(runtime, state["active"]).is_dir())
+            self.assertFalse(stale.exists())
+            self.assertEqual(current.read_bytes(), b"repair cache")
+            self.assertEqual(unrelated.read_bytes(), b"keep")
+
+    def test_cleanup_never_removes_unmarked_directories(self):
+        from app.distribution.cleanup import cleanup_verified_runtime
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = ReuseInstallerTests()._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            custom = runtime / "versions" / "unknown-custom"
+            custom.mkdir()
+            (custom / "notes").write_text("mine")
+            cleanup_verified_runtime(runtime)
+            self.assertTrue((custom / "notes").is_file())
+
+
 class ParallelTransferTests(unittest.TestCase):
     def test_parallel_multipart_is_bounded_and_sha_verified(self):
         with tempfile.TemporaryDirectory() as d:
