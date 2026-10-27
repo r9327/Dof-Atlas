@@ -29,9 +29,11 @@ review**. This single transition triggers Phase Certification on that SHA.
 If final certification fails, return to Draft while fixing as appropriate,
 then mark Ready for review again, or manually dispatch certification for the
 new exact SHA. Never merge with stale evidence or skip mandatory tests.
-Do not use `[skip ci]` as the primary workflow control: the official PR
-trigger is intentionally limited to `ready_for_review`. Normal `main`
-push/release safeguards remain enabled.
+Do not use `[skip ci]` as the primary workflow control: the PR workflow
+listens to `ready_for_review` and `synchronize`, but its Doctor
+certification planning job skips Draft PRs. Commits pushed after Ready
+trigger a new evaluation of the updated SHA. Normal `main` push/release
+safeguards remain enabled.
 
 
 ## Mandatory PR logic audit (each commit, then whole PR)
@@ -52,12 +54,51 @@ scope. An apparently correct final diff or green CI cannot replace the
 per-commit logic review; conversely, individually sound commits do not prove
 the final composition is sound.
 
-For the final verdict, use **VALIDATED** (no blocking issue found),
-**IMPROVEMENTS RECOMMENDED** (non-blocking worthwhile corrections), or
-**BLOCKED** (specific corrections required before merge). Distinguish
-verified findings from hypotheses and untested areas. Avoid cosmetic changes,
-speculative blockers and unnecessary refactors. Never claim certification
-without the separate Phase Certification evidence on the exact SHA.
+For the final **logic-review** verdict, use **REVIEW OK** (no blocking
+logic issue found), **IMPROVEMENTS ADVISED** (worthwhile, non-blocking
+changes), or **CHANGES REQUIRED** (specific blockers before merge).
+These are review judgments, not Doctor, CI, `VALIDATED`, or `CERTIFIED`
+states. Distinguish verified findings from hypotheses and untested areas.
+Avoid cosmetic changes, speculative blockers and unnecessary refactors.
+Never claim certification without separate Phase Certification evidence
+on the exact SHA.
+
+## Audit agent, AI and policy rules when they change
+
+Before adding, editing, moving or deleting an instruction or rule, audit the
+**actual affected instruction set** and its direct consumers. Include, as
+applicable, root and nested `AGENTS.md`, `AI_ENTRYPOINT.md`,
+`CLAUDE.md`, Copilot/Cursor rules, agent skills, `ZERO_TRUST_RULES.md`,
+`DEVELOPMENT_GUARDRAILS.md`, `PHASE_CERTIFICATION.md`, and any
+related machine policy, CI workflow or contributor documentation.
+
+For each changed rule, check:
+
+1. **Purpose and scope:** what problem does it prevent, which tasks/agents
+   trigger it, and is it proportionate and practically enforceable?
+2. **Authority and consistency:** does it agree with higher-priority and
+   existing repository contracts, avoid contradictory verdict names,
+   duplicate requirements, and ambiguous precedence?
+3. **Reality and safety:** do referenced paths, tools, commands, triggers,
+   checks, permissions and limits reflect the actual repository? Does it
+   preserve user data, security, autonomy boundaries and CI safeguards?
+4. **Maintainability:** keep one canonical rule and lightweight pointers
+   in provider entrypoints; do not create parallel policies or extra CI
+   gates without demonstrated need.
+
+Review the rule set **before and after** the edit, including interactions
+with adjacent instructions. For documentation-only changes, inspect the
+diff and verify relevant references and workflow behavior; run targeted
+contract tests when executable policies, routing or CI are modified.
+Never report unexecuted checks as PASS. This audit is **bounded** to
+changed rules and directly affected contracts, not a recursively repeating
+audit of every instruction in the repository.
+
+Report per-rule findings, verified conflicts versus suspected risks,
+specific necessary corrections, and one global rule-consistency verdict.
+Only proven material conflicts, unsafe permissions or weakened guards
+block approval; avoid blocking on hypothetical or cosmetic concerns.
+The separate per-commit and final PR audits still apply.
 
 ## Library documentation (Context7)
 
