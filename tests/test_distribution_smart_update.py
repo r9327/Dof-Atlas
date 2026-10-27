@@ -150,6 +150,20 @@ class ReuseInstallerTests(unittest.TestCase):
                 with self.assertRaisesRegex(UpdateError, "Cloned base file"):
                     _copy_unchanged_verified(src, dest, entry)
 
+    def test_unsupported_windows_clone_is_optional_and_never_blocks(self):
+        from app.distribution import file_clone
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            src, dest = root / "source", root / "dest"
+            src.write_bytes(b"good")
+            with (
+                patch.object(file_clone.os, "name", "nt"),
+                patch.object(file_clone, "_clone_unchanged_cow_impl",
+                             side_effect=OSError("unsupported FSCTL")),
+            ):
+                self.assertFalse(file_clone.clone_unchanged_cow(src, dest, 4))
+            self.assertFalse(dest.exists())
+
     def test_nonwindows_clone_never_hardlinks_or_allocates(self):
         from app.distribution.file_clone import clone_unchanged_cow
         with tempfile.TemporaryDirectory() as d:
@@ -197,6 +211,29 @@ class CleanupSafetyTests(unittest.TestCase):
             self.assertFalse(stale.exists())
             self.assertEqual(current.read_bytes(), b"repair cache")
             self.assertEqual(unrelated.read_bytes(), b"keep")
+
+    def test_cleanup_refuses_unknown_part_cache_contents(self):
+        from app.distribution.cleanup import cleanup_verified_runtime
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, manifest = ReuseInstallerTests()._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, manifest)
+            mark_healthy(runtime)
+            cache = runtime / "downloads" / ("b" * 20 + "-parts")
+            cache.mkdir(parents=True)
+            (cache / "foreign.txt").write_text("preserve")
+            self.assertEqual(cleanup_verified_runtime(runtime), (0, 0))
+            self.assertEqual((cache / "foreign.txt").read_text(), "preserve")
+
+    def test_install_location_rejects_junction_like_root(self):
+        from app.distribution import install_location
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "chosen"
+            with patch.object(install_location, "_linked",
+                              side_effect=lambda item: item == root):
+                with self.assertRaisesRegex(UpdateError, "lien symbolique"):
+                    install_location._valid_root(root)
 
     def test_cleanup_never_removes_unmarked_directories(self):
         from app.distribution.cleanup import cleanup_verified_runtime
