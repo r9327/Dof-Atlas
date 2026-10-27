@@ -16,6 +16,7 @@ working_set:
   - tests/test_agent_work_depth.py
   - tests/test_agent_planner_metadata.py
   - tests/test_dofus_atlas_tools_skill.py
+  - tests/test_ai_workflow_skills.py
   - tools/tool_catalog.py
   - tools/tool_audit.py
   - tools/ai_context.py
@@ -31,6 +32,7 @@ working_set:
   - tools/graphify.ps1
 shared_dependencies: []
 context_entries:
+  - .agents/skills/
   - tools/skills/dofus-atlas-tools/SKILL.md
   - GRAPHIFY.md
   - tests/
