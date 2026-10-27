@@ -16,7 +16,7 @@ from .install import (
     active_executable, install_release, mark_healthy, read_state, rollback_pending, slot_path,
 )
 from .release_client import UpdateError, download_archive, latest_release
-from .disk_space import ensure_space
+from .disk_space import ensure_space, ensure_delta_space
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 from .install_location import runtime_root, set_runtime_root, relocate_runtime, has_saved_location
@@ -164,6 +164,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     report("Telechargement des fichiers modifies...", 10)
                     archive = None
                     try:
+                        ensure_delta_space(remote.manifest, ROOT)
                         archive = download_archive(
                             remote, ROOT / "downloads",
                             lambda done, total: report(
