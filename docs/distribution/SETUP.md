@@ -251,10 +251,13 @@ Il ne pousse rien vers le dépôt de distribution et ne contient **ni Doctor, ni
   téléchargements parallèles**, sans perdre la reprise HTTP `Range`,
   les contrôles de taille, de chemin HTTPS et de SHA-256 de **chaque** partie,
   suivis du contrôle de l'archive assemblée.
-- Même en cas d'installation par ZIP complet, un fichier déjà présent et
-  **strictement identique à son SHA-256 dans le nouveau manifeste** est
-  réutilisé localement plutôt que décompressé. Un fichier local altéré ou
-  manquant est repris depuis le ZIP officiel.
+- L'installateur enregistre dans chaque slot un index local des tailles
+  et empreintes du manifeste après vérification. Lors d'un ZIP complet, seuls
+  les fichiers annoncés inchangés par les deux manifestes sont candidats à
+  une réutilisation locale, **toujours re-vérifiés SHA-256**. Un fichier altéré
+  ou manquant est repris depuis le ZIP officiel. Un ancien slot sans index
+  est simplement extrait depuis le ZIP (pas de double copie spéculative).
+  L'index local est un accélérateur non fiable, **jamais** une autorité.
 - Les fichiers inchangés peuvent bénéficier de la **copie sur écriture ReFS
   (block cloning)** sur disque Windows compatible, après quoi le contenu
   cloné est vérifié contre le manifeste. **Aucun hardlink NTFS n'est créé**
