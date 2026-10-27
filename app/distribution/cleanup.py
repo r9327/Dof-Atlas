@@ -14,7 +14,7 @@ from .install import read_state
 
 _PREFIX = re.compile(r"[0-9a-f]{20}\Z")
 _SLOT_INDEX = ".atlas-file-index.json"
-_PART_NAME = re.compile(r"atlas-windows[.]part[0-9]{4}(?:[.]download)?\\Z")
+_PART_NAME = re.compile(r"atlas-windows[.]part[0-9]{4}(?:[.]download)?\Z")
 
 
 def _link_or_junction(path: Path) -> bool:
