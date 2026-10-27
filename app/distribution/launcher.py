@@ -17,6 +17,7 @@ from .install import (
 )
 from .release_client import UpdateError, download_archive, latest_release
 from .disk_space import ensure_space, ensure_delta_space
+from .cleanup import cleanup_verified_runtime
 from .user_data import prepare_user_data
 from .self_update import schedule_launcher_upgrade
 from .install_location import runtime_root, set_runtime_root, relocate_runtime, has_saved_location
@@ -244,6 +245,14 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 schedule_launcher_upgrade(remote, ROOT / "downloads", report)
             except (UpdateError, OSError, ValueError) as exc:
                 log.warning("Launcher upgrade deferred: %s", exc)
+        # Never clean before healthy activation; old slot remains for rollback.
+        try:
+            removed_slots, removed_caches = cleanup_verified_runtime(ROOT)
+            if removed_slots or removed_caches:
+                log.info("Cleanup completed: slots=%s caches=%s",
+                         removed_slots, removed_caches)
+        except (OSError, UpdateError) as exc:
+            log.info("Best-effort cache cleanup skipped: %s", exc)
         report("Dofus Atlas est pret", 100)
     finally:
         _run_handle.close()
