@@ -47,6 +47,9 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/agent_task_profiles.py",
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
+    # Certification router has no product-UI consumer by itself; its source is
+    # still AST-checked for new app/Qt/dynamic imports on every edited SHA.
+    "tools/ci_domain_certification.py",
     "tools/ci_required_certification.py",
     # Source-only Doctor diagnostics, checked for Qt/app or dynamic imports.
     "tools/atlas_doctor_lib/capability_matrix.py",
@@ -202,11 +205,20 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
                 tree = ast.parse((root / path).read_text(encoding="utf-8-sig"))
                 imports = [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]
                 imports.extend(node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom))
+                # Imported dynamic loaders can be renamed; a direct-call check
+                # alone would incorrectly certify an unverified runtime boundary.
+                dynamic_names = {"__import__"}
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ImportFrom) and node.module in {"importlib", "builtins"}:
+                        target = "import_module" if node.module == "importlib" else "__import__"
+                        dynamic_names.update(
+                            alias.asname or alias.name for alias in node.names if alias.name == target
+                        )
                 dynamic = any(isinstance(node, ast.Call) and (
-                    isinstance(node.func, ast.Name) and node.func.id == "__import__"
+                    isinstance(node.func, ast.Name) and node.func.id in dynamic_names
                     or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
                 ) for node in ast.walk(tree))
-                if dynamic or any(name.startswith(("PySide", "app.")) for name in imports):
+                if dynamic or any(name == "app" or name.startswith(("PySide", "app.")) for name in imports):
                     uncertainty.append("INDEPENDENT_TOOL_CHANGED_BOUNDARY: " + path)
             except (OSError, SyntaxError, UnicodeError):
                 uncertainty.append("UNVERIFIED_INDEPENDENT_TOOL: " + path)
