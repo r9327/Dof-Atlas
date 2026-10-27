@@ -21,6 +21,33 @@ from app.distribution.manifest import ReleaseFile, parse_manifest
 from app.distribution.release_client import RemoteRelease, UpdateError, download_archive
 from scripts.windows.package_release import package_release
 
+class Response(io.BytesIO):
+    def __init__(self, payload: bytes, status: int = 200, headers=None):
+        super().__init__(payload)
+        self.status = status
+        self.headers = headers or {}
+
+
+def multipart_fixture(root: Path):
+    app = root / "frozen"
+    app.mkdir()
+    (app / "AtlasApp.exe").write_bytes(b"MZ" + bytes(range(256)) * 8)
+    with (
+        patch("scripts.windows.package_release._MAX_GITHUB_RELEASE_ASSET_BYTES", 120),
+        patch("scripts.windows.package_release._CHUNK_BYTES", 90),
+    ):
+        archive, metadata = package_release(
+            app, root / "release", "a" * 40, "1.0", "2026.10", 1
+        )
+    manifest = parse_manifest(metadata.read_bytes())
+    prefix = "https://github.com/r9327/Dof-Atlas-App/releases/download/v1/"
+    remote = RemoteRelease(
+        "v1", "", manifest.archive_size, manifest,
+        part_urls=tuple(prefix + part.name for part in manifest.archive_parts),
+    )
+    return archive, manifest, remote
+
+
 
 class ReuseInstallerTests(unittest.TestCase):
     def _package(self, root: Path, sha: str, version: str, *, change: bytes):
@@ -119,12 +146,9 @@ class ReuseInstallerTests(unittest.TestCase):
 
 class ParallelTransferTests(unittest.TestCase):
     def test_parallel_multipart_is_bounded_and_sha_verified(self):
-        from tests.test_distribution_multipart import MultipartDistributionTests, Response
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            fixture = MultipartDistributionTests()
-            archive, _, manifest, _ = fixture._package(root)
-            remote = fixture._remote(manifest)
+            archive, manifest, remote = multipart_fixture(root)
             payloads = {
                 url: (archive.parent / part.name).read_bytes()
                 for url, part in zip(remote.part_urls, manifest.archive_parts)
@@ -147,9 +171,11 @@ class ParallelTransferTests(unittest.TestCase):
                     with lock:
                         active -= 1
 
-            with patch.object(release_client, "_PARALLEL_MIN_BYTES", 0), \\
-                 patch.object(release_client, "_MAX_PARALLEL_PARTS", 2), \\
-                 patch.object(release_client, "_open", side_effect=serve):
+            with (
+                patch.object(release_client, "_PARALLEL_MIN_BYTES", 0),
+                patch.object(release_client, "_MAX_PARALLEL_PARTS", 2),
+                patch.object(release_client, "_open", side_effect=serve),
+            ):
                 result = download_archive(remote, root / "cache", lambda n, total: progress.append(n))
             self.assertEqual(result.read_bytes(), archive.read_bytes())
             self.assertEqual(max_active, 2)
@@ -159,20 +185,19 @@ class ParallelTransferTests(unittest.TestCase):
                 self.assertEqual(download_archive(remote, root / "cache"), result)
 
     def test_corrupted_parallel_part_does_not_create_full_archive(self):
-        from tests.test_distribution_multipart import MultipartDistributionTests, Response
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            fixture = MultipartDistributionTests()
-            archive, _, manifest, _ = fixture._package(root)
-            remote = fixture._remote(manifest)
+            archive, manifest, remote = multipart_fixture(root)
             payloads = {
                 url: (archive.parent / part.name).read_bytes()
                 for url, part in zip(remote.part_urls, manifest.archive_parts)
             }
             payloads[remote.part_urls[0]] = b"X" * len(payloads[remote.part_urls[0]])
-            with patch.object(release_client, "_PARALLEL_MIN_BYTES", 0), \\
-                 patch.object(release_client, "_MAX_PARALLEL_PARTS", 2), \\
-                 patch.object(release_client, "_open", side_effect=lambda u, h=None: Response(payloads[u])):
+            with (
+                patch.object(release_client, "_PARALLEL_MIN_BYTES", 0),
+                patch.object(release_client, "_MAX_PARALLEL_PARTS", 2),
+                patch.object(release_client, "_open", side_effect=lambda u, h=None: Response(payloads[u])),
+            ):
                 with self.assertRaises(UpdateError):
                     download_archive(remote, root / "cache")
             self.assertFalse((root / "cache" / ("a" * 20 + ".zip")).exists())
