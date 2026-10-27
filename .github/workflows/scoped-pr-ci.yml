@@ -63,6 +63,7 @@ jobs:
           # No Qt, no downloads and no duplicate FULL: catch policy and
           # observer regressions before an expensive Ready-for-review run.
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_pr_audit.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_failure_autofix.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_timing_observer.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_required_certification.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_domain_certification.py'
