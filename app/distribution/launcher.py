@@ -157,6 +157,8 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 can_delta = (
                     remote.manifest.delta is not None
                     and remote.delta_url is not None
+                    # Use differential only when it actually saves bandwidth.
+                    and remote.manifest.delta.archive_size < remote.archive_size
                     and prior.get("source_sha") == remote.manifest.delta.base_source_sha
                     and not prior.get("pending")
                 )
