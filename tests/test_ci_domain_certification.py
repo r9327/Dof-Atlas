@@ -117,8 +117,10 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/distribution/release_client.py",
             "app/distribution/disk_space.py",
             "app/distribution/file_clone.py",
+            "app/distribution/cleanup.py",
             "tests/test_distribution_disk_space.py",
             "tests/test_distribution_smart_update.py",
+            "tests/test_distribution_packaging.py",
         )
         for path in reviewed:
             with self.subTest(path=path):
