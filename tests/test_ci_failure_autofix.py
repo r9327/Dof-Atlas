@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
+from unittest.mock import patch
 import subprocess
 import tempfile
 import unittest
 
 from tools.atlas_doctor_lib.ci_failure_autofix import (
-    INDEX, MARKER, JOB, STEP, classify_failure, regenerate_index,
+    INDEX, MARKER, JOB, STEP, classify_failure, regenerate_index, publish,
 )
 
 REPO = "r9327/Dof-Atlas"
@@ -154,11 +155,76 @@ class BoundedCIFailureTriageTests(unittest.TestCase):
             other.write_text("unchanged")
             (root / ".ai").mkdir()
             (root / INDEX).symlink_to(other)
+            git(root, "add", ".ai/context_index.json")
+            git(root, "commit", "-m", "fixture index symlink")
             report = classify()
             report["candidate_sha"] = git(root, "rev-parse", "HEAD")
             with self.assertRaises(ValueError):
                 regenerate_index(root, report)
             self.assertEqual(other.read_text(), "unchanged")
+
+
+    def test_publish_uses_exact_host_sha_and_creates_only_one_path_draft(self):
+        run, jobs, pr = valid_host_data()
+        changes = []
+        original_sha = "c" * 40
+
+        def api(repo, endpoint, token, *, method="GET", data=None):
+            self.assertEqual(repo, REPO)
+            self.assertEqual(token, "fake-token")
+            if method != "GET":
+                changes.append((method, endpoint, data))
+                return {"html_url": "https://github.com/r9327/Dof-Atlas/pull/999"}
+            if endpoint == "/actions/runs/4321":
+                return run
+            if endpoint == "/actions/runs/4321/jobs?per_page=100":
+                return jobs
+            if endpoint == "/pulls/274":
+                return pr
+            if endpoint == "/actions/jobs/123/logs":
+                return MARKER
+            if endpoint == f"/contents/{INDEX}?ref={SHA}":
+                return {"sha": original_sha}
+            raise AssertionError("Unexpected GitHub API endpoint: " + endpoint)
+
+        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api), (
+             patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index",
+                   return_value=b'{"index":"valid"}\n') as renderer):
+            url = publish(REPO, "fake-token", classify(), Path("/unused"))
+        self.assertTrue(url.endswith("/999"))
+        renderer.assert_called_once()
+        self.assertEqual([row[0] for row in changes], ["POST", "PUT", "POST"])
+        self.assertEqual(changes[0][1], "/git/refs")
+        self.assertEqual(changes[0][2]["sha"], SHA)
+        self.assertEqual(changes[1][1], f"/contents/{INDEX}")
+        self.assertEqual(changes[1][2]["sha"], original_sha)
+        self.assertTrue(changes[1][2]["branch"].startswith("ci-autofix/context-274-"))
+        self.assertEqual(changes[2][1], "/pulls")
+        self.assertEqual(changes[2][2]["base"], "agent-pr")
+        self.assertTrue(changes[2][2]["draft"])
+
+    def test_changed_host_sha_blocks_write_before_branch_creation(self):
+        run, jobs, pr = valid_host_data()
+        writes = []
+        stale_report = classify()
+        stale_report["candidate_sha"] = "b" * 40
+
+        def api(repo, endpoint, token, *, method="GET", data=None):
+            if method != "GET":
+                writes.append(endpoint)
+            return {
+                "/actions/runs/4321": run,
+                "/actions/runs/4321/jobs?per_page=100": jobs,
+                "/pulls/274": pr,
+                "/actions/jobs/123/logs": MARKER,
+            }[endpoint]
+
+        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api), (
+             patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index") as renderer):
+            with self.assertRaises(ValueError):
+                publish(REPO, "fake-token", stale_report, Path("/unused"))
+        self.assertFalse(writes)
+        renderer.assert_not_called()
 
 
 if __name__ == "__main__":
