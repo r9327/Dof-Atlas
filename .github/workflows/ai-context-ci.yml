@@ -33,6 +33,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .ai
+            .agents
             .githooks
             .github
             data/routes/guide_ultime_manual

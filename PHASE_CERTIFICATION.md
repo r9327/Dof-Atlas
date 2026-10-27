@@ -16,15 +16,23 @@ Seul l'état `CERTIFIED` autorise les formulations « phase terminée », « pha
 
 ## Doctor en premier : orchestration automatique
 
-`Doctor / CI Plan` est le premier job de chaque PR et push sur `main`.
+`Doctor / CI Plan` est le premier job de planification de certification
+pour les PR **Ready for review** et les pushs sur `main`.
 Le workflow conserve son nom historique `Phase Certification` et son chemin
 `phase-certification.yml` pour préserver les attestations GitHub et les chaînes
 de publication existantes. Il orchestre désormais la CI entière.
 
+Le workflow écoute les événements PR `ready_for_review` et `synchronize`,
+mais `doctor-plan` est ignoré tant que la PR est en **Draft**. Un nouveau
+commit sur une PR déjà Ready déclenche une nouvelle vérification sur son
+SHA exact. Le titre de la PR ne décide pas du périmètre : une modification
+critique ou incertaine exige FULL lorsque la certification s'exécute.
+Pendant Draft, utiliser les contrôles locaux ciblés ; un job ignoré n'est
+jamais une preuve de PASS.
+
 Doctor compare le SHA de base au SHA candidat exact, réutilise la politique
 adaptative canonique et les consommateurs UI, puis appelle les validations
-nécessaires. Le titre et le statut brouillon de la PR ne décident plus de la
-validation : un changement critique ou incertain exige FULL, même en brouillon.
+nécessaires.
 Un diff éligible exécute tous les tests ciblés canoniques ; les documents
 ordinaires seuls conservent les contrôles PR et métadonnées sans suite lourde.
 Les documents de politique seuls ne bénéficient pas de cette exclusion.
