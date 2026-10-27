@@ -16,6 +16,56 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_reviewed_ai_and_certification_instructions_are_ci_owned(self):
+        from tools.phase_adaptive_gate import critical_changed
+        paths = [
+            "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+            ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
+            "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md",
+            "tools/AGENTS.md", "tools/skills/dofus-atlas-tools/SKILL.md",
+            "PHASE_CERTIFICATION.md", "DOCTOR_ADAPTIVE_CERTIFICATION.md",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+                self.assertEqual(self.route([path])["domains"], ["ci"])
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertFalse(plan["phase_certified"])
+        # Domain ownership never relaxes the independent root-of-trust check.
+        self.assertIn("PHASE_CERTIFICATION.md", critical_changed(paths))
+
+    def test_unreviewed_agent_policies_still_fail_closed(self):
+        for path in (
+            ".cursor/rules/unreviewed.mdc",
+            "tools/skills/unreviewed/SKILL.md",
+            "app/modules/encyclopedia/AGENTS.md",
+            "NEW_AGENT_POLICY.md",
+            "DEVELOPMENT_GUARDRAILS.md",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset())
+                self.assertEqual(self.route([path])["status"], "BLOCKED")
+        self.assertEqual(
+            self.route(["AGENTS.md", "app/modules/encyclopedia/AGENTS.md"])["status"],
+            "BLOCKED",
+        )
+        deleted = self.route(["AI_ENTRYPOINT.md"], deleted=["AI_ENTRYPOINT.md"])
+        self.assertEqual(deleted["status"], "BLOCKED")
+        self.assertIn("REMOVAL_OR_RENAME_REQUIRES_REVIEW", deleted["reasons"])
+
+    def test_mixed_policy_and_application_domains_remain_separate(self):
+        plan = self.route([
+            "PHASE_CERTIFICATION.md", "AGENTS.md",
+            "app/pages/guide_page.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "guides", "ui"])
+        self.assertNotIn("metadata", plan["domains"])
+
     def test_ci_policy_change_never_fans_out_into_quests_or_guides(self):
         plan = self.route([
             ".github/workflows/phase-certification.yml",
