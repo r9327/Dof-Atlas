@@ -175,7 +175,12 @@ def publish(repo: str, token: str, report: dict[str, Any],
                                    for k in ("candidate_sha", "candidate_branch", "pr_number")):
         raise ValueError("Host state changed since diagnosis; refuse write")
     index = regenerate_index(candidate, fresh)
-    original = _request(repo, f"/contents/{INDEX}?ref={fresh['candidate_sha']}", token)
+    try:
+        original = _request(repo, f"/contents/{INDEX}?ref={fresh['candidate_sha']}", token)
+    except HTTPError as exc:
+        if exc.code != 404:
+            raise
+        original = {}  # Missing index is recoverable too.
     branch = (f"ci-autofix/context-{pr_number}-"
               f"{fresh['candidate_sha'][:12]}-{run_id}")
     # GitHub will reject duplicate ref, preventing repeated run dispatch
