@@ -16,6 +16,28 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
+        from tools.ci_domain_certification import AI_GUIDANCE_CI_PATHS
+
+        self.assertEqual(len(AI_GUIDANCE_CI_PATHS), 13)
+        for path in sorted(AI_GUIDANCE_CI_PATHS):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(sorted(AI_GUIDANCE_CI_PATHS) + [
+            ".github/workflows/ai-context-ci.yml", ".ai/context_index.json",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci"])
+        for path in (
+            ".agents/skills/unreviewed/SKILL.md",
+            ".agents/skills/unreviewed/execute.py",
+            ".ai/scopes/unreviewed.yaml",
+            "tests/test_unknown_ai_workflow.py",
+        ):
+            self.assertFalse(owners_for(path), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
     def test_ci_policy_change_never_fans_out_into_quests_or_guides(self):
         plan = self.route([
             ".github/workflows/phase-certification.yml",
