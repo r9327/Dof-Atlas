@@ -41,11 +41,13 @@ def _request(repo: str, endpoint: str, token: str, *, method: str = "GET",
     body = None if data is None else json.dumps(data).encode("utf-8")
     request = Request(
         f"{_API}/repos/{repo}{endpoint}", data=body, method=method,
-        headers={"Authorization": f"Bearer {token}",
-                 "Accept": "application/vnd.github+json",
+        headers={"Accept": "application/vnd.github+json",
                  "X-GitHub-Api-Version": "2022-11-28",
                  "User-Agent": "atlas-bounded-ci-autofix"},
     )
+    # urllib redirects are allowed for GitHub log downloads, but the token
+    # must never accompany the redirected request (including cross-host).
+    request.add_unredirected_header("Authorization", f"Bearer {token}")
     with urlopen(request, timeout=20) as response:
         raw = response.read(LOG_LIMIT + 1)
     if len(raw) > LOG_LIMIT:
@@ -78,13 +80,23 @@ def classify_failure(run: dict[str, Any], jobs: dict[str, Any],
         reasons.append("UNTRUSTED_FORK_OR_CLOSED_PR")
     head = (pr.get("head") or {}).get("sha")
     ref = (pr.get("head") or {}).get("ref")
+    # A matching SHA alone does not link a failed run to this PR: multiple PRs
+    # can point at one commit. Require exact GitHub-hosted PR association.
+    linked_prs = run.get("pull_requests")
+    if (not isinstance(linked_prs, list) or sum(
+            isinstance(link, dict) and link.get("number") == pr_number
+            and (link.get("head") or {}).get("sha") == head
+            for link in linked_prs) != 1):
+        reasons.append("RUN_PR_ASSOCIATION_UNVERIFIED")
     if (not isinstance(head, str) or not SHA.fullmatch(head)
             or run.get("head_sha") != head
             or not isinstance(ref, str) or not ref
             or ref in {"main", "master"}):
         reasons.append("HEAD_SHA_OR_BRANCH_MISMATCH")
     all_jobs = jobs.get("jobs", [])
-    if (not isinstance(all_jobs, list) or jobs.get("total_count", len(all_jobs)) > 100
+    if (not isinstance(all_jobs, list)
+            or type(jobs.get("total_count")) is not int
+            or jobs["total_count"] != len(all_jobs)
             or len(all_jobs) > 100):
         reasons.append("INCOMPLETE_JOB_INVENTORY")
         all_jobs = []

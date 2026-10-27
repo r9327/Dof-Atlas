@@ -53,6 +53,29 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
                 self.assertTrue(self.select([HIGH_SOURCE], **kwargs)['full'])
         self.assertTrue(self.select([HIGH_SOURCE, 'app/core/json_store.py'])['full'])
 
+    def test_agent_policy_docs_use_existing_ci_domain(self):
+        from tools.ci_domain_certification import plan_domains
+        paths = ["AGENTS.md", "AI_ENTRYPOINT.md", "PHASE_CERTIFICATION.md"]
+        domain = plan_domains(base_sha="a" * 40, candidate_sha="b" * 40,
+                              paths=paths)
+        self.assertEqual(domain["domains"], ["ci"])
+        selection = select_workflows(
+            paths, event="pull_request", phase_route={"route": "FULL"},
+            ui_plan=UI_NONE, tooling_scope=False, domain_plan=domain)
+        self.assertTrue(selection["full"])
+        self.assertFalse(selection["specialist_fallback"])
+        self.assertFalse(selection["workflows"]["doctor-certification"]["selected"])
+        self.assertFalse(selection["workflows"]["json-focused-data-contract"]["selected"])
+        # A policy/agent-docs-only PR must not pay for unrelated Windows,
+        # Qt, RAM, preload, packaging or application specialists.
+        self.assertTrue(selection["phase"])
+        self.assertEqual(
+            {name for name, job in selection["workflows"].items() if job["selected"]},
+            {"ai-context-ci", "signature-report"},
+        )
+        # The "full" risk marker is not evidence of an executed FULL.
+        self.assertTrue(selection["full"])
+
     def test_exact_domain_ci_only_skips_unrelated_user_journeys(self):
         from tools.ci_domain_certification import plan_domains
         paths = ['tools/atlas_doctor_lib/ci_orchestrator.py',

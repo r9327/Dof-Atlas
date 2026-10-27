@@ -30,9 +30,31 @@ BASELINE_GROUPS = {
     "data": ("PERSISTENCE", "GOLDEN_FLOWS"),
 }
 
+# Explicitly reviewed AI entrypoints and certification policy documentation
+# are CI-owned instructions, not unknown application modules or generic
+# metadata. This ownership does NOT waive the independent root-of-trust/FULL
+# decision for PHASE_CERTIFICATION.md or any executable policy change.
+REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
+    "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+    ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
+    "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
+    "tools/skills/dofus-atlas-tools/SKILL.md",
+    "PHASE_CERTIFICATION.md", "DOCTOR_ADAPTIVE_CERTIFICATION.md",
+    # Additional reviewed AI guidance and skills; exact paths only.
+    ".ai/context-map.yaml",
+    ".ai/scopes/quality_ci.yaml",
+    "tests/test_ai_workflow_skills.py",
+    ".agents/skills/codebase-navigation/SKILL.md",
+    ".agents/skills/dofus-data-provenance/SKILL.md",
+    ".agents/skills/evidence-driven-validation/SKILL.md",
+    ".agents/skills/performance-triage/SKILL.md",
+    ".agents/skills/persistence-safety/SKILL.md",
+    ".agents/skills/pyside6-qtwebengine/SKILL.md",
+    ".agents/skills/root-cause-debugging/SKILL.md",
+    ".agents/skills/safe-architecture-cleanup/SKILL.md",
+})
 INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",
-    "DOCTOR_ADAPTIVE_CERTIFICATION.md", "PHASE_CERTIFICATION.md",
     ".gitattributes", ".gitignore",
 })
 CI_FILES = frozenset({
@@ -58,6 +80,8 @@ def owners_for(path: str) -> frozenset[str]:
     if (not isinstance(path, str) or not path or path.startswith("/")
             or "\\" in path or ".." in path.split("/")):
         raise ValueError("Unsafe changed path")
+    if path in REVIEWED_CI_INSTRUCTION_PATHS:
+        return frozenset({"ci"})
     if path in INFRA_PATHS or (path.startswith("docs/") and path.endswith(".md")):
         return frozenset()
     if path.startswith(".github/workflows/") or path.startswith(".github/rulesets/"):

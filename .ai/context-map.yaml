@@ -342,3 +342,4 @@ scopes:
       - tests.test_phase_certification_guardrails
       - tests.test_atlas_doctor
       - tests.test_atlas_doctor_graphify
+      - tests.test_ai_workflow_skills

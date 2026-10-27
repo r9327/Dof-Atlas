@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
       "type": "tree"
     },
     ".codex": {
@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "9feaa128382c1f7295da0fdf631f299a95dbaed8",
+      "sha": "cf20554d4ab37a19691052b1d862ea512f9f595a",
       "type": "tree"
     },
     ".gitignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "26bdbae9ba7f7b94e779faedd85bec51d7f348b4",
+      "sha": "2f80aadb99633299c103af80bfdcc5156ed89a91",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
+      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -97,7 +97,7 @@
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "077b42be10f7187ae4616c8f5b7b2e5b57e292a4",
+      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6",
       "type": "blob"
     },
     "README.md": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "0a9c279036d3198f56620e4f07845fcaba41bb16",
+      "sha": "4ede957f3e6680dcab145c14e9937902bf7bfd75",
       "type": "tree"
     },
     "launch.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "51c5eb6e5ab2f7bf1f82bb672b8c5add85b497d0",
+      "sha": "fa4bf82c597b264e5cbc9ed16d74c87ce750ac6d",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "36b52f82d188437b8b3421b753d38fe987153f6b",
+      "sha": "b79eb311c5e8682648f2b463932d20c8e2dda5c8",
       "type": "tree"
     }
   },

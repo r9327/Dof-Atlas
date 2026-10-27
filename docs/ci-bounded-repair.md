@@ -20,7 +20,9 @@ JSON report plus GitHub Step Summary. It requires the GitHub-hosted run to
 have failed, with AI Context / Targeted Validation and its
 Verify committed context index step failed, and log evidence
 AI context index: STALE/MISSING. It also requires the run's candidate SHA
-to equal the **current** head SHA of the referenced same-repository PR.
+to equal the **current** head SHA of the referenced same-repository PR,
+and the run must independently reference that exact PR/SHA. An incomplete
+GitHub job inventory is refused, including when a paginated result is omitted.
 
 Other errors, missing evidence, stale SHA, forks, cancelled/skipped jobs and
 closed PRs return REVIEW_REQUIRED without edits. Treat this as diagnostic
@@ -30,7 +32,9 @@ If explicitly opted in and eligible, the separately permissioned propose
 job checks out the default-branch *trusted* Python implementation and the
 exact failing PR SHA as **data** without persistent credentials. It never
 imports or executes a Python module from the candidate, or a shell command
-from GitHub logs. It calls tools.ai_context.sync_index on that candidate
+from GitHub logs. The GitHub token is sent on the initial API request only,
+never to a redirected job-log download URL. It calls
+`tools.ai_context.sync_index` on that candidate
 checkout, then enforces that exactly .ai/context_index.json changed and
 its bytes match the existing trusted index renderer.
 

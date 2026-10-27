@@ -8,9 +8,10 @@ from unittest.mock import patch
 import subprocess
 import tempfile
 import unittest
+from urllib.request import HTTPRedirectHandler
 
 from tools.atlas_doctor_lib.ci_failure_autofix import (
-    INDEX, MARKER, JOB, STEP, classify_failure, regenerate_index, publish,
+    INDEX, MARKER, JOB, STEP, _request, classify_failure, regenerate_index, publish,
 )
 
 REPO = "r9327/Dof-Atlas"
@@ -22,6 +23,7 @@ def valid_host_data():
         "id": 4321, "event": "pull_request", "status": "completed",
         "conclusion": "failure", "repository": {"full_name": REPO},
         "head_sha": SHA,
+        "pull_requests": [{"number": 274, "head": {"sha": SHA}}],
     }
     pr = {
         "number": 274, "state": "open",
@@ -53,6 +55,37 @@ def git(root: Path, *argv: str) -> str:
 
 
 class BoundedCIFailureTriageTests(unittest.TestCase):
+    def test_github_token_is_never_forwarded_to_redirected_log_url(self):
+        with patch("tools.atlas_doctor_lib.ci_failure_autofix.urlopen") as opener:
+            opener.return_value.__enter__.return_value.read.return_value = b"{}"
+            _request(REPO, "/actions/jobs/123/logs", "fictional-token")
+        request = opener.call_args.args[0]
+        self.assertTrue(request.has_header("Authorization"))
+        self.assertIn("Authorization", request.unredirected_hdrs)
+        redirect = HTTPRedirectHandler().redirect_request(
+            request, None, 302, "Found", {},
+            "https://pipelines.actions.githubusercontent.com/logs",
+        )
+        self.assertIsNotNone(redirect)
+        self.assertFalse(redirect.has_header("Authorization"))
+
+    def test_run_must_be_linked_to_exact_original_pr_and_sha(self):
+        for links in ([], [{"number": 275, "head": {"sha": SHA}}],
+                      [{"number": 274, "head": {"sha": "b" * 40}}],
+                      [{"number": 274, "head": {"sha": SHA}}] * 2):
+            run, jobs, pr = valid_host_data()
+            run["pull_requests"] = links
+            report = classify(run, jobs, pr)
+            self.assertFalse(report["eligible"])
+            self.assertIn("RUN_PR_ASSOCIATION_UNVERIFIED", report["reason_codes"])
+
+    def test_incomplete_host_job_inventory_is_not_eligible(self):
+        run, jobs, pr = valid_host_data()
+        jobs["total_count"] = 2
+        report = classify(run, jobs, pr)
+        self.assertFalse(report["eligible"])
+        self.assertIn("INCOMPLETE_JOB_INVENTORY", report["reason_codes"])
+
     def test_exact_host_run_failed_job_failed_step_log_and_sha_required(self):
         report = classify()
         self.assertTrue(report["eligible"], report)
