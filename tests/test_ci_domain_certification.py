@@ -50,6 +50,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "from PySide6 import QtWidgets\n",
             "__import__('app.ui.theme')\n",
             "import importlib\nimportlib.import_module('app.ui.theme')\n",
+            "from importlib import import_module as load\nload('app.ui.theme')\n",
+            "from builtins import __import__ as loader\nloader('app.ui.theme')\n",
         ):
             with self.subTest(source=source), TemporaryDirectory() as folder:
                 root = Path(folder)
