@@ -47,6 +47,9 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/agent_task_profiles.py",
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
+    # Certification router has no product-UI consumer by itself; its source is
+    # still AST-checked for new app/Qt/dynamic imports on every edited SHA.
+    "tools/ci_domain_certification.py",
     "tools/ci_required_certification.py",
     # Source-only Doctor diagnostics, checked for Qt/app or dynamic imports.
     "tools/atlas_doctor_lib/capability_matrix.py",
@@ -206,7 +209,7 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
                     isinstance(node.func, ast.Name) and node.func.id == "__import__"
                     or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
                 ) for node in ast.walk(tree))
-                if dynamic or any(name.startswith(("PySide", "app.")) for name in imports):
+                if dynamic or any(name == "app" or name.startswith(("PySide", "app.")) for name in imports):
                     uncertainty.append("INDEPENDENT_TOOL_CHANGED_BOUNDARY: " + path)
             except (OSError, SyntaxError, UnicodeError):
                 uncertainty.append("UNVERIFIED_INDEPENDENT_TOOL: " + path)
