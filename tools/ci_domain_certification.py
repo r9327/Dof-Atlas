@@ -78,6 +78,7 @@ def owners_for(path: str) -> frozenset[str]:
         "app/distribution/disk_space.py",
         "app/distribution/file_clone.py",
         "app/distribution/cleanup.py",
+        "app/distribution/install_location.py",
         "tests/test_distribution_disk_space.py",
         "tests/test_distribution_smart_update.py",
         "tests/test_distribution_packaging.py",
