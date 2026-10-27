@@ -14,6 +14,7 @@ from typing import Callable
 
 from .manifest import ManifestError, ReleaseFile, ReleaseManifest, verify_file, valid_path, valid_sha
 from .release_client import UpdateError
+from .file_clone import clone_unchanged_cow
 
 Progress = Callable[[int, int], None]
 _STATE_NAME = "state.json"
@@ -160,6 +161,14 @@ def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile
         if (source.is_symlink() or not source.is_file()
                 or source.stat().st_size != entry.size):
             raise UpdateError("Unchanged base file was modified or missing")
+        # ReFS extent clones share copy-on-write blocks, not mutable hardlinks.
+        # Hash the finished target before it can become an active release slot.
+        if clone_unchanged_cow(source, destination, entry.size):
+            if not verify_file(destination, entry):
+                raise UpdateError("Cloned base file failed release SHA-256")
+            if progress is not None:
+                progress(entry.size)
+            return
         digest = hashlib.sha256()
         copied = 0
         with source.open("rb") as original, destination.open("xb") as output:
@@ -231,6 +240,24 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     done += entry.size
                     report_copied(done)
                     continue
+                # A full ZIP may still contain files identical to the previous
+                # slot (e.g. different base SHA or failed delta). Try a verified
+                # local reuse first; corrupt/missing local files fall back to
+                # the release archive, never to unverified cached data.
+                if not delta and not same_active and state.get("active"):
+                    old = slot_path(root, state["active"]) / entry.path
+                    if old.is_file() and not old.is_symlink():
+                        try:
+                            _copy_unchanged_verified(
+                                old, destination, entry,
+                                lambda copied: report_copied(done + copied),
+                            )
+                        except UpdateError:
+                            destination.unlink(missing_ok=True)
+                        else:
+                            done += entry.size
+                            report_copied(done)
+                            continue
                 digest = hashlib.sha256()
                 count = 0
                 with package.open(entries[entry.path]) as source, destination.open("xb") as output:
