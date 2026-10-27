@@ -34,6 +34,31 @@ trigger is intentionally limited to `ready_for_review`. Normal `main`
 push/release safeguards remain enabled.
 
 
+## Mandatory PR logic audit (each commit, then whole PR)
+
+Before declaring a PR ready or recommending merge, review the **logic of every
+commit** in order. Inspect each commit against its parent (not only the final
+aggregate diff): the purpose of the change, correctness, compatibility with
+existing behavior, consequences, regressions, security/persistence impacts, and
+whether focused tests or missing checks are warranted. Give an explicit
+per-commit assessment and, when justified, concrete additions or corrections.
+A commit does not have to pass independently when it is an intentional step
+toward a complete PR; judge its role and its effect on subsequent commits.
+
+After the individual reviews, perform a **cross-commit/global PR audit** of the
+full final candidate: consistency of decisions, interactions between commits,
+integration, final diff, tests, remaining risks and compliance with the PR
+scope. An apparently correct final diff or green CI cannot replace the
+per-commit logic review; conversely, individually sound commits do not prove
+the final composition is sound.
+
+For the final verdict, use **VALIDATED** (no blocking issue found),
+**IMPROVEMENTS RECOMMENDED** (non-blocking worthwhile corrections), or
+**BLOCKED** (specific corrections required before merge). Distinguish
+verified findings from hypotheses and untested areas. Avoid cosmetic changes,
+speculative blockers and unnecessary refactors. Never claim certification
+without the separate Phase Certification evidence on the exact SHA.
+
 ## Library documentation (Context7)
 
 When an external library or API detail matters, prefer Context7 MCP (if available) for up-to-date, version-specific documentation before changing code. If MCP is unavailable, Codex can use the repository-scoped `.agents/skills/find-docs/SKILL.md` with the `npx ctx7@latest` CLI (Node.js 18+ required). Do not query both modes for the same answer. For example, verify PySide6 / QtWebEngine usage against the relevant version. Prefer focused documentation queries; cross-check the current code and tests. Context7 never overrides Atlas guardrails or becomes a source of Dofus game data. Never send secrets, personal data, or proprietary source to external documentation services. If neither Context7 mode is available, use official docs; do not block runtime or CI.
