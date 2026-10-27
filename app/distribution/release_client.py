@@ -379,7 +379,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
 
     At most three large assets are transferred at once. Each part owns its own
     .download file, strict HTTP byte-range contract and SHA-256 verification.
-    Progress reports the sum of actual per-part bytes; callers need no threads.
+    Progress is monotonic across HTTP restart/retry; callbacks are serialized.
     """
     manifest = release.manifest
     if not manifest.archive_parts or len(release.part_urls) != len(manifest.archive_parts):
@@ -399,13 +399,18 @@ def _download_multipart(release: RemoteRelease, directory: Path,
     transferred = [0] * len(pieces)
     progress_lock = threading.Lock()
     cancelled = threading.Event()
+    last_reported = -1
 
     def update(index: int, done: int) -> None:
-        # Serialise callbacks (Tk progress must never arrive out of order).
+        nonlocal last_reported
+        # Serialise callbacks and never move progress backwards when a server
+        # ignores HTTP Range and a partially downloaded part restarts at zero.
         with progress_lock:
             transferred[index] = done
-            if progress:
-                progress(sum(transferred), total)
+            complete = sum(transferred)
+            if progress and complete > last_reported:
+                last_reported = complete
+                progress(complete, total)
 
     def fetch_one(index: int, part, url: str) -> None:
         finished = parts_dir / part.name
