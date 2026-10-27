@@ -23,6 +23,8 @@ from .install_location import runtime_root, set_runtime_root, relocate_runtime, 
 from .manifest import verify_file
 from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
+from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
+                          display_message, progress_style)
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = runtime_root()
@@ -276,33 +278,30 @@ def main() -> int:
             print(f"Dofus Atlas : {exc}", file=sys.stderr)
             return 1
 
-    window.title("Dofus Atlas — Mise a jour")
+    window.title("Dofus Atlas — Lanceur")
     # Existing installations made before the picker was introduced get one
     # opportunity to select a drive; normal subsequent launches stay automatic.
     installed = bool(read_state(ROOT).get("active"))
     choosing_install = ("--atlas-auto-install" not in sys.argv and (
         "--atlas-configure" in sys.argv or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
-    window.geometry("590x370" if choosing_install else "510x260")
+    window.geometry("520x425" if choosing_install else "470x252")
     window.resizable(False, False)
-    window.configure(bg="#101826")
+    window.configure(bg=COLORS["background"])
     try:
         window.eval("tk::PlaceWindow . center")
     except tk.TclError:
         pass
-    tk.Label(window, text="DOFUS ATLAS", bg="#101826", fg="#eaf3ff",
-             font=("Segoe UI", 23, "bold")).pack(pady=(24, 4))
-    tk.Label(window, text="Lancement et mises a jour automatiques",
-             bg="#101826", fg="#8fa5bd", font=("Segoe UI", 10)).pack()
+    add_header(tk, window)
     start_button = None
     if choosing_install:
-        selection = tk.Frame(window, bg="#101826")
+        selection = tk.Frame(window, bg=COLORS["background"])
         selection.pack(pady=(12, 2))
-        tk.Label(selection, text="Dossier des fichiers Atlas (~3 Go)", bg="#101826",
-                 fg="#d2deeb", font=("Segoe UI", 10)).pack()
+        tk.Label(selection, text="EMPLACEMENT DES DONNÉES ATLAS (~3 Go)", bg=COLORS["background"],
+                 fg=COLORS["text"], font=("Segoe UI", 9, "bold")).pack()
         chosen = tk.StringVar(value=str(ROOT))
-        tk.Label(selection, textvariable=chosen, bg="#101826",
-                 fg="#8fa5bd", font=("Segoe UI", 9), wraplength=545).pack()
+        tk.Label(selection, textvariable=chosen, bg=COLORS["background"],
+                 fg=COLORS["muted"], font=("Segoe UI", 9), wraplength=515).pack()
 
         def choose_install_folder():
             from tkinter import filedialog, messagebox
@@ -319,23 +318,23 @@ def main() -> int:
             except (OSError, UpdateError) as exc:
                 messagebox.showerror("Emplacement Atlas", str(exc), parent=window)
 
-        tk.Button(selection, text="Changer de dossier...", command=choose_install_folder).pack(pady=5)
+        tk.Button(selection, text="Choisir un autre dossier", command=choose_install_folder,
+                  **button_options()).pack(pady=7)
     status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
-    tk.Label(window, textvariable=status, bg="#101826", fg="#d2deeb",
-             font=("Segoe UI", 10), wraplength=475, justify="center").pack(pady=(19, 7))
+    tk.Label(window, textvariable=status, bg=COLORS["background"], fg=COLORS["text"],
+             font=(FONT_FAMILY, 10), wraplength=420, justify="center", anchor="center").pack(
+                 fill="x", padx=24, pady=(20, 12))
     style = ttk.Style(window)
-    style.theme_use("clam")
-    style.configure("Atlas.Horizontal.TProgressbar", troughcolor="#27364b",
-                    background="#23c4db", borderwidth=0, thickness=15)
+    progress_style(style)
     percent = tk.IntVar(value=0)
     bar = ttk.Progressbar(window, orient="horizontal", mode="determinate", maximum=100,
                           variable=percent, style="Atlas.Horizontal.TProgressbar",
-                          length=430)
+                          length=408)
     bar.pack(pady=(0, 6))
     numeric = tk.StringVar(value="0 %")
-    tk.Label(window, textvariable=numeric, bg="#101826", fg="#8fa5bd",
-             font=("Segoe UI", 9)).pack()
+    tk.Label(window, textvariable=numeric, bg=COLORS["background"], fg=COLORS["muted"],
+             font=(FONT_FAMILY, 9)).pack(pady=(5, 0))
     finished = False
     succeeded = False
     updater_visible = choosing_install
@@ -371,7 +370,7 @@ def main() -> int:
                 kind, payload = events.get_nowait()
                 if kind == "progress":
                     message, value = payload
-                    status.set(message)
+                    status.set(display_message(message))
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
                     if not updater_visible and _requires_updater_window(message):
@@ -402,7 +401,7 @@ def main() -> int:
             status.set("Installation en cours...")
             threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
         start_button = tk.Button(window, text="Continuer et lancer" if installed else "Installer et lancer",
-                                 command=begin_install)
+                                 command=begin_install, **button_options())
         start_button.pack(pady=(2, 4))
     else:
         threading.Thread(target=worker, name="atlas-updater", daemon=True).start()
