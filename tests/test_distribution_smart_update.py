@@ -212,6 +212,28 @@ class CleanupSafetyTests(unittest.TestCase):
             self.assertEqual(current.read_bytes(), b"repair cache")
             self.assertEqual(unrelated.read_bytes(), b"keep")
 
+    def test_cleanup_removes_valid_stale_multipart_cache_but_keeps_current(self):
+        from app.distribution.cleanup import cleanup_verified_runtime
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, manifest = ReuseInstallerTests()._package(
+                root, "a" * 40, "v1", change=b"old"
+            )
+            runtime = root / "runtime"
+            install_release(runtime, first, manifest)
+            mark_healthy(runtime)
+            downloads = runtime / "downloads"
+            stale = downloads / ("b" * 20 + "-parts")
+            stale.mkdir(parents=True)
+            (stale / "atlas-windows.part0000").write_bytes(b"verified old part")
+            (stale / "atlas-windows.part0001.download").write_bytes(b"resumable old part")
+            current = downloads / ("a" * 20 + "-parts")
+            current.mkdir()
+            (current / "atlas-windows.part0000.download").write_bytes(b"active cache")
+            self.assertEqual(cleanup_verified_runtime(runtime), (0, 1))
+            self.assertFalse(stale.exists())
+            self.assertTrue((current / "atlas-windows.part0000.download").is_file())
+
     def test_cleanup_refuses_unknown_part_cache_contents(self):
         from app.distribution.cleanup import cleanup_verified_runtime
         with tempfile.TemporaryDirectory() as d:
@@ -289,6 +311,58 @@ class ParallelTransferTests(unittest.TestCase):
             self.assertEqual(progress, sorted(progress))
             with patch.object(release_client, "_open", side_effect=AssertionError("network")):
                 self.assertEqual(download_archive(remote, root / "cache"), result)
+
+    def test_ignored_range_restarts_part_without_rewinding_progress(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            attempts = 0
+            progress = []
+
+            class InterruptedResponse(Response):
+                def __init__(self, payload):
+                    super().__init__(payload)
+                    self._first = True
+
+                def read(self, n=-1):
+                    if self._first:
+                        self._first = False
+                        return super().read(max(1, len(self.getvalue()) // 2))
+                    raise OSError("synthetic connection drop")
+
+            def serve(url, headers=None):
+                nonlocal attempts
+                if url == first_url:
+                    attempts += 1
+                    if attempts == 1:
+                        return InterruptedResponse(payloads[url])
+                    self.assertEqual(
+                        headers,
+                        {"Range": f"bytes={len(payloads[url]) // 2}-"},
+                    )
+                    # The server disregards Range and sends a full HTTP 200.
+                    return Response(payloads[url], status=200)
+                return Response(payloads[url])
+
+            with (
+                patch.object(release_client, "_MAX_PARALLEL_PARTS", 1),
+                patch.object(release_client, "time") as fake_time,
+                patch.object(release_client, "_open", side_effect=serve),
+            ):
+                result = download_archive(
+                    remote, root / "cache",
+                    lambda done, total: progress.append(done),
+                )
+                fake_time.sleep.assert_called()
+            self.assertEqual(attempts, 2)
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            self.assertEqual(progress, sorted(progress))
+            self.assertEqual(progress[-1], manifest.archive_size)
 
     def test_corrupted_parallel_part_does_not_create_full_archive(self):
         with tempfile.TemporaryDirectory() as d:
