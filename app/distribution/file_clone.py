@@ -11,6 +11,18 @@ from pathlib import Path
 
 
 def clone_unchanged_cow(source: Path, destination: Path, size: int) -> bool:
+    """Optional best-effort fast path: Win32 failures fall back to safe copy."""
+    if os.name != "nt" or size <= 0 or destination.exists():
+        return False
+    try:
+        return _clone_unchanged_cow_impl(source, destination, size)
+    except (OSError, ValueError, TypeError, AttributeError, OverflowError):
+        # Filesystem APIs and ctypes differ across Windows builds. An
+        # unsupported clone must never abort an otherwise-valid update.
+        return False
+
+
+def _clone_unchanged_cow_impl(source: Path, destination: Path, size: int) -> bool:
     """Try ReFS extent cloning on Windows; leave no target on failure.
 
     Source and destination must already be verified as regular, distinct paths
