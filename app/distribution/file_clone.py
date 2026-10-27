@@ -17,8 +17,10 @@ def clone_unchanged_cow(source: Path, destination: Path, size: int) -> bool:
     try:
         return _clone_unchanged_cow_impl(source, destination, size)
     except (OSError, ValueError, TypeError, AttributeError, OverflowError):
-        # Filesystem APIs and ctypes differ across Windows builds. An
-        # unsupported clone must never abort an otherwise-valid update.
+        # Filesystem APIs and ctypes differ across Windows builds. Clear an
+        # incomplete private stage file before falling back to verified copy.
+        # The caller requires an absent destination on entry.
+        destination.unlink(missing_ok=True)
         return False
 
 
