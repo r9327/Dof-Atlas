@@ -45,11 +45,11 @@ class ModularDomainRoutingTests(unittest.TestCase):
         from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui
 
         for source in (
-            "from app import ui\\n",
-            "from app.ui import theme\\n",
-            "from PySide6 import QtWidgets\\n",
-            "__import__('app.ui.theme')\\n",
-            "import importlib\\nimportlib.import_module('app.ui.theme')\\n",
+            "from app import ui\n",
+            "from app.ui import theme\n",
+            "from PySide6 import QtWidgets\n",
+            "__import__('app.ui.theme')\n",
+            "import importlib\nimportlib.import_module('app.ui.theme')\n",
         ):
             with self.subTest(source=source), TemporaryDirectory() as folder:
                 root = Path(folder)
