@@ -187,10 +187,10 @@ class BoundedCIFailureTriageTests(unittest.TestCase):
                 return {"sha": original_sha}
             raise AssertionError("Unexpected GitHub API endpoint: " + endpoint)
 
-        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api), (
-             patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index",
-                   return_value=b'{"index":"valid"}\n') as renderer):
-            url = publish(REPO, "fake-token", classify(), Path("/unused"))
+        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api):
+            with patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index",
+                       return_value=b'{"index":"valid"}\n') as renderer:
+                url = publish(REPO, "fake-token", classify(), Path("/unused"))
         self.assertTrue(url.endswith("/999"))
         renderer.assert_called_once()
         self.assertEqual([row[0] for row in changes], ["POST", "PUT", "POST"])
@@ -219,10 +219,10 @@ class BoundedCIFailureTriageTests(unittest.TestCase):
                 "/actions/jobs/123/logs": MARKER,
             }[endpoint]
 
-        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api), (
-             patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index") as renderer):
-            with self.assertRaises(ValueError):
-                publish(REPO, "fake-token", stale_report, Path("/unused"))
+        with patch("tools.atlas_doctor_lib.ci_failure_autofix._request", side_effect=api):
+            with patch("tools.atlas_doctor_lib.ci_failure_autofix.regenerate_index") as renderer:
+                with self.assertRaises(ValueError):
+                    publish(REPO, "fake-token", stale_report, Path("/unused"))
         self.assertFalse(writes)
         renderer.assert_not_called()
 
