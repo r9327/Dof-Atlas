@@ -66,6 +66,15 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertFalse(selection["specialist_fallback"])
         self.assertFalse(selection["workflows"]["doctor-certification"]["selected"])
         self.assertFalse(selection["workflows"]["json-focused-data-contract"]["selected"])
+        # A policy/agent-docs-only PR must not pay for unrelated Windows,
+        # Qt, RAM, preload, packaging or application specialists.
+        self.assertTrue(selection["phase"])
+        self.assertEqual(
+            {name for name, job in selection["workflows"].items() if job["selected"]},
+            {"ai-context-ci", "signature-report"},
+        )
+        # The "full" risk marker is not evidence of an executed FULL.
+        self.assertTrue(selection["full"])
 
     def test_exact_domain_ci_only_skips_unrelated_user_journeys(self):
         from tools.ci_domain_certification import plan_domains
