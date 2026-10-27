@@ -50,6 +50,10 @@ Use `--max-cost` and `--limit` when the task calls for a bounded/cheap discovery
 - AI context/navigation: use `tools.ai_context` and the scope manifests under `.ai/scopes/` rather than inventing a parallel context index.
 - Integrity, Guide, agent/planner or other specialist work: query the catalog for the capability first, then use the selected canonical entry point and its `TOOL_SPEC`.
 
+## Specialist skills
+
+Use a matching project skill from `.agents/skills/` for task-specific guidance (navigation, root-cause debugging, Graphify cleanup, Qt UI, persistence, Dofus data, validation and performance). These are focused playbooks, not alternative registries or weaker gates: the catalog, Doctor, Graphify and the permanent guardrails remain authoritative.
+
 ## Safety and mutations
 
 Read-only discovery is the default. Do not automatically execute a tool merely because `safe_for_agent` is true; automatic execution requires `automation_ready=true` in the catalog.

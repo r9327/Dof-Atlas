@@ -40,6 +40,18 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
     "PHASE_CERTIFICATION.md", "DOCTOR_ADAPTIVE_CERTIFICATION.md",
+    # Additional reviewed AI guidance and skills; exact paths only.
+    ".ai/context-map.yaml",
+    ".ai/scopes/quality_ci.yaml",
+    "tests/test_ai_workflow_skills.py",
+    ".agents/skills/codebase-navigation/SKILL.md",
+    ".agents/skills/dofus-data-provenance/SKILL.md",
+    ".agents/skills/evidence-driven-validation/SKILL.md",
+    ".agents/skills/performance-triage/SKILL.md",
+    ".agents/skills/persistence-safety/SKILL.md",
+    ".agents/skills/pyside6-qtwebengine/SKILL.md",
+    ".agents/skills/root-cause-debugging/SKILL.md",
+    ".agents/skills/safe-architecture-cleanup/SKILL.md",
 })
 INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",

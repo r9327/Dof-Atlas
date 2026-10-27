@@ -53,11 +53,10 @@ Exit codes: 0 means expectations match (advisory); 1 indicates mismatch;
 
 ## Coordination
 
-This is a stacked PR on #274 so routing expectations and the known CI-only
-UI-classification fix are shared. When #274 is merged, retarget onto main
-and rerun the official checks on the new exact head. PR #275 adds skills and
-also edits .github/workflows/scoped-pr-ci.yml; retain **both** sets of Draft
-tests when integrating. PR #268 (Atlas Delivery Guard) addresses actual
+PR #274 and PR #275 are merged into `main`. The current branch integrates
+their routing and skill tests alongside this read-only decision replay.
+The arena still needs exact-SHA Draft feedback followed by official Ready
+certification; no old stacked-PR evidence is reusable. PR #268 (Atlas Delivery Guard) addresses actual
 requirement-to-delivery tracing; this arena does not replace it.
 
 Never turn a disabled, skipped or missing specialist into SUCCESS on the

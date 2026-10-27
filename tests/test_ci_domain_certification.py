@@ -16,6 +16,43 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
+        from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
+
+        # All 11 new paths reuse the existing, canonical reviewed-path set.
+        new_paths = (
+            ".ai/context-map.yaml",
+            ".ai/scopes/quality_ci.yaml",
+            "tests/test_ai_workflow_skills.py",
+            ".agents/skills/codebase-navigation/SKILL.md",
+            ".agents/skills/dofus-data-provenance/SKILL.md",
+            ".agents/skills/evidence-driven-validation/SKILL.md",
+            ".agents/skills/performance-triage/SKILL.md",
+            ".agents/skills/persistence-safety/SKILL.md",
+            ".agents/skills/pyside6-qtwebengine/SKILL.md",
+            ".agents/skills/root-cause-debugging/SKILL.md",
+            ".agents/skills/safe-architecture-cleanup/SKILL.md",
+        )
+        self.assertEqual(len(set(new_paths)), len(new_paths))
+        self.assertTrue(set(new_paths).issubset(REVIEWED_CI_INSTRUCTION_PATHS))
+        for path in new_paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(list(new_paths) + [
+            ".github/workflows/ai-context-ci.yml", ".ai/context_index.json",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci"])
+        for path in (
+            ".agents/skills/unreviewed/SKILL.md",
+            ".agents/skills/unreviewed/execute.py",
+            ".ai/scopes/unreviewed.yaml",
+            "tests/test_unknown_ai_workflow.py",
+        ):
+            self.assertFalse(owners_for(path), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
     def test_ci_router_ui_exclusion_requires_independent_import_evidence(self):
         # Real UI classifier, not a caller-supplied UI_NONE stub. This regression
         # covers the Draft diagnostic that previously reported UNMAPPED_DEPENDENCY.
@@ -50,6 +87,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "from PySide6 import QtWidgets\n",
             "__import__('app.ui.theme')\n",
             "import importlib\nimportlib.import_module('app.ui.theme')\n",
+            "from importlib import import_module as load\nload('app.ui.theme')\n",
+            "from builtins import __import__ as loader\nloader('app.ui.theme')\n",
         ):
             with self.subTest(source=source), TemporaryDirectory() as folder:
                 root = Path(folder)
