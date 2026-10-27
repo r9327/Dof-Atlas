@@ -81,6 +81,7 @@ class ReuseInstallerTests(unittest.TestCase):
                 self.assertTrue(install_release(target, second, newer))
             self.assertIn("AtlasApp/same.dat", reused)
             self.assertIn("AtlasApp/AtlasApp.exe", reused)
+            self.assertNotIn("AtlasApp/changed.dat", reused)  # no wasted copy
             latest_slot = slot_path(target, read_state(target)["active"])
             self.assertEqual((latest_slot / "AtlasApp/changed.dat").read_bytes(), b"new")
             self.assertEqual(
@@ -88,6 +89,22 @@ class ReuseInstallerTests(unittest.TestCase):
             )
             self.assertTrue(rollback_pending(target))
             self.assertEqual(read_state(target)["active"], old_slot)
+
+    def test_legacy_slot_without_index_avoids_speculative_full_copies(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            target = root / "runtime"
+            install_release(target, first, original)
+            mark_healthy(target)
+            old_slot = slot_path(target, read_state(target)["active"])
+            (old_slot / ".atlas-file-index.json").unlink()
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(
+                install, "_copy_unchanged_verified",
+                side_effect=AssertionError("legacy metadata must not trigger trial copies"),
+            ):
+                self.assertTrue(install_release(target, second, newer))
 
     def test_corrupted_reusable_file_falls_back_to_full_zip(self):
         with tempfile.TemporaryDirectory() as d:
