@@ -220,5 +220,21 @@ class ParallelTransferTests(unittest.TestCase):
             self.assertFalse((root / "cache" / ("a" * 20 + ".zip")).exists())
 
 
+class FrozenCandidateWorkflowTests(unittest.TestCase):
+    def test_windows_candidate_runs_only_for_exact_reviewed_pr_branch(self):
+        workflow = (
+            Path(__file__).resolve().parents[1] /
+            ".github/workflows/atlas-windows-distribution.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "github.head_ref == 'feat/smart-download-safe-cow-install-20261027'",
+            workflow,
+        )
+        self.assertIn("github.event.action == 'ready_for_review'", workflow)
+        self.assertIn("atlas-windows-full-candidate-", workflow)
+        self.assertIn("if: github.event_name == 'workflow_run'", workflow)
+        self.assertIn("--repo r9327/Dof-Atlas-App", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
