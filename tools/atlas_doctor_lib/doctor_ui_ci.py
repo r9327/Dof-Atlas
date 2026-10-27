@@ -205,8 +205,17 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
                 tree = ast.parse((root / path).read_text(encoding="utf-8-sig"))
                 imports = [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]
                 imports.extend(node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom))
+                # Imported dynamic loaders can be renamed; a direct-call check
+                # alone would incorrectly certify an unverified runtime boundary.
+                dynamic_names = {"__import__"}
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ImportFrom) and node.module in {"importlib", "builtins"}:
+                        target = "import_module" if node.module == "importlib" else "__import__"
+                        dynamic_names.update(
+                            alias.asname or alias.name for alias in node.names if alias.name == target
+                        )
                 dynamic = any(isinstance(node, ast.Call) and (
-                    isinstance(node.func, ast.Name) and node.func.id == "__import__"
+                    isinstance(node.func, ast.Name) and node.func.id in dynamic_names
                     or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
                 ) for node in ast.walk(tree))
                 if dynamic or any(name == "app" or name.startswith(("PySide", "app.")) for name in imports):
