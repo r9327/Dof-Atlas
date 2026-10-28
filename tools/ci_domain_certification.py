@@ -114,7 +114,12 @@ def owners_for(path: str) -> frozenset[str]:
         "tests/test_distribution_packaging.py",
     }:
         return frozenset({"ci", "startup", "data"})
-    if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
+    if path in {
+        "app/distribution/launcher.py", "app/distribution/launcher_ui.py",
+        "app/distribution/health.py", "tests/test_distribution_health.py",
+    }:
+        # Runtime health is shared by the Qt Home and standalone launcher.
+        # Exact owner list: unrelated distribution code still fails closed.
         return frozenset({"startup", "ui"})
     # PR #285: reviewed opt-in instrumentation is shared by the launcher and
     # Qt startup. Keep these exact paths so unrelated helpers fail closed.

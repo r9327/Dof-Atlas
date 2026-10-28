@@ -315,6 +315,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_pr285_startup_trace_paths_are_reviewed_without_wildcard(self):
         expected = {
             "app/distribution/startup_trace.py": {"startup", "ui"},
+            "app/distribution/health.py": {"startup", "ui"},
+            "tests/test_distribution_health.py": {"startup", "ui"},
             "tools/startup_trace_report.py": {"ci", "startup"},
             "tools/analyze_startup.py": {"ci", "startup"},
         }
@@ -333,6 +335,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(plan["merge_authorized"])
         for path in (
             "app/distribution/unreviewed_startup_helper.py",
+            "app/distribution/health_unknown.py",
+            "tests/test_distribution_health_unknown.py",
             "tools/startup_trace_unknown.py",
         ):
             self.assertEqual(owners_for(path), frozenset(), path)
