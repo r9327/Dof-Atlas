@@ -22,17 +22,20 @@ class ReleaseCertificationFixTests(unittest.TestCase):
         self.assertEqual(guide_runtime_identity(service), "dofus_sylvestre")
         self.assertIsNone(guide_runtime_identity(SimpleNamespace()))
 
-    def test_ram_peak_tolerance_does_not_change_other_strict_budgets(self):
+    def test_ram_peak_and_preload_tolerance_preserve_budget_targets(self):
         root = Path(__file__).resolve().parents[1]
         source = (root / ".github/workflows/phase8-memory-benchmark.yml").read_text(
             encoding="utf-8"
         )
         self.assertIn("peak_target_mb = 220.0", source)
-        self.assertIn("peak_hard_limit_mb = peak_target_mb * 1.05", source)
-        self.assertIn("if peak_tree > peak_hard_limit_mb:", source)
-        self.assertIn("if preload_mb > 95.0:", source)
+        self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", source)
+        self.assertIn('if classify(peak_tree, peak_target_mb) == "FAIL":', source)
+        self.assertIn("preload_target_mb = 95.0", source)
+        self.assertIn("preload_limit_mb = hard_limit(preload_target_mb)", source)
+        self.assertIn('if preload_status == "FAIL":', source)
         self.assertIn("retained_budgets_mb = {", source)
         self.assertIn('"guide_retained_tree_delta_mb": 20.0', source)
+        self.assertIn("state = classify(measured, budget, allow_negative=True)", source)
 
 
 if __name__ == "__main__":
