@@ -21,3 +21,35 @@ touche le coin haut droit. Utiliser la commande locale
 pour générer `background_selection_clean.png` sans modifier l'original.
 Ce dérivé est ignoré par Git et exclu des distributions ; l'audit
 d'intégrité n'établit aucune licence de redistribution.
+
+
+## Installation personnelle persistante (sans modifier l'EXE)
+
+Le theme Unity est maintenant la presentation par defaut. Les images et polices
+personnelles restent hors de la distribution publique ; leur absence n'empeche
+pas Atlas de demarrer et laisse la palette Unity sans fond image.
+
+Depuis un checkout du depot DEV sur le PC Windows (avec Python et Pillow) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/assets/import_dofus_unity_ui.ps1 -InstallPersonalTheme
+```
+
+Le script copie les sprites et les polices dans
+`%LOCALAPPDATA%\DofusAtlas\themes\dofus_unity`, produit uniquement en
+local `background_selection_clean.png` a partir du fond controle (sans
+modifier l'original), puis cree `.enabled` seulement si les ressources
+attendues sont installees. Les mises a jour EXE ne touchent pas ce repertoire.
+Fermer et relancer Atlas pour charger le fond, les sprites et les polices.
+
+La presentation Unity est maintenant la seule interface active. Les anciens
+styles restent uniquement des roles de conversion CSS internes, pas un
+mode utilisateur alternatif. Le dossier personnel n'entre jamais dans une
+Release publique.
+
+En l'absence de copie personnelle, Atlas affiche un degrade bleu nuit/violet
+integralement dessine par Qt, pas l'ancienne interface ni une image du jeu.
+Le fond personnel nettoye remplace ce degrade des qu'il est present. Le script
+d'installation exige maintenant les 46 sprites, les 10 polices et un PNG
+nettoye non vide. Si `py -3.13` echoue, il essaie `python` deja installe
+(avec Pillow). Aucun test sur le PC de l'utilisateur n'est implicite.

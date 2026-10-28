@@ -3,30 +3,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
-from app.ui.unity_skin import UNITY_PALETTE, unity_enabled, unity_skin_stylesheet
+from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
-# Shared visual language: the home page's near-black surfaces, olive accent and
-# warm neutral text. Keep semantic names here so modules do not grow parallel
-# palettes while adopting the same navigation, cards and interaction hierarchy.
+# One Unity visual language, shared by every Qt page. The remaining keys are
+# semantic warning/status roles, not a second (legacy) presentation.
 PALETTE = {
-    "BG": "#050A0D",
-    "SIDEBAR": "#071012",
-    "PANEL": "#081113",
-    "PANEL_2": "#091214",
-    "PANEL_HOVER": "#0B1714",
-    "PANEL_ACTIVE": "#0D2118",
-    "BORDER": "#26332D",
-    "BORDER_SOFT": "#1C2925",
-    "BORDER_STRONG": "#344434",
-    "TEXT": "#F5F7F2",
-    "TEXT_SOFT": "#E8ECE8",
-    "TEXT_MUTED": "#AEB7B1",
-    "TEXT_DISABLED": "#6F7968",
-    "GREEN": "#9FC528",
-    "GREEN_HOVER": "#5C7E1B",
-    "GREEN_DARK": "#4B6816",
-    "GREEN_BORDER": "#6F941E",
+    **UNITY_PALETTE,
     "RED": "#D71920",
     "RED_HOVER": "#EF2028",
     "RED_DARK": "#9F1016",
@@ -36,19 +19,12 @@ PALETTE = {
     "BADGE_BG": "#2A2B11",
     "BADGE_BORDER": "#7D8424",
     "BADGE_TEXT": "#C9D44C",
-    "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #071012, stop:1 #050A0D)",
-    "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #091214, stop:1 #081113)",
-    "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5C7E1B, stop:1 #4B6816)",
 }
 
-if unity_enabled():
-    # Central token override: module QSS and shell share a single palette.
-    PALETTE.update(UNITY_PALETTE)
-
 TYPOGRAPHY = {
-    # Only system-installed Lexend/Rowdies are used; game-extracted TTF files
-    # are never registered or exported without verified redistribution rights.
-    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial' if unity_enabled() else '"Segoe UI", Arial',
+    # The app registers approved personal fonts at startup when installed.
+    # System fonts remain the fallback; packaging does not include game TTFs.
+    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial',
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
@@ -3193,4 +3169,4 @@ def atlas_stylesheet(overrides: Mapping[str, str] | None = None) -> str:
     """
 
     style = render_theme_template(_STYLE_TEMPLATE, overrides)
-    return style + "\n" + unity_skin_stylesheet() if unity_enabled() else style
+    return style + "\n" + unity_skin_stylesheet()

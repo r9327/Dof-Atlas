@@ -1,7 +1,6 @@
-"""Opt-in local DOFUS Unity skin. Licensed Atlas UI remains the fallback.
+"""Single Unity visual system for Atlas, with local optional graphic assets.
 
-The reference sprites and screenshot are *not* authorized for redistribution.
-No font extracted from the game is registered by this module.
+Game-extracted image and font files stay outside the public Windows release.
 """
 from __future__ import annotations
 
@@ -9,13 +8,20 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import QWidget
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
+# A personal theme survives every transactional EXE update and is never
+# part of the publicly downloadable runtime.
+_PERSONAL_ASSETS = (
+    Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
+    / "DofusAtlas" / "themes" / "dofus_unity"
+)
 UNITY_PALETTE = {
     "BG": "#151821",
+    "BG_GRADIENT_START": "#253967",
     "SIDEBAR": "#19243F",
     "PANEL": "#1B2746",
     "PANEL_2": "#213154",
@@ -23,6 +29,7 @@ UNITY_PALETTE = {
     "PANEL_ACTIVE": "#344978",
     "BORDER": "#475F89",
     "BORDER_SOFT": "#354966",
+    "BORDER_CARD": "#617CA6",
     "BORDER_STRONG": "#7B9BC8",
     "TEXT": "#F1F6FB",
     "TEXT_SOFT": "#D9EAF2",
@@ -39,44 +46,56 @@ UNITY_PALETTE = {
 
 
 def unity_enabled() -> bool:
-    """Local-only opt-in; the default distributable theme never loads these assets."""
-    return os.environ.get("ATLAS_THEME", "").strip().casefold() == "dofus_unity"
+    """The legacy Atlas presentation is retired; Unity is always active."""
+    return True
+
+
+def _asset_file(relative: Path) -> Path | None:
+    """Prefer durable personal assets; keep existing DEV checkout behavior."""
+    for root in (_PERSONAL_ASSETS, _ASSETS):
+        candidate = root / relative
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def wallpaper_path() -> Path | None:
-    """Use only the local *cleaned* wallpaper, never the raw game screenshot.
-
-    The original contains the three unwanted native HUD icons. Until a local
-    derived PNG is verified, painting the neutral Unity palette is preferable
-    to silently rendering the wrong UI. Neither image is publicly packaged.
-    """
+    """Never show original HUD icons; only use a locally cleaned background."""
     if not unity_enabled():
         return None
-    cleaned = _ASSETS / "background_selection_clean.png"
-    return cleaned if cleaned.is_file() else None
+    return _asset_file(Path("background_selection_clean.png"))
 
 
 def _sprite_url(filename: str) -> str | None:
-    """Only named, bundled files; no runtime archive extraction or network lookup."""
-    candidate = _ASSETS / "sprites" / filename
-    if not candidate.is_file():
-        return None
-    return candidate.resolve().as_posix()
+    """Render from personal files first, without changing release packaging."""
+    candidate = _asset_file(Path("sprites") / filename)
+    return candidate.resolve().as_posix() if candidate else None
 
 
 def sprite_icon_path(icon: str) -> Path | None:
-    """Small, verified navigation pictograms for *local* skin only.
-
-    Callers keep their normal icon if the optional sprite is absent.
-    """
+    """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
     if not unity_enabled() or icon not in {
         "guide", "quest", "success", "encyclopedia",
         "character", "dofus", "map", "inventory",
     }:
         return None
     filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
-    path = _ASSETS / "sprites" / filename
-    return path if path.is_file() else None
+    return _asset_file(Path("sprites") / filename)
+
+
+def register_unity_fonts() -> tuple[str, ...]:
+    """Register local fonts only after QApplication exists; never package them."""
+    if not unity_enabled():
+        return ()
+    families: list[str] = []
+    for name in ("Lexend-Regular.ttf", "Lexend-Medium.ttf",
+                 "Lexend-SemiBold.ttf", "Lexend-Bold.ttf", "Rowdies-Regular.ttf"):
+        path = _asset_file(Path("fonts") / name)
+        if path:
+            font_id = QFontDatabase.addApplicationFont(str(path))
+            if font_id >= 0:
+                families.extend(QFontDatabase.applicationFontFamilies(font_id))
+    return tuple(dict.fromkeys(families))
 
 
 def unity_skin_stylesheet() -> str:
@@ -231,7 +250,14 @@ class UnityBackdrop(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(UNITY_PALETTE["BG"]))
+        # A license-independent Unity-colored sky remains visible in public
+        # builds where the user's local wallpaper has not been installed.
+        # The verified personal background entirely covers this fallback.
+        gradient = QLinearGradient(0, 0, self.width(), self.height())
+        gradient.setColorAt(0.0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
+        gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
+        gradient.setColorAt(1.0, QColor(UNITY_PALETTE["BG"]))
+        painter.fillRect(self.rect(), gradient)
         if not self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
             source_w = self._pixmap.width()
             source_h = self._pixmap.height()

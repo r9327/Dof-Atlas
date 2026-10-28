@@ -182,7 +182,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "ui"})
     if path == "tests/test_unity_wallpaper_cleaner.py":
         return frozenset({"ui", "data"})
-    if path == "tests/test_unity_skin.py":
+    if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
+        # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.

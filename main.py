@@ -66,7 +66,7 @@ from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, Atlas
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_skin import UnityBackdrop, unity_enabled
+from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -937,25 +937,32 @@ class AtlasWindow(QMainWindow):
 
         organizer = AtlasButton("Organizer")
         organizer.setObjectName("TopNavButton")
+        inventory_sprite = sprite_icon_path("inventory")
+        if inventory_sprite:
+            organizer.setIcon(QIcon(str(inventory_sprite)))
+            organizer.setIconSize(QSize(18, 18))
         organizer.clicked.connect(lambda: self.show_page("Organizer"))
         layout.addWidget(organizer)
         self.nav_buttons.append((organizer, "Organizer"))
 
         encyclopedia_menu = QMenu(nav)
-        encyclopedia_menu.addAction(
-            "Guide",
-            lambda: self.open_encyclopedia_tab(GUIDES_TAB),
-        )
-        encyclopedia_menu.addAction(
-            "Quêtes",
-            lambda: self.open_encyclopedia_tab(QUESTS_TAB),
-        )
-        encyclopedia_menu.addAction(
-            "Succès",
-            lambda: self.open_encyclopedia_tab(ACHIEVEMENTS_TAB),
-        )
+        for title, icon_name, tab in (
+            ("Guide", "guide", GUIDES_TAB),
+            ("Quêtes", "quest", QUESTS_TAB),
+            ("Succès", "success", ACHIEVEMENTS_TAB),
+        ):
+            action = encyclopedia_menu.addAction(
+                title, lambda _checked=False, chosen=tab: self.open_encyclopedia_tab(chosen)
+            )
+            icon_path = sprite_icon_path(icon_name)
+            if icon_path:
+                action.setIcon(QIcon(str(icon_path)))
 
         encyclopedia = HoverMenuButton("Encyclopédie")
+        encyclopedia_sprite = sprite_icon_path("encyclopedia")
+        if encyclopedia_sprite:
+            encyclopedia.setIcon(QIcon(str(encyclopedia_sprite)))
+            encyclopedia.setIconSize(QSize(18, 18))
         encyclopedia.set_hover_menu(encyclopedia_menu)
         encyclopedia.clicked.connect(
             lambda: self.open_encyclopedia_tab(GUIDES_TAB)
@@ -2662,6 +2669,7 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        register_unity_fonts()
         # The only visible window during preload is a transient QDialog;
         # hiding it must never quit Qt before revealing AtlasWindow.
         app.setQuitOnLastWindowClosed(False)

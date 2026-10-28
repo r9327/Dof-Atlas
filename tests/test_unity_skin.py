@@ -20,20 +20,40 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
-    def test_disabled_unless_explicitly_selected(self) -> None:
-        with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertFalse(unity_enabled())
-            self.assertEqual(unity_skin_stylesheet(), "")
-        with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
-            self.assertTrue(unity_enabled())
+    def test_unity_only_theme_even_with_stale_legacy_override(self) -> None:
+        for choice in ("", "atlas", "legacy", "dofus_unity"):
+            with self.subTest(choice=choice), patch.dict(os.environ, {"ATLAS_THEME": choice}):
+                self.assertTrue(unity_enabled())
+                self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
+
+    def test_personal_assets_persist_independently_of_theme_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            personal = Path(directory)
+            sprites = personal / "sprites"
+            sprites.mkdir()
+            (personal / ".enabled").write_text("personal local theme\\n", encoding="utf-8")
+            (personal / "background_selection_clean.png").write_bytes(b"personal")
+            icon = sprites / "Assets_UI_Themes_Figma_menuIcons_1x_guide-png.png"
+            icon.write_bytes(b"sprite")
+            with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
+                with patch.dict(os.environ, {"ATLAS_THEME": ""}):
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
+                    self.assertEqual(sprite_icon_path("guide"), icon)
+                with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
+            (personal / ".enabled").unlink()
+            with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
+                with patch.dict(os.environ, {"ATLAS_THEME": ""}):
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_local_icon_is_not_used_in_default_app(self) -> None:
-        with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertIsNone(sprite_icon_path("guide"))
+    def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
             self.assertIsNone(sprite_icon_path("not-an-allowlisted-icon"))
 
@@ -48,9 +68,9 @@ class UnitySkinTests(unittest.TestCase):
             for state in ("normal", "over", "pressed", "disabled"):
                 self.assertTrue(source.save(str(sprites / f"btn_green_{state}.png")))
             self.assertTrue(source.save(str(sprites / "Assets_UI_Themes_Figma_menuIcons_1x_guide-png.png")))
-            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.dict(
-                os.environ, {"ATLAS_THEME": "dofus_unity"},
-            ):
+            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.object(
+                unity_skin, "_PERSONAL_ASSETS", asset_dir / "absent-personal"
+            ), patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
                 style = unity_skin_stylesheet()
                 for state in ("normal", "over", "pressed", "disabled"):
                     self.assertIn(f"btn_green_{state}.png", style)
@@ -77,7 +97,9 @@ class UnitySkinTests(unittest.TestCase):
             original = asset_dir / "background_selection_original.png"
             cleaned = asset_dir / "background_selection_clean.png"
             original.write_bytes(b"unchanged-original")
-            with patch.object(unity_skin, "_ASSETS", asset_dir):
+            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.object(
+                unity_skin, "_PERSONAL_ASSETS", asset_dir / "absent-personal"
+            ):
                 with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
                     self.assertIsNone(wallpaper_path())
                 with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
@@ -111,7 +133,37 @@ class UnitySkinTests(unittest.TestCase):
             style.rfind("QPushButton:focus, QToolButton:focus"),
         )
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertEqual(unity_skin_stylesheet(), "")
+            self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
+
+    def test_primary_navigation_uses_local_unity_pictograms_with_fallback(self) -> None:
+        main_source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
+        self.assertIn('sprite_icon_path("inventory")', main_source)
+        self.assertIn('sprite_icon_path("encyclopedia")', main_source)
+        self.assertIn('("Guide", "guide", GUIDES_TAB)', main_source)
+        self.assertIn('("Quêtes", "quest", QUESTS_TAB)', main_source)
+        self.assertIn('("Succès", "success", ACHIEVEMENTS_TAB)', main_source)
+        self.assertIn('lambda _checked=False, chosen=tab:', main_source)
+        self.assertIn("if icon_path:", main_source)
+
+    def test_application_has_only_unity_palette(self) -> None:
+        from app.ui import theme
+        self.assertEqual(theme.PALETTE["BG"], UNITY_PALETTE["BG"])
+        self.assertEqual(theme.PALETTE["PANEL"], UNITY_PALETTE["PANEL"])
+        self.assertEqual(theme.PALETTE["GREEN"], UNITY_PALETTE["GREEN"])
+        self.assertIn("QWidget#AtlasUnityBackdrop", theme.atlas_stylesheet())
+
+    def test_unity_fallback_background_is_not_flat(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            unity_skin, "_PERSONAL_ASSETS", Path(directory) / "no-assets"
+        ), patch.object(unity_skin, "_ASSETS", Path(directory) / "no-source"):
+            backdrop = UnityBackdrop()
+            self.assertTrue(backdrop._pixmap.isNull())
+            backdrop.resize(220, 140)
+            image = QImage(220, 140, QImage.Format_ARGB32)
+            image.fill(0xff000000)
+            backdrop.render(image)
+            self.assertNotEqual(image.pixelColor(10, 10), image.pixelColor(10, 130))
+            backdrop.deleteLater()
 
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])

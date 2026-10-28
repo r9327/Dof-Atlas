@@ -1,15 +1,75 @@
-# Import non destructif des assets Unity identifies dans les planches de l'utilisateur.
-# Usage depuis un clone local de r9327/Dof-Atlas (PR #254) :
-#   powershell -ExecutionPolicy Bypass -File tools/assets/import_dofus_unity_ui.ps1 -BackgroundPath "chemin\\capture.png"
-# Le script ne telecharge rien et ne modifie jamais l'installation du jeu.
+# Import non destructif des assets Unity depuis les sources personnelles.
+# Installer les fichiers deja presents dans le checkout Dof-Atlas :
+#   powershell -ExecutionPolicy Bypass -File tools/assets/import_dofus_unity_ui.ps1 -InstallPersonalTheme
+# Ce mode ne modifie ni la distribution publique, ni les donnees du jeu.
 [CmdletBinding()]
 param(
     [string] $SourceRoot = (Join-Path $env:USERPROFILE 'Documents\Atlas-Dofus-UI-Composants'),
     [string] $BackgroundPath = '',
-    [switch] $IncludeDofusLogo
+    [switch] $IncludeDofusLogo,
+    [switch] $InstallPersonalTheme
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+if ($InstallPersonalTheme) {
+    if (-not $env:LOCALAPPDATA) { throw 'LOCALAPPDATA introuvable. Executer sur Windows.' }
+    $sourceTheme = Join-Path $repo 'app\assets\themes\dofus_unity'
+    $destination = Join-Path $env:LOCALAPPDATA 'DofusAtlas\themes\dofus_unity'
+    $original = Join-Path $sourceTheme 'background_selection_original.png'
+    $cleaned = Join-Path $destination 'background_selection_clean.png'
+    $spriteFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'sprites') -Filter '*.png' -File)
+    $fontFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'fonts') -Filter '*.ttf' -File)
+    if (!(Test-Path -LiteralPath $original -PathType Leaf) -or
+        $spriteFiles.Count -ne 46 -or $fontFiles.Count -ne 10) {
+        throw 'Sources du theme incompletes dans ce checkout. Aucun theme active.'
+    }
+    foreach ($folder in @('sprites', 'fonts')) {
+        $from = Join-Path $sourceTheme $folder
+        $to = Join-Path $destination $folder
+        New-Item -ItemType Directory -Path $to -Force | Out-Null
+        Get-ChildItem -LiteralPath $from -File | ForEach-Object {
+            $target = Join-Path $to $_.Name
+            if (!(Test-Path -LiteralPath $target -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash) {
+                Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+        }
+    }
+    if (!(Test-Path -LiteralPath $cleaned -PathType Leaf)) {
+        # Existing non-destructive helper verifies SHA and removes the HUD strip.
+        Push-Location $repo
+        try {
+            if (Get-Command py -ErrorAction SilentlyContinue) {
+                & py -3.13 -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
+                if ($LASTEXITCODE -ne 0 -and (Get-Command python -ErrorAction SilentlyContinue)) {
+                    & python -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
+                }
+            } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+                & python -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
+            } else {
+                throw 'Python + Pillow sont requis pour nettoyer le fond local une seule fois.'
+            }
+            if ($LASTEXITCODE -ne 0) { throw 'Nettoyage du fond impossible (Python/Pillow ou SHA).' }
+        } finally {
+            Pop-Location
+        }
+    }
+    if (!(Test-Path -LiteralPath $cleaned -PathType Leaf) -or
+        (Get-Item -LiteralPath $cleaned).Length -lt 50000) {
+        throw 'Fond nettoye absent ou incomplet. Aucun theme confirme.'
+    }
+    $installedSprites = @(Get-ChildItem -LiteralPath (Join-Path $destination 'sprites') -Filter '*.png' -File)
+    $installedFonts = @(Get-ChildItem -LiteralPath (Join-Path $destination 'fonts') -Filter '*.ttf' -File)
+    if ($installedSprites.Count -lt 46 -or $installedFonts.Count -lt 10) {
+        throw 'Installation des sprites ou polices incomplete. Aucun theme confirme.'
+    }
+    # Marker records complete personal setup, without touching public manifests.
+    Set-Content -LiteralPath (Join-Path $destination '.enabled') -Value 'personal-local-theme' -Encoding ascii
+    Write-Host "Theme Unity personnel installe dans $destination" -ForegroundColor Green
+    Write-Host 'Fermer puis relancer Dofus Atlas. Les assets sont preserves pendant les mises a jour.'
+    return
+}
 $manifest = Join-Path $repo 'docs\plans\guides-2026-10-24\06b-dofus-unity-asset-manifest.csv'
 if (!(Test-Path -LiteralPath $SourceRoot -PathType Container)) { throw "Source introuvable: $SourceRoot" }
 if (!(Test-Path -LiteralPath $manifest -PathType Leaf)) { throw "Manifeste introuvable: $manifest" }

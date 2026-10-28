@@ -1,24 +1,9 @@
-"""Minimal standalone Tk chrome; no Qt/game imports or third-party assets.
+"""Single-theme standalone Tk launcher, with the original Atlas logo.
 
-The two palettes mirror app.ui.theme.PALETTE and
-app.ui.unity_skin.UNITY_PALETTE. The real Atlas icon is an embedded 64px
-PNG frame extracted from data/images/misc/dofus_atlas.ico (project icon),
-so the onefile Windows launcher needs no separate asset on disk.
+Its Unity colors match the main Qt app without importing Qt or game assets.
 """
 from __future__ import annotations
 
-import os
-
-ATLAS_PALETTE = {
-    "background": "#050A0D",
-    "panel": "#081113",
-    "border": "#26332D",
-    "track": "#1C2925",
-    "text": "#F5F7F2",
-    "muted": "#AEB7B1",
-    "accent": "#9FC528",
-    "accent_hover": "#5C7E1B",
-}
 UNITY_PALETTE = {
     "background": "#151821",
     "panel": "#1B2746",
@@ -31,13 +16,9 @@ UNITY_PALETTE = {
 }
 
 
-def palette_for_theme(theme: str) -> dict[str, str]:
-    """Use precisely the same opt-in switch as app.ui.unity_skin."""
-    return UNITY_PALETTE if theme.strip().casefold() == "dofus_unity" else ATLAS_PALETTE
-
-
-COLORS = palette_for_theme(os.environ.get("ATLAS_THEME", ""))
-FONT_FAMILY = "Lexend" if os.environ.get("ATLAS_THEME", "").strip().casefold() == "dofus_unity" else "Segoe UI"
+# No second launcher palette: the old Atlas UI cannot accidentally reappear.
+COLORS = UNITY_PALETTE
+FONT_FAMILY = "Lexend"
 
 # Exact existing Atlas application icon, not a substitute game logo.
 LOGO_PNG_BASE64 = (
