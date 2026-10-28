@@ -21,3 +21,28 @@ touche le coin haut droit. Utiliser la commande locale
 pour générer `background_selection_clean.png` sans modifier l'original.
 Ce dérivé est ignoré par Git et exclu des distributions ; l'audit
 d'intégrité n'établit aucune licence de redistribution.
+
+
+## Installation personnelle persistante (sans modifier l'EXE)
+
+Le theme Unity est maintenant la presentation par defaut. Les images et polices
+personnelles restent hors de la distribution publique ; leur absence n'empeche
+pas Atlas de demarrer et laisse la palette Unity sans fond image.
+
+Depuis un checkout du depot DEV sur le PC Windows (avec Python et Pillow) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/assets/import_dofus_unity_ui.ps1 -InstallPersonalTheme
+```
+
+Le script copie les sprites et les polices dans
+`%LOCALAPPDATA%\DofusAtlas\themes\dofus_unity`, produit uniquement en
+local `background_selection_clean.png` a partir du fond controle (sans
+modifier l'original), puis cree `.enabled` seulement si les ressources
+attendues sont installees. Les mises a jour EXE ne touchent pas ce repertoire.
+Fermer et relancer Atlas pour charger le fond, les sprites et les polices.
+
+L'ancienne presentation n'est plus selectionnee par defaut. En cas de
+reparation uniquement : `ATLAS_THEME=atlas` restaure temporairement le
+style precedent sans remplacer les donnees ni les fichiers du theme.
+Ne pas publier ce dossier personnel dans une Release.
