@@ -94,3 +94,24 @@ supprimé, puis retéléchargé dans le même lancement avec le nombre de tentat
 déjà borné. L'archive assemblée reste vérifiée intégralement avant toute
 installation. Les tests de corruption de ZIP protègent l'état actif et la
 progression externe aux slots.
+
+## Handoff visible Qt et Home (compatibilité)
+
+L'ancien `DOFUS_ATLAS_HEALTH_FILE` reste un ACK **préchargement Qt vivant**.
+Pour les nouvelles paires lanceur/application, un marqueur temporaire
+`.capable` est publié **avant** cet ACK et un `.home` distinct est émis
+uniquement après le premier `QEvent.Paint` de Home et un tour de boucle Qt
+supplémentaire, lorsque Home reste visible et actif. Le launcher attend
+ce second signal jusqu'à 130 secondes au maximum avant de conclure son
+handoff. En cas de fermeture de l'application, l'échec permet le rollback ;
+en cas de timeout avec un processus encore vivant, une erreur visible bloque
+la relance automatique d'une autre version (pas de deux processus concurrents).
+Ces sentinelles sont temporaires et nettoyées par le launcher.
+
+Une ancienne application qui ne publie pas `.capable` conserve le protocole
+historique : l'ACK Qt suffit. Ceci préserve la compatibilité après une mise
+à jour progressive du launcher. Pendant le lancement de Qt, le Tk launcher
+est masqué ; la boîte de préchargement Qt reste l'interface visible.
+Le calendrier exact de peinture multi-fenêtres et les cas antivirus doivent
+encore être vérifiés sur un vrai PC Windows. Le signal ne constitue pas
+à lui seul une preuve de clic/interaction utilisateur réelle.

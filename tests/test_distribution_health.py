@@ -6,6 +6,10 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+import os
+
+from app.distribution.health import announce_home_ready, announce_ready
+from app.distribution.launcher import _is_application_handoff
 
 from app.distribution.launcher import _launch_with_health
 
@@ -35,6 +39,59 @@ class WindowHealthTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as location:
             process = SimpleNamespace(poll=lambda: None)
             self.assertTrue(self.launch_with_process(Path(location), process, [10, 10, 13]))
+
+    def test_home_capability_waits_for_separate_home_ack(self):
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            (root / ".health").mkdir()
+            (root / ".health" / "fixed.ready").write_text("123", encoding="utf-8")
+            (root / ".health" / "fixed.capable").write_text("123", encoding="utf-8")
+            (root / ".health" / "fixed.home").write_text("123", encoding="utf-8")
+            process = SimpleNamespace(poll=lambda: None)
+            self.assertTrue(self.launch_with_process(root, process, [10, 10, 13, 14]))
+            self.assertFalse(list((root / ".health").iterdir()))
+
+    def test_home_timeout_while_process_alive_must_not_trigger_rollback(self):
+        from app.distribution.release_client import UpdateError
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            (root / ".health").mkdir()
+            (root / ".health" / "fixed.ready").write_text("123", encoding="utf-8")
+            (root / ".health" / "fixed.capable").write_text("123", encoding="utf-8")
+            process = SimpleNamespace(poll=lambda: None)
+            with self.assertRaisesRegex(UpdateError, "Home n'a pas confirme"):
+                self.launch_with_process(root, process, [10, 141])
+            self.assertFalse(list((root / ".health").iterdir()))
+
+    def test_legacy_and_new_home_health_markers_are_distinct(self):
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            ready, home = root / "fixed.ready", root / "fixed.home"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_HEALTH_FILE": str(ready),
+                "DOFUS_ATLAS_HOME_HEALTH_FILE": str(home),
+            }):
+                announce_ready()
+                self.assertTrue(ready.is_file())
+                self.assertTrue(home.with_suffix(".capable").is_file())
+                self.assertFalse(home.exists())
+                announce_home_ready()
+                self.assertTrue(home.is_file())
+                announce_home_ready()  # Repeated Qt callback stays harmless.
+
+    def test_old_app_health_marker_keeps_legacy_semantics(self):
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            ready = root / "fixed.ready"
+            with patch.dict(os.environ, {"DOFUS_ATLAS_HEALTH_FILE": str(ready)}, clear=True):
+                announce_ready()
+                self.assertTrue(ready.exists())
+                self.assertEqual(list(root.glob("*.capable")), [])
+
+    def test_handoff_is_only_the_launch_transition(self):
+        self.assertTrue(_is_application_handoff("Lancement de Dofus Atlas..."))
+        self.assertFalse(_is_application_handoff("Installation differentielle..."))
+        self.assertFalse(_is_application_handoff("Echec : Home indisponible"))
 
 
 if __name__ == "__main__":

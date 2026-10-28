@@ -748,7 +748,18 @@ class AtlasWindow(QMainWindow):
                 and not getattr(self, "_home_first_paint_recorded", False)):
             self._home_first_paint_recorded = True
             record_startup_event("home_first_paint")
+            QTimer.singleShot(0, self._ack_home_after_first_paint)
         return super().eventFilter(watched, event)
+
+    def _ack_home_after_first_paint(self) -> None:
+        # A paint alone isn't an interactive Home. Require a subsequent Qt
+        # event-loop turn and the real, visible Home widget before handoff.
+        if (not self.isVisible() or not self.home_page.isVisible()
+                or self.stack.currentWidget() is not self.home_page):
+            return
+        record_startup_event("home_event_loop")
+        from app.distribution.health import announce_home_ready
+        announce_home_ready()
 
     def __init__(self, initial_preload: dict[str, Any] | None = None):
         super().__init__()
@@ -2125,8 +2136,7 @@ class AtlasWindow(QMainWindow):
         record_startup_event("preload_complete")
         self.show()
         record_startup_event("home_visible")
-        # A separate event-loop callback distinguishes show() from responsive Qt.
-        QTimer.singleShot(0, lambda: record_startup_event("home_event_loop"))
+        # Home readiness is emitted only after the Home widget actually paints.
         app = QApplication.instance()
         if app is not None:
             # Once the main window exists, normal close-to-quit semantics resume.

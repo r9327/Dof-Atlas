@@ -79,8 +79,11 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
     health_dir = ROOT / ".health"
     health_dir.mkdir(parents=True, exist_ok=True)
     ready = health_dir / (uuid.uuid4().hex + ".ready")
+    home = ready.with_suffix(".home")
+    capable = ready.with_suffix(".capable")
     env = os.environ.copy()
     env["DOFUS_ATLAS_HEALTH_FILE"] = str(ready)
+    env["DOFUS_ATLAS_HOME_HEALTH_FILE"] = str(home)
     env["DOFUS_ATLAS_USER_ROOT"] = str(USER_DIR)
     # Read-only, acknowledged data packs; the live QuestProvider loads on demand.
     env["DOFUS_ATLAS_PACK_ROOT"] = str(ROOT)
@@ -95,6 +98,26 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
             if ready.is_file():
                 record_startup_event("app_health_ack")
                 ready.unlink(missing_ok=True)
+                if capable.is_file():
+                    # New Qt clients advertise support before their legacy ACK.
+                    # Legacy installed apps retain their existing fast handoff.
+                    # A Home paint + event-loop turn, not the preload dialog,
+                    # controls the new launcher's successful handoff.
+                    deadline = time.monotonic() + 130.0
+                    while time.monotonic() < deadline:
+                        if home.is_file():
+                            record_startup_event("app_home_ack")
+                            break
+                        if proc.poll() is not None:
+                            return False
+                        time.sleep(0.2)
+                    else:
+                        if proc.poll() is not None:
+                            return False
+                        # Do NOT start an old version while the timed-out
+                        # process is still alive: that would run two apps and
+                        # potentially corrupt active user state.
+                        raise UpdateError("Home n'a pas confirme son affichage; fermez Atlas avant de relancer")
                 if settle_seconds > 0:
                     # A window that appears and crashes immediately must not
                     # certify an update. Wait only on a new, pending version.
@@ -110,6 +133,8 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
         return False
     finally:
         ready.unlink(missing_ok=True)
+        home.unlink(missing_ok=True)
+        capable.unlink(missing_ok=True)
 
 
 def run_update(report, *, verify_installation: bool = False) -> None:
@@ -270,6 +295,11 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         _run_handle.close()
 
 
+def _is_application_handoff(message: str) -> bool:
+    """One visible UI at a time: Qt takes over before it shows preload."""
+    return message == "Lancement de Dofus Atlas..."
+
+
 def _requires_updater_window(message: str) -> bool:
     """A checked no-op/offline launch shows Atlas preload, never an updater popup."""
     return message.startswith((
@@ -398,7 +428,10 @@ def main() -> int:
                     status.set(display_message(message))
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
-                    if not updater_visible and _requires_updater_window(message):
+                    if _is_application_handoff(message):
+                        window.withdraw()
+                        updater_visible = False
+                    elif not updater_visible and _requires_updater_window(message):
                         updater_visible = True
                         window.deiconify()
                 elif kind == "done":
