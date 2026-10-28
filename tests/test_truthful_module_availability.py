@@ -90,6 +90,7 @@ class TruthfulQtAvailabilityTests(unittest.TestCase):
                     profile_path=root / "profile.json",
                     client_index_path=root / "client.json",
                 )
+            self.assertFalse(hasattr(page, "search"))
             for label in (DUNGEONS_TAB, MONSTERS_TAB, ARCHMONSTERS_TAB, WANTED_TAB):
                 index = page.tab_labels().index(label)
                 page.tabs.setCurrentIndex(index)
@@ -99,8 +100,6 @@ class TruthfulQtAvailabilityTests(unittest.TestCase):
                 self.assertIsNotNone(widget.findChild(
                     type(page.character_label), "EncyclopediaUnavailableMessage"
                 ))
-                self.assertFalse(page.search.isEnabled())
-                self.assertFalse(page.search.isVisible())
             page.deleteLater()
 
     def test_equipment_browser_failure_reports_error_not_success(self) -> None:

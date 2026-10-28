@@ -209,6 +209,18 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui", "craft", "quests", "guides", "identity", "data"})
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
+        if leaf == "truthful_module_availability":
+            # Existing cross-domain regression contract: truthful Craft
+            # preload/startup state plus the concrete Qt availability views.
+            # Keep the exact path so a future generic "availability" test does
+            # not inherit these owners without review.
+            return frozenset({"craft", "ui", "startup"})
+        if leaf == "encyclopedia_corrective":
+            # This historical corrective suite exercises Guide, Quest and Qt
+            # consumers with structured provider data.  The old substring
+            # fallback ("achievement" -> Guides only) under-reported its
+            # closed-world owners.
+            return frozenset({"quests", "guides", "ui", "data"})
         if leaf == "release_certification_fixes":
             # Exact reviewed test: Guide identity and CI/RAM thresholds.
             return frozenset({"ci", "craft", "guides"})

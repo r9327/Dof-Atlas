@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 import os
 import socket
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -17,8 +18,14 @@ from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QSpinBox
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, ENCYCLOPEDIA_TABS, GUIDES_TAB, QUESTS_TAB
-from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
+from app.modules.encyclopedia.providers import (
+    AchievementProvider,
+    DofusItemProvider,
+    GuideProvider,
+    QuestProvider,
+)
 from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService, QuestGraphService
+from app.modules.encyclopedia.tools import list_dofus_items
 from app.modules.encyclopedia.views import EncyclopediaPage
 from app.modules.encyclopedia.views.guides_view import QuestLine
 from app.modules.encyclopedia.widgets import GUIDE_GROUP_ROLE
@@ -83,6 +90,86 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
         owned_items_path.write_text(json.dumps({"items": []}), encoding="utf-8")
         return profile_path, client_index_path, quest_progress_path, achievement_progress_path, guide_progress_path, owned_items_path
 
+    def make_related_providers(self, tmp_path: Path):
+        raw_dir = tmp_path / "doduda_fixture"
+        (raw_dir / "languages").mkdir(parents=True)
+
+        def rows(*values):
+            return {"references": {"RefIds": [{"data": value} for value in values]}}
+
+        (raw_dir / "languages" / "fr.json").write_text(
+            json.dumps({"entries": {
+                "1": "Bleu turquoise",
+                "2": "Quêtes",
+                "3": "Dofus Turquoise",
+                "4": "Dofus",
+                "5": "Plongeon et dragon",
+            }}),
+            encoding="utf-8",
+        )
+        fixtures = {
+            "achievements.json": rows({
+                "id": TURQUOISE_ACHIEVEMENT_ID,
+                "nameId": 1,
+                "descriptionId": -1,
+                "categoryId": 8,
+                "level": 160,
+                "points": 10,
+                "objectiveIds": [9001],
+                "rewardIds": [],
+            }),
+            "achievement_categories.json": rows({
+                "id": 8,
+                "nameId": 2,
+                "parentId": 0,
+                "achievementIds": [TURQUOISE_ACHIEVEMENT_ID],
+            }),
+            "achievement_objectives.json": rows({
+                "id": 9001,
+                "achievementId": TURQUOISE_ACHIEVEMENT_ID,
+                "nameId": 5,
+                "criterion": "Qf=1653",
+                "order": 0,
+            }),
+            "quests.json": rows({"id": 1653, "nameId": 5}),
+            "items.json": rows({
+                "id": 739,
+                "nameId": 3,
+                "descriptionId": -1,
+                "typeId": 23,
+                "iconId": 23003,
+                "level": 160,
+            }),
+            "item_types.json": rows({"id": 23, "nameId": 4}),
+        }
+        for name in (
+            "monsters.json",
+            "dungeons.json",
+            "achievement_rewards.json",
+            "spells.json",
+            "titles.json",
+            "emoticons.json",
+            "ornaments.json",
+            "alterations.json",
+            "effects.json",
+        ):
+            fixtures[name] = rows()
+        for name, payload in fixtures.items():
+            (raw_dir / name).write_text(json.dumps(payload), encoding="utf-8")
+
+        quest_provider = QuestProvider(catalog=self.make_catalog())
+        achievement_provider = AchievementProvider(
+            data_dir=raw_dir,
+            quest_provider=quest_provider,
+        )
+        dofus_item_provider = DofusItemProvider(data_dir=raw_dir)
+        guide_provider = GuideProvider(
+            quest_provider=quest_provider,
+            achievement_provider=achievement_provider,
+            dofus_item_provider=dofus_item_provider,
+        )
+        return quest_provider, achievement_provider, dofus_item_provider, guide_provider
+
     def hydrate_guides(self, page: EncyclopediaPage):
         view = page.ensure_guides_view()
         if not view._runtime_ready:
@@ -97,9 +184,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
 
     def make_page(self, tmp_path: Path) -> EncyclopediaPage:
         profile, client_index, quest_progress, achievement_progress, guide_progress, owned = self.temp_paths(tmp_path)
-        quest_provider = QuestProvider()
-        achievement_provider = AchievementProvider(quest_provider=quest_provider)
-        guide_provider = GuideProvider(quest_provider=quest_provider, achievement_provider=achievement_provider)
+        quest_provider, achievement_provider, _dofus_item_provider, guide_provider = (
+            self.make_related_providers(tmp_path)
+        )
         page = EncyclopediaPage(
             lambda _text: None,
             quest_provider=quest_provider,
@@ -233,7 +320,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
                 if view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
             ]
             self.assertEqual(groups, ["GUIDE SUCCÈS", "GUIDES OPTIMISÉS", "ALIGNEMENTS"])
-            self.assertEqual(dofus_groups, ["DOFUS"])
+            # The compact library renders real Dofus routes only; it must not
+            # reintroduce the old synthetic DOFUS heading as a catalogue card.
+            self.assertEqual(dofus_groups, [])
 
             open_content_width = 900 - 190
             closed_content_width = 900 - 44
@@ -341,7 +430,8 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
 
     def test_invalid_object_reference_and_dofus_cli(self):
         with tempfile.TemporaryDirectory() as tmp:
-            guide_dir = Path(tmp) / "guides"
+            tmp_path = Path(tmp)
+            guide_dir = tmp_path / "guides"
             guide_dir.mkdir()
             (guide_dir / "bad_item.json").write_text(
                 json.dumps(
@@ -357,22 +447,31 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            provider = GuideProvider(guides_dir=guide_dir, quest_provider=QuestProvider(catalog=QuestCatalog([])))
+            quest_provider, achievement_provider, dofus_item_provider, cli_provider = (
+                self.make_related_providers(tmp_path)
+            )
+            provider = GuideProvider(
+                guides_dir=guide_dir,
+                quest_provider=quest_provider,
+                achievement_provider=achievement_provider,
+                dofus_item_provider=dofus_item_provider,
+            )
             guides = provider.load_all()
             self.assertEqual(len(guides), 1)
             self.assertTrue(any("reward_item_id invalide" in error for error in provider.validation_errors))
             self.assertTrue(any("illustration_item_id invalide" in error for error in provider.validation_errors))
 
-        result = subprocess.run(
-            [sys.executable, "-m", "app.modules.encyclopedia.tools.list_dofus_items"],
-            cwd=Path(__file__).resolve().parents[1],
-            text=True,
-            capture_output=True,
-            timeout=120,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("739 | Dofus Turquoise | 160 | Dofus | OK | dofus_turquoise", result.stdout)
+            output = StringIO()
+            with (
+                patch.object(list_dofus_items, "DofusItemProvider", return_value=dofus_item_provider),
+                patch.object(list_dofus_items, "GuideProvider", return_value=cli_provider),
+                redirect_stdout(output),
+            ):
+                self.assertEqual(list_dofus_items.main(), 0)
+            self.assertIn(
+                "739 | Dofus Turquoise | 160 | Dofus | OK | dofus_turquoise",
+                output.getvalue(),
+            )
 
     def test_provider_uses_no_network(self):
         original_socket = socket.socket
@@ -382,8 +481,11 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
 
         socket.socket = forbidden_socket
         try:
-            provider = GuideProvider(quest_provider=QuestProvider(catalog=self.make_catalog()))
-            self.assertGreater(len(provider.load_all()), 0)
+            with tempfile.TemporaryDirectory() as tmp:
+                _quest, _achievement, _dofus, provider = self.make_related_providers(
+                    Path(tmp)
+                )
+                self.assertGreater(len(provider.load_all()), 0)
         finally:
             socket.socket = original_socket
 
