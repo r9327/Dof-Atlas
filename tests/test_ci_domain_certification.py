@@ -372,6 +372,22 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("tests/test_unknown_misc_case.py"), frozenset())
 
+    def test_existing_corrective_suites_have_exact_cross_domain_owners(self):
+        expected = {
+            "tests/test_truthful_module_availability.py": {"craft", "ui", "startup"},
+            "tests/test_encyclopedia_corrective.py": {"quests", "guides", "ui", "data"},
+        }
+        for path, owners in expected.items():
+            self.assertEqual(owners_for(path), frozenset(owners), path)
+        plan = self.route(sorted(expected))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(
+            plan["domains"],
+            ["craft", "quests", "guides", "ui", "startup", "data"],
+        )
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("tests/test_availability_unreviewed.py"), frozenset())
+
     def test_main_phase_evidence_is_critical_ci_domain_owner(self):
         from tools.ci_domain_certification import owners_for
         path = "tests/test_main_phase_evidence.py"
