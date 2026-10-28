@@ -27,6 +27,28 @@ class UnitySkinTests(unittest.TestCase):
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
             self.assertTrue(unity_enabled())
 
+    def test_persistent_personal_theme_activates_with_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            personal = Path(directory)
+            sprites = personal / "sprites"
+            sprites.mkdir()
+            (personal / ".enabled").write_text("personal local theme\\n", encoding="utf-8")
+            (personal / "background_selection_clean.png").write_bytes(b"personal")
+            icon = sprites / "Assets_UI_Themes_Figma_menuIcons_1x_guide-png.png"
+            icon.write_bytes(b"sprite")
+            with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
+                with patch.dict(os.environ, {"ATLAS_THEME": ""}):
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
+                    self.assertEqual(sprite_icon_path("guide"), icon)
+                with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
+                    self.assertFalse(unity_enabled())
+                    self.assertIsNone(wallpaper_path())
+            (personal / ".enabled").unlink()
+            with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
+                with patch.dict(os.environ, {"ATLAS_THEME": ""}):
+                    self.assertFalse(unity_enabled())
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
