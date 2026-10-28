@@ -742,21 +742,29 @@ class AtlasWindow(QMainWindow):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         # A real QWidget Paint event is stronger evidence than show() or a
         # zero-delay timer; it still does not certify user interactivity.
-        if (watched is getattr(self, "home_page", None)
-                and event.type() == QEvent.Paint
-                and self.isVisible()
-                and not getattr(self, "_home_first_paint_recorded", False)):
-            self._home_first_paint_recorded = True
-            record_startup_event("home_first_paint")
-            QTimer.singleShot(0, self._ack_home_after_first_paint)
+        if watched is getattr(self, "home_page", None) and self.isVisible():
+            if event.type() == QEvent.Paint:
+                if not getattr(self, "_home_first_paint_recorded", False):
+                    self._home_first_paint_recorded = True
+                    record_startup_event("home_first_paint")
+                if not getattr(self, "_home_ready_acknowledged", False):
+                    QTimer.singleShot(0, self._ack_home_after_first_paint)
+            elif (event.type() == QEvent.Show and self._home_first_paint_recorded
+                  and not self._home_ready_acknowledged):
+                # A hidden or switched page may have invalidated the first
+                # callback. Re-check when the already-painted Home reappears.
+                QTimer.singleShot(0, self._ack_home_after_first_paint)
         return super().eventFilter(watched, event)
 
     def _ack_home_after_first_paint(self) -> None:
         # A paint alone isn't an interactive Home. Require a subsequent Qt
         # event-loop turn and the real, visible Home widget before handoff.
+        if self._home_ready_acknowledged:
+            return
         if (not self.isVisible() or not self.home_page.isVisible()
                 or self.stack.currentWidget() is not self.home_page):
             return
+        self._home_ready_acknowledged = True
         record_startup_event("home_event_loop")
         from app.distribution.health import announce_home_ready
         announce_home_ready()
@@ -839,6 +847,7 @@ class AtlasWindow(QMainWindow):
         self.pages: list[tuple[str, QWidget]] = []
 
         self._home_first_paint_recorded = False
+        self._home_ready_acknowledged = False
         self.home_page = HomePage()
         self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
