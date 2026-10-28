@@ -1,3 +1,12 @@
+<#
+.SYNOPSIS
+Optional, manually invoked Windows setup for RTK/Codex.
+.DESCRIPTION
+May install RTK/ripgrep with winget if missing and configures Codex (globally
+by default, or for the current project with -Project). This is not an Atlas
+runtime, CI or agent-automation entry point. Run only by explicit choice.
+#>
+
 [CmdletBinding()]
 param(
     [switch]$Project,
@@ -15,10 +24,10 @@ function Require-Command {
     return $command
 }
 
-$winget = Require-Command "winget"
 $rtk = Get-Command "rtk" -ErrorAction SilentlyContinue
 
 if (-not $rtk) {
+    $winget = Require-Command "winget"
     Write-Host "Installing Rust Token Killer (RTK) with winget..."
     & $winget.Source install --id rtk-ai.rtk -e --source winget --accept-source-agreements --accept-package-agreements
     if ($LASTEXITCODE -ne 0) {
@@ -32,6 +41,7 @@ if (-not $rtk) {
 }
 
 if (-not $SkipRipgrep -and -not (Get-Command "rg" -ErrorAction SilentlyContinue)) {
+    $winget = Require-Command "winget"
     Write-Host "Installing ripgrep, used by some RTK filters..."
     & $winget.Source install --id BurntSushi.ripgrep.MSVC -e --source winget --accept-source-agreements --accept-package-agreements
     if ($LASTEXITCODE -ne 0) {
