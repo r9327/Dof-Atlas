@@ -1,0 +1,105 @@
+name: Atlas Delivery Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+      - converted_to_draft
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: atlas-delivery-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  delivery-contract:
+    name: Atlas Delivery Guard / Delivery Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      # Never execute a PR-authored validator with the GitHub API token.
+      # The trusted base provides the validator; candidate source is only inspected.
+      - name: Checkout trusted BASE validator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Checkout exact untrusted PR source for read-only inspection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Python for trusted pure-stdlib accounting
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Require a trusted baseline validator
+        working-directory: trusted
+        run: |
+          if ! test -f tools/ci_delivery_guard.py; then
+            echo "::error::Bootstrap only: main has no trusted Delivery Guard yet. Review this PR; do not mark this check PASS."
+            exit 1
+          fi
+
+      - name: Run trusted independent regression tests
+        working-directory: trusted
+        run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v
+
+      - name: Verify originating issue against exact PR source SHA
+        # Never start Python with the untrusted candidate as CWD (sitecustomize/import risk).
+        working-directory: trusted
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m tools.ci_delivery_guard \
+            --checkout "$GITHUB_WORKSPACE/candidate" \
+            --event "$GITHUB_EVENT_PATH" \
+            --output "$RUNNER_TEMP/atlas-delivery-accounting.json"
+          cat "$RUNNER_TEMP/atlas-delivery-accounting.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve explicitly non-certifying report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v6
+        with:
+          name: atlas-delivery-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/atlas-delivery-accounting.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  candidate-self-tests:
+    name: Atlas Delivery Guard / Candidate Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR HEAD with no persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          lfs: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Run candidate unit tests WITHOUT GitHub API credentials
+        run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v

@@ -16,6 +16,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_delivery_contract_and_guard_are_ci_owned(self):
+        for path in ("tools/ci_delivery_guard.py",
+                     ".github/pull_request_template.md", "AGENTS.md",
+                     ".github/workflows/delivery-guard.yml",
+                     "tests/test_ci_delivery_guard.py"):
+            self.assertEqual(owners_for(path), frozenset({"ci"}), path)
+
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
