@@ -30,7 +30,7 @@ class InstallRtkTests(unittest.TestCase):
             environment["ATLAS_RTK_TEST_COMMAND"] = str(executable)
             environment["ATLAS_RTK_TEST_SCRIPT"] = str(SCRIPT)
             environment["ATLAS_RTK_TEST_LOG"] = str(logfile)
-            ps_command = """
+            ps_command = r"""
 $ErrorActionPreference = 'Stop'
 function Get-Command {
     param([string]$Name, [string]$ErrorAction)
@@ -38,7 +38,7 @@ function Get-Command {
     if ($Name -eq 'rtk') {
         return [pscustomobject]@{ Source = $env:ATLAS_RTK_TEST_COMMAND }
     }
-    Microsoft.PowerShell.Core\\Get-Command -Name $Name -ErrorAction SilentlyContinue
+    Microsoft.PowerShell.Core\Get-Command -Name $Name -ErrorAction SilentlyContinue
 }
 & $env:ATLAS_RTK_TEST_SCRIPT -Project -SkipRipgrep
 """
