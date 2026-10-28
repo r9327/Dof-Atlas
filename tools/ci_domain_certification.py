@@ -163,6 +163,11 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "guides", "ui", "startup", "data"})
     if path == "scripts/windows/package_release.py":
         return frozenset({"ci", "ui", "startup", "data"})
+    if path == "scripts/windows/craft_seed.py":
+        # The frozen first-install database is a Craft data artifact prepared
+        # by CI and copied into user state during startup. Keep this exact so
+        # future Windows build helpers remain fail-closed until reviewed.
+        return frozenset({"ci", "craft", "data", "startup"})
     if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
         return frozenset({"ci", "startup"})
     if path == "tests/test_unity_assets_inventory.py":
