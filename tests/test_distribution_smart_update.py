@@ -90,6 +90,29 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertTrue(rollback_pending(target))
             self.assertEqual(read_state(target)["active"], old_slot)
 
+    def test_invalid_new_zip_preserves_active_state_and_progress(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "quest_progress.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_text('{"quest":12}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            second.write_bytes(b"corrupted zip")
+            with self.assertRaises(UpdateError):
+                install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"quest":12}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+
     def test_legacy_slot_without_index_avoids_speculative_full_copies(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -333,6 +356,112 @@ class ParallelTransferTests(unittest.TestCase):
             self.assertEqual(len(measured), 1)
             self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())) - prefix)
             self.assertEqual(measured[0]["cached_bytes"], prefix)
+
+    def test_corrupt_complete_cached_part_redownloads_during_same_launch(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_part = manifest.archive_parts[0]
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (first_part.name + ".download")).write_bytes(b"X" * first_part.size)
+            events = []
+
+            with (
+                patch.object(release_client, "_open",
+                             side_effect=lambda url, headers=None: Response(payloads[url])),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
+    def test_retry_within_same_launch_not_counted_as_prior_cache(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            prefix = len(payloads[first_url]) // 2
+            attempts = 0
+            events = []
+
+            class DropsAfterFirstBlock(Response):
+                def read(self, n=-1):
+                    if self.tell() == 0:
+                        return super().read(prefix)
+                    raise OSError("synthetic interrupted first transfer")
+
+            def serve(url, headers=None):
+                nonlocal attempts
+                if url != first_url:
+                    return Response(payloads[url])
+                attempts += 1
+                if attempts == 1:
+                    return DropsAfterFirstBlock(payloads[url])
+                self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                part_size = len(payloads[url])
+                return Response(
+                    payloads[url][prefix:], status=206,
+                    headers={"Content-Range": f"bytes {prefix}-{part_size - 1}/{part_size}"},
+                )
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client.time, "sleep", return_value=None),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(attempts, 2)
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
+    def test_ignored_range_does_not_count_discarded_cached_prefix(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            prefix = len(payloads[first_url]) // 2
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (manifest.archive_parts[0].name + ".download")).write_bytes(payloads[first_url][:prefix])
+            events = []
+
+            def serve(url, headers=None):
+                if url == first_url:
+                    self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                return Response(payloads[url], status=200)
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
 
     def test_parallel_multipart_is_bounded_and_sha_verified(self):
         with tempfile.TemporaryDirectory() as d:

@@ -426,6 +426,9 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             return
         finished.unlink(missing_ok=True)
         partial = parts_dir / (part.name + ".download")
+        # Cache accounting is for data left by an earlier launch, never data
+        # downloaded earlier in *this* invocation during an HTTP retry.
+        initial_cached = partial.stat().st_size if partial.is_file() else 0
 
         for attempt in range(_DOWNLOAD_ATTEMPTS):
             if cancelled.is_set():
@@ -437,8 +440,12 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     cache_used[index] = part.size
                     update(index, part.size)
                     return
+                # A complete but corrupted partial is not usable cache. Repair
+                # it during this launch, with the existing bounded attempt
+                # budget, instead of forcing a fallback to the full updater.
                 partial.unlink(missing_ok=True)
-                raise UpdateError(f"Corrupted release part: {part.name}")
+                initial_cached = 0
+                continue
             if offset > part.size:
                 partial.unlink(missing_ok=True)
                 raise UpdateError(f"Downloaded release part exceeded size: {part.name}")
@@ -453,7 +460,13 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     elif status != 200:
                         raise UpdateError("Unexpected multipart HTTP status")
                     done = offset if resumed else 0
-                    cache_used[index] = offset if resumed else 0
+                    # If the server ignores Range, the local prefix was
+                    # discarded. If it honors Range, count only bytes already
+                    # present before this invocation (not from an earlier
+                    # retry attempt in the same invocation).
+                    cache_used[index] = min(offset, initial_cached) if resumed else 0
+                    if not resumed:
+                        initial_cached = 0
                     update(index, done)
                     with partial.open("ab" if resumed else "wb") as output:
                         while not cancelled.is_set():

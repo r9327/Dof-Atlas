@@ -80,3 +80,17 @@ campagne** ; une donnée absente ou un p50/p95 de base nul produit
 que la régression est exclue ou qu'une certification est acquise. Contrôler
 la dispersion, les conditions de mesure et la significativité avant de conclure.
 Une trace synthétique ne remplace pas des résultats sur l'EXE Windows réel.
+
+## Résilience des fragments de cache
+
+Le compteur `cached_bytes` n'inclut maintenant que les octets effectivement
+réutilisés et présents **avant le lancement courant**. Les octets téléchargés
+puis repris après une erreur dans ce même lancement appartiennent au
+`network_bytes`, pas au cache. Si le serveur répond 200 à une requête Range,
+le préfixe abandonné n'est pas compté comme réutilisé.
+
+Un fragment de longueur complète mais dont le SHA-256 est invalide est
+supprimé, puis retéléchargé dans le même lancement avec le nombre de tentatives
+déjà borné. L'archive assemblée reste vérifiée intégralement avant toute
+installation. Les tests de corruption de ZIP protègent l'état actif et la
+progression externe aux slots.
