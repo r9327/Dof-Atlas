@@ -48,8 +48,19 @@ class WindowHealthTests(unittest.TestCase):
             (root / ".health" / "fixed.capable").write_text("123", encoding="utf-8")
             (root / ".health" / "fixed.home").write_text("123", encoding="utf-8")
             process = SimpleNamespace(poll=lambda: None)
-            self.assertTrue(self.launch_with_process(root, process, [10, 10, 13, 14]))
+            self.assertTrue(self.launch_with_process(root, process, [10, 10, 13, 14, 16]))
             self.assertFalse(list((root / ".health").iterdir()))
+
+    def test_process_exit_before_home_ack_is_safe_to_rollback(self):
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            health = root / ".health"
+            health.mkdir()
+            (health / "fixed.ready").write_text("123", encoding="utf-8")
+            (health / "fixed.capable").write_text("123", encoding="utf-8")
+            process = SimpleNamespace(poll=lambda: 17)
+            self.assertFalse(self.launch_with_process(root, process, [10, 10]))
+            self.assertFalse(list(health.iterdir()))
 
     def test_home_timeout_while_process_alive_must_not_trigger_rollback(self):
         from app.distribution.release_client import UpdateError
