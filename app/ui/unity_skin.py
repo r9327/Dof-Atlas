@@ -9,11 +9,17 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap
 from PySide6.QtWidgets import QWidget
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
+# A personal theme survives every transactional EXE update and is never
+# part of the publicly downloadable runtime.
+_PERSONAL_ASSETS = (
+    Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
+    / "DofusAtlas" / "themes" / "dofus_unity"
+)
 UNITY_PALETTE = {
     "BG": "#151821",
     "SIDEBAR": "#19243F",
@@ -39,44 +45,59 @@ UNITY_PALETTE = {
 
 
 def unity_enabled() -> bool:
-    """Local-only opt-in; the default distributable theme never loads these assets."""
-    return os.environ.get("ATLAS_THEME", "").strip().casefold() == "dofus_unity"
+    """Personal .enabled marker selects Unity after launch; explicit env overrides."""
+    choice = os.environ.get("ATLAS_THEME", "").strip().casefold()
+    if choice:
+        return choice == "dofus_unity"
+    return (_PERSONAL_ASSETS / ".enabled").is_file()
+
+
+def _asset_file(relative: Path) -> Path | None:
+    """Prefer durable personal assets; keep existing DEV checkout behavior."""
+    for root in (_PERSONAL_ASSETS, _ASSETS):
+        candidate = root / relative
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def wallpaper_path() -> Path | None:
-    """Use only the local *cleaned* wallpaper, never the raw game screenshot.
-
-    The original contains the three unwanted native HUD icons. Until a local
-    derived PNG is verified, painting the neutral Unity palette is preferable
-    to silently rendering the wrong UI. Neither image is publicly packaged.
-    """
+    """Never show original HUD icons; only use a locally cleaned background."""
     if not unity_enabled():
         return None
-    cleaned = _ASSETS / "background_selection_clean.png"
-    return cleaned if cleaned.is_file() else None
+    return _asset_file(Path("background_selection_clean.png"))
 
 
 def _sprite_url(filename: str) -> str | None:
-    """Only named, bundled files; no runtime archive extraction or network lookup."""
-    candidate = _ASSETS / "sprites" / filename
-    if not candidate.is_file():
-        return None
-    return candidate.resolve().as_posix()
+    """Render from personal files first, without changing release packaging."""
+    candidate = _asset_file(Path("sprites") / filename)
+    return candidate.resolve().as_posix() if candidate else None
 
 
 def sprite_icon_path(icon: str) -> Path | None:
-    """Small, verified navigation pictograms for *local* skin only.
-
-    Callers keep their normal icon if the optional sprite is absent.
-    """
+    """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
     if not unity_enabled() or icon not in {
         "guide", "quest", "success", "encyclopedia",
         "character", "dofus", "map", "inventory",
     }:
         return None
     filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
-    path = _ASSETS / "sprites" / filename
-    return path if path.is_file() else None
+    return _asset_file(Path("sprites") / filename)
+
+
+def register_unity_fonts() -> tuple[str, ...]:
+    """Register local fonts only after QApplication exists; never package them."""
+    if not unity_enabled():
+        return ()
+    families: list[str] = []
+    for name in ("Lexend-Regular.ttf", "Lexend-Medium.ttf",
+                 "Lexend-SemiBold.ttf", "Lexend-Bold.ttf", "Rowdies-Regular.ttf"):
+        path = _asset_file(Path("fonts") / name)
+        if path:
+            font_id = QFontDatabase.addApplicationFont(str(path))
+            if font_id >= 0:
+                families.extend(QFontDatabase.applicationFontFamilies(font_id))
+    return tuple(dict.fromkeys(families))
 
 
 def unity_skin_stylesheet() -> str:
