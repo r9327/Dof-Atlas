@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,18 @@ class LauncherBrandingTests(unittest.TestCase):
             if isinstance(node, ast.ImportFrom)
         ]
         self.assertFalse(any(name.startswith(("PySide6", "app.ui")) for name in imports))
+
+    def test_launcher_recognizes_same_personal_theme_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            theme = root / "DofusAtlas" / "themes" / "dofus_unity"
+            theme.mkdir(parents=True)
+            with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": ""}):
+                self.assertEqual(launcher_ui.preferred_theme(), "")
+                (theme / ".enabled").write_text("personal", encoding="utf-8")
+                self.assertEqual(launcher_ui.preferred_theme(), "dofus_unity")
+            with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": "atlas"}):
+                self.assertEqual(launcher_ui.preferred_theme(), "atlas")
 
     def test_embedded_logo_is_real_png_extracted_from_existing_atlas_icon(self):
         import base64
