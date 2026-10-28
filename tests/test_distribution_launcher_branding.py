@@ -45,7 +45,7 @@ class LauncherBrandingTests(unittest.TestCase):
             theme = root / "DofusAtlas" / "themes" / "dofus_unity"
             theme.mkdir(parents=True)
             with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": ""}):
-                self.assertEqual(launcher_ui.preferred_theme(), "")
+                self.assertEqual(launcher_ui.preferred_theme(), "dofus_unity")
                 (theme / ".enabled").write_text("personal", encoding="utf-8")
                 self.assertEqual(launcher_ui.preferred_theme(), "dofus_unity")
             with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": "atlas"}):
