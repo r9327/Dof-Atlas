@@ -55,30 +55,15 @@
       "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
       "type": "blob"
     },
-    "app": {
-      "mode": "040000",
-      "sha": "576d90f3957a71ecbb51129594cc4b600a21e5b2",
-      "type": "tree"
-    },
     "CLAUDE.md": {
       "mode": "100644",
       "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96",
       "type": "blob"
     },
-    "data": {
-      "mode": "040000",
-      "sha": "67917844b4e99c31421042db794d722901338d20",
-      "type": "tree"
-    },
     "DEVELOPMENT_GUARDRAILS.md": {
       "mode": "100644",
       "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
       "type": "blob"
-    },
-    "docs": {
-      "mode": "040000",
-      "sha": "d9c20b591c3ef97e773471815735a603c5f928d3",
-      "type": "tree"
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
@@ -105,21 +90,6 @@
       "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
       "type": "blob"
     },
-    "launch.py": {
-      "mode": "100644",
-      "sha": "6a2f1c5cf1c9ab454ce1efd1f1d55773a457605f",
-      "type": "blob"
-    },
-    "local_dofus_data": {
-      "mode": "040000",
-      "sha": "1b60e20ed4f46bc567d369f16d5c2fa9a7474be7",
-      "type": "tree"
-    },
-    "main.py": {
-      "mode": "100644",
-      "sha": "00717eb86e17de515b059f449a314db3c1e4c259",
-      "type": "blob"
-    },
     "PERFORMANCE_GUARDRAILS.md": {
       "mode": "100644",
       "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
@@ -135,14 +105,49 @@
       "sha": "4fe91f8598397d350a1b184e2f91beb551351b40",
       "type": "blob"
     },
-    "requirements-pyside.txt": {
-      "mode": "100644",
-      "sha": "5d055f05655f91277177ca99a87a3827d3cb280d",
-      "type": "blob"
-    },
     "ROAD_IA.md": {
       "mode": "100644",
       "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
+      "type": "blob"
+    },
+    "ZERO_TRUST_RULES.md": {
+      "mode": "100644",
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
+      "type": "blob"
+    },
+    "app": {
+      "mode": "040000",
+      "sha": "576d90f3957a71ecbb51129594cc4b600a21e5b2",
+      "type": "tree"
+    },
+    "data": {
+      "mode": "040000",
+      "sha": "67917844b4e99c31421042db794d722901338d20",
+      "type": "tree"
+    },
+    "docs": {
+      "mode": "040000",
+      "sha": "d9c20b591c3ef97e773471815735a603c5f928d3",
+      "type": "tree"
+    },
+    "launch.py": {
+      "mode": "100644",
+      "sha": "6a2f1c5cf1c9ab454ce1efd1f1d55773a457605f",
+      "type": "blob"
+    },
+    "local_dofus_data": {
+      "mode": "040000",
+      "sha": "1b60e20ed4f46bc567d369f16d5c2fa9a7474be7",
+      "type": "tree"
+    },
+    "main.py": {
+      "mode": "100644",
+      "sha": "00717eb86e17de515b059f449a314db3c1e4c259",
+      "type": "blob"
+    },
+    "requirements-pyside.txt": {
+      "mode": "100644",
+      "sha": "5d055f05655f91277177ca99a87a3827d3cb280d",
       "type": "blob"
     },
     "scripts": {
@@ -164,11 +169,6 @@
       "mode": "040000",
       "sha": "6c0a9460c63f65e83871e1ca42131037163fa5e0",
       "type": "tree"
-    },
-    "ZERO_TRUST_RULES.md": {
-      "mode": "100644",
-      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
-      "type": "blob"
     }
   },
   "excluded_top_level": [
