@@ -36,3 +36,52 @@ Deux lots de développement séparables : (A) installation, mises à jour, launc
 4. Mesurer les gains, certifier SHA exact, puis organiser la validation Windows et la livraison APP.
 
 **Ce document n'affirme aucun gain de performance ni correction livrée.**
+
+
+## Contrat d'architecture et décisions obligatoires
+- Cartographier le flux réel launcher → updater → installer → main → Home ; identifier les processus, fenêtres, chemins et responsables de chaque phase. Ne pas ajouter de processus ou de fenêtre sans justification mesurée.
+- Séparer **vérification rapide** (version/manifestes signés ou authentifiés, état local) et **vérification d'intégrité approfondie** (après téléchargement, corruption suspectée, réparation ou changement de manifeste). Le cache ne doit jamais contourner la validation d'un contenu nouvellement installé.
+- Définir le format et le versionnement du manifeste, les chemins canoniques, la stratégie de migration, la compatibilité anciens lanceurs/manifeste, et le comportement si manifeste absent, périmé ou malformé.
+- Modèle d'installation explicite : staging sur le même volume lorsque nécessaire, écriture temporaire, fsync si pertinent, validation, commutation atomique si supportée, journal de transaction, nettoyage différé et rollback idempotent. Ne pas présumer qu'un remplacement de répertoire est atomique sur tous les chemins Windows.
+- Définir la propriété et la durée de vie des fichiers : binaires immuables, cache, logs, données utilisateur, sauvegardes. Ne jamais effacer des données utilisateur lors d'un cleanup, rollback ou déplacement.
+- Gérer antivirus/verrouillage de fichiers, permissions limitées, chemins Unicode/espaces/longs, disque plein, accès refusé, archive corrompue, réseau coupé, processus Atlas déjà lancé et interruption brutale. Prévoir messages d'erreur exploitables et reprise sûre.
+- Prévoir le coût du protocole de distribution : une archive monolithique ne permet pas un vrai patch fichier par fichier. Vérifier les artefacts Release et adapter manifestes/packaging **avant** de promettre des téléchargements différentiels.
+- Limiter l'usage CPU, I/O et parallélisme ; éviter que la vérification SHA ou la préparation des modules monopolise le disque. Pas de tâches de fond inutiles après Home.
+- Définir un signal robuste de **Home utilisable** (événement applicatif explicite + boucle d'événements réactive) et un handoff launcher → app sans double fenêtre, sans fermeture prématurée, avec gestion de crash/timeout.
+- Les prérequis Windows doivent être listés avec version, mode de détection, provenance, intégrité, privilèges et condition d'installation ; ne jamais installer silencieusement des composants non nécessaires.
+- La sélection du dossier doit fonctionner en installation neuve et migration ; la migration doit préserver état, rollback et raccourcis, avec tests sur chemins non standards.
+- Les couleurs/polices/logo du launcher doivent provenir d'un contrat de design partageable avec l'app ; tester rendu et repli sur machine Windows propre sans assets optionnels.
+
+## Protocole de benchmark reproductible
+- Documenter CPU, disque SSD/HDD, Windows, antivirus, mode d'alimentation, build Python/packaging, version Atlas, source réseau et état du cache ; comparer **même machine, mêmes conditions**.
+- Distinguer cold/warm start, cache chaud/froid, première installation, patch minuscule, patch volumineux, aucune mise à jour, cache invalidé, démarrage avec et sans préchargement.
+- Produire des traces monotoniques structurées par phase avec identifiant de session, SHA de build, durée, taille, compteurs I/O et mémoire ; aucun secret, chemin privé ou donnée personnelle dans les logs publiés.
+- Décomposer le temps : latence distante, transfert, décompression, hash, copie, switch, démarrage process, imports, construction UI, premier paint, Home interactive. Donner p50/p95 et variabilité sur répétitions ; conserver raw results en artefact.
+- Budgets par phase : fixer après baseline, puis suivre écarts absolus et relatifs. Une régression >5 % déclenche une enquête si signal robuste ; ne pas déclarer PASS sur bruit de mesure ou sans baseline comparable.
+- Tester l'absence de re-download et de réinstallation **en comptant** les requêtes, octets réseau, fichiers écrits et hashes ; un simple message « déjà à jour » ne suffit pas.
+- Ajouter un benchmark de charge du preload et de retour Home après navigation, avec surveillance du pic mémoire process-tree et stabilisation ; interdire le report caché d'un blocage de l'UI après premier paint.
+- Séparer tests CI Linux rapides, tests Windows automatisables et validation humaine Windows propre ; aucune preuve CI non exécutée ne doit être présentée comme un PASS.
+
+## Matrice d'acceptation et couverture
+| Cas | Preuve minimale |
+| --- | --- |
+| Même version | 0 fichier d'application réinstallé, 0 octet d'artefact téléchargé, Home interactive mesurée |
+| Patch 1–3 fichiers | Seuls contenus changés transférés et remplacés, intégrité et rollback testés |
+| Mise à jour volumineuse | Installation sûre, progressions réelles et métriques par phase |
+| Installation vierge | Dossier choisi, prérequis conditionnels, raccourcis et lancement fonctionnels |
+| Coupure ou crash pendant installation | Ancienne version saine conservée ou restauration vérifiée |
+| Corruption / cache obsolète | Invalidation ciblée, réparation, aucune donnée utilisateur perdue |
+| Dossier déplacé | Paramètres, raccourcis, rollback et données préservés |
+| Atlas déjà ouvert | Aucun écrasement de binaires actifs, comportement explicite |
+| DPI et thème | Fenêtre unique, 100/125/150 %, police et palette cohérentes |
+| Home / preload | Home réellement utilisable, pas de blocage, mémoire sous budget |
+| Publication | SHA exact, tests requis, audit commit par commit, validation Windows humaine |
+
+## Découpage des commits et critères de sortie
+1. **Instrumentation seulement** : tests de mesure et baseline sans optimisation ; audit du commit.
+2. **Différentiel et transactions** : changements limités à la distribution ; tests de reprise, cache et intégrité ; audit du commit.
+3. **Launcher et installation** : fenêtre unique, design et emplacement ; tests Windows/DPI ; audit du commit.
+4. **Startup et preload** : correction des goulots mesurés ; tests navigation, réactivité et RAM ; audit du commit.
+5. **Certification** : comparaison avant/après par scénario, rapport de risques résiduels et audit transversal ; pas de fusion sans preuves.
+
+Les travaux peuvent être scindés en PR dépendantes si le diff devient difficile à auditer, tout en conservant la traçabilité vers #285. **Definition of Done** : correctifs réels + preuves mesurées + tests + CI exacte + validation Windows ; le document seul ne satisfait pas le contrat.
