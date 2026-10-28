@@ -20,7 +20,10 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
-    def test_disabled_unless_explicitly_selected(self) -> None:
+    def test_unity_is_default_and_legacy_only_explicit_recovery(self) -> None:
+        with patch.dict(os.environ, {"ATLAS_THEME": ""}):
+            self.assertTrue(unity_enabled())
+            self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertFalse(unity_enabled())
             self.assertEqual(unity_skin_stylesheet(), "")
@@ -47,7 +50,8 @@ class UnitySkinTests(unittest.TestCase):
             (personal / ".enabled").unlink()
             with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
                 with patch.dict(os.environ, {"ATLAS_THEME": ""}):
-                    self.assertFalse(unity_enabled())
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
 
     @classmethod
     def setUpClass(cls) -> None:
