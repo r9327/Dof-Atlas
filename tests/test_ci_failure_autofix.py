@@ -55,6 +55,18 @@ def git(root: Path, *argv: str) -> str:
 
 
 class BoundedCIFailureTriageTests(unittest.TestCase):
+    def test_actions_dispatch_previews_without_repository_writes(self):
+        source = (Path(__file__).resolve().parents[1] / ".github" /
+                  "workflows" / "ci-bounded-autofix.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", source)
+        self.assertIn("regenerate_index", source)
+        self.assertIn("proposal/.ai/context_index.json", source)
+        self.assertIn("actions/upload-artifact@", source)
+        self.assertNotIn("contents: write", source)
+        self.assertNotIn("pull-requests: write", source)
+        self.assertNotIn("ci_failure_autofix publish", source)
+        self.assertNotIn("pull_request_target:", source)
+
     def test_github_token_is_never_forwarded_to_redirected_log_url(self):
         with patch("tools.atlas_doctor_lib.ci_failure_autofix.urlopen") as opener:
             opener.return_value.__enter__.return_value.read.return_value = b"{}"

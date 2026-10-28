@@ -1,4 +1,4 @@
-# Atlas CI Bounded Repair — GitHub-only manual V1
+# Atlas CI Bounded Repair — read-only workflow and optional local publication
 
 A bounded, **human-triggered** recovery workflow; not a general code-writing
 agent, new router, merge approval, or Phase certification. It uses the existing
@@ -13,7 +13,8 @@ Select the default branch. Fill in:
 - PR number (open PR from **this** repository; forks are refused).
 - Failed **pull_request** Actions run ID.
 - Leave propose_fix false for read-only analysis. Toggle true only if you
-  approve a new Draft fix proposal for a proven stale context index.
+  request a **read-only artifact** for a proven stale context index.
+  Neither option creates a branch or PR.
 
 Job diagnose uses read-only permissions and produces an exact-SHA, bounded
 JSON report plus GitHub Step Summary. It requires the GitHub-hosted run to
@@ -28,24 +29,22 @@ Other errors, missing evidence, stale SHA, forks, cancelled/skipped jobs and
 closed PRs return REVIEW_REQUIRED without edits. Treat this as diagnostic
 feedback, not a declaration that other jobs succeeded.
 
-If explicitly opted in and eligible, the separately permissioned propose
-job checks out the default-branch *trusted* Python implementation and the
-exact failing PR SHA as **data** without persistent credentials. It never
-imports or executes a Python module from the candidate, or a shell command
-from GitHub logs. The GitHub token is sent on the initial API request only,
-never to a redirected job-log download URL. It calls
-`tools.ai_context.sync_index` on that candidate
-checkout, then enforces that exactly .ai/context_index.json changed and
-its bytes match the existing trusted index renderer.
+If explicitly opted in and eligible, the separately permissioned **read-only**
+propose job checks out the default-branch trusted implementation and the
+exact failing PR SHA as **data**. It re-fetches GitHub host evidence and
+regenerates the canonical `.ai/context_index.json` without importing or
+executing Python or shell from the candidate. Tokens authenticate only
+initial GitHub API requests and never accompany redirected log downloads.
+It uploads exactly the generated index as an Actions artifact for review.
+**No workflow job modifies GitHub, creates branches or opens Draft PRs.**
 
-The job re-fetches host evidence immediately before writing, creates a
-**new uniquely named repair branch based on the failing PR's head**, writes
-only the context index and opens a **Draft PR targeting the original PR's
-branch**, not main. It never force-pushes or modifies the source PR branch.
-A repeated dispatch of the same incident cannot silently overwrite the
-existing fix branch; a moved source PR SHA invalidates the attempt.
-Review/merge that Draft into the original branch separately, then allow all
-usual GitHub checks to rerun on the new SHA.
+After inspecting this proposal, a human operator can explicitly approve
+publication and run the separate `publish` CLI outside GitHub Actions with
+independently managed credentials and an exact-SHA candidate checkout.
+That path re-verifies GitHub evidence, creates a fresh single-purpose branch
+based on the original PR HEAD and opens a stacked **Draft PR** targeting the
+original branch, not `main`. It never force-pushes or modifies the source PR
+branch. The Draft still needs ordinary review and fresh CI evidence.
 
 ## Guarantees and limitations
 
@@ -54,16 +53,17 @@ usual GitHub checks to rerun on the new SHA.
   workflow/ruleset edits or automatic merge.
 - The workflow is dispatch-only on the trusted default branch and is not
   invoked by PR code, issue comments, or workflow_run from untrusted forks.
-- The write token is present only in the gated propose job. An eligible
-  diagnosis and an explicit boolean opt-in are both needed to reach it.
+- All workflow jobs are read-only. An eligible diagnosis and explicit opt-in
+  are necessary even to generate the proposal artifact. Publication uses
+  separate, explicitly authorized local credentials only.
 - An index repair is not proof of a passing AI Context job after the new
   commit, other tests, Qt/Windows behavior, FULL or Phase certification.
 - The index repair is intentionally refused if the candidate checkout is
   dirty, the path escapes the checkout via a symlink, the index is already
   current, GitHub metadata conflicts, or the generated patch touches other
   files. A report of REVIEW_REQUIRED is a safe non-repair outcome.
-- GitHub Actions permissions/settings may block branch creation or PR creation.
-  An API failure never counts as successful repair.
+- Optional human-initiated publication may be blocked by GitHub branch/PR
+  permissions or stale evidence. An API failure never counts as repair.
 
 ## Validation
 

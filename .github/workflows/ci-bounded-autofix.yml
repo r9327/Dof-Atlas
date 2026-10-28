@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       propose_fix:
-        description: "Create a stacked Draft PR ONLY for verified stale AI context index"
+        description: "Prepare a read-only index repair artifact; Draft publication is manual"
         required: true
         type: boolean
         default: false
@@ -93,8 +93,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       actions: read
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
     steps:
       - name: Checkout exact trusted automation source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -118,7 +118,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Reauthenticate host evidence before mutation
+      - name: Reauthenticate host evidence before preparing proposal
         working-directory: trusted
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -130,21 +130,33 @@ jobs:
             --report ../triage_for_publish.json
           python -c "import json; from pathlib import Path; assert json.loads(Path('../triage_for_publish.json').read_text())['eligible'], 'Stale or unrecognized failure'"
 
-      - name: Publish one-path correction as a new Draft PR, never mutate source PR
+      - name: Render exact-tree index as a proposal, without publishing
         working-directory: trusted
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.run_id }}
-          PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          python -m tools.atlas_doctor_lib.ci_failure_autofix publish \
-            --run-id "$RUN_ID" --pr-number "$PR_NUMBER" \
-            --report ../triage_for_publish.json --candidate ../candidate
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.atlas_doctor_lib.ci_failure_autofix import regenerate_index
+          report = json.loads(Path("../triage_for_publish.json").read_text(encoding="utf-8"))
+          payload = regenerate_index(Path("../candidate"), report)
+          output = Path("../proposal/.ai/context_index.json")
+          output.parent.mkdir(parents=True, exist_ok=True)
+          output.write_bytes(payload)
+          PY
+
+      - name: Upload bounded one-path proposal for human review
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-ci-bounded-index-proposal-${{ github.run_id }}
+          path: proposal/.ai/context_index.json
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Explain independent certification obligations
         if: always()
         run: |
           echo "## CI bounded repair is NOT certification" >> "$GITHUB_STEP_SUMMARY"
-          echo "- New Draft must be reviewed and validated at its own SHA." >> "$GITHUB_STEP_SUMMARY"
+          echo "- The artifact is a proposal only: no branch, commit, or Draft PR was created." >> "$GITHUB_STEP_SUMMARY"
+          echo "- A reviewer may publish with a separately authenticated local CLI." >> "$GITHUB_STEP_SUMMARY"
           echo "- Existing Phase Certification, Windows and required checks are unchanged." >> "$GITHUB_STEP_SUMMARY"
           echo "- Candidate branch was not overwritten or force-pushed." >> "$GITHUB_STEP_SUMMARY"
