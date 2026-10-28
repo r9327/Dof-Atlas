@@ -200,6 +200,9 @@ def owners_for(path: str) -> frozenset[str]:
         if leaf == "release_certification_fixes":
             # Exact reviewed test: Guide identity and CI/RAM thresholds.
             return frozenset({"ci", "craft", "guides"})
+        if leaf == "phase8_lifecycle_extended_contract":
+            # Exact reviewed CI and extended Windows memory evidence test.
+            return frozenset({"ci", "craft"})
         if leaf == "lanyel_shared_manual_ui":
             return frozenset({"guides", "ui"})
         if leaf.startswith(("ci_", "doctor_", "phase_", "atlas_integrity", "atlas_meta",

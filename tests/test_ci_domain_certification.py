@@ -159,6 +159,15 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("tests/test_unknown_release_contract.py"), frozenset())
 
+    def test_extended_memory_workflow_regression_is_ci_and_craft_owned(self):
+        path = "tests/test_phase8_lifecycle_extended_contract.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "craft"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "craft"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_phase8_unreviewed_contract.py"))
+
     def test_ci_policy_change_never_fans_out_into_quests_or_guides(self):
         plan = self.route([
             ".github/workflows/phase-certification.yml",
