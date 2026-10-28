@@ -8,6 +8,7 @@ so the onefile Windows launcher needs no separate asset on disk.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 ATLAS_PALETTE = {
     "background": "#050A0D",
@@ -36,8 +37,21 @@ def palette_for_theme(theme: str) -> dict[str, str]:
     return UNITY_PALETTE if theme.strip().casefold() == "dofus_unity" else ATLAS_PALETTE
 
 
-COLORS = palette_for_theme(os.environ.get("ATLAS_THEME", ""))
-FONT_FAMILY = "Lexend" if os.environ.get("ATLAS_THEME", "").strip().casefold() == "dofus_unity" else "Segoe UI"
+def preferred_theme() -> str:
+    """Mirror Qt personal-theme selection without importing the Qt runtime."""
+    choice = os.environ.get("ATLAS_THEME", "").strip().casefold()
+    if choice:
+        return choice
+    local_root = (
+        Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
+        / "DofusAtlas" / "themes" / "dofus_unity"
+    )
+    return "dofus_unity" if (local_root / ".enabled").is_file() else ""
+
+
+_ACTIVE_THEME = preferred_theme()
+COLORS = palette_for_theme(_ACTIVE_THEME)
+FONT_FAMILY = "Lexend" if _ACTIVE_THEME == "dofus_unity" else "Segoe UI"
 
 # Exact existing Atlas application icon, not a substitute game logo.
 LOGO_PNG_BASE64 = (
