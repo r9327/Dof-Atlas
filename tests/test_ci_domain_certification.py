@@ -16,6 +16,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_delivery_contract_and_guard_are_ci_owned(self):
+        for path in ("tools/ci_delivery_guard.py",
+                     ".github/pull_request_template.md", "AGENTS.md",
+                     ".github/workflows/delivery-guard.yml",
+                     "tests/test_ci_delivery_guard.py"):
+            self.assertEqual(owners_for(path), frozenset({"ci"}), path)
+
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
@@ -393,6 +400,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["status"], "BLOCKED")
         self.assertEqual(plan["unknown_paths"], ["app/new_cross_domain_provider.py"])
         self.assertNotIn("FULL_SUITE", plan["domains"])
+
+    def test_craft_seed_builder_has_exact_shared_owners(self):
+        self.assertEqual(
+            owners_for("scripts/windows/craft_seed.py"),
+            frozenset({"ci", "craft", "data", "startup"}),
+        )
+        self.assertEqual(owners_for("scripts/windows/new_seed_helper.py"), frozenset())
 
     def test_removal_and_type_changes_cannot_downscope(self):
         path = "tools/atlas_doctor_lib/ci_orchestrator.py"
