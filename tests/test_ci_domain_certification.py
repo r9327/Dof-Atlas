@@ -316,6 +316,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         expected = {
             "app/distribution/startup_trace.py": {"startup", "ui"},
             "tools/startup_trace_report.py": {"ci", "startup"},
+            "tools/analyze_startup.py": {"ci", "startup"},
         }
         for path, owners in expected.items():
             with self.subTest(path=path):

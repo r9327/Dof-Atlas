@@ -120,8 +120,9 @@ def owners_for(path: str) -> frozenset[str]:
     # Qt startup. Keep these exact paths so unrelated helpers fail closed.
     if path == "app/distribution/startup_trace.py":
         return frozenset({"startup", "ui"})
-    if path == "tools/startup_trace_report.py":
-        # Diagnostics and startup measurements, not a feature certificate.
+    if path in {"tools/startup_trace_report.py", "tools/analyze_startup.py"}:
+        # These are reviewed read-only startup diagnostics; do not admit other
+        # tooling paths by prefix, or grant any application certificate.
         return frozenset({"ci", "startup"})
     if path == "app/ui/preload_popup.py":
         return frozenset({"startup", "ui"})
