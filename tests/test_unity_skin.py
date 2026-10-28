@@ -142,6 +142,19 @@ class UnitySkinTests(unittest.TestCase):
         self.assertEqual(theme.PALETTE["GREEN"], UNITY_PALETTE["GREEN"])
         self.assertIn("QWidget#AtlasUnityBackdrop", theme.atlas_stylesheet())
 
+    def test_unity_fallback_background_is_not_flat(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            unity_skin, "_PERSONAL_ASSETS", Path(directory) / "no-assets"
+        ), patch.object(unity_skin, "_ASSETS", Path(directory) / "no-source"):
+            backdrop = UnityBackdrop()
+            self.assertTrue(backdrop._pixmap.isNull())
+            backdrop.resize(220, 140)
+            image = QImage(220, 140, QImage.Format_ARGB32)
+            image.fill(0xff000000)
+            backdrop.render(image)
+            self.assertNotEqual(image.pixelColor(10, 10), image.pixelColor(10, 130))
+            backdrop.deleteLater()
+
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])
         self.assertIn("SHELL_GRADIENT", UNITY_PALETTE)

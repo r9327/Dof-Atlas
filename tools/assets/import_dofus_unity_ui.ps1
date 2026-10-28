@@ -20,7 +20,7 @@ if ($InstallPersonalTheme) {
     $spriteFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'sprites') -Filter '*.png' -File)
     $fontFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'fonts') -Filter '*.ttf' -File)
     if (!(Test-Path -LiteralPath $original -PathType Leaf) -or
-        $spriteFiles.Count -lt 40 -or $fontFiles.Count -lt 5) {
+        $spriteFiles.Count -ne 46 -or $fontFiles.Count -ne 10) {
         throw 'Sources du theme incompletes dans ce checkout. Aucun theme active.'
     }
     foreach ($folder in @('sprites', 'fonts')) {
@@ -29,8 +29,10 @@ if ($InstallPersonalTheme) {
         New-Item -ItemType Directory -Path $to -Force | Out-Null
         Get-ChildItem -LiteralPath $from -File | ForEach-Object {
             $target = Join-Path $to $_.Name
-            if (!(Test-Path -LiteralPath $target -PathType Leaf)) {
-                Copy-Item -LiteralPath $_.FullName -Destination $target
+            if (!(Test-Path -LiteralPath $target -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash) {
+                Copy-Item -LiteralPath $_.FullName -Destination $target -Force
             }
         }
     }
@@ -40,6 +42,9 @@ if ($InstallPersonalTheme) {
         try {
             if (Get-Command py -ErrorAction SilentlyContinue) {
                 & py -3.13 -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
+                if ($LASTEXITCODE -ne 0 -and (Get-Command python -ErrorAction SilentlyContinue)) {
+                    & python -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
+                }
             } elseif (Get-Command python -ErrorAction SilentlyContinue) {
                 & python -m tools.assets.clean_unity_wallpaper --corner-toolbar --source $original --output $cleaned
             } else {
@@ -50,8 +55,14 @@ if ($InstallPersonalTheme) {
             Pop-Location
         }
     }
-    if (!(Test-Path -LiteralPath $cleaned -PathType Leaf)) {
-        throw 'Fond nettoye absent. Le theme complet ne peut pas etre confirme.'
+    if (!(Test-Path -LiteralPath $cleaned -PathType Leaf) -or
+        (Get-Item -LiteralPath $cleaned).Length -lt 50000) {
+        throw 'Fond nettoye absent ou incomplet. Aucun theme confirme.'
+    }
+    $installedSprites = @(Get-ChildItem -LiteralPath (Join-Path $destination 'sprites') -Filter '*.png' -File)
+    $installedFonts = @(Get-ChildItem -LiteralPath (Join-Path $destination 'fonts') -Filter '*.ttf' -File)
+    if ($installedSprites.Count -lt 46 -or $installedFonts.Count -lt 10) {
+        throw 'Installation des sprites ou polices incomplete. Aucun theme confirme.'
     }
     # Marker records complete personal setup, without touching public manifests.
     Set-Content -LiteralPath (Join-Path $destination '.enabled') -Value 'personal-local-theme' -Encoding ascii

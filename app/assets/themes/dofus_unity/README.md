@@ -46,3 +46,10 @@ La presentation Unity est maintenant la seule interface active. Les anciens
 styles restent uniquement des roles de conversion CSS internes, pas un
 mode utilisateur alternatif. Le dossier personnel n'entre jamais dans une
 Release publique.
+
+En l'absence de copie personnelle, Atlas affiche un degrade bleu nuit/violet
+integralement dessine par Qt, pas l'ancienne interface ni une image du jeu.
+Le fond personnel nettoye remplace ce degrade des qu'il est present. Le script
+d'installation exige maintenant les 46 sprites, les 10 polices et un PNG
+nettoye non vide. Si `py -3.13` echoue, il essaie `python` deja installe
+(avec Pillow). Aucun test sur le PC de l'utilisateur n'est implicite.
