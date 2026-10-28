@@ -16,6 +16,7 @@ import urllib.request
 from pathlib import Path
 
 from local_dofus_data.schema import CREATE_TABLES_SQL
+from scripts.windows.quest_assets import provision as _provision_quest_sources
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = Path("data/cache/dofus_maps/raw/doduda_cli")
@@ -71,6 +72,17 @@ def ensure_recipe_asset(root: Path, *, download: bool = False) -> Path:
     finally:
         Path(tmp).unlink(missing_ok=True)
     return dest
+
+
+def provision_craft_sources(root: Path, *, download: bool = False) -> None:
+    """Materialize every frozen Doduda input consumed by ``build_seed``.
+
+    The shared Quest lock owns items, jobs, item types and the French locale;
+    the Craft lock owns recipes.  Keeping both acquisitions behind the Craft
+    command prevents a clean CI runner from depending on an earlier Quest job.
+    """
+    _provision_quest_sources(root, download=download)
+    ensure_recipe_asset(root, download=download)
 
 
 def _load(path: Path):
@@ -237,7 +249,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.download:
-            ensure_recipe_asset(args.root, download=True)
+            provision_craft_sources(args.root, download=True)
         counts = validate_seed(args.output) if args.verify else build_seed(args.root, args.output)
     except (OSError, ValueError, sqlite3.Error) as exc:
         print(f"CRAFT SEED FAILED: {exc}")
