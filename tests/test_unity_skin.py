@@ -74,9 +74,9 @@ class UnitySkinTests(unittest.TestCase):
             for state in ("normal", "over", "pressed", "disabled"):
                 self.assertTrue(source.save(str(sprites / f"btn_green_{state}.png")))
             self.assertTrue(source.save(str(sprites / "Assets_UI_Themes_Figma_menuIcons_1x_guide-png.png")))
-            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.dict(
-                os.environ, {"ATLAS_THEME": "dofus_unity"},
-            ):
+            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.object(
+                unity_skin, "_PERSONAL_ASSETS", asset_dir / "absent-personal"
+            ), patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
                 style = unity_skin_stylesheet()
                 for state in ("normal", "over", "pressed", "disabled"):
                     self.assertIn(f"btn_green_{state}.png", style)
@@ -103,7 +103,9 @@ class UnitySkinTests(unittest.TestCase):
             original = asset_dir / "background_selection_original.png"
             cleaned = asset_dir / "background_selection_clean.png"
             original.write_bytes(b"unchanged-original")
-            with patch.object(unity_skin, "_ASSETS", asset_dir):
+            with patch.object(unity_skin, "_ASSETS", asset_dir), patch.object(
+                unity_skin, "_PERSONAL_ASSETS", asset_dir / "absent-personal"
+            ):
                 with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
                     self.assertIsNone(wallpaper_path())
                 with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
