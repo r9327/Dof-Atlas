@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
       "type": "tree"
     },
     ".codex": {
@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "e5ca5eabd9ee181b0e6d15748d8ed9f34b936f3e",
+      "sha": "06d452b6e43f1364178bea085cc4e852538480c6",
       "type": "tree"
     },
     ".gitignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "26bdbae9ba7f7b94e779faedd85bec51d7f348b4",
+      "sha": "2f80aadb99633299c103af80bfdcc5156ed89a91",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
+      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -97,7 +97,7 @@
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "077b42be10f7187ae4616c8f5b7b2e5b57e292a4",
+      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6",
       "type": "blob"
     },
     "README.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "607d0c9fd13f21f013b9dbc5ae2067fbfd0d2501",
+      "sha": "d361e92b3d616c50da0dfa962b5f10acc4a5a431",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "dc0fb0c63f12ace043302903a4793d698fb4e88f",
+      "sha": "19ca9261e974cb03e715f89eeea88e007fc4cca1",
       "type": "tree"
     },
     "launch.py": {
@@ -152,7 +152,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "4fa320abf6c87a8635b42f524453b6f15b6976e6",
+      "sha": "8d6c968aa0a016ddc259608ff4a918801a0b559f",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "a21216a063301f8c06a9dde72dda95a243e41758",
+      "sha": "ff78948d317b6dba2389041a95ed418d05ede283",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "3cdc2dd870ef46cc521658e676843150c94bc089",
+      "sha": "ff2a8e9ffd893c66d7dcee6e820f4d317072d2ac",
       "type": "tree"
     }
   },

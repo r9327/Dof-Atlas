@@ -14,6 +14,7 @@ from typing import Callable
 
 from .manifest import ManifestError, ReleaseFile, ReleaseManifest, verify_file, valid_path, valid_sha
 from .release_client import UpdateError
+from .file_clone import clone_unchanged_cow
 
 Progress = Callable[[int, int], None]
 _STATE_NAME = "state.json"
@@ -160,6 +161,14 @@ def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile
         if (source.is_symlink() or not source.is_file()
                 or source.stat().st_size != entry.size):
             raise UpdateError("Unchanged base file was modified or missing")
+        # ReFS extent clones share copy-on-write blocks, not mutable hardlinks.
+        # Hash the finished target before it can become an active release slot.
+        if clone_unchanged_cow(source, destination, entry.size):
+            if not verify_file(destination, entry):
+                raise UpdateError("Cloned base file failed release SHA-256")
+            if progress is not None:
+                progress(entry.size)
+            return
         digest = hashlib.sha256()
         copied = 0
         with source.open("rb") as original, destination.open("xb") as output:
@@ -175,6 +184,52 @@ def _copy_unchanged_verified(source: Path, destination: Path, entry: ReleaseFile
             raise UpdateError("Unchanged base file was modified or missing")
     except OSError as exc:
         raise UpdateError("Unchanged base file cannot be copied safely") from exc
+
+
+_FILE_INDEX_NAME = ".atlas-file-index.json"
+_MAX_INDEX_BYTES = 32 * 1024**2
+
+
+def _read_local_file_index(slot: Path, source_sha: str | None) -> dict[str, tuple[int, str]]:
+    """Optional hint only; each reused file is ALWAYS SHA-verified separately.
+
+    Without an index (legacy installation), don't trial-copy every changed
+    file just to discover it differs; stream from the authoritative ZIP.
+    """
+    if not source_sha or slot.is_symlink():
+        return {}
+    path = slot / _FILE_INDEX_NAME
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > _MAX_INDEX_BYTES:
+            return {}
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(doc, dict) or doc.get("source_sha") != source_sha:
+            return {}
+        rows = doc.get("files")
+        if not isinstance(rows, dict):
+            return {}
+        result: dict[str, tuple[int, str]] = {}
+        for name, pair in rows.items():
+            if (not isinstance(name, str) or not isinstance(pair, list)
+                    or len(pair) != 2 or type(pair[0]) is not int
+                    or not isinstance(pair[1], str)):
+                return {}
+            result[name] = (pair[0], pair[1])
+        return result
+    except (OSError, ValueError, UnicodeError):
+        return {}
+
+
+def _write_local_file_index(stage: Path, manifest: ReleaseManifest) -> None:
+    """Persist *hints*, not trusted signatures, for next release's fast reuse."""
+    data = {
+        "source_sha": manifest.source_sha,
+        "files": {entry.path: [entry.size, entry.sha256] for entry in manifest.files},
+    }
+    (stage / _FILE_INDEX_NAME).write_text(
+        json.dumps(data, separators=(",", ":"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
@@ -202,6 +257,10 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
+    previous_file_index = (
+        _read_local_file_index(slot_path(root, state["active"]), state.get("source_sha"))
+        if not delta and not same_active and state.get("active") else {}
+    )
     try:
         with zipfile.ZipFile(archive_path) as package:
             entries = _validate_archive(package, manifest,
@@ -231,6 +290,24 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     done += entry.size
                     report_copied(done)
                     continue
+                # A full ZIP may still contain files identical to the previous
+                # slot (e.g. different base SHA or failed delta). Try a verified
+                # local reuse first; corrupt/missing local files fall back to
+                # the release archive, never to unverified cached data.
+                if previous_file_index.get(entry.path) == (entry.size, entry.sha256):
+                    old = slot_path(root, state["active"]) / entry.path
+                    if old.is_file() and not old.is_symlink():
+                        try:
+                            _copy_unchanged_verified(
+                                old, destination, entry,
+                                lambda copied: report_copied(done + copied),
+                            )
+                        except UpdateError:
+                            destination.unlink(missing_ok=True)
+                        else:
+                            done += entry.size
+                            report_copied(done)
+                            continue
                 digest = hashlib.sha256()
                 count = 0
                 with package.open(entries[entry.path]) as source, destination.open("xb") as output:
@@ -249,6 +326,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     raise UpdateError("Release file SHA-256 validation failed")
         if not (stage / manifest.entrypoint).is_file():
             raise UpdateError("Missing packaged application")
+        _write_local_file_index(stage, manifest)
         if target.exists():
             if same_active:
                 quarantine = root / "quarantine"

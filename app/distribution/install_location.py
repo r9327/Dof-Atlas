@@ -17,13 +17,21 @@ DEFAULT_RUNTIME = APP_DATA / "runtime"
 _SETTINGS = APP_DATA / "installation.json"
 
 
+def _linked(path: Path) -> bool:
+    """Reject Windows junctions as well as ordinary symbolic links."""
+    return path.is_symlink() or (
+        hasattr(path, "is_junction") and path.is_junction()
+    )
+
+
+
 def _valid_root(value: str | Path) -> Path:
     path = Path(value).expanduser()
     if not path.is_absolute():
         raise UpdateError("Le dossier d'installation doit etre un chemin absolu")
     if os.name == "nt" and (path.drive.startswith("\\\\") or str(path).startswith("\\\\")):
         raise UpdateError("Un dossier reseau n'est pas accepte pour Atlas")
-    if path.is_symlink() or any(parent.is_symlink() for parent in path.parents):
+    if _linked(path) or any(_linked(parent) for parent in path.parents):
         raise UpdateError("Un lien symbolique n'est pas accepte pour le dossier Atlas")
     path = path.resolve()
     if path == Path(path.anchor) or (path.exists() and not path.is_dir()):
@@ -94,13 +102,13 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         where = Path(base)
         directories[:] = [name for name in directories
                           if not (where == source and name == ".health")]
-        if any((where / name).is_symlink() for name in directories):
+        if any(_linked(where / name) for name in directories):
             raise UpdateError("Impossible de deplacer une installation contenant des liens")
         for name in names:
             if where == source and name == ".launcher.lock":
                 continue
             entry = where / name
-            if entry.is_symlink():
+            if _linked(entry):
                 raise UpdateError("Impossible de deplacer une installation contenant des liens")
             total += entry.stat().st_size
     destination.parent.mkdir(parents=True, exist_ok=True)

@@ -16,6 +16,29 @@ Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.
 
+## Required PR review
+
+For every PR, apply the commit-by-commit logic audit defined in `AGENTS.md`
+before its global final review. Give a precise judgment for each commit,
+including concrete missing changes or tests when justified; a commit can be a
+valid intermediate step without being independently shippable. Then audit the
+**entire integrated PR** for cross-commit consistency, risks, regressions and
+validation gaps. Report one final **logic-review** verdict: `REVIEW OK`,
+`IMPROVEMENTS ADVISED` or `CHANGES REQUIRED`, with demonstrated issues
+separated from hypothetical risks. These are not CI/Doctor `VALIDATED` or
+`CERTIFIED` states. Do not request cosmetic refactors or infer FULL
+certification from a review or partial/skip test results.
+
+## Agent and AI rule changes
+
+When a PR adds, edits or removes agent instructions, skills, policy rules,
+CI requirements or provider entrypoints, also run the **bounded rule audit**
+in `AGENTS.md`. Verify scope, authority, conflicts/duplication,
+paths/commands, real CI triggers and safety before and after the change.
+Keep canonical contracts in their owning files and link to them rather
+than copying whole policies into each agent entrypoint. Document confirmed
+findings and required corrections; do not invent an extra certification gate.
+
 ## Machine contract
 
 - Protocol: `atlas-doctor-agent/v1`.

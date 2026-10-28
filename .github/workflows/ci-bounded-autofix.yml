@@ -1,0 +1,162 @@
+name: Atlas CI Bounded Repair (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Original open same-repository PR number"
+        required: true
+        type: number
+      run_id:
+        description: "Failed GitHub Actions pull_request run ID (exact SHA)"
+        required: true
+        type: string
+      propose_fix:
+        description: "Prepare a read-only index repair artifact; Draft publication is manual"
+        required: true
+        type: boolean
+        default: false
+
+# Never triggered by PR content or untrusted workflow_run / issue comments.
+# Only manually dispatched from the trusted default branch.
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-ci-bounded-repair-${{ inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      eligible: ${{ steps.triage.outputs.eligible }}
+      head_sha: ${{ steps.triage.outputs.head_sha }}
+    steps:
+      - name: Checkout trusted automation source on exact default-branch SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          lfs: false
+
+      - name: Python 3.13 without application dependencies
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Verify incident triage contracts (stdlib only)
+        run: python -m unittest discover -v -s tests -p 'test_ci_failure_autofix.py'
+
+      - name: Authenticate failed job and propose one bounded repair
+        id: triage
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        shell: bash
+        run: |
+          python -m tools.atlas_doctor_lib.ci_failure_autofix triage \
+            --run-id "$RUN_ID" --pr-number "$PR_NUMBER" \
+            --report artifacts/ci_autofix/triage.json --github-output "$GITHUB_OUTPUT"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("artifacts/ci_autofix/triage.json").read_text())
+          with open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("## Atlas CI failure triage (advisory, not certification)\n")
+              f.write(f"- Result: {data['status']}\n")
+              f.write(f"- Candidate: {data['candidate_sha']}\n")
+              f.write(f"- Reasons: {', '.join(data['reason_codes']) or 'known index failure'}\n")
+              f.write("- No candidate source executed, no FULL evidence or merge approval.\n")
+          PY
+
+      - name: Preserve triage evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-ci-bounded-triage-${{ github.run_id }}
+          path: artifacts/ci_autofix/triage.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  propose:
+    needs: diagnose
+    if: inputs.propose_fix && needs.diagnose.outputs.eligible == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout exact trusted automation source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+          lfs: false
+
+      - name: Checkout exact failed candidate as DATA ONLY, without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.diagnose.outputs.head_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Python 3.13 without Qt or user code
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Reauthenticate host evidence before preparing proposal
+        working-directory: trusted
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          python -m tools.atlas_doctor_lib.ci_failure_autofix triage \
+            --run-id "$RUN_ID" --pr-number "$PR_NUMBER" \
+            --report ../triage_for_publish.json
+          python -c "import json; from pathlib import Path; assert json.loads(Path('../triage_for_publish.json').read_text())['eligible'], 'Stale or unrecognized failure'"
+
+      - name: Render exact-tree index as a proposal, without publishing
+        working-directory: trusted
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.atlas_doctor_lib.ci_failure_autofix import regenerate_index
+          report = json.loads(Path("../triage_for_publish.json").read_text(encoding="utf-8"))
+          payload = regenerate_index(Path("../candidate"), report)
+          output = Path("../proposal/.ai/context_index.json")
+          output.parent.mkdir(parents=True, exist_ok=True)
+          output.write_bytes(payload)
+          PY
+
+      - name: Upload bounded one-path proposal for human review
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-ci-bounded-index-proposal-${{ github.run_id }}
+          path: proposal/.ai/context_index.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Explain independent certification obligations
+        if: always()
+        run: |
+          echo "## CI bounded repair is NOT certification" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The artifact is a proposal only: no branch, commit, or Draft PR was created." >> "$GITHUB_STEP_SUMMARY"
+          echo "- A reviewer may publish with a separately authenticated local CLI." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Existing Phase Certification, Windows and required checks are unchanged." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Candidate branch was not overwritten or force-pushed." >> "$GITHUB_STEP_SUMMARY"

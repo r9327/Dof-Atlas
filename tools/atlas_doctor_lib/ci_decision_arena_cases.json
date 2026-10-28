@@ -1,0 +1,462 @@
+{
+  "schema_version": 1,
+  "description": "Read-only 32-case selector baseline. Not a source of trusted merge policy.",
+  "cases": [
+    {
+      "id": "readme-doc",
+      "paths": [
+        "README.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "metadata"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "required_jobs": [
+          "ai-context-ci",
+          "signature-report"
+        ],
+        "excluded_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "guide-doc",
+      "paths": [
+        "docs/guide.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "metadata"
+        ]
+      }
+    },
+    {
+      "id": "context-index",
+      "paths": [
+        ".ai/context_index.json"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "metadata"
+        ]
+      }
+    },
+    {
+      "id": "ai-agent-instructions",
+      "paths": [
+        "AGENTS.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "excluded_jobs": [
+          "doctor-ui",
+          "doctor-certification",
+          "phase8-memory-benchmark"
+        ]
+      }
+    },
+    {
+      "id": "ai-entrypoint",
+      "paths": [
+        "AI_ENTRYPOINT.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "excluded_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "ai-claude",
+      "paths": [
+        "CLAUDE.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ]
+      }
+    },
+    {
+      "id": "phase-policy",
+      "paths": [
+        "PHASE_CERTIFICATION.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ]
+      }
+    },
+    {
+      "id": "adaptive-policy",
+      "paths": [
+        "DOCTOR_ADAPTIVE_CERTIFICATION.md"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ]
+      }
+    },
+    {
+      "id": "ci-domain-router",
+      "paths": [
+        "tools/ci_domain_certification.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "required_jobs": [
+          "graphify-targeted-ci",
+          "ai-context-ci",
+          "signature-report"
+        ],
+        "excluded_jobs": [
+          "doctor-ui",
+          "doctor-certification",
+          "phase8-memory-benchmark"
+        ]
+      }
+    },
+    {
+      "id": "ci-domain-test",
+      "paths": [
+        "tests/test_ci_domain_certification.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "excluded_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "ci-required-gate",
+      "paths": [
+        "tools/ci_required_certification.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "NOT_APPLICABLE",
+        "excluded_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "ci-orchestration",
+      "paths": [
+        "tools/atlas_doctor_lib/ci_orchestrator.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ]
+      }
+    },
+    {
+      "id": "phase-workflow",
+      "paths": [
+        ".github/workflows/phase-certification.yml"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "UI_REQUIRED",
+        "required_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "scoped-workflow",
+      "paths": [
+        ".github/workflows/scoped-pr-ci.yml"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci"
+        ],
+        "ui_status": "UI_REQUIRED",
+        "required_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "guide-service",
+      "paths": [
+        "app/modules/encyclopedia/services/guide_progress_service.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "guides"
+        ]
+      }
+    },
+    {
+      "id": "guide-view",
+      "paths": [
+        "app/modules/encyclopedia/views/guides_view.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "guides",
+          "ui"
+        ],
+        "ui_status": "UI_REQUIRED",
+        "required_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "ui-theme",
+      "paths": [
+        "app/ui/theme.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ui"
+        ],
+        "ui_status": "UI_REQUIRED",
+        "required_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "guide-page",
+      "paths": [
+        "app/pages/guide_page.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "guides",
+          "ui"
+        ]
+      }
+    },
+    {
+      "id": "quest-page",
+      "paths": [
+        "app/pages/quest_page.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "quests",
+          "ui"
+        ]
+      }
+    },
+    {
+      "id": "quest-provider",
+      "paths": [
+        "app/modules/encyclopedia/providers/achievement_provider.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "quests"
+        ]
+      }
+    },
+    {
+      "id": "craft-only",
+      "paths": [
+        "app/pages/craft_page.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "craft"
+        ]
+      }
+    },
+    {
+      "id": "shared-craft-cache",
+      "paths": [
+        "app/local_data_cache.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "craft",
+          "quests",
+          "guides",
+          "data"
+        ]
+      }
+    },
+    {
+      "id": "startup-ui",
+      "paths": [
+        "app/ui/preload_popup.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ui",
+          "startup"
+        ]
+      }
+    },
+    {
+      "id": "persistence-identity",
+      "paths": [
+        "app/core/json_store.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "guides",
+          "identity"
+        ]
+      }
+    },
+    {
+      "id": "shared-guide-data",
+      "paths": [
+        "data/routes/guide_ultime_manual/chapter_01.json"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "craft",
+          "quests",
+          "guides",
+          "data"
+        ]
+      }
+    },
+    {
+      "id": "mixed-ci-and-ui",
+      "paths": [
+        "AGENTS.md",
+        "app/ui/theme.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "ci",
+          "ui"
+        ],
+        "ui_status": "UI_REQUIRED",
+        "required_jobs": [
+          "doctor-ui"
+        ]
+      }
+    },
+    {
+      "id": "mixed-craft-and-startup",
+      "paths": [
+        "app/pages/craft_page.py",
+        "app/ui/preload_popup.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "craft",
+          "ui",
+          "startup"
+        ]
+      }
+    },
+    {
+      "id": "mixed-guides-and-ui",
+      "paths": [
+        "app/modules/encyclopedia/services/guide_progress_service.py",
+        "app/ui/theme.py"
+      ],
+      "expected": {
+        "status": "READY_TO_EXECUTE",
+        "domains": [
+          "guides",
+          "ui"
+        ]
+      }
+    },
+    {
+      "id": "unknown-ai-skill",
+      "paths": [
+        ".agents/skills/unreviewed/SKILL.md"
+      ],
+      "expected": {
+        "status": "BLOCKED",
+        "domains": []
+      }
+    },
+    {
+      "id": "unknown-python",
+      "paths": [
+        "app/unsupported/new.py"
+      ],
+      "expected": {
+        "status": "BLOCKED",
+        "domains": []
+      }
+    },
+    {
+      "id": "deleted-guide",
+      "paths": [
+        "app/modules/encyclopedia/services/guide_progress_service.py"
+      ],
+      "deleted": [
+        "app/modules/encyclopedia/services/guide_progress_service.py"
+      ],
+      "expected": {
+        "status": "BLOCKED",
+        "domains": [
+          "guides"
+        ]
+      }
+    },
+    {
+      "id": "unreviewed-root-policy",
+      "paths": [
+        "NEW_AGENT_POLICY.md"
+      ],
+      "expected": {
+        "status": "BLOCKED",
+        "domains": []
+      }
+    }
+  ]
+}
