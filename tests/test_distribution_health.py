@@ -36,6 +36,33 @@ class WindowHealthTests(unittest.TestCase):
             process = SimpleNamespace(pid=123, poll=lambda: 17)
             self.assertFalse(self.launch_with_process(Path(location), process, [0, 0.1]))
 
+    def test_handoff_status_is_emitted_only_after_qt_ack(self):
+        with tempfile.TemporaryDirectory() as location:
+            messages = []
+            root = Path(location)
+            fake_exe = root / "AtlasApp.exe"
+            fake_exe.write_bytes(b"MZ")
+            (root / ".health").mkdir()
+            (root / ".health" / "fixed.ready").write_text("123", encoding="ascii")
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            with (
+                patch.object(launcher, "ROOT", root),
+                patch.object(launcher, "USER_DIR", root / "user"),
+                patch.object(launcher, "prepare_user_data"),
+                patch.object(launcher.uuid, "uuid4",
+                             return_value=SimpleNamespace(hex="fixed")),
+                patch.object(launcher.subprocess, "Popen", return_value=process),
+                patch.object(launcher.time, "monotonic", side_effect=[1, 2, 4]),
+                patch.object(launcher.time, "sleep"),
+            ):
+                self.assertTrue(_launch_with_health(
+                    fake_exe, lambda status, *_: messages.append(status),
+                    settle_seconds=2,
+                ))
+            self.assertEqual(messages, [
+                "Lancement de Dofus Atlas...", "Prechargement Qt actif",
+            ])
+
     def test_stable_window_passes_without_extra_gui_launches(self):
         with tempfile.TemporaryDirectory() as location:
             process = SimpleNamespace(pid=123, poll=lambda: None)
@@ -182,8 +209,9 @@ class WindowHealthTests(unittest.TestCase):
             guard.acquire.assert_called_once()
             guard.release.assert_called_once()
 
-    def test_handoff_is_only_the_launch_transition(self):
-        self.assertTrue(_is_application_handoff("Lancement de Dofus Atlas..."))
+    def test_handoff_is_only_after_qt_ack(self):
+        self.assertTrue(_is_application_handoff("Prechargement Qt actif"))
+        self.assertFalse(_is_application_handoff("Lancement de Dofus Atlas..."))
         self.assertFalse(_is_application_handoff("Installation differentielle..."))
         self.assertFalse(_is_application_handoff("Echec : Home indisponible"))
 

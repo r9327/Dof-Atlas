@@ -137,3 +137,17 @@ le lanceur signale un échec sans lancer de rollback concurrent ; un
 processus réellement terminé permet toujours la récupération normale.
 La course très précoce avant l'acquisition du mutex par le processus
 en démarrage et le comportement natif Win32 restent à tester sur PC.
+
+## Relais visuel sans écran vide avant Qt
+
+L'ancien message `Lancement de Dofus Atlas...` est émis **avant** le
+`Popen` et pendant les imports : il ne doit plus masquer une fenêtre Tk
+visible. Le relais `Prechargement Qt actif` n'est désormais émis qu'après
+l'ACK du véritable processus Qt. Sur un lancement sans mise à jour, Tk
+reste masqué comme avant ; sur une installation visible, il ne se masque
+qu'après la prise de relais de Qt. Si le premier lancement échoue et
+qu'une version précédente est restaurée, l'UI Tk réapparaît jusqu'au
+nouvel ACK. Les tests unitaires couvrent cet ordre de messages et
+l'absence de masquage anticipé, mais la présence d'une fenêtre unique
+par frame et l'absence de scintillement doivent encore être vérifiées
+sur une machine Windows avec le binaire gelé.

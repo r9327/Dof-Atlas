@@ -152,6 +152,40 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         window.deiconify.assert_not_called()
         window.destroy.assert_called_once()
 
+    def test_visible_updater_waits_for_qt_ack_before_hiding(self):
+        result, window = self._drive([
+            ("Differentiel : 10 %", 17),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Prechargement Qt actif", 98),
+            ("Dofus Atlas est pret", 100),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        # One initial hide, one real takeover. Never an early hide on spawn.
+        self.assertEqual(window.withdraw.call_count, 2)
+
+    def test_spawn_without_qt_ack_keeps_updater_visible(self):
+        result, window = self._drive([
+            ("Installation differentielle...", 83),
+            ("Lancement de Dofus Atlas...", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        self.assertEqual(window.withdraw.call_count, 1)  # initial hidden only
+
+    def test_rollback_reveals_updater_until_old_qt_is_ready(self):
+        result, window = self._drive([
+            ("Differentiel : 10 %", 17),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Prechargement Qt actif", 98),
+            ("Demarrage echoue — restauration precedente", 95),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Prechargement Qt actif", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 2)
+        self.assertEqual(window.withdraw.call_count, 3)
+
     def test_real_delta_shows_progress_only_once(self):
         result, window = self._drive([
             ("Verification des mises a jour...", 5),

@@ -111,13 +111,19 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
             if _marker_matches_process(ready, proc):
                 record_startup_event("app_health_ack")
                 ready.unlink(missing_ok=True)
-                if capable.is_file():
+                supports_home_ack = capable.is_file()
+                if supports_home_ack:
                     if not _marker_matches_process(capable, proc):
                         # Never interpret malformed V2 capability as a legacy
                         # ready-only handshake while the candidate is alive.
                         if proc.poll() is not None:
                             return False
                         raise UpdateError("Confirmation de lancement Atlas invalide")
+                # Qt has actually entered its event loop now. Keep Tk visible
+                # while the child imports/starts; hide it only at this point,
+                # when the Qt preload dialog can take over the visible UI.
+                report("Prechargement Qt actif", 98)
+                if supports_home_ack:
                     # New Qt clients advertise support before their legacy ACK.
                     # Legacy installed apps retain their existing fast handoff.
                     # A Home paint + event-loop turn, not the preload dialog,
@@ -331,8 +337,8 @@ def run_update(report, *, verify_installation: bool = False) -> None:
 
 
 def _is_application_handoff(message: str) -> bool:
-    """One visible UI at a time: Qt takes over before it shows preload."""
-    return message == "Lancement de Dofus Atlas..."
+    """Hide Tk only once the Qt event loop acknowledges its own preload UI."""
+    return message == "Prechargement Qt actif"
 
 
 def _requires_updater_window(message: str) -> bool:
@@ -341,7 +347,7 @@ def _requires_updater_window(message: str) -> bool:
         "Telechargement", "Differentiel", "Installation",
         "Verification complete", "Verification et installation",
         "Copie vers", "Version precedente restauree",
-        "Paquets de donnees precedents restaures",
+        "Demarrage echoue", "Paquets de donnees precedents restaures",
     ))
 
 
@@ -464,8 +470,9 @@ def main() -> int:
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
                     if _is_application_handoff(message):
-                        window.withdraw()
-                        updater_visible = False
+                        if updater_visible:
+                            window.withdraw()
+                            updater_visible = False
                     elif not updater_visible and _requires_updater_window(message):
                         updater_visible = True
                         window.deiconify()
