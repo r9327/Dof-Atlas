@@ -1,7 +1,6 @@
-"""DOFUS Unity skin as the one default Atlas UI. Legacy styling is for recovery only.
+"""Single Unity visual system for Atlas, with local optional graphic assets.
 
-The reference sprites and screenshot are *not* authorized for redistribution.
-No font extracted from the game is registered by this module.
+Game-extracted image and font files stay outside the public Windows release.
 """
 from __future__ import annotations
 
@@ -45,9 +44,8 @@ UNITY_PALETTE = {
 
 
 def unity_enabled() -> bool:
-    """Unity is the standard UI; the old presentation is opt-in for recovery/tests."""
-    choice = os.environ.get("ATLAS_THEME", "").strip().casefold()
-    return choice not in {"atlas", "legacy"}
+    """The legacy Atlas presentation is retired; Unity is always active."""
+    return True
 
 
 def _asset_file(relative: Path) -> Path | None:
