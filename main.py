@@ -952,7 +952,7 @@ class AtlasWindow(QMainWindow):
             ("Succès", "success", ACHIEVEMENTS_TAB),
         ):
             action = encyclopedia_menu.addAction(
-                title, lambda chosen=tab: self.open_encyclopedia_tab(chosen)
+                title, lambda _checked=False, chosen=tab: self.open_encyclopedia_tab(chosen)
             )
             icon_path = sprite_icon_path(icon_name)
             if icon_path:

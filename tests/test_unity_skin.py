@@ -142,6 +142,7 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('("Guide", "guide", GUIDES_TAB)', main_source)
         self.assertIn('("Quêtes", "quest", QUESTS_TAB)', main_source)
         self.assertIn('("Succès", "success", ACHIEVEMENTS_TAB)', main_source)
+        self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
 
     def test_application_has_only_unity_palette(self) -> None:
