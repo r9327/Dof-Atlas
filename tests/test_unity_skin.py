@@ -135,6 +135,15 @@ class UnitySkinTests(unittest.TestCase):
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
+    def test_primary_navigation_uses_local_unity_pictograms_with_fallback(self) -> None:
+        main_source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
+        self.assertIn('sprite_icon_path("inventory")', main_source)
+        self.assertIn('sprite_icon_path("encyclopedia")', main_source)
+        self.assertIn('("Guide", "guide", GUIDES_TAB)', main_source)
+        self.assertIn('("Quêtes", "quest", QUESTS_TAB)', main_source)
+        self.assertIn('("Succès", "success", ACHIEVEMENTS_TAB)', main_source)
+        self.assertIn("if icon_path:", main_source)
+
     def test_application_has_only_unity_palette(self) -> None:
         from app.ui import theme
         self.assertEqual(theme.PALETTE["BG"], UNITY_PALETTE["BG"])
