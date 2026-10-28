@@ -1,4 +1,4 @@
-"""Opt-in local DOFUS Unity skin. Licensed Atlas UI remains the fallback.
+"""DOFUS Unity skin as the one default Atlas UI. Legacy styling is for recovery only.
 
 The reference sprites and screenshot are *not* authorized for redistribution.
 No font extracted from the game is registered by this module.
@@ -45,11 +45,9 @@ UNITY_PALETTE = {
 
 
 def unity_enabled() -> bool:
-    """Personal .enabled marker selects Unity after launch; explicit env overrides."""
+    """Unity is the standard UI; the old presentation is opt-in for recovery/tests."""
     choice = os.environ.get("ATLAS_THEME", "").strip().casefold()
-    if choice:
-        return choice == "dofus_unity"
-    return (_PERSONAL_ASSETS / ".enabled").is_file()
+    return choice not in {"atlas", "legacy"}
 
 
 def _asset_file(relative: Path) -> Path | None:
