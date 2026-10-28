@@ -27,7 +27,7 @@ Ces statuts d'inventaire ne sont **ni** les verdicts Doctor (`PASS`, `REVIEW`, `
 
 | ID | Piste | Vérification / valeur attendue |
 | --- | --- | --- |
-| A01 | **Certification FULL fiable** (P0) | Isoler l'échec primaire sur le SHA exact, aligner uniquement les contrats réellement obsolètes, sans assouplir `FULL_SUITE` ni les baselines. Tenir compte de la PR #270 avant toute correction. |
+| A01 | **Certification FULL fiable** (P0) | Isoler l'échec primaire sur le SHA exact, aligner uniquement les contrats réellement obsolètes, sans assouplir `FULL_SUITE` ni les baselines. Tenir compte du correctif fusionné par la PR #270 avant toute correction. |
 | A02 | **Doctor : cause racine vs cascade** (P1) | Évaluer si les rapports CI existants distinguent déjà première erreur, dépendances bloquées et actions ciblées ; enrichir la restitution plutôt que créer un nouveau moteur. |
 | A03 | **Précontrôle intelligent avant FULL** (P1) | Identifier les contrats rapides capables de détecter un échec certain avant la suite lourde ; ne jamais assimiler ce précontrôle à une certification ni supprimer des tests obligatoires. |
 | A04 | **Consolidation des outils et skills** (IA-1) | Traiter seulement le lot officiel IA-1 : consommateurs de `tools/install_rtk.ps1` ; `tools/guide_ultime_scope_v4.py` est absent de `main` au SHA de référence. Rechercher d'abord son historique et les éventuels consommateurs externes, puis confronter ses contrats à v5 seulement si une version vérifiable est retrouvée. Pas de suppression sur simple absence d'import. |
@@ -87,7 +87,7 @@ Ces statuts d'inventaire ne sont **ni** les verdicts Doctor (`PASS`, `REVIEW`, `
 ## Éléments déjà connus — à ne pas transformer en travaux dupliqués
 
 - Au SHA de référence, plusieurs workflows dépendant de la certification ont échoué ; une **assertion RAM en échec** a été observée dans les logs, sans preuve qu'il s'agisse de la cause racine globale ni de l'unique échec.
-- La **PR #270**, ouverte et non Draft lors de la vérification du 28/10, modifie déjà des assertions et contrats RAM : éviter tout correctif concurrent.
+- La **PR #270**, fusionnée le 28/10 après validation de son SHA exact, a modifié des assertions et contrats RAM : éviter tout correctif concurrent ou toute réintroduction de l'ancien contrat.
 - Le ruleset GitHub actif consulté le 28/10 impose une PR et des checks, avec **zéro bypass actor** ; la description dans `GITHUB_PROTECTION.md` est périmée sur ce point. Il ne s'agit pas d'un bypass constaté.
 - Doctor dispose déjà d'Agent, de Graphify, des commandes `scenario-*`, `test-costs`, des validations adaptatives et de scénarios UI. Les idées proches sont des **pistes d'amélioration de couverture**, non des fonctionnalités absentes présumées.
 - Le Guide dispose déjà de plans spécifiques et l'updater d'un plan de mise à jour différentielle. Consulter ces travaux et PR avant toute suite.
