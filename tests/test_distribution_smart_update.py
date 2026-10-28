@@ -273,6 +273,67 @@ class CleanupSafetyTests(unittest.TestCase):
 
 
 class ParallelTransferTests(unittest.TestCase):
+    def test_multipart_network_bytes_and_verified_cache_zero_transfer(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            events = []
+
+            def record(name, **metrics):
+                events.append((name, metrics))
+
+            with (
+                patch.object(release_client, "_open", side_effect=lambda url, headers=None: Response(payloads[url])),
+                patch.object(release_client, "record_startup_event", side_effect=record),
+            ):
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+            measured = [metrics for name, metrics in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 2)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+            self.assertEqual(measured[1]["network_bytes"], 0)
+            self.assertEqual(measured[1]["cached_bytes"], manifest.archive_size)
+
+    def test_multipart_resume_only_counts_new_network_bytes(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            part = manifest.archive_parts[0]
+            prefix = len(payloads[remote.part_urls[0]]) // 2
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (part.name + ".download")).write_bytes(payloads[remote.part_urls[0]][:prefix])
+            events = []
+
+            def serve(url, headers=None):
+                if url == remote.part_urls[0]:
+                    self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                    return Response(
+                        payloads[url][prefix:], status=206,
+                        headers={"Content-Range": f"bytes {prefix}-{part.size - 1}/{part.size}"},
+                    )
+                return Response(payloads[url])
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())) - prefix)
+            self.assertEqual(measured[0]["cached_bytes"], prefix)
+
     def test_parallel_multipart_is_bounded_and_sha_verified(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

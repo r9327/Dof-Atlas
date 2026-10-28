@@ -41,6 +41,21 @@ class StartupTraceReportTests(unittest.TestCase):
         self.assertEqual(data["completed_operation_counters"]["network_bytes"]["p50"], 17)
         self.assertEqual(data["completed_operation_counters"]["reused_bytes"]["n"], 1)
 
+    def test_multipart_network_and_cached_bytes_are_counted(self) -> None:
+        rows = [
+            {"session": "patch", "event": "multipart_archive_ready",
+             "network_bytes": 42, "cached_bytes": 90},
+            {"session": "patch", "event": "download_archive_ready", "network_bytes": 8},
+            {"session": "warm", "event": "multipart_archive_ready",
+             "network_bytes": 0, "cached_bytes": 132},
+        ]
+        counters = collect_counters([json.dumps(row) for row in rows])
+        self.assertEqual(counters["patch"]["network_bytes"], 50)
+        self.assertEqual(counters["patch"]["cached_bytes"], 90)
+        self.assertEqual(counters["warm"]["network_bytes"], 0)
+        self.assertEqual(summarize([json.dumps(row) for row in rows])[
+            "completed_operation_counters"]["network_bytes"]["p50"], 25)
+
     def test_first_paint_not_inferred_from_home_event_loop(self) -> None:
         lines = [
             json.dumps({"session": "a", "event": "launcher_entry", "t_ns": 100}),

@@ -391,6 +391,8 @@ def _download_multipart(release: RemoteRelease, directory: Path,
     ):
         if progress:
             progress(manifest.archive_size, manifest.archive_size)
+        record_startup_event("multipart_archive_ready", archive_bytes=manifest.archive_size,
+                             network_bytes=0, cached_bytes=manifest.archive_size)
         return target
     target.unlink(missing_ok=True)
     parts_dir = directory / (manifest.source_sha[:20] + "-parts")
@@ -398,6 +400,8 @@ def _download_multipart(release: RemoteRelease, directory: Path,
     total = manifest.archive_size
     pieces = manifest.archive_parts
     transferred = [0] * len(pieces)
+    network_read = [0] * len(pieces)
+    cache_used = [0] * len(pieces)
     progress_lock = threading.Lock()
     cancelled = threading.Event()
     last_reported = -1
@@ -417,6 +421,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
         finished = parts_dir / part.name
         entry = ReleaseFile(part.name, part.size, part.sha256)
         if verify_file(finished, entry):
+            cache_used[index] = part.size
             update(index, part.size)
             return
         finished.unlink(missing_ok=True)
@@ -429,6 +434,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             if offset == part.size:
                 if verify_file(partial, entry):
                     partial.replace(finished)
+                    cache_used[index] = part.size
                     update(index, part.size)
                     return
                 partial.unlink(missing_ok=True)
@@ -447,6 +453,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     elif status != 200:
                         raise UpdateError("Unexpected multipart HTTP status")
                     done = offset if resumed else 0
+                    cache_used[index] = offset if resumed else 0
                     update(index, done)
                     with partial.open("ab" if resumed else "wb") as output:
                         while not cancelled.is_set():
@@ -456,6 +463,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                             done += len(block)
                             if done > part.size:
                                 raise UpdateError("Multipart download exceeded asset size")
+                            network_read[index] += len(block)
                             output.write(block)
                             update(index, done)
                         output.flush()
@@ -512,6 +520,10 @@ def _download_multipart(release: RemoteRelease, directory: Path,
         raise UpdateError("Unable to verify assembled multipart ZIP") from exc
     for part in pieces:
         (parts_dir / part.name).unlink(missing_ok=True)
+    # Count all bytes actually fetched in this invocation, including retry
+    # attempts; progress reports logical bytes and is not a network metric.
+    record_startup_event("multipart_archive_ready", archive_bytes=manifest.archive_size,
+                         network_bytes=sum(network_read), cached_bytes=sum(cache_used))
     return target
 
 
@@ -520,11 +532,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
     if not differential and release.manifest.archive_parts:
-        result = _download_multipart(release, directory, progress)
-        # Multipart byte-level network accounting needs its own per-part probe;
-        # archive size is NOT reported as transferred network bytes.
-        record_startup_event("multipart_archive_ready", archive_bytes=release.archive_size)
-        return result
+        return _download_multipart(release, directory, progress)
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size

@@ -46,9 +46,11 @@ les fichiers inchangés dans le nouveau slot : cette mesure permettra de
 chiffrer le coût réel, sans prétendre qu'il est nul.
 
 `download_archive_ready.network_bytes` compte uniquement les octets lus
-pendant les téléchargements mono-archive terminés. Les archives multipart
-ne fournissent pas encore de total réseau précis ; aucun zéro n'est déduit
-d'un marqueur absent. Les téléchargements interrompus ne sont pas comptés
+pendant les téléchargements mono-archive terminés. Les archives multipart comptabilisent maintenant les octets réseau réellement
+lus pendant chaque tentative, y compris après retry ou reprise, indépendamment
+de la progression logique. Le compteur cached_bytes rapporte les octets déjà
+présents et réellement réutilisés. Une archive entière préalablement vérifiée
+produit network_bytes=0. Aucun zéro n'est déduit d'un marqueur absent. Les téléchargements interrompus ne sont pas comptés
 comme complets. `process_cpu_ms` est un temps CPU propre au processus,
 et `process_rss_bytes` sa mémoire résidente sur Windows (si accessible) :
 ni l'un ni l'autre ne représente tout l'arbre de processus.
