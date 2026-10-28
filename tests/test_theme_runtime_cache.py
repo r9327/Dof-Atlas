@@ -54,9 +54,12 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
             calls.append((template, overrides))
             return "atlas-style"
 
-        with patch.object(theme, "_render_theme_template", side_effect=fake_renderer):
-            self.assertEqual(theme.atlas_stylesheet(), "atlas-style")
-            self.assertEqual(theme.atlas_stylesheet(), "atlas-style")
+        with (
+            patch.object(theme, "_render_theme_template", side_effect=fake_renderer),
+            patch.object(theme, "unity_skin_stylesheet", return_value="unity-style"),
+        ):
+            self.assertEqual(theme.atlas_stylesheet(), "atlas-style\nunity-style")
+            self.assertEqual(theme.atlas_stylesheet(), "atlas-style\nunity-style")
         self.assertEqual(len(calls), 1)
         self.assertIsNone(calls[0][1])
 

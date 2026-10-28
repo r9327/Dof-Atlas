@@ -28,6 +28,7 @@ UNITY_PALETTE = {
     "PANEL_ACTIVE": "#344978",
     "BORDER": "#475F89",
     "BORDER_SOFT": "#354966",
+    "BORDER_CARD": "#617CA6",
     "BORDER_STRONG": "#7B9BC8",
     "TEXT": "#F1F6FB",
     "TEXT_SOFT": "#D9EAF2",
