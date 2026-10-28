@@ -192,7 +192,7 @@ class WindowHealthTests(unittest.TestCase):
             guard.acquire.assert_called_once()
             guard.release.assert_not_called()  # loser closed its native handle
 
-    def test_idle_atlas_probe_releases_mutex_before_recovery(self):
+    def test_idle_atlas_probe_releases_mutex_after_failed_recovery(self):
         with tempfile.TemporaryDirectory() as location:
             guard = MagicMock()
             guard.acquire.return_value = True
@@ -202,12 +202,45 @@ class WindowHealthTests(unittest.TestCase):
                 patch.object(launcher, "_run_lock", return_value=MagicMock()),
                 patch.object(launcher, "SingleInstanceGuard", return_value=guard),
                 patch.object(launcher, "recover_data_packs_on_launch",
-                             side_effect=RuntimeError("reached recovery")),
+                             side_effect=lambda *_args: (
+                                 guard.release.assert_not_called(),
+                                 (_ for _ in ()).throw(RuntimeError("reached recovery"))
+                             )),
             ):
                 with self.assertRaisesRegex(RuntimeError, "reached recovery"):
                     launcher.run_update(lambda *_: None)
             guard.acquire.assert_called_once()
             guard.release.assert_called_once()
+
+    def test_rollback_refused_when_other_atlas_acquires_mutex_during_spawn(self):
+        from app.distribution.release_client import UpdateError
+        with tempfile.TemporaryDirectory() as location:
+            initial = MagicMock()
+            initial.acquire.return_value = True
+            concurrent = MagicMock()
+            concurrent.acquire.return_value = False
+            state = {"active": "v1", "previous": None, "pending": False, "source_sha": "a" * 40}
+            pending = {**state, "pending": True}
+            with (
+                patch.object(launcher, "ROOT", Path(location)),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard",
+                             side_effect=[initial, concurrent]),
+                patch.object(launcher, "read_state",
+                             side_effect=[state, state, pending]),
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=None),
+                patch.object(launcher, "active_executable", return_value=Path(location) / "app.exe"),
+                patch.object(launcher, "_launch_with_health", return_value=False),
+                patch.object(launcher, "rollback_pending",
+                             side_effect=AssertionError("rollback of live app forbidden")),
+            ):
+                with self.assertRaisesRegex(UpdateError, "rollback reporte"):
+                    launcher.run_update(lambda *_: None)
+            initial.release.assert_called_once()
+            concurrent.acquire.assert_called_once()
+            concurrent.release.assert_not_called()
 
     def test_handoff_is_only_after_qt_ack(self):
         self.assertTrue(_is_application_handoff("Prechargement Qt actif"))

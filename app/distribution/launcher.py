@@ -182,18 +182,20 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         if not instance_probe.acquire():
             report("Dofus Atlas est deja ouvert", 100)
             return
-        instance_probe.release()
-        # Recover only an existing, unacknowledged data pack. Normal boots do
-        # no pack scans or hashes and never import the game data stack.
+        # The GUI must not start while a pending data pack or release slot is
+        # recovered. Hold the *existing* named mutex for this short critical
+        # region; do not hold it when spawning Qt, which must acquire it.
         try:
-            recover_data_packs_on_launch(ROOT, report)
-        except (InvalidDataPack, OSError) as exc:
-            log.error("Pending Atlas data-pack recovery refused: %s", exc)
-            raise UpdateError("Recuperation des donnees non validees impossible") from exc
-        # An interrupted first boot should never strand the user on the new version.
-        if read_state(ROOT).get("pending"):
-            rollback_pending(ROOT)
-            report("Version precedente restauree", 3)
+            try:
+                recover_data_packs_on_launch(ROOT, report)
+            except (InvalidDataPack, OSError) as exc:
+                log.error("Pending Atlas data-pack recovery refused: %s", exc)
+                raise UpdateError("Recuperation des donnees non validees impossible") from exc
+            if read_state(ROOT).get("pending"):
+                rollback_pending(ROOT)
+                report("Version precedente restauree", 3)
+        finally:
+            instance_probe.release()
         prior = read_state(ROOT)
         remote = None
         update_failure: UpdateError | OSError | None = None
@@ -306,12 +308,23 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         was_pending = read_state(ROOT)["pending"]
         if not _launch_with_health(executable, report,
                                    settle_seconds=2.0 if was_pending else 0):
-            if was_pending and rollback_pending(ROOT):
-                report("Demarrage echoue — restauration precedente", 95)
-                previous = active_executable(ROOT)
-                if previous is not None and _launch_with_health(previous, report):
-                    report("Version precedente demarree", 100)
-                    return
+            if was_pending:
+                # A separately started Atlas may have acquired the mutex
+                # while this candidate was booting. Never roll back its live
+                # installation metadata under that process.
+                rollback_probe = SingleInstanceGuard()
+                if not rollback_probe.acquire():
+                    raise UpdateError("Atlas est deja ouvert; rollback reporte")
+                try:
+                    restored = rollback_pending(ROOT)
+                finally:
+                    rollback_probe.release()
+                if restored:
+                    report("Demarrage echoue — restauration precedente", 95)
+                    previous = active_executable(ROOT)
+                    if previous is not None and _launch_with_health(previous, report):
+                        report("Version precedente demarree", 100)
+                        return
             raise UpdateError("Atlas n'a pas confirme son demarrage")
         if was_pending:
             mark_healthy(ROOT)
