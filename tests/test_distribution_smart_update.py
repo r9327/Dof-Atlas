@@ -113,6 +113,70 @@ class ReuseInstallerTests(unittest.TestCase):
             )
             self.assertFalse(list(runtime.glob(".atlas-install-*")))
 
+    def test_verified_identical_version_never_reopens_an_archive(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, archive, manifest))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            archive.write_bytes(b"no longer a valid archive")
+            with patch.object(install.zipfile, "ZipFile",
+                              side_effect=AssertionError("should not unpack same version")):
+                self.assertFalse(install_release(runtime, archive, manifest))
+            self.assertEqual(read_state(runtime), before)
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+
+    def test_state_write_failure_is_recoverable_without_losing_old_slot(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "achievements.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_text('{"achievement":7}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("simulated full disk")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+            # A fully staged but not activated version may exist: retry must
+            # verify the orphaned target instead of discarding user state.
+            self.assertTrue(install_release(runtime, second, newer))
+            self.assertTrue(read_state(runtime)["pending"])
+            self.assertTrue(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime)["active"], before["active"])
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+
+    def test_pending_rollback_is_idempotent_and_restores_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            old = read_state(runtime)
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            self.assertTrue(rollback_pending(runtime))
+            rolled_back = read_state(runtime)
+            self.assertFalse(rolled_back["pending"])
+            self.assertEqual(rolled_back["active"], old["active"])
+            self.assertEqual(rolled_back["source_sha"], old["source_sha"])
+            self.assertEqual(rolled_back["blocked_source_sha"], newer.source_sha)
+            self.assertFalse(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime), rolled_back)
+
     def test_legacy_slot_without_index_avoids_speculative_full_copies(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
