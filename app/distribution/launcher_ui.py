@@ -8,7 +8,6 @@ so the onefile Windows launcher needs no separate asset on disk.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 ATLAS_PALETTE = {
     "background": "#050A0D",
@@ -38,15 +37,9 @@ def palette_for_theme(theme: str) -> dict[str, str]:
 
 
 def preferred_theme() -> str:
-    """Mirror Qt personal-theme selection without importing the Qt runtime."""
+    """Mirror Qt's single Unity presentation without importing PySide6."""
     choice = os.environ.get("ATLAS_THEME", "").strip().casefold()
-    if choice:
-        return choice
-    local_root = (
-        Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
-        / "DofusAtlas" / "themes" / "dofus_unity"
-    )
-    return "dofus_unity" if (local_root / ".enabled").is_file() else ""
+    return "atlas" if choice in {"atlas", "legacy"} else "dofus_unity"
 
 
 _ACTIVE_THEME = preferred_theme()
