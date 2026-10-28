@@ -42,7 +42,7 @@ modifier l'original), puis cree `.enabled` seulement si les ressources
 attendues sont installees. Les mises a jour EXE ne touchent pas ce repertoire.
 Fermer et relancer Atlas pour charger le fond, les sprites et les polices.
 
-L'ancienne presentation n'est plus selectionnee par defaut. En cas de
-reparation uniquement : `ATLAS_THEME=atlas` restaure temporairement le
-style precedent sans remplacer les donnees ni les fichiers du theme.
-Ne pas publier ce dossier personnel dans une Release.
+La presentation Unity est maintenant la seule interface active. Les anciens
+styles restent uniquement des roles de conversion CSS internes, pas un
+mode utilisateur alternatif. Le dossier personnel n'entre jamais dans une
+Release publique.
