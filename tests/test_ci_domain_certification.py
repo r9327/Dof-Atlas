@@ -394,6 +394,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], ["app/new_cross_domain_provider.py"])
         self.assertNotIn("FULL_SUITE", plan["domains"])
 
+    def test_craft_seed_builder_has_exact_shared_owners(self):
+        self.assertEqual(
+            owners_for("scripts/windows/craft_seed.py"),
+            frozenset({"ci", "craft", "data", "startup"}),
+        )
+        self.assertEqual(owners_for("scripts/windows/new_seed_helper.py"), frozenset())
+
     def test_removal_and_type_changes_cannot_downscope(self):
         path = "tools/atlas_doctor_lib/ci_orchestrator.py"
         plan = self.route([path], [path])
