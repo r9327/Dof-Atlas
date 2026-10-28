@@ -20,15 +20,11 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
-    def test_unity_is_default_and_legacy_only_explicit_recovery(self) -> None:
-        with patch.dict(os.environ, {"ATLAS_THEME": ""}):
-            self.assertTrue(unity_enabled())
-            self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
-        with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertFalse(unity_enabled())
-            self.assertEqual(unity_skin_stylesheet(), "")
-        with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
-            self.assertTrue(unity_enabled())
+    def test_unity_only_theme_even_with_stale_legacy_override(self) -> None:
+        for choice in ("", "atlas", "legacy", "dofus_unity"):
+            with self.subTest(choice=choice), patch.dict(os.environ, {"ATLAS_THEME": choice}):
+                self.assertTrue(unity_enabled())
+                self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
     def test_persistent_personal_theme_activates_with_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -45,8 +41,8 @@ class UnitySkinTests(unittest.TestCase):
                     self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
                     self.assertEqual(sprite_icon_path("guide"), icon)
                 with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-                    self.assertFalse(unity_enabled())
-                    self.assertIsNone(wallpaper_path())
+                    self.assertTrue(unity_enabled())
+                    self.assertEqual(wallpaper_path(), personal / "background_selection_clean.png")
             (personal / ".enabled").unlink()
             with patch.object(unity_skin, "_PERSONAL_ASSETS", personal):
                 with patch.dict(os.environ, {"ATLAS_THEME": ""}):
@@ -57,9 +53,7 @@ class UnitySkinTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_local_icon_is_not_used_in_default_app(self) -> None:
-        with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertIsNone(sprite_icon_path("guide"))
+    def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
             self.assertIsNone(sprite_icon_path("not-an-allowlisted-icon"))
 
@@ -139,7 +133,7 @@ class UnitySkinTests(unittest.TestCase):
             style.rfind("QPushButton:focus, QToolButton:focus"),
         )
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
-            self.assertEqual(unity_skin_stylesheet(), "")
+            self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])
