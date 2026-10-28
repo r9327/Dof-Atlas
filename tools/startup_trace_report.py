@@ -5,7 +5,6 @@ import argparse
 import json
 import math
 from collections import defaultdict
-from collections import defaultdict
 from pathlib import Path
 from statistics import median
 
