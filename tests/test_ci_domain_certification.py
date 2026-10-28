@@ -312,6 +312,31 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "BLOCKED",
         )
 
+    def test_pr285_startup_trace_paths_are_reviewed_without_wildcard(self):
+        expected = {
+            "app/distribution/startup_trace.py": {"startup", "ui"},
+            "tools/startup_trace_report.py": {"ci", "startup"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route([
+            *expected,
+            "tests/test_startup_trace.py",
+            "tests/test_startup_trace_report.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci", "ui", "startup"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(plan["merge_authorized"])
+        for path in (
+            "app/distribution/unreviewed_startup_helper.py",
+            "tools/startup_trace_unknown.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_launcher_ui_and_qt_preload_have_exact_shared_owners(self):
         paths = [
             "app/distribution/launcher.py",

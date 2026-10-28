@@ -116,6 +116,13 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "startup", "data"})
     if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
         return frozenset({"startup", "ui"})
+    # PR #285: reviewed opt-in instrumentation is shared by the launcher and
+    # Qt startup. Keep these exact paths so unrelated helpers fail closed.
+    if path == "app/distribution/startup_trace.py":
+        return frozenset({"startup", "ui"})
+    if path == "tools/startup_trace_report.py":
+        # Diagnostics and startup measurements, not a feature certificate.
+        return frozenset({"ci", "startup"})
     if path == "app/ui/preload_popup.py":
         return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
