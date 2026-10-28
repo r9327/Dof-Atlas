@@ -233,7 +233,9 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
                 if view.home_dofus_model.data(view.home_dofus_model.index(row, 0), GUIDE_GROUP_ROLE)
             ]
             self.assertEqual(groups, ["GUIDE SUCCÈS", "GUIDES OPTIMISÉS", "ALIGNEMENTS"])
-            self.assertEqual(dofus_groups, ["DOFUS"])
+            # The compact library renders real Dofus routes only; it must not
+            # reintroduce the old synthetic DOFUS heading as a catalogue card.
+            self.assertEqual(dofus_groups, [])
 
             open_content_width = 900 - 190
             closed_content_width = 900 - 44
