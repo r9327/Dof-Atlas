@@ -10,6 +10,19 @@ Ce document rassemble **les 36 pistes évoquées** dans les échanges sur Doctor
 
 Les priorités indiquent la **gravité potentielle si un écart est confirmé**, et non un bug constaté ni l'autorisation de changer de phase. Les fonctions déjà présentes doivent être réutilisées et leur couverture mesurée avant tout ajout. Une proposition sans écart démontré est à classer sans suite.
 
+## Triage léger des pistes
+
+Par défaut, chaque idée reste **non évaluée**. Lorsqu'un objectif précis est examiné, consigner seulement pour **cette idée** son ID, un des statuts ci-dessous, la preuve (SHA, test, mesure ou fichier concerné), le propriétaire canonique et le lien vers une PR/issue **existante** s'il y en a une. Ce constat peut figurer dans la PR de réalisation ou son compte rendu : **pas de second registre, pas de 36 tickets créés d'office, pas de gate supplémentaire**.
+
+| Statut | Critère vérifiable |
+| --- | --- |
+| **Déjà couvert** | Le comportement ou la protection est démontré par le code et des tests/preuves actuels ; ne rien réimplémenter. |
+| **Partiellement couvert** | Une capacité existe, mais un écart précisément décrit reste à démontrer ou à corriger. |
+| **Écart confirmé** | Le manque est reproduit ou mesuré sur le SHA courant, avec invariants et consommateurs identifiés. |
+| **Sans suite** | Pas de problème restant, pas de gain mesurable, hors périmètre ou doublon avéré ; motif consigné. |
+
+Ces statuts d'inventaire ne sont **ni** les verdicts Doctor (`PASS`, `REVIEW`, `BLOCKED`) **ni** une certification de phase.
+
 ## A. Doctor, certification et outillage IA (01–06)
 
 | ID | Piste | Vérification / valeur attendue |
@@ -17,7 +30,7 @@ Les priorités indiquent la **gravité potentielle si un écart est confirmé**,
 | A01 | **Certification FULL fiable** (P0) | Isoler l'échec primaire sur le SHA exact, aligner uniquement les contrats réellement obsolètes, sans assouplir `FULL_SUITE` ni les baselines. Tenir compte de la PR #270 avant toute correction. |
 | A02 | **Doctor : cause racine vs cascade** (P1) | Évaluer si les rapports CI existants distinguent déjà première erreur, dépendances bloquées et actions ciblées ; enrichir la restitution plutôt que créer un nouveau moteur. |
 | A03 | **Précontrôle intelligent avant FULL** (P1) | Identifier les contrats rapides capables de détecter un échec certain avant la suite lourde ; ne jamais assimiler ce précontrôle à une certification ni supprimer des tests obligatoires. |
-| A04 | **Consolidation des outils et skills** (IA-1) | Traiter seulement le lot officiel IA-1 : consommateurs de `tools/install_rtk.ps1`, comparaison v4/v5 du scope Guide, puis décision fondée sur preuves. Pas de suppression sur simple absence d'import. |
+| A04 | **Consolidation des outils et skills** (IA-1) | Traiter seulement le lot officiel IA-1 : consommateurs de `tools/install_rtk.ps1` ; `tools/guide_ultime_scope_v4.py` est absent de `main` au SHA de référence. Rechercher d'abord son historique et les éventuels consommateurs externes, puis confronter ses contrats à v5 seulement si une version vérifiable est retrouvée. Pas de suppression sur simple absence d'import. |
 | A05 | **Routage IA/skills/contextes** (P2) | Vérifier la sélection actuelle via `AI_CONTEXT.md`, `.agents/skills` et les profils de tâche ; expliciter le skill et les tests retenus sans second routeur. |
 | A06 | **Synchronisation des contrats et documentations** (P1) | Rechercher des divergences avérées entre README, règles agent, workflows et paramètres hébergés ; corriger la source ou le document fautif avec un contrôle ciblé. |
 
@@ -73,11 +86,17 @@ Les priorités indiquent la **gravité potentielle si un écart est confirmé**,
 
 ## Éléments déjà connus — à ne pas transformer en travaux dupliqués
 
-- Au SHA de référence, plusieurs workflows dépendant de la certification ont échoué ; un échec primaire de contrat RAM a été observé lors de l'audit précédent, sans démonstration que c'était l'unique cause.
+- Au SHA de référence, plusieurs workflows dépendant de la certification ont échoué ; une **assertion RAM en échec** a été observée dans les logs, sans preuve qu'il s'agisse de la cause racine globale ni de l'unique échec.
 - La **PR #270**, ouverte et non Draft lors de la vérification du 28/10, modifie déjà des assertions et contrats RAM : éviter tout correctif concurrent.
 - Le ruleset GitHub actif consulté le 28/10 impose une PR et des checks, avec **zéro bypass actor** ; la description dans `GITHUB_PROTECTION.md` est périmée sur ce point. Il ne s'agit pas d'un bypass constaté.
 - Doctor dispose déjà d'Agent, de Graphify, des commandes `scenario-*`, `test-costs`, des validations adaptatives et de scénarios UI. Les idées proches sont des **pistes d'amélioration de couverture**, non des fonctionnalités absentes présumées.
 - Le Guide dispose déjà de plans spécifiques et l'updater d'un plan de mise à jour différentielle. Consulter ces travaux et PR avant toute suite.
+
+## Frontières des pistes qui se recoupent
+
+- **A02 / B18 :** A02 distingue la **cause d'un échec CI** de ses conséquences ; B18 explique **le choix des outils, tests et verdicts Doctor**. Même moteur canonique, deux usages de restitution, pas deux systèmes de diagnostic.
+- **B07 / E31 :** B07 examine les **écritures et reprises ordinaires** (coupure, concurrence, corruption) ; E31 examine la **migration entre anciens schémas** (compatibilité, idempotence). Les fixtures peuvent être communes, pas les contrats de validation.
+- **A05 / C19 :** A05 concerne le **routage d'une tâche vers ses services, skills et tests** ; C19 concerne **l'estimation prudente de son impact avant modification**. Réutiliser Agent/Graphify, sans second routeur ni promesse de prédiction certaine.
 
 ## Critères pour promouvoir une seule idée en micro-lot
 
