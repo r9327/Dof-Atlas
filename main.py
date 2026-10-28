@@ -739,6 +739,17 @@ class CloseActionDialog(AtlasDialog):
 
 
 class AtlasWindow(QMainWindow):
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        # A real QWidget Paint event is stronger evidence than show() or a
+        # zero-delay timer; it still does not certify user interactivity.
+        if (watched is getattr(self, "home_page", None)
+                and event.type() == QEvent.Paint
+                and self.isVisible()
+                and not getattr(self, "_home_first_paint_recorded", False)):
+            self._home_first_paint_recorded = True
+            record_startup_event("home_first_paint")
+        return super().eventFilter(watched, event)
+
     def __init__(self, initial_preload: dict[str, Any] | None = None):
         super().__init__()
         self.setWindowTitle(APP_NAME)
@@ -816,7 +827,9 @@ class AtlasWindow(QMainWindow):
             self.stack.setObjectName("AtlasUnityStack")
         self.pages: list[tuple[str, QWidget]] = []
 
+        self._home_first_paint_recorded = False
         self.home_page = HomePage()
+        self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
         self.home_page.network_bridge.characterActivated.connect(

@@ -20,6 +20,7 @@ from typing import Callable
 
 from .manifest import MAX_MANIFEST_BYTES, ManifestError, ReleaseFile, ReleaseManifest, parse_manifest, verify_file
 from .archive_parts import assemble_archive_parts
+from .startup_trace import record_startup_event
 
 REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -519,7 +520,11 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
     if not differential and release.manifest.archive_parts:
-        return _download_multipart(release, directory, progress)
+        result = _download_multipart(release, directory, progress)
+        # Multipart byte-level network accounting needs its own per-part probe;
+        # archive size is NOT reported as transferred network bytes.
+        record_startup_event("multipart_archive_ready", archive_bytes=release.archive_size)
+        return result
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size
@@ -527,6 +532,8 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     suffix = ".delta.zip.part" if differential else ".zip.part"
     target = directory / (release.manifest.source_sha[:20] + suffix)
     previous = target.stat().st_size if target.is_file() else 0
+    network_bytes = 0
+    resumed_bytes = 0
     if previous > size:
         target.unlink()
         previous = 0
@@ -544,6 +551,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
                 elif status != 200:
                     raise UpdateError("Unexpected HTTP response")
                 done = previous if ranged else 0
+                resumed_bytes = previous if ranged else 0
                 with target.open("ab" if ranged else "wb") as output:
                     while True:
                         block = response.read(1024 * 1024)
@@ -552,6 +560,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
                         done += len(block)
                         if done > size:
                             raise UpdateError("Download exceeds declared size")
+                        network_bytes += len(block)
                         output.write(block)
                         if progress:
                             progress(done, size)
@@ -569,4 +578,9 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
         if digest.hexdigest() != release.manifest.delta.archive_sha256:
             target.unlink(missing_ok=True)
             raise UpdateError("Differential archive SHA-256 mismatch")
+    record_startup_event(
+        "download_archive_ready", network_bytes=network_bytes,
+        archive_bytes=size, resumed_bytes=resumed_bytes,
+        differential=int(differential),
+    )
     return target

@@ -50,6 +50,21 @@ class StartupTraceTests(unittest.TestCase):
             }, clear=True):
                 startup_trace.record_startup_event("launcher_entry")
 
+    def test_numeric_process_cpu_and_nonfinite_values(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_STARTUP_PROFILE": "1",
+                "DOFUS_ATLAS_STARTUP_PROFILE_FILE": str(target),
+            }, clear=True):
+                startup_trace.record_startup_event("sample", bad=float("nan"),
+                                                   infinite=float("inf"), count=7)
+            row = json.loads(target.read_text(encoding="utf-8"))
+            self.assertEqual(row["count"], 7)
+            self.assertNotIn("bad", row)
+            self.assertNotIn("infinite", row)
+            self.assertGreaterEqual(row["process_cpu_ms"], 0)
+
     def test_max_size_stops_unbounded_trace_growth(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "trace.jsonl"
