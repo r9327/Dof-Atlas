@@ -66,7 +66,7 @@ from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, Atlas
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_skin import UnityBackdrop, unity_enabled
+from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -2662,6 +2662,7 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        register_unity_fonts()
         # The only visible window during preload is a transient QDialog;
         # hiding it must never quit Qt before revealing AtlasWindow.
         app.setQuitOnLastWindowClosed(False)
