@@ -19,7 +19,9 @@ CONTRACT_END = "<!-- ATLAS_DELIVERY_CONTRACT_END -->"
 REPORT_START = "<!-- ATLAS_DELIVERY_REPORT_START -->"
 REPORT_END = "<!-- ATLAS_DELIVERY_REPORT_END -->"
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-ID = re.compile(r"[A-Z]{2,12}-[0-9]{3,6}\Z")
+# Preserve legacy ABC-001 IDs and accept stable phase labels such as LV2-001.
+# Digits are permitted only at the end of the uppercase alphabetic prefix.
+ID = re.compile(r"[A-Z]{2,12}[0-9]{0,3}-[0-9]{3,6}\Z")
 REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 
 
