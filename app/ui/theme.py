@@ -6,10 +6,7 @@ from functools import lru_cache
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
-# Shared visual language: the home page's near-black surfaces, olive accent and
-# warm neutral text. Keep semantic names here so modules do not grow parallel
-# palettes while adopting the same navigation, cards and interaction hierarchy.
-# One active palette for the whole application. The remaining keys below are
+# One Unity visual language, shared by every Qt page. The remaining keys are
 # semantic warning/status roles, not a second (legacy) presentation.
 PALETTE = {
     **UNITY_PALETTE,
@@ -25,8 +22,8 @@ PALETTE = {
 }
 
 TYPOGRAPHY = {
-    # Only system-installed Lexend/Rowdies are used; game-extracted TTF files
-    # are never registered or exported without verified redistribution rights.
+    # The app registers approved personal fonts at startup when installed.
+    # System fonts remain the fallback; packaging does not include game TTFs.
     "FONT_FAMILY": '"Lexend", "Segoe UI", Arial',
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
