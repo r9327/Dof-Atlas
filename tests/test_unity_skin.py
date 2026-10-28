@@ -135,12 +135,35 @@ class UnitySkinTests(unittest.TestCase):
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
+    def test_primary_navigation_uses_local_unity_pictograms_with_fallback(self) -> None:
+        main_source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
+        self.assertIn('sprite_icon_path("inventory")', main_source)
+        self.assertIn('sprite_icon_path("encyclopedia")', main_source)
+        self.assertIn('("Guide", "guide", GUIDES_TAB)', main_source)
+        self.assertIn('("Quêtes", "quest", QUESTS_TAB)', main_source)
+        self.assertIn('("Succès", "success", ACHIEVEMENTS_TAB)', main_source)
+        self.assertIn('lambda _checked=False, chosen=tab:', main_source)
+        self.assertIn("if icon_path:", main_source)
+
     def test_application_has_only_unity_palette(self) -> None:
         from app.ui import theme
         self.assertEqual(theme.PALETTE["BG"], UNITY_PALETTE["BG"])
         self.assertEqual(theme.PALETTE["PANEL"], UNITY_PALETTE["PANEL"])
         self.assertEqual(theme.PALETTE["GREEN"], UNITY_PALETTE["GREEN"])
         self.assertIn("QWidget#AtlasUnityBackdrop", theme.atlas_stylesheet())
+
+    def test_unity_fallback_background_is_not_flat(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            unity_skin, "_PERSONAL_ASSETS", Path(directory) / "no-assets"
+        ), patch.object(unity_skin, "_ASSETS", Path(directory) / "no-source"):
+            backdrop = UnityBackdrop()
+            self.assertTrue(backdrop._pixmap.isNull())
+            backdrop.resize(220, 140)
+            image = QImage(220, 140, QImage.Format_ARGB32)
+            image.fill(0xff000000)
+            backdrop.render(image)
+            self.assertNotEqual(image.pixelColor(10, 10), image.pixelColor(10, 130))
+            backdrop.deleteLater()
 
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import QWidget
 
 
@@ -21,6 +21,7 @@ _PERSONAL_ASSETS = (
 )
 UNITY_PALETTE = {
     "BG": "#151821",
+    "BG_GRADIENT_START": "#253967",
     "SIDEBAR": "#19243F",
     "PANEL": "#1B2746",
     "PANEL_2": "#213154",
@@ -249,7 +250,14 @@ class UnityBackdrop(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(UNITY_PALETTE["BG"]))
+        # A license-independent Unity-colored sky remains visible in public
+        # builds where the user's local wallpaper has not been installed.
+        # The verified personal background entirely covers this fallback.
+        gradient = QLinearGradient(0, 0, self.width(), self.height())
+        gradient.setColorAt(0.0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
+        gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
+        gradient.setColorAt(1.0, QColor(UNITY_PALETTE["BG"]))
+        painter.fillRect(self.rect(), gradient)
         if not self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
             source_w = self._pixmap.width()
             source_h = self._pixmap.height()
