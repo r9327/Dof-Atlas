@@ -495,6 +495,44 @@ class ParallelTransferTests(unittest.TestCase):
             self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
             self.assertEqual(measured[0]["cached_bytes"], 0)
 
+    def test_full_part_then_socket_failure_is_not_counted_as_old_cache(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            requests = []
+            events = []
+
+            class FullPartThenDisconnects(Response):
+                def read(self, n=-1):
+                    if self.tell() == 0:
+                        return super().read(n)
+                    raise OSError("connection failed after full body")
+
+            def serve(url, headers=None):
+                requests.append((url, headers))
+                if url == first_url:
+                    return FullPartThenDisconnects(payloads[url])
+                return Response(payloads[url])
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client.time, "sleep", return_value=None),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            self.assertEqual(sum(1 for url, _ in requests if url == first_url), 1)
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
     def test_ignored_range_does_not_count_discarded_cached_prefix(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

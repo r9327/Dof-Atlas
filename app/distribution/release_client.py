@@ -437,7 +437,10 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             if offset == part.size:
                 if verify_file(partial, entry):
                     partial.replace(finished)
-                    cache_used[index] = part.size
+                    # An HTTP retry may have written the whole part earlier in
+                    # THIS launch before the connection raised on its next read.
+                    # Only bytes present when fetch_one began count as cache.
+                    cache_used[index] = min(part.size, initial_cached)
                     update(index, part.size)
                     return
                 # A complete but corrupted partial is not usable cache. Repair
