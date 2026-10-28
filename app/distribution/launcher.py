@@ -24,6 +24,7 @@ from .install_location import runtime_root, set_runtime_root, relocate_runtime, 
 from .manifest import verify_file
 from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
+from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style)
 
@@ -86,10 +87,13 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
     report("Lancement de Dofus Atlas...", 98)
     try:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        record_startup_event("app_spawn_begin")
         proc = subprocess.Popen([str(executable)], cwd=str(executable.parent),
                                 env=env, creationflags=flags)
+        record_startup_event("app_spawn_done")
         for _ in range(500):  # 50 seconds maximum, checked without blocking Tk
             if ready.is_file():
+                record_startup_event("app_health_ack")
                 ready.unlink(missing_ok=True)
                 if settle_seconds > 0:
                     # A window that appears and crashes immediately must not
@@ -109,6 +113,7 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
 
 
 def run_update(report, *, verify_installation: bool = False) -> None:
+    record_startup_event("launcher_update_begin")
     log = _logger()
     _run_handle = _run_lock()
     try:
@@ -140,7 +145,9 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 if current_exe is not None and not verify_installation and not prior.get("pending")
                 else None
             )
+            record_startup_event("update_check_begin")
             remote = latest_release(installed_source_sha=installed_sha)
+            record_startup_event("update_check_end")
             if (remote is not None and verify_installation and current_exe is not None
                     and prior.get("source_sha") == remote.manifest.source_sha):
                 report("Verification complete de l'installation...", 7)
@@ -168,6 +175,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     archive = None
                     try:
                         ensure_delta_space(remote.manifest, ROOT)
+                        record_startup_event("delta_download_begin")
                         archive = download_archive(
                             remote, ROOT / "downloads",
                             lambda done, total: report(
@@ -176,6 +184,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                             ),
                             differential=True,
                         )
+                        record_startup_event("delta_download_done")
                         report("Verification des fichiers existants...", 76)
                         delta_installed = install_release(
                             ROOT, archive, remote.manifest,
@@ -192,6 +201,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 if not delta_installed:
                     ensure_space(remote.manifest, ROOT, archive_size=remote.archive_size)
                     report("Telechargement complet de la nouvelle version...", 10)
+                    record_startup_event("full_download_begin")
                     archive = download_archive(
                         remote, ROOT / "downloads",
                         lambda done, total: report(
@@ -199,6 +209,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                             10 + int(done * 65 / total),
                         ),
                     )
+                    record_startup_event("full_download_done")
                     report("Verification et installation...", 76)
                     try:
                         install_release(
@@ -254,6 +265,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         except (OSError, UpdateError) as exc:
             log.info("Best-effort cache cleanup skipped: %s", exc)
         report("Dofus Atlas est pret", 100)
+        record_startup_event("launcher_update_end")
     finally:
         _run_handle.close()
 
@@ -273,6 +285,7 @@ def main() -> int:
     # Do not open Tk, contact GitHub or launch AtlasApp during this health check.
     if sys.argv[1:2] == ["--atlas-self-test"]:
         return 0
+    record_startup_event("launcher_entry")
     events: queue.Queue[tuple[str, int | str]] = queue.Queue()
     try:
         import tkinter as tk

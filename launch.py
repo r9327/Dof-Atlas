@@ -156,7 +156,10 @@ def main() -> int:
         runpy.run_module(worker, run_name="__main__", alter_sys=True)
         return 0
 
+    from app.distribution.startup_trace import record_startup_event
+    record_startup_event("app_import_begin")
     import main as app_main
+    record_startup_event("app_import_end")
     return int(app_main.main())
 
 

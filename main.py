@@ -59,6 +59,7 @@ from app.validation_log import record_validation
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
+from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
@@ -2108,7 +2109,11 @@ class AtlasWindow(QMainWindow):
         """Only expose the main interface after every preload task is terminal."""
         if not self.preload_finished:
             return
+        record_startup_event("preload_complete")
         self.show()
+        record_startup_event("home_visible")
+        # A separate event-loop callback distinguishes show() from responsive Qt.
+        QTimer.singleShot(0, lambda: record_startup_event("home_event_loop"))
         app = QApplication.instance()
         if app is not None:
             # Once the main window exists, normal close-to-quit semantics resume.
@@ -2658,6 +2663,7 @@ class AtlasWindow(QMainWindow):
 
 
 def main() -> int:
+    record_startup_event("app_main_begin")
     guard = SingleInstanceGuard()
     if not guard.acquire():
         LOGGER.warning("[main] another Dofus Atlas instance is already running")
@@ -2669,6 +2675,7 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        record_startup_event("qt_application_created")
         register_unity_fonts()
         # The only visible window during preload is a transient QDialog;
         # hiding it must never quit Qt before revealing AtlasWindow.
@@ -2700,15 +2707,19 @@ def main() -> int:
         initial_preload: dict[str, Any] = {}
         LOGGER.info("[preload] main window stays hidden until functional preload finishes")
         LOGGER.info("[main] creating AtlasWindow")
+        record_startup_event("atlas_window_create_begin")
         window = AtlasWindow(initial_preload=initial_preload)
+        record_startup_event("atlas_window_created")
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
         # Show only the standalone loading dialog. The normal Qt event loop
         # continues to process workers and progress without displaying Home.
         window.preload_popup.begin(dict(window.preload_states))
+        record_startup_event("preload_dialog_active")
         from app.distribution.health import announce_ready
         # The responsive preload dialog proves Qt is alive to the launcher.
         # Waiting for all cache builders here would exceed its health timeout.
         QTimer.singleShot(0, announce_ready)
+        QTimer.singleShot(0, lambda: record_startup_event("qt_event_loop"))
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
             splash.close()
