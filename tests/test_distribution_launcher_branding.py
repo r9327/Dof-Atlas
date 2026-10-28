@@ -18,20 +18,15 @@ from app.distribution import launcher, launcher_ui
 class LauncherBrandingTests(unittest.TestCase):
     def test_both_palettes_match_real_app_ui_and_remain_stdlib_only(self):
         root = Path(__file__).resolve().parents[1]
-        files = {
-            "": ("app/ui/theme.py", launcher_ui.ATLAS_PALETTE),
-            "dofus_unity": ("app/ui/unity_skin.py", launcher_ui.UNITY_PALETTE),
-        }
-        for theme, (source_path, palette) in files.items():
-            source = (root / source_path).read_text(encoding="utf-8")
-            with self.subTest(theme=theme):
-                self.assertEqual(launcher_ui.palette_for_theme(theme), palette)
-                for local, upstream in (
-                    ("background", "BG"), ("panel", "PANEL"), ("border", "BORDER"),
-                    ("text", "TEXT"), ("muted", "TEXT_MUTED"), ("accent", "GREEN"),
-                    ("accent_hover", "GREEN_HOVER"),
-                ):
-                    self.assertIn(f'"{upstream}": "{palette[local]}"', source)
+        source = (root / "app/ui/unity_skin.py").read_text(encoding="utf-8")
+        palette = launcher_ui.UNITY_PALETTE
+        self.assertEqual(launcher_ui.COLORS, palette)
+        for local, upstream in (
+            ("background", "BG"), ("panel", "PANEL"), ("border", "BORDER"),
+            ("text", "TEXT"), ("muted", "TEXT_MUTED"), ("accent", "GREEN"),
+            ("accent_hover", "GREEN_HOVER"),
+        ):
+            self.assertIn(f'"{upstream}": "{palette[local]}"', source)
         tree = ast.parse(inspect.getsource(launcher_ui))
         imports = [
             node.module or "" for node in ast.walk(tree)
@@ -39,17 +34,10 @@ class LauncherBrandingTests(unittest.TestCase):
         ]
         self.assertFalse(any(name.startswith(("PySide6", "app.ui")) for name in imports))
 
-    def test_launcher_recognizes_same_personal_theme_marker(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            theme = root / "DofusAtlas" / "themes" / "dofus_unity"
-            theme.mkdir(parents=True)
-            with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": ""}):
-                self.assertEqual(launcher_ui.preferred_theme(), "dofus_unity")
-                (theme / ".enabled").write_text("personal", encoding="utf-8")
-                self.assertEqual(launcher_ui.preferred_theme(), "dofus_unity")
-            with patch.dict(os.environ, {"LOCALAPPDATA": str(root), "ATLAS_THEME": "atlas"}):
-                self.assertEqual(launcher_ui.preferred_theme(), "atlas")
+    def test_launcher_does_not_allow_legacy_palette(self):
+        self.assertFalse(hasattr(launcher_ui, "ATLAS_PALETTE"))
+        self.assertFalse(hasattr(launcher_ui, "palette_for_theme"))
+        self.assertEqual(launcher_ui.COLORS, launcher_ui.UNITY_PALETTE)
 
     def test_embedded_logo_is_real_png_extracted_from_existing_atlas_icon(self):
         import base64
