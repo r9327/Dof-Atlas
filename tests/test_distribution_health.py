@@ -5,13 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import os
 
 from app.distribution.health import announce_home_ready, announce_ready
 from app.distribution.launcher import _is_application_handoff
 
 from app.distribution.launcher import _launch_with_health
+from app.distribution import launcher
 
 
 class WindowHealthTests(unittest.TestCase):
@@ -99,19 +100,23 @@ class WindowHealthTests(unittest.TestCase):
                 self.assertTrue(ready.exists())
                 self.assertEqual(list(root.glob("*.capable")), [])
 
-    def test_empty_ready_marker_is_not_valid_health(self):
+    def test_empty_ready_marker_blocks_rollback_while_app_still_alive(self):
+        from app.distribution.release_client import UpdateError
         with tempfile.TemporaryDirectory() as location:
             process = SimpleNamespace(pid=123, poll=lambda: None)
-            self.assertFalse(self.launch_with_process(
-                Path(location), process, [], ready_payload=""
-            ))
+            with self.assertRaisesRegex(UpdateError, "reste en cours"):
+                self.launch_with_process(
+                    Path(location), process, [], ready_payload=""
+                )
 
-    def test_wrong_ready_pid_is_not_valid_legacy_health(self):
+    def test_wrong_ready_pid_blocks_rollback_while_app_still_alive(self):
+        from app.distribution.release_client import UpdateError
         with tempfile.TemporaryDirectory() as location:
             process = SimpleNamespace(pid=123, poll=lambda: None)
-            self.assertFalse(self.launch_with_process(
-                Path(location), process, [], ready_payload="999"
-            ))
+            with self.assertRaisesRegex(UpdateError, "reste en cours"):
+                self.launch_with_process(
+                    Path(location), process, [], ready_payload="999"
+                )
 
     def test_wrong_home_pid_does_not_complete_handoff(self):
         from app.distribution.release_client import UpdateError
@@ -137,6 +142,45 @@ class WindowHealthTests(unittest.TestCase):
             with self.assertRaisesRegex(UpdateError, "Confirmation de lancement Atlas invalide"):
                 self.launch_with_process(root, process, [])
             self.assertFalse(list(health.iterdir()))
+
+    def test_live_atlas_refuses_rollback_download_or_second_launch(self):
+        with tempfile.TemporaryDirectory() as location:
+            guard = MagicMock()
+            guard.acquire.return_value = False  # main.py owns mutex
+            messages = []
+            with (
+                patch.object(launcher, "ROOT", Path(location)),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard", return_value=guard),
+                patch.object(launcher, "read_state", side_effect=AssertionError("no state mutations")),
+                patch.object(launcher, "rollback_pending", side_effect=AssertionError("no rollback")),
+                patch.object(launcher, "latest_release", side_effect=AssertionError("no update check")),
+                patch.object(launcher, "_launch_with_health", side_effect=AssertionError("no second spawn")),
+                patch.object(launcher, "recover_data_packs_on_launch",
+                             side_effect=AssertionError("no recovery while running")),
+            ):
+                launcher.run_update(lambda label, value: messages.append((label, value)))
+            self.assertEqual(messages, [("Dofus Atlas est deja ouvert", 100)])
+            guard.acquire.assert_called_once()
+            guard.release.assert_not_called()  # loser closed its native handle
+
+    def test_idle_atlas_probe_releases_mutex_before_recovery(self):
+        with tempfile.TemporaryDirectory() as location:
+            guard = MagicMock()
+            guard.acquire.return_value = True
+            with (
+                patch.object(launcher, "ROOT", Path(location)),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard", return_value=guard),
+                patch.object(launcher, "recover_data_packs_on_launch",
+                             side_effect=RuntimeError("reached recovery")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "reached recovery"):
+                    launcher.run_update(lambda *_: None)
+            guard.acquire.assert_called_once()
+            guard.release.assert_called_once()
 
     def test_handoff_is_only_the_launch_transition(self):
         self.assertTrue(_is_application_handoff("Lancement de Dofus Atlas..."))

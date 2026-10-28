@@ -27,6 +27,7 @@ from .launch_pack_recovery import recover_data_packs_on_launch
 from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style)
+from app.windows.single_instance import SingleInstanceGuard
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 ROOT = runtime_root()
@@ -148,6 +149,14 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
             if proc.poll() is not None:
                 return False
             time.sleep(0.1)
+        # A process without an ACK is not necessarily dead. Rolling back and
+        # starting a second version while it owns the GUI risks concurrent
+        # writes to user data. Surface the failure without launching another.
+        if proc.poll() is None:
+            raise UpdateError(
+                "Atlas n'a pas confirme son demarrage et reste en cours; "
+                "fermez Atlas avant de relancer"
+            )
         return False
     finally:
         ready.unlink(missing_ok=True)
@@ -160,6 +169,14 @@ def run_update(report, *, verify_installation: bool = False) -> None:
     log = _logger()
     _run_handle = _run_lock()
     try:
+        # Reuse the same Windows mutex already held by main.py. If the GUI
+        # owns it, do not recover/rollback a pending slot or launch another
+        # Atlas; neither task is safe while that process is using user data.
+        instance_probe = SingleInstanceGuard()
+        if not instance_probe.acquire():
+            report("Dofus Atlas est deja ouvert", 100)
+            return
+        instance_probe.release()
         # Recover only an existing, unacknowledged data pack. Normal boots do
         # no pack scans or hashes and never import the game data stack.
         try:

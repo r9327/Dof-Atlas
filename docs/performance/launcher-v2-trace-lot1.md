@@ -125,3 +125,15 @@ présente mais invalide empêche un repli silencieux vers le seul ACK Qt
 pendant que le processus est vivant. Le format `.ready` historique
 contenait déjà ce PID : la compatibilité reste préservée.
 Ce contrôle ne certifie pas à lui seul la réactivité de Home sur Windows.
+
+## Protection entre lancements successifs (mutex existant)
+
+Le launcher vérifie désormais, **avant** toute récupération de pack ou
+rollback de slot en attente, le verrou de processus unique que `main.py`
+utilise déjà sur Windows. Si une instance Atlas le détient, il n'effectue
+ni mise à jour ni second lancement. Aucun nouveau verrou ou état disque
+n'est introduit. Si une application reste vivante après 50 s sans ACK,
+le lanceur signale un échec sans lancer de rollback concurrent ; un
+processus réellement terminé permet toujours la récupération normale.
+La course très précoce avant l'acquisition du mutex par le processus
+en démarrage et le comportement natif Win32 restent à tester sur PC.
