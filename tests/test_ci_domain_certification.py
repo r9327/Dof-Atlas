@@ -175,6 +175,18 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertFalse(owners_for("tests/test_phase8_unreviewed_contract.py"))
 
+    def test_manual_rtk_bootstrap_has_narrow_ci_ownership(self):
+        paths = ["tools/install_rtk.ps1", "tests/test_install_rtk.py"]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tools/install_unreviewed.ps1"))
+        self.assertFalse(owners_for("tests/test_install_unreviewed.py"))
+
     def test_ci_policy_change_never_fans_out_into_quests_or_guides(self):
         plan = self.route([
             ".github/workflows/phase-certification.yml",

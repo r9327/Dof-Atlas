@@ -90,6 +90,10 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci"})
     if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
+    if path in {"tools/install_rtk.ps1", "tests/test_install_rtk.py"}:
+        # Manual developer/Codex bootstrap tooling. Keep the pair exact so an
+        # unrelated installer or PowerShell script cannot inherit CI ownership.
+        return frozenset({"ci"})
     # Shared data APIs are consumed by Craft and Quest/Guide loaders; a file
     # label alone cannot prove the change is Craft-only. Until a separately
     # authenticated symbol/call-graph closure exists, retain all consumers.
