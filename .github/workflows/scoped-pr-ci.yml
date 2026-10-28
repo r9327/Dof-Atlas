@@ -66,6 +66,8 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_timing_observer.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_required_certification.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_domain_certification.py'
+          # Advisory decision replay: real selectors, no Qt install or FULL.
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_doctor_ci_decision_arena.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ai_workflow_skills.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_dofus_atlas_tools_skill.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_ci_verified_pr_full.py'
