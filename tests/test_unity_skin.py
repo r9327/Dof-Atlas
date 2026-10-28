@@ -26,7 +26,7 @@ class UnitySkinTests(unittest.TestCase):
                 self.assertTrue(unity_enabled())
                 self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
-    def test_persistent_personal_theme_activates_with_marker(self) -> None:
+    def test_personal_assets_persist_independently_of_theme_selection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             personal = Path(directory)
             sprites = personal / "sprites"
@@ -134,6 +134,13 @@ class UnitySkinTests(unittest.TestCase):
         )
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
+
+    def test_application_has_only_unity_palette(self) -> None:
+        from app.ui import theme
+        self.assertEqual(theme.PALETTE["BG"], UNITY_PALETTE["BG"])
+        self.assertEqual(theme.PALETTE["PANEL"], UNITY_PALETTE["PANEL"])
+        self.assertEqual(theme.PALETTE["GREEN"], UNITY_PALETTE["GREEN"])
+        self.assertIn("QWidget#AtlasUnityBackdrop", theme.atlas_stylesheet())
 
     def test_palette_contrast_roles_and_sprite_state_contract(self) -> None:
         self.assertNotEqual(UNITY_PALETTE["BG"], UNITY_PALETTE["TEXT"])
