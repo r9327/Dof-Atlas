@@ -15,10 +15,10 @@ from app.distribution.launcher import _launch_with_health
 
 
 class WindowHealthTests(unittest.TestCase):
-    def launch_with_process(self, root: Path, process, now):
+    def launch_with_process(self, root: Path, process, now, *, ready_payload="123"):
         health = root / ".health"
         health.mkdir(parents=True)
-        (health / "fixed.ready").write_text("123", encoding="utf-8")
+        (health / "fixed.ready").write_text(ready_payload, encoding="utf-8")
         fake_exe = root / "AtlasApp.exe"
         fake_exe.write_bytes(b"MZ")
         with patch("app.distribution.launcher.ROOT", root), \
@@ -32,12 +32,12 @@ class WindowHealthTests(unittest.TestCase):
 
     def test_exit_just_after_ready_rejects_candidate(self):
         with tempfile.TemporaryDirectory() as location:
-            process = SimpleNamespace(poll=lambda: 17)
+            process = SimpleNamespace(pid=123, poll=lambda: 17)
             self.assertFalse(self.launch_with_process(Path(location), process, [0, 0.1]))
 
     def test_stable_window_passes_without_extra_gui_launches(self):
         with tempfile.TemporaryDirectory() as location:
-            process = SimpleNamespace(poll=lambda: None)
+            process = SimpleNamespace(pid=123, poll=lambda: None)
             self.assertTrue(self.launch_with_process(Path(location), process, [10, 10, 13]))
 
     def test_home_capability_waits_for_separate_home_ack(self):
@@ -47,7 +47,7 @@ class WindowHealthTests(unittest.TestCase):
             (root / ".health" / "fixed.ready").write_text("123", encoding="utf-8")
             (root / ".health" / "fixed.capable").write_text("123", encoding="utf-8")
             (root / ".health" / "fixed.home").write_text("123", encoding="utf-8")
-            process = SimpleNamespace(poll=lambda: None)
+            process = SimpleNamespace(pid=123, poll=lambda: None)
             self.assertTrue(self.launch_with_process(root, process, [10, 10, 13, 14, 16]))
             self.assertFalse(list((root / ".health").iterdir()))
 
@@ -58,7 +58,7 @@ class WindowHealthTests(unittest.TestCase):
             health.mkdir()
             (health / "fixed.ready").write_text("123", encoding="utf-8")
             (health / "fixed.capable").write_text("123", encoding="utf-8")
-            process = SimpleNamespace(poll=lambda: 17)
+            process = SimpleNamespace(pid=123, poll=lambda: 17)
             self.assertFalse(self.launch_with_process(root, process, [10, 10]))
             self.assertFalse(list(health.iterdir()))
 
@@ -69,7 +69,7 @@ class WindowHealthTests(unittest.TestCase):
             (root / ".health").mkdir()
             (root / ".health" / "fixed.ready").write_text("123", encoding="utf-8")
             (root / ".health" / "fixed.capable").write_text("123", encoding="utf-8")
-            process = SimpleNamespace(poll=lambda: None)
+            process = SimpleNamespace(pid=123, poll=lambda: None)
             with self.assertRaisesRegex(UpdateError, "Home n'a pas confirme"):
                 self.launch_with_process(root, process, [10, 141])
             self.assertFalse(list((root / ".health").iterdir()))
@@ -98,6 +98,45 @@ class WindowHealthTests(unittest.TestCase):
                 announce_ready()
                 self.assertTrue(ready.exists())
                 self.assertEqual(list(root.glob("*.capable")), [])
+
+    def test_empty_ready_marker_is_not_valid_health(self):
+        with tempfile.TemporaryDirectory() as location:
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            self.assertFalse(self.launch_with_process(
+                Path(location), process, [], ready_payload=""
+            ))
+
+    def test_wrong_ready_pid_is_not_valid_legacy_health(self):
+        with tempfile.TemporaryDirectory() as location:
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            self.assertFalse(self.launch_with_process(
+                Path(location), process, [], ready_payload="999"
+            ))
+
+    def test_wrong_home_pid_does_not_complete_handoff(self):
+        from app.distribution.release_client import UpdateError
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            health = root / ".health"
+            health.mkdir()
+            (health / "fixed.capable").write_text("123", encoding="utf-8")
+            (health / "fixed.home").write_text("999", encoding="utf-8")
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            with self.assertRaisesRegex(UpdateError, "Home n'a pas confirme"):
+                self.launch_with_process(root, process, [10, 141])
+            self.assertFalse(list(health.iterdir()))
+
+    def test_wrong_capability_pid_is_never_legacy_downgrade(self):
+        from app.distribution.release_client import UpdateError
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            health = root / ".health"
+            health.mkdir()
+            (health / "fixed.capable").write_text("999", encoding="utf-8")
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            with self.assertRaisesRegex(UpdateError, "Confirmation de lancement Atlas invalide"):
+                self.launch_with_process(root, process, [])
+            self.assertFalse(list(health.iterdir()))
 
     def test_handoff_is_only_the_launch_transition(self):
         self.assertTrue(_is_application_handoff("Lancement de Dofus Atlas..."))

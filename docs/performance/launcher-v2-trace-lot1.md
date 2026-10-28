@@ -115,3 +115,13 @@ est masqué ; la boîte de préchargement Qt reste l'interface visible.
 Le calendrier exact de peinture multi-fenêtres et les cas antivirus doivent
 encore être vérifiés sur un vrai PC Windows. Le signal ne constitue pas
 à lui seul une preuve de clic/interaction utilisateur réelle.
+
+## Vérification PID des marqueurs Qt/Home
+
+Le launcher vérifie désormais le **PID exact du processus lancé** dans
+les sentinelles `.ready`, `.capable` et `.home`. Il ignore les fichiers
+vides, partiellement écrits ou issus d'un autre PID. Une capacité V2
+présente mais invalide empêche un repli silencieux vers le seul ACK Qt
+pendant que le processus est vivant. Le format `.ready` historique
+contenait déjà ce PID : la compatibilité reste préservée.
+Ce contrôle ne certifie pas à lui seul la réactivité de Home sur Windows.

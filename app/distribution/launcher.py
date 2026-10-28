@@ -67,6 +67,18 @@ def _run_lock():
     return handle
 
 
+def _marker_matches_process(marker: Path, process: subprocess.Popen) -> bool:
+    """Require the complete PID written by the exact spawned Atlas process.
+
+    Legacy releases already write their PID to .ready. Reading instead of
+    testing existence ignores empty, partial and foreign marker files.
+    """
+    try:
+        return marker.read_text(encoding="ascii").strip() == str(process.pid)
+    except (OSError, UnicodeError):
+        return False
+
+
 def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
     install_state = read_state(ROOT)
@@ -95,17 +107,23 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
                                 env=env, creationflags=flags)
         record_startup_event("app_spawn_done")
         for _ in range(500):  # 50 seconds maximum, checked without blocking Tk
-            if ready.is_file():
+            if _marker_matches_process(ready, proc):
                 record_startup_event("app_health_ack")
                 ready.unlink(missing_ok=True)
                 if capable.is_file():
+                    if not _marker_matches_process(capable, proc):
+                        # Never interpret malformed V2 capability as a legacy
+                        # ready-only handshake while the candidate is alive.
+                        if proc.poll() is not None:
+                            return False
+                        raise UpdateError("Confirmation de lancement Atlas invalide")
                     # New Qt clients advertise support before their legacy ACK.
                     # Legacy installed apps retain their existing fast handoff.
                     # A Home paint + event-loop turn, not the preload dialog,
                     # controls the new launcher's successful handoff.
                     deadline = time.monotonic() + 130.0
                     while time.monotonic() < deadline:
-                        if home.is_file():
+                        if _marker_matches_process(home, proc):
                             record_startup_event("app_home_ack")
                             break
                         if proc.poll() is not None:
