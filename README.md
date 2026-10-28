@@ -65,6 +65,23 @@ Règles essentielles :
 
 Consultez le [guide de contribution](docs/CONTRIBUTING.md) avant d’ouvrir une PR.
 
+### RTK pour Codex (optionnel)
+
+`tools/install_rtk.ps1` est un utilitaire **manuel** de configuration RTK,
+non requis pour lancer Atlas, Doctor ou la CI et non destiné à une exécution
+automatique par un agent. Pour une configuration limitée au projet, sur Windows :
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/install_rtk.ps1 -Project
+```
+
+Le script installe RTK et, sauf `-SkipRipgrep`, ripgrep via `winget` **uniquement
+si ces commandes manquent**. Une installation requiert `winget` ; si les outils
+sont déjà présents, `winget` n'est pas nécessaire. L'option `-Project`
+configure Codex pour ce projet ; sans elle, `rtk init -g --codex` modifie
+la configuration globale de Codex. À utiliser seulement sur demande explicite,
+sans intégration au démarrage ni à la validation automatique.
+
 ## Documentation technique
 
 - [`GRAPHIFY.md`](GRAPHIFY.md) — carte d’architecture et preuves structurelles ;
