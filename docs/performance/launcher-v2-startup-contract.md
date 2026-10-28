@@ -85,3 +85,14 @@ Deux lots de développement séparables : (A) installation, mises à jour, launc
 5. **Certification** : comparaison avant/après par scénario, rapport de risques résiduels et audit transversal ; pas de fusion sans preuves.
 
 Les travaux peuvent être scindés en PR dépendantes si le diff devient difficile à auditer, tout en conservant la traçabilité vers #285. **Definition of Done** : correctifs réels + preuves mesurées + tests + CI exacte + validation Windows ; le document seul ne satisfait pas le contrat.
+
+
+## Optimisations transversales supplémentaires — temps réel double-clic → Home
+- Mesurer **le temps bout-en-bout** du double-clic jusqu'à Home réellement utilisable, avec corrélation des traces entre launcher et processus Atlas. La somme des sous-étapes ne remplace pas la mesure utilisateur.
+- Auditer les contrôles et initialisations en double entre launcher, updater et app : version, intégrité, configuration, images, index, ressources, dépendances et créations de processus. Supprimer seulement les doublons prouvés, sans retirer les vérifications nécessaires.
+- Comparer le packaging Windows actuel et les alternatives pertinentes (one-file, one-folder ou équivalent) sur démarrage froid/chaud, extraction, occupation disque, antivirus, taille de distribution et coût des updates ; décider sur données, sans changement automatique de packaging.
+- Cartographier chaque octet entre artefact GitHub et fichier final : téléchargement, staging, extraction, décompression, copie, hash, déplacement. Réduire les écritures et copies intermédiaires sans compromettre la transaction ni l'intégrité.
+- Étudier un cache versionné pour index et données de démarrage : clé dépendant du schéma et des empreintes de sources, invalidation ciblée, migration, limite de taille, nettoyage sûr et test de corruption ; aucune sérialisation fragile d'objets Qt.
+- Ajouter une séquence de plusieurs lancements consécutifs : installation neuve → premier démarrage → deuxième et troisième démarrages → patch léger → redémarrage → aucun changement. Mesurer cold/warm et cache valide/invalide.
+- Vérifier le temps de création et de destruction des processus, les attentes bloquantes, les timers, les sous-processus zombies et le nombre de fenêtres visibles ; éviter une boucle de contrôle/polling qui ajoute une latence fixe.
+- Prioriser le **gain net mesuré** : conserver les optimisations uniquement si elles améliorent le parcours global sans régression fonctionnelle, mémoire, intégrité ou sécurité.
