@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import ast
 import unittest
+from collections import namedtuple
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -199,7 +201,7 @@ def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None
     assert 'preload_status = classify(preload_mb, preload_target_mb)' in source
     assert 'preload memory tolerance exceeded' in source
     assert 'classify(peak_tree, peak_target_mb) == "FAIL"' in source
-    assert 'state = classify(measured, budget)' in source
+    assert 'state = classify(measured, budget, allow_negative=True)' in source
     assert 'if state == "FAIL":' in source
     assert 'if state == "WARNING":' in source
     assert 'measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)' in source
@@ -231,3 +233,53 @@ def test_memory_benchmark_cannot_skip_a_fast_external_warmup() -> None:
     assert "Invalid RAM evidence: external warmup child was never sampled" in benchmark
     assert "Path(go_file).touch(exist_ok=False)" in benchmark
     assert "Remove-Item Env:DOFUS_ATLAS_WARMUP_GO_FILE" in workflow
+
+
+class WindowsProcessLineageTests(unittest.TestCase):
+    """Reused Windows parent PIDs must not inflate an Atlas warmup memory peak."""
+
+    def _descendants(self, creation_times, rows, root=100):
+        source = BENCHMARK.read_text(encoding="utf-8")
+        module = ast.parse(source)
+        method = next(
+            node for node in module.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_descendant_rows"
+        )
+        namespace = {
+            "os": SimpleNamespace(name="nt"),
+            "ProcessRow": namedtuple("ProcessRow", "pid parent_pid name"),
+            "_windows_process_creation_time": creation_times.get,
+        }
+        exec(
+            compile(ast.Module(body=[method], type_ignores=[]), str(BENCHMARK), "exec"),
+            namespace,
+        )
+        Row = namespace["ProcessRow"]
+        return namespace["_descendant_rows"](
+            root, [Row(*row) for row in rows]
+        )
+
+    def test_reused_parent_pid_excludes_old_system_processes_and_descendants(self):
+        rows = [
+            (200, 100, "python.exe"),      # Real cache-warmup worker
+            (300, 200, "python.exe"),      # Real worker descendant
+            (400, 100, "dwm.exe"),         # Started before PID 100 was reused
+            (500, 400, "winlogon.exe"),    # Must not traverse rejected subtree
+            (600, 300, "python.exe"),
+        ]
+        timestamps = {100: 100, 200: 120, 300: 130, 400: 10, 500: 15, 600: 140}
+        found = self._descendants(timestamps, rows)
+        self.assertEqual({row.pid for row in found}, {200, 300, 600})
+
+    def test_unverifiable_child_or_root_is_not_counted_as_verified(self):
+        rows = [(200, 100, "python.exe"), (300, 200, "python.exe")]
+        self.assertEqual(self._descendants({100: 100, 300: 130}, rows), [])
+        self.assertEqual(self._descendants({200: 120, 300: 130}, rows), [])
+
+    def test_benchmark_uses_native_creation_times_without_weakening_limits(self):
+        source = BENCHMARK.read_text(encoding="utf-8")
+        self.assertIn("kernel32.GetProcessTimes", source)
+        self.assertIn("started < start_times[row.parent_pid]", source)
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("peak_target_mb = 220.0", workflow)
+        self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", workflow)

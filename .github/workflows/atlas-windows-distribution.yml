@@ -166,6 +166,8 @@ jobs:
          github.event.action == 'ready_for_review' &&
          (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
           github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+          github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
+          github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
            github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||

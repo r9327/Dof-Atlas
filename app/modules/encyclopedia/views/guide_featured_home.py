@@ -1,4 +1,4 @@
-"""Four prominent playable guide cards, then a compact browsable library."""
+"""Two prominent playable guide cards, then a compact browsable library."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,25 +12,33 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+from app.ui.unity_skin import sprite_icon_path, unity_enabled
 
 
 FEATURED = (
-    ("guide_complet", "Guide Succès"),
+    ("guide_complet", "Guide Succès Opti"),
     ("dofus_sylvestre", "Sylvestre Opti"),
-    ("alignement_bonta", "Bonta"),
-    ("alignement_brakmar", "Brâkmar"),
 )
 
 
 class FeaturedGuideCard(QFrame):
-    """One of only four eagerly constructed cards, not 95 QWidgets."""
+    """One of only two eagerly constructed cards, not 95 QWidgets."""
 
     def __init__(self, guide_id: str, title: str, on_open, parent=None) -> None:
         super().__init__(parent)
         self.guide_id = guide_id
         self.setObjectName("GuideFeaturedCard")
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAccessibleName(title)
+        # A widget-local stylesheet overrides the global Unity QSS. Keep
+        # the Atlas default unchanged, but give Unity its intended alpha.
+        card_background = (
+            "rgba(27, 39, 70, 0.88)"
+            if unity_enabled() else PALETTE["PANEL_2"]
+        )
         self.setStyleSheet(
-            "#GuideFeaturedCard { background: " + PALETTE["PANEL_2"]
+            "#GuideFeaturedCard { background: " + card_background
             + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
             + "; border-radius: 8px; }"
             "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
@@ -42,7 +50,13 @@ class FeaturedGuideCard(QFrame):
         self.title.setStyleSheet(
             f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 14px;"
         )
-        layout.addWidget(self.title)
+        title_row = QHBoxLayout()
+        self.artwork = QLabel()
+        self.artwork.setFixedSize(36, 36)
+        self.artwork.setAlignment(Qt.AlignCenter)
+        title_row.addWidget(self.artwork)
+        title_row.addWidget(self.title, 1)
+        layout.addLayout(title_row)
         self.subtitle = QLabel("")
         self.subtitle.setObjectName("FeaturedSubtitle")
         self.subtitle.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']};")
@@ -67,29 +81,57 @@ class FeaturedGuideCard(QFrame):
         layout.addLayout(actions)
         self.set_guide(None, (0, 0, ""))
 
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self.rect().contains(event.position().toPoint()):
+            if self.open_button.isEnabled():
+                self.open_button.click()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            if self.open_button.isEnabled():
+                self.open_button.click()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def set_guide(self, guide, values: tuple[int, int, str]) -> None:
         done, total, state = values
         usable = guide is not None
         self.open_button.setEnabled(usable)
         self.open_button.setText("Continuer →" if usable and done > 0 else
                                  "Ouvrir →" if usable else "Indisponible")
-        self.subtitle.setText(
-            (str(getattr(guide, "description", "") or "").strip()[:110]
-             if usable else "Parcours indisponible")
-        )
-        # A count of zero is not evidence of zero percent progress.
+        raw_description = str(getattr(guide, "description", "") or "").strip()
+        # Never slice a French word halfway through; leave room for the
+        # state below rather than forcing both strings into one cramped line.
+        if len(raw_description) > 68:
+            description = raw_description[:68].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+        else:
+            description = raw_description
+        if not usable:
+            status = "Parcours indisponible"
+        elif total > 0:
+            status = f"{done}/{total} quêtes · {state or 'Non commencé'}"
+        else:
+            status = "Progression indisponible"
+        self.subtitle.setText(f"{description}\n{status}" if description else status)
+        # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
             self.progress.setValue(max(0, min(100, round(done * 100 / total))))
-            if not self.subtitle.text():
-                self.subtitle.setText(f"{done}/{total} quêtes · {state}")
+        self.artwork.clear()
+        local_icon = sprite_icon_path("guide")
+        # Only two featured QIcons, backed by local assets when explicitly enabled.
+        self.open_button.setIcon(QIcon(str(local_icon)) if local_icon else QIcon())
         if usable:
             image_path = getattr(guide, "image_path", None)
             if image_path and Path(image_path).is_file():
                 from PySide6.QtCore import QSize
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(32, 32))
                 if pixmap is not None and not pixmap.isNull():
-                    self.open_button.setIcon(QIcon(pixmap))
+                    self.artwork.setPixmap(pixmap)
 
 
 class FeaturedPair(QWidget):

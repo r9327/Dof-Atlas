@@ -66,6 +66,7 @@ from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, Atlas
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
+from app.ui.unity_skin import UnityBackdrop, unity_enabled
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -803,13 +804,15 @@ class AtlasWindow(QMainWindow):
         self._background_services_stopped = False
         self._last_active_dofus_hwnd = 0
 
-        central = QWidget()
+        central = UnityBackdrop() if unity_enabled() else QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
         self.stack = QStackedWidget()
+        if unity_enabled():
+            self.stack.setObjectName("AtlasUnityStack")
         self.pages: list[tuple[str, QWidget]] = []
 
         self.home_page = HomePage()
@@ -1726,6 +1729,8 @@ class AtlasWindow(QMainWindow):
 
     def loading_page(self, name: str) -> QWidget:
         page = QWidget()
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(8, 6, 8, 8)
         title = AtlasPageTitle(name)
@@ -1737,6 +1742,9 @@ class AtlasWindow(QMainWindow):
         return page
 
     def register_page(self, name: str, page: QWidget) -> int:
+        # The shell paints the wallpaper once; page roots must not hide it.
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         index = self.stack.addWidget(page)
         self.page_indexes[name] = index
         self.page_widgets[name] = page
@@ -1893,6 +1901,8 @@ class AtlasWindow(QMainWindow):
         page = factory()
         if page is None:
             return None
+        if unity_enabled():
+            page.setProperty("atlasUnityPage", True)
         self.page_factories.pop(name, None)
         self.stack.insertWidget(index, page)
         if old_page is not None and self.stack.currentWidget() is old_page:

@@ -173,6 +173,46 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
         close_handle(handle)
 
 
+def _windows_process_creation_time(pid: int) -> int | None:
+    """Read the native process creation FILETIME to disambiguate reused PIDs."""
+    if os.name != "nt":
+        return None
+
+    kernel32, _psapi = _windows_api_dlls()
+    open_process = kernel32.OpenProcess
+    open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    open_process.restype = wintypes.HANDLE
+    get_times = kernel32.GetProcessTimes
+    get_times.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+    ]
+    get_times.restype = wintypes.BOOL
+    close_handle = kernel32.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+
+    handle = open_process(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        creation = wintypes.FILETIME()
+        exit_time = wintypes.FILETIME()
+        kernel_time = wintypes.FILETIME()
+        user_time = wintypes.FILETIME()
+        if not get_times(
+            handle, ctypes.byref(creation), ctypes.byref(exit_time),
+            ctypes.byref(kernel_time), ctypes.byref(user_time),
+        ):
+            return None
+        return (int(creation.dwHighDateTime) << 32) | int(creation.dwLowDateTime)
+    finally:
+        close_handle(handle)
+
+
 def _descendant_rows(root_pid: int, rows: list[ProcessRow]) -> list[ProcessRow]:
     children: dict[int, list[ProcessRow]] = {}
     for row in rows:
@@ -180,10 +220,26 @@ def _descendant_rows(root_pid: int, rows: list[ProcessRow]) -> list[ProcessRow]:
     output: list[ProcessRow] = []
     pending = list(children.get(int(root_pid), ()))
     seen: set[int] = set()
+
+    # A Toolhelp parent PID is not proof of ancestry: Windows reuses PIDs.
+    # An actual child must have started no earlier than its live parent.
+    verify_creation = os.name == "nt"
+    start_times: dict[int, int] = {}
+    if verify_creation:
+        root_start = _windows_process_creation_time(root_pid)
+        if root_start is None:
+            return []
+        start_times[int(root_pid)] = root_start
+
     while pending:
         row = pending.pop()
-        if row.pid in seen:
+        if row.pid == root_pid or row.pid in seen:
             continue
+        if verify_creation:
+            started = _windows_process_creation_time(row.pid)
+            if started is None or started < start_times[row.parent_pid]:
+                continue  # Stale PPID or unverifiable process: don't traverse it.
+            start_times[row.pid] = started
         seen.add(row.pid)
         output.append(row)
         pending.extend(children.get(row.pid, ()))

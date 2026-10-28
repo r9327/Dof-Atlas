@@ -30,9 +30,31 @@ BASELINE_GROUPS = {
     "data": ("PERSISTENCE", "GOLDEN_FLOWS"),
 }
 
+# Explicitly reviewed AI entrypoints and certification policy documentation
+# are CI-owned instructions, not unknown application modules or generic
+# metadata. This ownership does NOT waive the independent root-of-trust/FULL
+# decision for PHASE_CERTIFICATION.md or any executable policy change.
+REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
+    "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+    ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
+    "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
+    "tools/skills/dofus-atlas-tools/SKILL.md",
+    "PHASE_CERTIFICATION.md", "DOCTOR_ADAPTIVE_CERTIFICATION.md",
+    # Additional reviewed AI guidance and skills; exact paths only.
+    ".ai/context-map.yaml",
+    ".ai/scopes/quality_ci.yaml",
+    "tests/test_ai_workflow_skills.py",
+    ".agents/skills/codebase-navigation/SKILL.md",
+    ".agents/skills/dofus-data-provenance/SKILL.md",
+    ".agents/skills/evidence-driven-validation/SKILL.md",
+    ".agents/skills/performance-triage/SKILL.md",
+    ".agents/skills/persistence-safety/SKILL.md",
+    ".agents/skills/pyside6-qtwebengine/SKILL.md",
+    ".agents/skills/root-cause-debugging/SKILL.md",
+    ".agents/skills/safe-architecture-cleanup/SKILL.md",
+})
 INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",
-    "DOCTOR_ADAPTIVE_CERTIFICATION.md", "PHASE_CERTIFICATION.md",
     ".gitattributes", ".gitignore",
 })
 CI_FILES = frozenset({
@@ -59,6 +81,8 @@ def owners_for(path: str) -> frozenset[str]:
     if (not isinstance(path, str) or not path or path.startswith("/")
             or "\\" in path or ".." in path.split("/")):
         raise ValueError("Unsafe changed path")
+    if path in REVIEWED_CI_INSTRUCTION_PATHS:
+        return frozenset({"ci"})
     if path in INFRA_PATHS or (path.startswith("docs/") and path.endswith(".md")):
         return frozenset()
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
@@ -69,6 +93,27 @@ def owners_for(path: str) -> frozenset[str]:
     # Shared data APIs are consumed by Craft and Quest/Guide loaders; a file
     # label alone cannot prove the change is Craft-only. Until a separately
     # authenticated symbol/call-graph closure exists, retain all consumers.
+    # The standalone updater and Qt preload are shared startup/UI contracts.
+    # Keep this exact-path allowlist: unknown distribution modules stay blocked.
+    # Reviewed smart-update surface: explicit paths only. Files are shared by
+    # launcher, release/asset integrity and runtime data. Never add a wildcard:
+    # any future distribution helper must acquire its own ownership review.
+    if path in {
+        "app/distribution/install.py",
+        "app/distribution/release_client.py",
+        "app/distribution/disk_space.py",
+        "app/distribution/file_clone.py",
+        "app/distribution/cleanup.py",
+        "app/distribution/install_location.py",
+        "tests/test_distribution_disk_space.py",
+        "tests/test_distribution_smart_update.py",
+        "tests/test_distribution_packaging.py",
+    }:
+        return frozenset({"ci", "startup", "data"})
+    if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
+        return frozenset({"startup", "ui"})
+    if path == "app/ui/preload_popup.py":
+        return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
         return frozenset({"craft", "quests", "guides", "data"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
@@ -84,8 +129,60 @@ def owners_for(path: str) -> frozenset[str]:
         # All four concrete guide readers have both Guide logic and Qt clients.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/modules/encyclopedia/views/encyclopedia_page.py",
+        "app/modules/encyclopedia/views/guide_catalog_view.py",
+        "app/modules/encyclopedia/views/guide_featured_home.py",
+        "app/modules/encyclopedia/views/guide_library_sources.py",
+        "app/modules/encyclopedia/widgets/guide_card.py",
+    }:
+        # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
+        return frozenset({"guides", "ui"})
+    if path.startswith("app/assets/themes/dofus_unity/"):
+        # Owned *only* as UI/data inputs, not approved for redistribution.
+        if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:
+            return frozenset({"ui", "data"})
+        return frozenset()
+    if path.startswith("docs/design/dofus-unity/"):
+        # Narrow source-asset inventory; unknown executable formats stay blocked.
+        if Path(path).suffix.lower() in {".zip", ".md", ".json"}:
+            return frozenset({"ui", "data"})
+        return frozenset()
+    if path == "docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv":
+        return frozenset({"ui", "data"})
+    if path == "tools/assets/import_dofus_unity_ui.ps1":
+        return frozenset({"ci", "ui"})
+    # PR #254's local proof tools cross these real consumers. Enumerate
+    # exact paths rather than permitting an unreviewed tools/assets wildcard.
+    if path in {
+        "tools/assets/clean_unity_wallpaper.py",
+        "tools/assets/inspect_unity_assets.py",
+    }:
+        return frozenset({"ci", "ui", "data"})
+    if path == "tools/assets/unity_local_cycle_probe.py":
+        return frozenset({"ci", "guides", "ui"})
+    if path == "tools/assets/unity_pre_ci.py":
+        return frozenset({"ci", "guides", "ui", "startup", "data"})
+    if path == "scripts/windows/package_release.py":
+        return frozenset({"ci", "ui", "startup", "data"})
+    if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
+        return frozenset({"ci", "startup"})
+    if path == "tests/test_unity_assets_inventory.py":
+        return frozenset({"ui", "data"})
+    if path == "tests/test_unity_cycle_metrics.py":
+        return frozenset({"guides", "ui"})
+    if path == "tests/test_unity_wallpaper_cleaner.py":
+        return frozenset({"ui", "data"})
+    if path == "tests/test_unity_skin.py":
+        return frozenset({"ui"})
+    if path == "tests/test_distribution_export.py":
+        # Runtime export policy is both CI packaging integrity and startup.
+        return frozenset({"ci", "startup"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
+    if path == "app/pages/_quests_page_impl.py":
+        # Shared Quest HTML templates and their QWidget consumers.
+        return frozenset({"quests", "ui"})
     if path.startswith("app/pages/quest_"):
         return frozenset({"ui", "quests"})
     if path.startswith("app/pages/guide_") or path.startswith("app/pages/achievement_"):
@@ -102,6 +199,12 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui", "craft", "quests", "guides", "identity", "data"})
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
+        if leaf == "release_certification_fixes":
+            # Exact reviewed test: Guide identity and CI/RAM thresholds.
+            return frozenset({"ci", "craft", "guides"})
+        if leaf == "phase8_lifecycle_extended_contract":
+            # Exact reviewed CI and extended Windows memory evidence test.
+            return frozenset({"ci", "craft"})
         if leaf == "lanyel_shared_manual_ui":
             return frozenset({"guides", "ui"})
         if leaf.startswith(("ci_", "doctor_", "phase_", "atlas_integrity", "atlas_meta",

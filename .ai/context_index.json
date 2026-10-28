@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
       "type": "tree"
     },
     ".codex": {
@@ -27,12 +27,12 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "e5ca5eabd9ee181b0e6d15748d8ed9f34b936f3e",
+      "sha": "dd89a822eda17ddff6929604f2c9e0cd198574a5",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "23dd4771b1cc80499cf1d07773119c28f0c9b37e",
+      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
       "type": "blob"
     },
     ".graphifyignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "26bdbae9ba7f7b94e779faedd85bec51d7f348b4",
+      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
+      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -97,7 +97,7 @@
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "077b42be10f7187ae4616c8f5b7b2e5b57e292a4",
+      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6",
       "type": "blob"
     },
     "README.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "47330ef3036f58f580b95d7e09aa7e45bafc86d7",
+      "sha": "d361e92b3d616c50da0dfa962b5f10acc4a5a431",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "479b70fff4d6f6428ab2678f94a3f5a926de5a74",
+      "sha": "ea3d5e4e823b7b6758c1b1650aede6edb72b706d",
       "type": "tree"
     },
     "launch.py": {
@@ -142,7 +142,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "324579739615f9b60b6802b69179628aa45b3962",
+      "sha": "92df255a3fab328aa8fdecd7e9f4750d7c78ca41",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -152,7 +152,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "372f3e83b42bdf571d93334a734f4e1214e11af6",
+      "sha": "8d6c968aa0a016ddc259608ff4a918801a0b559f",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "90b6eeb8e8c30324787c4cd5b4018fdff9a83518",
+      "sha": "d3cfd17713ae05316afe4e309046108bf3b4acb3",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "9e4d9f734557bdf4737d9fbac328aab37e576e1c",
+      "sha": "ca4117e550a268ee8e8ff387fe2e5bbbfdd1906f",
       "type": "tree"
     }
   },

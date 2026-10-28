@@ -12,6 +12,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -25,6 +27,9 @@ WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
 CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
+# Small releases stay sequential; large multipart bundles use bounded parallel I/O.
+_PARALLEL_MIN_BYTES = 32 * 1024**2
+_MAX_PARALLEL_PARTS = 3
 MANIFEST_NAME = "atlas-manifest.json"
 ARCHIVE_NAME = "atlas-windows.zip"
 LAUNCHER_NAME = "DofusAtlas.exe"
@@ -370,7 +375,12 @@ def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease 
 
 def _download_multipart(release: RemoteRelease, directory: Path,
                         progress: Progress | None) -> Path:
-    """Resume each authenticated part, then atomically reconstruct the ZIP."""
+    """Download independent verified release parts concurrently, with safe resume.
+
+    At most three large assets are transferred at once. Each part owns its own
+    .download file, strict HTTP byte-range contract and SHA-256 verification.
+    Progress is monotonic across HTTP restart/retry; callbacks are serialized.
+    """
     manifest = release.manifest
     if not manifest.archive_parts or len(release.part_urls) != len(manifest.archive_parts):
         raise UpdateError("Incomplete multipart release metadata")
@@ -382,29 +392,44 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             progress(manifest.archive_size, manifest.archive_size)
         return target
     target.unlink(missing_ok=True)
-    progress_base = 0
     parts_dir = directory / (manifest.source_sha[:20] + "-parts")
     parts_dir.mkdir(parents=True, exist_ok=True)
     total = manifest.archive_size
-    for part, url in zip(manifest.archive_parts, release.part_urls):
+    pieces = manifest.archive_parts
+    transferred = [0] * len(pieces)
+    progress_lock = threading.Lock()
+    cancelled = threading.Event()
+    last_reported = -1
+
+    def update(index: int, done: int) -> None:
+        nonlocal last_reported
+        # Serialise callbacks and never move progress backwards when a server
+        # ignores HTTP Range and a partially downloaded part restarts at zero.
+        with progress_lock:
+            transferred[index] = done
+            complete = sum(transferred)
+            if progress and complete > last_reported:
+                last_reported = complete
+                progress(complete, total)
+
+    def fetch_one(index: int, part, url: str) -> None:
         finished = parts_dir / part.name
         entry = ReleaseFile(part.name, part.size, part.sha256)
         if verify_file(finished, entry):
-            progress_base += part.size
-            if progress:
-                progress(progress_base, total)
-            continue
+            update(index, part.size)
+            return
         finished.unlink(missing_ok=True)
         partial = parts_dir / (part.name + ".download")
 
-        # Resume even after a clean but truncated HTTP response. Never throw
-        # away gigabytes of already verified-by-size partial download.
         for attempt in range(_DOWNLOAD_ATTEMPTS):
+            if cancelled.is_set():
+                return
             offset = partial.stat().st_size if partial.is_file() else 0
             if offset == part.size:
                 if verify_file(partial, entry):
                     partial.replace(finished)
-                    break
+                    update(index, part.size)
+                    return
                 partial.unlink(missing_ok=True)
                 raise UpdateError(f"Corrupted release part: {part.name}")
             if offset > part.size:
@@ -421,8 +446,9 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     elif status != 200:
                         raise UpdateError("Unexpected multipart HTTP status")
                     done = offset if resumed else 0
+                    update(index, done)
                     with partial.open("ab" if resumed else "wb") as output:
-                        while True:
+                        while not cancelled.is_set():
                             block = response.read(1024 * 1024)
                             if not block:
                                 break
@@ -430,9 +456,10 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                             if done > part.size:
                                 raise UpdateError("Multipart download exceeded asset size")
                             output.write(block)
-                            if progress:
-                                progress(progress_base + done, total)
+                            update(index, done)
                         output.flush()
+                if cancelled.is_set():
+                    return  # partial bytes remain resumable next launch
             except (OSError, urllib.error.URLError) as exc:
                 if attempt == _DOWNLOAD_ATTEMPTS - 1:
                     raise UpdateError(
@@ -446,18 +473,43 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     partial.unlink(missing_ok=True)
                     raise UpdateError(f"SHA-256 mismatch for {part.name}")
                 partial.replace(finished)
-                break
+                update(index, part.size)
+                return
             if attempt == _DOWNLOAD_ATTEMPTS - 1:
                 raise UpdateError(
                     f"Incomplete download of {part.name}; saved for next launch"
                 )
             time.sleep(min(2 ** attempt, 4))
-        progress_base += part.size
+        raise UpdateError(f"Cannot complete release part: {part.name}")
+
+    workers = (
+        min(_MAX_PARALLEL_PARTS, len(pieces))
+        if total >= _PARALLEL_MIN_BYTES else 1
+    )
+    if workers == 1:
+        for i, (part, url) in enumerate(zip(pieces, release.part_urls)):
+            fetch_one(i, part, url)
+    else:
+        # The executor joins outstanding workers on failure. Signalling early
+        # prevents a doomed update continuing to consume gigabytes.
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="atlas-download") as executor:
+            futures = [
+                executor.submit(fetch_one, i, part, url)
+                for i, (part, url) in enumerate(zip(pieces, release.part_urls))
+            ]
+            try:
+                for future in as_completed(futures):
+                    future.result()
+            except BaseException:
+                cancelled.set()
+                for future in futures:
+                    future.cancel()
+                raise
     try:
         assemble_archive_parts(manifest, parts_dir, target)
     except (OSError, ValueError) as exc:
         raise UpdateError("Unable to verify assembled multipart ZIP") from exc
-    for part in manifest.archive_parts:
+    for part in pieces:
         (parts_dir / part.name).unlink(missing_ok=True)
     return target
 

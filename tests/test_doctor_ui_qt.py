@@ -751,6 +751,19 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             observed["screenshot_raster"]["bad_captures"][0]["box_count"], 20,
         )
 
+    def test_doctor_ui_extra_catalog_evidence_keeps_a_bounded_action_budget(self):
+        # The five real scenario union now includes catalog/return screenshots.
+        # The cap is raised only enough to finish the validated final checks;
+        # runaway sessions must still fail closed.
+        session = UiSession(self.folder, "verify")
+        session.scenario = "budget-boundary"
+        session.step = 127
+        evidence = session.snapshot(self.view)
+        self.assertEqual(session.step, 128)
+        self.assertTrue(all(name.endswith("-tree.json") for name in evidence))
+        with self.assertRaisesRegex(RuntimeError, "action budget exceeded"):
+            session.snapshot(self.view)
+
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")
         session.scenario = "fixture"

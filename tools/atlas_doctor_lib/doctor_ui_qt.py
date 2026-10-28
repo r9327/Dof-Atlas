@@ -289,7 +289,10 @@ class UiSession:
         from PySide6.QtCore import QRect
 
         self.step += 1
-        if self.step > 120:
+        # The consolidated 5-scenario run includes four extra real PR254
+        # catalog captures. Its previous 120-action limit cut off four final
+        # assertions after 114 successful checks. Preserve a strict 128 cap.
+        if self.step > 128:
             raise RuntimeError("Doctor UI action budget exceeded")
         prefix = f"{self.step:03d}-{self.scenario}"
         tree = widget_tree(root)
@@ -1080,6 +1083,21 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     settle()
     click = click_target(page, view.guide_button)
     catalog_visible = page.guides_view is not owner
+    if catalog_visible and guide_id == "guide_complet" and not smoke:
+        # Evidence of the *actual* Guide -> catalog return transition.
+        from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+        if not isinstance(page.guides_view, GuideCatalogView):
+            raise RuntimeError("Return from rich Guide did not restore lightweight catalog")
+        if (not page.guides_view._runtime_ready
+                or page.guides_view.home_empty.text() == "Chargement des guides…"):
+            raise RuntimeError("Returning to catalog must display ready guides, not a loading placeholder")
+        previous_scenario = session.scenario
+        session.scenario = "guides-catalog-after-return"
+        session.card_id = "catalog"
+        page.resize(1200, 800)
+        settle()
+        session.snapshot(page)
+        session.scenario = previous_scenario
     reopened = open_guide(page, owner, guide_id)
     # Production is allowed to retain the same Guide widget; identity, the
     # active owner and the rebuilt canonical sheet are the true UI contracts.
@@ -1844,6 +1862,42 @@ def worker(folder: Path) -> int:
         from shiboken6 import isValid
 
         app, page, owner = build_scene(Path(os.environ["DOFUS_ATLAS_USER_ROOT"]))
+        # Capture the *lightweight production catalog* changed by PR #254.
+        # Ordinary Guide journeys upgrade straight to the rich view and never
+        # photograph this screen. Do not substitute the rich home or a mock.
+        if any(name in request["scenarios"] for name in
+               ("guides-success", "guides-lanyel", "validator-smoke")):
+            from PySide6.QtWidgets import QLineEdit
+            from app.modules.encyclopedia.constants import GUIDES_TAB
+            from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
+            page._restore_guides_catalog_home()
+            catalog = page.guides_view
+            if not isinstance(catalog, GuideCatalogView):
+                raise RuntimeError("Doctor did not restore the real lightweight GuideCatalogView")
+            if not catalog._runtime_ready:
+                catalog.hydrate_runtime(graph=page._quest_graph)
+            page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+            settle()
+            if (set(catalog.featured_cards) != {"guide_complet", "dofus_sylvestre"}
+                    or catalog._category_nodes["alignements"].childCount() != 2
+                    or page.findChild(QLineEdit, "EncyclopediaSearch") is not None):
+                raise RuntimeError("Catalog PR254 visible-contract mismatch")
+            for label, width, height in (
+                ("standard", 1200, 800),
+                ("reduced", 960, 640),
+                ("expanded", 1450, 900),
+            ):
+                page.resize(width, height)
+                settle()
+                session.scenario = "guides-catalog-" + label
+                session.card_id = "catalog"
+                session.snapshot(page)
+            # Restore the canonical rich owner for the existing Guide scenarios.
+            owner = page.ensure_full_guides_view()
+            if not owner._runtime_ready:
+                owner.hydrate_runtime(graph=page._quest_graph)
+            settle()
         screen = app.primaryScreen()
         manifest.update(python=platform.python_version(), pyside=pyside_version,
                         qt=qVersion(), platform=platform.platform(), mode=request["mode"],

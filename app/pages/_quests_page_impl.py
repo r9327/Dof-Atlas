@@ -1112,7 +1112,7 @@ class QuestsPage(QWidget):
 
 def empty_detail_html(message: str) -> str:
     return render_theme_template(f"""
-<html><body style="font-family: Segoe UI, Arial; color: @TEXT; background: @PANEL;">
+<html><body style="font-family: @FONT_FAMILY; color: @TEXT; background: @PANEL;">
 <p style="color:@TEXT_MUTED;">{escape(message)}</p>
 </body></html>
 """)
@@ -1145,7 +1145,7 @@ def quest_detail_html(
 <head>
 <style>
 body {{
-  font-family: "Segoe UI", Arial;
+  font-family: @FONT_FAMILY;
   background: @PANEL;
   color: @TEXT;
   font-size: 12px;

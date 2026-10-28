@@ -33,6 +33,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .ai
+            .agents
             .githooks
             .github
             data/routes/guide_ultime_manual
@@ -68,4 +69,6 @@ jobs:
           python -m unittest discover -s tests -p "test_ai_context.py" -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s tests -p "test_repository_git_hooks.py" -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p "test_ai_workflow_skills.py" -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

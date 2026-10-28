@@ -28,6 +28,69 @@ profils, installation vierge, reconnexion réseau, interruption et rollback.
 Le workflow distribue uniquement après la réussite de la certification
 `Phase Certification` de la branche `main` sur le SHA courant exact.
 
+## Parcours du lanceur unique
+
+**Contrat DEV → APP → launcher (destination obligatoire) :**
+- Dépôt de développement et certification : `r9327/Dof-Atlas`.
+- **Dépôt de distribution et unique hébergeur de la Release stable :
+  `r9327/Dof-Atlas-App`**. Le workflow de DEV pousse uniquement le runtime
+  certifié vers sa branche `main`, puis crée la Release stable et ses assets
+  dans **ce dépôt APP**, avec `gh release create --repo r9327/Dof-Atlas-App`.
+- Le launcher consulte exclusivement
+  `https://api.github.com/repos/r9327/Dof-Atlas-App/releases/latest`
+  (ou les replis publics officiels associés à ce même dépôt) et télécharge
+  exclusivement les assets correspondants. **Jamais une Release DEV, une PR,
+  un commit brut ou un changement non certifié de `main`.**
+- Les mises à jour différentielles, l'archive complète de secours et la
+  nouvelle version autonome du launcher doivent toutes appartenir à la
+  même Release stable de **Dof-Atlas-App**.
+- Si la synchronisation DEV → APP ou la publication échoue, aucune nouvelle
+  mise à jour n'est annoncée : le launcher conserve la version existante.
+
+**UI minimale (finition textuelle différée)** : sur une mise à jour, une seule
+fenêtre, avec **le logo Atlas existant, « Dofus Atlas », une ligne d'état
+technique réelle et une barre de progression avec pourcentage**. Pas de menu,
+navigation, pied de page, slogans ni phrases troll pour le moment.
+Le préchargement Qt reprend ce format et affiche la tâche fonctionnelle
+en cours (Quêtes, Guides/Succès ou Craft), sans lancer de doublons. Les couleurs
+et polices suivent le thème Atlas existant ou le thème local optionnel de la
+PR UI #254 (`ATLAS_THEME=dofus_unity`) ; les ressources extraites sans droit
+de redistribution confirmé ne sont pas intégrées à l'EXE.
+
+Le raccourci **Dofus Atlas** continue de pointer vers le même
+`DofusAtlas.exe`. Le lanceur reste léger (Tkinter/stdlib) et vérifie le
+**dernier paquet certifié publié sur GitHub Releases**, jamais le code brut
+de `main` ou une PR. Le flux normal est automatique :
+
+1. **Version identique** : contrôle rapide de la Release, aucun téléchargement
+   ni écran de mise à jour ; démarrage direct d'`AtlasApp.exe`.
+2. **Version publiée plus récente** : téléchargement du différentiel vérifié
+   lorsque le SHA de base correspond à la version installée, vérification
+   et installation transactionnelle ; secours par archive complète si
+   le différentiel ne peut pas être appliqué.
+3. **GitHub inaccessible** : lancement de la dernière version locale viable,
+   sans effacer les données de l'utilisateur.
+4. **Après démarrage d'Atlas** : l'écran de préchargement Qt affiche l'état
+   réel des Quêtes, Guides/Succès et Craft. Il reprend la même palette que
+   le lanceur, sans refaire une seconde fois les opérations de chargement.
+5. **Nouveau lanceur disponible** : remplacement automatique vérifié par
+   empreinte SHA-256 via le helper de maintenance après activation saine.
+   Le raccourci ne change jamais.
+
+Sur un démarrage normal sans mise à jour, le lanceur reste masqué : seul le
+préchargement propre à l'application est visible. Pendant une installation ou
+un téléchargement, son interface n'affiche que le logo, le titre,
+l'opération réelle en cours et la progression, sans étapes ou menus supplémentaires.
+Les profils, personnages et progressions résident hors des slots remplaçables.
+Aucune mise à jour ne doit provenir d'un simple push non certifié.
+
+**Dépendance de publication :** la synchronisation DEV → APP ne rend pas
+automatiquement une version téléchargeable. La Release stable est créée
+uniquement après un résultat `Phase Certification` réussi sur le SHA exact
+et quand `ATLAS_DISTRIBUTION_ENABLED=true` avec un jeton de publication
+valide. Un échec de CI bloque donc volontairement les mises à jour du lanceur.
+Ne pas contourner ce garde-fou pour débloquer une mise à jour.
+
 ## Fonctionnement
 
 Un seul exécutable exposé à l'utilisateur : `DofusAtlas.exe` (launcher).
@@ -175,6 +238,43 @@ Le job PR `Focused updater contracts` effectue aussi un **export réel non publi
 Le job ciblé **Focused updater + transfer contracts** construit un export temporaire sur le **HEAD exact de la PR** (et non sur un commit de fusion GitHub), exécute le certificat statique et vérifie les empreintes SHA-256 et les chemins. Son résultat se trouve dans le résumé GitHub Actions ; le JSON `atlas-app-transfer-<SHA>` est téléchargeable comme artefact de la CI.
 
 Il ne pousse rien vers le dépôt de distribution et ne contient **ni Doctor, ni Graphify**, seulement leurs principes de contrôle d'inventaire et de graphe. Une destination symbolique ou un SHA incohérent bloque explicitement la certification. Les contrôles Doctor/Graphify et la compilation Windows sont toujours séparés.
+
+## Optimisation de l'installation et du téléchargement (PR dédiée)
+
+- La Release reste **exclusivement** sur `r9327/Dof-Atlas-App` : aucun
+  exécutable ou paquet n'est téléchargé depuis le dépôt DEV ou les branches.
+- Le lanceur préfère le delta seulement si le SHA installé est compatible
+  **et si l'archive différentielle est plus petite** que la complète. Sinon il
+  utilise la Release complète certifiée ; si le delta échoue, le ZIP complet
+  reste la voie de secours.
+- Une Release multipart suffisamment volumineuse utilise au maximum **trois
+  téléchargements parallèles**, sans perdre la reprise HTTP `Range`,
+  les contrôles de taille, de chemin HTTPS et de SHA-256 de **chaque** partie,
+  suivis du contrôle de l'archive assemblée.
+- L'installateur enregistre dans chaque slot un index local des tailles
+  et empreintes du manifeste après vérification. Lors d'un ZIP complet, seuls
+  les fichiers annoncés inchangés par les deux manifestes sont candidats à
+  une réutilisation locale, **toujours re-vérifiés SHA-256**. Un fichier altéré
+  ou manquant est repris depuis le ZIP officiel. Un ancien slot sans index
+  est simplement extrait depuis le ZIP (pas de double copie spéculative).
+  L'index local est un accélérateur non fiable, **jamais** une autorité.
+- Les fichiers inchangés peuvent bénéficier de la **copie sur écriture ReFS
+  (block cloning)** sur disque Windows compatible, après quoi le contenu
+  cloné est vérifié contre le manifeste. **Aucun hardlink NTFS n'est créé**
+  entre deux versions : il compromettrait l'isolation du rollback.
+  Sur NTFS et sur les supports incompatibles, le chemin sûr reste la copie
+  en lecture unique avec vérification.
+- L'espace libre pour le delta est vérifié avant le téléchargement, en
+  conservant l'ancienne version et une marge de sécurité. Le gain ReFS
+  n'est pas présumé dans la réserve disque.
+- Les mises à jour gardent leurs slots transactionnels, le contrôle de
+  santé de l'application, le fallback hors ligne et le retour à la version
+  précédente. Aucun gain théorique ne justifie de supprimer les SHA ou le
+  rollback.
+
+La vitesse réelle dépend du réseau, de la taille des fichiers changés et du
+système de fichiers. Une revue CI et un test de bout en bout sur Windows
+doivent précéder toute fusion et toute nouvelle Release APP.
 
 ## Choix du disque et vérification rapide
 

@@ -36,6 +36,24 @@ class PackagingTests(unittest.TestCase):
             self.assertTrue(install_release(location, archive, manifest))
             self.assertTrue((location / "versions").is_dir())
 
+    def test_precompressed_visuals_are_stored_while_uncompressed_data_is_deflated(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            app = root / "AtlasApp"
+            app.mkdir()
+            (app / "AtlasApp.exe").write_bytes(b"MZ" + b"exe-content-" * 200)
+            (app / "image.png").write_bytes(b"\\x89PNG" + b"content" * 300)
+            (app / "payload.json").write_text('{"same":"' + "x" * 500 + '"}')
+            archive, _ = package_release(app, root / "out", "e" * 40,
+                                         "1.0", "2026.10", 1)
+            with zipfile.ZipFile(archive) as result:
+                self.assertEqual(
+                    result.getinfo("AtlasApp/image.png").compress_type, zipfile.ZIP_STORED
+                )
+                self.assertEqual(
+                    result.getinfo("AtlasApp/payload.json").compress_type, zipfile.ZIP_DEFLATED
+                )
+
     def test_reject_git_lfs_pointer_in_distribution(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -23,6 +23,158 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
+        from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
+
+        # All 11 new paths reuse the existing, canonical reviewed-path set.
+        new_paths = (
+            ".ai/context-map.yaml",
+            ".ai/scopes/quality_ci.yaml",
+            "tests/test_ai_workflow_skills.py",
+            ".agents/skills/codebase-navigation/SKILL.md",
+            ".agents/skills/dofus-data-provenance/SKILL.md",
+            ".agents/skills/evidence-driven-validation/SKILL.md",
+            ".agents/skills/performance-triage/SKILL.md",
+            ".agents/skills/persistence-safety/SKILL.md",
+            ".agents/skills/pyside6-qtwebengine/SKILL.md",
+            ".agents/skills/root-cause-debugging/SKILL.md",
+            ".agents/skills/safe-architecture-cleanup/SKILL.md",
+        )
+        self.assertEqual(len(set(new_paths)), len(new_paths))
+        self.assertTrue(set(new_paths).issubset(REVIEWED_CI_INSTRUCTION_PATHS))
+        for path in new_paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(list(new_paths) + [
+            ".github/workflows/ai-context-ci.yml", ".ai/context_index.json",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci"])
+        for path in (
+            ".agents/skills/unreviewed/SKILL.md",
+            ".agents/skills/unreviewed/execute.py",
+            ".ai/scopes/unreviewed.yaml",
+            "tests/test_unknown_ai_workflow.py",
+        ):
+            self.assertFalse(owners_for(path), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
+    def test_ci_router_ui_exclusion_requires_independent_import_evidence(self):
+        # Real UI classifier, not a caller-supplied UI_NONE stub. This regression
+        # covers the Draft diagnostic that previously reported UNMAPPED_DEPENDENCY.
+        from tools.atlas_doctor_lib.ci_orchestrator import select_workflows
+        from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui, ROOT
+
+        paths = ["tools/ci_domain_certification.py", "tests/test_ci_domain_certification.py"]
+        domain = self.route(paths)
+        self.assertEqual(domain["domains"], ["ci"])
+        ui = classify_ui(ROOT, paths, candidate_sha=H, base_sha=B)
+        self.assertEqual(ui["status"], "NOT_APPLICABLE", ui["uncertainty"])
+        self.assertEqual(ui["selected_scenarios"], [])
+        selection = select_workflows(
+            paths, event="pull_request", phase_route={"route": "FULL"},
+            ui_plan=ui, domain_plan=domain, tooling_scope=False,
+        )
+        self.assertTrue(selection["full"])  # Risk marker, never evidence of FULL.
+        self.assertFalse(selection["specialist_fallback"])
+        self.assertFalse(selection["workflows"]["doctor-ui"]["selected"])
+        self.assertTrue(selection["workflows"]["ai-context-ci"]["selected"])
+        self.assertTrue(selection["workflows"]["signature-report"]["selected"])
+        self.assertTrue(selection["workflows"]["graphify-targeted-ci"]["selected"])
+
+    def test_ci_router_ui_exclusion_fails_closed_if_runtime_boundary_changes(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from tools.atlas_doctor_lib.doctor_ui_ci import classify_ui
+
+        for source in (
+            "from app import ui\n",
+            "from app.ui import theme\n",
+            "from PySide6 import QtWidgets\n",
+            "__import__('app.ui.theme')\n",
+            "import importlib\nimportlib.import_module('app.ui.theme')\n",
+            "from importlib import import_module as load\nload('app.ui.theme')\n",
+            "from builtins import __import__ as loader\nloader('app.ui.theme')\n",
+        ):
+            with self.subTest(source=source), TemporaryDirectory() as folder:
+                root = Path(folder)
+                target = root / "tools/ci_domain_certification.py"
+                target.parent.mkdir(parents=True)
+                target.write_text(source, encoding="utf-8")
+                report = classify_ui(root, ["tools/ci_domain_certification.py"],
+                                     candidate_sha=H, base_sha=B)
+                self.assertEqual(report["status"], "REVIEW_REQUIRED")
+                self.assertTrue(report["uncertainty"])
+
+    def test_reviewed_ai_and_certification_instructions_are_ci_owned(self):
+        from tools.phase_adaptive_gate import critical_changed
+        paths = [
+            "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+            ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
+            "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md",
+            "tools/AGENTS.md", "tools/skills/dofus-atlas-tools/SKILL.md",
+            "PHASE_CERTIFICATION.md", "DOCTOR_ADAPTIVE_CERTIFICATION.md",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+                self.assertEqual(self.route([path])["domains"], ["ci"])
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertFalse(plan["phase_certified"])
+        # Domain ownership never relaxes the independent root-of-trust check.
+        self.assertIn("PHASE_CERTIFICATION.md", critical_changed(paths))
+
+    def test_unreviewed_agent_policies_still_fail_closed(self):
+        for path in (
+            ".cursor/rules/unreviewed.mdc",
+            "tools/skills/unreviewed/SKILL.md",
+            "app/modules/encyclopedia/AGENTS.md",
+            "NEW_AGENT_POLICY.md",
+            "DEVELOPMENT_GUARDRAILS.md",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset())
+                self.assertEqual(self.route([path])["status"], "BLOCKED")
+        self.assertEqual(
+            self.route(["AGENTS.md", "app/modules/encyclopedia/AGENTS.md"])["status"],
+            "BLOCKED",
+        )
+        deleted = self.route(["AI_ENTRYPOINT.md"], deleted=["AI_ENTRYPOINT.md"])
+        self.assertEqual(deleted["status"], "BLOCKED")
+        self.assertIn("REMOVAL_OR_RENAME_REQUIRES_REVIEW", deleted["reasons"])
+
+    def test_mixed_policy_and_application_domains_remain_separate(self):
+        plan = self.route([
+            "PHASE_CERTIFICATION.md", "AGENTS.md",
+            "app/pages/guide_page.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "guides", "ui"])
+        self.assertNotIn("metadata", plan["domains"])
+
+    def test_mixed_release_regression_test_has_explicit_reviewed_owners(self):
+        path = "tests/test_release_certification_fixes.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "craft", "guides"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "craft", "guides"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("tests/test_unknown_release_contract.py"), frozenset())
+
+    def test_extended_memory_workflow_regression_is_ci_and_craft_owned(self):
+        path = "tests/test_phase8_lifecycle_extended_contract.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "craft"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "craft"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_phase8_unreviewed_contract.py"))
+
     def test_ci_policy_change_never_fans_out_into_quests_or_guides(self):
         plan = self.route([
             ".github/workflows/phase-certification.yml",
@@ -75,6 +227,127 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.route(["app/modules/encyclopedia/views/another_reader.py"])["status"],
             "BLOCKED",
         )
+
+    def test_guide_catalog_and_local_skin_assets_have_real_domain_owners(self):
+        guide_paths = [
+            "app/modules/encyclopedia/views/encyclopedia_page.py",
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/modules/encyclopedia/views/guide_featured_home.py",
+            "app/modules/encyclopedia/views/guide_library_sources.py",
+            "app/modules/encyclopedia/widgets/guide_card.py",
+        ]
+        asset_paths = [
+            "app/assets/themes/dofus_unity/background_selection_original.png",
+            "app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+            "app/assets/themes/dofus_unity/fonts/Lexend-Regular.ttf",
+            "docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+            "docs/design/dofus-unity/sources_manifest.json",
+            "docs/plans/guides-2026-10-24/06b-dofus-unity-asset-manifest.csv",
+        ]
+        for path in guide_paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}), path)
+        for path in asset_paths:
+            self.assertEqual(owners_for(path), frozenset({"ui", "data"}), path)
+        self.assertEqual(owners_for("tools/assets/import_dofus_unity_ui.ps1"),
+                         frozenset({"ci", "ui"}))
+        self.assertEqual(owners_for("tests/test_unity_skin.py"), frozenset({"ui"}))
+        self.assertEqual(owners_for("tests/test_distribution_export.py"),
+                         frozenset({"ci", "startup"}))
+        self.assertEqual(owners_for("app/pages/_quests_page_impl.py"),
+                         frozenset({"quests", "ui"}))
+        route = self.route(guide_paths + asset_paths + [
+            "tools/assets/import_dofus_unity_ui.ps1", "tests/test_unity_skin.py",
+            "tests/test_distribution_export.py",
+        ])
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        for path in (
+            "app/assets/themes/dofus_unity/malware.exe",
+            "docs/design/dofus-unity/sources/run.sh",
+            "app/modules/encyclopedia/views/guide_unknown_new.py",
+            "tests/test_unknown_misc_case.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
+
+    def test_smart_installer_paths_have_explicit_shared_owners(self):
+        reviewed = (
+            "app/distribution/install.py",
+            "app/distribution/release_client.py",
+            "app/distribution/disk_space.py",
+            "app/distribution/file_clone.py",
+            "app/distribution/cleanup.py",
+            "app/distribution/install_location.py",
+            "tests/test_distribution_disk_space.py",
+            "tests/test_distribution_smart_update.py",
+            "tests/test_distribution_packaging.py",
+        )
+        for path in reviewed:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    owners_for(path), frozenset({"ci", "startup", "data"})
+                )
+        plan = self.route(list(reviewed))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        # Deliberately refuse not-yet-reviewed updater modules and tests.
+        self.assertFalse(owners_for("app/distribution/unchecked_helper.py"))
+        self.assertFalse(owners_for("tests/test_distribution_new_unchecked.py"))
+        self.assertEqual(
+            self.route(["app/distribution/unchecked_helper.py"])["status"],
+            "BLOCKED",
+        )
+
+    def test_launcher_ui_and_qt_preload_have_exact_shared_owners(self):
+        paths = [
+            "app/distribution/launcher.py",
+            "app/distribution/launcher_ui.py",
+            "app/ui/preload_popup.py",
+            "tests/test_distribution_launcher_branding.py",
+        ]
+        for path in paths[:3]:
+            self.assertEqual(owners_for(path), frozenset({"startup", "ui"}), path)
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ui", "startup"])
+        # Never approve arbitrary updater, helper or executable paths.
+        for path in (
+            "app/distribution/unreviewed_updater.py",
+            "app/distribution/new_helper.exe",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+    def test_pr254_local_proofs_and_packaging_close_domains_without_wildcards(self):
+        # Exact 10 paths independently identified by the Draft CI failure.
+        expected = {
+            "scripts/windows/package_release.py": {"ci", "ui", "startup", "data"},
+            "tests/test_distribution_package.py": {"ci", "startup"},
+            "tests/test_unity_assets_inventory.py": {"ui", "data"},
+            "tests/test_unity_cycle_metrics.py": {"guides", "ui"},
+            "tests/test_unity_pre_ci_runner.py": {"ci", "startup"},
+            "tests/test_unity_wallpaper_cleaner.py": {"ui", "data"},
+            "tools/assets/clean_unity_wallpaper.py": {"ci", "ui", "data"},
+            "tools/assets/inspect_unity_assets.py": {"ci", "ui", "data"},
+            "tools/assets/unity_local_cycle_probe.py": {"ci", "guides", "ui"},
+            "tools/assets/unity_pre_ci.py": {"ci", "guides", "ui", "startup", "data"},
+        }
+        for path, owners in expected.items():
+            self.assertEqual(owners_for(path), frozenset(owners), path)
+        route = self.route(sorted(expected))
+        self.assertEqual(route["status"], "READY_TO_EXECUTE")
+        self.assertEqual(route["unknown_paths"], [])
+        self.assertEqual(
+            route["domains"], ["ci", "guides", "ui", "startup", "data"]
+        )
+        for path in (
+            "tools/assets/unknown_installer.py",
+            "scripts/windows/unreviewed_export.py",
+            "tests/test_unity_unknown_example.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED", path)
 
     def test_lanyel_shared_manual_ui_test_has_both_owners(self):
         path = "tests/test_lanyel_shared_manual_ui.py"

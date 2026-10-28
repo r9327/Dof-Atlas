@@ -207,7 +207,7 @@ class PolicyAndPassportTests(unittest.TestCase):
         )
         self.assertIn("SCOPED_TESTS_PASS", engine)
 
-    def test_doctor_routes_every_pr_including_drafts_by_impact(self):
+    def test_ready_pr_recertifies_current_sha_while_draft_stays_uncertified(self):
         root = Path(__file__).resolve().parents[1]
         phase = (root / ".github/workflows/phase-certification.yml").read_text(
             encoding="utf-8"
@@ -231,7 +231,11 @@ class PolicyAndPassportTests(unittest.TestCase):
         self.assertIn("github.event_name == 'push'", phase)
         self.assertIn("tools.atlas_integrity full", phase)
         self.assertIn("Doctor / CI Plan", docs)
-        self.assertIn("brouillon", docs)
+        # Assert actual trigger semantics instead of a French documentation word.
+        # Draft PRs cannot get an official certificate, while Ready updates
+        # require a new exact-SHA certification.
+        self.assertIn("      - synchronize", phase)
+        self.assertIn("github.event.pull_request.draft == false", phase)
 
     def test_plan_is_cheap_and_windows_only_if_scoped(self):
         root = Path(__file__).resolve().parents[1]
