@@ -63,6 +63,7 @@ CI_FILES = frozenset({
     "tools/phase_adaptive_gate.py", "tools/ci_required_certification.py",
     "tools/ci_smart_host_proof.py",
     "tools/ci_scope_gate.py", "tools/ci_pr_audit.py",
+    "tools/ci_delivery_guard.py",
     "tools/ci_domain_certification.py", "tools/doctor_certification.py",
     "tools/atlas_full_suite_proof.py", "tools/ci_verified_pr_full.py",
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
@@ -84,7 +85,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci"})
     if path in INFRA_PATHS or (path.startswith("docs/") and path.endswith(".md")):
         return frozenset()
-    if path.startswith(".github/workflows/") or path.startswith(".github/rulesets/"):
+    if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
+            or path in {".github/pull_request_template.md", "AGENTS.md"}):
         return frozenset({"ci"})
     if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
@@ -167,6 +169,11 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "guides", "ui", "startup", "data"})
     if path == "scripts/windows/package_release.py":
         return frozenset({"ci", "ui", "startup", "data"})
+    if path == "scripts/windows/craft_seed.py":
+        # The frozen first-install database is a Craft data artifact prepared
+        # by CI and copied into user state during startup. Keep this exact so
+        # future Windows build helpers remain fail-closed until reviewed.
+        return frozenset({"ci", "craft", "data", "startup"})
     if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
         return frozenset({"ci", "startup"})
     if path == "tests/test_unity_assets_inventory.py":

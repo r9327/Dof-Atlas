@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 from app.distribution.user_data import prepare_user_data
 from scripts.windows.craft_seed import (
-    LOCK, RAW, SEED, build_seed, ensure_recipe_asset, validate_seed,
+    LOCK, RAW, SEED, build_seed, ensure_recipe_asset, provision_craft_sources,
+    validate_seed,
 )
 
 def _write_json(path, payload):
@@ -83,6 +84,13 @@ class CraftFirstInstallTests(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             build_seed(self.root,self.root/SEED,minimums={})
         self.assertFalse((self.root/SEED).exists())
+
+    def test_craft_download_materializes_shared_locked_sources_first(self):
+        with (patch("scripts.windows.craft_seed._provision_quest_sources") as quest,
+              patch("scripts.windows.craft_seed.ensure_recipe_asset") as recipes):
+            provision_craft_sources(self.root, download=True)
+        quest.assert_called_once_with(self.root, download=True)
+        recipes.assert_called_once_with(self.root, download=True)
 
     def test_existing_user_database_not_overwritten_by_new_release(self):
         seed=self.root / SEED

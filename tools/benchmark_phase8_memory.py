@@ -228,7 +228,11 @@ def _descendant_rows(root_pid: int, rows: list[ProcessRow]) -> list[ProcessRow]:
     if verify_creation:
         root_start = _windows_process_creation_time(root_pid)
         if root_start is None:
-            return []
+            if int(root_pid) == os.getpid():
+                raise RuntimeError(
+                    "Cannot verify Atlas process ancestry for RAM evidence"
+                )
+            return []  # An external warmup process may already have exited.
         start_times[int(root_pid)] = root_start
 
     while pending:

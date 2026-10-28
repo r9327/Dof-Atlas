@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "06d452b6e43f1364178bea085cc4e852538480c6",
+      "sha": "dd89a822eda17ddff6929604f2c9e0cd198574a5",
       "type": "tree"
     },
     ".gitignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "2f80aadb99633299c103af80bfdcc5156ed89a91",
+      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "0df75bb8a9e23986b8222833ae6edfaa6d3cb4b5",
+      "sha": "b186280a71dd024154f5b966ded153e0230741c8",
       "type": "tree"
     },
     "launch.py": {
@@ -152,7 +152,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "8d6c968aa0a016ddc259608ff4a918801a0b559f",
+      "sha": "37c1d73b14e752242aeca00611bcc6c37588555e",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "72495a03c0f7d11f810d8eea48d8b3754a1e4a8f",
+      "sha": "397b57e383e214ae2b0b2f1da3cd04f6b482b401",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "588c4992826911af5ab226672cedab1d57f7be24",
+      "sha": "3fe6ef2cb853397b739b8290d04a759b0e600dd0",
       "type": "tree"
     }
   },
