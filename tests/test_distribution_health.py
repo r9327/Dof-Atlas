@@ -196,16 +196,17 @@ class WindowHealthTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as location:
             guard = MagicMock()
             guard.acquire.return_value = True
+            def fail_recovery(*_args):
+                guard.release.assert_not_called()
+                raise RuntimeError("reached recovery")
+
             with (
                 patch.object(launcher, "ROOT", Path(location)),
                 patch.object(launcher, "_logger", return_value=MagicMock()),
                 patch.object(launcher, "_run_lock", return_value=MagicMock()),
                 patch.object(launcher, "SingleInstanceGuard", return_value=guard),
                 patch.object(launcher, "recover_data_packs_on_launch",
-                             side_effect=lambda *_args: (
-                                 guard.release.assert_not_called(),
-                                 (_ for _ in ()).throw(RuntimeError("reached recovery"))
-                             )),
+                             side_effect=fail_recovery),
             ):
                 with self.assertRaisesRegex(RuntimeError, "reached recovery"):
                     launcher.run_update(lambda *_: None)
