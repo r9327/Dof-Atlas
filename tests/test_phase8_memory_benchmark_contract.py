@@ -246,7 +246,7 @@ class WindowsProcessLineageTests(unittest.TestCase):
             if isinstance(node, ast.FunctionDef) and node.name == "_descendant_rows"
         )
         namespace = {
-            "os": SimpleNamespace(name="nt"),
+            "os": SimpleNamespace(name="nt", getpid=lambda: 999),
             "ProcessRow": namedtuple("ProcessRow", "pid parent_pid name"),
             "_windows_process_creation_time": creation_times.get,
         }
@@ -275,6 +275,13 @@ class WindowsProcessLineageTests(unittest.TestCase):
         rows = [(200, 100, "python.exe"), (300, 200, "python.exe")]
         self.assertEqual(self._descendants({100: 100, 300: 130}, rows), [])
         self.assertEqual(self._descendants({200: 120, 300: 130}, rows), [])
+
+    def test_unverified_atlas_root_fails_closed_instead_of_undercounting_ram(self):
+        rows = [(200, 999, "python.exe")]
+        with self.assertRaisesRegex(RuntimeError, "Atlas process ancestry"):
+            self._descendants({200: 120}, rows, root=999)
+        # Missing external warmup is not a running Atlas process.
+        self.assertEqual(self._descendants({200: 120}, rows, root=100), [])
 
     def test_benchmark_uses_native_creation_times_without_weakening_limits(self):
         source = BENCHMARK.read_text(encoding="utf-8")
