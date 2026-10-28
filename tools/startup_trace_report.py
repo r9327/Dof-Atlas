@@ -104,16 +104,55 @@ def summarize(lines: list[str]) -> dict[str, object]:
             "segments": segments, "completed_operation_counters": measured}
 
 
+def compare_traces(baseline: list[str], candidate: list[str],
+                   *, min_samples: int = 5) -> dict[str, object]:
+    """Preliminary p50/p95 alerts, never statistical or Windows certification.
+
+    Missing/low-N baselines remain explicitly inconclusive. A negative change
+    means the candidate was faster; no test can declare an unmeasured PASS.
+    """
+    first, second = collect(baseline), collect(candidate)
+    segments: dict[str, dict[str, object]] = {}
+    for start, end, _ in SEGMENTS:
+        name = f"{start}_to_{end}"
+        old, new = durations_ms(first, start, end), durations_ms(second, start, end)
+        result: dict[str, object] = {"baseline_n": len(old), "candidate_n": len(new),
+                                     "status": "INSUFFICIENT_EVIDENCE"}
+        if len(old) >= min_samples and len(new) >= min_samples:
+            old_p50, new_p50 = median(old), median(new)
+            old_p95, new_p95 = percentile(old, 95), percentile(new, 95)
+            if old_p50 > 0 and old_p95 > 0:
+                p50_pct = round((new_p50 - old_p50) * 100 / old_p50, 2)
+                p95_pct = round((new_p95 - old_p95) * 100 / old_p95, 2)
+                result.update(
+                    baseline_p50_ms=old_p50, candidate_p50_ms=new_p50,
+                    baseline_p95_ms=old_p95, candidate_p95_ms=new_p95,
+                    p50_change_percent=p50_pct, p95_change_percent=p95_pct,
+                    status=("INVESTIGATE_OVER_5_PERCENT"
+                            if max(p50_pct, p95_pct) > 5 else "NO_5_PERCENT_ALERT"),
+                )
+        segments[name] = result
+    return {"schema_version": 1, "min_samples": min_samples,
+            "kind": "advisory_comparison_not_certification", "segments": segments}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Display measured startup p50/p95; use same PC and cache state.")
     parser.add_argument("trace", type=Path, help="startup_profile.jsonl collected on Windows")
     parser.add_argument("--json", action="store_true", help="Print a versioned machine-readable report")
+    parser.add_argument("--baseline", type=Path, help="Compare against a separate baseline trace (same PC/scenario)")
     options = parser.parse_args(argv)
     try:
         rows = options.trace.read_text(encoding="utf-8").splitlines()
     except OSError as exc:
         parser.error(str(exc))
     data = summarize(rows)
+    if options.baseline is not None:
+        try:
+            baseline_rows = options.baseline.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            parser.error(str(exc))
+        data["comparison"] = compare_traces(baseline_rows, rows)
     if options.json:
         print(json.dumps(data, ensure_ascii=False, sort_keys=True))
         return 0
@@ -124,6 +163,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{label}: NOT RUN / no matching checkpoints")
         else:
             print(f"{label}: n={summary['n']} p50={summary['p50_ms']:.1f}ms p95={summary['p95_ms']:.1f}ms")
+    if "comparison" in data:
+        print("Baseline comparison (advisory, same PC/scenario required):")
+        for name, value in data["comparison"]["segments"].items():
+            print(f"  {name}: {value['status']} (n={value['baseline_n']}/{value['candidate_n']})")
     print("Counters from completed operations only (not process-tree totals):")
     for name, summary in data["completed_operation_counters"].items():
         print(f"  {name}: n={summary['n']} p50={summary['p50']} p95={summary['p95']}")

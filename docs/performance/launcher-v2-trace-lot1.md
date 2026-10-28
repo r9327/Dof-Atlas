@@ -62,3 +62,21 @@ JSONL sans confondre les nouvelles lignes de trace avec des profils achevés.
 Pour les comparaisons avant/après, collecter sur le **même Windows** et
 archiver un échantillon expurgé : aucune baseline Windows n'a été produite
 par ce commit.
+
+## Comparaison de campagnes avant/après
+
+Sur un même PC et dans un scénario identique, conserver séparément les
+fichiers JSONL du build de référence et du candidat, sans concaténer leurs
+sessions. La commande ci-dessous crée un rapport consultable et versionné :
+
+```powershell
+py -3.13 -m tools.startup_trace_report .\candidate.jsonl --baseline .\baseline.jsonl --json
+```
+
+Le comparateur demande au moins **5 échantillons par segment dans chaque
+campagne** ; une donnée absente ou un p50/p95 de base nul produit
+`INSUFFICIENT_EVIDENCE`. Une variation strictement supérieure à 5 % déclenche
+`INVESTIGATE_OVER_5_PERCENT` ; `NO_5_PERCENT_ALERT` ne signifie **jamais**
+que la régression est exclue ou qu'une certification est acquise. Contrôler
+la dispersion, les conditions de mesure et la significativité avant de conclure.
+Une trace synthétique ne remplace pas des résultats sur l'EXE Windows réel.
