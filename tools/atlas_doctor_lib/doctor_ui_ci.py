@@ -47,6 +47,9 @@ INDEPENDENT_TOOLS = frozenset({
     "tools/agent_task_profiles.py",
     "tools/atlas_meta_integrity.py", "tools/ci_main_phase_evidence.py",
     "tools/ci_verified_pr_full.py",
+    # Certification router has no product-UI consumer by itself; its source is
+    # still AST-checked for new app/Qt/dynamic imports on every edited SHA.
+    "tools/ci_domain_certification.py",
     "tools/ci_required_certification.py",
     # Source-only Doctor diagnostics, checked for Qt/app or dynamic imports.
     "tools/atlas_doctor_lib/capability_matrix.py",
@@ -68,6 +71,57 @@ def _ci_workflow(path: str) -> bool:
 
 def _module(path: str) -> str:
     return path.removesuffix(".py").replace("/", ".").removesuffix(".__init__")
+
+
+def test_app_import_targets(root: Path, path: str) -> tuple[set[str], bool, bool]:
+    """Resolve direct app imports in a changed test to real source modules.
+
+    The reverse production graph excludes tests by design. Without this bridge,
+    a test importing a Guide widget is falsely reported as an unmapped UI
+    dependency. Unknown/dynamic imports still force REVIEW_REQUIRED.
+    """
+    tree = ast.parse((root / path).read_text(encoding="utf-8-sig"), filename=path)
+    sources: set[str] = set()
+    runtime_import = False
+    unresolved = False
+    for node in ast.walk(tree):
+        modules: list[str] = []
+        if isinstance(node, ast.Import):
+            modules = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            base = node.module or ""
+            if node.level:
+                unresolved = True  # Relative test imports may hide app consumers.
+            modules = [base] + [base + "." + a.name for a in node.names] if base else []
+        elif isinstance(node, ast.Call) and (
+            isinstance(node.func, ast.Name) and node.func.id == "__import__"
+            or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
+        ):
+            unresolved = True
+        app_candidates = [name for name in modules if name == "app" or name.startswith("app.")]
+        if any(name.split(".")[0] in {"app", "PySide6", "shiboken6"} for name in modules):
+            runtime_import = True
+        for name in app_candidates:
+            relative = name.replace(".", "/")
+            candidates = (relative + ".py", relative + "/__init__.py")
+            resolved = False
+            for candidate in candidates:
+                target = root / candidate
+                if target.is_file() and not target.is_symlink():
+                    sources.add(candidate)
+                    resolved = True
+            # A bare symbol in 'from app.module import Symbol' need not be a
+            # module; the base import must resolve, not each exported symbol.
+            if not resolved and name in [a.name for n in ast.walk(tree)
+                                         if isinstance(n, ast.Import) for a in n.names]:
+                unresolved = True
+        # Missing base modules in ImportFrom are checked separately below.
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("app."):
+            parent = node.module.replace(".", "/")
+            if not any((root / (parent + suffix)).is_file()
+                       for suffix in (".py", "/__init__.py")):
+                unresolved = True
+    return sources, runtime_import, unresolved
 
 
 def dependency_map(root: Path) -> tuple[dict[str, set[str]], list[str]]:
@@ -151,11 +205,20 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
                 tree = ast.parse((root / path).read_text(encoding="utf-8-sig"))
                 imports = [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]
                 imports.extend(node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom))
+                # Imported dynamic loaders can be renamed; a direct-call check
+                # alone would incorrectly certify an unverified runtime boundary.
+                dynamic_names = {"__import__"}
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ImportFrom) and node.module in {"importlib", "builtins"}:
+                        target = "import_module" if node.module == "importlib" else "__import__"
+                        dynamic_names.update(
+                            alias.asname or alias.name for alias in node.names if alias.name == target
+                        )
                 dynamic = any(isinstance(node, ast.Call) and (
-                    isinstance(node.func, ast.Name) and node.func.id == "__import__"
+                    isinstance(node.func, ast.Name) and node.func.id in dynamic_names
                     or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
                 ) for node in ast.walk(tree))
-                if dynamic or any(name.startswith(("PySide", "app.")) for name in imports):
+                if dynamic or any(name == "app" or name.startswith(("PySide", "app.")) for name in imports):
                     uncertainty.append("INDEPENDENT_TOOL_CHANGED_BOUNDARY: " + path)
             except (OSError, SyntaxError, UnicodeError):
                 uncertainty.append("UNVERIFIED_INDEPENDENT_TOOL: " + path)
@@ -163,6 +226,16 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             if reverse is None:
                 reverse, parse_errors = dependency_map(root)
             frontier = [path]
+            test_runtime = False
+            if path.startswith("tests/test_"):
+                try:
+                    imported_sources, test_runtime, unresolved = test_app_import_targets(root, path)
+                    frontier.extend(sorted(imported_sources))
+                    if unresolved:
+                        uncertainty.append("UNVERIFIED_TEST_IMPORT: " + path)
+                except (OSError, SyntaxError, UnicodeError, ValueError):
+                    test_runtime = True
+                    uncertainty.append("UNREADABLE_TEST_IMPORTS: " + path)
             visited = set()
             consumers = set()
             while frontier and len(visited) < 4000:
@@ -176,18 +249,12 @@ def classify_ui(root: Path, paths, *, candidate_sha: str, base_sha: str,
             for consumer in sorted(consumers):
                 include(UI_CONSUMERS[consumer], f"AST import dependency: {path} → {consumer}", consumer)
             if not consumers:
-                # Non-UI test modules are safe only after inspecting their import tree.
-                if path.startswith("tests/test_") and (root / path).is_file():
-                    text = (root / path).read_text(encoding="utf-8-sig")
-                    tree = ast.parse(text)
-                    imports = [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]
-                    imports.extend(node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom))
-                    dynamic = any(isinstance(node, ast.Call) and (
-                        isinstance(node.func, ast.Name) and node.func.id == "__import__"
-                        or isinstance(node.func, ast.Attribute) and node.func.attr == "import_module"
-                    ) for node in ast.walk(tree))
-                    if not dynamic and not any(name.startswith(("PySide", "app.")) for name in imports):
-                        continue
+                # Only a verified non-runtime test is independent of UI. An
+                # unreadable test or unmatched app consumer remains REVIEW_REQUIRED.
+                if path.startswith("tests/test_") and not test_runtime and not any(
+                    item.endswith(": " + path) for item in uncertainty
+                ):
+                    continue
                 uncertainty.append("UNMAPPED_DEPENDENCY: " + path)
         else:
             uncertainty.append("UNCLASSIFIED_PATH: " + path)

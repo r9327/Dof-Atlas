@@ -37,7 +37,20 @@ def search_craft_items(query: str, limit: int = 80, *, category: str | None = No
 
 
 def release_adapter() -> None:
-    release = getattr(_compatibility_adapter(), "release_adapter", None)
+    """Release an active adapter without loading an unused SQLite stack.
+
+    Craft may be fully hydrated from preloaded data without ever requesting
+    the compatibility adapter in the GUI process. Importing that module only
+    while returning Home keeps its dependencies resident and inflates the
+    post-Craft RSS checkpoint. An adapter cannot be live in this process
+    without its owning Python module already being in sys.modules.
+    """
+    from sys import modules
+
+    adapter_module = modules.get("local_dofus_data.compatibility_adapter")
+    if adapter_module is None:
+        return
+    release = getattr(adapter_module, "release_adapter", None)
     if callable(release):
         release()
 

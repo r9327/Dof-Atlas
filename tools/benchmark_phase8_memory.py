@@ -173,8 +173,8 @@ def _windows_process_rss_bytes(pid: int) -> int | None:
         close_handle(handle)
 
 
-def _windows_process_start_ticks(pid: int) -> int | None:
-    """Use kernel creation time to disambiguate reused Windows parent PIDs."""
+def _windows_process_creation_time(pid: int) -> int | None:
+    """Read the native process creation FILETIME to disambiguate reused PIDs."""
     if os.name != "nt":
         return None
 
@@ -182,9 +182,6 @@ def _windows_process_start_ticks(pid: int) -> int | None:
     open_process = kernel32.OpenProcess
     open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
     open_process.restype = wintypes.HANDLE
-    close_handle = kernel32.CloseHandle
-    close_handle.argtypes = [wintypes.HANDLE]
-    close_handle.restype = wintypes.BOOL
     get_times = kernel32.GetProcessTimes
     get_times.argtypes = [
         wintypes.HANDLE,
@@ -194,56 +191,62 @@ def _windows_process_start_ticks(pid: int) -> int | None:
         ctypes.POINTER(wintypes.FILETIME),
     ]
     get_times.restype = wintypes.BOOL
+    close_handle = kernel32.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
 
     handle = open_process(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
         return None
     try:
-        created = wintypes.FILETIME()
-        exited = wintypes.FILETIME()
+        creation = wintypes.FILETIME()
+        exit_time = wintypes.FILETIME()
         kernel_time = wintypes.FILETIME()
         user_time = wintypes.FILETIME()
         if not get_times(
-            handle,
-            ctypes.byref(created),
-            ctypes.byref(exited),
-            ctypes.byref(kernel_time),
-            ctypes.byref(user_time),
+            handle, ctypes.byref(creation), ctypes.byref(exit_time),
+            ctypes.byref(kernel_time), ctypes.byref(user_time),
         ):
             return None
-        return (int(created.dwHighDateTime) << 32) | int(created.dwLowDateTime)
+        return (int(creation.dwHighDateTime) << 32) | int(creation.dwLowDateTime)
     finally:
         close_handle(handle)
 
 
 def _descendant_rows(root_pid: int, rows: list[ProcessRow]) -> list[ProcessRow]:
-    # Toolhelp parent PIDs are not lifetime identities: Windows can reuse a
-    # dead parent's PID for the cache warmer. Count only descendants whose
-    # creation time is no earlier than each living ancestor's creation time.
-    root_started = _windows_process_start_ticks(root_pid) if os.name == "nt" else None
-    if os.name == "nt" and root_started is None:
-        if int(root_pid) == os.getpid():
-            raise RuntimeError("Cannot verify Atlas process ancestry for RAM evidence")
-        return []  # The external warmer may have exited during the snapshot.
-
     children: dict[int, list[ProcessRow]] = {}
     for row in rows:
         children.setdefault(row.parent_pid, []).append(row)
     output: list[ProcessRow] = []
-    pending = [(row, root_started) for row in children.get(int(root_pid), ())]
+    pending = list(children.get(int(root_pid), ()))
     seen: set[int] = set()
+
+    # A Toolhelp parent PID is not proof of ancestry: Windows reuses PIDs.
+    # An actual child must have started no earlier than its live parent.
+    verify_creation = os.name == "nt"
+    start_times: dict[int, int] = {}
+    if verify_creation:
+        root_start = _windows_process_creation_time(root_pid)
+        if root_start is None:
+            if int(root_pid) == os.getpid():
+                raise RuntimeError(
+                    "Cannot verify Atlas process ancestry for RAM evidence"
+                )
+            return []  # An external warmup process may already have exited.
+        start_times[int(root_pid)] = root_start
+
     while pending:
-        row, parent_started = pending.pop()
-        if row.pid in seen:
+        row = pending.pop()
+        if row.pid == root_pid or row.pid in seen:
             continue
-        started = _windows_process_start_ticks(row.pid) if os.name == "nt" else None
-        if os.name == "nt" and (started is None or started < parent_started):
-            # A stale parent PID must not attribute dwm/winlogon/csrss RSS
-            # to Atlas. Inaccessible/vanished children cannot be authenticated.
-            continue
+        if verify_creation:
+            started = _windows_process_creation_time(row.pid)
+            if started is None or started < start_times[row.parent_pid]:
+                continue  # Stale PPID or unverifiable process: don't traverse it.
+            start_times[row.pid] = started
         seen.add(row.pid)
         output.append(row)
-        pending.extend((child, started) for child in children.get(row.pid, ()))
+        pending.extend(children.get(row.pid, ()))
     return output
 
 
@@ -712,12 +715,16 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
         app, stages, "after_guide_home_stabilized", 1.50
     )
 
+    craft_adapter_loaded_before = "local_dofus_data.compatibility_adapter" in sys.modules
     sampler.set_phase("craft_open")
     timings["craft_open_ms"] = open_page(app, window, "Craft")
     _capture(app, stages, "craft_active")
     sampler.set_phase("craft_home")
     window.show_page("Home")
     after_craft_home = _capture(app, stages, "after_craft_home", 0.75)
+    # Read-only module presence AFTER the RSS checkpoint; no SQL import, no
+    # memory trim, no change to the existing retention threshold.
+    craft_adapter_loaded_after = "local_dofus_data.compatibility_adapter" in sys.modules
     before_equipment = _capture(app, stages, "before_equipment_home", 0.05)
 
     sampler.set_phase("equipment_open")
@@ -875,6 +882,8 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
             craft_home_tree - guide_home_tree,
             2,
         ),
+        "craft_adapter_module_loaded_before": craft_adapter_loaded_before,
+        "craft_adapter_module_loaded_after": craft_adapter_loaded_after,
         "equipment_tree_delta_active_mb": round(active_tree - before_tree, 2),
         "equipment_tree_delta_after_home_mb": round(after_tree - before_tree, 2),
         "equipment_tree_delta_stabilized_mb": round(stable_tree - before_tree, 2),

@@ -4,6 +4,8 @@ import json
 import subprocess
 import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -97,6 +99,45 @@ print(json.dumps({
         )
         self.assertEqual(rows[0]["nom"], "Alpha - Dofus")
         self.assertEqual(rows[2]["nom"], "Alpha - Dofus")
+
+
+    def test_scanner_preserves_raw_titles_and_distinct_window_ownership(self) -> None:
+        import app.windows_embed as windows
+
+        user32 = SimpleNamespace(
+            IsWindowVisible=lambda _hwnd: True,
+            EnumWindows=lambda callback, _param: (
+                callback(101, 0),
+                callback(202, 0),
+            ),
+        )
+        with (
+            patch.object(windows, "_ensure_windows_api", return_value=True),
+            patch.object(windows, "user32", user32),
+            patch.object(windows, "EnumWindowsProc", lambda callback: callback),
+            patch.object(windows, "window_class", return_value="UnityWndClass"),
+            patch.object(
+                windows, "window_title",
+                side_effect=[
+                    "Alice - Feca - Release 1",
+                    "Alice - Feca - Release 2",
+                ],
+            ),
+            patch.object(windows, "window_process_id", side_effect=[900, 901]),
+        ):
+            sessions = windows.scan_unity_sessions()
+
+        self.assertEqual(
+            [row["nom"] for row in sessions],
+            ["Alice - Feca 1", "Alice - Feca 2"],
+        )
+        self.assertEqual(
+            [row["raw_title"] for row in sessions],
+            ["Alice - Feca - Release 1", "Alice - Feca - Release 2"],
+        )
+        self.assertEqual([row["detected_title"] for row in sessions], ["Alice - Feca"] * 2)
+        self.assertEqual([(row["hwnd"], row["pid"]) for row in sessions], [(101, 900), (202, 901)])
+
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
+from app.ui.unity_skin import UNITY_PALETTE, unity_enabled, unity_skin_stylesheet
+
 
 # Shared visual language: the home page's near-black surfaces, olive accent and
 # warm neutral text. Keep semantic names here so modules do not grow parallel
@@ -39,8 +41,14 @@ PALETTE = {
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5C7E1B, stop:1 #4B6816)",
 }
 
+if unity_enabled():
+    # Central token override: module QSS and shell share a single palette.
+    PALETTE.update(UNITY_PALETTE)
+
 TYPOGRAPHY = {
-    "FONT_FAMILY": '"Segoe UI", Arial',
+    # Only system-installed Lexend/Rowdies are used; game-extracted TTF files
+    # are never registered or exported without verified redistribution rights.
+    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial' if unity_enabled() else '"Segoe UI", Arial',
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
@@ -2472,7 +2480,7 @@ QLabel#GuideBreadcrumbCurrent {
 }
 
 #GuideManualProgress::chunk {
-    background: @GREEN;
+    background: @RED;
     border-radius: 2px;
 }
 
@@ -2499,6 +2507,179 @@ QToolButton#GuideManualProgressLock:hover {
 
 QToolButton#GuideManualProgressLock[state="locked"] {
     color: @TEXT;
+}
+
+QFrame#GuideCompactHeader,
+QFrame#GuidePreparationPanel,
+QFrame#GuideSheetHeader {
+    background: @PANEL;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+}
+
+QLabel#GuideCompactTitle {
+    color: @TEXT;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+QLabel#GuideCompactMetricValue,
+QLabel#GuideSheetMeta,
+QLabel#GuidePreparationParticipantNeed,
+QLabel#GuidePreparationEmpty,
+QLabel#GuideParticipantsEmpty {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+
+QLabel#GuideCompactMetricValue {
+    min-width: 52px;
+}
+
+QProgressBar#GuideCompactPreparationProgress,
+QProgressBar#GuideCompactSuccessProgress {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 3px;
+}
+
+QProgressBar#GuideCompactPreparationProgress::chunk {
+    background: @GREEN;
+    border-radius: 2px;
+}
+
+QProgressBar#GuideCompactSuccessProgress::chunk {
+    background: @YELLOW;
+    border-radius: 2px;
+}
+
+QToolButton#GuideCompactSettingsButton,
+QToolButton#GuideCompactOverlayButton,
+QToolButton#GuideParticipantsButton,
+QToolButton#GuideSummaryButton,
+QToolButton#GuidePreparationDetailsButton {
+    background: transparent;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: 4px 7px;
+    font-weight: 700;
+}
+
+QToolButton#GuideCompactSettingsButton:hover,
+QToolButton#GuideParticipantsButton:hover,
+QToolButton#GuideSummaryButton:hover,
+QToolButton#GuidePreparationDetailsButton:hover,
+QToolButton#GuideParticipantsButton:checked,
+QToolButton#GuideSummaryButton:checked {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QToolButton#GuideCompactOverlayButton:disabled {
+    color: @TEXT_MUTED;
+    border-color: @BORDER_SOFT;
+}
+
+QFrame#GuideCompactSettingsPanel,
+QFrame#GuideParticipantsPanel,
+QFrame#GuideSummaryPanel,
+QFrame#GuidePreparationDetails {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QToolButton#GuidePreparationToggle {
+    background: @PANEL;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+    padding: 7px 10px;
+    font-weight: 800;
+    text-align: left;
+}
+
+QToolButton#GuidePreparationToggle:hover,
+QToolButton#GuidePreparationToggle:checked {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
+
+QPushButton#GuidePreparationFilter {
+    background: transparent;
+    color: @TEXT_MUTED;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: 4px 9px;
+    font-weight: 700;
+}
+
+QPushButton#GuidePreparationFilter:hover,
+QPushButton#GuidePreparationFilter:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QFrame#GuidePreparationSummary,
+QFrame#GuidePreparationRow {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QLabel#GuidePreparationRowLabel {
+    color: @TEXT_SOFT;
+    font-size: @FONT_BODY;
+}
+
+QToolButton#GuidePreparationReady {
+    background: transparent;
+    color: @TEXT_MUTED;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0;
+}
+
+QToolButton#GuidePreparationReady:checked {
+    background: @GREEN;
+    border-color: @GREEN;
+    color: @BG;
+}
+
+QLabel#GuideSheetTitle {
+    color: @TEXT;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+QLineEdit#GuideSummarySearch,
+QListWidget#GuideSummaryList {
+    background: @PANEL;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+
+QToolButton#GuideParticipantPortrait {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 21px;
+    padding: 4px;
+}
+
+QToolButton#GuideParticipantPortrait:hover,
+QToolButton#GuideParticipantPortrait:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN;
 }
 
 #GuideManualOrderChoice {
@@ -3011,4 +3192,5 @@ def atlas_stylesheet(overrides: Mapping[str, str] | None = None) -> str:
     future theme variants change the whole application without rewriting QSS.
     """
 
-    return render_theme_template(_STYLE_TEMPLATE, overrides)
+    style = render_theme_template(_STYLE_TEMPLATE, overrides)
+    return style + "\n" + unity_skin_stylesheet() if unity_enabled() else style

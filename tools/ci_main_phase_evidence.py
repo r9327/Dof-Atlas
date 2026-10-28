@@ -18,7 +18,7 @@ import urllib.request
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-PHASE_JOB = "Phase Certification / Full Validation"
+PHASE_JOB = "Phase Certification / Domain or Release Validation"
 FOCUSED_JOB = "Doctor / Focused CI Evidence"
 FOCUSED_STEPS = ("Checkout exact focused candidate", "Verify scope and execute focused contracts",
               "Store focused evidence")

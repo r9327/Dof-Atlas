@@ -45,6 +45,27 @@ def remaining_space_needed(manifest: ReleaseManifest, downloads: Path,
     return extracted + manifest.archive_size + (manifest.archive_size - cached) + reserve_bytes
 
 
+def ensure_delta_space(manifest: ReleaseManifest, root: Path, *,
+                       reserve_bytes: int = RESERVE_BYTES) -> None:
+    """Preflight a differential update before any network transfer.
+
+    Keep the previous rollback slot and count the new staged version and the
+    differential ZIP. On copy-on-write volumes this is intentionally an upper
+    bound: we never promise savings that a filesystem might not support.
+    """
+    if manifest.delta is None:
+        raise UpdateError("Missing differential manifest")
+    staged = sum(entry.size for entry in manifest.files)
+    needed = staged + manifest.delta.archive_size + reserve_bytes
+    free = shutil.disk_usage(root).free
+    if free < needed:
+        gb = 1024**3
+        raise UpdateError(
+            "Espace disque insuffisant pour la mise a jour differentielle : "
+            f"{free / gb:.1f} Go libres, {needed / gb:.1f} Go necessaires."
+        )
+
+
 def ensure_space(manifest: ReleaseManifest, root: Path, *,
                  archive_size: int = 0, reserve_bytes: int = RESERVE_BYTES) -> None:
     """Fail early with a useful diagnostic instead of an ambiguous network error."""

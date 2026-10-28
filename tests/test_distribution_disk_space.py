@@ -6,8 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.distribution.disk_space import ensure_space, remaining_space_needed
-from app.distribution.manifest import parse_manifest
+from app.distribution.disk_space import ensure_space, ensure_delta_space, remaining_space_needed
+from app.distribution.manifest import parse_manifest, DeltaManifest
+from dataclasses import replace
 from app.distribution.release_client import UpdateError
 
 
@@ -51,6 +52,23 @@ class FirstInstallSpaceTests(unittest.TestCase):
                        return_value=type("Usage", (), {"free": 10})()):
                 with self.assertRaisesRegex(UpdateError, "Espace disque insuffisant"):
                     ensure_space(m, Path(d), reserve_bytes=0)
+
+    def test_delta_preflight_budgets_staging_and_archive_without_network(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = self.make_manifest()
+            m = replace(m, delta=DeltaManifest(
+                base_source_sha="b" * 40,
+                archive_sha256="c" * 64,
+                archive_size=80,
+                paths=("AtlasApp/AtlasApp.exe",),
+            ))
+            with patch("app.distribution.disk_space.shutil.disk_usage",
+                       return_value=type("Usage", (), {"free": 95})()):
+                with self.assertRaisesRegex(UpdateError, "differentielle"):
+                    ensure_delta_space(m, Path(d), reserve_bytes=0)
+            with patch("app.distribution.disk_space.shutil.disk_usage",
+                       return_value=type("Usage", (), {"free": 96})()):
+                ensure_delta_space(m, Path(d), reserve_bytes=0)
 
     def test_adequate_disk_passes_without_network(self):
         with tempfile.TemporaryDirectory() as d:

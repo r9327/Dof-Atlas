@@ -289,7 +289,10 @@ class UiSession:
         from PySide6.QtCore import QRect
 
         self.step += 1
-        if self.step > 120:
+        # The consolidated 5-scenario run includes four extra real PR254
+        # catalog captures. Its previous 120-action limit cut off four final
+        # assertions after 114 successful checks. Preserve a strict 128 cap.
+        if self.step > 128:
             raise RuntimeError("Doctor UI action budget exceeded")
         prefix = f"{self.step:03d}-{self.scenario}"
         tree = widget_tree(root)
@@ -482,8 +485,25 @@ def build_scene(temp: Path):
         client_index_path=paths["clients"], owned_items_path=paths["items"])
     page.resize(1200, 800)
     page.set_character_key("character:990000001")
+    # Local Doctor-only source fixture: genuine canonical IDs with explicit
+    # verification provenance. Never infer a progression ID from a slot/name.
+    bindings_path = temp / "network_bindings.json"
+    write_json(bindings_path, {"characters": {
+        "990000001": {"name": "Doctor Alpha", "class_key": "feca",
+                      "source": "verified_network_identity"},
+        "990000002": {"name": "Doctor Beta", "class_key": "cra",
+                      "source": "verified_network_identity"},
+    }})
     # Upgrade through the production owner; no substitute Guide or navigation mock.
     owner = page.ensure_full_guides_view()
+    from app.services.guide_participant_service import GuideParticipantService
+    owner.guide_participant_service = GuideParticipantService(
+        profile_path=paths["profiles"], client_index_path=paths["clients"],
+        binding_path=bindings_path,
+    )
+    # The Encyclopedia may replace its Guides owner after returning to the
+    # catalog. Reapply the same isolated source provider to the NEW owner.
+    page._doctor_participant_service = owner.guide_participant_service
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
     page.show()
@@ -500,9 +520,10 @@ def open_guide(page, owner, guide_id):
     live_owner = owner
     if not isValid(owner) or page.guides_view is not owner:
         live_owner = page.ensure_full_guides_view()
-        if not live_owner.select_guide(guide_id):
-            raise RuntimeError("Guide cannot be opened: " + guide_id)
-    elif not owner.select_guide(guide_id):
+    fixture_participants = getattr(page, "_doctor_participant_service", None)
+    if fixture_participants is not None:
+        live_owner.guide_participant_service = fixture_participants
+    if not live_owner.select_guide(guide_id):
         raise RuntimeError("Guide cannot be opened: " + guide_id)
     settle()
     view = live_owner.stack.currentWidget()
@@ -529,7 +550,9 @@ def sheet_observations(view, expected_card) -> dict:
         sheet._last_route_position_key = ""
         sections = sheet._without_prepare_duplicates(
             view.service.manual_sections_for_card(view.character_key, expected_card))
-        for section_key in ("prepare", "now", "opportunity", "keep", "boss", "before_leave"):
+        # Preparation is intentionally global in the compact Guide UI. The
+        # active sheet must not repeat those rows.
+        for section_key in ("now", "opportunity", "keep", "boss", "before_leave"):
             rows = sections.get(section_key, [])
             for row in rows:
                 text = str(row.get("text") or "").strip()
@@ -581,13 +604,62 @@ def guide_runtime_identity(service) -> str | None:
 
 
 def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
+    from app.modules.encyclopedia.constants import GUIDES_TAB
     from PySide6.QtWidgets import QPushButton, QFrame, QCheckBox
     from shiboken6 import isValid
 
     session.guide_id = guide_id
+    if session.mode in {"capture", "inspect"}:
+        page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+        page.resize(1200, 800)
+        settle()
+        session.card_id = "catalog"
+        session.snapshot(page)
     view = open_guide(page, owner, guide_id)
     view._show_index(0)
     settle()
+    if session.mode not in {"capture", "inspect"}:
+        from PySide6.QtWidgets import QPushButton
+
+        # The browsing character is NOT an implicit Valider recipient. Exercise
+        # the real Qt selection flow before asserting manual persistence.
+        primary_key = "character:990000001"
+        view.participant_service.save_selected_keys(())
+        view._refresh_participants_panel()
+        view._render_window()
+        settle()
+        initial_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        empty_blocked = (
+            view.selected_participant_keys() == ()
+            and initial_button is not None and not initial_button.isEnabled()
+        )
+        session.check(
+            "participant-empty-blocked", "Open Guide without explicitly selected characters",
+            "Valider disabled with no explicit recipient",
+            {"selected": list(view.selected_participant_keys()),
+             "validation_enabled": initial_button.isEnabled() if initial_button else None},
+            empty_blocked, page,
+        )
+        view.participants_button.setChecked(True)
+        settle()
+        portrait = view._participant_buttons.get(primary_key)
+        selection_click = (
+            click_target(page, portrait) if portrait is not None
+            else {"accessible": False, "reason": "MISSING_VERIFIED_CHARACTER"}
+        )
+        settle()
+        selected = view.selected_participant_keys()
+        live_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        session.check(
+            "participant-explicit-selection", "QTest click verified Doctor character portrait",
+            "Physical selection persisted, Valider targets only the selected canonical ID",
+            {"click": selection_click, "selected": list(selected),
+             "validation_enabled": live_button.isEnabled() if live_button else None},
+            selection_click["accessible"] and selected == (primary_key,)
+            and live_button is not None and live_button.isEnabled(), page,
+        )
+        view.participants_button.setChecked(False)
+        settle()
     indices = (0,) if smoke else ((0, 2) if guide_id == "guide_complet" else (0, 7))
     if session.mode in {"capture", "inspect"}:
         for index in indices:
@@ -601,6 +673,30 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
                 view.scroll.verticalScrollBar().setValue(view.scroll.verticalScrollBar().maximum())
                 settle()
                 session.snapshot(page)
+        view._show_index(0)
+        page.resize(1200, 800)
+        view.scroll.verticalScrollBar().setValue(0)
+        settle()
+        view.preparation_button.setChecked(True)
+        settle()
+        session.snapshot(page)
+        for filter_name in ("Potions", "Objets"):
+            filter_button = next(
+                button
+                for button in view.preparation_filter_group.buttons()
+                if button.property("filterKey") == filter_name
+            )
+            filter_button.click()
+            settle()
+            session.snapshot(page)
+        view.preparation_button.setChecked(False)
+        view.participants_button.setChecked(True)
+        settle()
+        session.snapshot(page)
+        view.participants_button.setChecked(False)
+        view.summary_button.setChecked(True)
+        settle()
+        session.snapshot(page)
         return
     check_sheet(session, page, view, "open")
     for index in indices:
@@ -644,6 +740,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         check_sheet(session, page, view, f"refresh-{turn}")
     # Persisted lock and actual navigation blocking are distinct assertions.
     lock = view.route_lock_check
+    if not view.settings_panel.isVisible():
+        click_target(page, view.settings_button)
+        settle()
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
@@ -754,13 +853,20 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
              "disk_checked": view.service.page_checked(character, card, 0),
              "expected": expected_manual}, real_reopen, page,
         )
+        # Switching browsing context alone cannot change Valider recipients.
+        # Explicitly switch the verified selection in this isolated test scene.
+        view.participant_service.save_selected_keys((other_character,))
         view.set_character_key(other_character)
+        view._refresh_participants_panel()
+        view._render_window()
         settle()
         view.service.reload_progress()
         other_button = view.findChild(QPushButton, "GuideManualPageCheck")
         other_saved = view.service.page_checked(other_character, card, 0)
         other_visual = other_button.isChecked() if other_button else None
+        view.participant_service.save_selected_keys((character,))
         view.set_character_key(character)
+        view._refresh_participants_panel()
         view._show_index(0)
         settle()
         view.service.reload_progress()
@@ -977,11 +1083,46 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     settle()
     click = click_target(page, view.guide_button)
     catalog_visible = page.guides_view is not owner
+    if catalog_visible and guide_id == "guide_complet" and not smoke:
+        # Evidence of the *actual* Guide -> catalog return transition.
+        from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+        if not isinstance(page.guides_view, GuideCatalogView):
+            raise RuntimeError("Return from rich Guide did not restore lightweight catalog")
+        if (not page.guides_view._runtime_ready
+                or page.guides_view.home_empty.text() == "Chargement des guides…"):
+            raise RuntimeError("Returning to catalog must display ready guides, not a loading placeholder")
+        previous_scenario = session.scenario
+        session.scenario = "guides-catalog-after-return"
+        session.card_id = "catalog"
+        page.resize(1200, 800)
+        settle()
+        session.snapshot(page)
+        session.scenario = previous_scenario
     reopened = open_guide(page, owner, guide_id)
-    session.check("home-reopen", "QTest Guide then reopen canonical guide", "Catalog reached and real guide restored",
+    # Production is allowed to retain the same Guide widget; identity, the
+    # active owner and the rebuilt canonical sheet are the true UI contracts.
+    reopened_card = (
+        reopened.service.cards[reopened.view_index]
+        if 0 <= reopened.view_index < len(reopened.service.cards) else None
+    )
+    reopened_sheet = sheet_observations(reopened, reopened_card) if reopened_card else {}
+    restored = (
+        isValid(reopened) and reopened.isVisible()
+        and page.guides_view.stack.currentWidget() is reopened
+        and guide_runtime_identity(reopened.service) == guide_id
+        and reopened_sheet.get("sheet_count") == 1
+        and reopened_sheet.get("mounted")
+        and reopened_sheet.get("stage_ids") == [reopened_card.get("manual_stage_id")]
+        and not reopened_sheet.get("missing_lines")
+        and not reopened_sheet.get("stale_or_duplicate_lines")
+    )
+    session.check("home-reopen", "QTest Guide then reopen canonical guide",
+                  "Catalog reached and correct visible canonical sheet restored (safe reuse allowed)",
                   {"click": click, "catalog": catalog_visible,
-                   "fresh_view": reopened is not view},
-                  click["accessible"] and catalog_visible and reopened is not view, page)
+                   "fresh_view": reopened is not view,
+                   "canonical_renderer": restored,
+                   "sheet_count": reopened_sheet.get("sheet_count")},
+                  click["accessible"] and catalog_visible and restored, page)
     if not smoke:
         from shiboken6 import isValid
 
@@ -1721,6 +1862,42 @@ def worker(folder: Path) -> int:
         from shiboken6 import isValid
 
         app, page, owner = build_scene(Path(os.environ["DOFUS_ATLAS_USER_ROOT"]))
+        # Capture the *lightweight production catalog* changed by PR #254.
+        # Ordinary Guide journeys upgrade straight to the rich view and never
+        # photograph this screen. Do not substitute the rich home or a mock.
+        if any(name in request["scenarios"] for name in
+               ("guides-success", "guides-lanyel", "validator-smoke")):
+            from PySide6.QtWidgets import QLineEdit
+            from app.modules.encyclopedia.constants import GUIDES_TAB
+            from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
+            page._restore_guides_catalog_home()
+            catalog = page.guides_view
+            if not isinstance(catalog, GuideCatalogView):
+                raise RuntimeError("Doctor did not restore the real lightweight GuideCatalogView")
+            if not catalog._runtime_ready:
+                catalog.hydrate_runtime(graph=page._quest_graph)
+            page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+            settle()
+            if (set(catalog.featured_cards) != {"guide_complet", "dofus_sylvestre"}
+                    or catalog._category_nodes["alignements"].childCount() != 2
+                    or page.findChild(QLineEdit, "EncyclopediaSearch") is not None):
+                raise RuntimeError("Catalog PR254 visible-contract mismatch")
+            for label, width, height in (
+                ("standard", 1200, 800),
+                ("reduced", 960, 640),
+                ("expanded", 1450, 900),
+            ):
+                page.resize(width, height)
+                settle()
+                session.scenario = "guides-catalog-" + label
+                session.card_id = "catalog"
+                session.snapshot(page)
+            # Restore the canonical rich owner for the existing Guide scenarios.
+            owner = page.ensure_full_guides_view()
+            if not owner._runtime_ready:
+                owner.hydrate_runtime(graph=page._quest_graph)
+            settle()
         screen = app.primaryScreen()
         manifest.update(python=platform.python_version(), pyside=pyside_version,
                         qt=qVersion(), platform=platform.platform(), mode=request["mode"],

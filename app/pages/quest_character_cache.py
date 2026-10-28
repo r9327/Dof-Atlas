@@ -87,6 +87,7 @@ def _clone_characters(
             label=row.label,
             slot=row.slot,
             connected=row.connected,
+            class_key=row.class_key,
         )
         for row in rows
     ]
@@ -133,6 +134,7 @@ def cached_load_quest_characters(
             label=row.label,
             slot=row.slot,
             connected=row.connected,
+            class_key=row.class_key,
         )
         for row in rows
     )

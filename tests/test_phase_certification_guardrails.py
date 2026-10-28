@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -65,13 +70,39 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         enforce = workflow.index("name: Enforce phase certification verdict")
         self.assertLess(before, full)
         self.assertLess(full, after)
-        self.assertLess(after, archive)
-        self.assertLess(archive, enforce)
+        self.assertLess(after, enforce)
+        self.assertLess(enforce, archive)  # Preserve final verdict even when certification fails.
         self.assertIn("steps.inputs_before.outcome == 'success'", workflow[full:after])
-        self.assertIn("&& always()", workflow[after:archive])
+        self.assertIn("&& always()", workflow[after:enforce])
+        self.assertIn("if: always()", workflow[enforce:archive])
         self.assertIn('--verify-against "artifacts/phase_certification/inputs_before.json"', workflow)
         self.assertIn('steps.inputs_before.outcome }}" -ne "success"', workflow[enforce:])
         self.assertIn('steps.inputs_after.outcome }}" -ne "success"', workflow[enforce:])
+
+    def test_final_phase_outcome_is_archived_but_never_a_pass_certificate(self) -> None:
+        workflow = self.certification_workflow
+        verdict = workflow.index("name: Enforce phase certification verdict")
+        diagnostic = workflow.index("name: Record final Phase outcome diagnostics")
+        archive = workflow.index("name: Upload certification logs")
+        self.assertLess(verdict, diagnostic)
+        self.assertLess(diagnostic, archive)
+        section = workflow.split("      - name: Record final Phase outcome diagnostics", 1)[1].split(
+            "      - name: Upload certification logs", 1)[0]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        for outcome in ("success", "failure", "cancelled", "skipped"):
+            with tempfile.TemporaryDirectory() as tmp:
+                env = {**os.environ, "CANDIDATE_SHA": "a" * 40,
+                       "CERT_BASE_REF": "b" * 40,
+                       "PHASE_VERDICT_OUTCOME": outcome}
+                run = subprocess.run([sys.executable, "-c", script], cwd=tmp, env=env,
+                                     capture_output=True, text=True, check=False)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                payload = json.loads((Path(tmp) / "artifacts/phase_certification/05_phase_outcome.json").read_text())
+                self.assertFalse(payload["certified"])
+                self.assertEqual(payload["candidate_sha"], "a" * 40)
+                self.assertFalse(payload["canonical_phase_verdict_present"])
+                expected = "STEP_SUCCEEDED_NOT_CERTIFICATE" if outcome == "success" else "NOT_CERTIFIED"
+                self.assertEqual(payload["status"], expected)
 
     def test_policy_declares_machine_readable_certification_contract(self) -> None:
         certification = self.policy["certification"]
@@ -520,9 +551,13 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         event_types = pr_trigger.split("\n    types:\n", 1)[1]
         self.assertEqual(
             [line.strip() for line in event_types.splitlines() if line.strip()],
-            ["- ready_for_review"],
-            "Draft development must not rerun certification on every push",
+            ["- ready_for_review", "- synchronize"],
+            "Ready PR commits must recertify; Draft pushes remain cheap",
         )
+        doctor_plan = source.split("  doctor-plan:", 1)[1].split("  focused-validation:", 1)[0]
+        self.assertIn("if: github.event_name != 'pull_request' || github.event.pull_request.draft == false", doctor_plan)
+        self.assertIn("if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false", source)
+        self.assertIn("if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)", source)
         self.assertIn("github.event_name == 'push'", source)
         self.assertIn("github.event.before", source)
         self.assertNotIn("startsWith(github.event.pull_request.title, 'Phase ')", source)
@@ -539,7 +574,7 @@ class PhaseCertificationGuardrailsTests(unittest.TestCase):
         self.assertIn("name: Verify exact certification checkout", source)
         self.assertIn("git rev-parse HEAD", source)
         self.assertIn("Certification checkout mismatch", source)
-        self.assertIn("name: Phase Certification / Full Validation", source)
+        self.assertIn("name: Phase Certification / Domain or Release Validation", source)
         self.assertIn("runs-on: windows-latest", source)
         self.assertIn("persist-credentials: false", source)
         self.assertIn("fetch-depth: 0", source)

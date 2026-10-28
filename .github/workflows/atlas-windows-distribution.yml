@@ -33,8 +33,9 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
       - name: Certify real runtime export without publishing
         run: |
-          # Only the essential LFS logo is necessary for the code/data mirror.
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png" --exclude=""
+          # Materialize only the tracked runtime visuals selected by the App
+          # export allowlist. Never transfer Git LFS pointer files as icons.
+          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/images/classes/**,data/images/breeds/**,data/images/misc/classes/**" --exclude=""
           source_sha="$(git rev-parse HEAD)"
           if test "${{ github.event_name }}" = "pull_request"; then
             test "$source_sha" = "${{ github.event.pull_request.head.sha }}"
@@ -79,13 +80,13 @@ jobs:
     timeout-minutes: 8
     outputs:
       data_only: ${{ steps.detect.outputs.data_only }}
-      certified_full: ${{ steps.proof.outputs.certified_full }}
+      release_verified: ${{ steps.proof.outputs.release_verified }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Verify real exact-SHA FULL before preparing publication
+      - name: Verify exact-SHA passed Phase result (scoped or FULL) for publication
         id: proof
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -96,12 +97,20 @@ jobs:
           import json, os
           from pathlib import Path
           p = json.loads((Path(os.environ['RUNNER_TEMP']) / 'phase-proof.json').read_text())
+          allowed = {
+              'main_application_verified_focused',
+              'main_application_verified_scoped',
+              'main_application_reused_phase_full',
+              'main_application_tree_equivalent_pr_full',
+          }
+          if p.get('kind') not in allowed or p.get('candidate_sha') != os.environ['SOURCE_SHA']:
+              raise SystemExit('Release rejected: no passing exact-SHA scoped or FULL Phase result')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('certified_full=' + str(p['phase_full_host_verified']).lower() + '\n')
-          print('Publication FULL evidence:', p['phase_full_host_verified'], p['kind'])
+              f.write('release_verified=true\n')
+          print('Publication Phase evidence:', p['kind'], 'FULL=', p['phase_full_host_verified'])
           PYPROOF
       - name: Validate publishing destination before any Windows build
-        if: steps.proof.outputs.certified_full == 'true'
+        if: steps.proof.outputs.release_verified == 'true'
         env:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
         run: |
@@ -118,7 +127,7 @@ jobs:
             exit 1
           fi
       - name: Compare with last certified app release
-        if: steps.proof.outputs.certified_full == 'true'
+        if: steps.proof.outputs.release_verified == 'true'
         id: detect
         env:
           GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
@@ -155,7 +164,10 @@ jobs:
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
-         (github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+         (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
+          github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
+          github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
+          github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
            github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
@@ -163,7 +175,7 @@ jobs:
            github.head_ref == 'fix/windows-first-launch-candidate-clean-20261015')))) ||
         (github.event_name == 'workflow_run' &&
          needs.classify-release.result == 'success' &&
-      needs.classify-release.outputs.certified_full == 'true' &&
+      needs.classify-release.outputs.release_verified == 'true' &&
          needs.classify-release.outputs.data_only != 'true' &&
          github.event.workflow_run.conclusion == 'success' &&
          github.event.workflow_run.head_branch == 'main' &&
@@ -283,6 +295,8 @@ jobs:
           }
       - name: Smoke check frozen QtWebEngine and assets
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
+      - name: Smoke frozen capture helper imports without UAC or network
+        run: dist/AtlasApp/AtlasApp.exe --atlas-capture-smoke
       - name: Smoke real frozen quest parser before accepting a Release
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Smoke real frozen Guides and Guide-item indexes
@@ -557,7 +571,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_run' &&
       needs.classify-release.result == 'success' &&
-      needs.classify-release.outputs.certified_full == 'true' &&
+      needs.classify-release.outputs.release_verified == 'true' &&
       needs.classify-release.outputs.data_only == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45

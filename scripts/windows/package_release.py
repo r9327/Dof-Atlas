@@ -19,12 +19,46 @@ _MAX_GITHUB_RELEASE_ASSET_BYTES = 2 * 1024**3 - 1
 # Keep headroom below GitHub's strict 2 GiB-per-asset limit.
 _CHUNK_BYTES = 1792 * 1024**2
 _RUNTIME_SEEDS = {"_internal/data/local/zaaps.json"}
+# Public builds cannot ship game-extracted theme sources without licence.
+_UNLICENSED_THEME_DIRECTORIES = (
+    ("assets", "themes", "dofus_unity"),
+    ("docs", "design", "dofus-unity"),
+)
+_UNLICENSED_THEME_ARCHIVE_PREFIXES = (
+    "atlas_unity_background_original",
+    "atlas_unity_picto_source_",
+    "atlas_ui_selection_prete",
+)
+
+
+
+# Already-compressed formats rarely shrink again. STORE avoids needless CPU
+# during build and install without changing the Release protocol.
+_STORED_FORMATS = frozenset({
+    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico",
+    ".zip", ".gz", ".7z", ".zst", ".mp3", ".mp4", ".ogg",
+    ".woff", ".woff2", ".pdf",
+})
+
+
+def _compression(path: Path) -> int:
+    return zipfile.ZIP_STORED if path.suffix.casefold() in _STORED_FORMATS else zipfile.ZIP_DEFLATED
 
 
 def _publishable(relative: Path) -> bool:
     if relative.as_posix() in _RUNTIME_SEEDS:
         return True
     parts = relative.parts
+    folded = tuple(part.casefold() for part in parts)
+    if any(
+        tuple(folded[i:i + len(path)]) == path
+        for path in _UNLICENSED_THEME_DIRECTORIES
+        for i in range(len(folded) - len(path) + 1)
+    ):
+        return False
+    if (relative.suffix.casefold() == ".zip"
+            and folded[-1].startswith(_UNLICENSED_THEME_ARCHIVE_PREFIXES)):
+        return False
     if any(piece in _BLOCKED for piece in parts):
         return False
     if any(piece.lower() in ("data", "_internal") and parts[i + 1:i + 2] == ("local",)
@@ -64,8 +98,8 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
                 digest.update(prefix)
                 for block in iter(lambda: source.read(1024 * 1024), b""):
                     digest.update(block)
-            archive.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED,
-                          compresslevel=6)
+            archive.write(path, arcname=name, compress_type=_compression(path),
+                          compresslevel=6 if _compression(path) == zipfile.ZIP_DEFLATED else None)
             entries.append({"path": name, "size": path.stat().st_size, "sha256": digest.hexdigest()})
     oversized = archive_path.stat().st_size > _MAX_GITHUB_RELEASE_ASSET_BYTES
     manifest = {
@@ -132,7 +166,9 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
                                      compresslevel=6, allowZip64=True) as archive:
                     for entry in changed:
                         source = payload_dir / entry["path"].removeprefix("AtlasApp/")
-                        archive.write(source, arcname=entry["path"])
+                        archive.write(source, arcname=entry["path"],
+                                      compress_type=_compression(source),
+                                      compresslevel=6 if _compression(source) == zipfile.ZIP_DEFLATED else None)
                 if (delta_archive.stat().st_size <= _MAX_GITHUB_RELEASE_ASSET_BYTES
                         and delta_archive.stat().st_size < archive_path.stat().st_size):
                     digest = hashlib.sha256()

@@ -254,12 +254,13 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
 
     def test_manual_ui_uses_single_guide_button_without_breadcrumb(self):
         source = inspect.getsource(SharedGuideManualView._build_ui)
-        strip_source = inspect.getsource(SharedGuideManualView._build_progress_strip)
+        header_source = inspect.getsource(SharedGuideManualView._build_compact_header)
         button_source = inspect.getsource(GuideUltimeManualView._guide_button_clicked)
 
         self.assertNotIn('setObjectName("GuideBreadcrumb")', source)
-        self.assertIn('AtlasButton("Guide")', strip_source)
-        self.assertIn('setObjectName("GuideManualGuideButton")', strip_source)
+        self.assertIn('AtlasButton("←")', header_source)
+        self.assertIn('setAccessibleName("Fiche actuelle ou catalogue des guides")', header_source)
+        self.assertIn('setObjectName("GuideManualGuideButton")', header_source)
         self.assertIn("self.view_index != self.active_index", button_source)
         self.assertIn("self.go_active()", button_source)
         self.assertIn("self._return_to_guides_catalog()", button_source)
@@ -318,14 +319,14 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         self.assertIn("Ne pas sortir", text["before_leave"])
         self.assertIn("Dialogue final", text["before_leave"])
 
-    def test_7d_manual_ui_has_bottom_page_marker_and_navigation_resets_scroll(self):
-        build = inspect.getsource(SharedGuideManualView._build_progress_strip)
-        refresh = inspect.getsource(GuideUltimeManualView._refresh_header)
+    def test_7d_manual_ui_has_one_sheet_identity_and_navigation_resets_scroll(self):
+        build = inspect.getsource(SharedGuideManualView._build_compact_header)
+        refresh = inspect.getsource(SharedGuideManualView._refresh_header)
         render = inspect.getsource(SharedGuideManualView._render_window)
         show_index = inspect.getsource(GuideUltimeManualView._show_index)
 
         self.assertIn('setObjectName("GuideManualNavPage")', build)
-        self.assertIn('f"Page {page} / {total}"', refresh)
+        self.assertIn('f"FICHE {index + 1}', refresh)
         self.assertIn("reset_scroll=True", show_index)
         self.assertIn("_reset_scroll_to_top", render)
 

@@ -52,6 +52,30 @@ class PolicyAndPassportTests(unittest.TestCase):
         report["independent_verdict"] = policy.enforce(report)
         return report
 
+    def test_independent_high_policy_rejects_metrics_forgery_and_mixed_scope(self):
+        from tools.atlas_doctor_lib.high_smart_scope import HIGH_SOURCE, REQUIRED_TESTS
+        obligations = policy.obligations(self.root, [HIGH_SOURCE], [])
+        modules = sorted(set(obligations["required_tests"]) | REQUIRED_TESTS)
+        for module in REQUIRED_TESTS:
+            (self.root / Path(*module.split(".")).with_suffix(".py")).write_text("pass\n")
+        candidate = self.sample(scenarios=obligations, modules=modules)
+        candidate["changed_paths"] = [HIGH_SOURCE]
+        candidate["deleted_paths"] = []
+        candidate["high_smart_candidate"] = True
+        self.assertEqual(policy.enforce(candidate)["status"], "POLICY_CONFORMING")
+        for mutation in (
+            lambda p: p.update(high_smart_candidate=False),
+            lambda p: p.update(changed_paths=[HIGH_SOURCE, "app/core/json_store.py"]),
+            lambda p: p.update(deleted_paths=[HIGH_SOURCE]),
+            lambda p: p.update(test_modules=["tests.test_guide_progress_persistence"]),
+            lambda p: p["independent_policy"].update(required_metrics=["steady_rss_home"]),
+        ):
+            with self.subTest(mutation=mutation):
+                from copy import deepcopy
+                unsafe = deepcopy(candidate)
+                mutation(unsafe)
+                self.assertIn("UNSAFE_SCOPE_DOWNGRADE", policy.enforce(unsafe)["errors"])
+
     def test_scenario_registry_references_runnable_contracts(self):
         out = policy.obligations(self.root, ["app/modules/encyclopedia/widgets/__init__.py"], [])
         self.assertEqual(out["missing_contracts"], [])
@@ -183,21 +207,35 @@ class PolicyAndPassportTests(unittest.TestCase):
         )
         self.assertIn("SCOPED_TESTS_PASS", engine)
 
-    def test_doctor_routes_every_pr_including_drafts_by_impact(self):
+    def test_ready_pr_recertifies_current_sha_while_draft_stays_uncertified(self):
         root = Path(__file__).resolve().parents[1]
         phase = (root / ".github/workflows/phase-certification.yml").read_text(
             encoding="utf-8"
         )
         docs = (root / "PHASE_CERTIFICATION.md").read_text(encoding="utf-8")
         decision = phase.split("  certify:", 1)[1].split("    name:", 1)[0]
-        self.assertIn("needs: doctor-plan", decision)
+        self.assertIn("needs: [doctor-plan, pre-full-gate]", decision)
+        self.assertIn("needs.pre-full-gate.result == 'success'", decision)
+        preflight = phase.split("  pre-full-gate:", 1)[1].split("  certify:", 1)[0]
+        for contract in (
+            "pr-fast-validation", "doctor_certification", "doctor_ui",
+            "phase8_memory_benchmark", "phase8_preload_benchmark",
+            "ai_context_ci", "graphify_targeted_ci",
+        ):
+            self.assertIn(contract, preflight)
+        self.assertIn("if actual != 'success':", preflight)
+        self.assertIn("github.event_name == 'pull_request'", preflight)
         self.assertNotIn("draft", decision)
         self.assertNotIn("title", decision)
         self.assertIn("ready_for_review", phase)
         self.assertIn("github.event_name == 'push'", phase)
         self.assertIn("tools.atlas_integrity full", phase)
         self.assertIn("Doctor / CI Plan", docs)
-        self.assertIn("brouillon", docs)
+        # Assert actual trigger semantics instead of a French documentation word.
+        # Draft PRs cannot get an official certificate, while Ready updates
+        # require a new exact-SHA certification.
+        self.assertIn("      - synchronize", phase)
+        self.assertIn("github.event.pull_request.draft == false", phase)
 
     def test_plan_is_cheap_and_windows_only_if_scoped(self):
         root = Path(__file__).resolve().parents[1]

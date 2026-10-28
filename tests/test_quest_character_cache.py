@@ -165,5 +165,50 @@ class QuestCharacterCacheTests(unittest.TestCase):
                     ["Alpha", "Gamma"],
                 )
 
+
+    def test_verified_class_survives_cache_hit_refresh_and_defensive_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            profile = root / "profile.json"
+            clients = root / "clients.json"
+            bindings = root / "bindings.json"
+            _write(profile, {KEY_SESSION_ORDER: ["Alice"]})
+            _write(clients, {"clients": []})
+            _write(bindings, {"characters": {"21": {"class_key": "feca"}}})
+            clear_quest_character_cache()
+            calls = 0
+
+            def fake_loader(*_args, **_kwargs):
+                nonlocal calls
+                calls += 1
+                class_key = "feca" if calls == 1 else "pandawa"
+                return [
+                    quest_catalog.QuestCharacter(
+                        "character:21", "Alice", 1, False, class_key=class_key
+                    )
+                ]
+
+            with patch(
+                "app.pages.quest_character_cache._ORIGINAL_LOAD_QUEST_CHARACTERS",
+                side_effect=fake_loader,
+            ):
+                first = cached_load_quest_characters(profile, clients, 8, bindings)
+                self.assertEqual(first[0].class_key, "feca")
+                first[0].class_key = "iop"
+
+                hit = cached_load_quest_characters(profile, clients, 8, bindings)
+                self.assertEqual(hit[0].class_key, "feca")
+                self.assertEqual(calls, 1)
+                hit[0].class_key = "sram"
+
+                _write(
+                    bindings,
+                    {"characters": {"21": {"class_key": "pandawa", "padding": "updated"}}},
+                )
+                refreshed = cached_load_quest_characters(profile, clients, 8, bindings)
+                self.assertEqual(refreshed[0].class_key, "pandawa")
+                self.assertEqual(calls, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

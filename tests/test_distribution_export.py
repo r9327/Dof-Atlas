@@ -7,10 +7,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.windows.export_app_repository import export
+from scripts.windows.export_app_repository import export, selected_runtime_path
 
 
 class ExportTests(unittest.TestCase):
+    def test_unlicensed_unity_references_never_enter_app_mirror(self):
+        for path in (
+            "app/assets/themes/dofus_unity/background_selection_original.png",
+            "app/assets/themes/dofus_unity/fonts/Lexend-Regular.ttf",
+            "app/assets/themes/dofus_unity/sprites/btn_green_normal.png",
+            "app/assets/themes/dofus_unity/references/logoDofus.png",
+            "docs/design/dofus-unity/sources/atlas_unity_background_original.zip",
+        ):
+            self.assertFalse(selected_runtime_path(path), path)
+        self.assertTrue(selected_runtime_path("app/ui/unity_skin.py"))
+
     def test_export_runtime_and_keep_essential_icons(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
@@ -25,6 +36,11 @@ class ExportTests(unittest.TestCase):
                 "local_dofus_data/store.py": "VALUE=1\n",
                 "data/encyclopedia/quests/quests_enriched.json": "{}\n",
                 "data/images/misc/dofus_atlas_logo.png": "PNG\n",
+                "data/images/classes/feca.png": "PNG-class-icon\n",
+                "data/images/breeds/pandawa.webp": "WEBP-class-icon\n",
+                "data/images/misc/classes/zobal.ico": "ICO-class-icon\n",
+                "data/images/classes/README.txt": "not an icon\n",
+                "data/images/items/unrelated.png": "not part of class portrait bundle\n",
                 "data/local/zaaps.json": '{"zaaps":[]}',
                 "data/local/quest_progress.json": '{"progress":8}\n',
                 "tests/test_private.py": "secret\n",
@@ -42,11 +58,16 @@ class ExportTests(unittest.TestCase):
                         "local_dofus_data/store.py",
                         "data/encyclopedia/quests/quests_enriched.json",
                         "data/images/misc/dofus_atlas_logo.png",
+                        "data/images/classes/feca.png",
+                        "data/images/breeds/pandawa.webp",
+                        "data/images/misc/classes/zobal.ico",
                         "data/local/zaaps.json"):
                 self.assertTrue((destination / rel).is_file(), rel)
             for rel in ("tools/doctor.py", "tests/test_private.py",
                         "app/modules/encyclopedia/tools/dev.py",
-                        "data/local/quest_progress.json"):
+                        "data/local/quest_progress.json",
+                        "data/images/classes/README.txt",
+                        "data/images/items/unrelated.png"):
                 self.assertFalse((destination / rel).exists(), rel)
             metadata = json.loads((destination / "SOURCE_PROVENANCE.json").read_text())
             self.assertEqual(metadata["source_sha"], "a" * 40)

@@ -2,12 +2,23 @@ from __future__ import annotations
 
 import ast
 import unittest
+from collections import namedtuple
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK = ROOT / "tools" / "benchmark_phase8_memory.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "phase8-memory-benchmark.yml"
+
+
+def test_reusable_ram_workflow_does_not_cancel_independent_callers() -> None:
+    source = WORKFLOW.read_text(encoding="utf-8")
+    assert (
+        "group: dof-atlas-phase8-memory-"
+        "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+    ) in source
+    assert "cancel-in-progress: true" in source
 
 
 def test_memory_benchmark_keeps_required_stage_labels() -> None:
@@ -52,6 +63,10 @@ def test_memory_benchmark_measures_process_tree_and_equipment_delta() -> None:
     assert "achievements_retained_tree_delta_mb" in source
     assert "guide_retained_tree_delta_mb" in source
     assert "craft_retained_tree_delta_mb" in source
+    assert '"craft_adapter_module_loaded_before"' in source
+    assert '"craft_adapter_module_loaded_after"' in source
+    assert 'craft_adapter_loaded_after = "local_dofus_data.compatibility_adapter" in sys.modules' in source
+    assert source.index('after_craft_home = _capture(') < source.index("craft_adapter_loaded_after =")
     assert "equipment_tree_delta_active_mb" in source
     assert "equipment_tree_delta_stabilized_mb" in source
 
@@ -105,8 +120,8 @@ class GuideHomeStabilizationContractTests(unittest.TestCase):
             self.assertIn(f'"{label}": 100.0', source)
         self.assertIn('HOME_TARGET_ADVISORY:', source)
         self.assertIn("::warning title=Memory Home target (advisory)", source)
-        self.assertIn("peak_tree > peak_hard_limit_mb", source)
-        self.assertIn("peak_hard_limit_mb = peak_target_mb * 1.05", source)
+        self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", source)
+        self.assertIn('classify(peak_tree, peak_target_mb) == "FAIL"', source)
         self.assertIn("::warning title=Peak RAM above target (5% tolerance)", source)
 
     def test_stabilized_guide_home_has_observable_evidence(self) -> None:
@@ -147,43 +162,6 @@ def test_memory_benchmark_counts_external_warmup_process_tree() -> None:
 
 
 
-def test_windows_descendants_reject_stale_parent_pid_reuse() -> None:
-    # Execute the pure ancestry function without importing Qt or Windows DLLs.
-    # On GitHub Windows runners, dwm/winlogon/csrss can retain a stale PPID
-    # that has since been reused by the real Python cache warmer.
-    from collections import namedtuple
-    from types import SimpleNamespace
-
-    source = ast.parse(BENCHMARK.read_text(encoding="utf-8"))
-    function = next(
-        node for node in source.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_descendant_rows"
-    )
-    ProcessRow = namedtuple("ProcessRow", "pid parent_pid name")
-    creation = {100: 1000, 101: 1100, 102: 1200, 103: 500, 104: 600}
-    namespace = {
-        "ProcessRow": ProcessRow,
-        "os": SimpleNamespace(name="nt", getpid=lambda: 100),
-        "_windows_process_start_ticks": creation.get,
-    }
-    exec(compile(ast.Module(body=[function], type_ignores=[]), "<ancestry>", "exec"), namespace)
-    descendants = namespace["_descendant_rows"]
-    rows = [
-        ProcessRow(101, 100, "python.exe"),
-        ProcessRow(102, 101, "python.exe"),
-        ProcessRow(103, 100, "dwm.exe"),
-        ProcessRow(104, 103, "csrss.exe"),
-    ]
-    assert [row.pid for row in descendants(100, rows)] == [101, 102]
-
-    # Unknown process times cannot silently certify an app RSS sample.
-    namespace["_windows_process_start_ticks"] = lambda _pid: None
-    with unittest.TestCase().assertRaisesRegex(RuntimeError, "process ancestry"):
-        descendants(100, rows)
-    # An external warmer that exited between snapshots contributes no RSS.
-    assert descendants(999, rows) == []
-
-
 def test_memory_benchmark_opens_real_guide_detail_before_home() -> None:
     source = BENCHMARK.read_text(encoding="utf-8")
     assert 'GUIDE_DETAIL_BENCHMARK_ID = "guide_complet"' in source
@@ -220,9 +198,14 @@ def test_memory_workflow_keeps_critical_budgets_hard_and_home_advisory() -> None
     ):
         assert f'"{label}": 100.0' in source
     assert 'advisory_home_budgets_mb = {' in source
-    assert 'preload_mb > 95.0' in source
-    assert 'preload memory budget exceeded' in source
-    assert "peak_tree > peak_hard_limit_mb" in source
+    assert 'preload_status = classify(preload_mb, preload_target_mb)' in source
+    assert 'preload memory tolerance exceeded' in source
+    assert 'classify(peak_tree, peak_target_mb) == "FAIL"' in source
+    assert 'state = classify(measured, budget)' in source
+    assert 'if state == "FAIL":' in source
+    assert 'if state == "WARNING":' in source
+    assert 'measured = require_memory_observation(metrics.get(metric), label=metric, allow_negative=True)' in source
+    assert 'require_memory_observation(row.get(kind)' in source
     assert '"achievements_retained_tree_delta_mb": 15.0' in source
     assert '"guide_retained_tree_delta_mb": 20.0' in source
     assert '"craft_retained_tree_delta_mb": 2.0' in source
@@ -250,3 +233,60 @@ def test_memory_benchmark_cannot_skip_a_fast_external_warmup() -> None:
     assert "Invalid RAM evidence: external warmup child was never sampled" in benchmark
     assert "Path(go_file).touch(exist_ok=False)" in benchmark
     assert "Remove-Item Env:DOFUS_ATLAS_WARMUP_GO_FILE" in workflow
+
+
+class WindowsProcessLineageTests(unittest.TestCase):
+    """Reused Windows parent PIDs must not inflate an Atlas warmup memory peak."""
+
+    def _descendants(self, creation_times, rows, root=100):
+        source = BENCHMARK.read_text(encoding="utf-8")
+        module = ast.parse(source)
+        method = next(
+            node for node in module.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_descendant_rows"
+        )
+        namespace = {
+            "os": SimpleNamespace(name="nt", getpid=lambda: 999),
+            "ProcessRow": namedtuple("ProcessRow", "pid parent_pid name"),
+            "_windows_process_creation_time": creation_times.get,
+        }
+        exec(
+            compile(ast.Module(body=[method], type_ignores=[]), str(BENCHMARK), "exec"),
+            namespace,
+        )
+        Row = namespace["ProcessRow"]
+        return namespace["_descendant_rows"](
+            root, [Row(*row) for row in rows]
+        )
+
+    def test_reused_parent_pid_excludes_old_system_processes_and_descendants(self):
+        rows = [
+            (200, 100, "python.exe"),      # Real cache-warmup worker
+            (300, 200, "python.exe"),      # Real worker descendant
+            (400, 100, "dwm.exe"),         # Started before PID 100 was reused
+            (500, 400, "winlogon.exe"),    # Must not traverse rejected subtree
+            (600, 300, "python.exe"),
+        ]
+        timestamps = {100: 100, 200: 120, 300: 130, 400: 10, 500: 15, 600: 140}
+        found = self._descendants(timestamps, rows)
+        self.assertEqual({row.pid for row in found}, {200, 300, 600})
+
+    def test_unverifiable_child_or_root_is_not_counted_as_verified(self):
+        rows = [(200, 100, "python.exe"), (300, 200, "python.exe")]
+        self.assertEqual(self._descendants({100: 100, 300: 130}, rows), [])
+        self.assertEqual(self._descendants({200: 120, 300: 130}, rows), [])
+
+    def test_unverified_atlas_root_fails_closed_instead_of_undercounting_ram(self):
+        rows = [(200, 999, "python.exe")]
+        with self.assertRaisesRegex(RuntimeError, "Atlas process ancestry"):
+            self._descendants({200: 120}, rows, root=999)
+        # Missing external warmup is not a running Atlas process.
+        self.assertEqual(self._descendants({200: 120}, rows, root=100), [])
+
+    def test_benchmark_uses_native_creation_times_without_weakening_limits(self):
+        source = BENCHMARK.read_text(encoding="utf-8")
+        self.assertIn("kernel32.GetProcessTimes", source)
+        self.assertIn("started < start_times[row.parent_pid]", source)
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("peak_target_mb = 220.0", workflow)
+        self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", workflow)

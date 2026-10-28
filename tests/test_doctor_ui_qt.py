@@ -15,7 +15,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QToolButton, QWidget
 
+from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+from tests.test_guide_ultime_manual_ui_navigation import _FakeParticipantService
 from tools.atlas_doctor_lib.doctor_ui import verdict
 from tools.atlas_doctor_lib.doctor_ui_qt import (
     UiSession, click_target, click_achievement_row, first_quest_failure,
@@ -41,9 +43,15 @@ class FixtureService:
         ]
         self.quest_provider = SimpleNamespace(get_quest=lambda qid: SimpleNamespace(id=qid, name="Fixture quest"))
         self.progress = {}
+        self.progress_id = "catalog_manual:doctor_ui_fixture"
+        self.guide_progress = GuideProgressService(path.with_name("guide_progress.json"))
+
+    def page_key(self, card, index=0):
+        return f"page:doctor:{card['manual_stage_id']}"
 
     def reload_progress(self):
         self.progress = json.loads(self.path.read_text()) if self.path.exists() else {}
+        self.guide_progress.reload()
 
     def manual_sections_for_card(self, key, card):
         return {"now": card["manual_lines"]}
@@ -61,10 +69,14 @@ class FixtureService:
         return False
 
     def page_checked(self, key, card, index=0):
-        return self.manual_checked(key, card["manual_stage_id"])
+        return self.guide_progress.is_manual_step_completed(
+            key, self.progress_id, self.page_key(card, index)
+        )
 
     def set_page_checked(self, key, card, index, checked):
-        self.set_manual_checked(key, card["manual_stage_id"], checked)
+        self.guide_progress.set_manual_step_completed(
+            key, self.progress_id, self.page_key(card, index), checked
+        )
 
     def manual_checked(self, key, stage):
         return self.progress.get(key, {}).get(stage, False)
@@ -83,7 +95,10 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.folder = Path(self.temp.name)
         self.service = FixtureService(self.folder / "progress.json")
-        self.view = SharedGuideManualView(self.service, character_key="character:doctor-fixture")
+        self.view = SharedGuideManualView(
+            self.service, character_key="character:1",
+            participant_service=_FakeParticipantService(),
+        )
         self.view.resize(1000, 700)
         self.view.show()
         settle()
@@ -178,7 +193,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
     def test_real_guide_validation_persists_source_and_advances_to_unchecked_next_card(self):
         from shiboken6 import isValid
 
-        character = "character:doctor-fixture"
+        character = "character:1"
         self.assertEqual(self.view.view_index, 0)
         self.assertEqual(self.view.active_index, 0)
         old = self.view.findChild(QPushButton, "GuideManualPageCheck")
@@ -204,7 +219,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
     def test_guide_manual_click_rebuilds_and_destroys_clicked_qt_button(self):
         from shiboken6 import isValid
 
-        character = "character:doctor-fixture"
+        character = "character:1"
         card = self.service.cards[0]
         old = self.view.findChild(QPushButton, "GuideManualPageCheck")
         self.assertFalse(self.service.page_checked(character, card, 0))
@@ -232,11 +247,11 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         check = self.view.findChild(QPushButton, "GuideManualPageCheck")
         check.toggled.disconnect()
         check.toggled.connect(lambda checked: self.service.set_page_checked(
-            "character:doctor-fixture", self.service.cards[1], 1, checked))
+            "character:1", self.service.cards[1], 1, checked))
         click_target(self.view, check)
         self.service.reload_progress()
-        self.assertFalse(self.service.page_checked("character:doctor-fixture", self.service.cards[0]))
-        self.assertTrue(self.service.page_checked("character:doctor-fixture", self.service.cards[1]))
+        self.assertFalse(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[1]))
         self.view._show_index(0)
         settle()
         check = self.view.findChild(QPushButton, "GuideManualPageCheck")
@@ -244,7 +259,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         click_target(self.view, check)
         self.service.reload_progress()
         self.assertTrue(check.isChecked())
-        self.assertFalse(self.service.page_checked("character:doctor-fixture", self.service.cards[0]))
+        self.assertFalse(self.service.page_checked("character:1", self.service.cards[0]))
 
     def test_real_guide_bottom_scroll_checks_rows_and_button_occlusion(self):
         from PySide6.QtWidgets import QHBoxLayout, QLabel
@@ -299,10 +314,12 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
+        click_target(self.view, self.view.settings_button)
+        settle()
         self.view.route_lock_check.toggled.disconnect()
         click_target(self.view, self.view.route_lock_check)
         self.assertTrue(self.view.route_lock_check.isChecked())
-        self.assertFalse(self.service.manual_checked("character:doctor-fixture", self.view.ROUTE_LOCK_PROGRESS_KEY))
+        self.assertFalse(self.service.manual_checked("character:1", self.view.ROUTE_LOCK_PROGRESS_KEY))
 
     def test_real_quest_signal_without_final_effect_fails_and_localizes_each_transition(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
@@ -733,6 +750,19 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertGreaterEqual(
             observed["screenshot_raster"]["bad_captures"][0]["box_count"], 20,
         )
+
+    def test_doctor_ui_extra_catalog_evidence_keeps_a_bounded_action_budget(self):
+        # The five real scenario union now includes catalog/return screenshots.
+        # The cap is raised only enough to finish the validated final checks;
+        # runaway sessions must still fail closed.
+        session = UiSession(self.folder, "verify")
+        session.scenario = "budget-boundary"
+        session.step = 127
+        evidence = session.snapshot(self.view)
+        self.assertEqual(session.step, 128)
+        self.assertTrue(all(name.endswith("-tree.json") for name in evidence))
+        with self.assertRaisesRegex(RuntimeError, "action budget exceeded"):
+            session.snapshot(self.view)
 
     def test_real_png_and_tree_share_action_ids_and_verify_mode_omits_images(self):
         session = UiSession(self.folder, "all")

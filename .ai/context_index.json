@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "a41129145d8bd5c5b307d2b463e4641e16870c8b",
+      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
       "type": "tree"
     },
     ".codex": {
@@ -27,12 +27,12 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "6e82d986ea1a71caebe2d4e95c8cc94b947fb67c",
+      "sha": "06d452b6e43f1364178bea085cc4e852538480c6",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "23dd4771b1cc80499cf1d07773119c28f0c9b37e",
+      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
       "type": "blob"
     },
     ".graphifyignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "26bdbae9ba7f7b94e779faedd85bec51d7f348b4",
+      "sha": "2f80aadb99633299c103af80bfdcc5156ed89a91",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "8b4056f969ab0a1c0d6923f2904e72b29cad9901",
+      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -97,7 +97,7 @@
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "sha": "077b42be10f7187ae4616c8f5b7b2e5b57e292a4",
+      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6",
       "type": "blob"
     },
     "README.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "cccd045c961e61cd59815e4a97feeab81856a876",
+      "sha": "d361e92b3d616c50da0dfa962b5f10acc4a5a431",
       "type": "tree"
     },
     "data": {
@@ -127,12 +127,12 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "56c82239ce687762e1a881056cd5925bd3664b57",
+      "sha": "19ca9261e974cb03e715f89eeea88e007fc4cca1",
       "type": "tree"
     },
     "launch.py": {
       "mode": "100644",
-      "sha": "519ab8b5abeac73ac4ea7f5a7d3f18c56549a6f5",
+      "sha": "6a2f1c5cf1c9ab454ce1efd1f1d55773a457605f",
       "type": "blob"
     },
     "local_dofus_data": {
@@ -142,7 +142,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "6533c2318115938d3cbef679acc9139f247623d8",
+      "sha": "92df255a3fab328aa8fdecd7e9f4750d7c78ca41",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -152,7 +152,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "0aeae8b30c39722d84f4e13a6a68be054666e8ef",
+      "sha": "8d6c968aa0a016ddc259608ff4a918801a0b559f",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "fa6e5ac4f695b5dc9a2e98d20d0914a5c056b803",
+      "sha": "a246940102c6a78d0be3eb1a3e67eaebc1f691ab",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "ae5ba0238f41f4144236d2a1ab7abd217a3f9cbe",
+      "sha": "3f75a0892a2993676d8f254760fde23fc03675b6",
       "type": "tree"
     }
   },

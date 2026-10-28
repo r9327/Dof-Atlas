@@ -312,8 +312,8 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         guide_view.show_quest_detail.assert_called_once_with(1653)
 
     def test_achievement_quest_link_targets_quests_tab(self):
-        global_search = Mock()
-        global_search.text.return_value = "ancienne recherche globale"
+        # Global Encyclopedia search was deliberately removed; the internal
+        # Quests search still must clear for a precise achievement deep link.
         quest_search = Mock()
         quest_search.text.return_value = "ancienne recherche"
         quest_page = SimpleNamespace(
@@ -330,7 +330,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             navigate_to_achievement_context=Mock(return_value=True),
             quest_provider=SimpleNamespace(get_quest=Mock(return_value=object())),
             quest_page=quest_page,
-            search=global_search,
             tabs=tabs,
             ensure_tab_loaded=Mock(),
         )
@@ -348,7 +347,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         tabs.setCurrentIndex.assert_called_once_with(ENCYCLOPEDIA_TABS.index(QUESTS_TAB))
         quest_page.select_quest.assert_called_once_with(1653)
         self.assertEqual(quest_page.selected_quest_id, 1653)
-        global_search.clear.assert_called_once_with()
+        self.assertFalse(hasattr(page, "search"))
         quest_search.clear.assert_called_once_with()
         page.ensure_tab_loaded.assert_not_called()
 

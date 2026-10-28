@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from tools import ai_context, ci_scope_gate
 from tools.atlas_integrity import classify_risk
+from tools.atlas_doctor_lib.high_smart_scope import eligible as high_smart_eligible, REQUIRED_TESTS
 
 SCHEMA_VERSION = 1
 POLICY_VERSION = "doctor-certification-v1"
@@ -159,7 +160,9 @@ def plan(
         reasons.append("CERTIFICATION_ROOT_OF_TRUST_CHANGE")
 
     risk = classify_risk(changed) if _safe_paths(changed) else {"risk": "CRITICAL"}
-    if risk.get("risk") in {"HIGH", "CRITICAL"}:
+    high_smart = (risk.get("risk") == "HIGH"
+                  and high_smart_eligible(root, changed, deleted=deleted))
+    if risk.get("risk") in {"HIGH", "CRITICAL"} and not high_smart:
         reasons.append("INDEPENDENT_RISK_" + risk["risk"])
     scoped: dict[str, Any] = {}
     if not reasons:
@@ -203,6 +206,9 @@ def plan(
     if independent["missing_contracts"]:
         reasons.append("REQUIRED_SCENARIO_CONTRACT_UNAVAILABLE")
         reasons.append("BOUNDARY_CONTRACT_UNAVAILABLE")
+    if high_smart and independent["required_metrics"]:
+        # Never replace real memory/Qt/startup measurements with unit tests.
+        reasons.append("HIGH_REQUIRED_METRICS_NOT_ATTESTED")
 
     modules = list(scoped.get("modules", [])) if not reasons else []
     if not reasons:
@@ -213,6 +219,8 @@ def plan(
             ))
         except ValueError:
             reasons.append("BOUNDARY_CONTRACT_UNAVAILABLE")
+        if high_smart and not REQUIRED_TESTS <= set(modules):
+            reasons.append("HIGH_MANDATORY_TESTS_MISSING")
         if len(modules) > MAX_SELECTED_MODULES or not modules:
             reasons.append("TEST_SCOPE_TOO_LARGE_OR_EMPTY")
         if any(not (root / Path(*module.split(".")).with_suffix(".py")).is_file()
@@ -241,6 +249,7 @@ def plan(
         "changed_paths": changed,
         "deleted_paths": deleted,
         "risk": risk.get("risk", "CRITICAL"),
+        "high_smart_candidate": bool(high_smart and not reasons),
         "profile": profile,
         "status": "FULL_REQUIRED" if reasons else "READY_TO_RUN_SCOPED",
         "reasons": sorted(set(reasons)),
