@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from contextlib import ExitStack
 import json
 import math
 import os
@@ -39,6 +40,10 @@ from tools.benchmark_phase8_preload import (
 )
 from tools.benchmark_phase8_memory import PeakTreeSampler, memory_snapshot
 from tools.benchmark_phase8_preload import memory_mb
+from tools.atlas_perf_attribution import (
+    SpanAttributor, QtStallStackSampler, TargetedProfile, process_io,
+    io_delta, render_report,
+)
 
 
 def percentile(values: list[float], percent: float) -> float | None:
@@ -99,6 +104,7 @@ class EventLoopLag:
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.setInterval(interval_ms)
         self.timer.timeout.connect(self._on_tick)
+        self.on_heartbeat = None
         self.previous = 0.0
         self.delays: list[float] = []
         self.ticks = 0
@@ -109,6 +115,8 @@ class EventLoopLag:
             self.delays.append(max(0.0, (now - self.previous) * 1000 - self.interval_ms))
         self.previous = now
         self.ticks += 1
+        if self.on_heartbeat is not None:
+            self.on_heartbeat()
 
     def start(self) -> None:
         self.delays = []
@@ -236,10 +244,21 @@ def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             })
 
 
-def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
+def run(*, cycles: int, output: Path, timeout: float,
+        diagnose_slow_ms: float = 1000.0,
+        diagnose_guides: frozenset[str] = frozenset()) -> dict[str, Any]:
+    started_all = time.perf_counter()
     app = QApplication.instance() or QApplication([])
     window = app_main.AtlasWindow()
+    timeline: dict[str, float] = {
+        "atlas_window_constructor_ms": round((time.perf_counter() - started_all) * 1000, 2)
+    }
     lag = EventLoopLag()
+    watchdog = QtStallStackSampler(threshold_ms=150)
+    lag.on_heartbeat = watchdog.heartbeat
+    attributor = SpanAttributor()
+    hooks = ExitStack()
+    slow_guides: set[str] = set()
     cpu = CpuRssSampler()
     tree = PeakTreeSampler()
     rows: list[dict[str, Any]] = []
@@ -255,19 +274,32 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
             "Ganymede metadata-only entries are not executable Atlas guide routes",
         ],
         "samples": rows,
+        "timeline": timeline,
+        "diagnostic_policy": {"slow_ms": diagnose_slow_ms,
+                              "targeted_guides": sorted(diagnose_guides),
+                              "profiled_samples_not_comparable": True},
     }
     cpu.start()
     tree.start()
+    watchdog.start()
     try:
+        time_checkpoint = time.perf_counter()
         window.show()
         app.processEvents()
+        timeline["first_qt_events_ms"] = round((time.perf_counter() - time_checkpoint) * 1000, 2)
+        time_checkpoint = time.perf_counter()
         wait_until(app, lambda: preload_terminal(window), timeout=120, label="Atlas preloads")
+        timeline["functional_preload_ms"] = round((time.perf_counter() - time_checkpoint) * 1000, 2)
+        time_checkpoint = time.perf_counter()
         open_encyclopedia(app, window, GUIDES_TAB)
+        timeline["guide_catalogue_ready_ms"] = round((time.perf_counter() - time_checkpoint) * 1000, 2)
         page = window.page_widgets.get("Quetes")
         if page is None:
             raise RuntimeError("Encyclopedia page was not created")
         provider = page.service.guide_provider
+        time_checkpoint = time.perf_counter()
         guides = provider.load_all()
+        timeline["provider_load_all_ms"] = round((time.perf_counter() - time_checkpoint) * 1000, 2)
         guide_ids = [str(guide.id) for guide in guides]
         if not guide_ids or len(set(guide_ids)) != len(guide_ids):
             raise RuntimeError("Empty or duplicated playable Guide catalogue")
@@ -293,6 +325,19 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
         payload["ganymede_sources"] = ganymede_inventory(set(guide_ids))
         payload["ganymede_source_count"] = len(payload["ganymede_sources"])
         write_json(output, payload)
+        from app.modules.encyclopedia.views.guides_view import GuidesView
+        hooks.enter_context(attributor.instrument(page.__class__, (
+            "navigate_to_guide", "open_pending_lazy_tab", "ensure_full_guides_view",
+            "_start_full_guide_runtime",
+        )))
+        hooks.enter_context(attributor.instrument(GuidesView, (
+            "select_guide", "_select_guide_standard", "_show_guide_overview_standard",
+            "_render_continuous_source_guide", "_render_header", "_render_breadcrumb",
+            "_populate_guide_left", "_populate_series_quests",
+            "_populate_guide_navigation", "_populate_guide_info",
+            "ensure_guide_ultime_view",
+        )))
+        hooks.enter_context(attributor.instrument(provider.__class__, ("get_by_id", "load_all")))
 
         for cycle in range(1, cycles + 1):
             for guide in guides:
@@ -309,31 +354,56 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
                     cpu.set_phase(phase + ":open")
                     open_cpu = time.process_time()
                     began = time.perf_counter()
+                    before_io = process_io()
+                    is_profiled = (guide_id in diagnose_guides or
+                                   (cycle > 1 and guide_id in slow_guides))
+                    row["profiled"] = bool(is_profiled)
+                    watchdog.begin(phase + ":open")
                     lag.start()
-                    if not page.navigate_to_guide(guide_id):
-                        raise RuntimeError("Navigation rejected the guide")
-                    wait_until(
-                        app, lambda: guide_visible(page, guide_id),
-                        timeout=timeout, label=f"Guide {guide_id} detail",
-                        poll_seconds=0.01,
-                    )
-                    row["open_ms"] = round((time.perf_counter() - began) * 1000, 2)
-                    row["cpu_open_ms"] = round((time.process_time() - open_cpu) * 1000, 2)
-                    row["cpu_avg_pct_one_core"] = round(100 * row["cpu_open_ms"] / max(row["open_ms"], 0.01), 2)
-                    pump(app, 0.06)  # Enough timer ticks for short, otherwise unobservable opens
-                    row["open_ui"] = lag.stop()
+                    with attributor.active(phase + ":open"), TargetedProfile(enabled=is_profiled) as profile:
+                        try:
+                            if not page.navigate_to_guide(guide_id):
+                                raise RuntimeError("Navigation rejected the guide")
+                            wait_until(
+                                app, lambda: guide_visible(page, guide_id),
+                                timeout=timeout, label=f"Guide {guide_id} detail",
+                                poll_seconds=0.01,
+                            )
+                        finally:
+                            row["open_ms"] = round((time.perf_counter() - began) * 1000, 2)
+                            row["cpu_open_ms"] = round((time.process_time() - open_cpu) * 1000, 2)
+                            row["cpu_avg_pct_one_core"] = round(
+                                100 * row["cpu_open_ms"] / max(row["open_ms"], 0.01), 2)
+                            pump(app, 0.06)  # Keep short opens observable by Qt timer.
+                            row["open_ui"] = lag.stop()
+                            watchdog.end()
+                            row["stall_stacks"] = watchdog.get(phase + ":open")
+                            row["open_io"] = io_delta(before_io, process_io())
+                    if is_profiled:
+                        row["targeted_profile"] = profile.result
+                        # An instrumented run must not be treated as a normal timing.
+                    row["method_hotspots"] = attributor.top(phase + ":open")
                     row["open_resources"] = cpu.get(phase + ":open")
                     cpu.set_phase(phase + ":checkpoint")
                     detail = memory_snapshot("deep_detail")
                     row["rss_detail_mb"] = detail["process_rss_mb"]
                     row["tree_detail_mb"] = detail["tree_rss_mb"]
                     cpu.set_phase(phase + ":home")
+                    watchdog.begin(phase + ":home")
                     lag.start()
                     began = time.perf_counter()
-                    window.show_page("Home")
-                    pump(app, 0.30)
-                    row["return_home_ms"] = round((time.perf_counter() - began) * 1000, 2)
-                    row["home_ui"] = lag.stop()
+                    home_io_before = process_io()
+                    try:
+                        with attributor.active(phase + ":home"):
+                            window.show_page("Home")
+                            pump(app, 0.30)
+                    finally:
+                        row["return_home_ms"] = round((time.perf_counter() - began) * 1000, 2)
+                        row["home_ui"] = lag.stop()
+                        watchdog.end()
+                        row["home_stall_stacks"] = watchdog.get(phase + ":home")
+                        row["home_io"] = io_delta(home_io_before, process_io())
+                    row["home_method_hotspots"] = attributor.top(phase + ":home")
                     cpu.set_phase(phase + ":home-checkpoint")
                     home = memory_snapshot("deep_home")
                     row["rss_home_mb"] = home["process_rss_mb"]
@@ -344,9 +414,17 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
                     if page is None:
                         raise RuntimeError("Encyclopedia page lost after Home")
                     row["status"] = "PASS"
+                    if cycle == 1 and "first_guide_reachable_ms" not in timeline:
+                        timeline["first_guide_reachable_ms"] = round(
+                            (time.perf_counter() - started_all) * 1000, 2)
                 except Exception as exc:
                     lag.stop()
                     row["error"] = f"{type(exc).__name__}: {exc}"
+                    row["method_hotspots"] = attributor.top(phase + ":open")
+                    row["stall_stacks"] = watchdog.get(phase + ":open")
+                    row["open_resources"] = cpu.get(phase + ":open")
+                    if "profile" in locals() and row.get("profiled"):
+                        row["targeted_profile"] = profile.result
                     try:
                         window.show_page("Home")
                         pump(app, 0.10)
@@ -356,9 +434,15 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
                         row["recovery_error"] = str(recovery_exc)
                 finally:
                     cpu.set_phase("between_guides")
+                    if cycle == 1 and (row.get("status") != "PASS" or
+                            float(row.get("open_ms") or 0) >= diagnose_slow_ms):
+                        slow_guides.add(guide_id)
                     payload["summary"] = summarize_samples(rows)
                     write_json(output, payload)
     finally:
+        hooks.close()
+        watchdog.end()
+        watchdog.close()
         lag.timer.stop()
         cpu.close()
         tree.stop()
@@ -379,6 +463,7 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
         window.deleteLater()
         app.processEvents()
     export_csv(output.with_suffix(".csv"), rows)
+    output.with_suffix(".html").write_text(render_report(payload), encoding="utf-8")
     return payload
 
 
@@ -387,8 +472,14 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("artifacts/atlas_exhaustive/guides.json"))
     parser.add_argument("--cycles", type=int, choices=(1, 2, 5, 10), default=2)
     parser.add_argument("--timeout", type=float, default=45.0)
+    parser.add_argument("--diagnose-slow-ms", type=float, default=1000.0,
+                        help="Profile guides that exceeded this in cycle one, during subsequent cycles")
+    parser.add_argument("--diagnose-guide", action="append", default=[],
+                        help="Force high-overhead CPU/allocation profile of an exact Atlas guide id")
     options = parser.parse_args()
-    result = run(cycles=options.cycles, output=options.output, timeout=options.timeout)
+    result = run(cycles=options.cycles, output=options.output, timeout=options.timeout,
+                 diagnose_slow_ms=options.diagnose_slow_ms,
+                 diagnose_guides=frozenset(options.diagnose_guide))
     print(json.dumps({
         "status": result["status"], "git_head": result["git_head"],
         "atlas_guides": result.get("atlas_catalogue_count"),
