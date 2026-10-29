@@ -93,6 +93,18 @@ def summarize_sources(
             source["evidence_level"] = str(data["evidence_level"])
         if cap == "app_navigation" and isinstance(data.get("cost_attribution"), dict):
             source["cost_attribution"] = data["cost_attribution"]
+        if cap == "graphify" and isinstance(data.get("metrics"), dict):
+            metric_keys = ("node_count", "relation_count", "tracked_python_files",
+                           "raw_community_count", "raw_small_communities_lt3_nodes",
+                           "missing_tracked_python_files", "runtime_to_tools_import_inversions")
+            source["graphify_metrics"] = {
+                k: data["metrics"][k] for k in metric_keys if k in data["metrics"]
+            }
+            source["audit_status"] = data.get("audit_status")
+            source["blocking_findings"] = data.get("blocking_findings")
+        if cap == "code_duplicates":
+            info = data.get("source") or {}
+            source["static_duplicate_counts"] = info.get("counts", {})
         if isinstance(data.get("blocking_reasons"), list):
             source["blocking_reasons"] = data["blocking_reasons"][:20]
         if data.get("fatal"):
