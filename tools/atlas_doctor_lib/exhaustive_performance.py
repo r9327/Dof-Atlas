@@ -129,6 +129,8 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
         "attribution_warning": ("Measured hotspots are suspects, not confirmed root causes; "
                                 "native Qt/Windows paths need desktop profiling."),
         "startup_timeline_ms": payload.get("timeline", {}),
+        "startup_profiled": bool((payload.get("diagnostic_policy") or {}).get("startup_instrumented")),
+        "startup_cpu_functions": payload.get("startup_cpu_functions", []),
         "peak_atlas_rss_mib": payload.get("peak_atlas_process_mb"),
         "peak_process_tree_rss_mib": payload.get("peak_process_tree_mb"),
         "failures": failures,
@@ -140,7 +142,8 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
 def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45.0,
                    diagnose_slow_ms: float = 1000.0,
                    diagnose_guides: tuple[str, ...] = (),
-                   py_spy: bool = False, checkpoints: int = 3) -> dict[str, Any]:
+                   py_spy: bool = False, checkpoints: int = 3,
+                   profile_startup: bool = False) -> dict[str, Any]:
     if checkpoints not in (0, 3):
         raise ValueError("Supported checkpoint modes are 0 or 3")
     if cycles not in VALID_CYCLES:
@@ -165,6 +168,8 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
     ]
     for ident in diagnose_guides:
         args += ["--diagnose-guide", ident]
+    if profile_startup:
+        args.append("--profile-startup")
     if py_spy:
         # Optional third-party sampler, never installed or assumed by Doctor.
         # Native Windows profiling can require extra host permissions.
