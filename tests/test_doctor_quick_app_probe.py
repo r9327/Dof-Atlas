@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route
+from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits
 
 
 class ShortWholeAppProbeTests(unittest.TestCase):
@@ -44,6 +44,25 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         open_route(app, window, ROUTES[12], 1)
         window.open_tools_tab.assert_called_once_with("Ocre")
         window.show_placeholder.assert_not_called()
+
+    def test_revisit_summary_uses_actual_stabilized_home_evidence(self):
+        rows = [
+            {"id": "guide", "cycle": 1, "status": "PASS", "open_ms": 400.0,
+             "home_stabilized": {"tree_rss_mb": 96.5}},
+            {"id": "guide", "cycle": 2, "status": "PASS", "open_ms": 275.0,
+             "home_stabilized": {"tree_rss_mb": 99.0}},
+            {"id": "guide", "cycle": 3, "status": "PASS", "open_ms": 250.0,
+             "home_stabilized": {"tree_rss_mb": 101.0}},
+            {"id": "crafts", "cycle": 1, "status": "FAIL", "open_ms": 1.0,
+             "home_stabilized": {"tree_rss_mb": 99.0}},
+        ]
+        result = summarize_revisits(rows, 3)
+        self.assertEqual(result["guide"]["cold_open_ms"], 400.0)
+        self.assertEqual(result["guide"]["warm_open_ms"], 250.0)
+        self.assertEqual(result["guide"]["warm_vs_cold_ms"], -150.0)
+        self.assertEqual(result["guide"]["home_tree_delta_first_to_last_mib"], 4.5)
+        self.assertNotIn("crafts", result)
+        self.assertEqual(summarize_revisits(rows[:-1], 2), {})
 
     def test_placeholders_require_actual_placeholder_page(self):
         class FakePage:
