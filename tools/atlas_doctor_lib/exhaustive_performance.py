@@ -77,7 +77,9 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
 def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45.0,
                    diagnose_slow_ms: float = 1000.0,
                    diagnose_guides: tuple[str, ...] = (),
-                   py_spy: bool = False) -> dict[str, Any]:
+                   py_spy: bool = False, checkpoints: int = 3) -> dict[str, Any]:
+    if checkpoints not in (0, 3):
+        raise ValueError("Supported checkpoint modes are 0 or 3")
     if cycles not in VALID_CYCLES:
         raise ValueError("Unsupported Doctor exhaustive cycles")
     if not 5 <= timeout <= 180 or not 0 <= diagnose_slow_ms <= 300000:
@@ -96,7 +98,7 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
     args = [
         sys.executable, "-X", "faulthandler", "-m", "tools.benchmark_atlas_exhaustive",
         "--cycles", str(cycles), "--timeout", str(timeout), "--output", str(destination),
-        "--diagnose-slow-ms", str(diagnose_slow_ms),
+        "--diagnose-slow-ms", str(diagnose_slow_ms), "--checkpoints", str(checkpoints),
     ]
     for ident in diagnose_guides:
         args += ["--diagnose-guide", ident]
