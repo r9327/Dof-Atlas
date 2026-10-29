@@ -1538,6 +1538,12 @@ def _achievement_compact_write_lock(path: Path, *, timeout_seconds: float = 90.0
     lock_path = path.with_suffix(path.suffix + ".lock")
     deadline = monotonic() + timeout_seconds
     with lock_path.open("a+b") as lock_file:
+        # Windows byte-range locks need an actual lockable byte.
+        # Concurrent first creators may append another byte; byte zero stays stable.
+        lock_file.seek(0, os.SEEK_END)
+        if lock_file.tell() == 0:
+            lock_file.write(b"\\x00")
+            lock_file.flush()
         while True:
             try:
                 lock_file.seek(0)
