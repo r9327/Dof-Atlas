@@ -15,6 +15,9 @@ on:
       one_core:
         type: boolean
         default: false
+      parallel_instances:
+        type: number
+        default: 1
   workflow_dispatch:
     inputs:
       cycles:
@@ -134,9 +137,10 @@ jobs:
           $cycles = [int]'${{ inputs.cycles || 3 }}'
           $idle = [double]'${{ inputs.idle_seconds || 0 }}'
           $max = [double]'${{ inputs.max_seconds || 1200 }}'
+          $instances = [int]'${{ inputs.parallel_instances || 1 }}'
           $affinity = @()
           if ('${{ inputs.one_core || false }}' -eq 'true') { $affinity = @('--one-core') }
-          python -X faulthandler -m tools.atlas_doctor perf --app --max-seconds $max --timeout 18 --cycles $cycles --idle-seconds $idle --output artifacts/quick_app/report.json @affinity
+          python -X faulthandler -m tools.atlas_doctor perf --app --max-seconds $max --timeout 18 --cycles $cycles --idle-seconds $idle --parallel-instances $instances --output artifacts/quick_app/report.json @affinity
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print results and coverage
