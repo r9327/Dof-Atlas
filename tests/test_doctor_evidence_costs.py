@@ -119,5 +119,50 @@ class DoctorWorkflowStepCostTests(unittest.TestCase):
         self.assertEqual(report["status"], "NOT_MEASURED")
 
 
+
+class DoctorASTDuplicateEvidenceTests(unittest.TestCase):
+    @staticmethod
+    def inspection(*, requested=2, duplicates=0, truncated=True):
+        return {
+            "kind": "doctor_code_inspection", "status": "REVIEW",
+            "graph_status": "MISSING",
+            "source": {
+                "status": "REVIEW", "requested_count": requested,
+                "paths_inspected": ["app/a.py", "tests/test_a.py"],
+                "parse_errors": [], "truncated": truncated,
+                "counts": {"functions": 8, "duplicate_groups": duplicates,
+                           "near_duplicate_groups": 0,
+                           "literal_json_references": 100},
+                "duplicate_bodies": [{"kind": "EXACT_AST_BODY"}] * duplicates,
+                "near_duplicate_candidates": [],
+                "silent_exceptions": [{"kind": "SOURCE_PATTERN_REVIEW"}],
+                "budgets": {"function_limit_reached": False},
+            },
+        }
+
+    def test_complete_ast_does_not_require_optional_graph_or_json_lineage(self):
+        from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
+        x = summarize_ast_duplicates(self.inspection(), sha=SHA)
+        self.assertEqual(x["status"], "PASS")
+        self.assertEqual(x["full_code_inspection_status"], "REVIEW")
+        self.assertEqual(x["graph_status"], "MISSING")
+        self.assertTrue(x["full_code_inspection_truncated"])
+        self.assertTrue(x["review_required"])
+        self.assertIn("DOES NOT", x["coverage_statement"])
+
+    def test_scan_with_missing_python_file_is_blocked(self):
+        from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
+        x = summarize_ast_duplicates(self.inspection(requested=3), sha=SHA)
+        self.assertEqual(x["status"], "BLOCKED")
+
+    def test_exceeded_duplicate_budget_and_incomplete_function_scan_block(self):
+        from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
+        x = summarize_ast_duplicates(self.inspection(duplicates=81), sha=SHA)
+        self.assertEqual(x["status"], "BLOCKED")
+        y = self.inspection()
+        y["source"]["budgets"]["function_limit_reached"] = True
+        self.assertEqual(summarize_ast_duplicates(y, sha=SHA)["status"], "BLOCKED")
+
+
 if __name__ == "__main__":
     unittest.main()
