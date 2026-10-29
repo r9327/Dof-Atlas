@@ -226,6 +226,15 @@ jobs:
           path: artifacts/doctor_complete/inputs/app
           merge-multiple: false
 
+      - name: Download original Doctor guide method timing evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: atlas-exhaustive-guides-*
+          path: artifacts/doctor_complete/inputs/guides
+          merge-multiple: false
+
       - name: Download Doctor UI verification record
         if: always()
         continue-on-error: true
@@ -415,8 +424,10 @@ jobs:
           app_reports = list((directory / "inputs/app").rglob("report.json"))
           if len(app_reports) != 1:
               raise SystemExit("Doctor optimization report requires exactly one primary app benchmark")
+          guide_reports = list((directory / "inputs/guides").rglob("guides.doctor.json"))
           optimized = generate(Path.cwd(), sha=report["git_head"], app_report=app_reports[0],
                                hub_report=evidence,
+                               guides=guide_reports[0] if len(guide_reports) == 1 else None,
                                ci_costs=stages if stages.is_file() else None)
           with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
               out.write("\n## Doctor ranked optimization report\n\n")
