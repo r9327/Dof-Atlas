@@ -244,9 +244,38 @@ def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             })
 
 
+def guide_checkpoint_targets(guide: Any, view: Any, count: int) -> list[tuple[str, Any]]:
+    """Select safe, representative UI destinations; never mark steps completed."""
+    if count == 0:
+        return []
+    if str(guide.id) == "guide_complet":
+        manual_view = getattr(view, "guide_ultime_view", None)
+        service = getattr(view, "guide_ultime_service", None)
+        cards = getattr(service, "cards", ()) or ()
+        navigate = getattr(manual_view, "_show_index", None)
+        if not cards or not callable(navigate):
+            return []
+        indices = sorted({0, len(cards) // 2, len(cards) - 1})
+        return [(f"card_{index + 1}_of_{len(cards)}", lambda i=index: navigate(i))
+                for index in indices]
+    series = [
+        segment for part in getattr(guide, "parts", ())
+        for chapter in getattr(part, "chapters", ())
+        for segment in getattr(chapter, "series", ())
+    ]
+    select = getattr(view, "select_series", None)
+    if not series or not callable(select):
+        return []
+    indices = sorted({0, len(series) // 2, len(series) - 1})
+    return [(f"series_{index + 1}_of_{len(series)}",
+             lambda item=series[index]: select(item.id))
+            for index in indices]
+
+
 def run(*, cycles: int, output: Path, timeout: float,
         diagnose_slow_ms: float = 1000.0,
-        diagnose_guides: frozenset[str] = frozenset()) -> dict[str, Any]:
+        diagnose_guides: frozenset[str] = frozenset(),
+        checkpoints: int = 3) -> dict[str, Any]:
     started_all = time.perf_counter()
     app = QApplication.instance() or QApplication([])
     window = app_main.AtlasWindow()
@@ -275,7 +304,7 @@ def run(*, cycles: int, output: Path, timeout: float,
         ],
         "samples": rows,
         "timeline": timeline,
-        "diagnostic_policy": {"slow_ms": diagnose_slow_ms,
+        "diagnostic_policy": {"slow_ms": diagnose_slow_ms, "checkpoints": checkpoints,
                               "targeted_guides": sorted(diagnose_guides),
                               "profiled_samples_not_comparable": True},
     }
@@ -384,6 +413,41 @@ def run(*, cycles: int, output: Path, timeout: float,
                         # An instrumented run must not be treated as a normal timing.
                     row["method_hotspots"] = attributor.top(phase + ":open")
                     row["open_resources"] = cpu.get(phase + ":open")
+                    row["checkpoints"] = []
+                    if checkpoints:
+                        view = getattr(page, "guides_view", None)
+                        targets = guide_checkpoint_targets(guide, view, checkpoints)
+                        if not targets:
+                            row["checkpoint_coverage"] = "UNAVAILABLE_OR_NO_STEPS"
+                        for label, change in targets[:checkpoints]:
+                            subphase = phase + ":checkpoint:" + label
+                            cpu.set_phase(subphase)
+                            watchdog.begin(subphase)
+                            lag.start()
+                            point_started = time.perf_counter()
+                            try:
+                                with attributor.active(subphase):
+                                    change()
+                                    pump(app, 0.04)
+                                detail = memory_snapshot("deep_checkpoint")
+                                row["checkpoints"].append({
+                                    "label": label, "status": "PASS",
+                                    "elapsed_ms": round((time.perf_counter() - point_started) * 1000, 2),
+                                    "rss_mb": detail.get("process_rss_mb"),
+                                    "tree_mb": detail.get("tree_rss_mb"),
+                                    "method_hotspots": attributor.top(subphase),
+                                    "cpu": cpu.get(subphase),
+                                })
+                            except Exception as check_error:
+                                row["checkpoints"].append({
+                                    "label": label, "status": "FAIL",
+                                    "error": f"{type(check_error).__name__}: {check_error}",
+                                })
+                                raise RuntimeError(f"Checkpoint {label} failed: {check_error}") from check_error
+                            finally:
+                                row["checkpoints"][-1]["qt_lag"] = lag.stop()
+                                row["checkpoints"][-1]["stall_stacks"] = watchdog.get(subphase)
+                                watchdog.end()
                     cpu.set_phase(phase + ":checkpoint")
                     detail = memory_snapshot("deep_detail")
                     row["rss_detail_mb"] = detail["process_rss_mb"]
@@ -472,6 +536,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("artifacts/atlas_exhaustive/guides.json"))
     parser.add_argument("--cycles", type=int, choices=(1, 2, 5, 10), default=2)
     parser.add_argument("--timeout", type=float, default=45.0)
+    parser.add_argument("--checkpoints", type=int, choices=(0, 3), default=3)
     parser.add_argument("--diagnose-slow-ms", type=float, default=1000.0,
                         help="Profile guides that exceeded this in cycle one, during subsequent cycles")
     parser.add_argument("--diagnose-guide", action="append", default=[],
@@ -479,7 +544,8 @@ def main() -> int:
     options = parser.parse_args()
     result = run(cycles=options.cycles, output=options.output, timeout=options.timeout,
                  diagnose_slow_ms=options.diagnose_slow_ms,
-                 diagnose_guides=frozenset(options.diagnose_guide))
+                 diagnose_guides=frozenset(options.diagnose_guide),
+                 checkpoints=options.checkpoints)
     print(json.dumps({
         "status": result["status"], "git_head": result["git_head"],
         "atlas_guides": result.get("atlas_catalogue_count"),
