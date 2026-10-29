@@ -15,7 +15,7 @@ from typing import Any
 EXPECTED = (
     "app_navigation", "guides", "phase8_memory", "phase8_preload",
     "qt_ui", "distribution", "functional_contracts", "graphify",
-    "app_multi_instance", "one_core",
+    "app_multi_instance", "one_core", "code_duplicates",
 )
 ALIASES = {
     "atlas_quick_full_app_navigation": "app_navigation",
@@ -31,6 +31,7 @@ JOB_CAPABILITIES = {
     "PRELOAD": "phase8_preload", "CONTRACTS": "functional_contracts",
     "UI": "qt_ui", "DISTRIBUTION": "distribution", "GRAPHIFY": "graphify",
     "EIGHT_ATLAS": "app_multi_instance", "ONE_CORE": "one_core",
+    "DUPLICATES": "code_duplicates",
 }
 
 
