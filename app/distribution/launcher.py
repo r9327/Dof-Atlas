@@ -126,7 +126,10 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
                 # Qt has actually entered its event loop now. Keep Tk visible
                 # while the child imports/starts; hide it only at this point,
                 # when the Qt preload dialog can take over the visible UI.
-                report("Prechargement Qt actif", 98)
+                # Legacy Atlas shows its own Qt preload; release Tk at .ready.
+                # The new client keeps its Qt popup silent, so Tk stays visible
+                # until the independent painted-Home acknowledgement.
+                report("Preparation de Home..." if supports_home_ack else "Prechargement Qt actif", 98)
                 if supports_home_ack:
                     # New Qt clients advertise support before their legacy ACK.
                     # Legacy installed apps retain their existing fast handoff.
@@ -355,7 +358,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
 
 def _is_application_handoff(message: str) -> bool:
     """Hide Tk only once the actual Home has taken over the visible window."""
-    return message == "Dofus Atlas est pret"
+    return message in {"Prechargement Qt actif", "Dofus Atlas est pret"}
 
 
 def _requires_updater_window(message: str) -> bool:
