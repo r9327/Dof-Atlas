@@ -156,7 +156,7 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         result, window = self._drive([
             ("Differentiel : 10 %", 17),
             ("Lancement de Dofus Atlas...", 98),
-            ("Prechargement Qt actif", 98),
+            ("Preparation de Home...", 98),
             ("Dofus Atlas est pret", 100),
         ])
         self.assertEqual(result, 0)
@@ -177,10 +177,10 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         result, window = self._drive([
             ("Differentiel : 10 %", 17),
             ("Lancement de Dofus Atlas...", 98),
-            ("Prechargement Qt actif", 98),
+            ("Preparation de Home...", 98),
             ("Demarrage echoue — restauration precedente", 95),
             ("Lancement de Dofus Atlas...", 98),
-            ("Prechargement Qt actif", 98),
+            ("Preparation de Home...", 98),
             ("Dofus Atlas est pret", 100),
         ])
         self.assertEqual(result, 0)
@@ -190,11 +190,20 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
     def test_qt_preload_never_hides_launcher_before_home(self):
         result, window = self._drive([
             ("Lancement de Dofus Atlas...", 98),
-            ("Prechargement Qt actif", 98),
+            ("Preparation de Home...", 98),
         ])
         self.assertEqual(result, 0)
         self.assertEqual(window.deiconify.call_count, 1)
         window.withdraw.assert_called_once()  # initial withdraw only
+
+    def test_legacy_client_hands_over_to_its_qt_preload(self):
+        result, window = self._drive([
+            ("Lancement de Dofus Atlas...", 98),
+            ("Prechargement Qt actif", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        self.assertEqual(window.withdraw.call_count, 2)  # Tk -> legacy Qt
 
     def test_gui_handoff_flag_is_scoped_to_worker(self):
         with patch.dict("os.environ", {}, clear=True):
