@@ -125,3 +125,62 @@ Qt `offscreen` ne peut pas attester ces essais. Ils restent **NOT RUN**
 dans le rapport, et nécessitent une station de test Windows graphique avec
 un opérateur et des données de validation isolées. Les 5 placeholders du
 menu ne deviennent pas des fonctionnalités certifiées.
+
+## Doctor — cerveau central et attribution en pourcentage
+
+La commande canonique `python -m tools.atlas_doctor evidence-hub --sha <SHA> --jobs-json artifacts/doctor_complete/jobs.json --source app_navigation=artifacts/quick_app/report.json`
+réconcilie des preuves indépendantes de Doctor, UI, Graphify, CI, Memory,
+Preload et Distribution **uniquement sur le même SHA complet**. Doctor ne
+refait pas ces benchmarks. Chaque spécialiste conserve son rapport d'origine.
+
+La campagne complète GitHub orchestre, en mode explicite et **sans publier** :
+- 20 écrans Atlas × 10 cycles, préchargements Quêtes/Encyclopédie/Craft et RAM
+  après retour Home, plus 60 s d'observation au repos ;
+- 8 processus Atlas distincts avec stores temporaires isolés et affinité CPU
+  à un cœur dans un autre scénario ; 26 guides × 2 passages ;
+- les cinq scénarios Doctor UI réels (Qt offscreen, images capturées,
+  contrôles de géométrie, interaction et exceptions) ;
+- le **vrai paquet Windows candidat** : compilation AtlasApp.exe, launcher,
+  installateur et installation automatique sur le runner, démarrage du binaire
+  gelé, prérequis, données Craft, quêtes, guides/succès et SHA-256 de chaque
+  fichier dans le ZIP et manifeste ;
+- les contrats de mise à jour et de rollback, les tests métiers, la carte
+  Graphify complète et la recherche AST de doublons du code par Doctor.
+
+Le `doctor_evidence.json` contient l'inventaire de couverture des outils :
+`PASS / FAIL / STALE / UNVERIFIED / NOT_RUN`. Un job absent, sauté ou échoué
+ne peut pas devenir PASS. Les anomalies de versions, la provenance, les
+suspects de travail répété et les sources d'origine sont conservés dans
+`audit.html` et `suite.json`. Doctor `audit` et `report` joignent le
+dernier dossier de preuves **seulement si le SHA correspond** ; sinon ils
+signalent une preuve périmée ou absente.
+
+**Comprendre les pourcentages :**
+
+- Temps : durée chronométrée d'un constructeur, du preload, de l'ouverture
+  de chaque écran et du retour Home divisée par la durée totale de la sonde.
+  La partie non instrumentée est publiée, jamais masquée.
+- CPU : différence de temps CPU du **processus Atlas** dans les mêmes phases,
+  divisée par le temps CPU de ce processus durant la sonde. Les workers enfants
+  ne sont pas attribuables de cette manière ; la proportion n'est pas un
+  `% d'un cœur` ni une mesure de CPU physique par fonctionnalité.
+- CI : pour chaque job GitHub, secondes réelles par étape divisées par la
+  somme des étapes mesurées de **ce même job**. Les étapes de jobs parallèles
+  ne sont pas additionnées. Utile pour distinguer dépendances, préparation
+  des données, compilation, installation, tests et vérifications.
+- RAM : le pic total du process-tree et sa phase, les snapshots Home,
+  les deltas et les allocations Python ciblées sont affichés, **mais aucun
+  faux pourcentage RAM par module** n'est calculé : les objets Qt, pages
+  partagées, workers enfants et libérations rendent ces pics non additifs.
+- « Doublons » : les coûts d'ouverture répétés à chaud signalent un
+  **suspect**, pas une preuve de double exécution du code. Seules les
+  conclusions de l'analyse AST Doctor/Graphify et des profils de fonctions
+  ciblés peuvent étayer une suppression de source.
+
+**Limites sans preuve automatique :** vrais huit clients DOFUS (distincts de
+huit instances Atlas), rendu GPU/FPS sur poste Windows interactif, machine
+bas de gamme physique, téléchargement et rollback d'une release publique
+avec réseau réel, chaque modification métier de chaque panneau, placeholders
+non développés. Ces éléments restent explicitement **NOT RUN**. Aucune
+certification finale ne doit être accordée sur le seul fait qu'un bouton ou
+une page s'ouvre.
