@@ -130,9 +130,10 @@ def summarize_revisits(rows: list[dict[str, Any]], cycles: int) -> dict[str, Any
 
 
 def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
-        cycles: int = 3) -> dict[str, Any]:
+        cycles: int = 3, idle_seconds: float = 0.0) -> dict[str, Any]:
     assert_inventory()
-    if not 5 <= timeout <= 45 or not 120 <= max_seconds <= 600 or cycles not in (1, 2, 3):
+    if (not 5 <= timeout <= 45 or not 120 <= max_seconds <= 1800
+            or cycles not in (1, 2, 3, 5, 10) or not 0 <= idle_seconds <= 120):
         raise ValueError("Unbounded or invalid timing options")
     output = output.resolve()
     if not output.is_relative_to((ROOT / "artifacts").resolve()) or output.suffix != ".json":
@@ -147,7 +148,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         "schema": 2, "kind": "atlas_quick_full_app_navigation",
         "git_head": git_head(), "qt_platform": os.environ["QT_QPA_PLATFORM"],
         "cycles": cycles, "planned_samples": len(ROUTES) * cycles,
-        "home_stabilization_wait_ms": 750,
+        "home_stabilization_wait_ms": 750, "idle_seconds_requested": idle_seconds,
+        "is_certification": False,
         "expected_routes": [x[0] for x in ROUTES],
         "routes": [], "preload_states": {}, "measurement_limits": [
             "Qt offscreen is not a GPU/FPS/real desktop validation",
@@ -155,6 +157,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
             "One character and one Atlas process; not 8 Dofus clients",
             "Each screen is checked for real navigation/ready state, not all internal functions",
             "Runner is not a constrained low-end PC",
+            "Short post-Home idle observations do not prove a native Qt memory leak",
         ]
     }
     window = None
@@ -246,8 +249,27 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         row["status"] = "FAIL"
                         row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
                     report["routes"].append(row)
-        report["elapsed_seconds"] = round(time.perf_counter() - start, 2)
         report["revisit_comparison"] = summarize_revisits(report["routes"], cycles)
+        # A longer idle observation is separate from the fast 750ms post-route
+        # snapshot, and never presented as evidence of a native-memory leak.
+        if idle_seconds:
+            if time.perf_counter() - start + idle_seconds > max_seconds:
+                raise RuntimeError("INSUFFICIENT_GLOBAL_BUDGET_FOR_IDLE_OBSERVATION")
+            report["idle_samples"] = []
+            observed = 0.0
+            for point in (0.0, idle_seconds / 2.0, idle_seconds):
+                if point > observed:
+                    pump(app, point - observed)
+                observed = point
+                report["idle_samples"].append({
+                    "offset_seconds": round(point, 2),
+                    "memory": memory_snapshot("quick_idle_home"),
+                })
+            baseline = report["idle_samples"][0]["memory"].get("tree_rss_mb")
+            ending = report["idle_samples"][-1]["memory"].get("tree_rss_mb")
+            if isinstance(baseline, (int, float)) and isinstance(ending, (int, float)):
+                report["idle_tree_rss_delta_mib"] = round(ending - baseline, 2)
+        report["elapsed_seconds"] = round(time.perf_counter() - start, 2)
     except Exception as exc:
         report["fatal"] = f"{type(exc).__name__}: {exc}"[:600]
     finally:
@@ -278,6 +300,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         )
         report["status"] = ("PASS" if
              report.get("preload_status") == "PASS" and
+             (not idle_seconds or len(report.get("idle_samples", [])) == 3) and
              report["measured_routes"] == len(ROUTES) * cycles and
              not report["failed_routes"] and not report.get("fatal") and
              not report.get("shutdown_error") else "FAIL")
@@ -289,10 +312,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("artifacts/quick_app/report.json"))
     parser.add_argument("--timeout", type=float, default=18.0)
     parser.add_argument("--max-seconds", type=float, default=540.0)
-    parser.add_argument("--cycles", type=int, choices=(1, 2, 3), default=3)
+    parser.add_argument("--cycles", type=int, choices=(1, 2, 3, 5, 10), default=3)
+    parser.add_argument("--idle-seconds", type=float, default=0.0)
     args = parser.parse_args()
     report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds,
-                 cycles=args.cycles)
+                 cycles=args.cycles, idle_seconds=args.idle_seconds)
     print(json.dumps({k: report.get(k) for k in (
         "status", "git_head", "cycles", "preload_ms", "preload_states", "functional_pass",
         "placeholder_pass", "failed_routes", "fatal", "peak_process_tree_rss_mib",
