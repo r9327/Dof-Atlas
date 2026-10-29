@@ -7,6 +7,8 @@ import re
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
+from time import monotonic, sleep
 from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -1523,7 +1525,67 @@ def _unique_cache_temporary_path(target: Path) -> Path:
     return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
 
 
+@contextmanager
+def _achievement_compact_write_lock(path: Path, *, timeout_seconds: float = 90.0):
+    """Serialize rebuilds across Atlas processes, not merely across threads.
+
+    The dedicated lock file is never renamed/deleted; deleting a lock file
+    would allow a third process to lock a different inode. OS locks are
+    released automatically if a worker exits or crashes.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    deadline = monotonic() + timeout_seconds
+    with lock_path.open("a+b") as lock_file:
+        while True:
+            try:
+                lock_file.seek(0)
+                if os.name == "nt":
+                    import msvcrt
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except (OSError, BlockingIOError) as exc:
+                if monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"Achievement compact-cache build lock timed out: {lock_path}"
+                    ) from exc
+                sleep(0.05)
+        try:
+            yield
+        finally:
+            lock_file.seek(0)
+            if os.name == "nt":
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
 def _build_compact_cache(path: Path) -> int:
+    """Build once per shared cache path and reuse a completed peer result."""
+    path = Path(path)
+    with _achievement_compact_write_lock(path):
+        if _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
+            try:
+                index_payload = json.loads(
+                    _achievement_compact_index_path(path).read_text(encoding="utf-8")
+                )
+                count = int(index_payload.get("achievement_count") or 0)
+                if count > 0:
+                    print(json.dumps(
+                        {"achievement_count": count, "path": str(path)},
+                        ensure_ascii=False, separators=(",", ":"),
+                    ))
+                    return 0
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                pass
+        return _build_compact_cache_unlocked(path)
+
+
+def _build_compact_cache_unlocked(path: Path) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_disposable_worker_fast()
     retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
