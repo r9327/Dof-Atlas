@@ -18,6 +18,9 @@ on:
       parallel_instances:
         type: number
         default: 1
+      preflight_unit_tests:
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       cycles:
@@ -87,6 +90,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Test complete route inventory and no false PASS for placeholders
+        # The all-menu job runs these canonical contracts. The one-core and
+        # 8-process sibling modes must produce their own real probe evidence,
+        # but do not need to replay these identical unit tests.
+        if: inputs.preflight_unit_tests != false
         run: |
           python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
