@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, run
 from tools.atlas_doctor import command_perf
+from tools.atlas_doctor_lib.parallel_app import validate_instance
 
 
 class ShortWholeAppProbeTests(unittest.TestCase):
@@ -90,7 +91,7 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         args = SimpleNamespace(
             app=True, deep=False, files_only=False, cycles=10,
             timeout=18.0, max_seconds=1200.0, idle_seconds=60.0,
-            one_core=True, output=Path("artifacts/quick_app/report.json"),
+            one_core=True, parallel_instances=1, output=Path("artifacts/quick_app/report.json"),
             json=True,
         )
         with patch("tools.doctor_quick_app_probe.run",
@@ -106,6 +107,50 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         with patch("tools.doctor_quick_app_probe.run") as engine:
             self.assertEqual(command_perf(Path("/unused"), args)["status"], "BLOCKED")
             engine.assert_not_called()
+
+
+    def test_eight_processes_need_real_per_instance_coverage(self):
+        samples = [
+            {"id": key, "cycle": 1,
+             "status": "PLACEHOLDER" if placeholder else "PASS",
+             "home_stabilized": {"tree_rss_mb": 100.0}}
+            for key, _group, _label, _page, placeholder in ROUTES
+        ]
+        good = {
+            "git_head": "a" * 40, "status": "PASS", "cycles": 1,
+            "planned_samples": 20, "measured_routes": 20,
+            "functional_pass": 15, "placeholder_pass": 5,
+            "preload_states": {"quests": "READY", "encyclopedia": "READY", "craft": "READY"},
+            "routes": samples, "failed_routes": [],
+            "peak_process_tree_rss_mib": 150.0,
+        }
+        self.assertEqual(validate_instance(good, sha="a" * 40), [])
+        self.assertIn("WRONG_ROUTE_ORDER_DUPLICATE_OR_FALSE_STATUS",
+                      validate_instance({**good, "routes": samples[:-1] + [samples[0]]},
+                                        sha="a" * 40))
+        self.assertIn("PRELOAD_NOT_READY", validate_instance(
+            {**good, "preload_states": {"craft": "FAILED"}}, sha="a" * 40))
+        self.assertIn("WRONG_COMMIT", validate_instance(good, sha="b" * 40))
+
+    def test_doctor_routes_eight_real_processes_through_single_entrypoint(self):
+        args = SimpleNamespace(
+            app=True, deep=False, files_only=False, cycles=1,
+            timeout=18.0, max_seconds=540.0, idle_seconds=0.0,
+            one_core=False, parallel_instances=8,
+            output=Path("artifacts/eight_atlas/summary.json"), json=True,
+        )
+        with patch("tools.atlas_doctor_lib.parallel_app.run_eight",
+                   return_value={"status": "PASS", "instances": [object()] * 8}) as runner:
+            result = command_perf(Path("/unused"), args)
+        self.assertEqual(result["status"], "PASS")
+        runner.assert_called_once_with(
+            Path("/unused"), output=Path("/unused/artifacts/eight_atlas/summary.json"),
+            max_seconds=540.0,
+        )
+        args.one_core = True
+        with patch("tools.atlas_doctor_lib.parallel_app.run_eight") as runner:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "BLOCKED")
+            runner.assert_not_called()
 
 
 if __name__ == "__main__":
