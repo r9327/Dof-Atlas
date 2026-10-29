@@ -26,6 +26,17 @@ def validate_instance(report: dict[str, Any], *, sha: str) -> list[str]:
         errors.append("FALSE_FUNCTIONAL_COVERAGE")
     if set((report.get("preload_states") or {}).values()) != {"READY"} or len(report.get("preload_states") or {}) != 3:
         errors.append("PRELOAD_NOT_READY")
+    from tools.doctor_quick_app_probe import ROUTES
+    samples = report.get("routes") or []
+    actual = [(r.get("id"), r.get("cycle"), r.get("status")) for r in samples]
+    expected = [(key, 1, "PLACEHOLDER" if placeholder else "PASS")
+                for key, _group, _label, _page, placeholder in ROUTES]
+    if actual != expected:
+        errors.append("WRONG_ROUTE_ORDER_DUPLICATE_OR_FALSE_STATUS")
+    if any(not isinstance(r.get("home_stabilized"), dict) for r in samples):
+        errors.append("HOME_RETURN_NOT_MEASURED")
+    if not isinstance(report.get("peak_process_tree_rss_mib"), (int, float)):
+        errors.append("NO_PROCESS_TREE_PEAK")
     if report.get("failed_routes") or report.get("fatal"):
         errors.append("FAILED_ROUTE_OR_FATAL")
     return errors
