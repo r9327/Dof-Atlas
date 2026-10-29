@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -42,6 +43,26 @@ def validate_instance(report: dict[str, Any], *, sha: str) -> list[str]:
     return errors
 
 
+def prepare_instance_user_root(root: Path, sandbox: Path) -> Path:
+    """Isolate *all mutable* Atlas runtime paths for an independent test user.
+
+    APPDATA/TEMP isolation alone is insufficient: Organizer writes
+    data/client_index.ini in the checkout without DOFUS_ATLAS_USER_ROOT.
+    Concurrent replace() calls cause WinError 32 and silent Qt callback errors.
+    Each Atlas gets its own user root and a private copy of the CI Craft SQLite.
+    """
+    source_db = root / "data" / "local" / "dofus_data.sqlite"
+    if not source_db.is_file() or source_db.stat().st_size == 0:
+        raise FileNotFoundError("Validated CI Craft SQLite missing before 8-Atlas launch")
+    target_root = sandbox / "user_root"
+    target_db = target_root / "data" / "local" / "dofus_data.sqlite"
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_db, target_db)
+    if target_db.stat().st_size != source_db.stat().st_size:
+        raise IOError("Independent Craft data copy truncated")
+    return target_root
+
+
 def run_eight(root: Path, *, output: Path, max_seconds: float = 540) -> dict[str, Any]:
     root = root.resolve()
     output = output.resolve()
@@ -63,7 +84,8 @@ def run_eight(root: Path, *, output: Path, max_seconds: float = 540) -> dict[str
         "measurement_limits": [
             "Eight independent Atlas processes, NOT eight DOFUS game clients",
             "Qt offscreen, not real rendered Windows FPS or low-end hardware",
-            "Isolated per-process APPDATA/LOCALAPPDATA/TEMP, shared read-only CI datasets",
+            "Isolated per-process APPDATA/LOCALAPPDATA/TEMP and DOFUS_ATLAS_USER_ROOT",
+            "Private CI Craft SQLite copy per process; shared immutable application assets",
             "Not a full business-interaction or native EXE certification",
         ],
         "is_certification": False,
@@ -78,8 +100,10 @@ def run_eight(root: Path, *, output: Path, max_seconds: float = 540) -> dict[str
             sandbox = output.parent / "users" / f"user_{i + 1:02d}"
             for dirname in ("appdata", "localappdata", "temp"):
                 (sandbox / dirname).mkdir(parents=True, exist_ok=True)
+            user_root = prepare_instance_user_root(root, sandbox)
             env = os.environ.copy()
             env.update({
+                "DOFUS_ATLAS_USER_ROOT": str(user_root),
                 "APPDATA": str(sandbox / "appdata"),
                 "LOCALAPPDATA": str(sandbox / "localappdata"),
                 "TMP": str(sandbox / "temp"), "TEMP": str(sandbox / "temp"),
