@@ -11,7 +11,7 @@ from unittest.mock import patch
 from tools.atlas_doctor_lib.exhaustive_performance import (
     output_under_artifacts, review_evidence, run_doctor_lab, bottleneck_candidates,
 )
-from tools.atlas_perf_attribution import SpanAttributor, io_delta, render_report
+from tools.atlas_perf_attribution import SpanAttributor, StartupCpuProfiler, io_delta, render_report
 
 
 class DoctorDeepPerformanceTests(unittest.TestCase):
@@ -104,6 +104,19 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
             self.assertEqual(report["status"], "PASS")
             self.assertTrue(actual.with_name("guides.doctor.json").is_file())
 
+    def test_opt_in_startup_cpu_profile_is_disabled_without_flag(self):
+        profiler = StartupCpuProfiler(enabled=False)
+        profiler.begin()
+        self.assertEqual(profiler.finish(), [])
+        active = StartupCpuProfiler(enabled=True)
+        active.begin()
+        sum(range(300))
+        rows = active.finish()
+        self.assertIsInstance(rows, list)
+        self.assertTrue(rows)
+        self.assertIn("cumulative_cpu_ms", rows[0])
+        self.assertEqual(active.finish(), [])
+
     def test_span_timer_exclusive_accounting_and_restore(self):
         class Page:
             def outer(self):
@@ -129,6 +142,7 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
         self.assertIn("perf", help_text)
         self.assertNotIn("perf-lab", help_text)
         self.assertTrue(parser.parse_args(["perf", "--deep", "--cycles", "5"]).deep)
+        self.assertTrue(parser.parse_args(["perf", "--deep", "--profile-startup"]).profile_startup)
         self.assertFalse(parser.parse_args(["perf"]).deep)
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/atlas-exhaustive-benchmark.yml").read_text(encoding="utf-8")
