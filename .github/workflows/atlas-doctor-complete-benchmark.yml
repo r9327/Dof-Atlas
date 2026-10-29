@@ -13,6 +13,8 @@ on:
       - "app/modules/encyclopedia/services/achievement_index_warmup.py"
       - "tests/test_achievement_compact_subprocess_lifecycle.py"
       - "tests/test_doctor_quick_app_probe.py"
+      - "tests/test_achievement_compact_process_lock.py"
+      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
 
 permissions:
   contents: read
@@ -122,7 +124,8 @@ jobs:
             tests.test_functional_preload_v2 `
             tests.test_startup_preload_window_visibility `
             tests.test_fault_injection_contracts `
-            tests.test_doctor_quick_app_probe
+            tests.test_doctor_quick_app_probe `
+            tests.test_achievement_compact_process_lock
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   suite-verdict:
