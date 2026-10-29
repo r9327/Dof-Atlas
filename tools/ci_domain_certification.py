@@ -69,6 +69,16 @@ CI_FILES = frozenset({
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
     "tools/doctor_policy_authority.py", "tools/ci_guide_full_evidence.py",
 })
+# Explicitly audited Doctor-only profiling tools. These do not alter app
+# runtime or Guide data; their real Qt Windows campaign remains independently
+# required by atlas-exhaustive-benchmark.yml. Never permit a tools/* wildcard.
+DOCTOR_PERF_TOOLS = frozenset({
+    "tools/atlas_doctor.py",
+    "tools/atlas_perf_attribution.py",
+    "tools/benchmark_atlas_exhaustive.py",
+    "tests/test_atlas_exhaustive_benchmark.py",
+})
+
 CRAFT_PATHS = frozenset({
     "app/local_data_cache.py", "app/craft_preload.py",
     "app/pages/craft_page.py", "tools/benchmark_phase8_memory.py",
@@ -87,6 +97,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset()
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
             or path in {".github/pull_request_template.md", "AGENTS.md"}):
+        return frozenset({"ci"})
+    if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
     if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
