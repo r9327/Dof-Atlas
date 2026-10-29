@@ -542,6 +542,17 @@ def _read_doctor_shared_evidence(root: Path, head: str | None) -> dict[str, Any]
     return data
 
 
+def command_optimization_report(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.optimization_report import generate
+    report = generate(root, sha=args.sha, app_report=args.app_report,
+                      hub_report=args.hub_report, baseline=args.baseline,
+                      guides=args.guides, ci_costs=args.ci_costs, output=args.output)
+    if not args.json:
+        print(f"Doctor optimization: {report['status']} | {len(report['priority_findings'])} findings")
+        print("Measured diagnosis only: no new benchmark or certification is executed.")
+    return report
+
+
 def command_evidence_hub(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.evidence_hub import build_hub
     report = build_hub(root, sha=args.sha, sources=args.source, jobs_json=args.jobs_json,
@@ -1031,6 +1042,16 @@ def build_parser() -> argparse.ArgumentParser:
                           help='Statuts GitHub Actions exacts sous artifacts/')
     evidence.add_argument('--output', type=Path,
                           default=Path('artifacts/doctor_complete/doctor_evidence.json'))
+    optimization = sub.add_parser('optimization-report',
+                                  help='Rapport d optimisation priorisé, sans relancer le bench.')
+    optimization.add_argument('--sha', required=True)
+    optimization.add_argument('--app-report', type=Path, required=True)
+    optimization.add_argument('--hub-report', type=Path)
+    optimization.add_argument('--baseline', type=Path)
+    optimization.add_argument('--guides', type=Path)
+    optimization.add_argument('--ci-costs', type=Path)
+    optimization.add_argument('--output', type=Path,
+                              default=Path('artifacts/doctor_complete/optimization.json'))
     sub.add_parser('report')
     sub.add_parser('clean')
     sub.add_parser('all')
@@ -1159,6 +1180,7 @@ def main(argv: list[str] | None = None) -> int:
         'verify': command_verify,
         'report': command_report,
         'evidence-hub': command_evidence_hub,
+        'optimization-report': command_optimization_report,
         'clean': command_clean,
         'all': command_all,
     }
@@ -1186,6 +1208,8 @@ def main(argv: list[str] | None = None) -> int:
         return int(payload.get('exit_code', 2))
     if args.command == 'evidence-hub':
         return 0 if payload.get('status') == 'PASS' else 2
+    if args.command == 'optimization-report':
+        return 0 if payload.get('status') == 'DIAGNOSTIC_READY' else 2
     if args.command == 'source-impact':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'file-audit':
