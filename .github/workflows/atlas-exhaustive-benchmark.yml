@@ -1,6 +1,7 @@
 name: Atlas Exhaustive Guide Performance
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       cycles:
