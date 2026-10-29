@@ -34,9 +34,10 @@ class ExhaustiveGuideBenchmarkTests(unittest.TestCase):
         self.assertEqual(summary["slowest_guides"][0]["guide_id"], "g1")
 
     def test_selected_id_without_actual_view_is_not_complete(self):
-        stack = SimpleNamespace(currentWidget=lambda: object())
+        detail = object()
+        stack = SimpleNamespace(currentWidget=lambda: detail)
         view = SimpleNamespace(_runtime_ready=True, current_guide_id="g1",
-                               state="OVERVIEW", GUIDE_OVERVIEW="OVERVIEW", stack=stack)
+                               state="OVERVIEW", GUIDE_OVERVIEW="OVERVIEW", stack=stack, detail_page=detail)
         page = SimpleNamespace(guides_view=view, _pending_guide_id="")
         self.assertTrue(guide_visible(page, "g1"))
         self.assertFalse(guide_visible(page, "g2"))
@@ -48,7 +49,8 @@ class ExhaustiveGuideBenchmarkTests(unittest.TestCase):
 
     def test_metadata_only_ganymede_does_not_count_as_runnable(self):
         rows = ganymede_inventory({"dofus_argente"})
-        self.assertEqual(len(rows), 95)
+        from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+        self.assertEqual(len(rows), len(load_ganymede_listings()))
         mapped = next(x for x in rows if x["source_id"] == 2203)
         self.assertEqual(mapped["coverage"], "atlas_equivalent_benchmarked")
         unrelated = next(x for x in rows if x["source_id"] == 2251)
