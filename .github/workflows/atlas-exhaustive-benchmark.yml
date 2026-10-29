@@ -108,7 +108,7 @@ jobs:
             $cycles = "${{ inputs.cycles }}"
           }
           New-Item -ItemType Directory -Path artifacts/atlas_exhaustive -Force | Out-Null
-          python -X faulthandler -m tools.atlas_doctor perf-lab --cycles $cycles --output artifacts/atlas_exhaustive/guides.json
+          python -X faulthandler -m tools.atlas_doctor perf --deep --cycles $cycles --checkpoints 3 --output artifacts/atlas_exhaustive/guides.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print exhaustive guide evidence
