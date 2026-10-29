@@ -603,7 +603,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
         report = run_app_benchmark(
             output=root / args.output, timeout=args.timeout,
             max_seconds=args.max_seconds, cycles=args.cycles,
-            idle_seconds=args.idle_seconds,
+            idle_seconds=args.idle_seconds, one_core=args.one_core,
         )
         if not args.json:
             print(f"Doctor App Benchmark: {report['status']} "
@@ -611,6 +611,8 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                   f" | preload {report.get('preload_status')}"
                   f" | idle {report.get('idle_seconds_requested')}s")
         return report
+    if args.one_core or args.idle_seconds:
+        return {"status": "BLOCKED", "reason": "One-core/idle observations require Doctor perf --app"}
     if args.deep:
         return command_perf_lab(root, args)
     _audit(root, force=False, integrity_mode=None)
@@ -946,6 +948,8 @@ def build_parser() -> argparse.ArgumentParser:
                       help='Budget borné du bench complet des menus.')
     perf.add_argument('--idle-seconds', type=float, default=0.0,
                       help='Observation post-Home; ne prétend pas démontrer une fuite.')
+    perf.add_argument('--one-core', action='store_true',
+                      help='Affinité effective sur un cœur logique Windows; pas une machine bas de gamme.')
     perf.add_argument('--cycles', type=int, choices=(1, 2, 3, 5, 10), default=2)
     perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
                       help='Jalons de chaque guide: début/milieu/fin, ou 0.')
