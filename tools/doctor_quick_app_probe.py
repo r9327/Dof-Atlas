@@ -170,6 +170,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     output.parent.mkdir(parents=True, exist_ok=True)
     output.unlink(missing_ok=True)
     start = time.perf_counter()
+    cpu_started_all = time.process_time()
     sampler = PeakTreeSampler()
     cpu = CpuRssSampler()
     app = QApplication.instance() or QApplication([])
@@ -197,15 +198,18 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         sampler.start()
         cpu.start()
         born = time.perf_counter()
+        born_cpu = time.process_time()
         window = app_main.AtlasWindow()
         window.show()
         pump(app, 0.05)
         report["constructor_to_visible_ms"] = round((time.perf_counter() - born) * 1000, 2)
+        report["constructor_cpu_ms"] = round((time.process_time() - born_cpu) * 1000, 2)
         if not getattr(window, "preload_states", None):
             raise RuntimeError("Missing preload state inventory")
         sampler.set_phase("preload")
         cpu.set_phase("preload")
         preload_start = time.perf_counter()
+        preload_cpu_started = time.process_time()
         preload_lag = EventLoopLag()
         preload_lag.start()
         try:
@@ -214,6 +218,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         finally:
             report["preload_qt"] = preload_lag.stop()
         report["preload_ms"] = round((time.perf_counter() - preload_start) * 1000, 2)
+        report["preload_cpu_ms"] = round((time.process_time() - preload_cpu_started) * 1000, 2)
         report["preload_cpu_rss"] = cpu.get("preload")
         report["preload_states"] = {str(k): str(v) for k, v in window.preload_states.items()}
         report["preload_errors"] = {
@@ -250,6 +255,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                 lag = EventLoopLag()
                 lag.start()
                 opened = time.perf_counter()
+                opened_cpu = time.process_time()
                 row: dict[str, Any] = {
                     "cycle": cycle, "id": route_id, "category": group,
                     "label": label, "placeholder": placeholder, "status": "FAIL",
@@ -261,9 +267,12 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                     row["error"] = f"{type(exc).__name__}: {exc}"[:350]
                 finally:
                     row["open_ms"] = round((time.perf_counter() - opened) * 1000, 2)
+                    row["open_cpu_ms"] = round((time.process_time() - opened_cpu) * 1000, 2)
                     row["qt"] = lag.stop()
                     row["cpu_rss"] = cpu.get(phase)
                     row["active"] = memory_snapshot("quick_active")
+                    home_at = time.perf_counter()
+                    home_cpu_at = time.process_time()
                     try:
                         window.show_page("Home")
                         pump(app, 0.10)
@@ -279,6 +288,9 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                     except Exception as exc:
                         row["status"] = "FAIL"
                         row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
+                    finally:
+                        row["return_home_ms"] = round((time.perf_counter() - home_at) * 1000, 2)
+                        row["return_home_cpu_ms"] = round((time.process_time() - home_cpu_at) * 1000, 2)
                     report["routes"].append(row)
         report["revisit_comparison"] = summarize_revisits(report["routes"], cycles)
         # A longer idle observation is separate from the fast 750ms post-route
@@ -288,6 +300,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                 raise RuntimeError("INSUFFICIENT_GLOBAL_BUDGET_FOR_IDLE_OBSERVATION")
             report["idle_samples"] = []
             observed = 0.0
+            idle_started_at = time.perf_counter()
+            idle_cpu_at = time.process_time()
             for point in (0.0, idle_seconds / 2.0, idle_seconds):
                 if point > observed:
                     pump(app, point - observed)
@@ -296,6 +310,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                     "offset_seconds": round(point, 2),
                     "memory": memory_snapshot("quick_idle_home"),
                 })
+            report["idle_observation_ms"] = round((time.perf_counter() - idle_started_at) * 1000, 2)
+            report["idle_cpu_ms"] = round((time.process_time() - idle_cpu_at) * 1000, 2)
             baseline = report["idle_samples"][0]["memory"].get("tree_rss_mb")
             ending = report["idle_samples"][-1]["memory"].get("tree_rss_mb")
             if isinstance(baseline, (int, float)) and isinstance(ending, (int, float)):
@@ -317,9 +333,13 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                 app.processEvents()
             except Exception as exc:
                 report["shutdown_error"] = f"{type(exc).__name__}: {exc}"[:350]
+        report.setdefault("elapsed_seconds", round(time.perf_counter() - start, 2))
+        report["process_cpu_total_ms"] = round((time.process_time() - cpu_started_all) * 1000, 2)
         report["peak_process_rss_mib"] = round(sampler.peak_process_rss_mb, 2)
         report["peak_process_tree_rss_mib"] = round(sampler.peak_tree_rss_mb, 2)
         report["worst_tree_phase"] = sampler.peak_tree_sample.get("phase")
+        from tools.atlas_doctor_lib.cost_attribution import cost_attribution
+        report["cost_attribution"] = cost_attribution(report)
         report["measured_routes"] = len(report["routes"])
         report["functional_pass"] = sum(r["status"] == "PASS" for r in report["routes"])
         report["placeholder_pass"] = sum(r["status"] == "PLACEHOLDER" for r in report["routes"])
