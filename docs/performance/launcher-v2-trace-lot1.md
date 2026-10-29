@@ -138,16 +138,34 @@ processus réellement terminé permet toujours la récupération normale.
 La course très précoce avant l'acquisition du mutex par le processus
 en démarrage et le comportement natif Win32 restent à tester sur PC.
 
-## Relais visuel sans écran vide avant Qt
+## Relais visuel du launcher V2 jusqu'à Home (compatibilité)
 
-L'ancien message `Lancement de Dofus Atlas...` est émis **avant** le
-`Popen` et pendant les imports : il ne doit plus masquer une fenêtre Tk
-visible. Le relais `Prechargement Qt actif` n'est désormais émis qu'après
-l'ACK du véritable processus Qt. Sur un lancement sans mise à jour, Tk
-reste masqué comme avant ; sur une installation visible, il ne se masque
-qu'après la prise de relais de Qt. Si le premier lancement échoue et
-qu'une version précédente est restaurée, l'UI Tk réapparaît jusqu'au
-nouvel ACK. Les tests unitaires couvrent cet ordre de messages et
-l'absence de masquage anticipé, mais la présence d'une fenêtre unique
-par frame et l'absence de scintillement doivent encore être vérifiées
-sur une machine Windows avec le binaire gelé.
+Quand l'interface Tk du lanceur fonctionne, celui-ci pose
+`DOFUS_ATLAS_LAUNCHER_HANDOFF=1` uniquement pour le processus Atlas lancé
+et garde **la même fenêtre de progression** visible à partir de
+`Lancement de Dofus Atlas...` jusqu'à l'acquittement `Dofus Atlas est pret`.
+Cet acquittement suit un vrai `QEvent.Paint` de Home, puis un tour de boucle
+Qt supplémentaire. Il atteste la visibilité de Home mais **pas** une
+interaction utilisateur humaine ni le budget de latence.
+
+Le processus Qt conserve le préchargement et ses états, mais son
+`PreloadProgressPopup` fonctionne sans affichage dans ce mode. Le splash Qt
+initial est supprimé pour cette voie : pas de deuxième popup de chargement
+pendant que Tk est visible. Le passage du launcher au Home peut toujours
+nécessiter une courte coexistence de surfaces pendant le premier paint ;
+seule une validation visuelle sur Windows/DPI/antivirus peut mesurer
+l'absence réelle de scintillement.
+
+Le lancement **direct** de `AtlasApp.exe`, sans launcher Tk, n'a pas cette
+variable et conserve l'interface de préchargement Qt normale. Une version
+**ancienne** de l'application, qui n'annonce pas la capacité `.capable`,
+conserve l'acquittement historique `Prechargement Qt actif` : Tk s'efface
+alors pour laisser visible le popup Qt legacy. En cas de rollback vers cet
+ancien binaire, cette compatibilité empêche un écran de chargement caché.
+
+Les tests simulés couvrent la distinction entre ces chemins, l'ordre des
+messages Tk, le maintien de la fenêtre avant Home, le popup Qt silencieux
+avec vrai cycle d'événements offscreen, et le rollback legacy. Le parcours
+complet d'une Release gelée sur PC Windows, y compris 100/125/150 % DPI,
+reste **NOT RUN** dans l'issue #287 ; aucun PASS visuel n'est déduit de ces
+tests.
