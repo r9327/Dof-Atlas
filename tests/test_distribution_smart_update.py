@@ -742,6 +742,14 @@ class FrozenCandidateWorkflowTests(unittest.TestCase):
             "github.head_ref == 'feat/smart-download-safe-cow-install-20261027'",
             workflow,
         )
+        self.assertIn(
+            "github.head_ref == 'perf/launcher-v2-startup-audit-20261028'",
+            workflow,
+        )
+        # This grants only an unpublished exact-SHA candidate artifact;
+        # the Stable release path still requires workflow_run on main.
+        self.assertIn("Validate full candidate ZIP and manifest integrity", workflow)
+        self.assertIn("Upload unmerged full Windows distribution candidate", workflow)
         self.assertIn("github.event.action == 'ready_for_review'", workflow)
         self.assertIn("atlas-windows-full-candidate-", workflow)
         self.assertIn("if: github.event_name == 'workflow_run'", workflow)
