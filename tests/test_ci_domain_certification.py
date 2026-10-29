@@ -175,6 +175,19 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertFalse(owners_for("tests/test_phase8_unreviewed_contract.py"))
 
+    def test_unicode_install_relocation_has_exact_distribution_ownership(self):
+        path = "tests/test_distribution_install_location.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_distribution_unknown_location.py"))
+        self.assertEqual(
+            self.route(["tests/test_distribution_unknown_location.py"])["status"],
+            "BLOCKED",
+        )
+
     def test_manual_rtk_bootstrap_has_narrow_ci_ownership(self):
         paths = ["tools/install_rtk.ps1", "tests/test_install_rtk.py"]
         for path in paths:
