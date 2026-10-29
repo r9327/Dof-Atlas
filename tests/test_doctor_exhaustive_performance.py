@@ -50,9 +50,11 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
 
     def test_output_must_stay_under_artifacts(self):
         with tempfile.TemporaryDirectory() as home:
-            root = Path(home)
+            # Windows temp paths may contain 8.3 aliases (RUNNER~1); compare
+            # canonical paths, not their original user-home spellings.
+            root = Path(home).resolve()
             self.assertEqual(output_under_artifacts(root, Path("artifacts/x.json")),
-                             root / "artifacts/x.json")
+                             (root / "artifacts/x.json").resolve())
             for output in (Path("../secrets.json"), Path("reports/x.json"),
                            Path("artifacts/../config.json"), Path("artifacts/x.py")):
                 with self.subTest(output=output), self.assertRaises(ValueError):
