@@ -169,6 +169,7 @@ jobs:
           github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
           github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
           github.head_ref == 'fix/personal-unity-assets-runtime-20261028' ||
+          github.head_ref == 'perf/launcher-v2-startup-audit-20261028' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
            github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
