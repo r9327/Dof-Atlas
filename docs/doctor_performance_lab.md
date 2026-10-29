@@ -96,6 +96,11 @@ les moteurs existants et leurs propres preuves, sans recréer de second benchmar
 - Doctor `perf --app --one-core` : scénario séparé avec affinité CPU Windows
   **appliquée puis vérifiée**, 3 cycles et 60 secondes de repos. **Ce n'est
   pas un vrai ordinateur bas de gamme** et ne limite ni RAM ni disque.
+- Doctor `perf --app --parallel-instances 8 --cycles 1` : huit
+  **processus Atlas distincts** lancés en parallèle, profils APPDATA et TEMP
+  isolés, préchargements et 20 routes contrôlés pour chaque processus.
+  Preuves et logs par PID ; échec bloquant si un seul processus ou parcours
+  manque. **Ce ne sont pas huit comptes DOFUS.**
 - Doctor `perf --deep` : chaque guide Atlas exécutable, 2 passages, gardien
   de couverture du manifeste et attribution des coûts. Les sources Ganymède
   non exécutables restent distinctes.
