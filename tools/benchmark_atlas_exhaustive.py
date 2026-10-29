@@ -271,6 +271,23 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
         guide_ids = [str(guide.id) for guide in guides]
         if not guide_ids or len(set(guide_ids)) != len(guide_ids):
             raise RuntimeError("Empty or duplicated playable Guide catalogue")
+        # The provider could silently omit invalid entries: compare against the
+        # enabled manifest instead of claiming full coverage of a partial load.
+        manifest_path = ROOT / "data/encyclopedia/guides/catalog.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        expected_ids = [
+            str(row["id"]) for row in manifest["guides"]
+            if row.get("enabled", True) is True
+        ]
+        payload["manifest_enabled_guide_ids"] = expected_ids
+        if not expected_ids or len(expected_ids) != len(set(expected_ids)):
+            raise RuntimeError("Invalid or duplicated enabled Guide manifest")
+        if set(expected_ids) != set(guide_ids):
+            raise RuntimeError(
+                "Playable Guide coverage differs from enabled manifest: "
+                f"missing={sorted(set(expected_ids)-set(guide_ids))}, "
+                f"extra={sorted(set(guide_ids)-set(expected_ids))}"
+            )
         payload["atlas_catalogue_count"] = len(guide_ids)
         payload["atlas_guide_ids"] = guide_ids
         payload["ganymede_sources"] = ganymede_inventory(set(guide_ids))
