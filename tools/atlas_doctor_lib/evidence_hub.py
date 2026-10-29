@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from html import escape
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -175,6 +176,55 @@ def build_hub(root: Path, *, sha: str, sources: list[str],
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
+
+
+def render_html(report: dict[str, Any], ci_costs: dict[str, Any] | None = None) -> str:
+    """Self-contained, noninteractive Doctor audit for offline artifact review."""
+    def cell(value: Any) -> str:
+        return escape(str(value if value is not None else "—"))
+    def table(headers: tuple[str, ...], rows: list[list[Any]]) -> str:
+        columns = "".join("<th>" + cell(h) + "</th>" for h in headers)
+        body = "".join("<tr>" + "".join("<td>" + cell(x) + "</td>" for x in row) + "</tr>" for row in rows)
+        return f"<table><thead><tr>{columns}</tr></thead><tbody>{body}</tbody></table>"
+    coverage = table(("Specialist", "Status", "Proofs"), [
+        [key, val["status"], val["sources"]] for key, val in sorted(report["coverage"].items())
+    ])
+    cost = table(("Atlas page/phase", "Wall ms", "Time %", "CPU ms", "CPU %"), [
+        [r.get("phase"), r.get("wall_ms"), r.get("wall_pct_of_entire_probe"),
+         r.get("process_cpu_ms"), r.get("cpu_pct_of_measured_process_cpu")]
+        for r in sorted(report.get("cost_shares", []), key=lambda r: -r.get("wall_ms", 0))
+    ])
+    suspects = table(("Screen", "Review finding", "Evidence"), [
+        [r["route"], r["classification"], r["evidence"]]
+        for r in report.get("duplicate_work_suspects", [])
+    ])
+    stages = []
+    for job in (ci_costs or {}).get("jobs", []):
+        for step in job["steps"]:
+            stages.append([job["job"], step["step"], step["duration_seconds"],
+                           step["percent_of_job_measured_steps"], step["conclusion"]])
+    stage_html = table(("CI job", "Measured step", "Seconds", "Share of job %", "Status"), stages)
+    disclaimers = "".join(f"<li>{cell(item)}</li>" for item in report.get("limits", []))
+    return (
+        "<!DOCTYPE html><html lang='fr'><meta charset='utf-8'><title>Atlas Doctor — Audit commun</title>"
+        "<style>body{font:14px system-ui,Segoe UI,sans-serif;margin:30px auto;max-width:1260px;"
+        "padding:0 24px;color:#263238;background:#f5f6f7}"
+        "section{background:white;border-radius:8px;padding:18px;margin:16px 0;overflow:auto}"
+        "table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}"
+        "th,td{border-bottom:1px solid #ddd;padding:9px;text-align:left}th{background:#e9ecef}"
+        "h1,h2{color:#202e38}</style>"
+        f"<h1>Atlas Doctor — Evidence hub</h1><p>SHA: {cell(report.get('git_head'))} "
+        f"| Statut automatisé: {cell(report.get('status'))}</p>"
+        f"<section><h2>Communication des outils</h2>{coverage}</section>"
+        f"<section><h2>Qui consomme quoi — Atlas</h2>{cost}</section>"
+        "<p>Les pourcentages CPU et temps ont des dénominateurs différents et "
+        "ne doivent pas être additionnés. RAM native : pics non additifs, pas de pourcentage inventé.</p>"
+        f"<section><h2>Travaux répétés à auditer</h2>{suspects}</section>"
+        f"<section><h2>Temps de la CI / installation et vérifications</h2>{stage_html}"
+        "<p>Chaque pourcentage concerne les étapes d'un seul job, et non les jobs parallèles.</p></section>"
+        f"<section><h2>Ce qui n'est pas prouvé</h2><ul>{disclaimers}</ul></section>"
+        "</html>"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
