@@ -105,7 +105,7 @@ jobs:
 
       - name: Inspect every menu route, startup and preloads in one Qt session
         run: |
-          python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --output artifacts/quick_app/report.json
+          python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --cycles 3 --output artifacts/quick_app/report.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print results and coverage
@@ -120,6 +120,7 @@ jobs:
               print(json.dumps({
                   "status": report.get("status"),
                   "sha": report.get("git_head"),
+                  "cycles": report.get("cycles"),
                   "preload_ms": report.get("preload_ms"),
                   "preload_states": report.get("preload_states"),
                   "functional": report.get("functional_pass"),
@@ -128,9 +129,12 @@ jobs:
                   "failed_routes": report.get("failed_routes"),
                   "peak_tree_rss_mib": report.get("peak_process_tree_rss_mib"),
                   "elapsed_seconds": report.get("elapsed_seconds"),
+                  "last_home_tree_mib": (report.get("last_home_stabilized") or {}).get("tree_rss_mb"),
               }, indent=2, ensure_ascii=False))
               for row in report.get("routes", []):
-                  print(f"{row['id']:18} {row['status']:12} {row['open_ms']:8}ms {row.get('error', '')}")
+                  print(f"cycle={row.get('cycle')} {row['id']:18} {row['status']:12} {row['open_ms']:8}ms {row.get('error', '')}")
+              for name, item in sorted(report.get("revisit_comparison", {}).items()):
+                  print(f"REVISIT {name:18} cold={item['cold_open_ms']}ms warm={item['warm_open_ms']}ms observed_home_delta={item['home_tree_delta_first_to_last_mib']}MiB")
           '@ | python -
 
       - name: Upload full-app JSON evidence even when blocked
