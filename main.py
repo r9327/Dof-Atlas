@@ -2716,7 +2716,9 @@ def main() -> int:
         app.setWindowIcon(atlas_application_icon())
         splash = None
         splash_started_at = None
-        if LOGO_PATH.exists():
+        # When launched from the visible standalone updater, do not open a
+        # second splash or Qt progress window; Tk stays visible until Home.
+        if LOGO_PATH.exists() and os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") != "1":
             pixmap = splash_logo_pixmap()
             splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
             splash.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -2743,8 +2745,8 @@ def main() -> int:
         window = AtlasWindow(initial_preload=initial_preload)
         record_startup_event("atlas_window_created")
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
-        # Show only the standalone loading dialog. The normal Qt event loop
-        # continues to process workers and progress without displaying Home.
+        # Direct Atlas launch shows Qt preload. Under the Tk handoff, the
+        # popup runs silently, but its completion still reveals Home.
         window.preload_popup.begin(dict(window.preload_states))
         record_startup_event("preload_dialog_active")
         from app.distribution.health import announce_ready
