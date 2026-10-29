@@ -184,3 +184,43 @@ avec réseau réel, chaque modification métier de chaque panneau, placeholders
 non développés. Ces éléments restent explicitement **NOT RUN**. Aucune
 certification finale ne doit être accordée sur le seul fait qu'un bouton ou
 une page s'ouvre.
+
+
+## Rapport d'optimisation Doctor — issu des mesures du benchmark
+
+Le workflow Doctor complet produit maintenant deux preuves supplémentaires,
+**\`optimization.json\`** (machine) et **\`optimization.md\`**
+(rapport lisible), dans les artefacts du **même SHA**. Elles réutilisent les
+mesures déjà collectées, sans nouveau parcours Qt, ni deuxième benchmark.
+
+Commande canonique, après le benchmark :
+
+\`\`\`powershell
+python -m tools.atlas_doctor optimization-report --sha <SHA-COMPLET> --app-report artifacts/quick_app/report.json --hub-report artifacts/doctor_complete/doctor_evidence.json --ci-costs artifacts/doctor_complete/ci_step_costs.json
+\`\`\`
+
+Pour comparer un candidat avec un rapport antérieur, ajouter
+\`--baseline artifacts/baselines/atlas_before.json\`. Si le scénario,
+le nombre de cycles, les options CPU/repos ou les routes ne correspondent
+pas, Doctor refuse la comparaison. Même sur des scénarios compatibles,
+le pourcentage de variation reste **directionnel** : il faut répéter
+sur un matériel et un jeu de données comparables avant de promettre un
+gain mesuré.
+
+La table de recommandations P0/P1/P2 fournit les temps et pourcentages
+mesurés, pics RSS et phase responsable, suspects de chargements répétés,
+absence éventuelle de données de fonctions CPU et trous de couverture
+UI/installation/mise à jour. Le profil détaillé des fonctions Python
+n'apparaît que si un résultat Doctor \`--deep --profile-startup\` du
+même commit est explicitement fourni avec \`--guides\`.
+
+**Aucun faux pourcentage RAM par module** : Qt, workers et caches partagés
+rendent les mesures RSS non additives. Doctor conserve une valeur
+\`null\` plutôt que d'inventer une répartition. Un delta mémoire positif
+au retour Home n'est pas une preuve de fuite et un coût répétitif n'est
+pas une preuve de fonction dupliquée. Les actions internes de chaque
+module, les FPS desktop réels et la mise à jour publique sur réseau réel
+restent explicitement \`NOT_RUN\` jusqu'à vérification dédiée.
+
+Ce rapport sert à prioriser des optimisations à partir de faits, il ne
+modifie pas les seuils Phase 8 ni les verdicts Doctor/Graphify/CI.
