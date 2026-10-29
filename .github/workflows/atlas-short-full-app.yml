@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: atlas-short-app-${{ github.event.pull_request.number || github.ref }}
+  group: atlas-short-app-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.cycles || 3 }}-${{ inputs.one_core || false }}-${{ inputs.parallel_instances || 1 }}
   cancel-in-progress: true
 
 env:
