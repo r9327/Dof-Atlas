@@ -11,6 +11,7 @@ from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
@@ -1512,6 +1513,16 @@ def _dump_compact_default_catalogue() -> int:
     return 0
 
 
+def _unique_cache_temporary_path(target: Path) -> Path:
+    """Avoid collisions when multiple Atlas instances build the same cache.
+
+    Each writer publishes only a completed file via atomic replace. Temporary
+    files must NEVER have a fixed name shared by parallel processes.
+    """
+    target = Path(target)
+    return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
+
+
 def _build_compact_cache(path: Path) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_disposable_worker_fast()
@@ -1519,8 +1530,8 @@ def _build_compact_cache(path: Path) -> int:
     path = Path(path)
     index_path = _achievement_compact_index_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    temp_index = index_path.with_suffix(index_path.suffix + ".tmp")
+    temp_path = _unique_cache_temporary_path(path)
+    temp_index = _unique_cache_temporary_path(index_path)
     offsets: dict[str, list[int]] = {}
 
     def line_bytes(payload: dict[str, object]) -> bytes:
