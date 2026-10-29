@@ -4,7 +4,10 @@ import io
 import json
 import os
 import subprocess
+import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from contextlib import redirect_stdout
 from unittest.mock import Mock, patch
 
@@ -12,6 +15,8 @@ from app.modules.encyclopedia.providers.memory_bound_achievement_provider import
     MemoryBoundAchievementProvider,
     _achievement_from_dict,
     _dump_default_detail,
+    _build_compact_cache,
+    _unique_cache_temporary_path,
 )
 
 
@@ -127,6 +132,46 @@ class AchievementDetailWorkerFastPathTests(unittest.TestCase):
         provider._load_disposable_worker_fast.assert_called_once_with()
         provider.prepare_detail_sources.assert_called_once_with()
         self.assertEqual(output.getvalue(), "")
+
+
+class AchievementParallelCacheBuilderTests(unittest.TestCase):
+    def test_temporary_file_names_are_unique_for_a_shared_cache(self):
+        dest = Path("cache") / "achievement_catalogue_v1.jsonl"
+        paths = {_unique_cache_temporary_path(dest) for _ in range(20)}
+        self.assertEqual(len(paths), 20)
+        self.assertTrue(all(p.parent == dest.parent and p.name.endswith(".tmp") for p in paths))
+        self.assertNotIn(dest.with_suffix(dest.suffix + ".tmp"), paths)
+
+    def test_simultaneous_builders_publish_a_complete_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "achievement_catalogue_v1.jsonl"
+            worker = Mock()
+            worker._categories = {}
+            worker._achievements = []
+            with patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.MemoryBoundAchievementProvider",
+                return_value=worker,
+            ), ThreadPoolExecutor(max_workers=4) as pool:
+                completed = list(pool.map(_build_compact_cache, [destination] * 4))
+            self.assertEqual(completed, [0] * 4)
+            with destination.open(encoding="utf-8") as src:
+                self.assertEqual(json.loads(src.readline())["kind"], "meta")
+                self.assertEqual(json.loads(src.readline())["kind"], "external_start")
+            index = destination.with_suffix(destination.suffix + ".idx.json")
+            self.assertEqual(json.loads(index.read_text(encoding="utf-8"))["achievement_count"], 0)
+
+    def test_parallel_achievement_names_dont_share_temporary_file(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+        with tempfile.TemporaryDirectory() as directory:
+            dest = Path(directory) / "achievement_names.json"
+            with (
+                patch.object(warm, "_ACHIEVEMENT_NAMES_FILE", dest),
+                patch.object(warm, "achievement_name_index", return_value={17: "Succès"}),
+                ThreadPoolExecutor(max_workers=4) as pool,
+            ):
+                counts = list(pool.map(lambda _: warm.write_achievement_name_index(), range(4)))
+            self.assertEqual(counts, [1] * 4)
+            self.assertEqual(json.loads(dest.read_text(encoding="utf-8")), {"17": "Succès"})
 
 
 if __name__ == "__main__":
