@@ -41,7 +41,7 @@ from tools.benchmark_phase8_preload import (
 from tools.benchmark_phase8_memory import PeakTreeSampler, memory_snapshot
 from tools.benchmark_phase8_preload import memory_mb
 from tools.atlas_perf_attribution import (
-    SpanAttributor, QtStallStackSampler, TargetedProfile, process_io,
+    SpanAttributor, QtStallStackSampler, TargetedProfile, StartupCpuProfiler, process_io,
     io_delta, render_report,
 )
 
@@ -294,8 +294,10 @@ def guide_checkpoint_targets(guide: Any, view: Any, count: int) -> list[tuple[st
 def run(*, cycles: int, output: Path, timeout: float,
         diagnose_slow_ms: float = 1000.0,
         diagnose_guides: frozenset[str] = frozenset(),
-        checkpoints: int = 3) -> dict[str, Any]:
+        checkpoints: int = 3, profile_startup: bool = False) -> dict[str, Any]:
     started_all = time.perf_counter()
+    startup_profiler = StartupCpuProfiler(enabled=profile_startup)
+    startup_profiler.begin()
     app = QApplication.instance() or QApplication([])
     after_qt = time.perf_counter()
     window = app_main.AtlasWindow()
@@ -326,6 +328,7 @@ def run(*, cycles: int, output: Path, timeout: float,
         "samples": rows,
         "timeline": timeline,
         "diagnostic_policy": {"slow_ms": diagnose_slow_ms, "checkpoints": checkpoints,
+                              "startup_instrumented": profile_startup,
                               "targeted_guides": sorted(diagnose_guides),
                               "profiled_samples_not_comparable": True},
     }
@@ -374,6 +377,11 @@ def run(*, cycles: int, output: Path, timeout: float,
         payload["atlas_guide_ids"] = guide_ids
         payload["ganymede_sources"] = ganymede_inventory(set(guide_ids))
         payload["ganymede_source_count"] = len(payload["ganymede_sources"])
+        if profile_startup:
+            payload["startup_cpu_functions"] = startup_profiler.finish()
+            payload["measurement_limits"].append(
+                "Startup cProfile modifies elapsed durations: compare CPU hotspots, not startup P95 baseline"
+            )
         write_json(output, payload)
         from app.modules.encyclopedia.views.guides_view import GuidesView
         from app.modules.encyclopedia.views.manual_route_guides_view import ManualRouteGuidesView
@@ -532,6 +540,8 @@ def run(*, cycles: int, output: Path, timeout: float,
                     payload["summary"] = summarize_samples(rows)
                     write_json(output, payload)
     finally:
+        if startup_profiler.profiler is not None:
+            payload["startup_cpu_functions"] = startup_profiler.finish()
         hooks.close()
         watchdog.end()
         watchdog.close()
@@ -565,6 +575,8 @@ def main() -> int:
     parser.add_argument("--cycles", type=int, choices=(1, 2, 5, 10), default=2)
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--checkpoints", type=int, choices=(0, 3), default=3)
+    parser.add_argument("--profile-startup", action="store_true",
+                        help="Opt-in slow startup CPU profile (not comparable to ordinary latency)")
     parser.add_argument("--diagnose-slow-ms", type=float, default=1000.0,
                         help="Profile guides that exceeded this in cycle one, during subsequent cycles")
     parser.add_argument("--diagnose-guide", action="append", default=[],
@@ -573,7 +585,7 @@ def main() -> int:
     result = run(cycles=options.cycles, output=options.output, timeout=options.timeout,
                  diagnose_slow_ms=options.diagnose_slow_ms,
                  diagnose_guides=frozenset(options.diagnose_guide),
-                 checkpoints=options.checkpoints)
+                 checkpoints=options.checkpoints, profile_startup=options.profile_startup)
     print(json.dumps({
         "status": result["status"], "git_head": result["git_head"],
         "atlas_guides": result.get("atlas_catalogue_count"),
