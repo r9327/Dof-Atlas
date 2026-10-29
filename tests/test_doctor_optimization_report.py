@@ -99,6 +99,22 @@ class OptimizationReportTests(unittest.TestCase):
         data = optimization_report(HEAD, sample(), guides=evidence)
         self.assertEqual(data["function_hotlist_status"], "NOT_RUN")
 
+    def test_home_route_drift_is_evidence_not_a_leak_claim(self):
+        doc = optimization_report(HEAD, sample(revisit_comparison={
+            "quests": {"home_tree_delta_first_to_last_mib": 14.08},
+            "crafts": {"home_tree_delta_first_to_last_mib": -2.0},
+        }))
+        self.assertEqual(doc["home_route_drift"][0]["route"], "quests")
+        self.assertTrue(any(x["id"] == "HOME_ROUTE_quests" for x in doc["priority_findings"]))
+        self.assertIn("sans preuve de fuite", render_markdown(doc))
+
+    def test_ci_step_percentages_are_kept_per_job(self):
+        doc = optimization_report(HEAD, sample(), ci_costs={"git_head": HEAD,
+            "jobs": [{"job": "Windows Packaging", "steps": [
+                {"step": "EXE", "duration_seconds": 30.0, "percent_of_job_measured_steps": 75.0}]}]})
+        self.assertEqual(doc["ci_step_costs"][0]["job"], "Windows Packaging")
+        self.assertIn("75.0% du job", render_markdown(doc))
+
     def test_bad_rss_numbers_not_counted(self):
         doc = optimization_report(HEAD, sample(
             peak_process_tree_rss_mib=True, idle_tree_rss_delta_mib=float("nan")))
