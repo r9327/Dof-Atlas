@@ -438,6 +438,30 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for("tools/unknown_new_policy.py"), frozenset())
         self.assertEqual(self.route(["tools/unknown_new_policy.py"])["status"], "BLOCKED")
 
+    def test_eight_atlas_shared_cache_files_have_reviewed_cross_domain_owners(self):
+        affected = {
+            "app/startup_cache_warmup.py": {"startup", "quests", "guides", "data"},
+            "app/modules/encyclopedia/services/achievement_index_warmup.py":
+                {"startup", "quests", "guides"},
+        }
+        for path, domains in affected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(domains))
+        plan = self.route(list(affected) + [
+            "tools/ci_domain_certification.py",
+            ".github/workflows/atlas-doctor-complete-benchmark.yml",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(set(plan["domains"]),
+                         {"ci", "quests", "guides", "startup", "data"})
+        # Do not create a loophole for a new cache worker or unrelated module.
+        self.assertEqual(owners_for("app/startup_cache_unreviewed.py"), frozenset())
+        self.assertEqual(
+            owners_for("app/modules/encyclopedia/services/achievement_unreviewed.py"),
+            frozenset(),
+        )
+
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])
         self.assertEqual(plan["status"], "BLOCKED")
