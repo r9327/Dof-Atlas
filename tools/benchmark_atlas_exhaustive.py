@@ -207,6 +207,15 @@ def guide_visible(page: Any, guide_id: str) -> bool:
     if guide_id == "guide_complet":
         return (current is not None and current is getattr(view, "guide_ultime_view", None)
                 and bool(getattr(getattr(view, "guide_ultime_service", None), "available", False)))
+    # Optimized route guides (e.g. Sylvestre) use a dedicated manual card
+    # renderer, not detail_page. Verify both the real active widget AND its
+    # populated/available runtime; do not mistakenly wait 45s for detail_page.
+    manual_views = getattr(view, "_catalog_manual_views", {}) or {}
+    if guide_id in manual_views:
+        service = (getattr(view, "_catalog_manual_services", {}) or {}).get(guide_id)
+        return (current is not None and current is manual_views[guide_id]
+                and bool(getattr(service, "available", False))
+                and bool(getattr(service, "cards", None)))
     return current is not None and current is getattr(view, "detail_page", None)
 
 
@@ -253,9 +262,14 @@ def guide_checkpoint_targets(guide: Any, view: Any, count: int) -> list[tuple[st
     """Select safe, representative UI destinations; never mark steps completed."""
     if count == 0:
         return []
-    if str(guide.id) == "guide_complet":
-        manual_view = getattr(view, "guide_ultime_view", None)
-        service = getattr(view, "guide_ultime_service", None)
+    guide_id = str(guide.id)
+    manual_views = getattr(view, "_catalog_manual_views", {}) or {}
+    manual_services = getattr(view, "_catalog_manual_services", {}) or {}
+    if guide_id == "guide_complet" or guide_id in manual_views:
+        manual_view = (getattr(view, "guide_ultime_view", None) if guide_id == "guide_complet"
+                       else manual_views.get(guide_id))
+        service = (getattr(view, "guide_ultime_service", None) if guide_id == "guide_complet"
+                   else manual_services.get(guide_id))
         cards = getattr(service, "cards", ()) or ()
         navigate = getattr(manual_view, "_show_index", None)
         if not cards or not callable(navigate):
@@ -362,6 +376,7 @@ def run(*, cycles: int, output: Path, timeout: float,
         payload["ganymede_source_count"] = len(payload["ganymede_sources"])
         write_json(output, payload)
         from app.modules.encyclopedia.views.guides_view import GuidesView
+        from app.modules.encyclopedia.views.manual_route_guides_view import ManualRouteGuidesView
         hooks.enter_context(attributor.instrument(page.__class__, (
             "navigate_to_guide", "open_pending_lazy_tab", "ensure_full_guides_view",
             "_start_full_guide_runtime",
@@ -372,6 +387,10 @@ def run(*, cycles: int, output: Path, timeout: float,
             "_populate_guide_left", "_populate_series_quests",
             "_populate_guide_navigation", "_populate_guide_info",
             "ensure_guide_ultime_view",
+        )))
+        hooks.enter_context(attributor.instrument(ManualRouteGuidesView, (
+            "select_guide", "ensure_catalog_manual_view",
+            "_catalog_route_map_count", "_refresh_catalog_route_home_labels",
         )))
         hooks.enter_context(attributor.instrument(provider.__class__, ("get_by_id", "load_all")))
 
