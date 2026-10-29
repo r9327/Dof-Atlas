@@ -39,6 +39,19 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["priority_findings"][0]["id"], "RAM_PEAK")
         self.assertIn("RAM par module: NOT_MEASURED", render_markdown(doc))
 
+    def test_benchmark_home_wait_is_not_ranked_as_atlas_hotspot(self):
+        app = sample(cost_attribution={"status": "OBSERVED", "shares": [
+            {"phase": "home_return", "wall_ms": 52133,
+             "wall_pct_of_entire_probe": 81.19},
+            {"phase": "functional_preload", "wall_ms": 9416,
+             "wall_pct_of_entire_probe": 14.67},
+        ], "repeated_work_suspects": []})
+        doc = optimization_report(HEAD, app)
+        hot = next(x for x in doc["priority_findings"] if x["id"] == "HOT_PHASE")
+        self.assertIn("functional_preload", hot["title"])
+        self.assertEqual(doc["non_actionable_benchmark_phases"][0]["phase"], "home_return")
+        self.assertIn("pauses forcées", render_markdown(doc))
+
     def test_repeated_suspect_never_promises_savings(self):
         app = sample(cost_attribution={"status": "OBSERVED",
             "shares": [{"phase": "quests", "wall_ms": 400,

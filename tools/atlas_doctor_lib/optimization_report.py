@@ -44,8 +44,12 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
         add("P0", "COST_MISSING", "No trustworthy measured cost distribution",
             str(cost.get("reason") or cost.get("status") or "NOT_RUN"),
             "Verify disjoint phase timers and preserve uninstrumented time")
+    # The menu probe intentionally waits ~750 ms on each Home return and may
+    # spend 60 seconds in post-Home idle. Those wall spans are BENCHMARK COST,
+    # not an actionable Atlas performance hotspot.
+    non_actionable = {"home_return", "post_home_idle", "other_or_uninstrumented"}
     if shares:
-        biggest = next((r for r in shares if r.get("phase") != "other_or_uninstrumented"), None)
+        biggest = next((r for r in shares if r.get("phase") not in non_actionable), None)
         if biggest:
             add("P1", "HOT_PHASE", "Most expensive measured phase: " + str(biggest["phase"]),
                 str(biggest["wall_ms"]) + " ms / " + str(biggest.get("wall_pct_of_entire_probe")) + "% wall",
@@ -138,6 +142,9 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
         "status": "DIAGNOSTIC_READY" if valid and shares else "BLOCKED",
         "is_certification": False, "priority_findings": findings,
         "measured_costs": shares[:30], "repeated_work_suspects": repeats,
+        "non_actionable_benchmark_phases": [
+            row for row in shares if row.get("phase") in {"home_return", "post_home_idle"}
+        ],
         "home_route_drift": home_drifts[:20],
         "memory": {"process_tree_peak_mib": peak, "worst_tree_phase": app.get("worst_tree_phase") if valid else None,
                    "idle_rss_delta_mib": idle_delta, "module_rss_percentages": None,
@@ -176,6 +183,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("| " + " | ".join(str(r.get(k)) for k in
             ("phase", "wall_ms", "wall_pct_of_entire_probe", "process_cpu_ms",
              "cpu_pct_of_measured_process_cpu")) + " |")
+    lines += ["", "## Temps imposés par le banc (non optimisables dans Atlas)", ""]
+    for r in report["non_actionable_benchmark_phases"]:
+        lines.append("- " + str(r.get("phase")) + ": " + str(r.get("wall_ms")) +
+                     " ms / " + str(r.get("wall_pct_of_entire_probe")) +
+                     "% de la sonde. Inclut les pauses forcées, ne pas classer comme lenteur applicative.")
     lines += ["", "## Fonctions et méthodes instrumentées", ""]
     if not report["function_hotlist"]:
         lines.append("Profil de fonctions: NOT_RUN (ne pas attribuer des coûts non mesurés).")
