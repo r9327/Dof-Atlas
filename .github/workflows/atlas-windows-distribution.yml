@@ -1,6 +1,11 @@
 name: Atlas Windows Distribution
 on:
   workflow_call:
+    inputs:
+      full_candidate:
+        description: "Build isolated, unpublished full EXE/installer/manifest candidate for Doctor"
+        type: boolean
+        default: false
   workflow_dispatch:
   workflow_run:
     workflows: ["Phase Certification"]
@@ -10,7 +15,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: atlas-distribution-${{ github.event_name == 'workflow_run' && 'release' || github.event_name == 'workflow_dispatch' && 'manual' || github.event.action == 'ready_for_review' && 'candidate' || 'focused' }}-${{ github.ref }}
+  group: atlas-distribution-${{ github.workflow }}-${{ inputs.full_candidate && 'doctor-full-candidate' || github.event_name == 'workflow_run' && 'release' || github.event_name == 'workflow_dispatch' && 'manual' || github.event.action == 'ready_for_review' && 'candidate' || 'focused' }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   focused:
@@ -162,6 +167,7 @@ jobs:
       always() &&
       (
         github.event_name == 'workflow_dispatch' ||
+        inputs.full_candidate == true ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
          (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
@@ -212,6 +218,7 @@ jobs:
       - name: Materialize complete application assets for candidate certification or release
         if: >-
           github.event_name == 'workflow_run' ||
+          inputs.full_candidate == true ||
           (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           # A ready-for-review build is a full, *unpublished* production candidate.
@@ -371,7 +378,9 @@ jobs:
       - name: Package ZIP, manifest and launcher
         if: >-
           github.event_name == 'workflow_run' ||
-          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
+          inputs.full_candidate == true ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review') ||
+          inputs.full_candidate == true
         run: |
           version="0.1.0-$(echo "$SOURCE_SHA" | cut -c1-12)"
           python -m scripts.windows.package_release \
@@ -386,6 +395,7 @@ jobs:
       - name: Require every pinned Quest source in the signed Release manifest
         if: >-
           github.event_name == 'workflow_run' ||
+          inputs.full_candidate == true ||
           (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           python - <<'PY'
@@ -419,7 +429,8 @@ jobs:
           PY
       - name: Validate full candidate ZIP and manifest integrity
         if: >-
-          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+          inputs.full_candidate == true ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           python - <<'PY'
           import hashlib
@@ -447,6 +458,7 @@ jobs:
       - name: Ensure multipart pieces match the release manifest
         if: >-
           github.event_name == 'workflow_run' ||
+          inputs.full_candidate == true ||
           (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           python - <<'PY'
@@ -472,7 +484,8 @@ jobs:
           fi
       - name: Upload unmerged full Windows distribution candidate
         if: >-
-          github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+          inputs.full_candidate == true ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: atlas-windows-full-candidate-${{ env.SOURCE_SHA }}
