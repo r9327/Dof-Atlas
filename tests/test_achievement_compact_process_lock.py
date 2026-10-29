@@ -11,10 +11,67 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from app.modules.encyclopedia.services.achievement_index_warmup import (
+    _replace_name_index_with_windows_retry,
+)
 
 from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
     _achievement_compact_write_lock,
 )
+
+
+class AchievementNameIndexWindowsSharingTests(unittest.TestCase):
+    def test_transient_windows_share_violation_retries_and_replaces(self):
+        with tempfile.TemporaryDirectory(prefix="atlas-success-names-") as directory:
+            root = Path(directory)
+            temporary, target = root / "new.json", root / "names.json"
+            temporary.write_text('{"1": "Success"}', encoding="utf-8")
+            original_replace = Path.replace
+            attempts = []
+
+            def simulated_replace(self, destination):
+                attempts.append(self)
+                if len(attempts) < 3:
+                    error = PermissionError(13, "Windows sharing violation")
+                    error.winerror = 32
+                    raise error
+                return original_replace(self, destination)
+
+            with patch.object(Path, "replace", simulated_replace), patch(
+                "app.modules.encyclopedia.services.achievement_index_warmup.sleep"
+            ) as pause:
+                _replace_name_index_with_windows_retry(temporary, target, windows=True)
+            self.assertEqual(len(attempts), 3)
+            self.assertEqual(pause.call_count, 2)
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"1": "Success"}')
+            self.assertFalse(temporary.exists())
+
+    def test_persistent_share_violation_is_not_waived(self):
+        with tempfile.TemporaryDirectory(prefix="atlas-success-names-") as directory:
+            root = Path(directory)
+            temporary, target = root / "new.json", root / "names.json"
+            temporary.write_text("value", encoding="utf-8")
+            error = PermissionError(13, "Windows sharing violation")
+            error.winerror = 32
+            with patch.object(Path, "replace", side_effect=error) as replace, patch(
+                "app.modules.encyclopedia.services.achievement_index_warmup.sleep"
+            ):
+                with self.assertRaises(PermissionError):
+                    _replace_name_index_with_windows_retry(temporary, target, windows=True)
+            self.assertEqual(replace.call_count, 10)
+            self.assertFalse(target.exists())
+
+    def test_non_sharing_permission_error_is_not_retried(self):
+        with tempfile.TemporaryDirectory(prefix="atlas-success-names-") as directory:
+            root = Path(directory)
+            temporary, target = root / "new.json", root / "names.json"
+            temporary.write_text("value", encoding="utf-8")
+            with patch.object(Path, "replace", side_effect=PermissionError(13, "denied")) as replace:
+                with self.assertRaises(PermissionError):
+                    _replace_name_index_with_windows_retry(temporary, target, windows=True)
+            self.assertEqual(replace.call_count, 1)
 
 
 class SharedSuccessCacheLockTests(unittest.TestCase):

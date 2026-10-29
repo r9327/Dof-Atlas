@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from uuid import uuid4
+from time import sleep
 
 from app.constants import ROOT_DIR
 
@@ -48,6 +49,26 @@ def achievement_name_index() -> dict[int, str]:
     return names
 
 
+def _replace_name_index_with_windows_retry(
+    temporary, destination, *, windows: bool | None = None
+) -> None:
+    """Retry only a genuine Windows sharing violation, not arbitrary errors.
+
+    The cache is rebuildable and each writer uses a unique .tmp file. Windows
+    may briefly deny replacement while another Atlas worker opens the name
+    index. Never return success without a completed atomic replace.
+    """
+    is_windows = os.name == "nt" if windows is None else windows
+    for attempt in range(10):
+        try:
+            temporary.replace(destination)
+            return
+        except PermissionError as exc:
+            if not is_windows or getattr(exc, "winerror", None) != 32 or attempt == 9:
+                raise
+            sleep(0.025 * (attempt + 1))
+
+
 def write_achievement_name_index() -> int:
     names = achievement_name_index()
     _ACHIEVEMENT_NAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +79,11 @@ def write_achievement_name_index() -> int:
         json.dumps(names, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    temporary.replace(_ACHIEVEMENT_NAMES_FILE)
+    try:
+        _replace_name_index_with_windows_retry(temporary, _ACHIEVEMENT_NAMES_FILE)
+    finally:
+        # A failed replacement must not pollute the next worker attempt.
+        temporary.unlink(missing_ok=True)
     return len(names)
 
 
