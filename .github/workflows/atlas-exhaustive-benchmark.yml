@@ -1,0 +1,147 @@
+name: Atlas Exhaustive Guide Performance
+
+on:
+  workflow_dispatch:
+    inputs:
+      cycles:
+        description: "Complete passes through EVERY playable Atlas guide"
+        type: choice
+        required: true
+        default: "2"
+        options: ["1", "2", "5", "10"]
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-exhaustive-benchmark.yml"
+      - "tools/benchmark_atlas_exhaustive.py"
+      - "tests/test_atlas_exhaustive_benchmark.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-exhaustive-guides-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  exhaustive-guides:
+    name: Every playable guide / Windows RAM CPU Qt stall
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout the exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Check exact checkout
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($head -ne $env:CANDIDATE_SHA) {
+            throw "Benchmark checkout SHA mismatch: $head vs $env:CANDIDATE_SHA"
+          }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install pinned app dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize actual Guide data
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $catalog = "data/cache/dofus_maps/raw/doduda_cli"
+          if (Test-Path -LiteralPath $catalog) {
+            Remove-Item -LiteralPath $catalog -Recurse -Force
+          }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          count = len(QuestCatalog.load().quests)
+          print(f"Quest catalogue: {count} quests")
+          if count < 1900:
+              raise SystemExit(f"Incomplete quest catalogue: {count}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate exhaustive benchmark contracts
+        run: |
+          python -m py_compile tools/benchmark_atlas_exhaustive.py tests/test_atlas_exhaustive_benchmark.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X faulthandler -m unittest -v tests.test_atlas_exhaustive_benchmark
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Measure all guides and keep per-guide evidence
+        run: |
+          $cycles = "2"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $cycles = "${{ inputs.cycles }}"
+          }
+          New-Item -ItemType Directory -Path artifacts/atlas_exhaustive -Force | Out-Null
+          python -X faulthandler -m tools.benchmark_atlas_exhaustive --cycles $cycles --output artifacts/atlas_exhaustive/guides.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Print exhaustive guide evidence
+        if: always()
+        run: |
+          $path = "artifacts/atlas_exhaustive/guides.json"
+          if (-not (Test-Path $path)) {
+            Write-Warning "No guide evidence produced"
+            exit 0
+          }
+          $doc = Get-Content $path -Raw | ConvertFrom-Json
+          $lines = @(
+            "## Exhaustive Atlas Guide benchmark",
+            "",
+            "- Candidate: $($doc.git_head)",
+            "- Status: $($doc.status)",
+            "- Atlas playable guides: $($doc.atlas_catalogue_count)",
+            "- Ganymede reference-only inventory: $($doc.ganymede_source_count)",
+            "- Runs PASS/total: $($doc.summary.passed)/$($doc.summary.planned)",
+            "- Guide open p50/p95/p99 (ms): $($doc.summary.open_p50_ms) / $($doc.summary.open_p95_ms) / $($doc.summary.open_p99_ms)",
+            "- Qt offscreen stalls 250ms+: $($doc.summary.freeze_count_250ms)",
+            "- Peak Atlas RSS (MiB): $($doc.peak_atlas_process_mb)",
+            "- Peak Atlas process-tree RSS (MiB): $($doc.peak_process_tree_mb)",
+            "",
+            "Each guide/cycle is listed in guides.csv; Ganymede metadata-only references are in guides.json.",
+            "Qt offscreen stalls do NOT prove Windows desktop display FPS or real EXE launch performance."
+          )
+          if ($env:GITHUB_STEP_SUMMARY) {
+            $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
+          $lines | ForEach-Object { Write-Host $_ }
+
+      - name: Upload ALL results including partial failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-exhaustive-guides-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/atlas_exhaustive/**
+          if-no-files-found: warn
+          retention-days: 30
