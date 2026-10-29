@@ -15,6 +15,7 @@ from typing import Any
 EXPECTED = (
     "app_navigation", "guides", "phase8_memory", "phase8_preload",
     "qt_ui", "distribution", "functional_contracts", "graphify",
+    "app_multi_instance", "one_core",
 )
 ALIASES = {
     "atlas_quick_full_app_navigation": "app_navigation",
@@ -23,6 +24,30 @@ ALIASES = {
 }
 BAD = frozenset({"FAIL", "FAILED", "BLOCKED", "ERROR", "CANCELLED", "TIMED_OUT"})
 GOOD = frozenset({"PASS", "SUCCESS", "OBSERVED", "AUTOMATED_PASS_NATIVE_NOT_CERTIFIED"})
+
+
+JOB_CAPABILITIES = {
+    "MENUS": "app_navigation", "GUIDES": "guides", "MEMORY": "phase8_memory",
+    "PRELOAD": "phase8_preload", "CONTRACTS": "functional_contracts",
+    "UI": "qt_ui", "DISTRIBUTION": "distribution", "GRAPHIFY": "graphify",
+    "EIGHT_ATLAS": "app_multi_instance", "ONE_CORE": "one_core",
+}
+
+
+def job_result_sources(sha: str, jobs: dict[str, str]) -> list[tuple[str, str, dict[str, Any]]]:
+    """CI job results supplied by trusted needs, explicitly marked job-level."""
+    result = []
+    for job, capability in JOB_CAPABILITIES.items():
+        if job not in jobs:
+            continue
+        status = str(jobs[job]).lower()
+        result.append((capability, f"github-actions-needs/{job}", {
+            "kind": "github_actions_job_result", "git_head": sha,
+            "status": "PASS" if status == "success" else "FAIL",
+            "original_job_conclusion": status,
+            "evidence_level": "job_result_only_not_individual_measurement",
+        }))
+    return result
 
 
 def summarize_sources(
@@ -62,6 +87,8 @@ def summarize_sources(
             "capability": cap, "path": path, "source_kind": data.get("kind"),
             "source_sha": provenance, "verdict": verdict, "status": status,
         }
+        if data.get("evidence_level"):
+            source["evidence_level"] = str(data["evidence_level"])
         if cap == "app_navigation" and isinstance(data.get("cost_attribution"), dict):
             source["cost_attribution"] = data["cost_attribution"]
         if isinstance(data.get("blocking_reasons"), list):
@@ -126,7 +153,7 @@ def build_hub(root: Path, *, sha: str, sources: list[str],
     files = []
     for entry in sources:
         cap, sep, raw = entry.partition("=")
-        if not sep or cap not in (*EXPECTED, "app_multi_instance", "ci"):
+        if not sep or cap not in (*EXPECTED, "ci"):
             raise ValueError(f"Unknown evidence capability: {cap[:60]}")
         path = (root / raw).resolve()
         if not path.is_relative_to(root / "artifacts") or not path.is_file():
@@ -143,7 +170,7 @@ def build_hub(root: Path, *, sha: str, sources: list[str],
         jobs = json.loads(p.read_text(encoding="utf-8"))
         if not isinstance(jobs, dict):
             raise ValueError("Job result map must be a dictionary")
-    report = summarize_sources(sha=sha, inputs=files, job_results=jobs)
+    report = summarize_sources(sha=sha, inputs=job_result_sources(sha, jobs or {}) + files, job_results=jobs)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
