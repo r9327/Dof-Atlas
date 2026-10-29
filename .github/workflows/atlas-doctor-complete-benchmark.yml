@@ -210,7 +210,9 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: atlas-short-complete-app-c${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}-*
+          # Download only the primary multi-route report. The one-core job also
+          # runs 3 cycles, but has a DIFFERENT denominator and must stay separate.
+          pattern: atlas-short-complete-app-c${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}-cpufalse-p1-*
           path: artifacts/doctor_complete/inputs/app
           merge-multiple: false
 
