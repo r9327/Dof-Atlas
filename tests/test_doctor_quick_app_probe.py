@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, run
 from tools.atlas_doctor import command_perf
-from tools.atlas_doctor_lib.parallel_app import validate_instance
+from tools.atlas_doctor_lib.parallel_app import validate_instance, prepare_instance_user_root
 
 
 class ShortWholeAppProbeTests(unittest.TestCase):
@@ -131,6 +132,31 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         self.assertIn("PRELOAD_NOT_READY", validate_instance(
             {**good, "preload_states": {"craft": "FAILED"}}, sha="a" * 40))
         self.assertIn("WRONG_COMMIT", validate_instance(good, sha="b" * 40))
+
+    def test_eight_atlas_user_roots_do_not_share_organizer_or_craft_files(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "data/local/dofus_data.sqlite"
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b"isolated-craft-ci-fixture")
+            first = prepare_instance_user_root(root, root / "artifacts/users/user_01")
+            second = prepare_instance_user_root(root, root / "artifacts/users/user_02")
+            self.assertNotEqual(first, second)
+            self.assertEqual((first / "data/local/dofus_data.sqlite").read_bytes(), source.read_bytes())
+            self.assertEqual((second / "data/local/dofus_data.sqlite").read_bytes(), source.read_bytes())
+            # An Organizer write in one private user root never touches its sibling.
+            target = first / "data/client_index.ini"
+            target.write_text("instance1", encoding="utf-8")
+            self.assertFalse((second / "data/client_index.ini").exists())
+            self.assertFalse((root / "data/client_index.ini").exists())
+            (first / "data/local/dofus_data.sqlite").write_bytes(b"changed")
+            self.assertEqual((second / "data/local/dofus_data.sqlite").read_bytes(), source.read_bytes())
+
+    def test_eight_atlas_requires_real_seed_not_a_fake_preload(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            with self.assertRaises(FileNotFoundError):
+                prepare_instance_user_root(root, root / "artifacts/users/user_01")
 
     def test_doctor_routes_eight_real_processes_through_single_entrypoint(self):
         args = SimpleNamespace(
