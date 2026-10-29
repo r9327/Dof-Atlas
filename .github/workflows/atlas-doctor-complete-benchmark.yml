@@ -1,0 +1,163 @@
+name: Atlas Doctor Complete Benchmark
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-doctor-complete-benchmark.yml"
+      - ".github/workflows/atlas-short-full-app.yml"
+      - ".github/workflows/atlas-exhaustive-benchmark.yml"
+      - "tools/atlas_doctor.py"
+      - "tools/doctor_quick_app_probe.py"
+      - "tests/test_doctor_quick_app_probe.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-doctor-complete-${ github.event.pull_request.number || github.ref }
+  cancel-in-progress: true
+
+# A single orchestration of the existing canonical engines. No new benchmark
+# implementation, no mandatory long campaign on unrelated small PRs.
+jobs:
+  all-menus:
+    name: Doctor / 20 routes x 10 + 60s idle
+    uses: ./.github/workflows/atlas-short-full-app.yml
+    with:
+      cycles: 10
+      idle_seconds: 60
+      max_seconds: 1200
+
+  all-guides:
+    name: Doctor / all playable guides
+    uses: ./.github/workflows/atlas-exhaustive-benchmark.yml
+
+  phase8-memory:
+    name: Canonical RAM and lifecycle budgets
+    uses: ./.github/workflows/phase8-memory-benchmark.yml
+
+  phase8-preload:
+    name: Canonical preload cold/warm comparison
+    uses: ./.github/workflows/phase8-preload-benchmark.yml
+    with:
+      base_ref: "${ github.event.pull_request.base.sha || 'main' }"
+
+  domain-contracts:
+    name: Functional modules, identities, UI and launcher
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      QT_OPENGL: software
+      QT_QUICK_BACKEND: software
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: "${ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }"
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+      - name: Install pinned dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify actual functional contracts (not just menu opening)
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_application_runtime_characterization `
+            tests.test_atlas_lifecycle_soak `
+            tests.test_atlas_doctor_app_ui_smoke `
+            tests.test_atlas_doctor_encyclopedia_smoke `
+            tests.test_atlas_doctor_resource_lifecycle `
+            tests.test_character_identity_contract `
+            tests.test_character_binding_coordination `
+            tests.test_guide_continuous_navigation `
+            tests.test_guide_progress_persistence `
+            tests.test_guide_preparation_model_qt `
+            tests.test_achievement_progress_json_store `
+            tests.test_craft_minimal_lazy `
+            tests.test_cartography_recovery_security `
+            tests.test_distribution_smart_update `
+            tests.test_distribution_first_boot `
+            tests.test_distribution_health `
+            tests.test_distribution_install_location `
+            tests.test_distribution_launcher_noop_offline `
+            tests.test_equipment_deferred_start `
+            tests.test_functional_preload_v2 `
+            tests.test_startup_preload_window_visibility `
+            tests.test_fault_injection_contracts `
+            tests.test_doctor_quick_app_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  suite-verdict:
+    name: Doctor / required results and honest coverage
+    if: always()
+    needs: [all-menus, all-guides, phase8-memory, phase8-preload, domain-contracts]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write fail-closed suite outcome
+        env:
+          MENUS: "${ needs.all-menus.result }"
+          GUIDES: "${ needs.all-guides.result }"
+          MEMORY: "${ needs.phase8-memory.result }"
+          PRELOAD: "${ needs.phase8-preload.result }"
+          CONTRACTS: "${ needs.domain-contracts.result }"
+          SOURCE_SHA: "${ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }"
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          jobs = {key: os.environ[key] for key in ("MENUS", "GUIDES", "MEMORY", "PRELOAD", "CONTRACTS")}
+          missing = [key for key, value in jobs.items() if value != "success"]
+          payload = {
+              "kind": "atlas_doctor_complete_automated_suite",
+              "sha": os.environ["SOURCE_SHA"],
+              "job_results": jobs,
+              "status": "BLOCKED" if missing else "AUTOMATED_PASS_NATIVE_NOT_CERTIFIED",
+              "failed_or_unexecuted_jobs": missing,
+              "not_covered_on_github_hosted_qt_offscreen": [
+                  "8 real DOFUS clients (not eight Atlas UI menus)",
+                  "physically constrained low-end Windows hardware",
+                  "human-visible EXE + launcher + Windows DPI/GPU FPS",
+                  "real update/download/rollback on final packaged Windows installer",
+                  "all clicks and mutations inside every business page",
+                  "placeholder business features not implemented",
+              ],
+              "is_final_release_certification": False,
+          }
+          folder = Path("artifacts/doctor_complete")
+          folder.mkdir(parents=True, exist_ok=True)
+          (folder / "suite.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(payload, indent=2))
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as out:
+              out.write("## Doctor Complete Automated Benchmark\n\n")
+              out.write(f"SHA: `{payload['sha']}` | **{payload['status']}**\n\n")
+              for key, result in jobs.items():
+                  out.write(f"- {key}: {result}\n")
+              out.write("\nNative Windows and 8 real clients remain NOT RUN, not PASS.\n")
+          if missing:
+              raise SystemExit("Doctor BLOCKED: missing or failed required benchmark stages: " + ", ".join(missing))
+          PY
+      - name: Archive exact-SHA coverage ledger even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-doctor-complete-verdict-${ github.run_id }-${ github.run_attempt }
+          path: artifacts/doctor_complete/**
+          if-no-files-found: error
+          retention-days: 30
