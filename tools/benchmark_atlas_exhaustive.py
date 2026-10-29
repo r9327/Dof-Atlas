@@ -58,17 +58,22 @@ def percentile(values: list[float], percent: float) -> float | None:
 
 def summarize_samples(rows: list[dict[str, Any]]) -> dict[str, Any]:
     completed = [row for row in rows if row["status"] == "PASS"]
-    times = [float(row["open_ms"]) for row in completed]
+    # cProfile/tracemalloc can radically increase execution time; exclude
+    # high-overhead targeted replays from normal distribution statistics.
+    clean = [row for row in completed if not row.get("profiled")]
+    times = [float(row["open_ms"]) for row in clean]
     return {
         "planned": len(rows),
         "passed": len(completed),
         "failed": len(rows) - len(completed),
+        "normal_samples": len(clean),
+        "profiled_samples": len(completed) - len(clean),
         "open_p50_ms": percentile(times, 50),
         "open_p95_ms": percentile(times, 95),
         "open_p99_ms": percentile(times, 99),
         "slowest_guides": [
             {"guide_id": row["guide_id"], "cycle": row["cycle"], "open_ms": row["open_ms"]}
-            for row in sorted(completed, key=lambda row: row["open_ms"], reverse=True)[:10]
+            for row in sorted(clean, key=lambda row: row["open_ms"], reverse=True)[:10]
         ],
         "freeze_count_250ms": sum(
             int(row.get("open_ui", {}).get("stall_250ms", 0)) +
