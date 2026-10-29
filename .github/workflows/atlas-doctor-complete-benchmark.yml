@@ -113,22 +113,29 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts/doctor_complete
-          python -m tools.atlas_doctor code-inspect --base-ref "${{ github.event.pull_request.base.sha || 'main' }}" --json > artifacts/doctor_complete/duplicate_review.json
-          python - <<'PY'
-          import json, subprocess
-          from pathlib import Path
-          path = Path("artifacts/doctor_complete/duplicate_review.json")
-          result = json.loads(path.read_text(encoding="utf-8"))
-          result["git_head"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-          result["kind"] = "atlas_doctor_code_inspect"
-          path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-          PY
+          # The canonical full code inspector can legitimately return REVIEW
+          # because no optional graph/runtime evidence was supplied. Its
+          # actual AST duplicate scan is certified independently, fail-closed.
+          set +e
+          python -m tools.atlas_doctor code-inspect --base-ref "${{ github.event.pull_request.base.sha || 'main' }}" --json > artifacts/doctor_complete/code_inspection_raw.json
+          inspector_exit=$?
+          set -e
+          if [ "$inspector_exit" -gt 1 ]; then
+            echo "Doctor code inspector BLOCKED or failed: $inspector_exit"
+            exit "$inspector_exit"
+          fi
+          python -m tools.atlas_doctor_lib.duplicate_evidence \
+            --raw artifacts/doctor_complete/code_inspection_raw.json \
+            --sha "$(git rev-parse HEAD)" \
+            --output artifacts/doctor_complete/duplicate_review.json
       - name: Preserve exact duplicate evidence even on review
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-code-duplicate-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_complete/duplicate_review.json
+          path: |
+            artifacts/doctor_complete/duplicate_review.json
+            artifacts/doctor_complete/code_inspection_raw.json
           if-no-files-found: warn
 
   domain-contracts:
