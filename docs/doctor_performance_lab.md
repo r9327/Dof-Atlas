@@ -85,3 +85,38 @@ Le lab reste volontairement un **outil de diagnostic**, pas un mécanisme
 qui modifie les budgets existants ou déclare artificiellement les lenteurs
 acceptables. Toute optimisation doit être associée au commit avant/après,
 aux traces, et à une vérification de non-régression.
+
+## Suite complète automatisée (volontaire, pas de nouvelle FULL)
+
+Le workflow `.github/workflows/atlas-doctor-complete-benchmark.yml` orchestre **une seule fois**
+les moteurs existants et leurs propres preuves, sans recréer de second benchmark :
+
+- Doctor `perf --app` : 20 entrées × 10 cycles, preload Quêtes/Encyclopédie/Craft,
+  CPU/RSS/process-tree/latences Qt, retour Home et 60 secondes de repos mesuré.
+- Doctor `perf --app --one-core` : scénario séparé avec affinité CPU Windows
+  **appliquée puis vérifiée**, 3 cycles et 60 secondes de repos. **Ce n'est
+  pas un vrai ordinateur bas de gamme** et ne limite ni RAM ni disque.
+- Doctor `perf --deep` : chaque guide Atlas exécutable, 2 passages, gardien
+  de couverture du manifeste et attribution des coûts. Les sources Ganymède
+  non exécutables restent distinctes.
+- Phase 8 mémoire et préchargement : workflows canoniques réutilisés,
+  budgets RAM historiques inchangés, comparaison cold/warm.
+- Tests de contrats métiers internes représentatifs : navigation détaillée,
+  identité, progression, succès, équipement, Craft, cartes, launcher,
+  rollback et preload. Ils ne remplacent pas un essai humain de l'EXE.
+
+La suite produit `artifacts/doctor_complete/suite.json` avec le SHA exact et
+un état par étape. Une étape `skipped`, `cancelled` ou `failure` est
+**bloquante** ; aucune réussite de navigation ne remplace une réussite de
+preload ou de budget mémoire. La suite complète est opt-in et n'allonge pas
+les certifications des PR ordinaires. Les campagnes de banc peuvent être
+lancées sur la PR de développement, puis sur `main` via workflow_dispatch.
+
+Limites bloquantes pour une vraie certification exhaustive de release :
+8 clients **DOFUS** simultanés (distincts de huit personnages Atlas),
+matériel faible réel, FPS Windows/DPI/GPU, véritable EXE/launcher et scénario
+d'installation/MAJ/rollback réseau bout en bout. GitHub Hosted Windows en
+Qt `offscreen` ne peut pas attester ces essais. Ils restent **NOT RUN**
+dans le rapport, et nécessitent une station de test Windows graphique avec
+un opérateur et des données de validation isolées. Les 5 placeholders du
+menu ne deviennent pas des fonctionnalités certifiées.
