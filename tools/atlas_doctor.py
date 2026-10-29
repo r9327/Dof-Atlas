@@ -581,6 +581,8 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
 
 
 def command_perf(root: Path, args) -> dict[str, Any]:
+    if args.deep:
+        return command_perf_lab(root, args)
     _audit(root, force=False, integrity_mode=None)
     payload = run_performance(root, include_runtime=not args.files_only)
     if not args.json:
@@ -904,20 +906,20 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument('--sample-seconds', type=float, default=0.5)
     live.add_argument('--no-io-trace', action='store_true')
 
-    deep_perf = sub.add_parser(
-        'perf-lab', help='Doctor: profiler tous les guides (CPU, RAM, Qt, I/O, fonctions), opt-in.')
-    deep_perf.add_argument('--cycles', type=int, choices=(1, 2, 5, 10), default=2)
-    deep_perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
-                           help='Par guide: 3 premiers/milieu/dernier jalons ou 0.')
-    deep_perf.add_argument('--output', type=Path,
-                           default=Path('artifacts/atlas_exhaustive/guides.json'))
-    deep_perf.add_argument('--timeout', type=float, default=45.0)
-    deep_perf.add_argument('--diagnose-slow-ms', type=float, default=1000.0)
-    deep_perf.add_argument('--diagnose-guide', action='append', default=[])
-    deep_perf.add_argument('--py-spy', action='store_true',
-                           help='Optional py-spy Speedscope sample; requires separate installation.')
-    perf = sub.add_parser('perf')
+    perf = sub.add_parser('perf', help='Doctor Performance Lab, standard ou --deep tous les guides.')
     perf.add_argument('--files-only', action='store_true', help='Ne pas lancer le benchmark Qt runtime.')
+    perf.add_argument('--deep', action='store_true',
+                      help='Mode exhaustif par guide, sans relancer le bench standard.')
+    perf.add_argument('--cycles', type=int, choices=(1, 2, 5, 10), default=2)
+    perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
+                      help='Jalons de chaque guide: début/milieu/fin, ou 0.')
+    perf.add_argument('--output', type=Path,
+                      default=Path('artifacts/atlas_exhaustive/guides.json'))
+    perf.add_argument('--timeout', type=float, default=45.0)
+    perf.add_argument('--diagnose-slow-ms', type=float, default=1000.0)
+    perf.add_argument('--diagnose-guide', action='append', default=[])
+    perf.add_argument('--py-spy', action='store_true',
+                      help='Profiler externe optionnel; nécessite installation séparée.')
 
     sub.add_parser('compare')
     issues = sub.add_parser('issues')
@@ -1058,7 +1060,6 @@ def main(argv: list[str] | None = None) -> int:
         'audit': command_audit,
         'live': command_live,
         'perf': command_perf,
-        'perf-lab': command_perf_lab,
         'compare': command_compare,
         'issues': command_issues,
         'verify': command_verify,
@@ -1131,7 +1132,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')
         return 2 if verdict == 'FAIL' else (1 if verdict == 'WARN' else 0)
-    if args.command == 'perf-lab':
+    if args.command == 'perf' and args.deep:
         return 0 if payload.get('status') == 'PASS' else 2
     if args.command == 'perf':
         runtime = payload.get('runtime') or {}
