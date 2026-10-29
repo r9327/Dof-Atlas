@@ -28,7 +28,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: doctor-ci-${{ github.event.pull_request.number || github.ref }}
+  group: doctor-ci-benchmark-first-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
