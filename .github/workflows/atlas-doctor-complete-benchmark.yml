@@ -302,15 +302,15 @@ jobs:
               jobs_json=Path("artifacts/doctor_complete/jobs.json"),
               output=Path("artifacts/doctor_complete/doctor_evidence.json"))
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
-              stream.write("\\n## Doctor — shared tool audit\\n\\n")
+              stream.write("\n## Doctor — shared tool audit\n\n")
               for key, val in report["coverage"].items():
-                  stream.write(f"- {key}: **{val['status']}** ({val['sources']} proofs)\\n")
-              stream.write("\\n### Shares of measured Atlas route cost\\n\\n")
-              stream.write("| Phase | Wall ms | Wall % | Process CPU ms | CPU % |\\n")
-              stream.write("|---|---:|---:|---:|---:|\\n")
+                  stream.write(f"- {key}: **{val['status']}** ({val['sources']} proofs)\n")
+              stream.write("\n### Shares of measured Atlas route cost\n\n")
+              stream.write("| Phase | Wall ms | Wall % | Process CPU ms | CPU % |\n")
+              stream.write("|---|---:|---:|---:|---:|\n")
               for row in sorted(report["cost_shares"], key=lambda x: -x.get("wall_ms", 0))[:25]:
-                  stream.write(f"| {row['phase']} | {row['wall_ms']} | {row['wall_pct_of_entire_probe']} | {row['process_cpu_ms']} | {row['cpu_pct_of_measured_process_cpu']} |\\n")
-              stream.write("\\nMemory peaks are non-additive. Native FPS and 8 DOFUS clients remain not run.\\n")
+                  stream.write(f"| {row['phase']} | {row['wall_ms']} | {row['wall_pct_of_entire_probe']} | {row['process_cpu_ms']} | {row['cpu_pct_of_measured_process_cpu']} |\n")
+              stream.write("\nMemory peaks are non-additive. Native FPS and 8 DOFUS clients remain not run.\n")
           print(json.dumps({"status": report["status"], "coverage": report["coverage"],
                             "cost_rows": len(report["cost_shares"]),
                             "missing_app_report": len(app_reports) != 1}, indent=2))
@@ -344,14 +344,14 @@ jobs:
                   break
           report = step_costs(records, sha=os.environ["SOURCE_SHA"], run_id=run_id)
           output = Path("artifacts/doctor_complete/ci_step_costs.json")
-          output.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+          output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
-              stream.write("\\n## Doctor — CI wall-time share per job\\n\\n")
+              stream.write("\n## Doctor — CI wall-time share per job\n\n")
               for job in report["jobs"]:
-                  stream.write(f"### {job['job']}\\n\\n")
+                  stream.write(f"### {job['job']}\n\n")
                   for step in job["steps"][:8]:
-                      stream.write(f"- {step['percent_of_job_measured_steps']}% — {step['step']} ({step['duration_seconds']}s)\\n")
-                  stream.write("\\n")
+                      stream.write(f"- {step['percent_of_job_measured_steps']}% — {step['step']} ({step['duration_seconds']}s)\n")
+                  stream.write("\n")
           print("Measured CI jobs:", len(report["jobs"]))
           if report["status"] != "OBSERVED":
               raise SystemExit("No real GitHub Actions step timing evidence")
