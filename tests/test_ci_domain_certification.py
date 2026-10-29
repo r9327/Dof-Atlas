@@ -23,6 +23,31 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
+        paths = [
+            "tools/atlas_doctor.py",
+            "tools/atlas_perf_attribution.py",
+            "tools/benchmark_atlas_exhaustive.py",
+            "tests/test_atlas_exhaustive_benchmark.py",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(paths + [
+            "tools/atlas_doctor_lib/exhaustive_performance.py",
+            "tests/test_doctor_exhaustive_performance.py",
+            ".github/workflows/atlas-exhaustive-benchmark.yml",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        for unrelated in (
+            "tools/benchmark_unreviewed.py", "tools/atlas_perf_unreviewed.py",
+            "tests/test_atlas_exhaustive_unreviewed.py",
+        ):
+            self.assertFalse(owners_for(unrelated))
+            self.assertEqual(self.route([unrelated])["status"], "BLOCKED")
+
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
