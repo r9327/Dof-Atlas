@@ -101,9 +101,38 @@ def open_route(app: QApplication, window: Any, entry: tuple[str, str, str, str, 
     if is_placeholder != placeholder:
         raise RuntimeError(f"{key}: placeholder classification mismatch")
 
-def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0) -> dict[str, Any]:
+def summarize_revisits(rows: list[dict[str, Any]], cycles: int) -> dict[str, Any]:
+    """Describe cold/warm timings and observed Home drift, without calling it a leak."""
+    by_route: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        if row.get("status") not in {"PASS", "PLACEHOLDER"}:
+            continue
+        by_route.setdefault(str(row["id"]), []).append(row)
+    summary: dict[str, Any] = {}
+    for route_id, samples in sorted(by_route.items()):
+        samples.sort(key=lambda x: x["cycle"])
+        if len(samples) != cycles:
+            continue
+        home = [s.get("home_stabilized") or {} for s in samples]
+        memory = [h.get("tree_rss_mb") for h in home]
+        if not all(isinstance(n, (int, float)) and n >= 0 for n in memory):
+            continue
+        times = [float(s["open_ms"]) for s in samples]
+        summary[route_id] = {
+            "cold_open_ms": times[0],
+            "warm_open_ms": times[-1],
+            "warm_vs_cold_ms": round(times[-1] - times[0], 2),
+            "home_stabilized_tree_rss_mib_by_cycle": memory,
+            "home_tree_delta_first_to_last_mib": round(memory[-1] - memory[0], 2),
+            "scope": "observed_0_75s_post_home_not_proof_of_memory_leak",
+        }
+    return summary
+
+
+def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
+        cycles: int = 3) -> dict[str, Any]:
     assert_inventory()
-    if not 5 <= timeout <= 45 or not 120 <= max_seconds <= 600:
+    if not 5 <= timeout <= 45 or not 120 <= max_seconds <= 600 or cycles not in (1, 2, 3):
         raise ValueError("Unbounded or invalid timing options")
     output = output.resolve()
     if not output.is_relative_to((ROOT / "artifacts").resolve()) or output.suffix != ".json":
@@ -115,8 +144,10 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0) -> d
     cpu = CpuRssSampler()
     app = QApplication.instance() or QApplication([])
     report: dict[str, Any] = {
-        "schema": 1, "kind": "atlas_quick_full_app_navigation",
+        "schema": 2, "kind": "atlas_quick_full_app_navigation",
         "git_head": git_head(), "qt_platform": os.environ["QT_QPA_PLATFORM"],
+        "cycles": cycles, "planned_samples": len(ROUTES) * cycles,
+        "home_stabilization_wait_ms": 750,
         "expected_routes": [x[0] for x in ROUTES],
         "routes": [], "preload_states": {}, "measurement_limits": [
             "Qt offscreen is not a GPU/FPS/real desktop validation",
@@ -170,42 +201,53 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0) -> d
                                     else "FAIL")
         report["after_preload"] = memory_snapshot("quick_after_preload")
 
-        for entry in ROUTES:
-            route_id, group, label, page, placeholder = entry
-            if time.perf_counter() - start > max_seconds:
-                report["routes"].append({"id": route_id, "status": "FAIL", "error": "GLOBAL_TIME_BUDGET"})
-                continue
-            sampler.set_phase(route_id)
-            cpu.set_phase(route_id)
-            lag = EventLoopLag()
-            lag.start()
-            opened = time.perf_counter()
-            row: dict[str, Any] = {
-                "id": route_id, "category": group, "label": label,
-                "placeholder": placeholder, "status": "FAIL"
-            }
-            try:
-                open_route(app, window, entry, timeout)
-                row["status"] = "PLACEHOLDER" if placeholder else "PASS"
-            except Exception as exc:
-                row["error"] = f"{type(exc).__name__}: {exc}"[:350]
-            finally:
-                row["open_ms"] = round((time.perf_counter() - opened) * 1000, 2)
-                row["qt"] = lag.stop()
-                row["cpu_rss"] = cpu.get(route_id)
-                row["active"] = memory_snapshot("quick_active")
+        for cycle in range(1, cycles + 1):
+            for entry in ROUTES:
+                route_id, group, label, page, placeholder = entry
+                if time.perf_counter() - start > max_seconds:
+                    report["routes"].append({
+                        "cycle": cycle, "id": route_id, "status": "FAIL",
+                        "error": "GLOBAL_TIME_BUDGET",
+                    })
+                    continue
+                phase = f"{route_id}:cycle{cycle}"
+                sampler.set_phase(phase)
+                cpu.set_phase(phase)
+                lag = EventLoopLag()
+                lag.start()
+                opened = time.perf_counter()
+                row: dict[str, Any] = {
+                    "cycle": cycle, "id": route_id, "category": group,
+                    "label": label, "placeholder": placeholder, "status": "FAIL",
+                }
                 try:
-                    window.show_page("Home")
-                    pump(app, 0.10)
-                    QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
-                    row["home"] = memory_snapshot("quick_home")
-                    if window.active_page_name() != "Home":
-                        raise RuntimeError("Home not active after route")
+                    open_route(app, window, entry, timeout)
+                    row["status"] = "PLACEHOLDER" if placeholder else "PASS"
                 except Exception as exc:
-                    row["status"] = "FAIL"
-                    row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
-                report["routes"].append(row)
+                    row["error"] = f"{type(exc).__name__}: {exc}"[:350]
+                finally:
+                    row["open_ms"] = round((time.perf_counter() - opened) * 1000, 2)
+                    row["qt"] = lag.stop()
+                    row["cpu_rss"] = cpu.get(phase)
+                    row["active"] = memory_snapshot("quick_active")
+                    try:
+                        window.show_page("Home")
+                        pump(app, 0.10)
+                        QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                        row["home"] = memory_snapshot("quick_home")
+                        if window.active_page_name() != "Home":
+                            raise RuntimeError("Home not active after route")
+                        pump(app, 0.75)
+                        QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                        row["home_stabilized"] = memory_snapshot("quick_home_stabilized")
+                        if window.active_page_name() != "Home":
+                            raise RuntimeError("Home not active after settling")
+                    except Exception as exc:
+                        row["status"] = "FAIL"
+                        row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
+                    report["routes"].append(row)
         report["elapsed_seconds"] = round(time.perf_counter() - start, 2)
+        report["revisit_comparison"] = summarize_revisits(report["routes"], cycles)
     except Exception as exc:
         report["fatal"] = f"{type(exc).__name__}: {exc}"[:600]
     finally:
@@ -228,10 +270,15 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0) -> d
         report["measured_routes"] = len(report["routes"])
         report["functional_pass"] = sum(r["status"] == "PASS" for r in report["routes"])
         report["placeholder_pass"] = sum(r["status"] == "PLACEHOLDER" for r in report["routes"])
-        report["failed_routes"] = [r["id"] for r in report["routes"] if r["status"] == "FAIL"]
+        report["failed_routes"] = [f"{r['id']}:cycle{r.get('cycle', '?')}" for r in report["routes"] if r["status"] == "FAIL"]
+        report.setdefault("revisit_comparison", summarize_revisits(report["routes"], cycles))
+        report["last_home_stabilized"] = next(
+            (r["home_stabilized"] for r in reversed(report["routes"])
+             if "home_stabilized" in r), None,
+        )
         report["status"] = ("PASS" if
              report.get("preload_status") == "PASS" and
-             report["measured_routes"] == len(ROUTES) and
+             report["measured_routes"] == len(ROUTES) * cycles and
              not report["failed_routes"] and not report.get("fatal") and
              not report.get("shutdown_error") else "FAIL")
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -242,10 +289,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("artifacts/quick_app/report.json"))
     parser.add_argument("--timeout", type=float, default=18.0)
     parser.add_argument("--max-seconds", type=float, default=540.0)
+    parser.add_argument("--cycles", type=int, choices=(1, 2, 3), default=3)
     args = parser.parse_args()
-    report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds)
+    report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds,
+                 cycles=args.cycles)
     print(json.dumps({k: report.get(k) for k in (
-        "status", "git_head", "preload_ms", "preload_states", "functional_pass",
+        "status", "git_head", "cycles", "preload_ms", "preload_states", "functional_pass",
         "placeholder_pass", "failed_routes", "fatal", "peak_process_tree_rss_mib",
         "elapsed_seconds")}, ensure_ascii=False))
     return 0 if report["status"] == "PASS" else 1
