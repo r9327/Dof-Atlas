@@ -234,6 +234,14 @@ jobs:
           name: atlas-doctor-graph-summary-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           path: artifacts/doctor_complete/inputs/graphify
 
+      - name: Download actual frozen Windows installer and file-integrity proof
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: atlas-doctor-native-windows-report-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/doctor_complete/inputs/distribution
+
       - name: Write fail-closed suite outcome
         env:
           MENUS: "${{ needs.all-menus.result }}"
@@ -307,6 +315,8 @@ jobs:
               inputs.append("code_duplicates=" + filename.relative_to(root).as_posix())
           for filename in (directory / "graphify").rglob("doctor_shared_evidence.json"):
               inputs.append("graphify=" + filename.relative_to(root).as_posix())
+          for filename in (directory / "distribution").rglob("doctor_windows_evidence.json"):
+              inputs.append("distribution=" + filename.relative_to(root).as_posix())
           report = build_hub(
               root, sha=os.environ["SOURCE_SHA"], sources=inputs,
               jobs_json=Path("artifacts/doctor_complete/jobs.json"),
