@@ -128,6 +128,11 @@ def run_eight(root: Path, *, output: Path, max_seconds: float = 540) -> dict[str
                 try:
                     child = json.loads(path.read_text(encoding="utf-8"))
                     row["issues"] = validate_instance(child, sha=sha)
+                    row["preload_states"] = child.get("preload_states")
+                    row["preload_errors"] = child.get("preload_errors")
+                    row["preload_fail_diagnostics"] = child.get("preload_fail_diagnostics")
+                    row["failed_routes"] = child.get("failed_routes")
+                    row["fatal"] = child.get("fatal")
                     row["elapsed_seconds"] = child.get("elapsed_seconds")
                     row["peak_tree_mib"] = child.get("peak_process_tree_rss_mib")
                 except (OSError, ValueError, TypeError) as exc:
