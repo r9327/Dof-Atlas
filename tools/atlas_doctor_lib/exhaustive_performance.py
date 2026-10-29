@@ -25,6 +25,66 @@ def output_under_artifacts(root: Path, output: Path) -> Path:
     return target
 
 
+
+def bottleneck_candidates(payload: dict[str, Any], *, limit: int = 20) -> list[dict[str, Any]]:
+    """Rank observed costs; never assert causation based on a timing correlation.
+
+    Native Qt time is not explained by Python stacks. Preserve that uncertainty
+    so Doctor can guide a developer to the next targeted probe.
+    """
+    candidates: list[dict[str, Any]] = []
+    for phase, elapsed in (payload.get("timeline") or {}).items():
+        if phase == "first_guide_reachable_ms":
+            continue  # cumulative metric: double-counts other startup phases
+        if isinstance(elapsed, (int, float)) and elapsed >= 0:
+            candidates.append({"kind": "startup_phase", "location": phase,
+                               "cost_ms": round(float(elapsed), 2),
+                               "evidence": "wall_clock_phase"})
+    for row in payload.get("samples") or []:
+        guide = str(row.get("guide_id", ""))
+        cycle = row.get("cycle")
+        prefix = f"{guide} cycle {cycle}"
+        open_ms = row.get("open_ms")
+        if isinstance(open_ms, (int, float)) and open_ms >= 0:
+            candidates.append({"kind": "guide_open", "location": prefix,
+                               "cost_ms": round(float(open_ms), 2),
+                               "profiled": bool(row.get("profiled")),
+                               "evidence": "qt_ready_wall_clock"})
+        for phase_name, hotspots in (("open", row.get("method_hotspots") or []),
+                                     ("home", row.get("home_method_hotspots") or [])):
+            for item in hotspots:
+                self_ms = item.get("self_ms")
+                if isinstance(self_ms, (int, float)) and self_ms > 0:
+                    candidates.append({
+                        "kind": "python_method", "location": item.get("method"),
+                        "guide": guide, "cycle": cycle, "phase": phase_name,
+                        "cost_ms": round(float(self_ms), 2),
+                        "calls": item.get("calls"),
+                        "evidence": "instrumented_exclusive_time",
+                    })
+        for checkpoint in row.get("checkpoints") or []:
+            elapsed = checkpoint.get("elapsed_ms")
+            if isinstance(elapsed, (int, float)) and elapsed >= 0:
+                candidates.append({"kind": "guide_checkpoint",
+                                   "location": f"{prefix} {checkpoint.get('label')}",
+                                   "cost_ms": round(float(elapsed), 2),
+                                   "evidence": "qt_checkpoint_wall_clock"})
+        for stall in row.get("stall_stacks") or []:
+            stack = stall.get("stack") or []
+            if stack:
+                leaf = stack[-1]
+                candidates.append({
+                    "kind": "qt_stall_stack_sample",
+                    "location": f"{leaf.get('file')}:{leaf.get('line')}:{leaf.get('function')}",
+                    "guide": guide, "cycle": cycle,
+                    "cost_ms": stall.get("qt_unresponsive_ms_at_sample"),
+                    "evidence": "sampled_not_causal",
+                })
+    return sorted(candidates, key=lambda item: (
+        -float(item["cost_ms"] or 0), str(item.get("kind")), str(item.get("location"))
+    ))[:max(0, limit)]
+
+
 def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
                     process_exit: int) -> dict[str, Any]:
     problems: list[str] = []
@@ -65,6 +125,9 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
         "measured_routes": len(actual), "expected_routes": len(expected),
         "ganymede_metadata_listings": payload.get("ganymede_source_count"),
         "summary": payload.get("summary", {}),
+        "bottleneck_candidates": bottleneck_candidates(payload),
+        "attribution_warning": ("Measured hotspots are suspects, not confirmed root causes; "
+                                "native Qt/Windows paths need desktop profiling."),
         "startup_timeline_ms": payload.get("timeline", {}),
         "peak_atlas_rss_mib": payload.get("peak_atlas_process_mb"),
         "peak_process_tree_rss_mib": payload.get("peak_process_tree_mb"),
