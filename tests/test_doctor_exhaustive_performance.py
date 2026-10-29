@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from tools.atlas_doctor_lib.exhaustive_performance import (
     output_under_artifacts, review_evidence, run_doctor_lab, bottleneck_candidates,
+    top_import_costs,
 )
 from tools.atlas_perf_attribution import SpanAttributor, StartupCpuProfiler, io_delta, render_report
 
@@ -103,6 +104,17 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
                                         output=Path("artifacts/atlas_exhaustive/guides.json"))
             self.assertEqual(report["status"], "PASS")
             self.assertTrue(actual.with_name("guides.doctor.json").is_file())
+
+    def test_import_cpu_trace_attribution_and_doctor_option(self):
+        raw = ("import time:      230 |      3000 |   json.decoder\\n"
+               "import time:     9700 |     11000 | PySide6.QtCore\\n"
+               "app text not an import row\\n")
+        rows = top_import_costs(raw)
+        self.assertEqual(rows[0]["module"], "PySide6.QtCore")
+        self.assertEqual(rows[0]["self_ms"], 9.7)
+        from tools.atlas_doctor import build_parser
+        self.assertTrue(build_parser().parse_args(
+            ["perf", "--deep", "--profile-imports"]).profile_imports)
 
     def test_opt_in_startup_cpu_profile_is_disabled_without_flag(self):
         profiler = StartupCpuProfiler(enabled=False)
