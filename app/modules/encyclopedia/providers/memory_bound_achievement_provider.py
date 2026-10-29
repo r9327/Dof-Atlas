@@ -1542,7 +1542,7 @@ def _achievement_compact_write_lock(path: Path, *, timeout_seconds: float = 90.0
         # Concurrent first creators may append another byte; byte zero stays stable.
         lock_file.seek(0, os.SEEK_END)
         if lock_file.tell() == 0:
-            lock_file.write(b"\\x00")
+            lock_file.write(bytes([0]))
             lock_file.flush()
         while True:
             try:
