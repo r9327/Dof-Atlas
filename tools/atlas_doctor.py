@@ -529,8 +529,33 @@ def menu_graph(root: Path) -> dict[str, Any]:
     return payload
 
 
+def _read_doctor_shared_evidence(root: Path, head: str | None) -> dict[str, Any]:
+    """Read specialists' latest common evidence without rewriting their verdicts."""
+    filename = root / "artifacts" / "doctor_complete" / "doctor_evidence.json"
+    try:
+        data = json.loads(filename.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return {"status": "NOT_RUN", "reason": "No collected Doctor specialist evidence"}
+    if not head or data.get("git_head") != head:
+        return {"status": "STALE", "reason": "Evidence does not match audited HEAD",
+                "evidence_sha": data.get("git_head")}
+    return data
+
+
+def command_evidence_hub(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.evidence_hub import build_hub
+    report = build_hub(root, sha=args.sha, sources=args.source, jobs_json=args.jobs_json,
+                       output=args.output)
+    if not args.json:
+        print(f"Doctor evidence hub: {report['status']} | sources: {len(report['sources'])}")
+        print(f"Unverified/missing: {', '.join(report['required_missing_or_bad'])}")
+    return report
+
+
 def command_audit(root: Path, args) -> dict[str, Any]:
     payload = _audit(root, force=args.force, integrity_mode=args.gate)
+    payload["specialist_evidence"] = _read_doctor_shared_evidence(
+        root, (payload.get("git") or {}).get("head"))
     if not args.json:
         _summary(payload)
         print(f"Snapshot : {root / '.ai/runtime/atlas_doctor/latest_audit.json'}")
@@ -722,8 +747,10 @@ def command_verify(root: Path, args) -> dict[str, Any]:
 
 
 def command_report(root: Path, args) -> dict[str, Any]:
-    _audit(root, force=False, integrity_mode=None)
+    audit = _audit(root, force=False, integrity_mode=None)
     payload = build_ai_report(root)
+    payload["specialist_evidence"] = _read_doctor_shared_evidence(
+        root, (audit.get("git") or {}).get("head"))
     if not args.json:
         print(f"Rapport IA : {root / '.ai/runtime/atlas_doctor/latest_report.json'}")
     return payload
@@ -993,6 +1020,15 @@ def build_parser() -> argparse.ArgumentParser:
     baselines.add_argument('--baseline', help='Comparer une baseline nommee et sa base SHA immuable.')
     baselines.add_argument('--save-baseline', help='Enregistrer une baseline avant modification; aucun ecrasement.')
     verify.add_argument('--base-ref', help='Base du changement; sinon HEAD du snapshot precedent, puis HEAD.')
+    evidence = sub.add_parser('evidence-hub',
+                              help='Rassembler les preuves Doctor/UI/Graphify/CI/Distribution au SHA exact.')
+    evidence.add_argument('--sha', required=True)
+    evidence.add_argument('--source', action='append', default=[],
+                          help='specialist=artifacts/path.json; répétable, jamais un PASS implicite')
+    evidence.add_argument('--jobs-json', type=Path,
+                          help='Statuts GitHub Actions exacts sous artifacts/')
+    evidence.add_argument('--output', type=Path,
+                          default=Path('artifacts/doctor_complete/doctor_evidence.json'))
     sub.add_parser('report')
     sub.add_parser('clean')
     sub.add_parser('all')
@@ -1120,6 +1156,7 @@ def main(argv: list[str] | None = None) -> int:
         'issues': command_issues,
         'verify': command_verify,
         'report': command_report,
+        'evidence-hub': command_evidence_hub,
         'clean': command_clean,
         'all': command_all,
     }
@@ -1145,6 +1182,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'agent':
         return int(payload.get('exit_code', 2))
+    if args.command == 'evidence-hub':
+        return 0 if payload.get('status') == 'PASS' else 2
     if args.command == 'source-impact':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'file-audit':
