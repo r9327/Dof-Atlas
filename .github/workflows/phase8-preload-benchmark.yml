@@ -71,6 +71,11 @@ jobs:
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Check comparable Craft preload benchmark contracts
+        run: |
+          python -m unittest -v tests.test_phase8_preload_benchmark_contract
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Prepare comparable benchmark inputs
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_preload" | Out-Null
