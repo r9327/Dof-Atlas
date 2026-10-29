@@ -13,6 +13,8 @@ on:
       - "tools/atlas_doctor_lib/evidence_hub.py"
       - "tools/atlas_doctor_lib/cost_attribution.py"
       - "tests/test_doctor_evidence_costs.py"
+      - "tests/test_doctor_optimization_report.py"
+      - "tools/atlas_doctor_lib/optimization_report.py"
       - "tools/atlas_doctor.py"
       - "tools/doctor_quick_app_probe.py"
       - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
@@ -197,7 +199,8 @@ jobs:
             tests.test_fault_injection_contracts `
             tests.test_doctor_quick_app_probe `
             tests.test_achievement_compact_process_lock `
-            tests.test_doctor_evidence_costs
+            tests.test_doctor_evidence_costs `
+            tests.test_doctor_optimization_report
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   suite-verdict:
@@ -398,6 +401,7 @@ jobs:
           import json
           from pathlib import Path
           from tools.atlas_doctor_lib.evidence_hub import render_html
+          from tools.atlas_doctor_lib.optimization_report import generate
           directory = Path("artifacts/doctor_complete")
           evidence = directory / "doctor_evidence.json"
           stages = directory / "ci_step_costs.json"
@@ -408,6 +412,21 @@ jobs:
           costs = json.loads(stages.read_text(encoding="utf-8")) if stages.is_file() else None
           (directory / "audit.html").write_text(
               render_html(report, costs), encoding="utf-8")
+          app_reports = list((directory / "inputs/app").rglob("report.json"))
+          if len(app_reports) != 1:
+              raise SystemExit("Doctor optimization report requires exactly one primary app benchmark")
+          optimized = generate(Path.cwd(), sha=report["git_head"], app_report=app_reports[0],
+                               hub_report=evidence,
+                               ci_costs=stages if stages.is_file() else None)
+          with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
+              out.write("\n## Doctor ranked optimization report\n\n")
+              out.write("Diagnostic: **" + optimized["status"] + "** (not a release certification)\n\n")
+              for finding in optimized["priority_findings"][:12]:
+                  out.write("- " + finding["priority"] + ": " + finding["title"] +
+                            " — " + finding["evidence"] + "\n")
+              out.write("\nDetailed optimization.json and optimization.md in workflow artifacts.\n")
+          if optimized["status"] != "DIAGNOSTIC_READY":
+              raise SystemExit("Incomplete optimization evidence: no false measurements")
           PY
 
       - name: Archive exact-SHA coverage ledger even on failure
