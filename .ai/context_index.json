@@ -77,7 +77,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "b186280a71dd024154f5b966ded153e0230741c8",
+      "sha": "d9c20b591c3ef97e773471815735a603c5f928d3",
       "type": "tree"
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
@@ -157,12 +157,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "abd9fef42a003736a096928c7e23bd93c99032a3",
+      "sha": "3a2a7c13715ad22a7d32f6fe3ec11d9af61481b4",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "aa8e92fb682d14aa6080dc1528cd1896a51d8975",
+      "sha": "6bead34b2a5da65156cc8cfec40bdee4d6905829",
       "type": "tree"
     },
     "ZERO_TRUST_RULES.md": {
