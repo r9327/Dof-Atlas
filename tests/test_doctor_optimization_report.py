@@ -80,6 +80,25 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["functional_coverage"]["public_network_rollback"], "NOT_RUN")
         self.assertEqual(doc["function_hotlist_status"], "NOT_RUN")
 
+    def test_guide_method_cost_reused_without_startup_cprofile(self):
+        evidence = {"status": "PASS", "observed_sha": HEAD,
+            "bottleneck_candidates": [
+                {"kind": "python_method", "location": "Guide.load",
+                 "cost_ms": 175.0, "evidence": "instrumented_exclusive_time"},
+                {"kind": "guide_open", "location": "guide1", "cost_ms": 250},
+            ]}
+        data = optimization_report(HEAD, sample(), guides=evidence)
+        self.assertEqual(data["function_hotlist_status"], "OBSERVED")
+        self.assertEqual(data["function_hotlist_scope"], "guide_instrumented_exclusive_method_time")
+        self.assertEqual(data["function_hotlist"][0]["location"], "Guide.load")
+
+    def test_guide_stale_hotspots_are_not_trusted(self):
+        evidence = {"status": "PASS", "observed_sha": OLD,
+            "bottleneck_candidates": [{"kind": "python_method",
+                                       "location": "irrelevant", "cost_ms": 100}]}
+        data = optimization_report(HEAD, sample(), guides=evidence)
+        self.assertEqual(data["function_hotlist_status"], "NOT_RUN")
+
     def test_bad_rss_numbers_not_counted(self):
         doc = optimization_report(HEAD, sample(
             peak_process_tree_rss_mib=True, idle_tree_rss_delta_mib=float("nan")))
