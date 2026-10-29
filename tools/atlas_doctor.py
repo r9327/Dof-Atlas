@@ -562,6 +562,7 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
         root, cycles=args.cycles, output=args.output, timeout=args.timeout,
         diagnose_slow_ms=args.diagnose_slow_ms,
         diagnose_guides=tuple(args.diagnose_guide), py_spy=args.py_spy,
+        checkpoints=args.checkpoints,
     )
     if not args.json:
         summary = report.get("summary", {})
@@ -906,6 +907,8 @@ def build_parser() -> argparse.ArgumentParser:
     deep_perf = sub.add_parser(
         'perf-lab', help='Doctor: profiler tous les guides (CPU, RAM, Qt, I/O, fonctions), opt-in.')
     deep_perf.add_argument('--cycles', type=int, choices=(1, 2, 5, 10), default=2)
+    deep_perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
+                           help='Par guide: 3 premiers/milieu/dernier jalons ou 0.')
     deep_perf.add_argument('--output', type=Path,
                            default=Path('artifacts/atlas_exhaustive/guides.json'))
     deep_perf.add_argument('--timeout', type=float, default=45.0)
