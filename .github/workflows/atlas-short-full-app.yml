@@ -36,6 +36,8 @@ on:
       - "tools/doctor_quick_app_probe.py"
       - "tools/atlas_doctor.py"
       - "tests/test_doctor_quick_app_probe.py"
+      - "tests/test_achievement_compact_process_lock.py"
+      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
       - "tools/ci_domain_certification.py"
 
 permissions:
@@ -86,7 +88,7 @@ jobs:
 
       - name: Test complete route inventory and no false PASS for placeholders
         run: |
-          python -m unittest -v tests.test_doctor_quick_app_probe
+          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize real Quest and Craft data
