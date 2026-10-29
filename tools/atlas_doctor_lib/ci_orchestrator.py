@@ -169,6 +169,20 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
             if name == 'doctor-ui' and 'ui' in owners:
                 selected = True
                 reasons.append('Required UI domain is impacted')
+        # On a large PR, the single Doctor Complete job ALREADY executes these
+        # exact specialist workflows and archives their results. Scheduling
+        # a second sibling job with the same GitHub concurrency group cancels
+        # one of them and breaks certification even if both were healthy.
+        # Do not waive anything: the complete suite is explicitly required by
+        # pre-full-gate, safe-validation and the Doctor final verdict.
+        complete_suite_owners = {
+            'atlas-windows-distribution', 'doctor-ui', 'graphify-map',
+            'phase8-memory-benchmark', 'phase8-preload-benchmark',
+        }
+        if benchmark['selected'] and name in complete_suite_owners:
+            selected = False
+            reasons = ['COVERED_BY_REQUIRED_DOCTOR_COMPLETE_SAME_SHA: '
+                       'canonical specialist runs once inside Doctor benchmark-first']
         decisions[name] = {'selected': selected, 'reasons': reasons or ['No changed consumer']}
     return {
         'phase': phase, 'full': full, 'docs_only': docs_only, 'tooling_only': tooling_only,

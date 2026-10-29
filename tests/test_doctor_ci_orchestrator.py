@@ -29,6 +29,27 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertTrue(selected['phase'])
         self.assertTrue(selected['outputs']['benchmark_first'])
 
+    def test_large_product_benchmark_deduplicates_canonical_specialists(self):
+        paths = [
+            *('app/core/large_feature_%d.py' % i for i in range(8)),
+            '.github/workflows/atlas-doctor-complete-benchmark.yml',
+            '.github/workflows/phase8-preload-benchmark.yml',
+            'tools/atlas_doctor_lib/ci_orchestrator.py',
+            'tests/test_doctor_ci_orchestrator.py',
+        ]
+        plan = self.select(paths, route={'route': 'FULL'}, ui={
+            'status': 'UI_REQUIRED', 'selected_scenarios': ['guides-success']})
+        self.assertTrue(plan['benchmark_first'])
+        for name in ('phase8-memory-benchmark', 'phase8-preload-benchmark',
+                     'doctor-ui', 'atlas-windows-distribution', 'graphify-map'):
+            with self.subTest(specialist=name):
+                self.assertFalse(plan['workflows'][name]['selected'])
+                self.assertIn('COVERED_BY_REQUIRED_DOCTOR_COMPLETE_SAME_SHA',
+                              plan['workflows'][name]['reasons'][0])
+                self.assertFalse(plan['outputs'][name.replace('-', '_')])
+        self.assertTrue(plan['workflows']['ai-context-ci']['selected'])
+        self.assertTrue(plan['workflows']['signature-report']['selected'])
+
     def test_small_changes_and_policy_docs_do_not_run_exhaustive_campaign(self):
         self.assertFalse(self.select(['app/ui/theme.py'])['benchmark_first'])
         self.assertFalse(self.select(['docs/usage.md', 'PHASE_CERTIFICATION.md'])['benchmark_first'])
