@@ -2,26 +2,7 @@ name: Atlas Doctor Complete Benchmark
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/atlas-doctor-complete-benchmark.yml"
-      - ".github/workflows/atlas-short-full-app.yml"
-      - ".github/workflows/atlas-exhaustive-benchmark.yml"
-      - ".github/workflows/atlas-windows-distribution.yml"
-      - ".github/workflows/doctor-ui.yml"
-      - ".github/workflows/graphify-map.yml"
-      - "tools/atlas_doctor_lib/evidence_hub.py"
-      - "tools/atlas_doctor_lib/cost_attribution.py"
-      - "tests/test_doctor_evidence_costs.py"
-      - "tests/test_doctor_optimization_report.py"
-      - "tools/atlas_doctor_lib/optimization_report.py"
-      - "tools/atlas_doctor.py"
-      - "tools/doctor_quick_app_probe.py"
-      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
-      - "app/modules/encyclopedia/services/achievement_index_warmup.py"
-      - "tests/test_achievement_compact_subprocess_lifecycle.py"
-      - "tests/test_doctor_quick_app_probe.py"
-      - "tests/test_achievement_compact_process_lock.py"
+  workflow_call:
 
 permissions:
   contents: read
@@ -33,6 +14,8 @@ concurrency:
   group: atlas-doctor-complete-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Reusable in Phase CI on substantial diffs; manual dispatch remains available.
+# No stand-alone PR run: avoid executing the same complete campaign twice.
 # A single orchestration of the existing canonical engines. No new benchmark
 # implementation, no mandatory long campaign on unrelated small PRs.
 jobs:

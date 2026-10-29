@@ -55,6 +55,7 @@ jobs:
       required_jobs: ${{ steps.plan.outputs.required_jobs }}
       phase: ${{ steps.plan.outputs.phase }}
       full: ${{ steps.plan.outputs.full }}
+      benchmark_first: ${{ steps.plan.outputs.benchmark_first }}
       tooling_only: ${{ steps.plan.outputs.tooling_only }}
       ai_context_ci: ${{ steps.plan.outputs.ai_context_ci }}
       app_ci: ${{ steps.plan.outputs.app_ci }}
@@ -111,6 +112,7 @@ jobs:
               f.write('## Doctor — CI selection\n')
               f.write(f"Candidate: `{p['candidate_sha']}`; base: `{p['base_sha']}`; risk: **{p['risk']}**\n\n")
               f.write(f"FULL: {p['full']}; broad specialist fallback: {p['specialist_fallback']}\n\n")
+              f.write(f"Benchmark before certification: {p['benchmark_first']} ({p['benchmark_selection']['reason']})\n\n")
               for name, route in p['workflows'].items():
                   f.write(f"- {name}: {'RUN' if route['selected'] else 'NOT_APPLICABLE'} — {'; '.join(route['reasons'])}\n")
               f.write('\nSelection is not execution or certification.\n')
@@ -227,12 +229,21 @@ jobs:
             artifacts/doctor_ci/ui_regression_watch.json
           if-no-files-found: error
 
+  doctor-benchmark-first:
+    name: Doctor / Benchmark first for large product changes
+    needs: doctor-plan
+    if: github.event_name == 'pull_request' && needs.doctor-plan.outputs.benchmark_first == 'true'
+    uses: ./.github/workflows/atlas-doctor-complete-benchmark.yml
+    permissions:
+      contents: read
+      actions: read
+
   pre-full-gate:
     # PR only. Every independent job chosen by the exact-SHA Doctor plan
     # must finish successfully BEFORE allocating a costly FULL runner.
     # No cycle: certify and the two final verdict jobs are not prerequisites.
     name: Doctor / Pre-FULL Contract Gate
-    needs: [doctor-plan, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    needs: [doctor-plan, doctor-benchmark-first, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     if: always() && github.event_name == 'pull_request' && needs.doctor-plan.result == 'success' && needs.doctor-plan.outputs.phase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -1258,7 +1269,7 @@ jobs:
   safe-validation:
     name: Public PR / Safe Validation
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    needs: [doctor-plan, focused-validation, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    needs: [doctor-plan, doctor-benchmark-first, focused-validation, certify, pr-fast-validation, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -1283,7 +1294,7 @@ jobs:
   doctor-verdict:
     name: Doctor / CI Verdict
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
-    needs: [doctor-plan, focused-validation, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
+    needs: [doctor-plan, doctor-benchmark-first, focused-validation, certify, pr-fast-validation, safe-validation, certification-policy, ai_context_ci, app_ci, atlas_windows_distribution, doctor_certification, doctor_runtime_perf, doctor_ui, encyclopedia_provider_import, graphify_map, graphify_targeted_ci, json_focused_data_contract, phase8_memory_benchmark, phase8_preload_benchmark, signature_report]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
