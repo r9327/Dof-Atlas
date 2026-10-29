@@ -11,21 +11,25 @@ de huit comptes ni un benchmark de FPS desktop.
   (Guide/Quêtes/Succès), Bestiaire (Donjons/Monstres/Archimonstres/Avis),
   Outils (Crafts/Map monde/Chasse/Ocre), Stuffs (PvM/PvP/Builders),
   Almanax, Paramètres et Tutoriels.
-- Mesure par route : temps vers l'écran prêt, retour Home, RSS de
+- Trois cycles courts par route pour comparer **première ouverture / réouverture**.
+  Mesure par route : temps vers l'écran prêt, retour Home, RSS de
   processus et d'arbre, pic CPU, délais de la boucle d'événements Qt.
+  Après chaque retour Home, deuxième mesure RSS après 750 ms de traitement
+  Qt supplémentaire ; delta entre les cycles, **sans conclure automatiquement
+  à une fuite mémoire**.
 - Chasse, Ocre, Almanax et Tutoriels sont des écrans `PlaceholderPage`
   actuellement « en travaux ». Leur navigation est vérifiée séparément,
   **sans** attribuer un succès fonctionnel à ces fonctionnalités.
 - Vérification fail-closed : une route en erreur, une tâche preload en
   échec, un ID attendu manquant ou une preuve invalide donne FAIL.
 - Budget de mesure de **540 secondes maximum**, job Windows **20 minutes
-  maximum y compris les installations et les données**. Un seul passage
-  représentatif, pas de campagne 30-60 minutes.
+  maximum y compris les installations et les données**. Trois passages
+  courts, pas de campagne 30-60 minutes.
 
 Commande interne utilisée par CI :
 
 ```powershell
-python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --output artifacts/quick_app/report.json
+python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --cycles 3 --output artifacts/quick_app/report.json
 ```
 
 Le rapport `artifacts/quick_app/report.json` garde chaque mesure et les
