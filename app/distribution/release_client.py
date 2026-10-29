@@ -561,6 +561,13 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     if previous > size:
         target.unlink()
         previous = 0
+    if differential and previous == size:
+        # A complete but corrupted cached delta must be replaced here, not
+        # retried forever or force a multi-GB full-release fallback.
+        entry = ReleaseFile(target.name, size, release.manifest.delta.archive_sha256)
+        if not verify_file(target, entry):
+            target.unlink(missing_ok=True)
+            previous = 0
     if previous != size:
         headers = {"Range": f"bytes={previous}-"} if previous else {}
         try:
