@@ -129,8 +129,37 @@ def summarize_revisits(rows: list[dict[str, Any]], cycles: int) -> dict[str, Any
     return summary
 
 
+def pin_single_cpu_core() -> dict[str, int]:
+    """Actually restrict the current Windows process, not a pretend slow-PC profile."""
+    if os.name != "nt":
+        raise RuntimeError("Windows CPU affinity simulation requires Windows")
+    import ctypes
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = ctypes.c_void_p
+    kernel.GetProcessAffinityMask.argtypes = [
+        ctypes.c_void_p, ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+    handle = kernel.GetCurrentProcess()
+    allowed, system = ctypes.c_size_t(), ctypes.c_size_t()
+    if not kernel.GetProcessAffinityMask(handle, ctypes.byref(allowed), ctypes.byref(system)):
+        raise OSError(ctypes.get_last_error(), "GetProcessAffinityMask failed")
+    if not allowed.value:
+        raise RuntimeError("No allowed CPU core")
+    selected = allowed.value & -allowed.value
+    if not kernel.SetProcessAffinityMask(handle, selected):
+        raise OSError(ctypes.get_last_error(), "SetProcessAffinityMask failed")
+    verified, system_after = ctypes.c_size_t(), ctypes.c_size_t()
+    if not kernel.GetProcessAffinityMask(handle, ctypes.byref(verified), ctypes.byref(system_after)) or verified.value != selected:
+        raise RuntimeError("One-core CPU affinity was not applied")
+    return {"allowed_mask": allowed.value, "measured_process_mask": verified.value,
+            "kind": "one_logical_cpu_affinity_not_low_end_hardware"}
+
+
 def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
-        cycles: int = 3, idle_seconds: float = 0.0) -> dict[str, Any]:
+        cycles: int = 3, idle_seconds: float = 0.0,
+        one_core: bool = False) -> dict[str, Any]:
     assert_inventory()
     if (not 5 <= timeout <= 45 or not 120 <= max_seconds <= 1800
             or cycles not in (1, 2, 3, 5, 10) or not 0 <= idle_seconds <= 120):
@@ -149,7 +178,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         "git_head": git_head(), "qt_platform": os.environ["QT_QPA_PLATFORM"],
         "cycles": cycles, "planned_samples": len(ROUTES) * cycles,
         "home_stabilization_wait_ms": 750, "idle_seconds_requested": idle_seconds,
-        "is_certification": False,
+        "is_certification": False, "one_core_requested": one_core,
         "expected_routes": [x[0] for x in ROUTES],
         "routes": [], "preload_states": {}, "measurement_limits": [
             "Qt offscreen is not a GPU/FPS/real desktop validation",
@@ -162,6 +191,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     }
     window = None
     try:
+        if one_core:
+            report["cpu_affinity"] = pin_single_cpu_core()
         sampler.set_phase("startup")
         sampler.start()
         cpu.start()
@@ -314,9 +345,11 @@ def main() -> int:
     parser.add_argument("--max-seconds", type=float, default=540.0)
     parser.add_argument("--cycles", type=int, choices=(1, 2, 3, 5, 10), default=3)
     parser.add_argument("--idle-seconds", type=float, default=0.0)
+    parser.add_argument("--one-core", action="store_true")
     args = parser.parse_args()
     report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds,
-                 cycles=args.cycles, idle_seconds=args.idle_seconds)
+                 cycles=args.cycles, idle_seconds=args.idle_seconds,
+                 one_core=args.one_core)
     print(json.dumps({k: report.get(k) for k in (
         "status", "git_head", "cycles", "preload_ms", "preload_states", "functional_pass",
         "placeholder_pass", "failed_routes", "fatal", "peak_process_tree_rss_mib",
