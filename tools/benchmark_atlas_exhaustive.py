@@ -138,7 +138,7 @@ class EventLoopLag:
 class CpuRssSampler:
     """Sampler runs independently of Qt to catch main-thread CPU/RSS spikes."""
 
-    def __init__(self, interval: float = 0.10):
+    def __init__(self, interval: float = 0.05):
         self.interval = interval
         self.phase = "startup"
         self.peaks: dict[str, dict[str, float]] = {}
@@ -188,7 +188,13 @@ def guide_visible(page: Any, guide_id: str) -> bool:
         return False
     # A selected ID alone can be a false positive: demand an active detail widget.
     stack = getattr(view, "stack", None)
-    return stack is not None and stack.currentWidget() is not None
+    if stack is None:
+        return False
+    current = stack.currentWidget()
+    if guide_id == "guide_complet":
+        return (current is not None and current is getattr(view, "guide_ultime_view", None)
+                and bool(getattr(getattr(view, "guide_ultime_service", None), "available", False)))
+    return current is not None and current is getattr(view, "detail_page", None)
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -202,7 +208,7 @@ def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = (
         "guide_id", "title", "cycle", "status", "open_ms", "return_home_ms",
-        "cpu_open_ms", "cpu_peak_pct_one_core", "rss_before_mb", "rss_detail_mb",
+        "cpu_open_ms", "cpu_avg_pct_one_core", "cpu_peak_pct_one_core", "rss_before_mb", "rss_detail_mb",
         "rss_home_mb", "rss_peak_mb", "tree_detail_mb", "tree_home_mb",
         "ui_lag_p95_ms", "ui_lag_p99_ms", "ui_lag_max_ms", "ui_stalls_250ms", "error",
     )
@@ -217,6 +223,7 @@ def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                 "status": row["status"], "open_ms": row.get("open_ms"),
                 "return_home_ms": row.get("return_home_ms"),
                 "cpu_open_ms": row.get("cpu_open_ms"),
+                "cpu_avg_pct_one_core": row.get("cpu_avg_pct_one_core"),
                 "cpu_peak_pct_one_core": resources.get("cpu_peak_pct_one_core"),
                 "rss_before_mb": row.get("rss_before_mb"),
                 "rss_detail_mb": row.get("rss_detail_mb"), "rss_home_mb": row.get("rss_home_mb"),
@@ -295,6 +302,8 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
                     )
                     row["open_ms"] = round((time.perf_counter() - began) * 1000, 2)
                     row["cpu_open_ms"] = round((time.process_time() - open_cpu) * 1000, 2)
+                    row["cpu_avg_pct_one_core"] = round(100 * row["cpu_open_ms"] / max(row["open_ms"], 0.01), 2)
+                    pump(app, 0.06)  # Enough timer ticks for short, otherwise unobservable opens
                     row["open_ui"] = lag.stop()
                     row["open_resources"] = cpu.get(phase + ":open")
                     cpu.set_phase(phase + ":checkpoint")
@@ -312,12 +321,12 @@ def run(*, cycles: int, output: Path, timeout: float) -> dict[str, Any]:
                     home = memory_snapshot("deep_home")
                     row["rss_home_mb"] = home["process_rss_mb"]
                     row["tree_home_mb"] = home["tree_rss_mb"]
-                    row["status"] = "PASS"
                     # Re-enter the same real UI in the next sample; don't mock rendering.
                     open_encyclopedia(app, window, GUIDES_TAB)
                     page = window.page_widgets.get("Quetes")
                     if page is None:
                         raise RuntimeError("Encyclopedia page lost after Home")
+                    row["status"] = "PASS"
                 except Exception as exc:
                     lag.stop()
                     row["error"] = f"{type(exc).__name__}: {exc}"
