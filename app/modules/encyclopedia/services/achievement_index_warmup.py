@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+from uuid import uuid4
 
 from app.constants import ROOT_DIR
 
@@ -49,7 +51,9 @@ def achievement_name_index() -> dict[int, str]:
 def write_achievement_name_index() -> int:
     names = achievement_name_index()
     _ACHIEVEMENT_NAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temporary = _ACHIEVEMENT_NAMES_FILE.with_suffix(".tmp")
+    temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
+        f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
+    )
     temporary.write_text(
         json.dumps(names, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
