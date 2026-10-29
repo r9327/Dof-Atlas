@@ -4,6 +4,7 @@ All tests use synthetic files: no network, no frozen Atlas binaries.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import io
 import tempfile
@@ -17,7 +18,7 @@ from app.distribution.install import (
     _copy_unchanged_verified, install_release, mark_healthy, read_state,
     rollback_pending, slot_path,
 )
-from app.distribution.manifest import ReleaseFile, parse_manifest
+from app.distribution.manifest import DeltaManifest, ReleaseFile, parse_manifest
 from app.distribution.release_client import RemoteRelease, UpdateError, download_archive
 from scripts.windows.package_release import package_release
 
@@ -360,6 +361,62 @@ class CleanupSafetyTests(unittest.TestCase):
 
 
 class ParallelTransferTests(unittest.TestCase):
+    def _small_delta_release(self, root: Path):
+        _, manifest, _ = multipart_fixture(root)
+        payload = b"synthetic verified differential payload"
+        delta = DeltaManifest(
+            "b" * 40, hashlib.sha256(payload).hexdigest(), len(payload),
+            ("AtlasApp/AtlasApp.exe",),
+        )
+        release = RemoteRelease(
+            "v1", "", manifest.archive_size, replace(manifest, delta=delta),
+            delta_url="https://github.com/r9327/Dof-Atlas-App/releases/download/v1/atlas-delta.zip",
+        )
+        return release, payload
+
+    def test_complete_corrupt_cached_delta_redownloads_in_place(self):
+        # A full-size corrupt cache must not force the much larger full ZIP.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            cache.mkdir()
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            cached.write_bytes(b"X" * len(payload))
+            with patch.object(
+                release_client, "_open", return_value=Response(payload)
+            ) as request:
+                actual = download_archive(release, cache, differential=True)
+            self.assertEqual(actual.read_bytes(), payload)
+            request.assert_called_once_with(release.delta_url, {})
+
+    def test_complete_valid_cached_delta_needs_no_network(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            cache.mkdir()
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            cached.write_bytes(payload)
+            with patch.object(
+                release_client, "_open", side_effect=AssertionError("Unexpected network")
+            ):
+                actual = download_archive(release, cache, differential=True)
+            self.assertEqual(actual.read_bytes(), payload)
+
+    def test_newly_downloaded_corrupt_delta_is_never_accepted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            with patch.object(
+                release_client, "_open", return_value=Response(b"X" * len(payload))
+            ):
+                with self.assertRaisesRegex(UpdateError, "SHA-256 mismatch"):
+                    download_archive(release, cache, differential=True)
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            self.assertFalse(cached.exists())
+
     def test_multipart_network_bytes_and_verified_cache_zero_transfer(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
