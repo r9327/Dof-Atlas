@@ -68,6 +68,32 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The downloaded seed is a distribution asset. Atlas' local Craft
+          # adapter reads data/local/dofus_data.sqlite in the Windows sandbox.
+          # Populate only this ephemeral CI checkout, never a real user store.
+          @'
+          from pathlib import Path
+          from shutil import copy2
+          from scripts.windows.craft_seed import validate_seed
+          from local_dofus_data.config import DEFAULT_CONFIG
+          from app.craft_preload import build_compact_craft_preload
+
+          seed = Path("data/bootstrap/craft_seed.sqlite")
+          validate_seed(seed)
+          target = DEFAULT_CONFIG.sqlite_path
+          target.parent.mkdir(parents=True, exist_ok=True)
+          if target.exists():
+              raise SystemExit(f"Refusing to overwrite existing Craft catalog: {target}")
+          copy2(seed, target)
+          validate_seed(target)
+          craft = build_compact_craft_preload()
+          if craft.get("_prepared") is not True or craft.get("errors"):
+              raise SystemExit(
+                  f"Craft preflight failed: {craft.get('errors') or craft.get('_skipped_reason')}"
+              )
+          print(f"Craft data READY: {target}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           @'
           from app.quest_catalog import QuestCatalog
           total = len(QuestCatalog.load().quests)
