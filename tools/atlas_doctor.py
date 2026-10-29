@@ -563,6 +563,7 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
         diagnose_slow_ms=args.diagnose_slow_ms,
         diagnose_guides=tuple(args.diagnose_guide), py_spy=args.py_spy,
         checkpoints=args.checkpoints, profile_startup=args.profile_startup,
+        profile_imports=args.profile_imports,
     )
     if not args.json:
         summary = report.get("summary", {})
@@ -579,6 +580,10 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
                   f"({item.get('evidence')})")
         if candidates:
             print("Observation ≠ causalité ; profils natifs Windows à confirmer.")
+        for module in (report.get("startup_import_costs") or [])[:10]:
+            print(f"Startup import: {module.get('module')} "
+                  f"self={module.get('self_ms')} ms "
+                  f"cumulative={module.get('cumulative_ms')} ms")
         for fn in (report.get("startup_cpu_functions") or [])[:10]:
             print(f"Startup CPU: {fn.get('file')}:{fn.get('line')} "
                   f"{fn.get('function')} {fn.get('cumulative_cpu_ms')} ms")
@@ -928,6 +933,8 @@ def build_parser() -> argparse.ArgumentParser:
     perf.add_argument('--timeout', type=float, default=45.0)
     perf.add_argument('--diagnose-slow-ms', type=float, default=1000.0)
     perf.add_argument('--diagnose-guide', action='append', default=[])
+    perf.add_argument('--profile-imports', action='store_true',
+                      help='Profilage des imports Python du démarrage (intrusif, opt-in).')
     perf.add_argument('--profile-startup', action='store_true',
                       help='Enregistrer les fonctions CPU les plus lentes lors du premier lancement.')
     perf.add_argument('--py-spy', action='store_true',
