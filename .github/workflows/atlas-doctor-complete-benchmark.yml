@@ -50,7 +50,7 @@ jobs:
       idle_seconds: 10
       max_seconds: 700
       one_core: true
-      preflight_unit_tests: false
+      skip_preflight_unit_tests: true
 
   eight-atlas-processes:
     name: Doctor / 8 simultaneous isolated Atlas applications
@@ -59,7 +59,7 @@ jobs:
       cycles: 1
       max_seconds: 600
       parallel_instances: 8
-      preflight_unit_tests: false
+      skip_preflight_unit_tests: true
 
   all-guides:
     name: Doctor / all playable guides
