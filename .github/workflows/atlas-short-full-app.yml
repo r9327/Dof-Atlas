@@ -168,6 +168,14 @@ jobs:
                   "elapsed_seconds": report.get("elapsed_seconds"),
                   "last_home_tree_mib": (report.get("last_home_stabilized") or {}).get("tree_rss_mb"),
               }, indent=2, ensure_ascii=False))
+              if report.get("kind") == "doctor_eight_independent_atlas_processes_not_dofus_clients":
+                  for instance in report.get("instances", []):
+                      print(json.dumps({
+                          "instance": instance.get("index"), "pid": instance.get("pid"),
+                          "exit": instance.get("exit_code"), "issues": instance.get("issues"),
+                          "preload": instance.get("preload_states"),
+                          "errors": instance.get("preload_errors"),
+                      }, ensure_ascii=False))
               for row in report.get("routes", []):
                   print(f"cycle={row.get('cycle')} {row['id']:18} {row['status']:12} {row['open_ms']:8}ms {row.get('error', '')}")
               for name, item in sorted(report.get("revisit_comparison", {}).items()):
