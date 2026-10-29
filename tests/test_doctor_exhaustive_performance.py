@@ -106,9 +106,9 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
             self.assertTrue(actual.with_name("guides.doctor.json").is_file())
 
     def test_import_cpu_trace_attribution_and_doctor_option(self):
-        raw = ("import time:      230 |      3000 |   json.decoder\\n"
-               "import time:     9700 |     11000 | PySide6.QtCore\\n"
-               "app text not an import row\\n")
+        raw = ("import time:      230 |      3000 |   json.decoder\n"
+               "import time:     9700 |     11000 | PySide6.QtCore\n"
+               "app text not an import row\n")
         rows = top_import_costs(raw)
         self.assertEqual(rows[0]["module"], "PySide6.QtCore")
         self.assertEqual(rows[0]["self_ms"], 9.7)
