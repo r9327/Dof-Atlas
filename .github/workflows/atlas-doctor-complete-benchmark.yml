@@ -9,6 +9,9 @@ on:
       - ".github/workflows/atlas-exhaustive-benchmark.yml"
       - "tools/atlas_doctor.py"
       - "tools/doctor_quick_app_probe.py"
+      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+      - "app/modules/encyclopedia/services/achievement_index_warmup.py"
+      - "tests/test_achievement_compact_subprocess_lifecycle.py"
       - "tests/test_doctor_quick_app_probe.py"
 
 permissions:
@@ -96,6 +99,7 @@ jobs:
       - name: Verify actual functional contracts (not just menu opening)
         run: |
           python -X faulthandler -m unittest -v `
+            tests.test_achievement_compact_subprocess_lifecycle `
             tests.test_application_runtime_characterization `
             tests.test_atlas_lifecycle_soak `
             tests.test_atlas_doctor_app_ui_smoke `
