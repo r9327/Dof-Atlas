@@ -135,6 +135,9 @@ def run_eight(root: Path, *, output: Path, max_seconds: float = 540) -> dict[str
                     row["fatal"] = child.get("fatal")
                     row["elapsed_seconds"] = child.get("elapsed_seconds")
                     row["peak_tree_mib"] = child.get("peak_process_tree_rss_mib")
+                    row["preload_states"] = child.get("preload_states")
+                    row["preload_errors"] = child.get("preload_errors")
+                    row["failed_routes"] = child.get("failed_routes")
                 except (OSError, ValueError, TypeError) as exc:
                     row["issues"] = [f"INVALID_CHILD_JSON:{type(exc).__name__}"]
             else:
