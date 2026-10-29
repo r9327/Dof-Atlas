@@ -243,8 +243,9 @@ class WindowHealthTests(unittest.TestCase):
             concurrent.acquire.assert_called_once()
             concurrent.release.assert_not_called()
 
-    def test_handoff_is_only_after_qt_ack(self):
-        self.assertTrue(_is_application_handoff("Prechargement Qt actif"))
+    def test_handoff_is_only_after_home_ack(self):
+        self.assertFalse(_is_application_handoff("Prechargement Qt actif"))
+        self.assertTrue(_is_application_handoff("Dofus Atlas est pret"))
         self.assertFalse(_is_application_handoff("Lancement de Dofus Atlas..."))
         self.assertFalse(_is_application_handoff("Installation differentielle..."))
         self.assertFalse(_is_application_handoff("Echec : Home indisponible"))
