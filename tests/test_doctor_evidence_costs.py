@@ -4,6 +4,7 @@ import unittest
 
 from tools.atlas_doctor_lib.cost_attribution import cost_attribution
 from tools.atlas_doctor_lib.evidence_hub import summarize_sources
+from tools.atlas_doctor_lib.actions_step_costs import step_costs
 
 
 SHA = "a" * 40
@@ -93,6 +94,29 @@ class DoctorEvidenceHubTests(unittest.TestCase):
                                                    "cost_attribution": cost})])
         self.assertEqual(len(x["duplicate_work_suspects"]), 1)
         self.assertEqual(len(x["cost_shares"]), 2)
+
+
+class DoctorWorkflowStepCostTests(unittest.TestCase):
+    def test_real_step_seconds_percentages_use_job_scope_only(self):
+        report = step_costs([{
+            "id": 10, "name": "Windows EXE packaging", "status": "completed",
+            "steps": [
+                {"name": "Compile EXE", "started_at": "2026-10-29T10:00:00Z",
+                 "completed_at": "2026-10-29T10:00:30Z", "conclusion": "success"},
+                {"name": "Verify SHA256", "started_at": "2026-10-29T10:00:30Z",
+                 "completed_at": "2026-10-29T10:00:40Z", "conclusion": "success"},
+            ],
+        }], sha=SHA, run_id=123)
+        self.assertEqual(report["status"], "OBSERVED")
+        shares = report["jobs"][0]["steps"]
+        self.assertEqual(shares[0]["percent_of_job_measured_steps"], 75.0)
+        self.assertEqual(shares[1]["percent_of_job_measured_steps"], 25.0)
+        self.assertIn("Parallel", report["denominator_note"])
+
+    def test_incomplete_job_is_not_fabricated_as_completed(self):
+        report = step_costs([{"id": 1, "status": "in_progress", "steps": []}],
+                            sha=SHA, run_id=1)
+        self.assertEqual(report["status"], "NOT_MEASURED")
 
 
 if __name__ == "__main__":
