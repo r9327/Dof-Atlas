@@ -45,10 +45,10 @@ while len(list(root.glob('ready_*'))) < 3:
     time.sleep(0.01)
 with _achievement_compact_write_lock(root / 'catalog.jsonl', timeout_seconds=10):
     with (root / 'trace.txt').open('a', encoding='utf-8') as out:
-        out.write('enter:' + ident + '\\n')
+        out.write('enter:' + ident + chr(10))
     time.sleep(0.2)
     with (root / 'trace.txt').open('a', encoding='utf-8') as out:
-        out.write('exit:' + ident + '\\n')
+        out.write('exit:' + ident + chr(10))
 """
             processes = []
             try:
