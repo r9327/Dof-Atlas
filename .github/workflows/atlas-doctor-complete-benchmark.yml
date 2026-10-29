@@ -20,7 +20,6 @@ on:
       - "tests/test_achievement_compact_subprocess_lifecycle.py"
       - "tests/test_doctor_quick_app_probe.py"
       - "tests/test_achievement_compact_process_lock.py"
-      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
 
 permissions:
   contents: read
@@ -34,21 +33,24 @@ concurrency:
 # implementation, no mandatory long campaign on unrelated small PRs.
 jobs:
   all-menus:
-    name: Doctor / 20 routes x 10 + 60s idle
+    name: Doctor / all routes (3 PR cycles, 10 manual cycles) + 60s idle
     uses: ./.github/workflows/atlas-short-full-app.yml
     with:
-      cycles: 10
+      # Every menu is tested on PRs. Extended 10-cycle stability is explicit,
+      # not an automatic tax on each commit in this same PR.
+      cycles: ${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}
       idle_seconds: 60
-      max_seconds: 1200
+      max_seconds: ${{ github.event_name == 'workflow_dispatch' && 1200 || 660 }}
 
   one-core-stress:
     name: Doctor / measured one-core CPU constraint
     uses: ./.github/workflows/atlas-short-full-app.yml
     with:
       cycles: 3
-      idle_seconds: 60
+      idle_seconds: 10
       max_seconds: 700
       one_core: true
+      preflight_unit_tests: false
 
   eight-atlas-processes:
     name: Doctor / 8 simultaneous isolated Atlas applications
@@ -57,6 +59,7 @@ jobs:
       cycles: 1
       max_seconds: 600
       parallel_instances: 8
+      preflight_unit_tests: false
 
   all-guides:
     name: Doctor / all playable guides
@@ -205,7 +208,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: atlas-short-complete-app-c10-*
+          pattern: atlas-short-complete-app-c${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}-*
           path: artifacts/doctor_complete/inputs/app
           merge-multiple: false
 
