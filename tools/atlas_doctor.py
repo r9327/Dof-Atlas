@@ -572,6 +572,13 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
         print(f"Open P50/P95/P99: {summary.get('open_p50_ms')} / "
               f"{summary.get('open_p95_ms')} / {summary.get('open_p99_ms')} ms")
         print(f"Qt delays >= 250 ms: {summary.get('freeze_count_250ms')}")
+        candidates = report.get("bottleneck_candidates") or []
+        for item in candidates[:8]:
+            print(f"Diagnostic suspect [{item.get('kind')}]: "
+                  f"{item.get('location')} · {item.get('cost_ms')} ms "
+                  f"({item.get('evidence')})")
+        if candidates:
+            print("Observation ≠ causalité ; profils natifs Windows à confirmer.")
         for failure in report.get("failures", [])[:20]:
             print(f"FAIL guide {failure.get('guide_id')} cycle {failure.get('cycle')}: "
                   f"{failure.get('error')}")
