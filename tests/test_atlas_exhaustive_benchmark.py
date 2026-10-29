@@ -47,6 +47,29 @@ class ExhaustiveGuideBenchmarkTests(unittest.TestCase):
         view.stack = SimpleNamespace(currentWidget=lambda: None)
         self.assertFalse(guide_visible(page, "g1"))
 
+    def test_optimized_manual_guide_requires_real_loaded_runtime(self):
+        # Sylvestre uses SharedGuideManualView rather than the standard detail_page.
+        manual = object()
+        stack = SimpleNamespace(currentWidget=lambda: manual)
+        service = SimpleNamespace(available=True, cards=[object()])
+        view = SimpleNamespace(
+            _runtime_ready=True, current_guide_id="dofus_sylvestre",
+            state="OVERVIEW", GUIDE_OVERVIEW="OVERVIEW",
+            stack=stack, detail_page=object(),
+            _catalog_manual_views={"dofus_sylvestre": manual},
+            _catalog_manual_services={"dofus_sylvestre": service},
+        )
+        page = SimpleNamespace(guides_view=view, _pending_guide_id="")
+        self.assertTrue(guide_visible(page, "dofus_sylvestre"))
+        service.cards = []
+        self.assertFalse(guide_visible(page, "dofus_sylvestre"))
+        service.cards = [object()]
+        view.stack = SimpleNamespace(currentWidget=lambda: object())
+        self.assertFalse(guide_visible(page, "dofus_sylvestre"))
+        view.stack = stack
+        service.available = False
+        self.assertFalse(guide_visible(page, "dofus_sylvestre"))
+
     def test_metadata_only_ganymede_does_not_count_as_runnable(self):
         rows = ganymede_inventory({"dofus_argente"})
         from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
