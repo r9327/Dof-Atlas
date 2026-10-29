@@ -55,6 +55,22 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
         add("P1", "REPEAT_" + str(item.get("route")), "Repeated slow menu opening",
             str(item.get("route")) + " max warm " + str(item.get("max_warm_ms")) + " ms",
             "Inspect cache reads/reinitialization. Repeated cost is not proven duplicate code")
+    # An observed per-route Home delta is a lead, never attribution to that route.
+    # The reused benchmark logs this after 750 ms, not stable native Qt memory.
+    home_drifts = []
+    for route, sample in ((app.get("revisit_comparison") or {}) if valid else {}).items():
+        if not isinstance(sample, dict):
+            continue
+        delta = number(sample.get("home_tree_delta_first_to_last_mib"))
+        if delta is not None:
+            home_drifts.append({"route": route, "delta_mib": round(delta, 2),
+                                "scope": "0.75s_post_home_correlated_not_causal"})
+            if delta >= 10:
+                add("P1", "HOME_ROUTE_" + str(route),
+                    "Repeated Home RSS drift after route " + str(route),
+                    "+" + str(round(delta, 2)) + " MiB across tested cycles",
+                    "Inspect retained widgets and process lifetimes; route is correlation, not proven owner")
+    home_drifts.sort(key=lambda x: -x["delta_mib"])
     peak = number(app.get("peak_process_tree_rss_mib")) if valid else None
     if peak is not None and peak > 250:
         add("P0", "RAM_PEAK", "Process-tree RAM exceeds 250 MiB objective",
@@ -122,6 +138,7 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
         "status": "DIAGNOSTIC_READY" if valid and shares else "BLOCKED",
         "is_certification": False, "priority_findings": findings,
         "measured_costs": shares[:30], "repeated_work_suspects": repeats,
+        "home_route_drift": home_drifts[:20],
         "memory": {"process_tree_peak_mib": peak, "worst_tree_phase": app.get("worst_tree_phase") if valid else None,
                    "idle_rss_delta_mib": idle_delta, "module_rss_percentages": None,
                    "limitation": "Native Qt, shared pages and worker RSS are non-additive"},
@@ -159,6 +176,25 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("| " + " | ".join(str(r.get(k)) for k in
             ("phase", "wall_ms", "wall_pct_of_entire_probe", "process_cpu_ms",
              "cpu_pct_of_measured_process_cpu")) + " |")
+    lines += ["", "## Fonctions et méthodes instrumentées", ""]
+    if not report["function_hotlist"]:
+        lines.append("Profil de fonctions: NOT_RUN (ne pas attribuer des coûts non mesurés).")
+    for fn in report["function_hotlist"][:12]:
+        lines.append("- " + str(fn.get("location") or fn.get("function")) + ": " +
+                     str(fn.get("cost_ms") or fn.get("cumulative_cpu_ms")) + " ms (instrumenté)")
+    lines += ["", "## Temps des jobs CI / installation (pourcentages par job)", ""]
+    for job in report["ci_step_costs"][:10]:
+        lines.append("### " + str(job.get("job")))
+        for step in job.get("steps", [])[:5]:
+            lines.append("- " + str(step.get("step")) + ": " +
+                         str(step.get("duration_seconds")) + " s (" +
+                         str(step.get("percent_of_job_measured_steps")) + "% du job)")
+    if not report["ci_step_costs"]:
+        lines.append("NOT_RUN: aucun temps des étapes CI attribuable à ce SHA.")
+    lines += ["", "## Dérives RSS observées après retour Home par écran", ""]
+    for entry in report["home_route_drift"][:15]:
+        lines.append("- " + str(entry["route"]) + ": " + str(entry["delta_mib"]) +
+                     " MiB (corrélation après 750 ms, sans preuve de fuite)")
     lines += ["", "## Mémoire", "",
               "Pic process-tree: " + str(report["memory"]["process_tree_peak_mib"]) + " MiB.",
               "Variation Home: " + str(report["memory"]["idle_rss_delta_mib"]) + " MiB (pas fuite prouvée).",
