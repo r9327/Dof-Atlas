@@ -561,11 +561,14 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     if previous > size:
         target.unlink()
         previous = 0
+    cached_delta_verified = False
     if differential and previous == size:
         # A complete but corrupted cached delta must be replaced here, not
         # retried forever or force a multi-GB full-release fallback.
         entry = ReleaseFile(target.name, size, release.manifest.delta.archive_sha256)
-        if not verify_file(target, entry):
+        if verify_file(target, entry):
+            cached_delta_verified = True
+        else:
             target.unlink(missing_ok=True)
             previous = 0
     if previous != size:
@@ -601,7 +604,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
             raise UpdateError(f"Release download interrupted: {exc}") from exc
     elif progress:
         progress(previous, size)
-    if differential:
+    if differential and not cached_delta_verified:
         digest = hashlib.sha256()
         with target.open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
