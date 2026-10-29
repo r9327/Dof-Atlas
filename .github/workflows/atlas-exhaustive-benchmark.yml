@@ -13,6 +13,10 @@ on:
     paths:
       - ".github/workflows/atlas-exhaustive-benchmark.yml"
       - "tools/benchmark_atlas_exhaustive.py"
+      - "tools/atlas_perf_attribution.py"
+      - "tools/atlas_doctor.py"
+      - "tools/atlas_doctor_lib/exhaustive_performance.py"
+      - "tests/test_doctor_exhaustive_performance.py"
       - "tests/test_atlas_exhaustive_benchmark.py"
 
 permissions:
@@ -92,19 +96,19 @@ jobs:
 
       - name: Validate exhaustive benchmark contracts
         run: |
-          python -m py_compile tools/benchmark_atlas_exhaustive.py tests/test_atlas_exhaustive_benchmark.py
+          python -m py_compile tools/benchmark_atlas_exhaustive.py tools/atlas_perf_attribution.py tools/atlas_doctor_lib/exhaustive_performance.py tools/atlas_doctor.py tests/test_atlas_exhaustive_benchmark.py tests/test_doctor_exhaustive_performance.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -X faulthandler -m unittest -v tests.test_atlas_exhaustive_benchmark
+          python -X faulthandler -m unittest -v tests.test_atlas_exhaustive_benchmark tests.test_doctor_exhaustive_performance
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Measure all guides and keep per-guide evidence
+      - name: Doctor orchestrates all guides with real Qt evidence
         run: |
           $cycles = "2"
           if ("${{ github.event_name }}" -eq "workflow_dispatch") {
             $cycles = "${{ inputs.cycles }}"
           }
           New-Item -ItemType Directory -Path artifacts/atlas_exhaustive -Force | Out-Null
-          python -X faulthandler -m tools.benchmark_atlas_exhaustive --cycles $cycles --output artifacts/atlas_exhaustive/guides.json
+          python -X faulthandler -m tools.atlas_doctor perf-lab --cycles $cycles --output artifacts/atlas_exhaustive/guides.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print exhaustive guide evidence
@@ -116,11 +120,14 @@ jobs:
             exit 0
           }
           $doc = Get-Content $path -Raw | ConvertFrom-Json
+          $verdictPath = "artifacts/atlas_exhaustive/guides.doctor.json"
+          $verdict = if (Test-Path $verdictPath) { Get-Content $verdictPath -Raw | ConvertFrom-Json } else { $null }
           $lines = @(
             "## Exhaustive Atlas Guide benchmark",
             "",
             "- Candidate: $($doc.git_head)",
-            "- Status: $($doc.status)",
+            "- Doctor engine status: $($doc.status)",
+            "- Doctor verdict: $(if ($null -eq $verdict) { 'MISSING' } else { $verdict.status })",
             "- Atlas playable guides: $($doc.atlas_catalogue_count)",
             "- Ganymede reference-only inventory: $($doc.ganymede_source_count)",
             "- Runs PASS/total: $($doc.summary.passed)/$($doc.summary.planned)",
@@ -129,7 +136,7 @@ jobs:
             "- Peak Atlas RSS (MiB): $($doc.peak_atlas_process_mb)",
             "- Peak Atlas process-tree RSS (MiB): $($doc.peak_process_tree_mb)",
             "",
-            "Each guide/cycle is listed in guides.csv; Ganymede metadata-only references are in guides.json.",
+            "Each guide/cycle is listed in guides.csv; per-function attribution in guides.json; navigable guides.html; Doctor verdict in guides.doctor.json.",
             "Qt offscreen stalls do NOT prove Windows desktop display FPS or real EXE launch performance."
           )
           if ($env:GITHUB_STEP_SUMMARY) {
