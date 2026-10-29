@@ -148,7 +148,7 @@ class DoctorASTDuplicateEvidenceTests(unittest.TestCase):
         self.assertEqual(x["graph_status"], "MISSING")
         self.assertTrue(x["full_code_inspection_truncated"])
         self.assertTrue(x["review_required"])
-        self.assertIn("DOES NOT", x["coverage_statement"])
+        self.assertIn("does NOT mean", x["coverage_statement"])
 
     def test_scan_with_missing_python_file_is_blocked(self):
         from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
