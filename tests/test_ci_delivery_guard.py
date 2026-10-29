@@ -72,6 +72,40 @@ class DeliveryGuardTests(unittest.TestCase):
         self.assertFalse(result["tests_executed_by_this_gate"])
         self.assertEqual(result["deferred"], [{"id": "DG-003", "issue": 23}])
 
+    def test_numeric_phase_prefix_keeps_accounting_and_manual_deferral_strict(self):
+        # Actual #286 uses LV2-001..LV2-014; the trusted base must accept
+        # them without rewriting immutable source issue requirement IDs.
+        c = contract()
+        r = report()
+        for i, (spec, row) in enumerate(zip(c["requirements"], r["requirements"]), 1):
+            key = f"LV2-{i:03d}"
+            spec["id"] = key
+            row["id"] = key
+        followed = lambda _: {"state": "open", "body": "LV2-003: native Windows required"}
+        result = self.check(c=c, r=r, fetch=followed)
+        self.assertEqual(result["status"], "TRACKED_PARTIAL")
+        self.assertEqual(result["done_ids"], ["LV2-001", "LV2-002"])
+        self.assertEqual(result["deferred"], [{"id": "LV2-003", "issue": 23}])
+        self.assertFalse(result["full_certified"])
+        self.assertFalse(result["merge_authorized"])
+        r["requirements"][0]["status"] = "PENDING"
+        with self.assertRaisesRegex(DeliveryError, "only DONE"):
+            self.check(c=c, r=r, fetch=followed)
+
+    def test_numeric_phase_prefix_rejects_malformed_ids(self):
+        for bad in (
+            "LV2-1", "L2-001", "L1V-001", "LV2222-001", "lv2-001",
+            "LV2_001", "LV2-0000000", "LV2-001x", "2LV-001",
+        ):
+            with self.subTest(value=bad):
+                c, r = contract(), report()
+                c["requirements"][0]["id"] = bad
+                r["requirements"][0]["id"] = bad
+                with self.assertRaisesRegex(
+                    DeliveryError, "Invalid originating contract requirement"
+                ):
+                    self.check(c=c, r=r)
+
     def test_all_accounted_code_and_docs_are_not_phase_certification(self):
         c = contract()
         c["requirements"].pop()

@@ -20,7 +20,12 @@ un unique bloc JSON délimité comme suit :
 }
 <!-- ATLAS_DELIVERY_CONTRACT_END -->
 
-Les IDs (p. ex. REQ-001) sont stables. Les types reconnus sont code, docs, manual.
+Les IDs (p. ex. `REQ-001` et `LV2-001`) sont stables : 2 à 12 lettres
+majuscules, éventuellement suivies de 1 à 3 chiffres, un tiret, puis 3 à 6
+chiffres. Les chiffres ne sont pas acceptés au début ou au milieu du préfixe.
+Les types reconnus sont code, docs, manual. Cette grammaire compatible avec les
+IDs historiques ne change aucune exigence de statut, de test, de preuve ou
+de validation humaine.
 Inclure le parcours nominal, les erreurs/rollback, les tests de régression,
 les migrations, l'interface et les validations Windows réelles s'ils concernent
 le sujet. Une PR ne peut pas remplacer la portée de l'issue : le contrôle compare
