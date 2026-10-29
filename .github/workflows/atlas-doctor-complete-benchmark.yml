@@ -26,7 +26,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: atlas-doctor-complete-${{ github.event.pull_request.number || github.ref }}
+  # Isolate the repaired Doctor campaign from a prior zero-job pending concurrency group.
+  # Within v2, newer PR commits still cancel their own superseded runs.
+  group: atlas-doctor-complete-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 # A single orchestration of the existing canonical engines. No new benchmark
