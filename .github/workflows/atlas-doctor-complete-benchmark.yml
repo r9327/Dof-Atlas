@@ -38,6 +38,14 @@ jobs:
       max_seconds: 700
       one_core: true
 
+  eight-atlas-processes:
+    name: Doctor / 8 simultaneous isolated Atlas applications
+    uses: ./.github/workflows/atlas-short-full-app.yml
+    with:
+      cycles: 1
+      max_seconds: 600
+      parallel_instances: 8
+
   all-guides:
     name: Doctor / all playable guides
     uses: ./.github/workflows/atlas-exhaustive-benchmark.yml
@@ -114,7 +122,7 @@ jobs:
   suite-verdict:
     name: Doctor / required results and honest coverage
     if: always()
-    needs: [all-menus, one-core-stress, all-guides, phase8-memory, phase8-preload, domain-contracts]
+    needs: [all-menus, one-core-stress, eight-atlas-processes, all-guides, phase8-memory, phase8-preload, domain-contracts]
     runs-on: ubuntu-latest
     steps:
       - name: Write fail-closed suite outcome
@@ -122,6 +130,7 @@ jobs:
           MENUS: "${{ needs.all-menus.result }}"
           GUIDES: "${{ needs.all-guides.result }}"
           ONE_CORE: "${{ needs.one-core-stress.result }}"
+          EIGHT_ATLAS: "${{ needs.eight-atlas-processes.result }}"
           MEMORY: "${{ needs.phase8-memory.result }}"
           PRELOAD: "${{ needs.phase8-preload.result }}"
           CONTRACTS: "${{ needs.domain-contracts.result }}"
@@ -131,7 +140,7 @@ jobs:
           import json
           import os
           from pathlib import Path
-          jobs = {key: os.environ[key] for key in ("MENUS", "GUIDES", "ONE_CORE", "MEMORY", "PRELOAD", "CONTRACTS")}
+          jobs = {key: os.environ[key] for key in ("MENUS", "GUIDES", "ONE_CORE", "EIGHT_ATLAS", "MEMORY", "PRELOAD", "CONTRACTS")}
           missing = [key for key, value in jobs.items() if value != "success"]
           payload = {
               "kind": "atlas_doctor_complete_automated_suite",
@@ -140,7 +149,7 @@ jobs:
               "status": "BLOCKED" if missing else "AUTOMATED_PASS_NATIVE_NOT_CERTIFIED",
               "failed_or_unexecuted_jobs": missing,
               "not_covered_on_github_hosted_qt_offscreen": [
-                  "8 real DOFUS clients (not eight Atlas UI menus)",
+                  "8 real DOFUS clients (eight separate Atlas apps are tested, not the game)",
                   "physically constrained low-end Windows hardware (one-core simulation measured separately)",
                   "human-visible EXE + launcher + Windows DPI/GPU FPS",
                   "real update/download/rollback on final packaged Windows installer",
