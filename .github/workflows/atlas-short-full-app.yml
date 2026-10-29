@@ -1,11 +1,34 @@
 name: Atlas Short Complete App Journey
 
 on:
+  workflow_call:
+    inputs:
+      cycles:
+        type: number
+        default: 3
+      idle_seconds:
+        type: number
+        default: 0
+      max_seconds:
+        type: number
+        default: 540
   workflow_dispatch:
+    inputs:
+      cycles:
+        description: "3 passages rapides, ou 10 passages pour une campagne étendue"
+        type: choice
+        default: "3"
+        options: ["3", "10"]
+      idle_seconds:
+        description: "Observation supplémentaire à l'arrêt sur Home (secondes)"
+        type: choice
+        default: "0"
+        options: ["0", "60"]
   pull_request:
     paths:
       - ".github/workflows/atlas-short-full-app.yml"
       - "tools/doctor_quick_app_probe.py"
+      - "tools/atlas_doctor.py"
       - "tests/test_doctor_quick_app_probe.py"
       - "tools/ci_domain_certification.py"
 
@@ -33,7 +56,7 @@ jobs:
   quick-whole-app:
     name: Full menu / preload / RAM / CPU / Qt (short)
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout exact source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -105,7 +128,10 @@ jobs:
 
       - name: Inspect every menu route, startup and preloads in one Qt session
         run: |
-          python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --cycles 3 --output artifacts/quick_app/report.json
+          $cycles = [int]'${{ inputs.cycles || 3 }}'
+          $idle = [double]'${{ inputs.idle_seconds || 0 }}'
+          $max = [double]'${{ inputs.max_seconds || 1200 }}'
+          python -X faulthandler -m tools.atlas_doctor perf --app --max-seconds $max --timeout 18 --cycles $cycles --idle-seconds $idle --output artifacts/quick_app/report.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print results and coverage
