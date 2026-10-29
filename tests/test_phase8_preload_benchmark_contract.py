@@ -51,6 +51,7 @@ class ComparableCraftSeedTests(unittest.TestCase):
         self.assertIn('build_compact_craft_preload()', setup)
         self.assertIn('if target.exists():', setup)
         self.assertIn('copy2(seed, target)', setup)
+        self.assertIn('for measured_ref, metrics in (("base", before_metrics), ("candidate", after_metrics)):', workflow)
         self.assertIn('set(states) != required_states', workflow)
         self.assertIn('str(value) != "READY"', workflow)
         self.assertNotIn('{"READY", "FAILED"}', workflow)

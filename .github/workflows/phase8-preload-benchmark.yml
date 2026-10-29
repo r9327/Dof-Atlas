@@ -222,10 +222,13 @@ jobs:
           if missing:
               raise SystemExit("candidate benchmark missing metrics: " + ", ".join(missing))
 
-          states = after_metrics.get("preload_states_after") or {}
           required_states = {"quests", "encyclopedia", "craft"}
-          if set(states) != required_states or any(str(value) != "READY" for value in states.values()):
-              raise SystemExit(f"candidate preload not fully READY: {states!r}")
+          for measured_ref, metrics in (("base", before_metrics), ("candidate", after_metrics)):
+              states = metrics.get("preload_states_after") or {}
+              if set(states) != required_states or any(
+                  str(value) != "READY" for value in states.values()
+              ):
+                  raise SystemExit(f"{measured_ref} preload not fully READY: {states!r}")
 
           rss_after_preload = float(after_metrics["rss_after_preload_mb"])
           if rss_after_preload > 95.0:
