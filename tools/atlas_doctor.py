@@ -596,6 +596,21 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
 
 
 def command_perf(root: Path, args) -> dict[str, Any]:
+    if args.app:
+        if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
+            return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
+        from tools.doctor_quick_app_probe import run as run_app_benchmark
+        report = run_app_benchmark(
+            output=root / args.output, timeout=args.timeout,
+            max_seconds=args.max_seconds, cycles=args.cycles,
+            idle_seconds=args.idle_seconds,
+        )
+        if not args.json:
+            print(f"Doctor App Benchmark: {report['status']} "
+                  f"| parcours {report.get('measured_routes')}/{report.get('planned_samples')}"
+                  f" | preload {report.get('preload_status')}"
+                  f" | idle {report.get('idle_seconds_requested')}s")
+        return report
     if args.deep:
         return command_perf_lab(root, args)
     _audit(root, force=False, integrity_mode=None)
@@ -925,7 +940,13 @@ def build_parser() -> argparse.ArgumentParser:
     perf.add_argument('--files-only', action='store_true', help='Ne pas lancer le benchmark Qt runtime.')
     perf.add_argument('--deep', action='store_true',
                       help='Mode exhaustif par guide, sans relancer le bench standard.')
-    perf.add_argument('--cycles', type=int, choices=(1, 2, 5, 10), default=2)
+    perf.add_argument('--app', action='store_true',
+                      help='Navigation de toutes les routes Atlas, via Doctor, sans second moteur.')
+    perf.add_argument('--max-seconds', type=float, default=540.0,
+                      help='Budget borné du bench complet des menus.')
+    perf.add_argument('--idle-seconds', type=float, default=0.0,
+                      help='Observation post-Home; ne prétend pas démontrer une fuite.')
+    perf.add_argument('--cycles', type=int, choices=(1, 2, 3, 5, 10), default=2)
     perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
                       help='Jalons de chaque guide: début/milieu/fin, ou 0.')
     perf.add_argument('--output', type=Path,
@@ -1151,7 +1172,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')
         return 2 if verdict == 'FAIL' else (1 if verdict == 'WARN' else 0)
-    if args.command == 'perf' and args.deep:
+    if args.command == 'perf' and (args.deep or args.app):
         return 0 if payload.get('status') == 'PASS' else 2
     if args.command == 'perf':
         runtime = payload.get('runtime') or {}
