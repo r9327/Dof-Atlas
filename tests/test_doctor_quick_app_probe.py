@@ -42,7 +42,8 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         window.active_page_name.return_value = "Placeholder::Ocre"
         window.page_widgets = {"Placeholder::Ocre": FakePage()}
         open_route(app, window, ROUTES[12], 1)
-        window.show_placeholder.assert_called_once()
+        window.open_tools_tab.assert_called_once_with("Ocre")
+        window.show_placeholder.assert_not_called()
 
     def test_placeholders_require_actual_placeholder_page(self):
         class FakePage:
