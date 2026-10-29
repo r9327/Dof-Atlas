@@ -283,9 +283,11 @@ def run(*, cycles: int, output: Path, timeout: float,
         checkpoints: int = 3) -> dict[str, Any]:
     started_all = time.perf_counter()
     app = QApplication.instance() or QApplication([])
+    after_qt = time.perf_counter()
     window = app_main.AtlasWindow()
     timeline: dict[str, float] = {
-        "atlas_window_constructor_ms": round((time.perf_counter() - started_all) * 1000, 2)
+        "qt_application_init_ms": round((after_qt - started_all) * 1000, 2),
+        "atlas_window_constructor_ms": round((time.perf_counter() - after_qt) * 1000, 2),
     }
     lag = EventLoopLag()
     watchdog = QtStallStackSampler(threshold_ms=150)
@@ -389,6 +391,7 @@ def run(*, cycles: int, output: Path, timeout: float,
                     open_cpu = time.process_time()
                     began = time.perf_counter()
                     before_io = process_io()
+                    profile = None  # Never reuse a profile from an earlier guide on failure.
                     is_profiled = (guide_id in diagnose_guides or
                                    (cycle > 1 and guide_id in slow_guides))
                     row["profiled"] = bool(is_profiled)
@@ -403,6 +406,9 @@ def run(*, cycles: int, output: Path, timeout: float,
                                 timeout=timeout, label=f"Guide {guide_id} detail",
                                 poll_seconds=0.01,
                             )
+                            if cycle == 1 and "first_guide_reachable_ms" not in timeline:
+                                timeline["first_guide_reachable_ms"] = round(
+                                    (time.perf_counter() - started_all) * 1000, 2)
                         finally:
                             row["open_ms"] = round((time.perf_counter() - began) * 1000, 2)
                             row["cpu_open_ms"] = round((time.process_time() - open_cpu) * 1000, 2)
@@ -483,16 +489,14 @@ def run(*, cycles: int, output: Path, timeout: float,
                     if page is None:
                         raise RuntimeError("Encyclopedia page lost after Home")
                     row["status"] = "PASS"
-                    if cycle == 1 and "first_guide_reachable_ms" not in timeline:
-                        timeline["first_guide_reachable_ms"] = round(
-                            (time.perf_counter() - started_all) * 1000, 2)
                 except Exception as exc:
                     lag.stop()
+                    watchdog.end()
                     row["error"] = f"{type(exc).__name__}: {exc}"
                     row["method_hotspots"] = attributor.top(phase + ":open")
                     row["stall_stacks"] = watchdog.get(phase + ":open")
                     row["open_resources"] = cpu.get(phase + ":open")
-                    if "profile" in locals() and row.get("profiled"):
+                    if profile is not None and row.get("profiled"):
                         row["targeted_profile"] = profile.result
                     try:
                         window.show_page("Home")
