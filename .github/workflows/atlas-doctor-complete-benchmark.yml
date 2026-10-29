@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: atlas-doctor-complete-${{ github.event.pull_request.number || github.ref }}
@@ -108,6 +109,15 @@ jobs:
         run: |
           mkdir -p artifacts/doctor_complete
           python -m tools.atlas_doctor code-inspect --base-ref "${{ github.event.pull_request.base.sha || 'main' }}" --json > artifacts/doctor_complete/duplicate_review.json
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          path = Path("artifacts/doctor_complete/duplicate_review.json")
+          result = json.loads(path.read_text(encoding="utf-8"))
+          result["git_head"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          result["kind"] = "atlas_doctor_code_inspect"
+          path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          PY
       - name: Preserve exact duplicate evidence even on review
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -174,7 +184,8 @@ jobs:
             tests.test_startup_preload_window_visibility `
             tests.test_fault_injection_contracts `
             tests.test_doctor_quick_app_probe `
-            tests.test_achievement_compact_process_lock
+            tests.test_achievement_compact_process_lock `
+            tests.test_doctor_evidence_costs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   suite-verdict:
@@ -183,6 +194,38 @@ jobs:
     needs: [all-menus, one-core-stress, eight-atlas-processes, all-guides, phase8-memory, phase8-preload, full-qt-ui, native-distribution, graphify, duplicate-review, domain-contracts]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout exact candidate for Doctor evidence joining
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          persist-credentials: false
+
+      - name: Download exact-run Doctor app attribution
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: atlas-short-complete-app-c10-*
+          path: artifacts/doctor_complete/inputs/app
+          merge-multiple: false
+
+      - name: Download Doctor UI verification record
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: doctor-ui-verdict-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/doctor_complete/inputs/ui
+
+      - name: Download Doctor duplicate code findings
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: doctor-code-duplicate-review-*
+          path: artifacts/doctor_complete/inputs/duplicates
+          merge-multiple: false
+
       - name: Write fail-closed suite outcome
         env:
           MENUS: "${{ needs.all-menus.result }}"
@@ -223,6 +266,7 @@ jobs:
           folder = Path("artifacts/doctor_complete")
           folder.mkdir(parents=True, exist_ok=True)
           (folder / "suite.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          (folder / "jobs.json").write_text(json.dumps(jobs, indent=2) + "\n", encoding="utf-8")
           print(json.dumps(payload, indent=2))
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           with summary.open("a", encoding="utf-8") as out:
@@ -230,7 +274,7 @@ jobs:
               out.write(f"SHA: `{payload['sha']}` | **{payload['status']}**\n\n")
               for key, result in jobs.items():
                   out.write(f"- {key}: {result}\n")
-              out.write("\nNative Windows and 8 real clients remain NOT RUN, not PASS.\n")
+              out.write("\n8 real DOFUS clients and visually rendered desktop UI remain NOT RUN.\n")
           if missing:
               raise SystemExit("Doctor BLOCKED: missing or failed required benchmark stages: " + ", ".join(missing))
           PY
