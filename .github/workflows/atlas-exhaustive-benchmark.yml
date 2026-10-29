@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: atlas-exhaustive-guides-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   QT_QPA_PLATFORM: offscreen
