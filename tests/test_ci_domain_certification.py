@@ -23,6 +23,17 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_doctor_agent_protocol_test_is_explicit_ci_owned(self):
+        # PR #290 is blocked by an UNKNOWN_OWNER even though the test's
+        # quality_ci manifest and context map already select its module.
+        known = "tests/test_atlas_doctor_agent_protocol.py"
+        unknown = "tests/test_atlas_doctor_unreviewed.py"
+        self.assertEqual(owners_for(known), frozenset({"ci"}))
+        self.assertEqual(self.route([known])["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route([known])["unknown_paths"], [])
+        self.assertFalse(owners_for(unknown))
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
