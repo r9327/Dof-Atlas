@@ -596,7 +596,7 @@ def command_perf_lab(root: Path, args) -> dict[str, Any]:
 
 
 def command_perf(root: Path, args) -> dict[str, Any]:
-    if args.app:
+    if getattr(args, 'app', False):
         if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
             return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
         if args.parallel_instances == 8:
@@ -620,9 +620,10 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                   f" | preload {report.get('preload_status')}"
                   f" | idle {report.get('idle_seconds_requested')}s")
         return report
-    if args.one_core or args.idle_seconds or args.parallel_instances != 1:
+    if (getattr(args, 'one_core', False) or getattr(args, 'idle_seconds', 0.0)
+            or getattr(args, 'parallel_instances', 1) != 1):
         return {"status": "BLOCKED", "reason": "App-only performance flags require Doctor perf --app"}
-    if args.deep:
+    if getattr(args, 'deep', False):
         return command_perf_lab(root, args)
     _audit(root, force=False, integrity_mode=None)
     payload = run_performance(root, include_runtime=not args.files_only)
