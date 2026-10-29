@@ -7,6 +7,7 @@ This tier does not change Phase 8 RAM budgets or quick PR certification.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +25,25 @@ def output_under_artifacts(root: Path, output: Path) -> Path:
         raise ValueError("Doctor Performance Lab output must be a JSON file inside artifacts/")
     return target
 
+
+
+
+IMPORT_ROW = re.compile(r"^import time:\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(.+)$")
+
+
+def top_import_costs(log: str, *, limit: int = 30) -> list[dict[str, Any]]:
+    """Parse CPython -X importtime output (microseconds), not elapsed wall clock."""
+    rows = []
+    for line in log.splitlines():
+        match = IMPORT_ROW.match(line)
+        if match:
+            self_us, cumulative_us, module = match.groups()
+            rows.append({
+                "module": module.strip(),
+                "self_ms": round(int(self_us) / 1000, 2),
+                "cumulative_ms": round(int(cumulative_us) / 1000, 2),
+            })
+    return sorted(rows, key=lambda item: item["self_ms"], reverse=True)[:limit]
 
 
 def bottleneck_candidates(payload: dict[str, Any], *, limit: int = 20) -> list[dict[str, Any]]:
@@ -143,7 +163,7 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
                    diagnose_slow_ms: float = 1000.0,
                    diagnose_guides: tuple[str, ...] = (),
                    py_spy: bool = False, checkpoints: int = 3,
-                   profile_startup: bool = False) -> dict[str, Any]:
+                   profile_startup: bool = False, profile_imports: bool = False) -> dict[str, Any]:
     if checkpoints not in (0, 3):
         raise ValueError("Supported checkpoint modes are 0 or 3")
     if cycles not in VALID_CYCLES:
@@ -168,6 +188,8 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
     ]
     for ident in diagnose_guides:
         args += ["--diagnose-guide", ident]
+    if profile_imports:
+        args[1:1] = ["-X", "importtime"]
     if profile_startup:
         args.append("--profile-startup")
     if py_spy:
@@ -185,7 +207,12 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
             executable, "record", "--format", "speedscope", "--output",
             str(destination.with_suffix(".speedscope.json")), "--", *args,
         ]
-    process = subprocess.run(args, cwd=root, check=False)
+    import_log = destination.with_suffix(".imports.txt") if profile_imports else None
+    if import_log is not None:
+        with import_log.open("w", encoding="utf-8") as stream:
+            process = subprocess.run(args, cwd=root, check=False, stderr=stream)
+    else:
+        process = subprocess.run(args, cwd=root, check=False)
     try:
         evidence = json.loads(destination.read_text(encoding="utf-8"))
         if not isinstance(evidence, dict):
@@ -201,6 +228,11 @@ def run_doctor_lab(root: Path, *, cycles: int, output: Path, timeout: float = 45
     from tools.atlas_doctor_lib.runtime_benchmark import git_head
     report = review_evidence(evidence, expected_sha=git_head(root), cycles=cycles,
                              process_exit=process.returncode)
+    if import_log is not None:
+        report["startup_imports_instrumented"] = True
+        report["startup_imports_log"] = str(import_log.relative_to(root))
+        report["startup_import_costs"] = top_import_costs(
+            import_log.read_text(encoding="utf-8", errors="replace"))
     report["raw_json"] = str(destination.relative_to(root))
     report["raw_csv"] = str(destination.with_suffix(".csv").relative_to(root))
     report["raw_html"] = str(destination.with_suffix(".html").relative_to(root))
