@@ -95,6 +95,19 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
         self.assertEqual(len(results), 2)
         self.assertGreaterEqual(sum(x["inclusive_ms"] for x in results), 0)
 
+    def test_single_doctor_perf_entrypoint_no_second_benchmark_command(self):
+        from tools.atlas_doctor import build_parser
+        parser = build_parser()
+        help_text = parser.format_help()
+        self.assertIn("perf", help_text)
+        self.assertNotIn("perf-lab", help_text)
+        self.assertTrue(parser.parse_args(["perf", "--deep", "--cycles", "5"]).deep)
+        self.assertFalse(parser.parse_args(["perf"]).deep)
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/atlas-exhaustive-benchmark.yml").read_text(encoding="utf-8")
+        self.assertIn("tools.atlas_doctor perf --deep", workflow)
+        self.assertNotIn("tools.benchmark_atlas_exhaustive --cycles", workflow)
+
     def test_io_is_nonnegative_and_report_escapes_errors(self):
         self.assertEqual(io_delta({"read_bytes": 20}, {"read_bytes": 25}), {"read_bytes": 5})
         self.assertEqual(io_delta({"read_bytes": 20}, {"read_bytes": 15}), {"read_bytes": 0})
