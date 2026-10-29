@@ -18,7 +18,7 @@ from app.distribution import launcher
 class WindowHealthTests(unittest.TestCase):
     def launch_with_process(self, root: Path, process, now, *, ready_payload="123"):
         health = root / ".health"
-        health.mkdir(parents=True)
+        health.mkdir(parents=True, exist_ok=True)
         (health / "fixed.ready").write_text(ready_payload, encoding="utf-8")
         fake_exe = root / "AtlasApp.exe"
         fake_exe.write_bytes(b"MZ")
