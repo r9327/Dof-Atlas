@@ -189,6 +189,41 @@ class QtStallStackSampler:
                     })
 
 
+
+class StartupCpuProfiler:
+    """CPU attribution across Qt construction, preloads and first Guide catalogue.
+
+    Explicitly opt-in: the instrumented startup timing must NOT become a
+    baseline for normal (unprofiled) launch latency.
+    """
+
+    def __init__(self, enabled: bool = False) -> None:
+        self.enabled = enabled
+        self.profiler: cProfile.Profile | None = None
+        self.result: list[dict[str, Any]] = []
+
+    def begin(self) -> None:
+        if self.enabled and self.profiler is None:
+            self.profiler = cProfile.Profile()
+            self.profiler.enable()
+
+    def finish(self) -> list[dict[str, Any]]:
+        if self.profiler is None:
+            return []
+        self.profiler.disable()
+        report = pstats.Stats(self.profiler)
+        ranked = sorted(report.stats.items(), key=lambda kv: kv[1][3], reverse=True)
+        self.result = [
+            {"file": source_path(key[0]), "line": key[1], "function": key[2],
+             "calls": values[1], "self_cpu_ms": round(values[2] * 1000, 2),
+             "cumulative_cpu_ms": round(values[3] * 1000, 2)}
+            for key, values in ranked[:40]
+        ]
+        self.profiler = None
+        return self.result
+
+
+
 class TargetedProfile:
     """High-overhead cProfile+Python allocator diff for a targeted replay.
 
