@@ -357,6 +357,25 @@ jobs:
               raise SystemExit("No real GitHub Actions step timing evidence")
           PY
 
+      - name: Publish self-contained Doctor audit dashboard
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.atlas_doctor_lib.evidence_hub import render_html
+          directory = Path("artifacts/doctor_complete")
+          evidence = directory / "doctor_evidence.json"
+          stages = directory / "ci_step_costs.json"
+          if not evidence.is_file():
+              print("Doctor evidence hub missing; no false HTML success")
+              raise SystemExit(2)
+          report = json.loads(evidence.read_text(encoding="utf-8"))
+          costs = json.loads(stages.read_text(encoding="utf-8")) if stages.is_file() else None
+          (directory / "audit.html").write_text(
+              render_html(report, costs), encoding="utf-8")
+          PY
+
       - name: Archive exact-SHA coverage ledger even on failure
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
