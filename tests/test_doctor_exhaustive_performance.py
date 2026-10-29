@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from tools.atlas_doctor_lib.exhaustive_performance import (
-    output_under_artifacts, review_evidence, run_doctor_lab,
+    output_under_artifacts, review_evidence, run_doctor_lab, bottleneck_candidates,
 )
 from tools.atlas_perf_attribution import SpanAttributor, io_delta, render_report
 
@@ -39,6 +39,31 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
         incomplete["samples"] = self.payload["samples"][:-1]
         missing = review_evidence(incomplete, expected_sha="abc", cycles=2, process_exit=0)
         self.assertIn("MISSING_OR_DUPLICATED_GUIDE_MEASURES", missing["blocking_reasons"])
+
+    def test_doctor_names_hotspots_and_marks_stack_as_unconfirmed(self):
+        evidence = dict(self.payload)
+        evidence["timeline"] = {"functional_preload_ms": 1200,
+                                 "first_guide_reachable_ms": 1500}
+        evidence["samples"] = [{
+            "guide_id": "dofus_sylvestre", "cycle": 1, "status": "PASS",
+            "open_ms": 300, "method_hotspots": [
+                {"method": "app.views.Sylvestre.build", "self_ms": 210, "calls": 1}
+            ],
+            "stall_stacks": [{
+                "qt_unresponsive_ms_at_sample": 260,
+                "stack": [{"file": "app/views/sylvestre.py", "line": 201,
+                           "function": "build"}]
+            }],
+        }]
+        found = bottleneck_candidates(evidence, limit=10)
+        self.assertEqual(found[0]["kind"], "startup_phase")
+        self.assertNotIn("first_guide_reachable_ms",
+                         [item["location"] for item in found])
+        self.assertTrue(any(item["kind"] == "python_method"
+                            and item["location"] == "app.views.Sylvestre.build"
+                            for item in found))
+        self.assertTrue(any(item["evidence"] == "sampled_not_causal"
+                            for item in found))
 
     def test_failed_guide_never_passes_even_when_subprocess_exits_zero(self):
         broken = dict(self.payload)
