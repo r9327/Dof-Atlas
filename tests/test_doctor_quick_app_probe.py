@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
-from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits
+from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, run
+from tools.atlas_doctor import command_perf
 
 
 class ShortWholeAppProbeTests(unittest.TestCase):
@@ -75,6 +77,36 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         window.page_widgets = {"Placeholder::Ocre": FakePage()}
         with self.assertRaisesRegex(RuntimeError, "placeholder classification mismatch"):
             open_route(app, window, ROUTES[12], 1)
+
+    def test_full_campaign_bounds_fail_closed_without_starting_qt(self):
+        with self.assertRaisesRegex(ValueError, "Unbounded"):
+            run(output=Path("artifacts/quick_app/report.json"), cycles=11)
+        with self.assertRaisesRegex(ValueError, "Unbounded"):
+            run(output=Path("artifacts/quick_app/report.json"), cycles=10, idle_seconds=121)
+        with self.assertRaisesRegex(ValueError, "Unbounded"):
+            run(output=Path("artifacts/quick_app/report.json"), cycles=10, max_seconds=1900)
+
+    def test_doctor_is_the_only_full_app_public_entrypoint(self):
+        args = SimpleNamespace(
+            app=True, deep=False, files_only=False, cycles=10,
+            timeout=18.0, max_seconds=1200.0, idle_seconds=60.0,
+            one_core=True, output=Path("artifacts/quick_app/report.json"),
+            json=True,
+        )
+        with patch("tools.doctor_quick_app_probe.run",
+                   return_value={"status": "PASS", "measured_routes": 200}) as engine:
+            result = command_perf(Path("/unused"), args)
+        self.assertEqual(result["status"], "PASS")
+        engine.assert_called_once_with(
+            output=Path("/unused/artifacts/quick_app/report.json"),
+            timeout=18.0, max_seconds=1200.0, cycles=10,
+            idle_seconds=60.0, one_core=True,
+        )
+        args.deep = True
+        with patch("tools.doctor_quick_app_probe.run") as engine:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "BLOCKED")
+            engine.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
