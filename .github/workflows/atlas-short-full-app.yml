@@ -1,0 +1,117 @@
+name: Atlas Short Complete App Journey
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-short-full-app.yml"
+      - "tools/doctor_quick_app_probe.py"
+      - "tests/test_doctor_quick_app_probe.py"
+      - "tools/ci_domain_certification.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-short-app-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  quick-whole-app:
+    name: Full menu / preload / RAM / CPU / Qt (short)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Install Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install exact pinned dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test complete route inventory and no false PASS for placeholders
+        run: |
+          python -m unittest -v tests.test_doctor_quick_app_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize real Quest and Craft data
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          total = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {total}")
+          if total < 1900:
+              raise SystemExit("Incomplete Quest catalog")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Inspect every menu route, startup and preloads in one Qt session
+        run: |
+          python -X faulthandler -m tools.doctor_quick_app_probe --max-seconds 540 --timeout 18 --output artifacts/quick_app/report.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Print results and coverage
+        if: always()
+        run: |
+          @'
+          import json
+          from pathlib import Path
+          p = Path("artifacts/quick_app/report.json")
+          if p.exists():
+              report = json.loads(p.read_text(encoding="utf-8"))
+              print(json.dumps({
+                  "status": report.get("status"),
+                  "sha": report.get("git_head"),
+                  "preload_ms": report.get("preload_ms"),
+                  "preload_states": report.get("preload_states"),
+                  "functional": report.get("functional_pass"),
+                  "placeholders": report.get("placeholder_pass"),
+                  "routes": report.get("measured_routes"),
+                  "failed_routes": report.get("failed_routes"),
+                  "peak_tree_rss_mib": report.get("peak_process_tree_rss_mib"),
+                  "elapsed_seconds": report.get("elapsed_seconds"),
+              }, indent=2, ensure_ascii=False))
+              for row in report.get("routes", []):
+                  print(f"{row['id']:18} {row['status']:12} {row['open_ms']:8}ms {row.get('error', '')}")
+          '@ | python -
+
+      - name: Upload full-app JSON evidence even when blocked
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: atlas-short-complete-app-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quick_app/**
+          if-no-files-found: warn
+          retention-days: 14
