@@ -781,6 +781,8 @@ def command_all(root: Path, args) -> dict[str, Any]:
         'audit': audit.get('summary'),
         'ponytail': ponytail,
         'performance_status': (perf.get('runtime') or {}).get('status'),
+        'specialist_evidence': _read_doctor_shared_evidence(
+            root, (audit.get('git') or {}).get('head')),
         'report': report,
     }
     if not args.json:
