@@ -23,6 +23,7 @@ python -m tools.atlas_doctor perf --files-only
 python -m tools.atlas_doctor perf --deep --cycles 2 --checkpoints 3
 python -m tools.atlas_doctor perf --deep --cycles 5 --checkpoints 3 --diagnose-slow-ms 750
 python -m tools.atlas_doctor perf --deep --cycles 2 --diagnose-guide guide_complet
+python -m tools.atlas_doctor perf --deep --cycles 2 --profile-startup --diagnose-guide dofus_sylvestre
 ```
 
 Le CI lance exactement `doctor perf --deep` dans un job séparé et ciblé
@@ -42,6 +43,8 @@ ne devient jamais une nouvelle FULL automatique à chaque petite PR.
 Les 95 références de catalogue Ganymède sont distinguées des guides Atlas
 réellement exécutables. Aucune référence non jouable n'est présentée comme
 un parcours certifié. Un parcours échoué ou incomplet vaut `BLOCKED`.
+
+L'option `--profile-startup` capture le CPU du premier chargement Qt, du preload et du catalogue ; elle **n'inclut pas les imports Python antérieurs à l'entrée du moteur** et ne doit pas servir de référence de temps non instrumenté.
 
 Les mesures `cProfile`/`tracemalloc` sont volontairement plus intrusives ;
 Doctor les déclenche sur les guides lents, en passage ultérieur, et leur
