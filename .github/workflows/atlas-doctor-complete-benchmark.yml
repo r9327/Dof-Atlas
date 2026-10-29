@@ -49,6 +49,8 @@ jobs:
   all-guides:
     name: Doctor / all playable guides
     uses: ./.github/workflows/atlas-exhaustive-benchmark.yml
+    with:
+      benchmark_timeout_minutes: 30
 
   phase8-memory:
     name: Canonical RAM and lifecycle budgets
