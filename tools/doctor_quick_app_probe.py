@@ -141,10 +141,30 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0) -> d
         sampler.set_phase("preload")
         cpu.set_phase("preload")
         preload_start = time.perf_counter()
-        wait_until(app, lambda: preload_terminal(window), timeout=min(90.0, max_seconds / 3),
-                   label="functional preload", poll_seconds=0.025)
+        preload_lag = EventLoopLag()
+        preload_lag.start()
+        try:
+            wait_until(app, lambda: preload_terminal(window), timeout=min(90.0, max_seconds / 3),
+                       label="functional preload", poll_seconds=0.025)
+        finally:
+            report["preload_qt"] = preload_lag.stop()
         report["preload_ms"] = round((time.perf_counter() - preload_start) * 1000, 2)
+        report["preload_cpu_rss"] = cpu.get("preload")
         report["preload_states"] = {str(k): str(v) for k, v in window.preload_states.items()}
+        report["preload_errors"] = {
+            str(k): [str(e)[:300] for e in v.get("errors", [])[:5]]
+            for k, v in getattr(window, "preload_results", {}).items()
+            if isinstance(v, dict) and v.get("errors")
+        }
+        report["preload_fail_diagnostics"] = {
+            str(k): {
+                "skipped_reason": str(v.get("_skipped_reason") or "")[:300],
+                "prepared": v.get("_prepared"),
+                "has_errors": bool(v.get("errors")),
+            }
+            for k, v in getattr(window, "preload_results", {}).items()
+            if isinstance(v, dict) and k in report["preload_states"]
+        }
         report["preload_status"] = ("PASS" if report["preload_states"]
                                     and all(v == "READY" for v in report["preload_states"].values())
                                     else "FAIL")
