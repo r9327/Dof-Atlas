@@ -84,10 +84,20 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
     if hub and hub.get("git_head") != sha:
         add("P0", "STALE_HUB", "Doctor evidence hub is stale", str(hub.get("git_head")),
             "Join specialist results again at the exact same SHA")
-    profiled = guides.get("git_head") == sha and bool(guides.get("startup_cpu_functions"))
+    # Doctor's existing exhaustive guide verdict already contains instrumented
+    # method samples even when intrusive startup cProfile is disabled.
+    guide_sha = guides.get("observed_sha") or guides.get("git_head")
+    guide_verified = guide_sha == sha and guides.get("status") == "PASS"
+    startup_functions = guides.get("startup_cpu_functions") or [] if guide_verified else []
+    candidates = guides.get("bottleneck_candidates") or [] if guide_verified else []
+    measured_methods = [row for row in candidates
+                        if isinstance(row, dict) and row.get("kind") == "python_method"
+                        and number(row.get("cost_ms")) is not None]
+    measured_methods.sort(key=lambda row: -row["cost_ms"])
+    profiled = bool(startup_functions or measured_methods)
     if not profiled:
-        add("P2", "FUNCTION_PROFILE", "Per-function Python startup CPU not supplied",
-            "NOT_RUN", "Run existing Doctor perf --deep --profile-startup and provide --guides")
+        add("P2", "FUNCTION_PROFILE", "No verified Python function/method hotlist",
+            "NOT_RUN", "Provide same-SHA exhaustive Doctor guide evidence; startup cProfile remains opt-in")
     comparison = {"status": "NOT_RUN", "reason": "No baseline provided"}
     if baseline is not None:
         if not valid or len(str(baseline.get("git_head") or "")) != 40 or not comparable(app, baseline):
@@ -115,8 +125,11 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
         "memory": {"process_tree_peak_mib": peak, "worst_tree_phase": app.get("worst_tree_phase") if valid else None,
                    "idle_rss_delta_mib": idle_delta, "module_rss_percentages": None,
                    "limitation": "Native Qt, shared pages and worker RSS are non-additive"},
-        "function_hotlist": guides["startup_cpu_functions"][:20] if profiled else [],
+        "function_hotlist": startup_functions[:20] if startup_functions else measured_methods[:20],
         "function_hotlist_status": "OBSERVED" if profiled else "NOT_RUN",
+        "function_hotlist_scope": ("python_startup_cprofile" if startup_functions else
+                                   "guide_instrumented_exclusive_method_time" if measured_methods else "NOT_RUN"),
+        "guide_bottleneck_candidates": candidates[:20] if guide_verified else [],
         "ci_step_costs": (ci_costs.get("jobs", [])[:15] if ci_costs and ci_costs.get("git_head") == sha else []),
         "functional_coverage": {"menu_entries_visited": measured,
             "internal_screen_operations": "NOT_RUN", "real_desktop_fps": "NOT_RUN",
