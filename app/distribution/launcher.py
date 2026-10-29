@@ -98,6 +98,10 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
     env["DOFUS_ATLAS_HEALTH_FILE"] = str(ready)
     env["DOFUS_ATLAS_HOME_HEALTH_FILE"] = str(home)
     env["DOFUS_ATLAS_USER_ROOT"] = str(USER_DIR)
+    # Only the visible Tk entrypoint requests a single-window handoff.
+    # The headless maintenance fallback and direct Atlas starts keep Qt preload.
+    if os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") == "1":
+        env["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
     # Read-only, acknowledged data packs; the live QuestProvider loads on demand.
     env["DOFUS_ATLAS_PACK_ROOT"] = str(ROOT)
     report("Lancement de Dofus Atlas...", 98)
@@ -350,14 +354,14 @@ def run_update(report, *, verify_installation: bool = False) -> None:
 
 
 def _is_application_handoff(message: str) -> bool:
-    """Hide Tk only once the Qt event loop acknowledges its own preload UI."""
-    return message == "Prechargement Qt actif"
+    """Hide Tk only once the actual Home has taken over the visible window."""
+    return message == "Dofus Atlas est pret"
 
 
 def _requires_updater_window(message: str) -> bool:
     """A checked no-op/offline launch shows Atlas preload, never an updater popup."""
     return message.startswith((
-        "Telechargement", "Differentiel", "Installation",
+        "Lancement de Dofus Atlas", "Telechargement", "Differentiel", "Installation",
         "Verification complete", "Verification et installation",
         "Copie vers", "Version precedente restauree",
         "Demarrage echoue", "Paquets de donnees precedents restaures",
@@ -466,7 +470,12 @@ def main() -> int:
                     ROOT = relocate_runtime(target, progress=moved)
                 else:
                     set_runtime_root(ROOT)
-            run_update(report, verify_installation="--atlas-verify-install" in sys.argv)
+            # Scoped to the Tk worker, never the headless maintenance path.
+            os.environ["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
+            try:
+                run_update(report, verify_installation="--atlas-verify-install" in sys.argv)
+            finally:
+                os.environ.pop("DOFUS_ATLAS_LAUNCHER_HANDOFF", None)
             events.put(("done", 0))
         except Exception as exc:
             _logger().exception("Updater failed")
