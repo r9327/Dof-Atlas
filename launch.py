@@ -32,6 +32,26 @@ def main() -> int:
                 return 4
         return 0
 
+    if sys.argv[1:2] == ["--atlas-prebuilt-quest-smoke"]:
+        # Prove the actual frozen EXE ships an importable immutable Quest
+        # summary: 1,976 records without recompiling raw sources.
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from app.quest_index_prebuilt import (
+            verify_quest_index, restore_quest_index, _check_index,
+        )
+        count = verify_quest_index()
+        if count < 1900:
+            print("Frozen portable Quest summary is absent or invalid", file=sys.stderr)
+            return 18
+        with TemporaryDirectory(prefix="atlas-portable-quest-") as folder:
+            dest = Path(folder) / "runtime-quest.sqlite3"
+            if not restore_quest_index(dest) or _check_index(dest) != count:
+                print("Frozen Quest summary restoration failed", file=sys.stderr)
+                return 19
+        print(f"VERIFIED: frozen portable Quest index {count} summaries")
+        return 0
+
     if sys.argv[1:2] == ["--atlas-quest-smoke"]:
         # Exercise the real source parser, not just a directory existence check.
         from app.quest_catalog_details import ensure_lazy_catalog_cache
