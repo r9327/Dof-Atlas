@@ -104,12 +104,21 @@ class GuideCatalogView(QWidget):
             guide_id: FeaturedGuideCard(guide_id, title, self.select_guide, self)
             for guide_id, title in FEATURED
         }
-        root.addWidget(heading("GUIDES OPTIMISÉS"))
+        # The agreed home is a single two-column workspace, not a full-width
+        # featured banner followed by a second, disconnected catalogue.
+        # Optimized routes and Alignements stay on the left; Dofus on the right.
+        self.library_left = QWidget(self)
+        self.library_left.setObjectName("GuideLibraryLeft")
+        left_layout = QVBoxLayout(self.library_left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(8)
+        left_layout.addWidget(heading("GUIDES OPTIMISÉS"))
         self.optimized_pair = FeaturedPair(
             (self.featured_cards["guide_complet"],
-             self.featured_cards["dofus_sylvestre"]), self
+             self.featured_cards["dofus_sylvestre"]), self.library_left
         )
-        root.addWidget(self.optimized_pair)
+        left_layout.addWidget(self.optimized_pair)
+        left_layout.addWidget(heading("EXPLORER LES GUIDES"))
 
         # Preserve the legacy model roles for integrations and external progress.
         self.result_model = GuideListModel(self)
@@ -137,7 +146,7 @@ class GuideCatalogView(QWidget):
         self.library_categories.setObjectName("GuideLibraryCategories")
         self.library_categories.setHeaderHidden(True)
         self.library_categories.setIndentation(16)
-        self.library_categories.setMaximumWidth(235)
+        self.library_categories.setMinimumWidth(0)
         self._category_nodes = {}
         for category_key, text in CATEGORIES:
             node = QTreeWidgetItem((text,))
@@ -146,6 +155,7 @@ class GuideCatalogView(QWidget):
             self._category_nodes[category_key] = node
         self.library_categories.setCurrentItem(self._category_nodes["dofus"])
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
+        left_layout.addWidget(self.library_categories, 1)
 
         self.library_right = QWidget(self)
         self.library_right.setObjectName("GuideLibraryResults")
@@ -188,7 +198,7 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.home_empty, 1)
 
         self.home_columns = GuideHomeColumns(
-            self.library_categories, self.library_right, self
+            self.library_left, self.library_right, self
         )
         root.addWidget(self.home_columns, 1)
 
