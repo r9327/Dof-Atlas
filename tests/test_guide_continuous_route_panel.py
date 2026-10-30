@@ -48,13 +48,16 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         model = self.panel.summary_model
         old_first = model.data(model.index(0, 0))
         old_second = model.data(model.index(1, 0))
-        self.panel.next_button.click()
+        # Simply browsing a different step does not alter the followed
+        # marker. Validating the actual step does, and must avoid a full reset.
+        self.panel.validate_button.click()
         self.assertEqual(resets, [])
         self.assertTrue(changed)
         self.assertNotEqual(model.data(model.index(0, 0)), old_first)
         self.assertNotEqual(model.data(model.index(1, 0)), old_second)
         self.assertTrue(model.data(model.index(1, 0)).startswith("→ "))
-        self.panel.previous_button.click()
+        self.panel.show_step("ganymede_2205_step_0001")
+        self.panel.validate_button.click()  # Undo the first step for both characters.
         self.assertEqual(resets, [])
         self.assertEqual(model.data(model.index(0, 0)), old_first)
         self.assertEqual(model.data(model.index(1, 0)), old_second)
