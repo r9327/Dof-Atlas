@@ -106,11 +106,13 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
         return {"status": "UNAVAILABLE", "reason": "NO_QAPPLICATION", "label": label}
     widgets = QApplication.allWidgets()
     try:
+        from tools.atlas_doctor_lib.ram_forensics import private_windows_memory
         return {
             "status": "OBSERVED_PARTIAL",
             "label": str(label),
             "qt": _qt_owners(window, widgets),
             "native_image_indicators": _native_image_indicators(window),
+            "windows_process_private": private_windows_memory(),
             "page_lifecycle": _page_lifecycle(window),
             "gc_generation_counts": list(gc.get_count()),
             "loaded_python_modules": len(sys.modules),
@@ -142,15 +144,29 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
         qt = snapshot.get("qt")
         if not isinstance(qt, dict):
             continue
+        windows_private = snapshot.get("windows_process_private")
         seen[label] = {
             "rss_process_mib": memory.get("process_rss_mb"),
             "rss_process_tree_mib": memory.get("tree_rss_mb"),
+            "private_commit_mib": (
+                windows_private.get("private_commit_mib")
+                if isinstance(windows_private, dict)
+                and windows_private.get("status") == "OBSERVED"
+                else None
+            ),
             "qt_widgets": qt.get("total_live_widgets"),
         }
     first = seen.get("initial_home")
     last = seen.get("last_home")
     result: dict[str, object] = {"status": "PARTIAL", "checkpoints": seen}
     if first is not None and last is not None:
+        private_before, private_after = (
+            first.get("private_commit_mib"), last.get("private_commit_mib")
+        )
+        if all(type(x) in (int, float) for x in (private_before, private_after)):
+            result["home_private_commit_delta_mib"] = round(
+                float(private_after) - float(private_before), 3
+            )
         beginning = first.get("rss_process_tree_mib")
         ending = last.get("rss_process_tree_mib")
         if all(type(x) in (int, float) for x in (beginning, ending)):
