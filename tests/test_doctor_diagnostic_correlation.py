@@ -69,7 +69,7 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertIn("HOME_REVISIT_CORRELATION", by_id)
         preload = by_id["PRELOAD_WALL_CORRELATION"]
         self.assertEqual(preload["inference"], "CORRELATION_NOT_CAUSATION")
-        self.assertEqual(preload["evidence_strength"], "MULTI_SPECIALIST_LEAD")
+        self.assertEqual(preload["evidence_strength"], "SINGLE_REPORT_LEAD")
         self.assertFalse(preload["root_cause_proven"])
         self.assertEqual(
             [x["path"] for x in preload["tool_plan"]["selected"]],
