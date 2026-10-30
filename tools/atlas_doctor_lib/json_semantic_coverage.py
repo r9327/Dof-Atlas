@@ -116,7 +116,7 @@ def _verify_guide_catalog(catalog: Any, guide_headers: dict[str, dict[str, Any]]
             issues.append({"kind": "UNKNOWN_GUIDE_CATEGORY", "index": index, "id": gid})
         # Do not resolve paths, follow symlinks, or accept untrusted subpaths.
         if (not isinstance(filename, str) or not filename.endswith(".json")
-                or "/" in filename or "\\" in filename
+                or "/" in filename or "\\" in filename or ":" in filename
                 or filename.startswith(".") or filename == ".json"):
             issues.append({"kind": "UNSAFE_GUIDE_FILENAME", "index": index, "id": gid})
             continue
@@ -172,8 +172,8 @@ def _manual_manifest_chapter_refs(
         # The actual runtime joins filenames with MANUAL_DIR. Do not follow
         # absolute/parent-relative paths even in read-only audit logic.
         if (
-            "/" in filename or "\\" in filename or filename in {".", ".."}
-            or not filename.lower().endswith(".json")
+            "/" in filename or "\\" in filename or ":" in filename
+            or filename in {".", ".."} or not filename.lower().endswith(".json")
         ):
             candidates.append({
                 "kind": "MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW",

@@ -233,6 +233,36 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(audit["semantic_links_verified"])
         self.assertEqual(report["status"], "REVIEW")
 
+    def test_windows_drive_relative_json_references_are_unsafe(self):
+        # A colon without a slash remains a Windows drive-relative path.
+        # Neither canonical catalogue nor chapter triage may treat it as an
+        # ordinary tracked file or silently downgrade it to "missing".
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file(
+            "data/encyclopedia/guides/catalog.json",
+            json.dumps({"categories": [{"id": "dofus"}],
+                        "guides": [{"id": "drive", "category": "dofus",
+                                    "file": "C:chapter.json"}]}),
+        )
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "manifest_v1.json", json.dumps({
+            "canonical": {"chapters": [{"file": "C:chapter.json"}]},
+        }))
+        sha = self._commit()
+        audit = audit_full_scope(self.root, expected_sha=sha, with_json=True)["json_semantic_audit"]
+        self.assertEqual(audit["guide_catalog_static_links"]["issues"], [
+            {"kind": "UNSAFE_GUIDE_FILENAME", "index": 0, "id": "drive"},
+        ])
+        chapter = next(item for item in audit["files"]
+                       if item["file"] == prefix + "manifest_v1.json")
+        self.assertEqual(chapter["manual_manifest_reference_candidates"], [
+            {"kind": "MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW",
+             "chapter_index": 0, "file": "C:chapter.json"},
+        ])
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+
     def test_manual_chapter_patch_base_file_dependencies_are_tracked(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
