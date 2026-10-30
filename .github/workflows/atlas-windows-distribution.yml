@@ -240,6 +240,9 @@ jobs:
         run: |
           python -m scripts.windows.build_guide_routes --source-sha "$SOURCE_SHA" --output data/bootstrap/guide_routes
           python -m scripts.windows.build_guide_routes --verify-only --output data/bootstrap/guide_routes
+      - name: Precompile canonical rewards for all Guide overviews
+        run: |
+          python -m scripts.windows.build_guide_rewards --source-sha "$SOURCE_SHA" --output data/bootstrap/guide_rewards_v1.json
       - name: Compile application bundle with QtWebEngine and worker modules
         run: |
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
@@ -284,6 +287,21 @@ jobs:
               if not path.is_file() or path.stat().st_size == 0:
                   raise SystemExit(f"Frozen Guide asset missing: {path}")
           print("Verified: portable Sylvestre route included in exact Windows candidate")
+          PY
+      - name: Verify canonical reward index ships in frozen Windows bundle
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          index = Path("dist/AtlasApp/_internal/data/bootstrap/guide_rewards_v1.json")
+          payload = json.loads(index.read_text(encoding="utf-8"))
+          guides = payload.get("guides", {})
+          if payload.get("schema") != 1 or not 20 <= len(guides) <= 100:
+              raise SystemExit("Portable Guide reward index absent or incomplete")
+          for guide in ("alignement_bonta", "alignement_brakmar"):
+              if guide not in guides:
+                  raise SystemExit(f"Missing reward projection: {guide}")
+          print(f"Verified: {len(guides)} portable Guide reward projections")
           PY
       - name: Certify packaged public Craft SQLite seed
         run: python -m scripts.windows.craft_seed --verify --output dist/AtlasApp/_internal/data/bootstrap/craft_seed.sqlite
