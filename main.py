@@ -1057,20 +1057,40 @@ class AtlasWindow(QMainWindow):
             -1,
         )
 
+        # A Home return should not destroy/recreate every combo icon and Qt
+        # item when the canonical connected-character projection is unchanged.
+        # Keep the profile/runtime refresh below; only skip redundant widgets.
+        character_rows = [
+            (
+                character,
+                self.character_icon_path(
+                    character.label, class_key=getattr(character, "class_key", "")
+                ),
+            )
+            for character in connected_characters
+        ]
+        combo_signature = tuple(
+            (
+                str(character.key),
+                str(character.label),
+                str(getattr(character, "class_key", "")),
+                icon_path,
+            )
+            for character, icon_path in character_rows
+        )
         previous_blocked = self.character_combo.blockSignals(True)
         try:
-            self.character_combo.clear()
-            for character in connected_characters:
-                icon_path = self.character_icon_path(
-                    character.label, class_key=getattr(character, "class_key", "")
-                )
-                icon = QIcon(icon_path) if icon_path else QIcon()
-                self.character_combo.addItem(icon, character.label, character)
-                self.character_combo.setItemData(
-                    self.character_combo.count() - 1,
-                    character.label,
-                    Qt.ToolTipRole,
-                )
+            if combo_signature != getattr(self, "_character_combo_signature", None):
+                self.character_combo.clear()
+                for character, icon_path in character_rows:
+                    icon = QIcon(icon_path) if icon_path else QIcon()
+                    self.character_combo.addItem(icon, character.label, character)
+                    self.character_combo.setItemData(
+                        self.character_combo.count() - 1,
+                        character.label,
+                        Qt.ToolTipRole,
+                    )
+                self._character_combo_signature = combo_signature
 
             if selected_index >= 0:
                 self.character_combo.setCurrentIndex(selected_index)
