@@ -153,6 +153,21 @@ class GuideManualContractRowCacheTests(unittest.TestCase):
         self.assertEqual(lookup(fake, {"position": "[1, 2]"}), [10, 20])
         self.assertIs(first_cache, fake._waypoint_quest_ids_by_position)
 
+    def test_fallback_quest_name_matches_use_one_normalized_index(self) -> None:
+        fake = SimpleNamespace(
+            _quest_rows=[(10, "Une quête"), (20, "Autre quête")],
+            _quest_normalized_rows=None,
+            _quest_name_key=GuideUltimeManualCard._quest_name_key,
+            _waypoint_quest_ids_for_row=lambda row: [],
+        )
+        lookup = GuideUltimeManualCard._quest_ids_for_row
+        self.assertEqual(lookup(fake, {"text": "Finir Une quête"}), [10])
+        cached = fake._quest_normalized_rows
+        self.assertEqual(lookup(fake, {"text": "Finir Autre quête"}), [20])
+        self.assertIs(fake._quest_normalized_rows, cached)
+        # A multi-Quest sheet cannot invent a link for unrelated actions.
+        self.assertEqual(lookup(fake, {"text": "Parler au PNJ"}), [])
+
     def test_replacing_contract_rebuilds_index(self) -> None:
         first = {"card_key": "a", "quests": [1]}
         service = _Service({"cards": [first]})

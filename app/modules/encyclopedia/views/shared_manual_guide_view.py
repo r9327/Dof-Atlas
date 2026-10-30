@@ -267,6 +267,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.travel_command_callback = travel_command_callback
         self._quest_rows = self._canonical_quest_rows()
         self._quest_row_names_by_id = dict(self._quest_rows)
+        self._quest_normalized_rows = tuple(
+            (quest_id, self._quest_name_key(name))
+            for quest_id, name in self._quest_rows if name
+        )
         self._waypoint_quest_ids_by_position = None
         # One visible quest shortcut per quest and per rendered guide sheet.
         self._shown_quest_ids: set[int] = set()

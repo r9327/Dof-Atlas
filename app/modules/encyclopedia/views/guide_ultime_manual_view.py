@@ -263,10 +263,16 @@ class GuideUltimeManualCard(QFrame):
         # Without waypoint evidence, a multi-quest page must not attach every
         # quest to an unrelated action. Use the quest explicitly named here.
         text = self._quest_name_key(row.get("text") or "")
+        normalized_rows = getattr(self, "_quest_normalized_rows", None)
+        if normalized_rows is None:
+            normalized_rows = tuple(
+                (quest_id, self._quest_name_key(name))
+                for quest_id, name in self._quest_rows if name
+            )
+            self._quest_normalized_rows = normalized_rows
         named_ids = [
-            quest_id
-            for quest_id, name in self._quest_rows
-            if name and self._quest_name_key(name) in text
+            quest_id for quest_id, name_key in normalized_rows
+            if name_key in text
         ]
         if named_ids:
             return named_ids
