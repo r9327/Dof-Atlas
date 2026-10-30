@@ -43,6 +43,60 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         self.assertEqual(final["status"], "ready")
         self.assertEqual(final["completed_domains"], order)
 
+    def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:
+        enriched = warmup._QUEST_ENRICHED_SOURCE
+        self.assertIn(enriched, warmup._source_paths("quest"))
+        self.assertIn(enriched, warmup._source_paths("guide"))
+        self.assertNotIn(enriched, warmup._source_paths("success"))
+
+    def test_quest_cache_reuse_rejects_missing_or_incomplete_detail_indexes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            catalog = source / "catalog.sqlite3"
+            offset = source / "source_offset.sqlite3"
+            catalog.write_bytes(b"catalog")
+            offset.write_bytes(b"offset")
+            lookup = {"catalog": catalog, "offset": offset}
+            result = {
+                "domain": "quest",
+                "quest_count": 1976,
+                "detail_source_index_count": 1,
+                "detail_index_artifact_count": 1,
+                "cache_files": ["catalog", "offset"],
+            }
+            sources = [["stamp_version", 2, 0]]
+            with (
+                patch.object(warmup, "_safe_artifact_path", side_effect=lambda name: lookup[name]),
+                patch.object(warmup, "_quest_artifact_stamp", return_value=["catalog", 1976, 1]),
+            ):
+                stamp = warmup._artifact_stamp("quest", result["cache_files"])
+                manifest = {"domains": {"quest": {
+                    "source_stamp": sources, "artifact_stamp": stamp,
+                    "result": result,
+                }}}
+                self.assertEqual(
+                    warmup._cached_domain_result("quest", manifest, sources),
+                    result,
+                )
+                # This is the regression: a valid catalogue must not mask
+                # an absent prepared detail-offset index.
+                offset.unlink()
+                self.assertIsNone(
+                    warmup._cached_domain_result("quest", manifest, sources)
+                )
+                offset.write_bytes(b"offset")
+                broken = {**result, "cache_files": ["catalog"]}
+                manifest["domains"]["quest"]["result"] = broken
+                self.assertIsNone(
+                    warmup._cached_domain_result("quest", manifest, sources)
+                )
+                legacy = {**result}
+                legacy.pop("detail_index_artifact_count")
+                manifest["domains"]["quest"]["result"] = legacy
+                self.assertIsNone(
+                    warmup._cached_domain_result("quest", manifest, sources)
+                )
+
     def test_cold_warmup_wait_requires_real_sampler_signal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             go_file = Path(temp_dir) / "memory-sampler.ready"
