@@ -65,6 +65,41 @@ def main() -> int:
         print(f"VERIFIED: frozen {domain} startup data")
         return 0
 
+    if sys.argv[1:2] == ["--atlas-prebuilt-guide-smoke"]:
+        # Certify the actual frozen EXE consumes the bundled portable route.
+        # Do not accidentally accept a source reconstruction or user cache.
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+        from app.modules.encyclopedia.providers.memory_bound_guide_provider import (
+            MemoryBoundGuideProvider,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_prebuilt_route import (
+            restore_prebuilt_route,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_route_store import load_detail
+        quests = QuestProvider()
+        guide = MemoryBoundGuideProvider(quest_provider=quests).get_by_id("dofus_sylvestre")
+        if guide is None:
+            print("Frozen Sylvestre Guide metadata unavailable", file=sys.stderr)
+            return 13
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        service.guide_id = str(guide.id)
+        service.catalog_guide = guide
+        service.quest_provider = quests
+        if not restore_prebuilt_route(service):
+            print("Frozen portable Sylvestre route rejected", file=sys.stderr)
+            return 14
+        if len(service.cards) < 1000:
+            return 15
+        for index in (0, len(service.cards) // 2, len(service.cards) - 1):
+            detail = load_detail(service._catalog_detail_store_path, index)
+            if not detail["manual_lines"]:
+                return 16
+        print(f"VERIFIED: frozen precompiled Sylvestre {len(service.cards)} indexed cards")
+        return 0
+
     if sys.argv[1:2] == ["--atlas-success-detail-smoke"]:
         from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
         provider = AchievementProvider()
