@@ -7,8 +7,10 @@ object enumeration cannot contaminate the measured checkpoint.
 from __future__ import annotations
 
 import gc
+import json
 import sys
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtGui import QPixmapCache
@@ -159,4 +161,51 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
     return result
 
 
-__all__ = ["ram_ownership_snapshot", "ram_checkpoints_summary", "ROUTE_CHECKPOINTS"]
+
+
+def ram_scope_status(path: Path | None = None) -> dict[str, object]:
+    """Fail closed on missing, duplicated or truncated workstream inventories."""
+    manifest = (
+        Path(path) if path is not None else
+        Path(__file__).resolve().parents[2] /
+        "docs/performance/atlas-ram-inventory-v1.json"
+    )
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        rows = payload["workstreams"]
+        if payload.get("schema") != 1 or not isinstance(rows, list):
+            raise ValueError("RAM register schema invalid")
+        expected = [f"RAM-{i:02d}" for i in range(1, 51)]
+        ids = [row["id"] for row in rows]
+        if ids != expected:
+            raise ValueError("RAM register missing, re-ordered or duplicated IDs")
+        status = Counter()
+        for row in rows:
+            if not isinstance(row, dict) or row.get("status") not in {
+                "measured", "instrumented", "todo"
+            }:
+                raise ValueError("RAM register contains unknown coverage status")
+            if not all(str(row.get(key, "")).strip()
+                       for key in ("priority", "domain", "title", "evidence", "owner")):
+                raise ValueError(f"RAM register evidence missing: {row['id']}")
+            status[row["status"]] += 1
+        return {
+            "status": "PARTIAL" if status["todo"] or status["instrumented"] else "EVIDENCE_REVIEW_REQUIRED",
+            "workstreams_total": len(rows),
+            "with_existing_evidence": status["measured"],
+            "instrumented_not_certified": status["instrumented"],
+            "not_instrumented": status["todo"],
+            "missing_ids": [],
+            "pending_ids": [row["id"] for row in rows if row["status"] != "measured"],
+            "native_heap_attribution_confirmed": False,
+            "real_windows_release_certified": False,
+        }
+    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return {"status": "BLOCKED", "reason": f"{type(exc).__name__}: {exc}"}
+
+
+__all__ = [
+    "ram_ownership_snapshot", "ram_checkpoints_summary",
+    "ram_scope_status", "ROUTE_CHECKPOINTS",
+]
+
