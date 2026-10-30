@@ -18,6 +18,10 @@ on:
       - 'scripts/windows/build_guide_rewards.py'
       - 'app/modules/encyclopedia/services/guide_prebuilt_rewards.py'
       - 'tests/test_guide_prebuilt_rewards.py'
+      - 'tests/test_quest_index_prebuilt.py'
+      - 'app/quest_index_prebuilt.py'
+      - 'app/quest_catalog_details.py'
+      - 'scripts/windows/build_quest_index.py'
       - 'app/modules/encyclopedia/views/guides_view.py'
 
 permissions:
@@ -67,6 +71,9 @@ jobs:
       - name: Canonical reward precompile / alignment regressions
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
+      - name: Portable first-boot Quest SQLite index contracts
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_quest_index_prebuilt
       - name: Targeted preparation accounting if present
         shell: pwsh
         run: |
