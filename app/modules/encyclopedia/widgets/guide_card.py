@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
 
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QRect, QSize, Qt
@@ -60,6 +61,9 @@ class GuideListModel(QAbstractListModel):
         self.progress_by_guide: dict[str, tuple[int, int, str]] = {}
         self.title_overrides: dict[str, str] = {}
         self.subtitle_overrides: dict[str, str] = {}
+        # A small per-model memo avoids repeated filesystem stats on each
+        # Qt paint/hover event. Only 32 already-scaled 48px thumbnails.
+        self._icon_cache: OrderedDict[str, QPixmap] = OrderedDict()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self.entries)
@@ -85,8 +89,17 @@ class GuideListModel(QAbstractListModel):
                     if total else f"{title}\n{label}\n{levels}\nProgression inconnue")
         if role == Qt.DecorationRole:
             image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
-            if image_path.exists():
-                return ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
+            key = str(image_path)
+            cached = self._icon_cache.get(key)
+            if cached is not None:
+                self._icon_cache.move_to_end(key)
+                return cached if not cached.isNull() else None
+            pixmap = (ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
+                      if image_path.exists() else QPixmap())
+            self._icon_cache[key] = pixmap
+            if len(self._icon_cache) > 32:
+                self._icon_cache.popitem(last=False)
+            return pixmap if not pixmap.isNull() else None
         if role == Qt.ToolTipRole:
             return guide.description or guide.title
         if role == GUIDE_ID_ROLE:
@@ -109,6 +122,7 @@ class GuideListModel(QAbstractListModel):
 
     def set_guides(self, guides: list[Guide]) -> None:
         self.beginResetModel()
+        self._icon_cache.clear()
         self.guides = list(guides)
         self.entries = self._grouped_entries(self.guides)
         self.endResetModel()
@@ -149,6 +163,7 @@ class GuideListModel(QAbstractListModel):
         ):
             return
         self.beginResetModel()
+        self._icon_cache.clear()
         self.guides = guides_for_column
         self.entries = entries_for_column
         self.endResetModel()
