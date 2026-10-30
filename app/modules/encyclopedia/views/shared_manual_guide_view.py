@@ -50,8 +50,11 @@ from app.ui.theme import PALETTE
 def _preparation_icon_roots() -> tuple[Path, ...]:
     """Resolve shipped item images once, only on opening Preparation."""
     roots = (DATA_DIR / "images" / "items", DATA_DIR / "images" / "resources")
-    return tuple(directory for root in roots if root.is_dir()
-                 for directory in root.iterdir() if directory.is_dir())
+    # Both direct <id>.png and one-level category/<id>.png layouts exist.
+    # Preserve a bounded one-time scan: never walk the entire image library.
+    existing = tuple(root for root in roots if root.is_dir())
+    return existing + tuple(directory for root in existing
+                            for directory in root.iterdir() if directory.is_dir())
 
 
 @lru_cache(maxsize=1024)
