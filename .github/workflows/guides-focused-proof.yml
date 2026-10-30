@@ -15,6 +15,10 @@ on:
       - 'app/modules/encyclopedia/services/guide_catalog_prebuilt_route.py'
       - 'app/modules/encyclopedia/services/guide_catalog_manual_runtime_service.py'
       - 'scripts/windows/build_guide_routes.py'
+      - 'scripts/windows/build_guide_rewards.py'
+      - 'app/modules/encyclopedia/services/guide_prebuilt_rewards.py'
+      - 'tests/test_guide_prebuilt_rewards.py'
+      - 'app/modules/encyclopedia/views/guides_view.py'
 
 permissions:
   contents: read
@@ -60,6 +64,9 @@ jobs:
       - name: Portable Sylvestre release-index integrity and fallback
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_route
+      - name: Canonical reward precompile / alignment regressions
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
       - name: Targeted preparation accounting if present
         shell: pwsh
         run: |
