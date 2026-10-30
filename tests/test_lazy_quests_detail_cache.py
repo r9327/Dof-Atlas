@@ -73,6 +73,39 @@ def test_changed_last_quest_id_persists_once() -> None:
 
 
 
+
+class QuestDetailOffsetPreloadTests(unittest.TestCase):
+    def test_warmup_exposes_exact_disk_indexes_without_changing_legacy_count(self):
+        from unittest.mock import MagicMock
+
+        created: list[MagicMock] = []
+
+        def source_factory(root, *, disk_backed=False):
+            self.assertTrue(disk_backed)
+            self.assertEqual(Path(root).name, "source_offsets")
+            sources = MagicMock()
+            def mapping(path, field, **kwargs):
+                result = MagicMock()
+                result.__len__.return_value = 1
+                result._disk_index = Path(root) / ("source_" + str(len(created)) + ".sqlite3")
+                created.append(result)
+                return result
+            sources.mapping.side_effect = mapping
+            return sources
+
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            quest_details_module, "QuestSources", side_effect=source_factory,
+        ):
+            paths: list[Path] = []
+            count = quest_details_module.ensure_detail_source_offsets(
+                Path(directory), cache_root=Path(directory), indexed_paths=paths,
+            )
+        self.assertEqual(count, len(quest_details_module._DETAIL_OFFSET_SOURCES) + 1)
+        self.assertEqual(len(paths), count)
+        self.assertEqual(len(set(paths)), count)
+        self.assertTrue(all(path.name.startswith("source_") for path in paths))
+
+
 class QuestObjectiveStepIndexTests(unittest.TestCase):
     def test_first_rich_detail_primes_index_once_without_intermediate_copy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
