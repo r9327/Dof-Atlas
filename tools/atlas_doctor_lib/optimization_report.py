@@ -312,6 +312,16 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("- " + str(step.get("phase")) + " : " +
                      str(step.get("tool")) + " (" +
                      ", ".join(str(cap) for cap in step.get("capabilities", [])) + ")")
+    contracts = investigation.get("scenario_contracts") or {}
+    lines += ["", "### Scénarios contractuels existants",
+              "Plan : " + str(contracts.get("status", "NOT_SELECTED")) +
+              " ; exécutés : NON"]
+    for item in contracts.get("selected", []):
+        lines.append("- " + str(item["scenario"]) +
+                     " : " + ", ".join(item.get("covered_hypotheses", [])) +
+                     " ; état " + str(item.get("execution_status", "NOT_RUN")))
+    for hypothesis in contracts.get("uncovered_hypotheses", []):
+        lines.append("- Hypothèse sans scénario contractuel : " + str(hypothesis))
     for probe in investigation.get("adaptive_benchmark_probes", []):
         lines.append("- Benchmark proposé " + str(probe.get("scenario")) +
                      " via " + str(probe.get("owner")) +
