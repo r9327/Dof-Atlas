@@ -38,19 +38,24 @@ def _catalog_tools(
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for capability in capabilities:
-        safe = select_tools(
+        # A guarded mutation tool can be agent-ready while still being the
+        # wrong choice for an automatic read-only investigation.
+        preferred = select_tools(
             catalog_report, capability=capability, safe_only=True,
-            ready_only=True, preferred_only=True, limit=1,
+            ready_only=True, preferred_only=True,
         )["tools"]
-        if not safe:
-            safe = select_tools(
-                catalog_report, capability=capability, safe_only=True,
-                ready_only=True, limit=1,
-            )["tools"]
-        if not safe:
+        alternatives = select_tools(
+            catalog_report, capability=capability, safe_only=True,
+            ready_only=True,
+        )["tools"]
+        entry = next(
+            (row for row in [*preferred, *alternatives]
+             if row.get("side_effects") in {"read_only", "artifact_output"}),
+            None,
+        )
+        if entry is None:
             unresolved.append(capability)
             continue
-        entry = safe[0]
         if any(r["path"] == entry["path"] for r in selected):
             continue
         selected.append({
@@ -67,6 +72,92 @@ def _catalog_tools(
         "selected": selected,
         "unresolved_capabilities": unresolved,
         "not_executed": True,
+    }
+
+
+def plan_investigation(
+    sha: str, hypotheses: list[dict[str, Any]], gaps: list[str],
+) -> dict[str, Any]:
+    """Bounded decision DAG using existing specialists, never running them.
+
+    Specialists are de-duplicated across correlated symptoms. Inspection is
+    ordered before costly runtime experiments; final certification remains
+    owned by Atlas Integrity and the Phase workflow.
+    """
+    if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
+        raise ValueError("Full candidate SHA required")
+    if not hypotheses:
+        return {
+            "status": "BLOCKED_MISSING_EVIDENCE" if gaps else "NO_ACTION",
+            "candidate_sha": sha, "steps": [], "unresolved": sorted(set(gaps)),
+            "tests_executed": False, "tools_executed": False,
+            "certification_granted": False,
+        }
+
+    tools: dict[str, dict[str, Any]] = {}
+    unresolved = set(gaps)
+    # Cap the number of safe actions. No direct command is executed or
+    # allowed to replace mandatory risk/certification obligations.
+    for hypothesis in hypotheses[:MAX_HYPOTHESES]:
+        tool_plan = hypothesis.get("tool_plan", {})
+        for capability in tool_plan.get("unresolved_capabilities", []):
+            unresolved.add("tool_unavailable: " + str(capability))
+        for tool in tool_plan.get("selected", [])[:MAX_TOOLS_PER_HYPOTHESIS]:
+            if not isinstance(tool, dict):
+                continue
+            name = tool.get("path")
+            if not isinstance(name, str) or not name.startswith("tools/"):
+                continue
+            item = tools.setdefault(name, {
+                "tool": name, "capabilities": [],
+                "hypotheses": [], "cost_hint": tool.get("cost_hint", "unknown"),
+                "recommended_invocation": tool.get("invocation"),
+                "status": "PLANNED_NOT_EXECUTED",
+            })
+            if tool.get("capability") not in item["capabilities"]:
+                item["capabilities"].append(tool.get("capability"))
+            if hypothesis.get("id") not in item["hypotheses"]:
+                item["hypotheses"].append(hypothesis.get("id"))
+
+    # These are bands, not execution permissions. Specialist invocation
+    # strings are for human review, not commands to run implicitly.
+    def phase(item: dict[str, Any]) -> int:
+        if "validation" in item["capabilities"]:
+            return 2
+        if item["cost_hint"] in {"cheap", "unknown"}:
+            return 0
+        return 1
+
+    steps = []
+    for item in sorted(tools.values(), key=lambda row: (phase(row), row["tool"]))[:32]:
+        steps.append({
+            **item,
+            "phase": ("READ_ONLY_TRIAGE" if phase(item) == 0 else
+                      "TARGETED_FOLLOW_UP" if phase(item) == 1 else
+                      "VALIDATION_AFTER_CODE_COMPLETE"),
+            "selection_reason": "COVERS_CORRELATED_HYPOTHESES",
+            "requires_same_sha": True,
+            "requires_prior_evidence_review": phase(item) > 0,
+            "mutation_authorized": False,
+        })
+    return {
+        "status": "REVIEW_REQUIRED" if unresolved else "READY_TO_REVIEW",
+        "candidate_sha": sha, "steps": steps, "unresolved": sorted(unresolved),
+        "stopping_conditions": [
+            "Stop if an artifact is stale, truncated, failed, or from another SHA",
+            "Stop if a tool is unavailable or requires mutation approval",
+            "Escalate only the unresolved hypotheses after cheap probes",
+        ],
+        "verification_contract": {
+            "before_after_same_runner": "REQUIRED_NOT_RUN",
+            "cold_warm_repeats": "REQUIRED_NOT_RUN",
+            "targeted_regression_tests": "REQUIRED_NOT_RUN",
+            "RAM_HOME_STABILIZED_AND_PEAK": "REQUIRED_NOT_RUN",
+            "final_phase_certification": "REQUIRED_NOT_RUN",
+            "no_not_run_as_pass": True,
+        },
+        "tests_executed": False, "tools_executed": False,
+        "certification_granted": False,
     }
 
 
@@ -90,6 +181,8 @@ def correlate_diagnostics(
             "hypotheses": [], "tests_executed": False,
             "tools_executed": False, "causes_proven": False,
             "certification": False,
+            "investigation_plan": plan_investigation(
+                sha, [], ["app: STALE_OR_NOT_PASS"]),
         }
 
     if hub is None:
@@ -226,6 +319,7 @@ def correlate_diagnostics(
         "candidate_sha": sha,
         "status": "REVIEW" if hypotheses else "NO_CORRELATION",
         "evidence_gaps": sorted(set(gaps)),
+        "investigation_plan": plan_investigation(sha, hypotheses, gaps),
         "hypotheses": hypotheses,
         "tests_executed": False, "tools_executed": False,
         "causes_proven": False, "certification": False,
