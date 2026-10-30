@@ -341,6 +341,30 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             )
 
 
+    def test_short_quest_text_normalization_cache_is_bounded(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            _cached_clean_text,
+            clean_text,
+        )
+
+        _cached_clean_text.cache_clear()
+        raw = "  Bonjour&nbsp;<b>Astrub</b>  {{npc::Meriana}}   "
+        self.assertEqual(clean_text(raw), "Bonjour Astrub Meriana")
+        self.assertEqual(clean_text(raw), "Bonjour Astrub Meriana")
+        self.assertEqual(_cached_clean_text.cache_info().hits, 1)
+
+        # Non-hashable input must remain supported, just like the old function.
+        self.assertEqual(clean_text(["Texte", "utile"]), "['Texte', 'utile']")
+
+        # Long walkthroughs must not be pinned by the bounded label cache.
+        previous = _cached_clean_text.cache_info()
+        long_text = "Le chemin est long. " * 200
+        self.assertEqual(clean_text(long_text), long_text.strip())
+        self.assertEqual(_cached_clean_text.cache_info().misses, previous.misses)
+        self.assertEqual(_cached_clean_text.cache_info().maxsize, 2048)
+        _cached_clean_text.cache_clear()
+
+
 
 if __name__ == "__main__":
     unittest.main()
