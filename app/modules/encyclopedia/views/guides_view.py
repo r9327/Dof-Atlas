@@ -1034,7 +1034,7 @@ class CollapsibleInfoSection(QFrame):
         status_text: str,
         state: str,
         expanded: bool,
-        widgets: list[QWidget],
+        widgets: list[QWidget] | Callable[[], list[QWidget]],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -1080,8 +1080,13 @@ class CollapsibleInfoSection(QFrame):
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(6)
-        for widget in widgets:
-            body_layout.addWidget(widget)
+        # Collapsed prerequisite sections need only their count/header.
+        # Materialize their potentially large Qt widget trees on first open.
+        self._body_widgets_factory = widgets if callable(widgets) else None
+        self._body_initialized = not callable(widgets)
+        if not callable(widgets):
+            for widget in widgets:
+                body_layout.addWidget(widget)
         root.addWidget(self.body)
         self.set_expanded(self.expanded)
 
@@ -1096,6 +1101,15 @@ class CollapsibleInfoSection(QFrame):
 
     def set_expanded(self, expanded: bool) -> None:
         self.expanded = bool(expanded)
+        if self.expanded and not self._body_initialized:
+            factory = self._body_widgets_factory
+            if factory is not None:
+                # Build only once. Preserve existing row navigation/signals.
+                self._body_initialized = True
+                self._body_widgets_factory = None
+                layout = self.body.layout()
+                for widget in factory():
+                    layout.addWidget(widget)
         self.body.setVisible(self.expanded)
         self.chevron.setText("▲" if self.expanded else "▼")
         self.chevron.setToolTip(
@@ -3097,15 +3111,17 @@ class GuidesView(QWidget):
         completed, total, _state = self.guide_progress_tuple(guide)
         self.right_layout.addWidget(info_section("PROGRESSION", [progress_summary(completed, total)]))
 
-        prereqs = self._guide_prerequisite_widgets(guide)
-        if prereqs:
+        prereq_entries = self._guide_prerequisite_entries(guide)
+        if prereq_entries:
             expanded = self.guide_prerequisites_expanded.get(guide.id, False)
             section = CollapsibleInfoSection(
                 "PRÉREQUIS",
-                str(len(prereqs)),
+                str(len(prereq_entries)),
                 "neutral",
                 expanded,
-                prereqs,
+                lambda rows=tuple(prereq_entries): [
+                    self._guide_prerequisite_row(*row) for row in rows
+                ],
             )
             section.toggled.connect(
                 lambda value, guide_id=guide.id: self.guide_prerequisites_expanded.__setitem__(guide_id, value)
