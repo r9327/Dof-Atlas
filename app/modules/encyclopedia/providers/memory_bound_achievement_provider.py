@@ -487,6 +487,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         # not spend another 5s rebuilding a disposable detail worker.
         self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
         self._last_detail_cache_source = "cold"
+        # The previous cold event survives hot/recent hits, so Doctor can
+        # measure the worker cost even when Qt renders from an already warm
+        # detail after the stage signal.
+        self._last_cold_detail_breakdown: dict[str, object] = {}
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -515,6 +519,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._detail_cache = None
         self._recent_rich_details.clear()
         self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._detail_sources_ready = False
         self._progress_objectives = {}
         self._compat_cache_id = None
@@ -569,6 +574,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._detail_cache = None
         self._recent_rich_details.clear()
         self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._progress_objectives = {
             int(achievement.id): json.dumps(
                 [
@@ -798,6 +804,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._detail_cache = None
         self._recent_rich_details.clear()
         self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._image_indexes.clear()
         self._reset_sources()
 
@@ -1476,6 +1483,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         return cached
 
     @property
+    def last_cold_detail_breakdown_ms(self) -> dict[str, object]:
+        """Last successful cold detail cost, independent of subsequent cache hits."""
+        return dict(self._last_cold_detail_breakdown)
+
+    @property
     def last_detail_breakdown_ms(self) -> dict[str, object]:
         """Identify cold Success detail blocking work, without importing a profiler."""
         return {
@@ -1504,6 +1516,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return recent
         old_id, old_detail = self._detail_cache_id, self._detail_cache
         self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
 
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
@@ -1563,13 +1576,35 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     (perf_counter() - decode_started) * 1000.0, 3,
                 )
                 self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+                if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+                    self._last_cold_detail_breakdown = {
+                        "achievement_id": achievement_id,
+                        "status": "OBSERVED",
+                        "thread": self._last_detail_thread_name,
+                        "total_ms": self._last_detail_ms,
+                        "synchronous_subprocess_ms": self._last_detail_subprocess_ms,
+                        "decode_ms": self._last_detail_decode_ms,
+                        "subprocess_path_used": True,
+                    }
 
         self._last_detail_subprocess_used = False
         self._last_detail_subprocess_ms = 0.0
         self._last_detail_decode_ms = 0.0
+        started = perf_counter()
         detail = self._get_detail_in_process(achievement_id)
+        self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+        self._last_detail_thread_name = current_thread().name
         if detail is not None:
             self._remember_rich_detail(achievement_id, detail, old_id, old_detail)
+            self._last_cold_detail_breakdown = {
+                "achievement_id": achievement_id,
+                "status": "OBSERVED",
+                "thread": self._last_detail_thread_name,
+                "total_ms": self._last_detail_ms,
+                "synchronous_subprocess_ms": 0.0,
+                "decode_ms": 0.0,
+                "subprocess_path_used": False,
+            }
         return detail
 
     def get_linked_quests(self, achievement_id: int):
