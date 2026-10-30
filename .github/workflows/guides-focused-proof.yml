@@ -66,10 +66,19 @@ jobs:
       - name: Install pinned runtime for focused Qt tests
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Materialize only needed public Guide fixture data
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Actual Qt Guide catalogue, Unity icons and compact header
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_guide_library_home tests.test_guide_home_two_columns tests.test_unity_skin tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy
+          python -X faulthandler -m unittest -v tests.test_guide_library_home tests.test_guide_home_two_columns tests.test_unity_skin tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_validate_click_without_selected_identity_opens_portrait_picker tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_preparation_item_name_is_click_to_copy_even_in_preview tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_route_progress_advances_when_the_current_sheet_is_validated
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Targeted manual multi-character validation
         shell: pwsh
