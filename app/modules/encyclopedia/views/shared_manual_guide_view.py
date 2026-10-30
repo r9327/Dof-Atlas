@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -887,6 +887,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
+        # One bounded SQLite detail per tick. A navigation change stops the
+        # previous neighborhood before reading anything for the new sheet.
+        self._catalog_prefetch_index: int | None = None
+        self._catalog_prefetch_timer = QTimer(self)
+        self._catalog_prefetch_timer.setInterval(16)
+        self._catalog_prefetch_timer.timeout.connect(self._prefetch_catalog_slice)
         root = QVBoxLayout(self)
         # Qt's default layout minimum otherwise forces the guide wider than
         # the available viewport, preventing the compact labels from activating.
@@ -2123,6 +2129,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._follow_active_after_progress_change()
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
+        self._catalog_prefetch_timer.stop()
+        self._catalog_prefetch_index = None
         self._clear_cards()
         if not self.service.cards:
             return
@@ -2150,11 +2158,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
-        # The visible sheet is already rendered; prefetch only nearby text,
-        # never 1,672 Qt cards or a full Guide payload in memory.
-        prefetch = getattr(self.service, "prefetch_route_near", None)
-        if callable(prefetch):
-            prefetch(index)
+        # Schedule neighbor disk reads after the visible Qt sheet is ready.
+        # Never read nine SQLite bodies synchronously during _render_window.
+        if callable(getattr(self.service, "prefetch_route_near", None)):
+            self._catalog_prefetch_index = index
+            self._catalog_prefetch_timer.start()
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
         self.guide_button.setToolTip(
@@ -2164,6 +2172,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         if reset_scroll:
             self._reset_scroll_to_top()
+
+    def _prefetch_catalog_slice(self) -> None:
+        """Allow event processing between adjacent catalog-detail reads."""
+        index = self._catalog_prefetch_index
+        prefetch = getattr(self.service, "prefetch_route_near", None)
+        if index is None or not callable(prefetch) or index != self.view_index:
+            self._catalog_prefetch_timer.stop()
+            return
+        if not prefetch(index, max_reads=1):
+            self._catalog_prefetch_timer.stop()
 
     def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
         navigator = self.navigate_entity
