@@ -23,6 +23,31 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_pr303_bundled_preloads_and_qt_ram_contracts_have_exact_owners(self):
+        exact = {
+            "scripts/windows/build_guide_rewards.py": {"ci", "startup", "guides", "data"},
+            "scripts/windows/build_guide_routes.py": {"ci", "startup", "guides", "data"},
+            "scripts/windows/build_quest_index.py": {"ci", "startup", "quests", "data"},
+            "docs/performance/atlas-ram-inventory-v1.json": {"ci"},
+            "tests/test_organizer_layout.py": {"ui", "identity"},
+            "tests/test_world_scan_async_loading.py": {"ui"},
+            "tests/test_startup_preload_window_visibility.py": {"startup", "ui"},
+        }
+        for path, owners in exact.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route(list(exact))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["full_suite_executed"])
+        for path in (
+            "scripts/windows/build_unreviewed_cache.py",
+            "docs/performance/new-ram-registry.json",
+            "tests/test_unknown_layout.py",
+        ):
+            self.assertFalse(owners_for(path), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
         paths = [
             "tools/atlas_doctor.py",

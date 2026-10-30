@@ -196,11 +196,31 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "guides", "ui", "startup", "data"})
     if path == "scripts/windows/package_release.py":
         return frozenset({"ci", "ui", "startup", "data"})
+    # Exact CI ownership for bundled prebuilt Guide/Quest projections.
+    # These builders affect release startup and canonical data consumers.
+    if path in {
+        "scripts/windows/build_guide_rewards.py",
+        "scripts/windows/build_guide_routes.py",
+    }:
+        return frozenset({"ci", "startup", "guides", "data"})
+    if path == "scripts/windows/build_quest_index.py":
+        return frozenset({"ci", "startup", "quests", "data"})
+    if path == "docs/performance/atlas-ram-inventory-v1.json":
+        # Doctor's audit registry, not the live application data catalogue.
+        return frozenset({"ci"})
     if path == "scripts/windows/craft_seed.py":
         # The frozen first-install database is a Craft data artifact prepared
         # by CI and copied into user state during startup. Keep this exact so
         # future Windows build helpers remain fail-closed until reviewed.
         return frozenset({"ci", "craft", "data", "startup"})
+    if path == "tests/test_organizer_layout.py":
+        return frozenset({"ui", "identity"})
+    if path == "tests/test_world_scan_async_loading.py":
+        return frozenset({"ui"})
+    if path == "tests/test_startup_preload_window_visibility.py":
+        # The modal handoff and background service ordering are startup/UI,
+        # not Craft-only despite the historical generic 'preload' classifier.
+        return frozenset({"startup", "ui"})
     if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
         return frozenset({"ci", "startup"})
     if path == "tests/test_unity_assets_inventory.py":
