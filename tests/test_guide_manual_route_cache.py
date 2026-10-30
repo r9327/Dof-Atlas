@@ -710,5 +710,51 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             stored.write_bytes(b"not-a-sqlite-database")
             self.assertFalse(store.restore_indexed_route(reopened, path, "v1"))
 
+
+    def test_catalog_index_preparation_is_filtered_before_storing(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as module,
+            guide_catalog_route_store as store,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            legacy = Path(tmp) / "sylvestre.json.gz"
+            source = object.__new__(module.GuideCatalogManualRuntimeService)
+            source.guide_id = "dofus_sylvestre"
+            source.cards = [{
+                "index": 1, "manual_stage_id": "stable:1", "manual_source": True,
+                "manual_sections": {
+                    "prepare": [{"text": "Préparer 1 × Objet acquis sur place"}],
+                    "now": [{"text": "Acquérir cet objet sur place"}],
+                },
+                "manual_lines": [{"text": "Acquérir cet objet sur place"}],
+                "a_preparer": [],
+            }]
+            source.route = {"id": "catalog_manual_dofus_sylvestre", "steps": source.cards}
+            source.manual_audit_data = {"card_count": 1}
+            source._common_quest_ids = (1,)
+            # The already-authoritative sections policy removes a requirement
+            # fulfilled on the same map; the compact index must preserve the
+            # filtered preparation while the full text remains in SQLite.
+            with patch.object(source, "manual_sections_for_card", return_value={
+                "prepare": [], "now": [{"text": "Acquérir cet objet sur place"}],
+            }) as filter_sections:
+                store.write_indexed_route(source, legacy, "v1")
+            filter_sections.assert_called_once_with("", source.cards[0])
+            restored = object.__new__(module.GuideCatalogManualRuntimeService)
+            restored.guide_id = source.guide_id
+            self.assertTrue(store.restore_indexed_route(restored, legacy, "v1"))
+            self.assertEqual(restored.cards[0].get("manual_sections", {}), {})
+            self.assertEqual(
+                restored.manual_sections_for_card("character:1", restored.cards[0])["prepare"],
+                [{"text": "Préparer 1 × Objet acquis sur place"}],
+            )
+            # Global metadata can be read without touching disk sheet rows.
+            with patch.object(
+                module, "load_catalog_card_detail",
+                side_effect=AssertionError("global preparation must stay compact"),
+            ):
+                self.assertEqual(restored.cards[0].get("manual_sections", {}), {})
+
+
 if __name__ == "__main__":
     unittest.main()
