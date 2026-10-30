@@ -928,7 +928,23 @@ def clean_requirement_line(value: str) -> str:
 
 
 def clean_text(value: object) -> str:
-    text = html.unescape(str(value or ""))
+    """Normalize repeated Guide/Quest labels without retaining entire chapters.
+
+    Guide cards reuse the same objective and NPC labels across many route
+    positions. Cache only short, immutable text values; do not pin long
+    walkthrough descriptions or objects in the process for the entire session.
+    """
+    raw = str(value or "")
+    return _cached_clean_text(raw) if len(raw) <= 512 else _normalize_clean_text(raw)
+
+
+@lru_cache(maxsize=2048)
+def _cached_clean_text(raw: str) -> str:
+    return _normalize_clean_text(raw)
+
+
+def _normalize_clean_text(raw: str) -> str:
+    text = html.unescape(raw)
 
     def replace_markup(match: re.Match[str]) -> str:
         content = match.group(0)[2:-2]
