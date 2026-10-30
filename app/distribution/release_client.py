@@ -375,7 +375,8 @@ def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease 
                 ) from web_failure
 
 def _download_multipart(release: RemoteRelease, directory: Path,
-                        progress: Progress | None) -> Path:
+                        progress: Progress | None,
+                        *, assemble_progress: Progress | None = None) -> Path:
     """Download independent verified release parts concurrently, with safe resume.
 
     At most three large assets are transferred at once. Each part owns its own
@@ -531,7 +532,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     future.cancel()
                 raise
     try:
-        assemble_archive_parts(manifest, parts_dir, target)
+        assemble_archive_parts(manifest, parts_dir, target, progress=assemble_progress)
     except (OSError, ValueError) as exc:
         raise UpdateError("Unable to verify assembled multipart ZIP") from exc
     for part in pieces:
@@ -544,11 +545,13 @@ def _download_multipart(release: RemoteRelease, directory: Path,
 
 
 def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None,
-                     *, differential: bool = False) -> Path:
+                     *, differential: bool = False,
+                     assemble_progress: Progress | None = None) -> Path:
     """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
     if not differential and release.manifest.archive_parts:
-        return _download_multipart(release, directory, progress)
+        return _download_multipart(release, directory, progress,
+                                   assemble_progress=assemble_progress)
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size
