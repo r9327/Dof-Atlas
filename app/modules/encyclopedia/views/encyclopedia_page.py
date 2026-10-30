@@ -148,6 +148,11 @@ def _start_runtime_thread(owner: object, target, name: str) -> None:
     thread = Thread(target=target, name=name, daemon=True)
     threads = getattr(owner, "_runtime_threads", None)
     if isinstance(threads, list):
+        # The shell may re-enter Encyclopedia many times. Finished Thread
+        # objects are no longer joinable work and need not remain retained
+        # until the whole Qt page is destroyed. Keep every active worker so
+        # closeEvent / destroyed still waits for its completion.
+        threads[:] = [existing for existing in threads if existing.is_alive()]
         threads.append(thread)
     thread.start()
 
