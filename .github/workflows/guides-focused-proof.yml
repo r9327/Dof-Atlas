@@ -10,6 +10,10 @@ on:
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
       - 'app/modules/encyclopedia/views/guide_catalog_view.py'
+      - 'tools/atlas_doctor_lib/guide_ui_cycle_bench.py'
+      - 'tools/atlas_doctor_lib/doctor_ui_qt.py'
+      - 'tools/atlas_doctor_lib/doctor_ui.py'
+      - 'tests/test_doctor_ui.py'
       - 'app/modules/encyclopedia/views/guide_featured_home.py'
       - 'app/modules/encyclopedia/widgets/guide_card.py'
       - 'app/ui/unity_skin.py'
@@ -112,6 +116,27 @@ jobs:
       - name: Reconstructible Craft release regression
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy
+      - name: Guide UI high DPI layout checks (125 and 150 percent)
+        shell: pwsh
+        run: |
+          foreach ($scale in @('1.25', '1.50')) {
+            $env:QT_SCALE_FACTOR = $scale
+            python -X faulthandler -m unittest -v tests.test_guide_home_two_columns tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
+      - name: Doctor real Guide/catalog 30-cycle time and native RSS
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.atlas_doctor_lib.guide_ui_cycle_bench --cycles 30 --output .ai/runtime/atlas_doctor/guide_ui_cycles.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve Doctor Guide cycle metrics even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-guide-cycles-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/guide_ui_cycles.json
+          if-no-files-found: warn
       - name: Provenance summary
         if: always()
         shell: pwsh
