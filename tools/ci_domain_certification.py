@@ -79,6 +79,8 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
     "tests/test_atlas_doctor_full_scope.py",
+    "tools/doctor_scenario_runner.py",
+    "tools/tool_catalog.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -138,7 +140,7 @@ def owners_for(path: str) -> frozenset[str]:
     # startup and the Quest/Success/Guide cache seen by application consumers.
     # Do not generalize to all app/* or encyclopedia services: unknown code
     # must still BLOCK modular certification until separately reviewed.
-    if path == "app/startup_cache_warmup.py":
+    if path in {"app/startup_cache_warmup.py", "app/startup_cache_domain_worker.py"}:
         return frozenset({"startup", "quests", "guides", "data"})
     if path == "app/modules/encyclopedia/services/achievement_index_warmup.py":
         return frozenset({"startup", "quests", "guides"})
@@ -151,6 +153,10 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
+    if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
+        # Shared Home/lazy tab lifetime: Quest, Success, Guide and Qt startup.
+        # Keep a reviewed exact path, not a broad Encyclopedia view wildcard.
+        return frozenset({"quests", "guides", "ui", "startup"})
     if path == "app/modules/encyclopedia/views/achievements_view.py":
         # The Success catalogue is a Qt view whose detail links and completion
         # interact with Quest and Guide providers; fail closed for siblings.
@@ -217,6 +223,14 @@ def owners_for(path: str) -> frozenset[str]:
         # by CI and copied into user state during startup. Keep this exact so
         # future Windows build helpers remain fail-closed until reviewed.
         return frozenset({"ci", "craft", "data", "startup"})
+    if path == "tools/benchmark_phase8_preload.py":
+        # Windows Qt preload measurement executes the shell and all three
+        # Encyclopedia catalogues; this is not merely an isolated CI script.
+        return frozenset({"ci", "startup", "quests", "guides", "ui"})
+    if path == "tests/test_encyclopedia_success_detail_prewarm.py":
+        return frozenset({"startup", "quests", "guides", "ui"})
+    if path == "tests/test_success_async_detail_runtime.py":
+        return frozenset({"quests", "guides", "ui"})
     if path == "tests/test_organizer_layout.py":
         return frozenset({"ui", "identity"})
     if path == "tests/test_world_scan_async_loading.py":

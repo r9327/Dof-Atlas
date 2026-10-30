@@ -48,6 +48,46 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(path), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
+    def test_pr303_late_preload_and_doctor_paths_have_reviewed_owners(self):
+        # The exact seven unknown paths surfaced by the SHA-specific Draft
+        # domain closure are cross-domain; a filename heuristic must not
+        # silently convert a Success/Qt test into Craft-only coverage.
+        expected = {
+            "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
+                {"quests", "guides", "ui", "startup"},
+            "app/startup_cache_domain_worker.py":
+                {"startup", "quests", "guides", "data"},
+            "tests/test_encyclopedia_success_detail_prewarm.py":
+                {"startup", "quests", "guides", "ui"},
+            "tests/test_success_async_detail_runtime.py":
+                {"quests", "guides", "ui"},
+            "tools/benchmark_phase8_preload.py":
+                {"ci", "startup", "quests", "guides", "ui"},
+            "tools/doctor_scenario_runner.py": {"ci"},
+            "tools/tool_catalog.py": {"ci"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        plan = self.route(list(expected))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"],
+                         ["ci", "quests", "guides", "ui", "startup", "data"])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertFalse(plan["merge_authorized"])
+        for unknown in (
+            "app/startup_cache_unreviewed_worker.py",
+            "app/modules/encyclopedia/views/memory_bound_unreviewed_page.py",
+            "tests/test_success_unreviewed_runtime.py",
+            "tools/benchmark_phase8_unreviewed.py",
+            "tools/doctor_unknown_runner.py",
+        ):
+            with self.subTest(unknown=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_batch_quest_evidence_has_guide_and_startup_consumers(self):
         for path in (
             "app/quest_catalog_details.py",
