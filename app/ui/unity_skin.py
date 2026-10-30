@@ -157,6 +157,37 @@ def unity_skin_stylesheet() -> str:
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
         "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        # Small bevels and stronger contrast for the real guide surfaces.
+        # QSS has no native box-shadow; personal 9-slice sprites can supply
+        # the game-native depth when installed.
+        "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
+        "border: 1px solid #8299C0; border-radius: 5px; color: #FFFFFF; }",
+        "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
+        "background: rgba(31, 48, 87, 0.92); "
+        "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
+        "QPushButton#GuidePreparationItemCopy { "
+        "text-align: left; background: transparent; border: none; "
+        "color: #F6F8FE; padding: 3px; }",
+        "QPushButton#GuidePreparationItemCopy:hover { "
+        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
+        "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
+        "color: #E4EDFC; font-weight: 600; }",
+        "QFrame#GuideManualNav { "
+        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid #6B87B3; }",
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
+        "QToolButton#GuideParticipantsButton { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 #445B89, stop:1 #273A62); "
+        "color: #FFFFFF; border: 1px solid #8098BF; "
+        "border-radius: 5px; padding: 3px 8px; }",
+        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
+        "QToolButton#GuideParticipantsButton:checked { "
+        "background: #536F9D; border: 1px solid #B8CBE8; }",
+        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
+        "QToolButton#GuideParticipantsButton:hover { "
+        "background: #516EA0; }",
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
         "border: 1px solid #617CA6; }",
@@ -199,6 +230,19 @@ def unity_skin_stylesheet() -> str:
         "btn_yellow2", 8,
     )
     sprites_for_states(
+        "QPushButton#GuideManualPageCheck",
+        "btn_green", 8,
+    )
+    sprites_for_states(
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
+        "QToolButton#GuideParticipantsButton",
+        "btn_green_small", 6,
+    )
+    add_border(
+        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel, QFrame#GuideParticipantsPanel",
+        "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
+    )
+    sprites_for_states(
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
     )
@@ -230,7 +274,7 @@ def unity_skin_stylesheet() -> str:
     focus_button_names = (
         "PrimaryActionButton", "primaryButton", "HomeContinueButton",
         "FeaturedGuideOpen", "SecondaryButton", "secondaryButton",
-        "GuideManualNavButton", "TopNavSettings",
+        "GuideManualNavButton", "GuideManualPageCheck", "TopNavSettings",
     )
     rules.append(
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
