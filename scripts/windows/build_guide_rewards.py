@@ -20,8 +20,15 @@ def build(*, output: Path, source_sha: str) -> dict[str, int]:
     guides = GuideProvider(quest_provider=quests)
     # A source build may have partial/draft Guides. Only ship the exact
     # published catalogue entries; the runtime validates each Guide file.
+    # Aventure uses the selected-series renderer (and Sylvestre has its own
+    # 1,672-card precompiled route). Computing global rich Quest rewards for
+    # those two Guides would repeat expensive build work for data never shown.
+    selected = [
+        guide for guide in guides.load_all()
+        if guide.category != "aventure"
+    ]
     result = write_bundle(
-        guides.load_all(), quests.get_catalog(), guides.achievement_provider,
+        selected, quests.get_catalog(), guides.achievement_provider,
         output, source_sha=source_sha,
     )
     if result["guides"] < 20:
