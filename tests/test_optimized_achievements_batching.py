@@ -222,6 +222,39 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_deep_link_does_not_materialize_offscreen_success_rows(self) -> None:
+        from unittest.mock import Mock
+
+        view = self._view(150)
+        try:
+            view._tree_items = {}
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            before = view.list_widget.count()
+            self.assertLess(before, 150)
+
+            detail = Mock()
+            view.show_achievement = detail
+            self.assertTrue(view.select_achievement(150))
+            detail.assert_called_once_with(150)
+            self.assertEqual(view._achievement_pending_selected_id, 150)
+            self.assertEqual(view.list_widget.count(), before)
+            self.assertTrue(view._achievement_pending_rows)
+
+            # A later normal list batch can still restore selection without
+            # re-opening the already shown detail.
+            while view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 150)
+            detail.assert_called_once_with(150)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
 
 if __name__ == "__main__":
     unittest.main()

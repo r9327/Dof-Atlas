@@ -412,15 +412,12 @@ class AchievementsView(QWidget):
             self.search.clear()
         for row, candidate in enumerate(self.filtered):
             if candidate.id == achievement.id:
-                # Direct navigation may target a row outside the currently
-                # materialized viewport. Render only up to that target instead
-                # of eagerly building the whole category.
-                while (
-                    self.isVisible()
-                    and self.list_widget.count() <= row
-                    and self._achievement_pending_rows
-                ):
-                    self._render_next_achievement_batch()
+                # Direct navigation must open the real detail immediately.
+                # Rendering every preceding QListWidgetItem synchronously
+                # can stall Qt for a deep link near the end of a category.
+                # Keep selection pending; its row will be highlighted when
+                # a later scroll batch naturally reaches it.
+                self._achievement_pending_selected_id = achievement.id
                 if row < self.list_widget.count():
                     self.list_widget.setCurrentRow(row)
                 self.show_achievement(achievement.id)
