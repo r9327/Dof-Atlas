@@ -305,7 +305,8 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertEqual(plan["status"], "PLANNED_NOT_RUN")
         self.assertEqual(
             [row["scenario"] for row in plan["selected"]],
-            ["startup_preload", "home_qt_lifecycle", "guide_quest_succes"],
+            ["startup_preload", "home_qt_lifecycle", "success_cold_detail",
+             "quest_cold_detail"],
         )
         self.assertEqual(plan["uncovered_hypotheses"], [])
         self.assertTrue(all(row["execution_status"] == "NOT_RUN"
@@ -315,13 +316,30 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertFalse(plan["perf_benchmarks_executed"])
         self.assertFalse(plan["certification_granted"])
 
+    def test_all_five_perf_scenarios_fit_the_existing_execution_budget(self):
+        result = scenario_contract_recommendations([
+            {"id": "PRELOAD_WALL_CORRELATION"},
+            {"id": "HOME_REVISIT_CORRELATION"},
+            {"id": "COLD_ACHIEVEMENT_DETAIL"},
+            {"id": "SUCCESS_MAIN_THREAD_SUBPROCESS"},
+            {"id": "COLD_QUEST_DETAIL"},
+            {"id": "COLD_GUIDE_DETAIL"},
+        ])
+        self.assertEqual(len(result["selected"]), 5)
+        self.assertEqual(result["uncovered_hypotheses"], [])
+        self.assertEqual(result["status"], "PLANNED_NOT_RUN")
+        self.assertEqual(result["selected"][2]["scenario"], "success_cold_detail")
+        self.assertIn("SUCCESS_MAIN_THREAD_SUBPROCESS",
+                      result["selected"][2]["covered_hypotheses"])
+        self.assertFalse(result["certification_granted"])
+
     def test_unknown_hypotheses_are_reported_not_silently_certified(self):
         plan = scenario_contract_recommendations([
             {"id": "UNMAPPED_SPECIALIST"}, {"id": "COLD_GUIDE_DETAIL"},
         ])
         self.assertEqual(plan["status"], "PARTIAL_COVERAGE")
         self.assertEqual(plan["uncovered_hypotheses"], ["UNMAPPED_SPECIALIST"])
-        self.assertEqual(plan["selected"][0]["scenario"], "guide_quest_succes")
+        self.assertEqual(plan["selected"][0]["scenario"], "guide_cold_detail")
         self.assertFalse(plan["certification_granted"])
         self.assertEqual(scenario_contract_recommendations([])["status"], "NOT_SELECTED")
 
