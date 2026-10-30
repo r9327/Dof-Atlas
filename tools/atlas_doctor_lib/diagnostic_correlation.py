@@ -561,6 +561,43 @@ def correlate_diagnostics(
                                     ("runtime_trace", "performance", "graphify", "validation"),
                                 )
 
+                    # Prewarm attribution is separate from a cache-hit timing.
+                    # It may have happened before this particular UI timer;
+                    # never subtract it from the rendered duration or call it
+                    # a MainThread freeze.
+                    cold = (
+                        success_phases.get("provider_cold_detail_breakdown_ms")
+                        if isinstance(success_phases, dict) else None
+                    )
+                    if (
+                        isinstance(cold, dict)
+                        and cold.get("status") == "OBSERVED"
+                        and cold.get("achievement_id") == deep.get("achievement_id")
+                    ):
+                        cold_ms = _number(cold.get("total_ms"))
+                        if cold_ms is not None and cold_ms >= 1500:
+                            is_background = cold.get("thread") not in {
+                                "MainThread", "", None
+                            }
+                            add(
+                                "SUCCESS_BACKGROUND_PREWARM" if is_background
+                                else "SUCCESS_COLD_WORK_SEPARATE_FROM_CACHE_HIT",
+                                "P1",
+                                "Success cold detail work retained after cache hit",
+                                [
+                                    {"source": "phase8_success_provider",
+                                     "metric": "cold_detail.total_ms",
+                                     "value": cold_ms, "unit": "ms",
+                                     "thread": str(cold.get("thread"))[:100],
+                                     "fixture": str(deep["achievement_id"])},
+                                ],
+                                "The cold work remains visible even when Qt later opens a"
+                                " cached detail. Timestamp overlap is not proven.",
+                                "Compare worker stage timings to the Qt rendered gate on"
+                                " one same-SHA run without counting work twice.",
+                                ("runtime_trace", "performance", "coverage"),
+                            )
+
     hypotheses.sort(key=lambda r: ({"P0": 0, "P1": 1, "P2": 2}[r["priority"]], r["id"]))
     return {
         "schema_version": 1, "kind": "doctor_diagnostic_correlation",
