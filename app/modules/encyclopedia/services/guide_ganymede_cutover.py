@@ -34,6 +34,52 @@ def certified_payload_sha256(payload: dict) -> str:
 
 
 
+
+def reconstruct_trusted_manual_route(guide: object) -> dict:
+    """Rehydrate only the currently selected route from compact typed models.
+
+    MemoryBoundGuideProvider/IndexedGuideProvider remove nested raw sections to
+    avoid retaining duplicate JSON trees. The Ganymède reader must not assume
+    guide.raw still contains 'sections'; nor should it read all routes again.
+    All source action facts remain in GuideStep.raw and the integrity-gated
+    cutover was checked when the provider selected this guide.
+    """
+    root = getattr(guide, "raw", None)
+    if not isinstance(root, dict) or root.get("replacement_status") != "TRUSTED_SOURCE_STEPS":
+        raise ValueError("not an active manual source route")
+    sections = getattr(guide, "sections", ())
+    if len(sections) != 1:
+        raise ValueError("manual source route must have one section")
+    rebuilt = dict(root)
+    rebuilt["sections"] = []
+    for section in sections:
+        original = getattr(section, "raw", None)
+        if not isinstance(original, dict):
+            raise ValueError("missing source section metadata")
+        section_data = dict(original)
+        section_data["steps"] = []
+        for step in getattr(section, "steps", ()):
+            raw_step = getattr(step, "raw", None)
+            if not isinstance(raw_step, dict):
+                raise ValueError("missing source step metadata")
+            section_data["steps"].append(dict(raw_step))
+        rebuilt["sections"].append(section_data)
+    # Validate all IDs and the declared count before the UI uses the payload.
+    source_id = rebuilt.get("source_guide_id")
+    count = rebuilt.get("expected_source_step_count")
+    steps = rebuilt["sections"][0]["steps"]
+    if (type(source_id) is not int or type(count) is not int
+            or count < 1 or len(steps) != count
+            or any(
+                row.get("id") != f"ganymede_{source_id}_step_{i:04d}"
+                or row.get("source_step_number") != i
+                or row.get("source_guide_id") != source_id
+                for i, row in enumerate(steps, 1)
+            )):
+        raise ValueError("source route lost its certified step order")
+    return rebuilt
+
+
 def select_verified_replacement_path(
     guides_dir: Path,
     catalog_row: dict,

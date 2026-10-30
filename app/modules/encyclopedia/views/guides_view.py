@@ -1760,6 +1760,13 @@ class GuidesView(QWidget):
         from app.modules.encyclopedia.services.guide_continuous_navigation import (
             known_guide_participants,
         )
+        from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+            reconstruct_trusted_manual_route,
+        )
+
+        # The memory-bound provider deliberately discards nested raw arrays.
+        # Rebuild this selected route only, keeping the eager catalogue light.
+        source_route = reconstruct_trusted_manual_route(guide)
 
         clear_layout(self.left_layout)
         clear_layout(self.center_layout)
@@ -1777,11 +1784,14 @@ class GuidesView(QWidget):
         characters = self.guide_participant_service.available_characters()
         keys = known_guide_participants(keys, characters)
         panel = ContinuousGuideRoutePanel(
-            guide.raw,
+            source_route,
             self.guide_progress_service,
             keys,
             available_characters=characters,
         )
+        # The parent GuideHeader already displays the guide title and artwork.
+        # Avoid a duplicated, oversized heading inside the source sheet.
+        panel.guide_title.setVisible(False)
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         if self.launch_travel_callback is not None:
             panel.travelRequested.connect(self.launch_travel_callback)

@@ -10,7 +10,7 @@
   "certified_actions": 0,
   "ready_to_replace": false,
   "manual_review_pending": 120,
-  "auto_extraction_unresolved_steps": 1,
+  "auto_extraction_unresolved_steps": 0,
   "steps": [
     {
       "source_step_number": 1,
@@ -888,7 +888,7 @@
       "source_step_number": 22,
       "stable_step_id": "ganymede_2212_step_0022",
       "source_page": 1,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         21,
@@ -900,11 +900,24 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non reconstruite : consulter la source",
-          "requires_manual_review": true
+          "kind": "combat",
+          "label": "Utiliser Yokaikip sur les cinq Yokaïs au cours du même tour pour gagner."
+        },
+        {
+          "kind": "information",
+          "label": "Les cinq Yokaïs sont invulnérables ; Yokaikip à portée 2 réduit leurs PM permanents."
+        },
+        {
+          "kind": "information",
+          "label": "Selon la cible, l’action inflige un malus de 2 PA, de 2 PM ou un état inébranlable."
+        },
+        {
+          "kind": "information",
+          "label": "Diminuer leurs PM et préparer le placement avant de toucher les cinq dans un tour."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2212?page=22&stepsPerPage=1"
     },
     {
       "source_step_number": 23,

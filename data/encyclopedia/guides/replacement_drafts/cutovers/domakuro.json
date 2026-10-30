@@ -1368,8 +1368,8 @@
         {
           "id": "ganymede_2212_step_0022",
           "type": "info",
-          "title": "Étape 22 — Étape non reconstruite : consulter la source",
-          "content": "Étape non reconstruite : consulter la source",
+          "title": "Étape 22 — Combat des cinq Yokaïs",
+          "content": "Utiliser Yokaikip sur les cinq Yokaïs au cours du même tour pour gagner.\nLes cinq Yokaïs sont invulnérables ; Yokaikip à portée 2 réduit leurs PM permanents.\nSelon la cible, l’action inflige un malus de 2 PA, de 2 PM ou un état inébranlable.\nDiminuer leurs PM et préparer le placement avant de toucher les cinq dans un tour.",
           "optional": false,
           "source_guide_id": 2212,
           "source_step_number": 22,
@@ -1392,19 +1392,32 @@
             ]
           },
           "verified_actions": [],
-          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
           "auto_completion_allowed": false,
           "original_prose_imported": false,
-          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_candidates": [
             {
-              "kind": "interact",
-              "label": "Étape non reconstruite : consulter la source",
-              "requires_manual_review": true
+              "kind": "combat",
+              "label": "Utiliser Yokaikip sur les cinq Yokaïs au cours du même tour pour gagner."
+            },
+            {
+              "kind": "information",
+              "label": "Les cinq Yokaïs sont invulnérables ; Yokaikip à portée 2 réduit leurs PM permanents."
+            },
+            {
+              "kind": "information",
+              "label": "Selon la cible, l’action inflige un malus de 2 PA, de 2 PM ou un état inébranlable."
+            },
+            {
+              "kind": "information",
+              "label": "Diminuer leurs PM et préparer le placement avant de toucher les cinq dans un tour."
             }
           ],
-          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+          "source_action_review_status": "REVIEW_SOURCE_ACTION",
+          "source_evidence_url": "https://ganymede-app.com/guides/2212?page=22&stepsPerPage=1",
+          "source_evidence_checked_on": "2026-10-30"
         },
         {
           "id": "ganymede_2212_step_0023",

@@ -10,7 +10,7 @@
   "certified_actions": 0,
   "ready_to_replace": false,
   "manual_review_pending": 88,
-  "auto_extraction_unresolved_steps": 1,
+  "auto_extraction_unresolved_steps": 0,
   "steps": [
     {
       "source_step_number": 1,
@@ -1613,7 +1613,7 @@
       "source_step_number": 48,
       "stable_step_id": "ganymede_2209_step_0048",
       "source_page": 1,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         7,
@@ -1625,11 +1625,45 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Actions non extraites : contrôler la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Choisir un seul donjon de dimension adapté au niveau pour obtenir le Diamant dimensionnel (objet 16050)."
+        },
+        {
+          "kind": "information",
+          "label": "Prévoir une clef : le trousseau ne fonctionne pas dans les donjons des dimensions."
+        },
+        {
+          "kind": "dungeon_option",
+          "label": "Niv. 100–114 : usine de Brutatax (77).",
+          "dungeon_id": 77
+        },
+        {
+          "kind": "dungeon_option",
+          "label": "Niv. 115–139 : Mégalithe de Fraktale (85).",
+          "dungeon_id": 85
+        },
+        {
+          "kind": "dungeon_option",
+          "label": "Niv. 140–164 : cavernes de Drossil (79).",
+          "dungeon_id": 79
+        },
+        {
+          "kind": "dungeon_option",
+          "label": "Niv. 165–189 : Méthranomicon de XLII (86).",
+          "dungeon_id": 86
+        },
+        {
+          "kind": "dungeon_option",
+          "label": "Niv. 190–200 : antre de Toxoliath (82).",
+          "dungeon_id": 82
+        },
+        {
+          "kind": "move",
+          "label": "Une fois le diamant obtenu, aller en [7,22] (Zaap [10,22])."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2209?page=48&stepsPerPage=1"
     },
     {
       "source_step_number": 49,

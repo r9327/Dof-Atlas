@@ -5,6 +5,14 @@ on:
     types: [synchronize]
     paths:
       - '.github/workflows/guides-focused-proof.yml'
+      - 'app/modules/encyclopedia/views/guide_continuous_route_panel.py'
+      - 'app/modules/encyclopedia/views/guides_view.py'
+      - 'app/modules/encyclopedia/services/guide_ganymede_cutover.py'
+      - 'app/modules/encyclopedia/services/guide_continuous_navigation.py'
+      - 'tests/test_guide_continuous_route_panel.py'
+      - 'tests/test_ganymede_catalog_activation.py'
+      - 'data/encyclopedia/guides/catalog.json'
+      - 'data/encyclopedia/guides/replacement_drafts/cutovers/**'
       - 'tests/test_guide_manual_selected_validation.py'
       - 'tests/test_guide_preparation_model.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
@@ -75,6 +83,11 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Ganymede continuous routes / exact source steps and Qt interaction
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_ganymede_catalog_activation tests.test_ganymede_cutover tests.test_ganymede_trusted_cutovers tests.test_guide_continuous_navigation tests.test_guide_continuous_route_panel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh
