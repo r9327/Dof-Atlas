@@ -293,6 +293,12 @@ def ensure_lazy_catalog_cache(
     """Materialize the reconstructible Quest SQLite store without retaining rows."""
 
     signature, path = _cache_identity(data_dir, cache_root)
+    if not path.is_file():
+        # The release already contains this immutable summary-only database.
+        # Restore only for the exact canonical data generation, without ever
+        # importing rich Quest details or changing saved character progress.
+        from app.quest_index_prebuilt import restore_quest_index
+        restore_quest_index(path, data_dir=data_dir)
     with _connect(path) as connection:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
