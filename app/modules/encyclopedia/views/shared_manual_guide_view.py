@@ -497,6 +497,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         group_layout = None
         group_position = ""
         combat_heading_added = False
+        # This catalogue index is immutable for one sheet. Rebuilding it for
+        # every rendered line multiplied the cost of long Guides by the
+        # number of linked Quests, even for a simple hover tooltip.
+        quest_names = {quest_id: name for quest_id, name in self._quest_rows}
         for row_index, row in enumerate(visible):
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
@@ -548,9 +552,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            quest_names = {
-                quest_id: name for quest_id, name in self._quest_rows
-            }
             related_names = [
                 quest_names[quest_id]
                 for quest_id in self._quest_ids_for_row(row)
