@@ -49,6 +49,42 @@ SCENARIOS = {
         "metrics": [],
         "description": "Guide/Quest/Success persisted progress boundaries",
     },
+    "quest_cold_detail": {
+        "modules": [
+            "tests.test_lazy_quests_detail_cache",
+            "tests.test_quest_detail_navigation",
+            "tests.test_phase8_preload_benchmark_contract",
+        ],
+        "metrics": ["first_quest_detail_ms"],
+        "description": "Actual first Quest detail + source-index tests; wall time separately measured",
+    },
+    "success_cold_detail": {
+        "modules": [
+            "tests.test_achievement_compact_subprocess_lifecycle",
+            "tests.test_achievement_frozen_detail_runtime",
+            "tests.test_phase8_preload_benchmark_contract",
+        ],
+        "metrics": ["first_success_detail_ms", "ui_thread_blocking"],
+        "description": "Success detail subprocess/cache and packaged-app lifecycle contracts",
+    },
+    "guide_cold_detail": {
+        "modules": [
+            "tests.test_guide_manual_route_cache",
+            "tests.test_guide_manual_long_layout",
+            "tests.test_phase8_preload_benchmark_contract",
+        ],
+        "metrics": ["first_guide_detail_ms"],
+        "description": "First Guide detail, indexed route and navigation contracts",
+    },
+    "doctor_intelligence": {
+        "modules": [
+            "tests.test_doctor_diagnostic_correlation",
+            "tests.test_doctor_optimization_report",
+            "tests.test_tool_catalog",
+        ],
+        "metrics": [],
+        "description": "Read-only specialist routing, evidence and optimization report contracts",
+    },
     "guide_full_fixture_budget": {
         "modules": [
             "tests.test_guide_full_suite_fixture_budget",
