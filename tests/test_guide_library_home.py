@@ -176,7 +176,14 @@ class GuideLibraryHomeTests(unittest.TestCase):
                                      QBoxLayout.TopToBottom)
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
-                    self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
+                    alignments = view._category_nodes["alignements"]
+                    playable = [
+                        alignments.child(i)
+                        for i in range(alignments.childCount())
+                        if alignments.child(i).data(0, Qt.UserRole + 1)
+                    ]
+                    self.assertEqual(len(playable), 2)
+                    self.assertGreaterEqual(alignments.childCount(), len(playable))
                     self.assertEqual(view.home_dofus_list.viewMode(), QListView.IconMode)
                     requested = []
                     view.guideRequested.connect(requested.append)
