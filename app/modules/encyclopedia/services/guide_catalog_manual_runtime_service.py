@@ -27,6 +27,9 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
     GuideUltimeManualRuntimeService,
 )
+from app.modules.encyclopedia.services.guide_ultime_generated_service import (
+    GuideUltimeGeneratedService,
+)
 from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     line_acquires_resource,
     preparation_resource_name,
@@ -212,6 +215,33 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.progress_id = f"catalog_manual:{self.guide_id}"
         kwargs["autoload"] = False
         super().__init__(*args, quest_provider=quest_provider, **kwargs)
+
+    def manual_class_gate_for_card(self, card: dict[str, Any]) -> None:
+        # This Guide comes from the Quest catalogue, not the authored Guide
+        # Ultime manifest. Never scan its instructions for another route's
+        # class-specific branching text.
+        return None
+
+    def manual_order_gate_for_card(self, card: dict[str, Any]) -> None:
+        # Alignment/Order requirements belong to the authored manual route.
+        # The catalogue cards contain only their canonical Quest objectives.
+        return None
+
+    def card_success_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
+        # No manual_success_names or cross-manifest index in catalogue cards.
+        return GuideUltimeGeneratedService.card_success_ids(self, card)
+
+    def card_automatic_values(
+        self,
+        character_key: str,
+        card: dict[str, Any],
+        completed_quests: set[int] | frozenset[int] | None = None,
+    ) -> tuple[bool, ...]:
+        # Keep the original Quest/objective/success completion rule, without
+        # rescanning 1,672 cards for unrelated manual class/Order conditions.
+        return GuideUltimeGeneratedService.card_automatic_values(
+            self, character_key, card, completed_quests=completed_quests,
+        )
 
     def _load_manual_preview(self) -> None:
         # Reuse a signed, progress-free route projection on later launches.
