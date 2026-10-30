@@ -316,6 +316,23 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     shared._preparation_icon_path.cache_clear()
                     shared._preparation_icon_roots.cache_clear()
 
+    def test_guide_symbol_icons_are_shared_without_retaining_widgets(self) -> None:
+        from app.modules.encyclopedia.views import shared_manual_guide_view as shared
+
+        shared._cached_guide_symbol_icon.cache_clear()
+        try:
+            first = QToolButton()
+            second = QToolButton()
+            same = shared._guide_symbol_icon(first, "check", size=14)
+            self.assertIs(same, shared._guide_symbol_icon(second, "check", size=14))
+            self.assertIsNot(same, shared._guide_symbol_icon(second, "target", size=14))
+            self.assertEqual(shared._cached_guide_symbol_icon.cache_info().currsize, 2)
+            first.deleteLater()
+            second.deleteLater()
+        finally:
+            shared._cached_guide_symbol_icon.cache_clear()
+            self.app.processEvents()
+
     def test_preparation_participant_details_are_lazy_and_open_once(self) -> None:
         from app.modules.encyclopedia.views.shared_manual_guide_view import _PreparationNeed
 
