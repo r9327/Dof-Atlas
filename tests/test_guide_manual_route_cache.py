@@ -366,5 +366,26 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
 
 
+    def test_catalog_position_keys_equivalent_and_cache_bounded(self) -> None:
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService, _position_key_short, _position_key_uncached,
+        )
+        key = GuideCatalogManualRuntimeService._position_key
+        _position_key_short.cache_clear()
+        for label in ("  [ 4 , -19 ] ", "[4,-19]", "Astrub nord",
+                      "Épave  dans  l'eau", "", ["  Une", "liste  "], None):
+            value = " ".join(str(label or "").split()).strip()
+            self.assertEqual(key(label), _position_key_uncached(value))
+        self.assertEqual(key(" [ 4 , -19 ] "), "4,-19")
+        self.assertEqual(key(" [ 4 , -19 ] "), "4,-19")
+        self.assertGreater(_position_key_short.cache_info().hits, 0)
+        self.assertEqual(_position_key_short.cache_info().maxsize, 4096)
+        long_label = "Longue description à préserver. " * 80
+        misses = _position_key_short.cache_info().misses
+        self.assertEqual(key(long_label), _position_key_uncached(long_label.strip()))
+        self.assertEqual(_position_key_short.cache_info().misses, misses)
+        _position_key_short.cache_clear()
+
+
 if __name__ == "__main__":
     unittest.main()

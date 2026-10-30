@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from functools import lru_cache
 import re
 from typing import Any
 
@@ -22,6 +23,19 @@ from app.core.text import normalize_key as normalize_text
 
 
 _COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+
+
+@lru_cache(maxsize=4096)
+def _position_key_short(text: str) -> str:
+    """Cache only short position labels shared by thousands of route objectives."""
+    return _position_key_uncached(text)
+
+
+def _position_key_uncached(text: str) -> str:
+    match = _COORD_RE.search(text)
+    if match is not None:
+        return f"{int(match.group(1))},{int(match.group(2))}"
+    return normalize_text(text)
 
 
 class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
@@ -199,12 +213,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                     or start_position
                     or ""
                 ).strip()
-                if (
-                    self._position_key(objective_position)
-                    and self._position_key(current["position"])
-                    and self._position_key(objective_position)
-                    != self._position_key(current["position"])
-                ):
+                # Resolve each coordinate once; preserve the original split rule.
+                objective_key = self._position_key(objective_position)
+                current_key = self._position_key(current["position"])
+                if objective_key and current_key and objective_key != current_key:
                     self._finalize_segment(current)
                     if self._segment_has_content(current):
                         segments.append(current)
@@ -475,10 +487,8 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
     @staticmethod
     def _position_key(value: Any) -> str:
         text = " ".join(str(value or "").split()).strip()
-        match = _COORD_RE.search(text)
-        if match is not None:
-            return f"{int(match.group(1))},{int(match.group(2))}"
-        return normalize_text(text)
+        # No unbounded retention of long walkthroughs or unhashable input.
+        return _position_key_short(text) if len(text) <= 160 else _position_key_uncached(text)
 
     @staticmethod
     def _dedupe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
