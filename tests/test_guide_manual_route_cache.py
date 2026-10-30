@@ -439,6 +439,8 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             GuideCatalogManualRuntimeService,
         )
         service = object.__new__(GuideCatalogManualRuntimeService)
+        service.guide_id = "dofus_sylvestre"
+        service.guide_title = "Sylvestre"
         raw = []
         for idx, position in enumerate(("[1,2]", "[1, 2]", "[3,4]")):
             part = service._new_segment(
