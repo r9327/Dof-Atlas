@@ -114,6 +114,27 @@ class DiagnosticCorrelationTests(unittest.TestCase):
                          "tools/guide_integrity.py")
         self.assertFalse(row["tool_plan"]["selected"][0]["automation_executed"])
 
+    def test_guide_and_navigation_reports_correlate_without_proving_causality(self):
+        guide = {"observed_sha": SHA, "status": "PASS", "bottleneck_candidates": [
+            {"kind": "python_method", "location": "Guide.load", "cost_ms": 250.0},
+        ]}
+        data = app(cost_attribution={
+            "status": "OBSERVED",
+            "shares": [{"phase": "functional_preload", "wall_ms": 9300}],
+            "repeated_work_suspects": [
+                {"route": "guide_ultime", "max_warm_ms": 425},
+            ],
+        })
+        result = correlate_diagnostics(
+            SHA, data, guides=guide, catalog_report=catalog(),
+        )
+        row = next(x for x in result["hypotheses"] if x["id"] == "GUIDE_HOTSPOT_AND_REVISIT")
+        self.assertEqual(row["priority"], "P0")
+        self.assertEqual(len(row["observations"]), 2)
+        self.assertEqual(row["observations"][0]["source"], "guides")
+        self.assertEqual(row["observations"][1]["source"], "app_navigation")
+        self.assertFalse(row["root_cause_proven"])
+
     def test_memory_drift_without_revisit_is_not_labeled_a_leak(self):
         result = correlate_diagnostics(SHA, app(revisit_comparison={}))
         self.assertNotIn("HOME_REVISIT_CORRELATION",
