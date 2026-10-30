@@ -285,13 +285,16 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
     target = (root / output).resolve()
     if target.suffix != ".json" or not target.is_relative_to((root / "artifacts").resolve()):
         raise ValueError("Optimization report output must be a JSON file under artifacts/")
-    # Reuse the existing Agent catalog cache (exact Git worktree digest) so
-    # repeated Doctor reports do not rescan every repository tool. This is
-    # discovery metadata only; never reuse test/benchmark verdicts as a cache.
-    from tools.agent_planner import _planning_catalog
-    catalog_cache: dict[str, Any] = {}
-    tooling = _planning_catalog(root, cache_info=catalog_cache)
-    report = optimization_report(sha, load(root, app_report) or {},
+    app_evidence = load(root, app_report) or {}
+    catalog_cache: dict[str, Any] = {"status": "NOT_REQUIRED"}
+    tooling = None
+    if app_evidence.get("git_head") == sha and app_evidence.get("status") == "PASS":
+        # The Agent cache is keyed by Git head + dirty digest; do not rescan
+        # every tool if the same worktree was already inspected.
+        from tools.agent_planner import _planning_catalog
+        catalog_cache = {}
+        tooling = _planning_catalog(root, cache_info=catalog_cache)
+    report = optimization_report(sha, app_evidence,
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
         tool_catalog_report=tooling)
