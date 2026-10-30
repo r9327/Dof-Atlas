@@ -11,8 +11,10 @@ from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.core.cache_write_lock import exclusive_cache_write_lock as _achievement_compact_write_lock
 from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
 from app.modules.encyclopedia.models.achievement import (
     Achievement,
@@ -1512,15 +1514,46 @@ def _dump_compact_default_catalogue() -> int:
     return 0
 
 
+def _unique_cache_temporary_path(target: Path) -> Path:
+    """Avoid collisions when multiple Atlas instances build the same cache.
+
+    Each writer publishes only a completed file via atomic replace. Temporary
+    files must NEVER have a fixed name shared by parallel processes.
+    """
+    target = Path(target)
+    return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
+
+
 def _build_compact_cache(path: Path) -> int:
+    """Build once per shared cache path and reuse a completed peer result."""
+    path = Path(path)
+    with _achievement_compact_write_lock(path):
+        if _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
+            try:
+                index_payload = json.loads(
+                    _achievement_compact_index_path(path).read_text(encoding="utf-8")
+                )
+                count = int(index_payload.get("achievement_count") or 0)
+                if count > 0:
+                    print(json.dumps(
+                        {"achievement_count": count, "path": str(path)},
+                        ensure_ascii=False, separators=(",", ":"),
+                    ))
+                    return 0
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                pass
+        return _build_compact_cache_unlocked(path)
+
+
+def _build_compact_cache_unlocked(path: Path) -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_disposable_worker_fast()
     retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
     path = Path(path)
     index_path = _achievement_compact_index_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    temp_index = index_path.with_suffix(index_path.suffix + ".tmp")
+    temp_path = _unique_cache_temporary_path(path)
+    temp_index = _unique_cache_temporary_path(index_path)
     offsets: dict[str, list[int]] = {}
 
     def line_bytes(payload: dict[str, object]) -> bytes:

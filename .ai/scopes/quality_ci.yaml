@@ -27,6 +27,7 @@ working_set:
   - tools/agent_hotspots.py
   - tools/atlas_doctor.py
   - tools/atlas_doctor_lib/
+  - tests/test_atlas_doctor_agent_protocol.py
   - tools/atlas_doctor_io_runner.py
   - tools/graphify.py
   - tools/graphify.ps1

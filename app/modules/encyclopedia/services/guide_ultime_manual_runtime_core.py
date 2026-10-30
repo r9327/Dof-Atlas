@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import re
 import zlib
 import weakref
 from pathlib import Path
+from uuid import uuid4
 from threading import RLock
 from typing import Any
 
@@ -211,7 +213,9 @@ def write_manual_runtime_compact_cache(
     }
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    # All Atlas instances can rebuild this shared source cache concurrently.
+    # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     temporary.write_text(
         json.dumps(
             payload,

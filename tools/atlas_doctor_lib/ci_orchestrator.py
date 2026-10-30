@@ -23,6 +23,30 @@ from tools.atlas_doctor_lib.high_smart_scope import eligible as high_smart_eligi
 REGISTRY = Path(__file__).with_name('ci_routes.json')
 
 
+def large_change_benchmark(paths: list[str], *, event: str, deleted=(),
+                           docs_only: bool = False, tooling_only: bool = False) -> dict:
+    """Detect substantial product/runtime diffs, not just scary policy labels.
+
+    The Doctor benchmark is expensive and overlaps existing specialists. It is
+    required before final certification only for broad changes to Atlas itself.
+    Deletions count; documentation or CI-only work never forces a GPU/Qt bench.
+    """
+    changed = sorted(set(paths) | set(deleted))
+    runtime = [p for p in changed if (
+        p.startswith(('app/', 'local_dofus_data/', 'data/encyclopedia/',
+                      'data/cartography/', 'data/routes/'))
+        or p in {'main.py', 'launch.py', 'sitecustomize.py',
+                 'requirements-pyside.txt'})]
+    decision = (event == 'pull_request' and not docs_only and not tooling_only
+                and (len(runtime) >= 8 or (len(changed) >= 12 and len(runtime) >= 4)))
+    return {
+        'selected': decision, 'changed_files': len(changed),
+        'product_runtime_files': len(runtime),
+        'reason': ('LARGE_PRODUCT_RUNTIME_DIFF' if decision else
+                   'NO_LARGE_PRODUCT_RUNTIME_DIFF'),
+    }
+
+
 def select_workflows(paths: list[str], *, event: str, phase_route: dict,
                      ui_plan: dict, deleted=(), tooling_scope=None, domain_plan=None) -> dict:
     if event not in {'pull_request', 'push', 'workflow_dispatch'}:
@@ -95,6 +119,11 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
         # tests. Replaying unrelated providers/package jobs is not equivalent
         # to stronger certification, just duplicated runner work.
         specialist_fallback = False
+    benchmark = large_change_benchmark(
+        paths, event=event, deleted=deleted, docs_only=docs_only,
+        tooling_only=tooling_only)
+    # A planning decision is not evidence of an executed or passed benchmark.
+    benchmark['selected'] = bool(benchmark['selected'] and phase)
     decisions = {}
     for name, patterns in registry.items():
         hits = [p for p in paths if any(fnmatchcase(p, pat) for pat in patterns)]
@@ -140,12 +169,29 @@ def select_workflows(paths: list[str], *, event: str, phase_route: dict,
             if name == 'doctor-ui' and 'ui' in owners:
                 selected = True
                 reasons.append('Required UI domain is impacted')
+        # On a large PR, the single Doctor Complete job ALREADY executes these
+        # exact specialist workflows and archives their results. Scheduling
+        # a second sibling job with the same GitHub concurrency group cancels
+        # one of them and breaks certification even if both were healthy.
+        # Do not waive anything: the complete suite is explicitly required by
+        # pre-full-gate, safe-validation and the Doctor final verdict.
+        complete_suite_owners = {
+            'atlas-windows-distribution', 'doctor-ui', 'graphify-map',
+            'phase8-memory-benchmark', 'phase8-preload-benchmark',
+        }
+        if benchmark['selected'] and name in complete_suite_owners:
+            selected = False
+            reasons = ['COVERED_BY_REQUIRED_DOCTOR_COMPLETE_SAME_SHA: '
+                       'canonical specialist runs once inside Doctor benchmark-first']
         decisions[name] = {'selected': selected, 'reasons': reasons or ['No changed consumer']}
     return {
         'phase': phase, 'full': full, 'docs_only': docs_only, 'tooling_only': tooling_only,
         'specialist_fallback': specialist_fallback,
+        'benchmark_first': benchmark['selected'],
+        'benchmark_selection': benchmark,
         'workflows': decisions,
-        'outputs': {'phase': phase, 'full': full, 'tooling_only': tooling_only, **{
+        'outputs': {'phase': phase, 'full': full, 'tooling_only': tooling_only,
+                    'benchmark_first': benchmark['selected'], **{
             name.replace('-', '_'): row['selected'] for name, row in decisions.items()
         }},
     }
@@ -212,6 +258,8 @@ def command_ci(root: Path, args) -> dict:
     report['required_jobs'] += [name.replace('-', '_') for name, row in report['workflows'].items() if row['selected']]
     if args.event == 'pull_request':
         report['required_jobs'].append('pr-fast-validation')
+        if report['benchmark_first']:
+            report['required_jobs'].append('doctor-benchmark-first')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     if args.github_output:
