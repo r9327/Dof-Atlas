@@ -196,6 +196,12 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     ))
                     view._toggle_library_category(dimensions, 0)
                     self.assertTrue(dimensions.isExpanded())
+                    requested.clear()
+                    # A catalogued-only reference must not launch a real guide.
+                    view._on_category_changed(dimensions.child(0))
+                    self.assertEqual(requested, [])
+                    view.refresh_home()
+                    self.assertTrue(dimensions.isExpanded())
                     self.assertEqual(view.library_results_title.text(), "DOFUS")
                     self.assertTrue(view.home_dofus_list.isVisible())
                     self.assertIsNone(
