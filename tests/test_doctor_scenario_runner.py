@@ -59,7 +59,7 @@ class UserJourneyCertificationTests(unittest.TestCase):
 
     def test_extra_scenario_preserves_clean_sha_and_process_isolation(self):
         runs = []
-        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+        with mock.patch.object(target, "_git", side_effect=[SHA, "", SHA, ""]):
             report = target.execute_scenarios(
                 self.root, SHA, ["success_cold_detail"],
                 runner=lambda _root, modules: runs.append(modules) or 0,
@@ -117,7 +117,7 @@ class UserJourneyCertificationTests(unittest.TestCase):
 
     def test_diagnostic_explicit_run_reuses_same_sha_isolated_runner(self):
         runs = []
-        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+        with mock.patch.object(target, "_git", side_effect=[SHA, "", SHA, ""]):
             report = target.execute_doctor_report(
                 self.root, SHA, self._doctor_document(), run=True,
                 runner=lambda _root, modules: runs.append(modules) or 0,
@@ -176,7 +176,7 @@ class UserJourneyCertificationTests(unittest.TestCase):
             batches.append(list(modules))
             selected.extend(modules)
             return 0
-        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+        with mock.patch.object(target, "_git", side_effect=[SHA, "", SHA, ""]):
             output = target.execute_scenarios(
                 self.root, SHA, ["guide_quest_succes"], runner=runner
             )
@@ -191,7 +191,7 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertEqual(output["metrics_executed"], [])
 
     def test_failed_runner_does_not_pass(self):
-        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+        with mock.patch.object(target, "_git", side_effect=[SHA, "", SHA, ""]):
             output = target.execute_scenarios(
                 self.root, SHA, ["progress_persistence"], runner=lambda *_: 1
             )
@@ -199,6 +199,33 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertIn("SCENARIO_TESTS_FAILED", output["errors"])
         self.assertEqual(output["failed_modules"], output["required_test_modules"])
         self.assertTrue(all(row["exit_code"] == 1 for row in output["module_results"]))
+
+    def test_scenario_tests_that_modify_tracked_code_can_never_pass(self):
+        runs = []
+        with mock.patch.object(
+            target, "_git",
+            side_effect=[SHA, "", SHA, " M app/main_window.py"],
+        ):
+            report = target.execute_scenarios(
+                self.root, SHA, ["quest_cold_detail"],
+                runner=lambda _root, modules: runs.append(modules) or 0,
+            )
+        self.assertTrue(runs)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertTrue(report["worktree_changed_during_tests"])
+        self.assertIn("WORKTREE_CHANGED_DURING_TESTS", report["errors"])
+        self.assertFalse(report["phase_certified"])
+        self.assertFalse(report["all_end_to_end_certified"])
+
+    def test_post_execution_git_lookup_failure_blocks_clean_contracts(self):
+        with mock.patch.object(
+            target, "_git", side_effect=[SHA, "", RuntimeError("git inaccessible")],
+        ):
+            report = target.execute_scenarios(
+                self.root, SHA, ["success_cold_detail"], runner=lambda *_: 0,
+            )
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("WORKTREE_CHANGED_DURING_TESTS", report["errors"])
 
     def test_wrong_git_candidate_or_dirty_tree_never_runs(self):
         called = []
