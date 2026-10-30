@@ -195,6 +195,23 @@ def execute_scenarios(
     report["module_results"] = module_results
     report["failed_modules"] = failures
     report["isolated_process_per_module"] = True
+    # Budget feedback comes from this real run and can be inspected by Doctor
+    # on the next planning cycle. It is test wall time, NOT app startup/CPU/RAM.
+    report["observed_test_cost"] = {
+        "status": "OBSERVED",
+        "test_module_count": len(executed),
+        "total_module_wall_seconds": round(sum(
+            row["duration_seconds"] for row in module_results
+        ), 3),
+        "slowest_modules": sorted(
+            ({"module": row["module"],
+              "duration_seconds": row["duration_seconds"]}
+             for row in module_results),
+            key=lambda row: (-row["duration_seconds"], row["module"]),
+        )[:8],
+        "limits": ["Process-isolated test wall time, not application CPU or RSS",
+                   "No app performance metric was executed by contract tests"],
+    }
     report["test_exit_code"] = 0 if not failures and len(executed) == len(
         report["required_test_modules"]
     ) else 2
