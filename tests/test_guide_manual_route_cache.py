@@ -503,11 +503,23 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 return_value=(path, "sources-v1"),
             ):
                 restored._load_manual_preview()
-            self.assertEqual(restored.route, service.route)
-            self.assertEqual(restored.cards, service.cards)
+            # The original full gzip cache migrates into an indexed route:
+            # metadata matches while bodies are intentionally not retained.
+            self.assertEqual(restored.route["id"], service.route["id"])
+            self.assertEqual(
+                restored.cards[0]["manual_stage_id"],
+                service.cards[0]["manual_stage_id"],
+            )
+            self.assertNotIn("manual_lines", restored.cards[0])
             self.assertEqual(restored._common_quest_ids, (42, 43))
             self.assertTrue(restored.manual_preview_active)
-            restored.cards[0]["manual_sections"]["now"][0]["text"] = "Changed"
+            sections = restored.manual_sections_for_card("character:1", restored.cards[0])
+            self.assertEqual(sections["now"], [{"text": "Parler au PNJ"}])
+            sections["now"][0]["text"] = "Changed"
+            self.assertEqual(
+                restored.manual_sections_for_card("character:1", restored.cards[0])["now"],
+                [{"text": "Parler au PNJ"}],
+            )
             self.assertEqual(service.cards[0]["manual_sections"]["now"][0]["text"], "Parler au PNJ")
 
             self.assertFalse(catalog_module._restore_catalog_route_cache(
