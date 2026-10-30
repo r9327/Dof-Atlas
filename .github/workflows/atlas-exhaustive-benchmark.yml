@@ -15,6 +15,7 @@ on:
         default: "2"
         options: ["1", "2", "5", "10"]
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - ".github/workflows/atlas-exhaustive-benchmark.yml"
       - "tools/benchmark_atlas_exhaustive.py"
@@ -47,6 +48,8 @@ defaults:
 
 jobs:
   exhaustive-guides:
+    # Full Guide runs belong to the finished PR/Ready boundary or explicit dispatch.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: Every playable guide / Windows RAM CPU Qt stall
     runs-on: windows-latest
     timeout-minutes: ${{ inputs.benchmark_timeout_minutes || 180 }}

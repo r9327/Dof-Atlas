@@ -2,7 +2,7 @@ name: Guides / Focused Windows Proof
 
 on:
   pull_request:
-    types: [synchronize]
+    types: [synchronize, ready_for_review]
     paths:
       - '.github/workflows/guides-focused-proof.yml'
       - 'tests/test_guide_manual_selected_validation.py'
@@ -50,6 +50,8 @@ concurrency:
 
 jobs:
   guide-targeted-windows:
+    # No repeated Windows setup on Draft pushes; focused local contracts only.
+    if: ${{ github.event.pull_request.draft == false }}
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
     timeout-minutes: 20

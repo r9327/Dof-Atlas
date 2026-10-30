@@ -48,6 +48,27 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(path), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
+    def test_expensive_windows_specialists_wait_for_ready_not_draft(self):
+        from pathlib import Path
+        workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
+        for name in (
+            "atlas-short-full-app.yml",
+            "atlas-exhaustive-benchmark.yml",
+        ):
+            with self.subTest(workflow=name):
+                content = (workflows / name).read_text(encoding="utf-8")
+                self.assertIn("ready_for_review", content)
+                self.assertIn("workflow_call:", content)
+                self.assertIn("workflow_dispatch:", content)
+                self.assertIn(
+                    "if: ${{ github.event_name != 'pull_request' || "
+                    "github.event.pull_request.draft == false }}",
+                    content,
+                )
+        focused = (workflows / "guides-focused-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("types: [synchronize, ready_for_review]", focused)
+        self.assertIn("if: ${{ github.event.pull_request.draft == false }}", focused)
+
     def test_pr303_late_preload_and_doctor_paths_have_reviewed_owners(self):
         # The exact seven unknown paths surfaced by the SHA-specific Draft
         # domain closure are cross-domain; a filename heuristic must not

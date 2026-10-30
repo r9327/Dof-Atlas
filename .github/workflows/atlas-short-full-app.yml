@@ -41,6 +41,7 @@ on:
         type: boolean
         default: false
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - ".github/workflows/atlas-short-full-app.yml"
       - "tools/doctor_quick_app_probe.py"
@@ -82,6 +83,9 @@ defaults:
 
 jobs:
   quick-whole-app:
+    # Keep heavyweight Qt/Windows campaigns out of Draft PR development.
+    # Manual dispatch and reusable workflow calls remain available.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: Full menu / preload / RAM / CPU / Qt (short)
     runs-on: windows-latest
     timeout-minutes: 30
