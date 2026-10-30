@@ -113,6 +113,60 @@ class QuestObjectiveStepIndexTests(unittest.TestCase):
             self.assertFalse(details._objective_step_index_checked)
 
 
+
+class QuestColdDetailBreakdownTests(unittest.TestCase):
+    def test_sqlite_cold_detail_reports_disk_decode_without_source_compilation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE quests(id INTEGER PRIMARY KEY, detail TEXT)")
+                connection.execute("INSERT INTO quests VALUES (42, ?)", ('{"id":42}',))
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            cached = object()
+            with patch.object(quest_details_module.qc, "_record_from_cache", return_value=cached) as decode:
+                self.assertIs(details.get(42), cached)
+                self.assertIs(details.get(42), cached)
+            decode.assert_called_once_with({"id": 42})
+            info = details.info()
+            self.assertEqual(info["loads"], 1)
+            self.assertEqual(info["hits"], 1)
+            phases = info["last_detail_breakdown_ms"]
+            self.assertEqual(phases["quest_id"], 42)
+            self.assertTrue(phases["sqlite_cache_hit"])
+            self.assertGreaterEqual(phases["total_ms"], 0.0)
+            self.assertNotIn("source_compile_ms", phases)
+
+    def test_first_source_detail_separates_preparation_compilation_and_storage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE quests(id INTEGER PRIMARY KEY, detail TEXT)")
+                connection.execute("INSERT INTO quests VALUES (42, NULL)")
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            record = SimpleNamespace(id=42)
+            with (
+                patch.object(quest_details_module, "_signature", return_value=()),
+                patch.object(details, "_prime_objective_step_index"),
+                patch.object(details, "_load_source_context"),
+                patch.object(
+                    quest_details_module.qc.QuestCatalog, "_load_source",
+                    return_value=SimpleNamespace(by_id={42: record}),
+                ) as compile_detail,
+            ):
+                self.assertIs(details.get(42), record)
+            compile_detail.assert_called_once()
+            phases = details.info()["last_detail_breakdown_ms"]
+            self.assertFalse(phases["sqlite_cache_hit"])
+            self.assertGreaterEqual(phases["source_index_and_context_ms"], 0.0)
+            self.assertGreaterEqual(phases["source_compile_ms"], 0.0)
+            self.assertGreaterEqual(phases["sqlite_serialize_and_persist_ms"], 0.0)
+            with closing(sqlite3.connect(path)) as connection:
+                row = connection.execute("SELECT detail FROM quests WHERE id=42").fetchone()
+            self.assertEqual(json.loads(row[0]), {"id": 42})
+
+
 class QuestEvidenceBatchTests(unittest.TestCase):
     def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
