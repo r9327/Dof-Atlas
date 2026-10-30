@@ -205,7 +205,7 @@ jobs:
         with:
           # Download only the primary multi-route report. The one-core job also
           # runs 3 cycles, but has a DIFFERENT denominator and must stay separate.
-          pattern: atlas-short-complete-app-c${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}-cpufalse-p1-*
+          pattern: atlas-short-complete-app-c${{ github.event_name == 'workflow_dispatch' && 10 || 3 }}-cpufalse-p1-${{ github.run_id }}-*
           path: artifacts/doctor_complete/inputs/app
           merge-multiple: false
 
@@ -214,7 +214,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: atlas-exhaustive-guides-*
+          pattern: atlas-exhaustive-guides-${{ github.run_id }}-*
           path: artifacts/doctor_complete/inputs/guides
           merge-multiple: false
 
@@ -231,7 +231,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: doctor-code-duplicate-review-*
+          pattern: doctor-code-duplicate-review-${{ github.run_id }}-*
           path: artifacts/doctor_complete/inputs/duplicates
           merge-multiple: false
 
@@ -312,16 +312,25 @@ jobs:
           import json, os
           from pathlib import Path
           from tools.atlas_doctor_lib.evidence_hub import build_hub
+          from tools.atlas_doctor_lib.workflow_artifacts import latest_attempt_report
           root = Path.cwd()
           directory = root / "artifacts/doctor_complete/inputs"
           inputs = []
-          app_reports = list((directory / "app").rglob("report.json"))
+          run_id, max_attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
+          cycles = 10 if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch" else 3
+          app_report = latest_attempt_report(
+              directory / "app", artifact_prefix=f"atlas-short-complete-app-c{cycles}-cpufalse-p1",
+              report_name="report.json", run_id=run_id, max_attempt=max_attempt)
+          app_reports = [app_report] if app_report is not None else []
           for filename in app_reports:
               inputs.append("app_navigation=" + filename.relative_to(root).as_posix())
           for filename in (directory / "ui").rglob("ui_campaign_verdict.json"):
               inputs.append("qt_ui=" + filename.relative_to(root).as_posix())
-          for filename in (directory / "duplicates").rglob("duplicate_review.json"):
-              inputs.append("code_duplicates=" + filename.relative_to(root).as_posix())
+          duplicate_report = latest_attempt_report(
+              directory / "duplicates", artifact_prefix="doctor-code-duplicate-review",
+              report_name="duplicate_review.json", run_id=run_id, max_attempt=max_attempt)
+          if duplicate_report is not None:
+              inputs.append("code_duplicates=" + duplicate_report.relative_to(root).as_posix())
           for filename in (directory / "graphify").rglob("doctor_shared_evidence.json"):
               inputs.append("graphify=" + filename.relative_to(root).as_posix())
           for filename in (directory / "distribution").rglob("doctor_windows_evidence.json"):
@@ -390,10 +399,11 @@ jobs:
         if: always()
         run: |
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
           from tools.atlas_doctor_lib.evidence_hub import render_html
           from tools.atlas_doctor_lib.optimization_report import generate
+          from tools.atlas_doctor_lib.workflow_artifacts import latest_attempt_report
           directory = Path("artifacts/doctor_complete")
           evidence = directory / "doctor_evidence.json"
           stages = directory / "ci_step_costs.json"
@@ -404,13 +414,19 @@ jobs:
           costs = json.loads(stages.read_text(encoding="utf-8")) if stages.is_file() else None
           (directory / "audit.html").write_text(
               render_html(report, costs), encoding="utf-8")
-          app_reports = list((directory / "inputs/app").rglob("report.json"))
-          if len(app_reports) != 1:
+          run_id, max_attempt = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"]
+          cycles = 10 if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch" else 3
+          app_report = latest_attempt_report(
+              directory / "inputs/app", artifact_prefix=f"atlas-short-complete-app-c{cycles}-cpufalse-p1",
+              report_name="report.json", run_id=run_id, max_attempt=max_attempt)
+          if app_report is None:
               raise SystemExit("Doctor optimization report requires exactly one primary app benchmark")
-          guide_reports = list((directory / "inputs/guides").rglob("guides.doctor.json"))
-          optimized = generate(Path.cwd(), sha=report["git_head"], app_report=app_reports[0],
+          guide_report = latest_attempt_report(
+              directory / "inputs/guides", artifact_prefix="atlas-exhaustive-guides",
+              report_name="guides.doctor.json", run_id=run_id, max_attempt=max_attempt)
+          optimized = generate(Path.cwd(), sha=report["git_head"], app_report=app_report,
                                hub_report=evidence,
-                               guides=guide_reports[0] if len(guide_reports) == 1 else None,
+                               guides=guide_report,
                                ci_costs=stages if stages.is_file() else None)
           with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
               out.write("\n## Doctor ranked optimization report\n\n")
