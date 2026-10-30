@@ -110,6 +110,9 @@ class DeepSuccessSubprocessAttributionContractTests(unittest.TestCase):
         ]
         self.assertIn("peek_achievement_provider", block)
         self.assertIn('"provider_last_detail_breakdown_ms": success_source_phases', block)
+        self.assertIn('"provider_cold_detail_breakdown_ms": verified_cold', block)
+        self.assertIn("last_cold_detail_breakdown_ms", block)
+        self.assertIn('source_cold.get("achievement_id") == achievement_id', block)
         self.assertIn('"synchronous_subprocess_ms"', block)
         self.assertNotIn("provider.get_detail_by_id(", block)
         self.assertLess(
