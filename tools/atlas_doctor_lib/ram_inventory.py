@@ -202,6 +202,7 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
         if not isinstance(qt, dict):
             continue
         windows_private = snapshot.get("windows_process_private")
+        detail_timing = snapshot.get("last_success_detail_timing")
         thread_handles = snapshot.get("runtime_thread_handles")
         handles_retained = handles_inactive = None
         if isinstance(thread_handles, dict):
@@ -228,6 +229,12 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
             "runtime_thread_handles_retained": handles_retained,
             "runtime_thread_handles_inactive": handles_inactive,
         }
+        if (
+            isinstance(detail_timing, dict)
+            and detail_timing.get("status") == "OBSERVED"
+            and type(detail_timing.get("total_ms")) in (int, float)
+        ):
+            seen[label]["last_success_detail_timing"] = dict(detail_timing)
     first = seen.get("initial_home")
     last = seen.get("last_home")
     result: dict[str, object] = {"status": "PARTIAL", "checkpoints": seen}
