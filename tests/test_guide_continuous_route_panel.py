@@ -104,6 +104,43 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.actual_button.click()
         self.assertEqual(self.panel.step_jump.value(), 1)
 
+    def test_source_actions_follow_guide_sections_not_flat_quest_names(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_action_candidates"] = [
+            {"kind": "quest_prerequisite", "label": "Vérifier le prérequis"},
+            {"kind": "talk", "label": "Parler au PNJ"},
+            {"kind": "move", "label": "Aller sur la carte indiquée"},
+            {"kind": "prepare_object", "label": "Objet nécessaire"},
+        ]
+        extra = ContinuousGuideRoutePanel(route, self.store, ("character:1",))
+        self.addCleanup(extra.deleteLater)
+        body = extra.body_label.text()
+        self.assertLess(body.index("Avant de commencer"), body.index("À faire maintenant"))
+        self.assertLess(body.index("À faire maintenant"), body.index("À préparer"))
+        self.assertIn("Parler au PNJ", body)
+        self.assertIn("Aller sur la carte indiquée", body)
+        self.assertIn("références à vérifier", body)
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_sommaire_marks_actual_checked_and_partially_checked_steps(self):
+        idx = self.panel.summary_model.index
+        label = lambda i: self.panel.summary_model.data(idx(i))
+        self.assertTrue(label(0).startswith("→ "))
+        self.assertFalse(label(1).startswith("✓ "))
+        self.panel.validate_button.click()
+        self.assertTrue(label(0).startswith("✓ "))
+        self.assertTrue(label(1).startswith("→ "))
+        self.panel.set_characters(("character:1",))
+        self.panel.show_step("ganymede_2205_step_0001")
+        self.panel.validate_button.click()
+        self.panel.set_characters(("character:1", "character:2"))
+        self.assertTrue(label(0).startswith("◐ "))
+        self.assertTrue(label(0).endswith("Fiche 1 — Étape 1"))
+        self.assertEqual(self.panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0001")
+
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"

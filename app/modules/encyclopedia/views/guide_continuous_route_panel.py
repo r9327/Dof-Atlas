@@ -29,6 +29,44 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 
 
+
+def _source_actions_for_display(step: Mapping[str, object]) -> str:
+    """Show the source's ordered actions as a route, not a flat quest list.
+
+    Classification is presentation-only: none of the candidates certifies a
+    canonical quest objective, item quantity or automated player action.
+    """
+    candidates = step.get("source_action_candidates")
+    if not isinstance(candidates, list) or not candidates:
+        return str(step.get("content") or "Actions de cette étape non renseignées.")
+    prerequisites = []
+    actions = []
+    preparation = []
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        label = candidate.get("label")
+        if not isinstance(label, str) or not label.strip():
+            continue
+        kind = candidate.get("kind")
+        if kind in {"quest_prerequisite", "guide_dependency"}:
+            prerequisites.append(label.strip())
+        elif kind in {"prepare_object", "optional_preparation"}:
+            preparation.append(label.strip())
+        else:
+            actions.append(label.strip())
+    sections = []
+    for heading, items in (
+        ("Avant de commencer", prerequisites),
+        ("À faire maintenant", actions),
+        ("À préparer · références à vérifier", preparation),
+    ):
+        if items:
+            sections.append(heading + "\\n" + "\\n".join("• " + item for item in items))
+    return "\\n\\n".join(sections) or str(
+        step.get("content") or "Actions de cette étape non renseignées."
+    )
+
 class _GuideCharacterProgressButton(QToolButton):
     """Lightweight circular progress over a normal, clickable class portrait."""
 
@@ -230,10 +268,12 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary.setObjectName("GuideContinuousSommaire")
         self.summary.setMinimumWidth(170)
         self.summary.setMaximumWidth(250)
-        self.summary_model = QStringListModel([
+        self._summary_base_labels = tuple(
             f"Fiche {i} — {str(row.get('title') or f'Étape {i}')}"
             for i, row in enumerate(self.rows, 1)
-        ], self)
+        )
+        self._summary_progress_labels: tuple[str, ...] = ()
+        self.summary_model = QStringListModel(list(self._summary_base_labels), self)
         self.summary.setModel(self.summary_model)
         self.summary.clicked.connect(
             lambda index: self.show_step(self.navigation.step_ids[index.row()])
@@ -504,8 +544,33 @@ class ContinuousGuideRoutePanel(QWidget):
         if request is not None:
             self.travelRequested.emit(*request)
 
+    def _refresh_summary_progress(self, position) -> None:
+        """Show followed/checked/partially checked steps without reloading routes."""
+        selected = position.selected_character_keys
+        checked = tuple(
+            self.navigation.progress.manual_steps(key, self.navigation.guide_id)
+            for key in selected
+        )
+        labels = []
+        for step_id, base in zip(self.navigation.step_ids, self._summary_base_labels):
+            done = sum(step_id in completed for completed in checked)
+            if done == len(checked) and checked:
+                prefix = "✓ "
+            elif step_id == position.actual_step_id:
+                prefix = "→ "
+            elif done:
+                prefix = "◐ "
+            else:
+                prefix = "  "
+            labels.append(prefix + base)
+        rendered = tuple(labels)
+        if rendered != self._summary_progress_labels:
+            self._summary_progress_labels = rendered
+            self.summary_model.setStringList(labels)
+
     def refresh(self) -> None:
         position = self.navigation.position()
+        self._refresh_summary_progress(position)
         total_checks = position.total_steps * len(position.selected_character_keys)
         completed_checks = sum(position.completed_by_character.values())
         self.route_progress.setValue(
@@ -563,8 +628,7 @@ class ContinuousGuideRoutePanel(QWidget):
             index = self.navigation.step_ids.index(current)
             row = self.rows[index]
             self.title_label.setText(str(row.get("title") or f"Étape {index + 1}"))
-            self.body_label.setText(str(row.get("content") or
-                                        "Actions de cette étape non renseignées."))
+            self.body_label.setText(_source_actions_for_display(row))
             coordinates = row.get("source_coordinates_mentioned")
             locations = []
             if isinstance(coordinates, list):
