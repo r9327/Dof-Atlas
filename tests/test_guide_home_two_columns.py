@@ -133,18 +133,30 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements are available without featured-card duplication.
-                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
+                    # Alignements have real nested entries in the left menu;
+                    # changing the menu does NOT overwrite the right Dofus grid.
+                    alignments = view._category_nodes["alignements"]
+                    self.assertEqual(alignments.childCount(), 2)
+                    view.library_categories.setCurrentItem(alignments)
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["alignement_bonta", "alignement_brakmar"],
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
+                    view.library_categories.setCurrentItem(alignments.child(0))
+                    self.assertEqual(requested[-1], "alignement_bonta")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
-                    self.assertEqual(view.home_dofus_model.rowCount(), 1)
-                    view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+                    self.assertEqual(self._ids(view.home_dofus_model), [])
                     self.assertFalse(view.home_dofus_list.isVisible())
+                    view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
                     view.resize(610, 750)
                     self.app.processEvents()
                     self.assertEqual(
