@@ -110,6 +110,42 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(audit["files"][1]["duplicate_id_candidates"][0]["ids"], ["1"])
         self.assertFalse(audit["automatic_deletion_authorized"])
 
+    def test_nested_json_duplicate_keys_are_reported_without_false_semantic_pass(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file(
+            "data/duplicate.json",
+            '{"meta":{"version":1,"version":2,"version":3},'
+            '"rows":[{"id":1,"name":"a","name":"b"},{"id":2}]}',
+        )
+        # Reusing the same member names in different objects is not a collision.
+        self._file("data/normal.json", '{"rows":[{"id":1,"name":"a"},{"id":2,"name":"b"}]}')
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        by_file = {entry["file"]: entry for entry in audit["files"]}
+        self.assertEqual(audit["counts"]["tracked"], 2)
+        self.assertEqual(audit["counts"]["valid_syntax"], 2)
+        self.assertEqual(audit["counts"]["duplicate_key_review_files"], 1)
+        self.assertEqual(by_file["data/duplicate.json"]["duplicate_key_candidates"], [
+            {"key": "name", "occurrences": 1, "kind": "DUPLICATE_KEY_REVIEW",
+             "json_path": None},
+            {"key": "version", "occurrences": 2, "kind": "DUPLICATE_KEY_REVIEW",
+             "json_path": None},
+        ])
+        self.assertEqual(by_file["data/duplicate.json"]["status"], "VALID_SYNTAX_REVIEW")
+        self.assertEqual(by_file["data/normal.json"]["duplicate_key_candidates"], [])
+        self.assertEqual(by_file["data/normal.json"]["status"], "VALID_SYNTAX")
+        self.assertEqual(audit["status"], "REVIEW")
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertFalse(audit["automatic_deletion_authorized"])
+        self.assertEqual(
+            (self.root / "data/duplicate.json").read_text(encoding="utf-8"),
+            '{"meta":{"version":1,"version":2,"version":3},'
+            '"rows":[{"id":1,"name":"a","name":"b"},{"id":2}]}',
+        )
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
