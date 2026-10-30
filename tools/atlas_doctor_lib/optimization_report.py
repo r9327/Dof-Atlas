@@ -65,13 +65,14 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Full immutable hexadecimal SHA required")
     hub, guides = hub or {}, guides or {}
-    valid = app.get("git_head") == sha
+    same_sha = app.get("git_head") == sha
+    valid = same_sha and app.get("status") == "PASS"
     findings = []
     def add(priority, code, title, evidence, action):
         findings.append({"priority": priority, "id": code, "title": title,
                          "evidence": evidence, "recommended_action": action,
                          "automatic_fix": False})
-    if not valid:
+    if not same_sha:
         add("P0", "STALE_APP", "Atlas benchmark missing or stale",
             str(app.get("git_head") or "NOT_RUN"), "Execute Doctor perf --app on the candidate SHA")
     elif app.get("status") != "PASS":
