@@ -339,6 +339,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--output", type=Path)
     args = ap.parse_args(argv)
+    output_target = (ROOT / args.output).resolve() if args.output else None
+    if output_target is not None and (
+        output_target.suffix.lower() != ".json"
+        or not output_target.is_relative_to((ROOT / "artifacts").resolve())
+    ):
+        print(json.dumps({
+            "status": "BLOCKED", "errors": ["OUTPUT_MUST_BE_ARTIFACT_JSON"],
+            "candidate_sha": args.expected_sha,
+            "tests_executed": False, "phase_certified": False,
+        }))
+        return 2
     if args.doctor_report is not None:
         from tools.atlas_doctor_lib.optimization_report import load
         try:
@@ -357,9 +368,9 @@ def main(argv: list[str] | None = None) -> int:
         plan = execute_scenarios(ROOT, args.expected_sha, args.scenario) if args.run else (
             contract_plan(ROOT, args.expected_sha, args.scenario)
         )
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+    if output_target is not None:
+        output_target.parent.mkdir(parents=True, exist_ok=True)
+        output_target.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
     return 0 if plan["status"] not in ("BLOCKED",) else 2
 
