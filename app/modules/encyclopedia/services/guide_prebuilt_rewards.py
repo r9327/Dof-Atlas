@@ -68,6 +68,21 @@ def _decode_path(image_path: str) -> str:
     return value
 
 
+def _steps_sha(guide: Any) -> str:
+    steps = [
+        (
+            str(getattr(step, "id", "") or ""),
+            str(getattr(step, "step_type", "") or ""),
+            str(getattr(step, "entity_id", "") or ""),
+            int(getattr(step, "order", 0) or 0),
+        )
+        for step in getattr(guide, "required_steps", ()) or ()
+    ]
+    return hashlib.sha256(
+        json.dumps(steps, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _guide_sha(guide_id: str) -> str:
     if not guide_id or "/" in guide_id or "\\" in guide_id or ".." in guide_id:
         raise ValueError("Invalid Guide identifier")
@@ -111,6 +126,7 @@ def write_bundle(
         rewards = guide_rewards(guide, achievement_provider, quests)
         guide_rows[guide_id] = {
             "guide_sha256": _guide_sha(guide_id),
+            "guide_steps_sha256": _steps_sha(guide),
             "rewards": [
                 {**asdict(reward), "image_path": _encode_path(reward.image_path)}
                 for reward in rewards
@@ -155,7 +171,9 @@ def cached_rewards(guide: Any, *, path: Path | None = None) -> tuple[DisplayRewa
         if not isinstance(values, dict):
             return None
         row = values.get(str(guide.id))
-        if not isinstance(row, dict) or row.get("guide_sha256") != _guide_sha(str(guide.id)):
+        if (not isinstance(row, dict)
+                or row.get("guide_sha256") != _guide_sha(str(guide.id))
+                or row.get("guide_steps_sha256") != _steps_sha(guide)):
             return None
         rewards = row.get("rewards")
         if not isinstance(rewards, list) or len(rewards) > 1000:
