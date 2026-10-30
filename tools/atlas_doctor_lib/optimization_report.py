@@ -242,6 +242,22 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append("- Outil non prêt / absent pour: " + str(capability))
     for gap in correlation.get("evidence_gaps", []):
         lines.append("- Preuve manquante: " + str(gap))
+    investigation = correlation.get("investigation_plan") or {}
+    lines += ["", "### Plan de décision adaptatif (pas encore exécuté)",
+              "Statut: " + str(investigation.get("status", "NOT_RUN"))]
+    for step in investigation.get("steps", []):
+        lines.append("- " + str(step.get("phase")) + " : " +
+                     str(step.get("tool")) + " (" +
+                     ", ".join(str(cap) for cap in step.get("capabilities", [])) + ")")
+    for probe in investigation.get("adaptive_benchmark_probes", []):
+        lines.append("- Benchmark proposé " + str(probe.get("scenario")) +
+                     " via " + str(probe.get("owner")) +
+                     " : " + str(probe.get("status", "NOT_RUN")))
+    for unready in investigation.get("unresolved", []):
+        lines.append("- Investigation incomplète : " + str(unready))
+    lines.append("Certification finale obligatoire : " +
+                 str((investigation.get("verification_contract") or {}).get(
+                     "final_phase_certification", "NOT_RUN")))
     lines += ["", "## Couverture non prouvée", ""]
     lines.extend("- " + k + ": " + str(v) for k, v in report["functional_coverage"].items())
     lines += ["", "## Limites", ""]
