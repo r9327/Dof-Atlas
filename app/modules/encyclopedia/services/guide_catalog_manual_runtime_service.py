@@ -7,6 +7,8 @@ import json
 import logging
 import os
 import sys
+import sqlite3
+from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 import re
@@ -17,6 +19,12 @@ from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
+from app.modules.encyclopedia.services.guide_catalog_route_store import (
+    LAZY_MARKER,
+    load_detail as load_catalog_card_detail,
+    restore_indexed_route,
+    write_indexed_route,
+)
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
     first_position_from_quest,
@@ -243,16 +251,68 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             self, character_key, card, completed_quests=completed_quests,
         )
 
+    def _catalog_card_detail(self, card: dict[str, Any]) -> dict[str, Any]:
+        """Only fetch the requested sheet's text; retain a bounded LRU."""
+        if not card.get(LAZY_MARKER):
+            return card
+        index = int(card["index"]) - 1
+        cache = getattr(self, "_catalog_detail_cache", None)
+        if not isinstance(cache, OrderedDict):
+            cache = OrderedDict(cache or ())
+            self._catalog_detail_cache = cache
+        detail = cache.get(index)
+        if detail is not None:
+            cache.move_to_end(index)
+            return detail
+        store = getattr(self, "_catalog_detail_store_path", None)
+        if not isinstance(store, Path):
+            raise ValueError("Index Guide sans source de détails")
+        if not (0 <= index < len(self.cards)):
+            raise ValueError(f"Index de fiche Guide invalide: {index}")
+        if self.cards[index].get("manual_stage_id") != card.get("manual_stage_id"):
+            raise ValueError(f"Identifiant fiche Guide discordant: {index}")
+        detail = load_catalog_card_detail(store, index)
+        cache[index] = detail
+        while len(cache) > 10:
+            cache.popitem(last=False)
+        return detail
+
+    def prefetch_route_near(self, index: int) -> None:
+        """Read at most nine nearby detail rows without making QWidget objects."""
+        if not isinstance(getattr(self, "_catalog_detail_store_path", None), Path):
+            return
+        total = len(self.cards)
+        if not total:
+            return
+        index = max(0, min(total - 1, int(index)))
+        for candidate in (index, *range(index + 1, min(total, index + 7)),
+                          *range(max(0, index - 2), index)):
+            try:
+                self._catalog_card_detail(self.cards[candidate])
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                _LOGGER.warning("Prélecture de fiche Guide indisponible: %s", exc)
+                return
+
     def _load_manual_preview(self) -> None:
-        # Reuse a signed, progress-free route projection on later launches.
+        # Restore only compact card identities, then fetch walkthroughs on demand.
         try:
             cached_identity = _catalog_route_cache_identity(self)
         except (OSError, ValueError, TypeError):
             cached_identity = None
-        if cached_identity is not None and _restore_catalog_route_cache(
-            self, *cached_identity
-        ):
-            return
+        if cached_identity is not None:
+            try:
+                if restore_indexed_route(self, *cached_identity):
+                    return
+            except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
+                _LOGGER.warning("Index de Guide invalide, reconstruction: %s", exc)
+            # One-time conversion of the previous full gzip generation.
+            if _restore_catalog_route_cache(self, *cached_identity):
+                try:
+                    write_indexed_route(self, *cached_identity)
+                    restore_indexed_route(self, *cached_identity)
+                except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
+                    _LOGGER.warning("Migration cache Guide ignorée: %s", exc)
+                return
 
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
@@ -322,9 +382,17 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.manual_preview_error = ""
         if cached_identity is not None:
             try:
-                _write_catalog_route_cache(self, *cached_identity)
-            except (OSError, ValueError, TypeError) as exc:
-                _LOGGER.warning("Cache reconstructible de Guide non écrit: %s", exc)
+                write_indexed_route(self, *cached_identity)
+                if not restore_indexed_route(self, *cached_identity):
+                    raise ValueError("L'index nouvellement écrit n'est pas restaurable")
+            except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
+                _LOGGER.warning("Index reconstruit indisponible, repli sans perte: %s", exc)
+                # Leave the complete in-memory route usable; keep prior
+                # full-format fallback for environments without SQLite writes.
+                try:
+                    _write_catalog_route_cache(self, *cached_identity)
+                except (OSError, ValueError, TypeError) as fallback_exc:
+                    _LOGGER.warning("Cache Guide de repli indisponible: %s", fallback_exc)
 
     def _quest_segments(
         self, guide_step, quest, *, finalize: bool = True,
@@ -604,9 +672,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         card: dict[str, Any],
     ) -> list[dict[str, Any]]:
         del character_key
+        source = self._catalog_card_detail(card)
         return [
             copy.deepcopy(row)
-            for row in card.get("manual_lines", ())
+            for row in source.get("manual_lines", ())
             if isinstance(row, dict)
         ]
 
@@ -616,9 +685,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         card: dict[str, Any],
     ) -> dict[str, list[dict[str, Any]]]:
         del character_key
+        detail = self._catalog_card_detail(card)
         source = (
-            card.get("manual_sections")
-            if isinstance(card.get("manual_sections"), dict)
+            detail.get("manual_sections")
+            if isinstance(detail.get("manual_sections"), dict)
             else {}
         )
         sections = {
