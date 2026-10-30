@@ -128,6 +128,35 @@ def plan_investigation(
             return 0
         return 1
 
+    # Reuse canonical Doctor scenarios: this plan does not run an extra
+    # benchmark and does not remove any phase-required sentinels.
+    ids = {row.get("id") for row in hypotheses}
+    probes: list[dict[str, Any]] = []
+    if "PRELOAD_WALL_CORRELATION" in ids:
+        probes.append({
+            "scenario": "preload_cold_warm", "owner": "tools.atlas_doctor perf --app",
+            "condition": "AFTER_CHEAP_TRIAGE_IF_UNRESOLVED",
+            "measure": ["preload_ms", "source_phase_ms", "cold_vs_warm", "p50_p95_p99"],
+            "repeat_count_min": 3, "status": "NOT_RUN",
+        })
+    if "HOME_REVISIT_CORRELATION" in ids:
+        probes.append({
+            "scenario": "home_module_home_stabilized",
+            "owner": "tools.atlas_doctor perf --app",
+            "condition": "AFTER_CHEAP_TRIAGE_IF_UNRESOLVED",
+            "measure": ["home_rss_stabilized", "peak_tree_rss", "worker_lifetime"],
+            "repeat_count_min": 3, "status": "NOT_RUN",
+            "measurement_caveat": "RAM forensics opt-in uses different timing overhead",
+        })
+    if "GUIDE_HOTSPOT_AND_REVISIT" in ids or "GUIDE_METHOD_HOTSPOT" in ids:
+        probes.append({
+            "scenario": "guides_cold_warm_regression",
+            "owner": "tools.atlas_doctor perf --deep",
+            "condition": "AFTER_CHEAP_TRIAGE_IF_UNRESOLVED",
+            "measure": ["guide_open_p50_p95_p99", "qt_freeze_count", "method_hotspots"],
+            "repeat_count_min": 3, "status": "NOT_RUN",
+        })
+
     steps = []
     for item in sorted(tools.values(), key=lambda row: (phase(row), row["tool"]))[:32]:
         steps.append({
@@ -143,6 +172,8 @@ def plan_investigation(
     return {
         "status": "REVIEW_REQUIRED" if unresolved else "READY_TO_REVIEW",
         "candidate_sha": sha, "steps": steps, "unresolved": sorted(unresolved),
+        "adaptive_benchmark_probes": probes,
+        "all_required_certification_scenarios_retained": True,
         "stopping_conditions": [
             "Stop if an artifact is stale, truncated, failed, or from another SHA",
             "Stop if a tool is unavailable or requires mutation approval",
