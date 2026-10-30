@@ -194,6 +194,27 @@ class DiagnosticCorrelationTests(unittest.TestCase):
                          ["memory", "runtime_trace", "performance"])
         self.assertFalse(graph["tools_executed"])
 
+    def test_full_tool_budget_still_covers_existing_shared_capability(self):
+        capabilities = tuple("cap_" + str(i) for i in range(6))
+        inventory = [
+            {
+                "path": "tools/t" + str(i) + ".py",
+                "invocation": "read " + str(i),
+                "capabilities": (["cap_0", "cap_5"] if i == 0
+                                 else ["cap_" + str(i)]),
+                "safe_for_agent": True, "automation_ready": True,
+                "preferred_for_agent": True,
+                "side_effects": "read_only", "cost_hint": "cheap",
+                "readiness_score": 100,
+            }
+            for i in range(5)
+        ]
+        result = _catalog_tools(capabilities, {"tools": inventory})
+        self.assertEqual(len(result["selected"]), 5)
+        self.assertEqual(result["unresolved_capabilities"], [])
+        self.assertEqual(result["selected"][0]["capabilities"],
+                         ["cap_0", "cap_5"])
+
     def test_unknown_tool_cost_is_not_assumed_free(self):
         plan = plan_investigation(SHA, [{
             "id": "X", "tool_plan": {
