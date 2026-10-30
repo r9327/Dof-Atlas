@@ -483,6 +483,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
+        # One active rich detail + two previous ones. Reopening a Success must
+        # not spend another 5s rebuilding a disposable detail worker.
+        self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
+        self._last_detail_cache_source = "cold"
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -509,6 +513,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
         self._detail_cache_id = None
         self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
         self._detail_sources_ready = False
         self._progress_objectives = {}
         self._compat_cache_id = None
@@ -1432,6 +1438,34 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._reset_sources()
 
+    def _remember_rich_detail(
+        self, achievement_id: int, detail: Achievement,
+        old_id: int | None, old_detail: Achievement | None,
+    ) -> None:
+        """Retain only the last few details; never the whole rich catalogue."""
+        if old_detail is not None and old_id is not None and old_id != achievement_id:
+            self._recent_rich_details[old_id] = old_detail
+            self._recent_rich_details.move_to_end(old_id)
+        self._recent_rich_details.pop(achievement_id, None)
+        while len(self._recent_rich_details) > 2:
+            self._recent_rich_details.popitem(last=False)
+        self._detail_cache_id = achievement_id
+        self._detail_cache = detail
+
+    def _reuse_recent_rich_detail(self, achievement_id: int) -> Achievement | None:
+        cached = self._recent_rich_details.pop(achievement_id, None)
+        if cached is None:
+            return None
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._remember_rich_detail(achievement_id, cached, old_id, old_detail)
+        self._last_detail_cache_source = "recent"
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
+        self._last_detail_ms = 0.0
+        self._last_detail_thread_name = current_thread().name
+        return cached
+
     @property
     def last_detail_breakdown_ms(self) -> dict[str, object]:
         """Identify cold Success detail blocking work, without importing a profiler."""
@@ -1441,13 +1475,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             "synchronous_subprocess_ms": getattr(self, "_last_detail_subprocess_ms", 0.0),
             "decode_ms": getattr(self, "_last_detail_decode_ms", 0.0),
             "subprocess_path_used": bool(getattr(self, "_last_detail_subprocess_used", False)),
+            "cache_source": self._last_detail_cache_source,
+            "recent_cache_entries": len(self._recent_rich_details),
         }
 
     def get_detail_by_id(self, achievement_id: int):
         self._ensure_loaded()
         achievement_id = int(achievement_id)
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+            self._last_detail_cache_source = "hot"
             return self._detail_cache
+        recent = self._reuse_recent_rich_detail(achievement_id)
+        if recent is not None:
+            return recent
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._last_detail_cache_source = "cold"
 
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
@@ -1498,8 +1540,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 if not isinstance(payload, dict):
                     return None
                 detail = _achievement_from_dict(payload)
-                self._detail_cache_id = achievement_id
-                self._detail_cache = detail
+                self._remember_rich_detail(
+                    achievement_id, detail, old_id, old_detail,
+                )
                 return detail
             finally:
                 self._last_detail_decode_ms = round(
@@ -1510,7 +1553,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._last_detail_subprocess_used = False
         self._last_detail_subprocess_ms = 0.0
         self._last_detail_decode_ms = 0.0
-        return self._get_detail_in_process(achievement_id)
+        detail = self._get_detail_in_process(achievement_id)
+        if detail is not None:
+            self._remember_rich_detail(achievement_id, detail, old_id, old_detail)
+        return detail
 
     def get_linked_quests(self, achievement_id: int):
         self._ensure_loaded()
