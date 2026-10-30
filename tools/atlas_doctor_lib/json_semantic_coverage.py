@@ -28,6 +28,10 @@ def _duplicate_ids(rows: list[Any]) -> list[str]:
     return sorted(duplicates)
 
 
+def _reject_non_finite(value: str) -> None:
+    raise ValueError("Non-standard JSON number: " + value)
+
+
 def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool) -> dict[str, Any]:
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
@@ -46,7 +50,11 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             # Loading one file at a time avoids accidentally retaining the
             # 70 MiB Quest index alongside the 28 MiB image manifest.
             with file.open("r", encoding="utf-8-sig") as stream:
-                payload = json.load(stream)
+                prefix = stream.read(32)
+                if prefix.startswith("version https://git-lfs.github.com/spec/v1"):
+                    raise OSError("Tracked JSON is a Git LFS pointer, not materialized data")
+                stream.seek(0)
+                payload = json.load(stream, parse_constant=_reject_non_finite)
             entry["top_level_type"] = type(payload).__name__
             collections = (
                 {"$root": payload} if isinstance(payload, list)
@@ -76,7 +84,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         files.append(entry)
 
     complete = (
-        clean and len(files) == counts["tracked"]
+        clean and counts["tracked"] > 0 and len(files) == counts["tracked"]
         and counts["valid_syntax"] == counts["tracked"]
         and not counts["invalid_syntax"] and not counts["unavailable"]
     )
