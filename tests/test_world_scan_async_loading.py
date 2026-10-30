@@ -142,6 +142,32 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
             finally:
                 self._dispose_panel(panel)
 
+    def test_hidden_map_evicts_world_buttons_without_losing_view_selection(self) -> None:
+        with (
+            patch.object(world_scan_module, "WorldService", _FakeWorldService),
+            patch.object(world_scan_module, "Thread", _FakeThread),
+        ):
+            panel = WorldScanPanel()
+            try:
+                panel._initial_load_pending = False
+                panel.show()
+                first = set(panel.world_buttons)
+                self.assertTrue(first)
+                panel.current_world_name = next(iter(first))
+                panel.history = ["world-previous"]
+                panel.hide()
+                QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                self.assertEqual(panel.world_buttons, {})
+                self.assertTrue(panel._world_menu_suspended)
+                self.assertEqual(panel.history, ["world-previous"])
+                panel.show()
+                self.assertEqual(set(panel.world_buttons), first)
+                self.assertFalse(panel._world_menu_suspended)
+                self.assertEqual(panel.history, ["world-previous"])
+                self.assertEqual(panel.current_world_name, next(iter(first)))
+            finally:
+                self._dispose_panel(panel)
+
     def test_hidden_map_drops_native_pixels_but_keeps_selected_world(self) -> None:
         with (
             patch.object(world_scan_module, "WorldService", _FakeWorldService),
