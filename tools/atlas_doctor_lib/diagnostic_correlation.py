@@ -95,10 +95,13 @@ def scenario_contract_recommendations(
     mapped = (
         ("startup_preload", ("PRELOAD_WALL_CORRELATION",)),
         ("home_qt_lifecycle", ("HOME_REVISIT_CORRELATION",)),
-        ("guide_quest_succes", (
+        ("success_cold_detail", (
+            "COLD_ACHIEVEMENT_DETAIL", "SUCCESS_MAIN_THREAD_SUBPROCESS",
+        )),
+        ("quest_cold_detail", ("COLD_QUEST_DETAIL",)),
+        ("guide_cold_detail", (
             "GUIDE_METHOD_HOTSPOT", "GUIDE_HOTSPOT_AND_REVISIT",
-            "COLD_QUEST_DETAIL", "COLD_ACHIEVEMENT_DETAIL",
-            "COLD_GUIDE_DETAIL", "SUCCESS_MAIN_THREAD_SUBPROCESS",
+            "COLD_GUIDE_DETAIL",
         )),
     )
     ids = {str(row.get("id")) for row in hypotheses if isinstance(row, dict)}
