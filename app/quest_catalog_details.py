@@ -197,12 +197,17 @@ class QuestDetails:
             raw = json.loads(row[0])
             if not isinstance(raw, dict):
                 raise ValueError("Invalid quest objective step lookup")
-            indexed: dict[int, list[int]] = {}
+            # Validate without building a second complete list/dict copy:
+            # prime_objective_steps already normalizes IDs into its retained
+            # index. The previous two passes duplicated all objective IDs on
+            # the first rich Quest detail and transiently raised peak RAM.
             for step_id, objective_ids in raw.items():
+                int(step_id)
                 if not isinstance(objective_ids, list):
                     raise ValueError("Invalid quest objective step ids")
-                indexed[int(step_id)] = [int(objective_id) for objective_id in objective_ids]
-            self._sources.prime_objective_steps(indexed)
+                for objective_id in objective_ids:
+                    int(objective_id)
+            self._sources.prime_objective_steps(raw)
         self._objective_step_index_checked = True
 
     def get(self, quest_id: int) -> qc.QuestRecord:
