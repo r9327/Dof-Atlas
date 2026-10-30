@@ -19,7 +19,8 @@ def comparable(a, b):
 
 def optimization_report(sha: str, app: dict, hub: dict | None = None,
                         baseline: dict | None = None, guides: dict | None = None,
-                        ci_costs: dict | None = None) -> dict[str, Any]:
+                        ci_costs: dict | None = None,
+                        tool_catalog_report: dict | None = None) -> dict[str, Any]:
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Full immutable hexadecimal SHA required")
     hub, guides = hub or {}, guides or {}
@@ -137,6 +138,13 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
                           "baseline_sha": baseline["git_head"], "metrics": metrics,
                           "warning": "Same scenario not proof of same hardware/load; repeat before claiming gain"}
     findings.sort(key=lambda x: ({"P0": 0, "P1": 1, "P2": 2}[x["priority"]], x["id"]))
+    # Correlate the same immutable evidence without introducing a second
+    # benchmark or promoting advisory hypotheses to certification.
+    from .diagnostic_correlation import correlate_diagnostics
+    correlation = correlate_diagnostics(
+        sha, app, hub=hub if hub else None, guides=guides if guides else None,
+        catalog_report=tool_catalog_report,
+    )
     return {
         "schema": 1, "kind": "atlas_doctor_optimization_report", "git_head": sha,
         "status": "DIAGNOSTIC_READY" if valid and shares else "BLOCKED",
@@ -159,6 +167,7 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
             "internal_screen_operations": "NOT_RUN", "real_desktop_fps": "NOT_RUN",
             "eight_real_dofus_clients": "NOT_RUN", "public_network_rollback": "NOT_RUN"},
         "comparison": comparison,
+        "diagnostic_correlation": correlation,
         "limitations": ["Phase wall% and process CPU% have different denominators",
                         "Worker CPU excluded from main-process CPU ratios",
                         "Suspected repeated work is not proof of duplicate code",
@@ -217,6 +226,22 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("- " + item["name"] + ": " + str(item["before"]) + " -> " +
                      str(item["after"]) + " " + item["unit"] + " (" +
                      str(item["delta_pct"]) + "% indicatif)")
+    correlation = report.get("diagnostic_correlation") or {}
+    lines += ["", "## Corrélation Doctor et orchestration conseillée", "",
+              "Statut: " + str(correlation.get("status", "NOT_RUN")) +
+              " (hypothèses non causales, aucun outil exécuté)."]
+    for row in correlation.get("hypotheses", []):
+        lines += ["", "### " + str(row["id"]) + " — " + str(row["title"]),
+                  "Constat: " + str(row["interpretation"]),
+                  "Prochaine mesure: " + str(row["next_probe"])]
+        selection = row.get("tool_plan") or {}
+        for tool in selection.get("selected", []):
+            lines.append("- Outil disponible: " + str(tool["path"]) +
+                         " (" + str(tool["capability"]) + ", non exécuté)")
+        for capability in selection.get("unresolved_capabilities", []):
+            lines.append("- Outil non prêt / absent pour: " + str(capability))
+    for gap in correlation.get("evidence_gaps", []):
+        lines.append("- Preuve manquante: " + str(gap))
     lines += ["", "## Couverture non prouvée", ""]
     lines.extend("- " + k + ": " + str(v) for k, v in report["functional_coverage"].items())
     lines += ["", "## Limites", ""]
@@ -244,9 +269,14 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
     target = (root / output).resolve()
     if target.suffix != ".json" or not target.is_relative_to((root / "artifacts").resolve()):
         raise ValueError("Optimization report output must be a JSON file under artifacts/")
+    # Query the single canonical repository tool catalog. Correlation only
+    # recommends safe tools; it never dispatches or executes them.
+    from tools.tool_catalog import catalog
+    tooling = catalog(root)
     report = optimization_report(sha, load(root, app_report) or {},
         hub=load(root, hub_report), baseline=load(root, baseline),
-        guides=load(root, guides), ci_costs=load(root, ci_costs))
+        guides=load(root, guides), ci_costs=load(root, ci_costs),
+        tool_catalog_report=tooling)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     target.with_suffix(".md").write_text(render_markdown(report), encoding="utf-8")
