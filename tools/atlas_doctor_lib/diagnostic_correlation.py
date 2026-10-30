@@ -118,6 +118,8 @@ def scenario_contract_recommendations(
         ("home_qt_lifecycle", ("HOME_REVISIT_CORRELATION",)),
         ("success_cold_detail", (
             "COLD_ACHIEVEMENT_DETAIL", "SUCCESS_MAIN_THREAD_SUBPROCESS",
+            "SUCCESS_BACKGROUND_PREWARM",
+            "SUCCESS_COLD_WORK_SEPARATE_FROM_CACHE_HIT",
         )),
         ("quest_cold_detail", ("COLD_QUEST_DETAIL",)),
         ("guide_cold_detail", (
