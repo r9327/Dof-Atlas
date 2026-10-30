@@ -11,6 +11,7 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
+from threading import Thread
 from typing import Any
 
 from PySide6.QtGui import QPixmapCache
@@ -99,6 +100,32 @@ def _page_lifecycle(window: object) -> dict[str, object]:
     }
 
 
+def _runtime_thread_handle_indicators(window: object) -> dict[str, dict[str, int]]:
+    """Show actual retained Thread handles; never translate counts into RSS."""
+    pages = getattr(window, "page_widgets", {})
+    pages = pages if isinstance(pages, dict) else {}
+    result: dict[str, dict[str, int]] = {}
+    for page_name, page in pages.items():
+        handles = getattr(page, "_runtime_threads", None)
+        if not isinstance(handles, list):
+            continue
+        active = 0
+        finished = 0
+        for handle in handles:
+            if not isinstance(handle, Thread):
+                continue
+            if handle.is_alive():
+                active += 1
+            else:
+                finished += 1
+        result[str(page_name)] = {
+            "retained_handles": len(handles),
+            "active": active,
+            "inactive": finished,
+        }
+    return dict(sorted(result.items()))
+
+
 def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
     """Bounded diagnostic after RSS sampling; no native byte attribution."""
     app = QApplication.instance()
@@ -114,6 +141,7 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
             "native_image_indicators": _native_image_indicators(window),
             "windows_process_private": private_windows_memory(),
             "page_lifecycle": _page_lifecycle(window),
+            "runtime_thread_handles": _runtime_thread_handle_indicators(window),
             "gc_generation_counts": list(gc.get_count()),
             "loaded_python_modules": len(sys.modules),
             # Keep the full application-only list: a rising module count
@@ -127,6 +155,7 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
                 "Qt widget counts cannot identify native RSS ownership or prove a leak",
                 "QPixmapCache is a capacity, not currently allocated native memory",
                 "Image counts do not include Qt shared platform pixmaps or GPU textures",
+                "Retained Thread handles do not establish native memory attribution",
                 "tracemalloc, a native heap profiler and real Windows GUI require separate runs",
             ],
         }
