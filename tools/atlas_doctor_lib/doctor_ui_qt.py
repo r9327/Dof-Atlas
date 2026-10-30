@@ -639,14 +639,21 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             and initial_button.text() == "Valider"
             and not view.participants_button.isChecked()
         )
+        # Compare both verified identities before and after the click. A prior
+        # completed step is legal; only an unrequested mutation is forbidden.
+        progress_keys = ("character:990000001", "character:990000002")
+        before_progress = tuple(view.service.page_checked(key, view.service.cards[0], 0)
+                                for key in progress_keys)
         initial_enabled = initial_button.isEnabled() if initial_button is not None else None
         picker_click = (
             click_target(page, initial_button, view.scroll)
             if initial_button is not None else {"accessible": False}
         )
+        after_progress = tuple(view.service.page_checked(key, view.service.cards[0], 0)
+                               for key in progress_keys)
         no_anonymous_write = (
             not view._progress_participant_keys()
-            and not view.service.page_checked("character:990000001", view.service.cards[0], 0)
+            and before_progress == after_progress
         )
         session.check(
             "participant-empty-blocked", "Click Valider with no explicitly selected characters",
