@@ -14,6 +14,10 @@ page_module = importlib.import_module(
 )
 
 
+class _PageProbe(SimpleNamespace):
+    """A real Python page wrapper supports weak references like QWidget."""
+
+
 def page_probe(*, pending_id: int | None):
     sequence = []
     provider = Mock()
@@ -24,7 +28,7 @@ def page_probe(*, pending_id: int | None):
     stage_result = Mock()
     receiver = Mock()
     receiver.emit.side_effect = lambda _result: sequence.append("emitted")
-    page = SimpleNamespace(
+    page = _PageProbe(
         _achievement_ready=False,
         _achievement_load_started=False,
         _success_runtime_requested=False,
