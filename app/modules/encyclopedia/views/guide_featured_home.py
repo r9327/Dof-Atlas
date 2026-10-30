@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
-from app.ui.unity_skin import sprite_icon_path, unity_enabled
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path, unity_enabled
 
 
 FEATURED = (
@@ -34,7 +34,8 @@ class FeaturedGuideCard(QFrame):
         # A widget-local stylesheet overrides the global Unity QSS. Keep
         # the Atlas default unchanged, but give Unity its intended alpha.
         card_background = (
-            "rgba(27, 39, 70, 0.88)"
+            "qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+            "stop:0 #354971, stop:1 #1B2947)"
             if unity_enabled() else PALETTE["PANEL_2"]
         )
         self.setStyleSheet(
@@ -46,6 +47,7 @@ class FeaturedGuideCard(QFrame):
             "#GuideFeaturedCard:focus { border: 2px solid #C6E691; }"
             "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
         )
+        apply_unity_panel_shadow(self, blur=16, vertical=3)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(9, 6, 9, 6)
         layout.setSpacing(3)
@@ -148,8 +150,9 @@ class FeaturedPair(QWidget):
     def __init__(self, cards: tuple[FeaturedGuideCard, FeaturedGuideCard], parent=None):
         super().__init__(parent)
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        # Reserve a few pixels so the real card shadows aren't cropped.
+        layout.setContentsMargins(3, 3, 5, 7)
+        layout.setSpacing(7)
         for card in cards:
             layout.addWidget(card, 1)
         self.pair_layout = layout
