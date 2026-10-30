@@ -123,6 +123,7 @@ class RamForensics:
         absolute.sort(key=lambda item: (-item["traced_mib"], item["source"]))
         top_lines.sort(key=lambda item: (-item["traced_mib"], item["source"], item["line"]))
         rows: list[dict[str, Any]] = []
+        released: list[dict[str, Any]] = []
         if self._previous is not None:
             # A file missing from the current snapshot may have released its
             # entire retained heap; keep negative deltas instead of omitting it.
@@ -132,12 +133,18 @@ class RamForensics:
                 delta_size = size - prior_size
                 delta_blocks = blocks - prior_blocks
                 if delta_size or delta_blocks:
-                    rows.append({
+                    item = {
                         "source": name, "delta_mib": round(delta_size / MB, 4),
                         "delta_blocks": delta_blocks,
-                    })
+                    }
+                    if delta_size < 0 or (delta_size == 0 and delta_blocks < 0):
+                        released.append(item)
+                    else:
+                        rows.append(item)
             rows.sort(key=lambda item: (-item["delta_mib"], item["source"]))
+            released.sort(key=lambda item: (item["delta_mib"], item["source"]))
             rows = rows[:TOP_SITES]
+            released = released[:TOP_SITES]
         app_traced_mib = round(sum(
             row["traced_mib"] for row in absolute
             if row["source"].startswith("app/") or row["source"] == "main.py"
@@ -152,6 +159,7 @@ class RamForensics:
             "tracked_python_peak_mib": round(peak / MB, 3),
             "tracked_python_blocks": len(snapshot.traces),
             "top_increased_sources_since_previous_checkpoint": rows,
+            "top_decreased_sources_since_previous_checkpoint": released,
             "top_traced_sources_now": absolute[:TOP_SITES],
             "top_traced_lines_now": top_lines[:TOP_SITES],
             "app_top_sources_traced_mib": app_traced_mib,

@@ -71,12 +71,14 @@ class DoctorRamForensicsTests(unittest.TestCase):
         self.assertIsInstance(probe._previous, dict)
         source = "tests/test_doctor_ram_forensics.py"
         increased = result["checkpoints"][1]["top_increased_sources_since_previous_checkpoint"]
-        decreased = result["checkpoints"][2]["top_increased_sources_since_previous_checkpoint"]
+        decreased = result["checkpoints"][2]["top_decreased_sources_since_previous_checkpoint"]
         self.assertTrue(any(row["source"] == source and row["delta_mib"] > 0.5
                             for row in increased))
         self.assertTrue(any(row["source"] == source and row["delta_mib"] < -0.5
                             for row in decreased))
         self.assertFalse(tracemalloc.is_tracing())
+        self.assertFalse(any(row["delta_mib"] < 0 for row in increased))
+        self.assertFalse(any(row["delta_mib"] > 0 for row in decreased))
 
     def test_invalid_existing_tracing_is_not_silently_reused(self):
         tracemalloc.start()
