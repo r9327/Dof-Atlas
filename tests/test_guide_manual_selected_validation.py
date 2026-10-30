@@ -107,8 +107,14 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
     def test_empty_selection_never_writes_global_character(self) -> None:
         self.participants.save_selected_keys(())
         self._show_sheet()
-        self.assertFalse(self.view.validation_layout.itemAt(0).widget().isEnabled())
-        self.assertIn("Choisir", self.view.validation_layout.itemAt(0).widget().text())
+        button = self.view.validation_layout.itemAt(0).widget()
+        self.assertTrue(button.isEnabled())
+        self.assertEqual(button.text(), "Valider")
+        button.click()
+        QApplication.processEvents()
+        self.assertTrue(self.view.participants_button.isChecked())
+        # Opening the explicit picker never writes the browsing identity.
+        self.assertFalse(self._check("character:1"))
         self.assertFalse(self.path.exists())
 
     def test_select_then_validate_and_undo_affects_only_selected_identities(self) -> None:
@@ -255,7 +261,9 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         QApplication.processEvents()
         self.assertEqual(self.view.route_progress_label.text(), "100 %")
         self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
-        self.assertEqual(self.view.current_button.text(), "Terminé")
+        self.assertEqual(self.view.current_button.property("guideFullText"), "Terminé")
+        # Compact viewport hides only the caption, not its meaning.
+        self.assertEqual(self.view.current_button.accessibleName(), "Terminé")
         self.assertFalse(self.view.current_button.isEnabled())
         self.assertEqual(
             self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
