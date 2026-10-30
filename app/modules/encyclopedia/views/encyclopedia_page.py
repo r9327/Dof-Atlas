@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread, current_thread
@@ -1157,6 +1158,7 @@ class EncyclopediaPage(QWidget):
         guide_provider = (
             self.service.guide_provider if self._guide_runtime_ready else None
         )
+        page_ref = weakref.ref(self)
 
         def worker() -> None:
             with background_io_priority():
@@ -1205,13 +1207,15 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                try:
-                    self.achievementRuntimeFinished.emit(result)
-                except RuntimeError:
-                    LOGGER.debug(
-                        "Success runtime receiver deleted before worker completion.",
-                        exc_info=True,
-                    )
+                page = page_ref()
+                if page is not None:
+                    try:
+                        page.achievementRuntimeFinished.emit(result)
+                    except RuntimeError:
+                        LOGGER.debug(
+                            "Success runtime receiver deleted before worker completion.",
+                            exc_info=True,
+                        )
 
         try:
             _start_runtime_thread(self, worker, "DofusAtlasAchievementStage")
