@@ -182,6 +182,16 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
         if not isinstance(qt, dict):
             continue
         windows_private = snapshot.get("windows_process_private")
+        thread_handles = snapshot.get("runtime_thread_handles")
+        handles_retained = handles_inactive = None
+        if isinstance(thread_handles, dict):
+            rows = [row for row in thread_handles.values() if isinstance(row, dict)]
+            if len(rows) == len(thread_handles) and all(
+                type(row.get("retained_handles")) is int
+                and type(row.get("inactive")) is int for row in rows
+            ):
+                handles_retained = sum(row["retained_handles"] for row in rows)
+                handles_inactive = sum(row["inactive"] for row in rows)
         loaded = snapshot.get("loaded_application_modules")
         if isinstance(loaded, list) and all(isinstance(x, str) for x in loaded):
             app_modules_by_label[label] = set(loaded)
@@ -195,6 +205,8 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
                 else None
             ),
             "qt_widgets": qt.get("total_live_widgets"),
+            "runtime_thread_handles_retained": handles_retained,
+            "runtime_thread_handles_inactive": handles_inactive,
         }
     first = seen.get("initial_home")
     last = seen.get("last_home")
@@ -221,6 +233,13 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
         a, b = first.get("qt_widgets"), last.get("qt_widgets")
         if type(a) is int and type(b) is int:
             result["home_widget_count_delta"] = b - a
+        a, b = (
+            first.get("runtime_thread_handles_inactive"),
+            last.get("runtime_thread_handles_inactive"),
+        )
+        if type(a) is int and type(b) is int:
+            result["home_inactive_thread_handle_delta"] = b - a
+            result["thread_counts_are_not_native_rss_attribution"] = True
     return result
 
 
