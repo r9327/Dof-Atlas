@@ -11,6 +11,7 @@ import json
 import os
 import sqlite3
 import zlib
+from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 from typing import Any
@@ -64,7 +65,9 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     try:
-        with sqlite3.connect(tmp) as connection:
+        # sqlite3.Connection.__exit__ commits but does NOT close handles.
+        # Windows rejects tmp.replace() while the writer is still open.
+        with closing(sqlite3.connect(tmp)) as connection, connection:
             connection.execute("CREATE TABLE metadata (name TEXT PRIMARY KEY, value BLOB NOT NULL)")
             connection.execute("CREATE TABLE details (idx INTEGER PRIMARY KEY, data BLOB NOT NULL)")
             connection.execute(
@@ -95,7 +98,7 @@ def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bo
     if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
         return False
     try:
-        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as connection:
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE name='manifest'"
             ).fetchone()
@@ -146,7 +149,7 @@ def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bo
 
 def load_detail(path: Path, index: int) -> dict[str, Any]:
     """One bounded row, no full-route inflation and no mutable shared tree."""
-    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as connection:
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
         row = connection.execute(
             "SELECT data FROM details WHERE idx=?", (int(index),)
         ).fetchone()
