@@ -366,6 +366,19 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
         if isinstance(provider_phases, dict) and provider_phases.get("thread")
         else {"status": "NOT_OBSERVED"}
     )
+    # A prewarmed deep link may be a hot-cache hit on the Qt thread. Preserve
+    # the original cold cost from the canonical provider so it is not erased.
+    source_cold = (
+        getattr(existing_provider, "last_cold_detail_breakdown_ms", None)
+        if existing_provider is not None else None
+    )
+    verified_cold = (
+        dict(source_cold)
+        if isinstance(source_cold, dict)
+        and source_cold.get("status") == "OBSERVED"
+        and source_cold.get("achievement_id") == achievement_id
+        else {"status": "NOT_OBSERVED_OR_DIFFERENT_DETAIL"}
+    )
 
     return {
         "quest_detail_ms": quest_detail_ms,
@@ -386,6 +399,7 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
             "navigation_call": achievement_navigation_call_ms,
             "post_navigation_wait": achievement_post_navigation_wait_ms,
             "provider_last_detail_breakdown_ms": success_source_phases,
+            "provider_cold_detail_breakdown_ms": verified_cold,
         },
         "quest_id": quest_id,
         "guide_id": guide_id,
