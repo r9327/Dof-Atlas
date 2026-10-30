@@ -446,6 +446,54 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertNotIn("SUCCESS_MAIN_THREAD_SUBPROCESS",
                          {x["id"] for x in background["hypotheses"]})
 
+    def test_background_cold_success_cost_remains_visible_after_hot_ui_detail(self):
+        phase8 = {"metrics": {
+            "git_head": SHA,
+            "deep_first_content": {
+                "all_details_rendered": True,
+                "quest_id": 18, "guide_id": "bonta", "achievement_id": 20,
+                "achievement_detail_phases_ms": {
+                    "provider_last_detail_breakdown_ms": {
+                        "thread": "MainThread", "cache_source": "hot",
+                        "synchronous_subprocess_ms": 0.0,
+                        "subprocess_path_used": False,
+                    },
+                    "provider_cold_detail_breakdown_ms": {
+                        "achievement_id": 20, "status": "OBSERVED",
+                        "thread": "DofusAtlasAchievementStage",
+                        "total_ms": 5120.0,
+                        "synchronous_subprocess_ms": 5040.0,
+                        "subprocess_path_used": True,
+                    },
+                },
+            },
+            "deep_quest_detail_ms": 7080,
+            "deep_achievement_detail_ms": 1500,
+            "deep_guide_detail_ms": 2480,
+            "deep_first_content_total_ms": 11060,
+        }}
+        report = correlate_diagnostics(SHA, app(), phase8=phase8,
+                                       catalog_report=catalog())
+        by_id = {row["id"]: row for row in report["hypotheses"]}
+        self.assertIn("SUCCESS_BACKGROUND_PREWARM", by_id)
+        self.assertNotIn("SUCCESS_MAIN_THREAD_SUBPROCESS", by_id)
+        cold = by_id["SUCCESS_BACKGROUND_PREWARM"]
+        self.assertEqual(cold["observations"][0]["value"], 5120)
+        self.assertEqual(cold["evidence_strength"], "SINGLE_REPORT_LEAD")
+        self.assertFalse(cold["root_cause_proven"])
+        self.assertFalse(report["causes_proven"])
+
+        # The same previous Success ID must not be attributed to this page.
+        phases = phase8["metrics"]["deep_first_content"][
+            "achievement_detail_phases_ms"
+        ]
+        phases["provider_cold_detail_breakdown_ms"]["achievement_id"] = 21
+        unrelated = correlate_diagnostics(SHA, app(), phase8=phase8)
+        self.assertNotIn(
+            "SUCCESS_BACKGROUND_PREWARM",
+            {row["id"] for row in unrelated["hypotheses"]},
+        )
+
     def test_phase8_incomplete_or_stale_data_cannot_claim_first_detail_diagnosis(self):
         complete = {
             "git_head": SHA,
