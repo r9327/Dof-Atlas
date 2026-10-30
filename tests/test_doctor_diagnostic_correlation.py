@@ -195,6 +195,45 @@ class DiagnosticCorrelationTests(unittest.TestCase):
                          ["memory", "runtime_trace", "performance"])
         self.assertFalse(graph["tools_executed"])
 
+    def test_low_cost_multicapability_specialist_beats_expensive_single_use(self):
+        report = {"tools": [
+            {
+                "path": "tools/preferred_expensive.py",
+                "invocation": "inspect heavy", "capabilities": ["performance"],
+                "cost_hint": "expensive", "preferred_for_agent": True,
+                "safe_for_agent": True, "automation_ready": True,
+                "side_effects": "read_only", "readiness_score": 100,
+            },
+            {
+                "path": "tools/reuse_cheap.py",
+                "invocation": "inspect focused",
+                "capabilities": ["performance", "runtime_trace", "memory"],
+                "cost_hint": "cheap", "preferred_for_agent": False,
+                "safe_for_agent": True, "automation_ready": True,
+                "side_effects": "read_only", "readiness_score": 90,
+            },
+            {
+                "path": "tools/mutates.py",
+                "invocation": "write",
+                "capabilities": ["memory", "runtime_trace"],
+                "cost_hint": "cheap", "preferred_for_agent": True,
+                "safe_for_agent": True, "automation_ready": True,
+                "side_effects": "repo_mutation_explicit", "readiness_score": 100,
+            },
+        ]}
+        result = _catalog_tools(
+            ("performance", "runtime_trace", "memory"), report,
+        )
+        self.assertEqual(
+            [tool["path"] for tool in result["selected"]], ["tools/reuse_cheap.py"],
+        )
+        self.assertEqual(
+            result["selected"][0]["capabilities"],
+            ["performance", "runtime_trace", "memory"],
+        )
+        self.assertEqual(result["unresolved_capabilities"], [])
+        self.assertTrue(result["not_executed"])
+
     def test_full_tool_budget_still_covers_existing_shared_capability(self):
         capabilities = tuple("cap_" + str(i) for i in range(6))
         inventory = [
