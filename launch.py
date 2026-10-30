@@ -98,6 +98,19 @@ def main() -> int:
             if not detail["manual_lines"]:
                 return 16
         print(f"VERIFIED: frozen precompiled Sylvestre {len(service.cards)} indexed cards")
+        # The same certified Windows payload must carry ready-to-display
+        # aggregate rewards for every alignment without hydrating Quest rows.
+        from app.modules.encyclopedia.services.guide_prebuilt_rewards import (
+            cached_rewards,
+        )
+        guide_provider = MemoryBoundGuideProvider(quest_provider=quests)
+        for guide_id in ("alignement_bonta", "alignement_brakmar"):
+            alignment = guide_provider.get_by_id(guide_id)
+            rewards = cached_rewards(alignment) if alignment is not None else None
+            if rewards is None:
+                print(f"Frozen precomputed rewards unavailable: {guide_id}", file=sys.stderr)
+                return 17
+            print(f"VERIFIED: frozen {guide_id} {len(rewards)} rewards without rich Quest reads")
         return 0
 
     if sys.argv[1:2] == ["--atlas-success-detail-smoke"]:
