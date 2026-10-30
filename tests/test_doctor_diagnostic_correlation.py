@@ -214,6 +214,63 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertEqual(result["status"], "REVIEW_REQUIRED")
         self.assertFalse(result["tools_executed"])
 
+    def test_phase8_cold_details_use_real_rendered_fixture_and_same_sha(self):
+        phase8 = {"metrics": {
+            "git_head": SHA, "deep_first_content": {
+                "all_details_rendered": True, "quest_id": 18,
+                "achievement_id": 20, "guide_id": "bonta",
+            },
+            "deep_quest_detail_ms": 7080.0,
+            "deep_achievement_detail_ms": 5430.0,
+            "deep_guide_detail_ms": 2480.0,
+            "deep_first_content_total_ms": 14990.0,
+        }}
+        result = correlate_diagnostics(
+            SHA, app(), phase8=phase8, catalog_report=catalog(),
+        )
+        rows = {h["id"]: h for h in result["hypotheses"]}
+        self.assertEqual(rows["COLD_QUEST_DETAIL"]["priority"], "P0")
+        self.assertEqual(rows["COLD_ACHIEVEMENT_DETAIL"]["priority"], "P0")
+        self.assertEqual(rows["COLD_GUIDE_DETAIL"]["priority"], "P1")
+        self.assertFalse(rows["COLD_QUEST_DETAIL"]["root_cause_proven"])
+        plan = result["investigation_plan"]
+        self.assertIn("phase8_deep_first_use_same_fixture", {
+            item["scenario"] for item in plan["adaptive_benchmark_probes"]
+        })
+        self.assertFalse(plan["tools_executed"])
+
+    def test_phase8_incomplete_or_stale_data_cannot_claim_first_detail_diagnosis(self):
+        complete = {
+            "git_head": SHA,
+            "deep_first_content": {
+                "all_details_rendered": True, "quest_id": 18,
+                "achievement_id": 20, "guide_id": "bonta",
+            },
+            "deep_quest_detail_ms": 7000.0,
+            "deep_achievement_detail_ms": 5000.0,
+            "deep_guide_detail_ms": 3000.0,
+            "deep_first_content_total_ms": 15000.0,
+        }
+        altered = (
+            ({**complete, "git_head": OTHER}, "phase8_first_use: STALE_OR_INVALID"),
+            ({**complete, "deep_first_content": {
+                **complete["deep_first_content"], "all_details_rendered": False,
+            }}, "phase8_first_use: DETAILS_NOT_RENDERED"),
+            ({**complete, "deep_quest_detail_ms": True},
+             "phase8_first_use: INCOMPLETE_OR_INVALID_TIMINGS"),
+            ({**complete, "deep_first_content_total_ms": 10000.0},
+             "phase8_first_use: INVALID_TIMING_ACCOUNTING"),
+        )
+        for metrics, missing in altered:
+            with self.subTest(missing=missing):
+                result = correlate_diagnostics(
+                    SHA, app(), phase8={"metrics": metrics},
+                )
+                self.assertIn(missing, result["evidence_gaps"])
+                self.assertFalse(any(
+                    row["id"].startswith("COLD_") for row in result["hypotheses"]
+                ))
+
     def test_stale_benchmark_is_blocked_not_recycled_into_positive_diagnosis(self):
         result = correlate_diagnostics(SHA, app(git_head=OTHER),
                                        catalog_report=catalog())
