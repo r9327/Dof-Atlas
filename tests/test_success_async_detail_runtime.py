@@ -6,7 +6,7 @@ import threading
 import time
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -173,6 +173,32 @@ class SuccessAsyncDetailRuntimeTests(unittest.TestCase):
         self.assertTrue(self.pump(lambda: not view._detail_worker_running))
         self.assertEqual(rendered, [])
         self.assertFalse(view._detail_open)
+
+    def test_alignment_order_choice_uses_lazy_catalogue_not_deleted_constant(self):
+        # This handler is part of the Success detail lifecycle, including
+        # when the async-loaded panel is first shown.
+        progress = Mock()
+        view = SimpleNamespace(
+            progress_service=progress, character_key="character:42",
+            sync_automatic_progress=Mock(),
+            refresh_completion_styles=Mock(),
+            show_current_achievement=Mock(),
+        )
+        with patch(
+            "app.modules.encyclopedia.views.achievements_view._order_quest_ids",
+            return_value={"bonta": {"premier": (1, 2, 3, 4, 5)}},
+        ):
+            AchievementsView.on_alignment_choice_changed(
+                view, ("bonta", "premier"),
+            )
+            progress.set_alignment_order_choice.assert_called_once_with(
+                "character:42", "bonta", "premier",
+            )
+            AchievementsView.on_alignment_choice_changed(
+                view, ("bonta", "inconnu"),
+            )
+            progress.set_alignment_order_choice.assert_called_once()
+        self.assertEqual(view.show_current_achievement.call_count, 1)
 
     def test_failed_cold_detail_recovers_without_crashing_ui(self):
         view, provider, rendered = self.view()
