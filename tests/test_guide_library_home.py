@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit, QListWidget
+from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QListView, QLineEdit, QListWidget
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -170,6 +170,11 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     self.assertIs(view.optimized_pair.parentWidget(), view.library_left)
                     self.assertIs(view.library_categories.parentWidget(), view.library_left)
+                    self.assertLessEqual(view.library_left.width(), 295)
+                    self.assertGreater(view.library_right.width(), view.library_left.width() * 2.3)
+                    self.assertIsInstance(view.library_categories.graphicsEffect(), QGraphicsDropShadowEffect)
+                    self.assertTrue(all(isinstance(card.graphicsEffect(), QGraphicsDropShadowEffect)
+                                        for card in view.featured_cards.values()))
                     self.assertEqual(view.library_category, "dofus")
                     # Responsive layout follows the actual LEFT width; cards
                     # stay compact whether two fit alongside or must stack.
