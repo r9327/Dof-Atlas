@@ -126,6 +126,24 @@ def _runtime_thread_handle_indicators(window: object) -> dict[str, dict[str, int
     return dict(sorted(result.items()))
 
 
+def _last_success_detail_timing(window: object) -> dict[str, object]:
+    """Inspect an existing provider only; never activate a cold Success runtime."""
+    pages = getattr(window, "page_widgets", {})
+    pages = pages if isinstance(pages, dict) else {}
+    for page in pages.values():
+        service = getattr(page, "service", None)
+        peek = getattr(service, "peek_achievement_provider", None)
+        if not callable(peek):
+            continue
+        provider = peek()
+        if provider is None:
+            continue
+        timing = getattr(provider, "last_detail_breakdown_ms", None)
+        if isinstance(timing, dict) and timing.get("thread"):
+            return {"status": "OBSERVED", **timing}
+    return {"status": "NOT_OBSERVED"}
+
+
 def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
     """Bounded diagnostic after RSS sampling; no native byte attribution."""
     app = QApplication.instance()
@@ -142,6 +160,7 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
             "windows_process_private": private_windows_memory(),
             "page_lifecycle": _page_lifecycle(window),
             "runtime_thread_handles": _runtime_thread_handle_indicators(window),
+            "last_success_detail_timing": _last_success_detail_timing(window),
             "gc_generation_counts": list(gc.get_count()),
             "loaded_python_modules": len(sys.modules),
             # Keep the full application-only list: a rising module count
@@ -156,6 +175,7 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
                 "QPixmapCache is a capacity, not currently allocated native memory",
                 "Image counts do not include Qt shared platform pixmaps or GPU textures",
                 "Retained Thread handles do not establish native memory attribution",
+                "Success subprocess timing is elapsed wall time, not exclusive CPU cost",
                 "tracemalloc, a native heap profiler and real Windows GUI require separate runs",
             ],
         }
