@@ -38,9 +38,6 @@ def _catalog_tools(
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for capability in capabilities:
-        if len(selected) >= MAX_TOOLS_PER_HYPOTHESIS:
-            unresolved.append("TOOL_BUDGET_EXCEEDED:" + capability)
-            continue
         # A guarded mutation tool can be agent-ready while still being the
         # wrong choice for an automatic read-only investigation.
         preferred = select_tools(
@@ -63,6 +60,9 @@ def _catalog_tools(
         if existing is not None:
             if capability not in existing["capabilities"]:
                 existing["capabilities"].append(capability)
+            continue
+        if len(selected) >= MAX_TOOLS_PER_HYPOTHESIS:
+            unresolved.append("TOOL_BUDGET_EXCEEDED:" + capability)
             continue
         selected.append({
             "path": entry["path"], "invocation": entry["invocation"],
