@@ -237,23 +237,54 @@ def doctor_report_scenarios(document: dict[str, Any], sha: str) -> dict[str, Any
         reasons.append("SCENARIO_COVERAGE_NOT_COMPLETE")
         contracts = {}
     entries = contracts.get("selected")
-    names = [row.get("scenario") for row in entries
-             if isinstance(row, dict)] if isinstance(entries, list) else []
+    rows = entries if isinstance(entries, list) else []
+    names = [row.get("scenario") if isinstance(row, dict) else None
+             for row in rows]
+    valid_names = all(isinstance(name, str) and name in SCENARIOS
+                      for name in names)
+    ids = correlation.get("hypotheses")
+    expected_ids = (
+        {str(row["id"]) for row in ids
+         if isinstance(row, dict) and isinstance(row.get("id"), str)}
+        if isinstance(ids, list) else set()
+    )
+    covered: set[str] = set()
+    valid_rows = bool(expected_ids)
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("scenario"), str):
+            valid_rows = False
+            continue
+        scenario = row["scenario"]
+        matched = row.get("covered_hypotheses")
+        if (
+            scenario not in SCENARIOS
+            or row.get("runner") != "tools.doctor_scenario_runner"
+            or row.get("execution_status") != "NOT_RUN"
+            or row.get("required_sha_check") is not True
+            or row.get("test_modules") != SCENARIOS[scenario]["modules"]
+            or not isinstance(matched, list) or not matched
+            or any(not isinstance(x, str) or x not in expected_ids for x in matched)
+        ):
+            valid_rows = False
+            continue
+        covered.update(matched)
     if (
-        not names or len(names) > MAX_SELECTED or len(names) != len(set(names))
-        or any(not isinstance(name, str) or name not in SCENARIOS for name in names)
-        or len(names) != (len(entries) if isinstance(entries, list) else 0)
+        not rows or len(rows) > MAX_SELECTED or not valid_names
+        or (valid_names and len(names) != len(set(names)))
+        or not valid_rows or covered != expected_ids
         or contracts.get("uncovered_hypotheses")
     ):
         reasons.append("INVALID_OR_INCOMPLETE_SCENARIO_SELECTION")
     if correlation.get("tests_executed") is not False or investigation.get("tests_executed") is not False:
         reasons.append("UNTRUSTED_PREEXECUTION_CLAIMS")
-    gaps = sorted(set(
-        str(item) for item in [
-            *(correlation.get("evidence_gaps") or []),
-            *(investigation.get("unresolved") or []),
-        ] if isinstance(item, str)
-    ))
+    raw_gaps = [
+        row for row in (
+            correlation.get("evidence_gaps"),
+            investigation.get("unresolved"),
+        ) if isinstance(row, list)
+    ]
+    gaps = sorted({item for group in raw_gaps
+                   for item in group if isinstance(item, str)})
     return {
         "status": "BLOCKED" if reasons else "READY_TO_RUN_CONTRACTS",
         "selected_scenarios": names if not reasons else [],
