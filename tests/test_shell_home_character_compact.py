@@ -182,5 +182,46 @@ class ShellTransientPlaceholderReleaseTests(unittest.TestCase):
             QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
 
+class EncyclopediaThreadLifecycleTests(unittest.TestCase):
+    def test_repeated_warmups_prune_finished_thread_handles(self):
+        from threading import Event
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            _join_runtime_threads, _start_runtime_thread,
+        )
+
+        owner = SimpleNamespace(_runtime_threads=[])
+        first_done = Event()
+        _start_runtime_thread(owner, first_done.set, "finished-worker")
+        self.assertTrue(first_done.wait(2))
+        _join_runtime_threads(owner._runtime_threads)
+        self.assertEqual(len(owner._runtime_threads), 1)
+        self.assertFalse(owner._runtime_threads[0].is_alive())
+
+        running_release = Event()
+        running_entered = Event()
+
+        def running_worker():
+            running_entered.set()
+            self.assertTrue(running_release.wait(2))
+
+        _start_runtime_thread(owner, running_worker, "running-worker")
+        self.assertTrue(running_entered.wait(2))
+        # A completed predecessor was removed while this active worker remains.
+        self.assertEqual(len(owner._runtime_threads), 1)
+        self.assertTrue(owner._runtime_threads[0].is_alive())
+        second_done = Event()
+        _start_runtime_thread(owner, second_done.set, "second-worker")
+        self.assertEqual(len(owner._runtime_threads), 2)
+        self.assertTrue(second_done.wait(2))
+        running_release.set()
+        _join_runtime_threads(owner._runtime_threads)
+        # All old workers ended, but closeEvent can still join a new active one.
+        final_done = Event()
+        _start_runtime_thread(owner, final_done.set, "next-worker")
+        self.assertEqual(len(owner._runtime_threads), 1)
+        self.assertTrue(final_done.wait(2))
+        _join_runtime_threads(owner._runtime_threads)
+
+
 if __name__ == "__main__":
     unittest.main()
