@@ -1,9 +1,20 @@
 from __future__ import annotations
 
 import copy
+import gzip
+import hashlib
+import json
+import logging
+import os
 from functools import lru_cache
+from pathlib import Path
 import re
 from typing import Any
+from uuid import uuid4
+
+from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.quest_catalog import quest_catalog_cache_signature
+from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
@@ -38,6 +49,124 @@ def _position_key_uncached(text: str) -> str:
     return normalize_text(text)
 
 
+
+_CATALOG_ROUTE_CACHE_DIR = ROOT_DIR / ".cache" / "dofus_atlas" / "catalog_routes_v1"
+_CATALOG_ROUTE_CACHE_SCHEMA = 1
+_LOGGER = logging.getLogger(__name__)
+
+
+def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
+    """Cache only canonical, reconstructible Quest-backed routes.
+
+    Custom/in-memory Quest providers are intentionally excluded. The signature
+    includes authored Guide order, every Quest-source generation and the
+    projection code, but no character or saved progress.
+    """
+    if not bool(getattr(service, "use_disk_cache", True)):
+        return None
+    provider = getattr(service, "quest_provider", None)
+    if type(provider) is not QuestProvider:
+        return None
+    data_dir = Path(provider.data_dir)
+    if data_dir.resolve() != RAW_QUEST_DATA_DIR.resolve():
+        return None
+    loaded = getattr(provider, "_catalog", None)
+    if loaded is not None and not bool(getattr(loaded, "deferred_details", False)):
+        return None
+    guide = service.catalog_guide
+    steps = [
+        (
+            str(getattr(step, "id", "") or ""),
+            str(getattr(step, "step_type", "") or ""),
+            str(getattr(step, "entity_id", "") or ""),
+            int(getattr(step, "order", 0) or 0),
+        )
+        for step in getattr(guide, "required_steps", ()) or ()
+    ]
+    from app.modules.encyclopedia.services import guide_quest_view_model
+    sources = (
+        Path(__file__), Path(guide_quest_view_model.__file__),
+    )
+    payload = {
+        "schema": _CATALOG_ROUTE_CACHE_SCHEMA,
+        "guide": [service.guide_id, service.guide_title, steps],
+        "quest_sources": quest_catalog_cache_signature(data_dir),
+        "projection_files": [
+            (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+            for path in sources
+        ],
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    safe_name = hashlib.sha256(service.guide_id.encode("utf-8")).hexdigest()[:24]
+    return _CATALOG_ROUTE_CACHE_DIR / f"{safe_name}.json.gz", digest
+
+
+def _restore_catalog_route_cache(
+    service: Any, path: Path, signature: str,
+) -> bool:
+    try:
+        if path.stat().st_size > 24 * 1024 * 1024:
+            return False
+        payload = json.loads(gzip.decompress(path.read_bytes()))
+    except (OSError, EOFError, ValueError, TypeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("schema_version") != _CATALOG_ROUTE_CACHE_SCHEMA:
+        return False
+    if payload.get("source_signature") != signature:
+        return False
+    route = payload.get("route")
+    audit = payload.get("audit")
+    ids = payload.get("common_quest_ids")
+    if not isinstance(route, dict) or not isinstance(audit, dict):
+        return False
+    cards = route.get("steps")
+    if not isinstance(cards, list) or not cards or not all(isinstance(row, dict) for row in cards):
+        return False
+    if route.get("id") != f"catalog_manual_{service.guide_id}":
+        return False
+    if not isinstance(ids, list) or any(type(value) is not int for value in ids):
+        return False
+
+    service.route = route
+    service.cards = cards
+    service._common_quest_ids = tuple(ids)
+    service._full_success_ids = ()
+    service.manual_audit_data = audit
+    service.manual_preview_active = True
+    service.manual_preview_chapters = (service.guide_id,)
+    service.manual_manifest_active = False
+    service.manual_chapters = (service.guide_id,)
+    service.manual_preview_error = ""
+    return True
+
+
+def _write_catalog_route_cache(
+    service: Any, path: Path, signature: str,
+) -> None:
+    """Atomic source cache, never progression; failures cannot block the Guide."""
+    payload = {
+        "schema_version": _CATALOG_ROUTE_CACHE_SCHEMA,
+        "source_signature": signature,
+        "route": service.route,
+        "audit": service.manual_audit_data,
+        "common_quest_ids": service._common_quest_ids,
+    }
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary.write_bytes(gzip.compress(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+            compresslevel=1,
+        ))
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
     """Project a Guide catalogue route into the shared manual road-book UI.
 
@@ -62,6 +191,16 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         super().__init__(*args, quest_provider=quest_provider, **kwargs)
 
     def _load_manual_preview(self) -> None:
+        # Reuse a signed, progress-free route projection on later launches.
+        try:
+            cached_identity = _catalog_route_cache_identity(self)
+        except (OSError, ValueError, TypeError):
+            cached_identity = None
+        if cached_identity is not None and _restore_catalog_route_cache(
+            self, *cached_identity
+        ):
+            return
+
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
         seen_quests: set[int] = set()
@@ -128,6 +267,11 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.manual_manifest_active = False
         self.manual_chapters = (self.guide_id,)
         self.manual_preview_error = ""
+        if cached_identity is not None:
+            try:
+                _write_catalog_route_cache(self, *cached_identity)
+            except OSError as exc:
+                _LOGGER.warning("Cache reconstructible de Guide non écrit: %s", exc)
 
     def _quest_segments(
         self, guide_step, quest, *, finalize: bool = True,
