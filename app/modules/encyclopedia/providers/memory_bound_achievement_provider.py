@@ -1484,6 +1484,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         achievement_id = int(achievement_id)
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             self._last_detail_cache_source = "hot"
+            self._last_detail_subprocess_used = False
+            self._last_detail_subprocess_ms = 0.0
+            self._last_detail_decode_ms = 0.0
+            self._last_detail_ms = 0.0
+            self._last_detail_thread_name = current_thread().name
             return self._detail_cache
         recent = self._reuse_recent_rich_detail(achievement_id)
         if recent is not None:
