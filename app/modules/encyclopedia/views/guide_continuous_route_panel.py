@@ -595,9 +595,20 @@ class ContinuousGuideRoutePanel(QWidget):
                 prefix = "  "
             labels.append(prefix + base)
         rendered = tuple(labels)
-        if rendered != self._summary_progress_labels:
-            self._summary_progress_labels = rendered
+        if rendered == self._summary_progress_labels:
+            return
+        if len(rendered) != len(self._summary_progress_labels):
             self.summary_model.setStringList(labels)
+        else:
+            # One-step navigation only changes the current/previous markers.
+            # Resetting a 200+ row Qt summary on every click invalidates all
+            # indexes, selection and layout. Emit only the changed rows.
+            for row, (before, after) in enumerate(zip(self._summary_progress_labels, rendered)):
+                if before != after:
+                    self.summary_model.setData(
+                        self.summary_model.index(row), after, Qt.EditRole,
+                    )
+        self._summary_progress_labels = rendered
 
     def refresh(self) -> None:
         position = self.navigation.position()
