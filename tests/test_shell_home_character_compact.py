@@ -56,6 +56,12 @@ class HomeCharacterComboCacheTests(unittest.TestCase):
 
 
 class ShellWorldScanHibernationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Qt widgets require a living QApplication even when a single test is
+        # selected directly by the targeted Windows workflow.
+        cls.app = QApplication.instance() or QApplication([])
+
     def test_home_eviction_preserves_world_state_only_when_idle(self):
         state = {
             "view_key": "world-a", "world_name": "Astrub",
