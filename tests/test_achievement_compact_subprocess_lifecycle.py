@@ -84,6 +84,63 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         self.assertEqual(child_env["PYTHONUTF8"], "1")
 
 
+class AchievementDetailColdTimingTests(unittest.TestCase):
+    def test_cold_subprocess_reports_real_blocking_and_decode_phases(self) -> None:
+        from threading import current_thread
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout='{"id":123,"name":"Succès témoin","category_id":8}\n',
+            stderr="",
+        )
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(
+                __import__("sys"), "frozen", False, create=True
+            ),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                return_value=completed,
+            ) as child,
+        ):
+            detail = provider.get_detail_by_id(123)
+            self.assertEqual(detail.id, 123)
+            child.assert_called_once()
+            self.assertEqual(child.call_args.kwargs["timeout"], 90)
+            timing = provider.last_detail_breakdown_ms
+            self.assertEqual(timing["thread"], current_thread().name)
+            self.assertTrue(timing["subprocess_path_used"])
+            self.assertGreaterEqual(timing["synchronous_subprocess_ms"], 0.0)
+            self.assertGreaterEqual(timing["decode_ms"], 0.0)
+            self.assertGreaterEqual(timing["total_ms"], timing["decode_ms"])
+            # Returning to the same detail remains a cheap cache hit.
+            self.assertIs(provider.get_detail_by_id(123), detail)
+            child.assert_called_once()
+
+    def test_failed_subprocess_still_records_blocking_phase(self) -> None:
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(cmd="detail", timeout=90),
+            ),
+        ):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                provider.get_detail_by_id(123)
+        timing = provider.last_detail_breakdown_ms
+        self.assertTrue(timing["subprocess_path_used"])
+        self.assertGreaterEqual(timing["synchronous_subprocess_ms"], 0.0)
+
+
 class AchievementDetailWorkerFastPathTests(unittest.TestCase):
     def test_disposable_detail_uses_existing_fast_loader_and_preserves_data(self) -> None:
         detail = _achievement_from_dict({
