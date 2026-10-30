@@ -29,6 +29,11 @@ on:
       - 'tests/test_shared_guide_combat_global_contract.py'
       - 'scripts/windows/build_quest_index.py'
       - 'app/modules/encyclopedia/views/guides_view.py'
+      - 'app/modules/encyclopedia/views/achievements_view.py'
+      - 'tests/test_success_async_detail_runtime.py'
+      - 'tests/test_encyclopedia_success_detail_prewarm.py'
+      - 'tests/test_guides_home_render_cache.py'
+      - 'tests/test_quest_source_boundaries.py'
       - 'app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py'
       - 'app/ui/world_scan_panel.py'
       - 'tests/test_world_scan_async_loading.py'
@@ -128,6 +133,11 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_world_scan_async_loading tests.test_shell_home_character_compact.ShellWorldScanHibernationTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Final targeted Success Qt, Guide prerequisite and Quest index regressions
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_success_async_detail_runtime tests.test_encyclopedia_success_detail_prewarm tests.test_guides_home_render_cache tests.test_quest_source_boundaries
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bounded Unity fallback icon cache
         shell: pwsh
