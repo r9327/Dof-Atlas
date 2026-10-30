@@ -732,8 +732,10 @@ class ContinuousGuideRoutePanel(QWidget):
             if position.completed_by_character
             else "Aucun personnage sélectionné"
         )
-        if index >= 0:
-            self.summary.selectionModel().clearSelection()
+        if index >= 0 and self.summary.currentIndex().row() != index:
+            # Preserve the existing selection/scroll position on progress-only
+            # refreshes. Clearing and reselecting triggers Qt selection/layout
+            # churn even when the viewed source step has not changed.
             self.summary.setCurrentIndex(self.summary_model.index(index))
         self.summary.setVisible(self._summary_open)
 
