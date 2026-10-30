@@ -111,6 +111,10 @@ class AchievementDetailColdTimingTests(unittest.TestCase):
             self.assertEqual(detail.id, 123)
             child.assert_called_once()
             self.assertEqual(child.call_args.kwargs["timeout"], 90)
+            self.assertEqual(
+                child.call_args.kwargs["creationflags"],
+                getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+            )
             timing = provider.last_detail_breakdown_ms
             self.assertEqual(timing["thread"], current_thread().name)
             self.assertTrue(timing["subprocess_path_used"])
