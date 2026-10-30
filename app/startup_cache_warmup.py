@@ -16,7 +16,7 @@ CACHE_ROOT = ROOT / ".cache" / "dofus_atlas"
 RESULT_PATH = CACHE_ROOT / "startup_cache_warmup_v1.json"
 STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
-_MANIFEST_SCHEMA_VERSION = 1
+_MANIFEST_SCHEMA_VERSION = 2
 _DOMAIN_STAMP_VERSION = 1
 # Quest is the Home dependency; Guide and Success may continue after Home paints.
 _DOMAIN_ORDER = ("quest", "guide", "success")
@@ -24,6 +24,7 @@ _DOMAIN_ORDER = ("quest", "guide", "success")
 _RAW_QUEST_ROOT = ROOT / "data" / "cache" / "dofus_maps" / "raw" / "doduda_cli"
 _GUIDES_ROOT = ROOT / "data" / "encyclopedia" / "guides"
 _MANUAL_GUIDE_ROOT = ROOT / "data" / "routes" / "guide_ultime_manual"
+_QUEST_ENRICHED_SOURCE = ROOT / "data" / "encyclopedia" / "quests" / "quests_enriched.json"
 
 _QUEST_SOURCE_FILES = (
     "languages/fr.json",
@@ -195,9 +196,10 @@ def _source_paths(domain: str) -> list[Path]:
     if name == "guide":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _QUEST_SOURCE_FILES)
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _GUIDE_EXTRA_SOURCE_FILES)
-        paths.extend((_GUIDES_ROOT, _MANUAL_GUIDE_ROOT))
+        paths.extend((_GUIDES_ROOT, _MANUAL_GUIDE_ROOT, _QUEST_ENRICHED_SOURCE))
     elif name == "quest":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _QUEST_SOURCE_FILES)
+        paths.append(_QUEST_ENRICHED_SOURCE)
     elif name == "success":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _SUCCESS_SOURCE_FILES)
     return paths
@@ -280,14 +282,14 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
 
 
 def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
-    if not isinstance(cache_files, list):
+    if not isinstance(cache_files, list) or not cache_files:
         return []
     rows: list[list[object]] = []
-    for raw_path in cache_files:
+    for index, raw_path in enumerate(cache_files):
         path = _safe_artifact_path(raw_path)
         if path is None:
             return []
-        if domain == "quest":
+        if domain == "quest" and index == 0:
             rows.append(_quest_artifact_stamp(path))
             continue
         label = _path_label(path)
@@ -317,6 +319,16 @@ def _cached_domain_result(
         return None
     if entry.get("source_stamp") != source_stamp:
         return None
+    if domain == "quest":
+        # Old manifests validated the catalogue alone. Require the source
+        # indexes too, or first detail silently rebuilds them on demand.
+        expected_count = result.get("detail_source_index_count")
+        files = result.get("cache_files")
+        if (
+            type(expected_count) is not int or expected_count <= 0
+            or not isinstance(files, list) or len(files) < expected_count
+        ):
+            return None
     current_artifacts = _artifact_stamp(domain, result.get("cache_files"))
     if not current_artifacts or current_artifacts != expected_artifacts:
         return None
