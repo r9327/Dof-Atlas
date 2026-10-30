@@ -716,7 +716,7 @@ class AchievementsView(QWidget):
         if not isinstance(choice, tuple) or len(choice) != 2:
             return
         side, order_name = str(choice[0]), str(choice[1])
-        if order_name not in ORDER_QUEST_IDS.get(side, {}):
+        if order_name not in _order_quest_ids().get(side, {}):
             return
         self.progress_service.set_alignment_order_choice(self.character_key, side, order_name)
         self.sync_automatic_progress()
