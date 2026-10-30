@@ -10,6 +10,8 @@ import tempfile
 from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
+from threading import current_thread
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -1428,6 +1430,17 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._reset_sources()
 
+    @property
+    def last_detail_breakdown_ms(self) -> dict[str, object]:
+        """Identify cold Success detail blocking work, without importing a profiler."""
+        return {
+            "thread": self._last_detail_thread_name,
+            "total_ms": self._last_detail_ms,
+            "synchronous_subprocess_ms": getattr(self, "_last_detail_subprocess_ms", 0.0),
+            "decode_ms": getattr(self, "_last_detail_decode_ms", 0.0),
+            "subprocess_path_used": bool(getattr(self, "_last_detail_subprocess_used", False)),
+        }
+
     def get_detail_by_id(self, achievement_id: int):
         self._ensure_loaded()
         achievement_id = int(achievement_id)
@@ -1441,34 +1454,59 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and current_data_dir == default_data_dir
             and _DUMP_DETAIL_FLAG not in sys.argv
         ):
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-                    _DUMP_DETAIL_FLAG,
-                    str(achievement_id),
-                ],
-                cwd=ROOT_DIR,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=_utf8_subprocess_env(),
-                timeout=90,
-                check=True,
-            )
-            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-            if not lines:
-                return None
-            payload = json.loads(lines[-1])
-            if not isinstance(payload, dict):
-                return None
-            detail = _achievement_from_dict(payload)
-            self._detail_cache_id = achievement_id
-            self._detail_cache = detail
-            return detail
+            # Doctor must distinguish the expensive disposable worker from
+            # JSON decoding instead of reporting only an opaque Qt stall.
+            # This path is intentionally synchronous until an exact-SHA
+            # Graphify impact review authorizes an async UI lifecycle change.
+            started = perf_counter()
+            self._last_detail_subprocess_used = True
+            self._last_detail_decode_ms = 0.0
+            try:
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                        _DUMP_DETAIL_FLAG,
+                        str(achievement_id),
+                    ],
+                    cwd=ROOT_DIR,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=_utf8_subprocess_env(),
+                    timeout=90,
+                    check=True,
+                )
+            finally:
+                self._last_detail_subprocess_ms = round(
+                    (perf_counter() - started) * 1000.0, 3,
+                )
+                self._last_detail_ms = self._last_detail_subprocess_ms
+                self._last_detail_thread_name = current_thread().name
 
+            decode_started = perf_counter()
+            try:
+                lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+                if not lines:
+                    return None
+                payload = json.loads(lines[-1])
+                if not isinstance(payload, dict):
+                    return None
+                detail = _achievement_from_dict(payload)
+                self._detail_cache_id = achievement_id
+                self._detail_cache = detail
+                return detail
+            finally:
+                self._last_detail_decode_ms = round(
+                    (perf_counter() - decode_started) * 1000.0, 3,
+                )
+                self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
         return self._get_detail_in_process(achievement_id)
 
     def get_linked_quests(self, achievement_id: int):
