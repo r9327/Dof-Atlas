@@ -851,11 +851,16 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
 
 
 def _clean_solution_instruction_text(text: str) -> str:
-    """Filter an already normalized objective (solution_objective calls clean_text).
+    """Avoid redundant cleanup while preserving legacy nested HTML decoding.
 
-    Avoid repeating HTML decoding, markup substitution and regex normalization
-    for every objective while projecting an entire Guide catalogue.
+    solution_objective already calls clean_text. Decode again only if there are
+    still entity/markup markers; the old double pass was meaningful for nested
+    escapes such as &amp;lt;. Most plain instructions need no more regex work.
     """
+    if "&" in text or "{{" in text or "<" in text:
+        text = clean_text(text)
+    if "mini-carte" not in text.casefold():
+        return text
     text = MINIMAP_PLACEHOLDER_RE.sub("", text)
     return re.sub(r"\s+", " ", text).strip()
 
