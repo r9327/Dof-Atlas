@@ -121,6 +121,30 @@ class RamForensics:
                 "blocks": item.count,
             })
         absolute.sort(key=lambda item: (-item["traced_mib"], item["source"]))
+        # Location is allocation site, not the object's actual owner.
+        # Tool harness allocations must not be presented as app memory.
+        top_lines: list[dict[str, Any]] = []
+        for statistic in snapshot.statistics("lineno"):
+            frame = statistic.traceback[0]
+            source = _source_name(frame.filename, self.root)
+            if source == "<stdlib-or-third-party>":
+                continue
+            top_lines.append({
+                "source": source,
+                "line": int(frame.lineno),
+                "traced_mib": round(statistic.size / MB, 4),
+                "blocks": statistic.count,
+                "is_benchmark_harness": source.startswith("tools/"),
+            })
+        top_lines.sort(key=lambda item: (-item["traced_mib"], item["source"], item["line"]))
+        app_traced_mib = round(sum(
+            row["traced_mib"] for row in absolute
+            if row["source"].startswith("app/") or row["source"] == "main.py"
+        ), 4)
+        harness_traced_mib = round(sum(
+            row["traced_mib"] for row in absolute
+            if row["source"].startswith("tools/")
+        ), 4)
         entry: dict[str, Any] = {
             "label": str(label),
             "tracked_python_heap_mib": round(current / MB, 3),
@@ -128,6 +152,9 @@ class RamForensics:
             "tracked_python_blocks": len(snapshot.traces),
             "top_increased_sources_since_previous_checkpoint": rows,
             "top_traced_sources_now": absolute[:TOP_SITES],
+            "top_traced_lines_now": top_lines[:TOP_SITES],
+            "app_source_traced_mib": app_traced_mib,
+            "benchmark_harness_traced_mib": harness_traced_mib,
             "windows_process": private_windows_memory(),
         }
         self.entries.append(entry)
@@ -151,6 +178,8 @@ class RamForensics:
             ),
             "limits": [
                 "Python allocation traces include profiling overhead and instrumentation",
+                "Tools/benchmark allocations are diagnostic overhead, not Atlas production allocations",
+                "Source locations show allocation sites, not retained owner references",
                 "Qt/C++ native allocations, pixmap buffers and GPU are not included",
                 "Working Set and private commit are distinct measurements, not additive",
                 "No timings from this profiled run are accepted as speed regressions",
