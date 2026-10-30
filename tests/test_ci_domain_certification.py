@@ -56,8 +56,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), frozenset({"quests", "guides", "startup"}))
                 self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
-        self.assertFalse(owners_for("app/quest_details_unreviewed.py"))
-        self.assertEqual(self.route(["app/quest_details_unreviewed.py"])["status"], "BLOCKED")
+        self.assertFalse(owners_for("app/unreviewed_backend_details.py"))
+        self.assertEqual(self.route(["app/unreviewed_backend_details.py"])["status"], "BLOCKED")
 
     def test_achievement_qt_view_has_cross_domain_ownership_without_wildcards(self):
         path = "app/modules/encyclopedia/views/achievements_view.py"
