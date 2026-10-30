@@ -335,6 +335,27 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_guide_legend_starts_collapsed_and_can_show_help(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            legend = shared.findChild(QFrame, "GuideManualLegendCard")
+            self.assertIsNotNone(legend)
+            toggle = legend.findChild(QToolButton, "GuideManualLegendToggle")
+            self.assertIsNotNone(toggle)
+            # QWidget is intentionally used for the details body.
+            from PySide6.QtWidgets import QWidget
+            details = legend.findChild(QWidget, "GuideManualLegendDetails")
+            self.assertIsNotNone(details)
+            self.assertFalse(toggle.isChecked())
+            self.assertTrue(details.isHidden())
+            toggle.click()
+            self.assertTrue(toggle.isChecked())
+            self.assertFalse(details.isHidden())
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_preparation_item_name_is_click_to_copy_even_in_preview(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
