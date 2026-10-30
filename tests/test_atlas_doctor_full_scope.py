@@ -482,6 +482,16 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(report["status"], "BLOCKED")
         self.assertEqual(report["json_semantic_audit"]["counts"]["invalid_syntax"], 1)
 
+    def test_nonfinite_json_numeric_overflow_fails_closed(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file("data/not_standard.json", '{"values":[1e10000,-1e10000]}')
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["json_semantic_audit"]["syntax_coverage"], "BLOCKED")
+        self.assertEqual(report["json_semantic_audit"]["counts"]["invalid_syntax"], 1)
+
     def test_json_opt_in_without_any_tracked_json_is_not_a_false_pass(self):
         self._unity()
         self._file("app/ok.py", "pass\n")

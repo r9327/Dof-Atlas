@@ -6,6 +6,7 @@ runtime-consumer, schema, image-reference, or native Windows verification.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -251,6 +252,15 @@ def _reject_non_finite(value: str) -> None:
     raise ValueError("Non-standard JSON number: " + value)
 
 
+def _parse_finite_float(value: str) -> float:
+    # A valid JSON exponent such as 1e10000 overflows float() to infinity.
+    # parse_constant alone only rejects explicit NaN/Infinity literals.
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Non-finite JSON number: " + value)
+    return number
+
+
 def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool) -> dict[str, Any]:
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
@@ -302,6 +312,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 stream.seek(0)
                 payload = json.load(
                     stream, parse_constant=_reject_non_finite,
+                    parse_float=_parse_finite_float,
                     object_pairs_hook=record_object_keys,
                 )
             entry["top_level_type"] = type(payload).__name__
