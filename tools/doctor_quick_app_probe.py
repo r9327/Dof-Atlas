@@ -35,6 +35,7 @@ from benchmark_phase8_memory import PeakTreeSampler, memory_snapshot
 from benchmark_atlas_exhaustive import CpuRssSampler, EventLoopLag
 from tools.atlas_doctor_lib.ram_inventory import (
     ROUTE_CHECKPOINTS, ram_ownership_snapshot, ram_checkpoints_summary,
+    ram_scope_status,
 )
 
 # Inventory is intentionally explicit: a new menu entry must receive a review
@@ -428,6 +429,10 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         report["placeholder_pass"] = sum(r["status"] == "PLACEHOLDER" for r in report["routes"])
         report["failed_routes"] = [f"{r['id']}:cycle{r.get('cycle', '?')}" for r in report["routes"] if r["status"] == "FAIL"]
         report.setdefault("revisit_comparison", summarize_revisits(report["routes"], cycles))
+        report["ram_scope"] = ram_scope_status()
+        # Functional benchmark PASS never implies all 50 forensic RAM audits
+        # (or real GUI/Windows heap attribution) have been completed.
+        report["ram_audit_complete"] = False
         report["last_home_stabilized"] = next(
             (r["home_stabilized"] for r in reversed(report["routes"])
              if "home_stabilized" in r), None,
