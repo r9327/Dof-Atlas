@@ -236,6 +236,10 @@ jobs:
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           python -m pip install pyinstaller==6.16.0
+      - name: Precompile portable Sylvestre itinerary outside the user process
+        run: |
+          python -m scripts.windows.build_guide_routes --source-sha "$SOURCE_SHA" --output data/bootstrap/guide_routes
+          python -m scripts.windows.build_guide_routes --verify-only --output data/bootstrap/guide_routes
       - name: Compile application bundle with QtWebEngine and worker modules
         run: |
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
@@ -267,6 +271,20 @@ jobs:
           PY
       - name: Certify actual frozen quest asset integrity
         run: python -m scripts.windows.quest_assets --root dist/AtlasApp/_internal
+      - name: Verify precompiled Sylvestre itinerary was shipped inside frozen bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.modules.encyclopedia.services.guide_catalog_prebuilt_route import (
+              MANIFEST_NAME, LEGACY_STORE_NAME,
+          )
+          from app.modules.encyclopedia.services.guide_catalog_route_store import indexed_path
+          root = Path("dist/AtlasApp/_internal/data/bootstrap/guide_routes")
+          for path in (root / MANIFEST_NAME, indexed_path(root / LEGACY_STORE_NAME)):
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Frozen Guide asset missing: {path}")
+          print("Verified: portable Sylvestre route included in exact Windows candidate")
+          PY
       - name: Certify packaged public Craft SQLite seed
         run: python -m scripts.windows.craft_seed --verify --output dist/AtlasApp/_internal/data/bootstrap/craft_seed.sqlite
       - name: Compile lightweight standalone launcher
