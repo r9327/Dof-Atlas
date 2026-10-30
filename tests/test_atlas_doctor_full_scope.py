@@ -92,6 +92,37 @@ class DoctorFullScopeTests(unittest.TestCase):
         report = audit_full_scope(self.root, expected_sha=sha)
         self.assertEqual(report["source_coverage"]["missing"], ["app/ok.py"])
 
+    def test_opt_in_json_inspects_every_file_and_flags_id_candidates(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file("data/quests.json", '{"quests":[{"id":1},{"id":1},{"id":2}]}')
+        self._file("data/images.json", '{"items":[]}')
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        self.assertEqual(audit["counts"]["tracked"], 2)
+        self.assertEqual(audit["counts"]["valid_syntax"], 2)
+        self.assertEqual(audit["counts"]["duplicate_id_review_files"], 1)
+        self.assertEqual(audit["status"], "REVIEW")
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertEqual(report["tracked_file_inventory"]["json_content_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertEqual(audit["files"][1]["duplicate_id_candidates"][0]["ids"], ["1"])
+        self.assertFalse(audit["automatic_deletion_authorized"])
+
+    def test_invalid_and_missing_tracked_json_fail_closed(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file("data/broken.json", '{"unclosed":')
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["json_semantic_audit"]["counts"]["invalid_syntax"], 1)
+        (self.root / "data/broken.json").unlink()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        self.assertEqual(report["json_semantic_audit"]["counts"]["unavailable"], 1)
+        self.assertEqual(report["status"], "BLOCKED")
+
     def test_sha_mismatch_fails_closed(self):
         self._file("app/ok.py", "pass\n")
         sha = self._commit()

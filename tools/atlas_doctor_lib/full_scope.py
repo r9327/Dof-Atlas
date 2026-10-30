@@ -119,7 +119,7 @@ def _current_graph_audit(root: Path, sha: str) -> dict[str, Any]:
 
 
 def audit_full_scope(root: Path, *, expected_sha: str | None = None,
-                     with_graph: bool = False) -> dict[str, Any]:
+                     with_graph: bool = False, with_json: bool = False) -> dict[str, Any]:
     """Scan *every* tracked Python file, fail closed on missing or unreadable ones.
 
     SOURCE_COVERED does not imply runtime, Graphify, UI or native certification.
@@ -221,18 +221,24 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
         "status": "NOT_RUN", "reason": "Use --with-graph with a current exact-SHA Graphify graph."
     }
     graph_failed = with_graph and graph.get("status") in {"FAIL", "BLOCKED"}
+    if with_json:
+        from .json_semantic_coverage import inspect_tracked_json
+        json_audit = inspect_tracked_json(root, json_files, sha=sha, clean=clean)
+    else:
+        json_audit = {"status": "NOT_RUN", "syntax_coverage": "NOT_RUN"}
+    json_failed = with_json and json_audit.get("status") == "BLOCKED"
     return {
         "schema_version": 1, "kind": "doctor_full_scope_audit",
         "candidate_sha": sha, "worktree_clean": clean,
         # NO false global PASS: dynamic callbacks, EXE, UI, user paths NOT RUN.
-        "status": "BLOCKED" if source_status == "BLOCKED" or graph_failed else "REVIEW",
+        "status": "BLOCKED" if source_status == "BLOCKED" or graph_failed or json_failed else "REVIEW",
         "tracked_file_inventory": {
             "status": "INVENTORIED_NOT_CONTENT_CERTIFIED",
             "tracked_total": len(all_paths),
             "categories": inventory_counts,
             "json_files": json_files,
             "truncated": False,
-            "json_content_coverage": "NOT_RUN",
+            "json_content_coverage": json_audit["syntax_coverage"],
             "asset_reference_verification": "NOT_RUN",
             "qss_visual_rendering": "NOT_RUN",
             "note": "Inventory is exhaustive for tracked Git paths; parsing is Python-only.",
@@ -274,6 +280,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
             "visual_certified": False,
         },
         "runtime_scenario_coverage": "NOT_RUN",
+        "json_semantic_audit": json_audit,
         "graph_architecture_audit": graph,
         "graph_runtime_correlation": "NOT_RUN",
         "tests_executed": False, "benchmark_executed": False,
