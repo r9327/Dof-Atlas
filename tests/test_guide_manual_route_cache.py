@@ -470,6 +470,33 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertIsNot(expected_cards[0]["manual_sections"], expected[0]["sections"])
         self.assertEqual(raw, originals)
 
+    def test_catalog_start_metadata_skips_unneeded_image_file_probes(self) -> None:
+        from app.modules.encyclopedia.services import guide_quest_view_model as model
+        quest = SimpleNamespace(
+            level_min=100, zones=("Astrub",), steps=(),
+            source_info={
+                "launch_position": {"position": "[1, 2]"},
+                "source_meta": {
+                    "startNpc": "PNJ test", "zone": "Astrub",
+                    "startMapImages": ["not-used.jpg"],
+                },
+            },
+        )
+        with patch.object(
+            model, "_explicit_start_map_paths", return_value=("map.jpg",)
+        ) as image_probe:
+            rich = model.quest_start_info(quest)
+            gps = model.quest_start_info(quest, include_map_images=False)
+            image_probe.assert_called_once()
+        self.assertEqual((gps.npc, gps.position, gps.zone, gps.level),
+                         (rich.npc, rich.position, rich.zone, rich.level))
+        self.assertEqual(gps.map_image_paths, ())
+        self.assertEqual(rich.map_image_paths, ("map.jpg",))
+        with patch.object(model, "quest_start_info", side_effect=AssertionError(
+            "GPS must reuse its already extracted start metadata",
+        )):
+            self.assertEqual(model.first_position_from_quest(quest, start_info=gps), "[1, 2]")
+
     def test_fast_solution_text_filter_preserves_legacy_double_clean(self) -> None:
         import re
         from app.modules.encyclopedia.services.guide_quest_view_model import (
