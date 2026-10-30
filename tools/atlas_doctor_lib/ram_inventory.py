@@ -116,6 +116,13 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
             "page_lifecycle": _page_lifecycle(window),
             "gc_generation_counts": list(gc.get_count()),
             "loaded_python_modules": len(sys.modules),
+            # Keep the full application-only list: a rising module count
+            # may explain one-time RSS growth without a Qt-widget leak.
+            # This is an import inventory, NOT native memory attribution.
+            "loaded_application_modules": sorted(
+                key for key in sys.modules
+                if key == "app" or key.startswith("app.")
+            ),
             "limits": [
                 "Qt widget counts cannot identify native RSS ownership or prove a leak",
                 "QPixmapCache is a capacity, not currently allocated native memory",
@@ -131,6 +138,7 @@ def ram_ownership_snapshot(window: object, label: str) -> dict[str, object]:
 def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]:
     """Do not add RSS and Qt object counts together or invent ownership shares."""
     seen: dict[str, dict[str, object]] = {}
+    app_modules_by_label: dict[str, set[str]] = {}
     for entry in items:
         if not isinstance(entry, dict):
             continue
@@ -145,6 +153,9 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
         if not isinstance(qt, dict):
             continue
         windows_private = snapshot.get("windows_process_private")
+        loaded = snapshot.get("loaded_application_modules")
+        if isinstance(loaded, list) and all(isinstance(x, str) for x in loaded):
+            app_modules_by_label[label] = set(loaded)
         seen[label] = {
             "rss_process_mib": memory.get("process_rss_mb"),
             "rss_process_tree_mib": memory.get("tree_rss_mb"),
@@ -160,6 +171,13 @@ def ram_checkpoints_summary(items: list[dict[str, object]]) -> dict[str, object]
     last = seen.get("last_home")
     result: dict[str, object] = {"status": "PARTIAL", "checkpoints": seen}
     if first is not None and last is not None:
+        if "initial_home" in app_modules_by_label and "last_home" in app_modules_by_label:
+            newly_loaded = sorted(
+                app_modules_by_label["last_home"] - app_modules_by_label["initial_home"]
+            )
+            result["app_modules_imported_between_home_checkpoints"] = newly_loaded
+            result["app_modules_imported_count"] = len(newly_loaded)
+            result["module_imports_are_not_native_rss_attribution"] = True
         private_before, private_after = (
             first.get("private_commit_mib"), last.get("private_commit_mib")
         )

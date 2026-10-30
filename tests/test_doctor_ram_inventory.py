@@ -47,6 +47,11 @@ class DoctorRamInventoryTests(unittest.TestCase):
             self.assertTrue(detail["native_image_indicators"]["world_canvas"]["image_suspended"])
             self.assertGreaterEqual(detail["native_image_indicators"]["qt_global_pixmap_cache_limit_kib"], 0)
             self.assertIn("cannot identify native RSS", " ".join(detail["limits"]))
+            self.assertIn("app", detail["loaded_application_modules"])
+            self.assertTrue(all(
+                name == "app" or name.startswith("app.")
+                for name in detail["loaded_application_modules"]
+            ))
         finally:
             sub.deleteLater()
             quetes.deleteLater()
@@ -78,6 +83,28 @@ class DoctorRamInventoryTests(unittest.TestCase):
         self.assertEqual(result["home_widget_count_delta"], 1)
         self.assertNotIn("bad", result["checkpoints"])
         self.assertNotIn("home_rss_delta_mib", ram_checkpoints_summary([]))
+
+    def test_summary_identifies_new_imports_without_inventing_memory_attribution(self):
+        def checkpoint(name, names):
+            return {
+                "label": name,
+                "memory": {"tree_rss_mb": 90.0},
+                "ownership": {
+                    "status": "OBSERVED_PARTIAL",
+                    "qt": {"total_live_widgets": 200},
+                    "loaded_application_modules": names,
+                },
+            }
+        report = ram_checkpoints_summary([
+            checkpoint("initial_home", ["app", "app.main"]),
+            checkpoint("last_home", ["app", "app.main", "app.services.craft", "app.ui.world"]),
+        ])
+        self.assertEqual(report["app_modules_imported_count"], 2)
+        self.assertEqual(report["app_modules_imported_between_home_checkpoints"], [
+            "app.services.craft", "app.ui.world",
+        ])
+        self.assertTrue(report["module_imports_are_not_native_rss_attribution"])
+        self.assertNotIn("home_private_commit_delta_mib", report)
 
     def test_fifty_workstreams_have_exact_scope_and_partial_verdict(self):
         result = ram_scope_status()
