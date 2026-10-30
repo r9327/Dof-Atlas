@@ -1146,6 +1146,14 @@ class EncyclopediaPage(QWidget):
         character_key = str(self.current_character_key or "")
         achievement_progress_service = self.achievement_progress_service
         quest_progress_path = self.quest_progress_path
+        # A direct Success deep link identifies the first detail before the
+        # canonical stage worker starts. Prepare that one detail inside this
+        # existing worker, avoiding a synchronous subprocess on the Qt click.
+        pending_detail_id = (
+            self._pending_achievement_id
+            if open_success and isinstance(self._pending_achievement_id, int)
+            and self._pending_achievement_id > 0 else None
+        )
         guide_provider = (
             self.service.guide_provider if self._guide_runtime_ready else None
         )
@@ -1159,6 +1167,18 @@ class EncyclopediaPage(QWidget):
                         load_runtime()
                     else:
                         achievement_provider.load_all()
+                    if pending_detail_id is not None:
+                        try:
+                            # The provider owns its bounded rich-detail cache.
+                            # There is no extra thread or second provider.
+                            achievement_provider.get_detail_by_id(pending_detail_id)
+                        except Exception:
+                            # A missing/corrupt individual detail must not
+                            # prevent the entire Success catalogue from opening.
+                            LOGGER.exception(
+                                "Préparation du détail Succès %s impossible",
+                                pending_detail_id,
+                            )
                     progress_synchronized = False
                     if is_character_key(character_key):
                         achievement_progress_service.sync_from_quest_progress(
