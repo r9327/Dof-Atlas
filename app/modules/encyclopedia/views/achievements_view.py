@@ -826,11 +826,16 @@ class AchievementsView(QWidget):
         if (
             not self._achievement_initializing
             and self._catalog_refresh_signature == signature
-            and not self._achievement_rows_dirty
-            and not self._achievement_pending_rows
             and hasattr(self, "list_widget")
-            and self.list_widget.count() > 0
+            and (
+                self.list_widget.count() > 0
+                or self._achievement_pending_rows
+                or not self.filtered
+            )
         ):
+            # Pending rows are the intentionally deferred part of the *same*
+            # catalogue snapshot. A redundant refresh while scrolling must
+            # not clear the visible list, restart batches and lose selection.
             return
 
         self.close_detail_panel()
