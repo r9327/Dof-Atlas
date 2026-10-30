@@ -338,26 +338,37 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
         seen_quests: set[int] = set()
-
+        candidate_ids: set[int] = set()
+        candidates: list[tuple[Any, int]] = []
         for step in sorted(
             getattr(self.catalog_guide, "required_steps", ()) or (),
             key=lambda row: int(getattr(row, "order", 0) or 0),
         ):
             if str(getattr(step, "step_type", "")) != "quest":
                 continue
-            raw_id = getattr(step, "entity_id", None)
             try:
-                quest_id = int(raw_id)
+                quest_id = int(getattr(step, "entity_id", None))
             except (TypeError, ValueError):
                 continue
-            if quest_id in seen_quests:
-                continue
-            quest = self.quest_provider.get_quest(quest_id)
-            if quest is None:
-                continue
-            seen_quests.add(quest_id)
-            quest_count += 1
-            raw_segments.extend(self._quest_segments(step, quest, finalize=False))
+            if quest_id not in candidate_ids:
+                candidate_ids.add(quest_id)
+                candidates.append((step, quest_id))
+        # A cold route previously made 198 separate _load_source calls on
+        # deferred Quest records. Reuse one source pass for at most eight IDs,
+        # then immediately project that batch into route segments.
+        catalog = self.quest_provider.get_catalog()
+        prefetch = getattr(catalog, "warm_details_batch", None)
+        for offset in range(0, len(candidates), 8):
+            batch = candidates[offset:offset + 8]
+            if callable(prefetch):
+                prefetch(tuple(quest_id for _, quest_id in batch))
+            for step, quest_id in batch:
+                quest = self.quest_provider.get_quest(quest_id)
+                if quest is None:
+                    continue
+                seen_quests.add(quest_id)
+                quest_count += 1
+                raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
         raw_segment_count = len(raw_segments)
         # These segments are newly built and exclusively owned by this route.
