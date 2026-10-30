@@ -98,13 +98,20 @@ _PREPARATION_QUANTITY_RE = re.compile(
 def _guide_symbol_icon(
     widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
 ) -> QIcon:
-    """Draw small semantic icons without font glyph or platform-theme drift."""
+    """Share tiny semantic Qt icons instead of repainting one per row."""
+    # Retain the historical widget-taking API; this artwork is independent of
+    # widget identity and must not pin deleted QObjects in a global cache.
+    return _cached_guide_symbol_icon(symbol, size, color or PALETTE["TEXT_SOFT"])
 
+
+@lru_cache(maxsize=32)
+def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
+    """Build at most 32 lightweight icon rasters, on the Qt GUI thread."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(color or PALETTE["TEXT_SOFT"]), 1.6)
+    pen = QPen(QColor(color), 1.6)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
     painter.setPen(pen)
