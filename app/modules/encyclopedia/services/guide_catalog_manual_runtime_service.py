@@ -425,10 +425,10 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
     ) -> list[dict[str, Any]]:
         quest_id = int(quest.id)
         quest_name = str(getattr(quest, "name", "") or f"Quête #{quest_id}")
-        start = quest_start_info(quest)
+        start = quest_start_info(quest, include_map_images=False)
         start_position = str(
             start.position
-            or first_position_from_quest(quest)
+            or first_position_from_quest(quest, start_info=start)
             or ""
         ).strip()
         zone = str(
