@@ -136,7 +136,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.show_step("ganymede_2205_step_0001")
         self.panel.validate_button.click()
         self.panel.set_characters(("character:1", "character:2"))
-        self.assertTrue(label(0).startswith("◐ "))
+        self.assertTrue(label(0).startswith("→◐ "))
         self.assertTrue(label(0).endswith("Fiche 1 — Étape 1"))
         self.assertEqual(self.panel.navigation.position().actual_step_id,
                          "ganymede_2205_step_0001")
