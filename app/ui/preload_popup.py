@@ -171,6 +171,9 @@ class PreloadProgressPopup(QDialog):
         if not self._has_started or self._handed_off:
             return
         self._handed_off = True
+        # The dialog's lifecycle is finished even if background cache tasks
+        # remain active; permit close/reject and prevent a hidden modal gate.
+        self._finished = True
         self._hide_generation += 1
         self.hide()
         self.readyForMainWindow.emit()

@@ -32,6 +32,8 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
             popup.update_states({"quests": "READY", "encyclopedia": "LOADING", "craft": "IDLE"})
             popup.handoff()
             self.app.processEvents()
+            self.assertTrue(popup._finished)
+            self.assertTrue(popup._handed_off)
             self.assertEqual(revealed, [True])
             self.assertFalse(popup.isVisible())
             self.assertTrue(main_window.isVisible())
