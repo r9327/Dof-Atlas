@@ -182,6 +182,46 @@ class OptimizationReportTests(unittest.TestCase):
                         report["diagnostic_correlation"]["tools_executed"],
                     )
 
+    def test_existing_phase8_benchmark_is_reused_without_running_another_probe(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "app.json").write_text(
+                json.dumps(sample()), encoding="utf-8",
+            )
+            phase8 = {"schema_version": 1, "metrics": {
+                "git_head": HEAD,
+                "deep_first_content": {
+                    "all_details_rendered": True,
+                    "quest_id": 18, "guide_id": "bonta", "achievement_id": 20,
+                },
+                "deep_quest_detail_ms": 7000,
+                "deep_guide_detail_ms": 2500,
+                "deep_achievement_detail_ms": 5000,
+                "deep_first_content_total_ms": 14500,
+            }}
+            (artifacts / "phase8.json").write_text(
+                json.dumps(phase8), encoding="utf-8",
+            )
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}),
+            ):
+                report = generate(
+                    root, sha=HEAD, app_report=Path("artifacts/app.json"),
+                    phase8_report=Path("artifacts/phase8.json"),
+                )
+            causes = report["diagnostic_correlation"]["hypotheses"]
+            self.assertIn("COLD_QUEST_DETAIL", {row["id"] for row in causes})
+            self.assertIn("COLD_ACHIEVEMENT_DETAIL", {row["id"] for row in causes})
+            self.assertFalse(report["diagnostic_correlation"]["tests_executed"])
+            self.assertIn("phase8_deep_first_use_same_fixture",
+                          render_markdown(report))
+
     def test_stale_app_skips_expensive_tool_catalog_discovery(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
