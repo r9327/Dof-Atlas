@@ -112,7 +112,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_nested_json_duplicate_keys_are_reported_without_false_semantic_pass(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file(
             "data/duplicate.json",
             '{"meta":{"version":1,"version":2,"version":3},'
