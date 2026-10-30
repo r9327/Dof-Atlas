@@ -151,6 +151,26 @@ class ShortWholeAppProbeTests(unittest.TestCase):
             engine.assert_not_called()
 
 
+    def test_doctor_ram_forensics_opt_in_only_and_not_parallel_eight(self):
+        args = SimpleNamespace(
+            app=True, deep=False, files_only=False, cycles=1,
+            timeout=18.0, max_seconds=540.0, idle_seconds=0.0,
+            one_core=False, ram_forensics=True, parallel_instances=1,
+            output=Path("artifacts/quick_app/ram_forensics.json"), json=True,
+        )
+        with patch("tools.doctor_quick_app_probe.run",
+                   return_value={"status": "PASS", "measured_routes": 20}) as engine:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "PASS")
+            engine.assert_called_once_with(
+                output=Path("/unused/artifacts/quick_app/ram_forensics.json"),
+                timeout=18.0, max_seconds=540.0, cycles=1,
+                idle_seconds=0.0, one_core=False, ram_forensics=True,
+            )
+        args.parallel_instances = 8
+        with patch("tools.atlas_doctor_lib.parallel_app.run_eight") as runner:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "BLOCKED")
+            runner.assert_not_called()
+
     def test_eight_processes_need_real_per_instance_coverage(self):
         samples = [
             {"id": key, "cycle": 1,
