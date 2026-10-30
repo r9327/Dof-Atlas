@@ -31,15 +31,16 @@ class GuideHomeColumns(QWidget):
         layout.addWidget(right, 2)
         self._columns_layout = layout
 
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
-        direction = (
-            QBoxLayout.LeftToRight
-            if event.size().width() >= 730
-            else QBoxLayout.TopToBottom
-        )
+    def set_available_width(self, width: int) -> None:
+        """Use the outer viewport width, not a stale oversized child width."""
+        direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
         if self._columns_layout.direction() != direction:
             self._columns_layout.setDirection(direction)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        parent_width = self.parentWidget().width() if self.parentWidget() else event.size().width()
+        self.set_available_width(min(event.size().width(), parent_width))
 
 
 class GuideListModel(QAbstractListModel):
