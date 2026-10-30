@@ -94,7 +94,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_opt_in_json_inspects_every_file_and_flags_id_candidates(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file("data/quests.json", '{"quests":[{"id":1},{"id":1},{"id":2}]}')
         self._file("data/images.json", '{"items":[]}')
         sha = self._commit()
@@ -112,7 +112,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file("data/broken.json", '{"unclosed":')
         sha = self._commit()
         report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
