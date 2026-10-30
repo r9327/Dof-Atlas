@@ -397,6 +397,20 @@ def render_markdown(report: dict[str, Any]) -> str:
                      " ms (mesure unique, non certifiée).")
     if deep_cmp.get("warning"):
         lines.append(str(deep_cmp["warning"]))
+    repeated = report.get("phase8_repeated_comparison") or {}
+    lines += ["", "### Mesures répétées et comparables (non certifiantes)",
+              "État: " + str(repeated.get("status", "NOT_RUN"))]
+    if repeated.get("status") == "REPEATED_DIRECTIONAL_ONLY":
+        lines.append(
+            "Tendance: " + str(repeated["direction"]) +
+            " ; paires: " + str(repeated["repeat_count"]) +
+            " ; gain médian net: " + str(repeated["median_net_gain_ms"]) +
+            " ms ; plage: " + str(repeated["min_net_gain_ms"]) + " à " +
+            str(repeated["max_net_gain_ms"]) + " ms."
+        )
+        lines.append("P95/P99 : " + str(repeated["p95"]) + " / " + str(repeated["p99"]))
+    if repeated.get("warning"):
+        lines.append(str(repeated["warning"]))
     lines += ["", "## Corrélation Doctor et orchestration conseillée", "",
               "Statut: " + str(correlation.get("status", "NOT_RUN")) +
               " (hypothèses non causales, aucun outil exécuté)."]
@@ -462,11 +476,23 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
              ci_costs: Path | None = None,
              phase8_report: Path | None = None,
              phase8_baseline_report: Path | None = None,
+             phase8_repeat_baselines: list[Path] | None = None,
+             phase8_repeat_candidates: list[Path] | None = None,
              output: Path = Path("artifacts/doctor_complete/optimization.json")) -> dict:
     root = root.resolve()
     target = (root / output).resolve()
     if target.suffix != ".json" or not target.is_relative_to((root / "artifacts").resolve()):
         raise ValueError("Optimization report output must be a JSON file under artifacts/")
+    # The same bounded artifact loader governs all repeated measurements.
+    # A partially supplied pair is not silently ignored.
+    baselines = (
+        [load(root, item) for item in phase8_repeat_baselines]
+        if phase8_repeat_baselines is not None else None
+    )
+    candidates = (
+        [load(root, item) for item in phase8_repeat_candidates]
+        if phase8_repeat_candidates is not None else None
+    )
     app_evidence = load(root, app_report) or {}
     catalog_cache: dict[str, Any] = {"status": "NOT_REQUIRED"}
     tooling = None
@@ -501,7 +527,8 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
         tool_catalog_report=tooling, phase8=load(root, phase8_report),
-        phase8_baseline=load(root, phase8_baseline_report))
+        phase8_baseline=load(root, phase8_baseline_report),
+        phase8_baseline_runs=baselines, phase8_candidate_runs=candidates)
     report["tool_catalog_cache"] = catalog_cache
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -521,13 +548,20 @@ def main(argv: list[str] | None = None) -> int:
                    help="Existing real first-detail Phase 8 JSON; same candidate SHA required")
     p.add_argument("--phase8-baseline-report", type=Path,
                    help="Existing baseline Phase 8 JSON; comparison is directional only")
+    p.add_argument("--phase8-repeat-baseline", action="append", type=Path,
+                   help="Repeated baseline Phase 8 artifact; pair with --phase8-repeat-candidate")
+    p.add_argument("--phase8-repeat-candidate", action="append", type=Path,
+                   help="Repeated candidate Phase 8 artifact; 3–20 pairs, exact-SHA")
     p.add_argument("--output", type=Path, default=Path("artifacts/doctor_complete/optimization.json"))
     opts = p.parse_args(argv)
     result = generate(Path(__file__).resolve().parents[2], sha=opts.sha,
         app_report=opts.app_report, hub_report=opts.hub_report,
         baseline=opts.baseline, guides=opts.guides, ci_costs=opts.ci_costs,
         phase8_report=opts.phase8_report,
-        phase8_baseline_report=opts.phase8_baseline_report, output=opts.output)
+        phase8_baseline_report=opts.phase8_baseline_report,
+        phase8_repeat_baselines=opts.phase8_repeat_baseline,
+        phase8_repeat_candidates=opts.phase8_repeat_candidate,
+        output=opts.output)
     print(json.dumps({"status": result["status"], "findings": len(result["priority_findings"])}))
     return 0 if result["status"] == "DIAGNOSTIC_READY" else 2
 
