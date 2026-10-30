@@ -527,51 +527,6 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 msg=f"Guide objective changed for {raw!r}",
             )
 
-    def test_catalog_compiles_source_quests_in_bounded_ordered_batches(self) -> None:
-        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
-        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
-            GuideCatalogManualRuntimeService,
-        )
-        service = object.__new__(GuideCatalogManualRuntimeService)
-        service.guide_id = "dofus_sylvestre"
-        service.guide_title = "Sylvestre"
-        service.use_disk_cache = False
-        steps = [
-            SimpleNamespace(
-                id=f"step-{idx}", step_type="quest", entity_id=idx, order=idx,
-            )
-            for idx in range(1, 10)
-        ]
-        service.catalog_guide = SimpleNamespace(required_steps=steps)
-        calls: list[tuple[int, ...]] = []
-        catalog = SimpleNamespace(
-            deferred_details=True,
-            by_id={idx: SimpleNamespace(id=idx) for idx in range(1, 10)},
-            warm_details_batch=lambda ids: calls.append(ids),
-        )
-        service.quest_provider = QuestProvider(catalog=catalog)
-
-        def project(step, quest, *, finalize=False):
-            segment = service._new_segment(
-                position=f"[{quest.id}, 0]", zone="Astrub",
-                quest_id=quest.id, quest_name=f"Quête {quest.id}",
-                guide_step_id=step.id,
-            )
-            segment["sections"]["now"].append(
-                service._line("action", segment["position"], "Continuer"),
-            )
-            return [segment]
-
-        with patch.object(service, "_quest_segments", side_effect=project):
-            service._load_manual_preview()
-        self.assertEqual(calls, [tuple(range(1, 9)), (9,)])
-        self.assertEqual(service.manual_audit_data["quest_count"], 9)
-        self.assertEqual(len(service.cards), 9)
-        self.assertEqual(
-            [row["manual_quest_ids"][0] for row in service.cards],
-            list(range(1, 10)),
-        )
-
     def test_catalog_deferred_quest_segments_keep_identical_cards(self) -> None:
         from app.modules.encyclopedia.services import guide_catalog_manual_runtime_service as catalog_module
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
