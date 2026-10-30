@@ -639,6 +639,7 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             and initial_button.text() == "Valider"
             and not view.participants_button.isChecked()
         )
+        initial_enabled = initial_button.isEnabled() if initial_button is not None else None
         picker_click = (
             click_target(page, initial_button, view.scroll)
             if initial_button is not None else {"accessible": False}
@@ -651,7 +652,7 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             "participant-empty-blocked", "Click Valider with no explicitly selected characters",
             "Valider opens the portrait picker without saving progress to any character",
             {"selected": list(view.selected_participant_keys()),
-             "validation_enabled": initial_button.isEnabled() if initial_button else None,
+             "validation_enabled": initial_enabled,
              "picker_open": view.participants_button.isChecked(),
              "click": picker_click, "anonymous_write": not no_anonymous_write},
             empty_blocked and picker_click["accessible"]
