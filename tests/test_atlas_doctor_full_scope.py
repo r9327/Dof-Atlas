@@ -51,8 +51,8 @@ class DoctorFullScopeTests(unittest.TestCase):
         result = audit_full_scope(self.root, expected_sha=sha)
         coverage = result["source_coverage"]
         self.assertEqual(coverage["status"], "PASS")
-        self.assertEqual(coverage["total"], 155)
-        self.assertEqual(coverage["inspected"], 155)
+        self.assertEqual(coverage["total"], 154)
+        self.assertEqual(coverage["inspected"], 154)
         self.assertEqual(coverage["functions_inspected"], 4153)
         self.assertFalse(coverage["truncated"])
         self.assertEqual(coverage["missing"], [])
@@ -115,6 +115,25 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(json.loads(target.read_text(encoding="utf-8"))["candidate_sha"], sha)
         with self.assertRaises(ValueError):
             write_full_scope_report(self.root, Path("app/overwritten.json"), report)
+
+
+    def test_doctor_cli_exposes_full_scope_without_claiming_completion(self):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        from tools import atlas_doctor
+        self._unity()
+        self._file("app/ok.py", "def ok():\n    return 1\n")
+        self._commit()
+        output = io.StringIO()
+        with patch.object(atlas_doctor, "project_root", return_value=self.root):
+            with contextlib.redirect_stdout(output):
+                exit_code = atlas_doctor.main(["full-scope", "--json"])
+        report = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["source_coverage"]["inspected"], 3)
+        self.assertEqual(report["unity_style"]["native_windows_visual"], "NOT_RUN")
 
 
 if __name__ == "__main__":
