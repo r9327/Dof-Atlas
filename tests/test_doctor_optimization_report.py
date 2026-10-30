@@ -105,6 +105,20 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["status"], "BLOCKED")
         self.assertEqual(doc["measured_costs"], [])
 
+    def test_failed_same_sha_cannot_launder_measured_costs_into_ready_status(self):
+        failed = sample(
+            status="FAIL", preload_status="FAIL",
+            peak_process_tree_rss_mib=140,
+        )
+        report = optimization_report(HEAD, failed)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("APP_FAILED", {row["id"] for row in report["priority_findings"]})
+        self.assertNotIn("STALE_APP", {row["id"] for row in report["priority_findings"]})
+        self.assertEqual(report["measured_costs"], [])
+        self.assertEqual(report["comparison"]["status"], "NOT_RUN")
+        self.assertEqual(report["diagnostic_correlation"]["status"], "BLOCKED")
+        self.assertFalse(report["is_certification"])
+
     def test_block_false_attribution(self):
         doc = optimization_report(HEAD, sample(cost_attribution={
             "status": "BLOCKED", "reason": "OVERLAPPING_OR_INVALID_TIMING_SPANS"}))
