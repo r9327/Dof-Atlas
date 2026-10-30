@@ -84,6 +84,46 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source route lost"):
             reconstruct_trusted_manual_route(guide)
 
+    def test_every_activated_route_survives_compact_provider_roundtrip(self) -> None:
+        """No route loses actions, sections or SHA through the memory-bound model."""
+        catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
+        activated = [
+            row for row in catalogue["guides"]
+            if row.get("ganymede_manual_ui_ready") is True
+        ]
+        self.assertEqual(len(activated), 20)
+        for row in activated:
+            with self.subTest(guide=row["id"]):
+                payload = json.loads((
+                    GUIDES / "replacement_drafts" / "cutovers"
+                    / f"{row['id']}.json"
+                ).read_text(encoding="utf-8"))
+                sections = tuple(
+                    SimpleNamespace(
+                        raw={key: val for key, val in section.items()
+                             if key != "steps"},
+                        steps=tuple(
+                            SimpleNamespace(raw=dict(step))
+                            for step in section["steps"]
+                        ),
+                    )
+                    for section in payload["sections"]
+                )
+                guide = SimpleNamespace(
+                    raw={key: val for key, val in payload.items()
+                         if key not in {"sections", "parts"}},
+                    sections=sections,
+                )
+                rebuilt = reconstruct_trusted_manual_route(guide)
+                self.assertEqual(
+                    certified_payload_sha256(rebuilt),
+                    certified_payload_sha256(payload),
+                )
+                self.assertEqual(
+                    len(rebuilt["sections"][0]["steps"]),
+                    payload["expected_source_step_count"],
+                )
+
     def test_unmapped_or_disabled_sources_keep_original_atlas_guide(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
         for row in catalogue["guides"]:
