@@ -44,6 +44,28 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
             loaded.assert_called_once_with()
             prepared.assert_not_called()
 
+    def test_windows_frozen_detail_does_not_spawn_console_or_worker(self) -> None:
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        marker = object()
+        with (
+            patch.object(sys, "frozen", True, create=True),
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(
+                MemoryBoundAchievementProvider,
+                "_get_detail_in_process", return_value=marker,
+            ) as in_process,
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=AssertionError("frozen details must stay in process"),
+            ),
+        ):
+            self.assertIs(provider.get_detail_by_id(321), marker)
+        in_process.assert_called_once_with(321)
+        self.assertFalse(provider.last_detail_breakdown_ms["subprocess_path_used"])
+        self.assertEqual(
+            provider.last_detail_breakdown_ms["synchronous_subprocess_ms"], 0.0
+        )
+
     def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             provider = self._provider(Path(directory))
