@@ -179,52 +179,6 @@ class QuestDetails:
             self._sources.prime_objective_steps(indexed)
         self._objective_step_index_checked = True
 
-    def warm_details_batch(self, quest_ids: tuple[int, ...]) -> int:
-        """Build up to eight deferred quest details per source pass, never a full catalog."""
-        ids = tuple(dict.fromkeys(int(value) for value in quest_ids))
-        if not ids:
-            return 0
-        if len(ids) > 8:
-            raise ValueError("Quest detail batch exceeds eight-record budget")
-        with self._load_lock:
-            with _connect(self.path) as connection:
-                rows = [
-                    (quest_id, connection.execute(
-                        "SELECT detail FROM quests WHERE id=?", (quest_id,),
-                    ).fetchone())
-                    for quest_id in ids
-                ]
-            missing = [qid for qid, row in rows if row is not None and row[0] is None]
-            if not missing:
-                return 0
-            if _signature(self.data_dir) != self.signature:
-                raise RuntimeError("Les sources Quêtes ont changé ; rechargez le catalogue.")
-            try:
-                self._prime_objective_step_index()
-                self._load_source_context()
-                compiled = qc.QuestCatalog._load_source(
-                    self.data_dir, quest_ids=set(missing), sources=self._sources,
-                ).by_id
-            finally:
-                self._sources.close()
-            if _signature(self.data_dir) != self.signature:
-                raise RuntimeError("Les sources Quêtes ont changé pendant le chargement.")
-            if any(qid not in compiled for qid in missing):
-                raise RuntimeError("Compilation incomplète des quêtes demandées")
-            with _connect(self.path) as connection:
-                connection.executemany(
-                    "UPDATE quests SET detail=? WHERE id=? AND detail IS NULL",
-                    [(_json(asdict(compiled[qid])), qid) for qid in missing],
-                )
-            with self._lock:
-                for qid in missing:
-                    self._records[qid] = compiled[qid]
-                    self._records.move_to_end(qid)
-                    self.loads += 1
-                while len(self._records) > self.limit:
-                    self._records.popitem(last=False)
-            return len(missing)
-
     def get(self, quest_id: int) -> qc.QuestRecord:
         quest_id = int(quest_id)
         with self._load_lock:
@@ -550,7 +504,6 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
         )
     catalog = qc.QuestCatalog(records, data_dir, achievement_series=series)
     catalog.get_detail = details.get
-    catalog.warm_details_batch = details.warm_details_batch
     catalog.is_detail_cached = details.cached
     catalog.detail_cache_info = details.info
     catalog.guide_evidence = details.guide_evidence
