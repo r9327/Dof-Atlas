@@ -16,7 +16,7 @@ import re
 from typing import Any
 from uuid import uuid4
 
-from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
+from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
@@ -125,8 +125,22 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         # Content is bundled immutably with the signed executable; disregard
         # ephemeral extraction paths and mtimes while retaining file sizes.
         quest_sources = tuple((label, size) for label, _, _, size in quest_sources)
+    # Sylvestre card text comes from the enriched Quest walkthrough, not
+    # only Doduda source rows. Without its stamp a warm cache can keep stale
+    # instructions after a guides/data update.
+    enriched = DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"
+    try:
+        enriched_stat = enriched.stat()
+        enriched_stamp = (
+            [int(enriched_stat.st_size)]
+            if frozen_root and enriched.resolve().is_relative_to(Path(frozen_root).resolve())
+            else [int(enriched_stat.st_size), int(enriched_stat.st_mtime_ns)]
+        )
+    except OSError:
+        enriched_stamp = [-1]
     payload = {
         "schema": _CATALOG_ROUTE_CACHE_SCHEMA,
+        "enriched_quest_source": enriched_stamp,
         "guide": [service.guide_id, service.guide_title, steps],
         "quest_sources": quest_sources,
         "projection_files": source_stats,
