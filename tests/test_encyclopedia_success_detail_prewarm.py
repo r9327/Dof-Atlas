@@ -74,6 +74,15 @@ class SuccessDetailPrewarmTests(unittest.TestCase):
         provider.get_detail_by_id.assert_not_called()
         receiver.emit.assert_called_once()
 
+    def test_invalid_or_nonretained_success_does_not_spawn_detail_worker(self):
+        page, provider, receiver, events = page_probe(pending_id=99999)
+        provider.is_retained.return_value = False
+        self._start(page, open_success=True)
+        self.assertEqual(events, ["catalog", "emitted"])
+        provider.is_retained.assert_called_once_with(99999)
+        provider.get_detail_by_id.assert_not_called()
+        receiver.emit.assert_called_once()
+
     def test_background_related_warmup_does_not_prefetch_pending_deep_link(self):
         page, provider, receiver, events = page_probe(pending_id=20)
         self._start(page, open_success=False)
