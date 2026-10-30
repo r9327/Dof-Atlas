@@ -23,6 +23,7 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         ])
         assert_inventory()
         self.assertEqual([r[0] for r in ROUTES if r[4]], [
+            "dungeons", "monsters", "archmonsters", "wanted",
             "treasure_hunt", "ocre", "almanax", "tutorials", "dofus_noob",
         ])
 
@@ -48,6 +49,26 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         open_route(app, window, ROUTES[12], 1)
         window.open_tools_tab.assert_called_once_with("Ocre")
         window.show_placeholder.assert_not_called()
+
+    def test_bestiary_inner_placeholder_is_not_counted_as_functional(self):
+        app = Mock()
+        inner = Mock()
+        inner.objectName.return_value = "EncyclopediaUnavailableBestiary"
+        shell = Mock()
+        shell.objectName.return_value = "EncyclopediaPage"
+        shell.tabs.currentWidget.return_value = inner
+        window = Mock()
+        window.active_page_name.return_value = "Quetes"
+        window.page_widgets = {"Quetes": shell}
+        with patch("tools.doctor_quick_app_probe.wait_until"):
+            open_route(app, window, ROUTES[5], 1)
+        window.open_encyclopedia_tab.assert_called_once_with("DONJONS")
+        # Fail closed if the route becomes a real Bestiary view but the
+        # reviewed inventory still describes it as an unavailable module.
+        inner.objectName.return_value = "RealDungeonView"
+        with patch("tools.doctor_quick_app_probe.wait_until"):
+            with self.assertRaisesRegex(RuntimeError, "placeholder classification mismatch"):
+                open_route(app, window, ROUTES[5], 1)
 
     def test_revisit_summary_uses_actual_stabilized_home_evidence(self):
         rows = [
@@ -120,12 +141,16 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         good = {
             "git_head": "a" * 40, "status": "PASS", "cycles": 1,
             "planned_samples": 20, "measured_routes": 20,
-            "functional_pass": 15, "placeholder_pass": 5,
+            "functional_pass": 11, "placeholder_pass": 9,
             "preload_states": {"quests": "READY", "encyclopedia": "READY", "craft": "READY"},
             "routes": samples, "failed_routes": [],
             "peak_process_tree_rss_mib": 150.0,
         }
         self.assertEqual(validate_instance(good, sha="a" * 40), [])
+        self.assertIn("FALSE_FUNCTIONAL_COVERAGE", validate_instance(
+            {**good, "functional_pass": 15, "placeholder_pass": 5},
+            sha="a" * 40,
+        ))
         self.assertIn("WRONG_ROUTE_ORDER_DUPLICATE_OR_FALSE_STATUS",
                       validate_instance({**good, "routes": samples[:-1] + [samples[0]]},
                                         sha="a" * 40))
