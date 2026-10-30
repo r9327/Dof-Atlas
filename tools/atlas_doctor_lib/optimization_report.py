@@ -20,7 +20,8 @@ def comparable(a, b):
 def optimization_report(sha: str, app: dict, hub: dict | None = None,
                         baseline: dict | None = None, guides: dict | None = None,
                         ci_costs: dict | None = None,
-                        tool_catalog_report: dict | None = None) -> dict[str, Any]:
+                        tool_catalog_report: dict | None = None,
+                        phase8: dict | None = None) -> dict[str, Any]:
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Full immutable hexadecimal SHA required")
     hub, guides = hub or {}, guides or {}
@@ -143,7 +144,7 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
     from .diagnostic_correlation import correlate_diagnostics
     correlation = correlate_diagnostics(
         sha, app, hub=hub if hub else None, guides=guides if guides else None,
-        catalog_report=tool_catalog_report,
+        catalog_report=tool_catalog_report, phase8=phase8,
     )
     return {
         "schema": 1, "kind": "atlas_doctor_optimization_report", "git_head": sha,
@@ -280,6 +281,7 @@ def load(root: Path, path: Path | None) -> dict | None:
 def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None = None,
              baseline: Path | None = None, guides: Path | None = None,
              ci_costs: Path | None = None,
+             phase8_report: Path | None = None,
              output: Path = Path("artifacts/doctor_complete/optimization.json")) -> dict:
     root = root.resolve()
     target = (root / output).resolve()
@@ -309,7 +311,7 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
     report = optimization_report(sha, app_evidence,
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
-        tool_catalog_report=tooling)
+        tool_catalog_report=tooling, phase8=load(root, phase8_report))
     report["tool_catalog_cache"] = catalog_cache
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -325,11 +327,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--baseline", type=Path)
     p.add_argument("--guides", type=Path)
     p.add_argument("--ci-costs", type=Path)
+    p.add_argument("--phase8-report", type=Path,
+                   help="Existing real first-detail Phase 8 JSON; same candidate SHA required")
     p.add_argument("--output", type=Path, default=Path("artifacts/doctor_complete/optimization.json"))
     opts = p.parse_args(argv)
     result = generate(Path(__file__).resolve().parents[2], sha=opts.sha,
         app_report=opts.app_report, hub_report=opts.hub_report,
-        baseline=opts.baseline, guides=opts.guides, ci_costs=opts.ci_costs, output=opts.output)
+        baseline=opts.baseline, guides=opts.guides, ci_costs=opts.ci_costs,
+        phase8_report=opts.phase8_report, output=opts.output)
     print(json.dumps({"status": result["status"], "findings": len(result["priority_findings"])}))
     return 0 if result["status"] == "DIAGNOSTIC_READY" else 2
 
