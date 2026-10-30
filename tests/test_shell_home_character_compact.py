@@ -5,7 +5,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QEvent, QCoreApplication
+from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget
 from main import AtlasWindow
 
 
@@ -52,6 +53,44 @@ class HomeCharacterComboCacheTests(unittest.TestCase):
             self.assertEqual(combo.clear.call_count, 2)
             self.assertEqual(combo.addItem.call_count, 4)
             self.assertEqual(fake.current_character_key, "character:2")
+
+
+class ShellTransientPlaceholderReleaseTests(unittest.TestCase):
+    def test_home_releases_only_dynamic_placeholders_not_almanax_or_real_pages(self):
+        QApplication.instance() or QApplication([])
+        stack = QStackedWidget()
+        home, almanax, real = QWidget(), QWidget(), QWidget()
+        stubs = [QWidget(), QWidget()]
+        names = ["Home", "Almanax", "Craft", "Placeholder::Ocre", "Placeholder::Chasse"]
+        widgets = [home, almanax, real, *stubs]
+        for widget in widgets:
+            stack.addWidget(widget)
+        stack.setCurrentWidget(home)
+        page_widgets = dict(zip(names, widgets))
+        fake = SimpleNamespace(
+            stack=stack,
+            page_widgets=page_widgets,
+            page_nav_group={name: "Outils" for name in names},
+            page_indexes={name: stack.indexOf(widget) for name, widget in page_widgets.items()},
+            page_factories={},
+            pages=list(zip(names, widgets)),
+        )
+        fake.rebuild_page_indexes = lambda: setattr(
+            fake, "page_indexes",
+            {name: stack.indexOf(widget) for name, widget in fake.page_widgets.items()}
+        )
+        try:
+            AtlasWindow.release_transient_placeholders(fake)
+            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            self.assertEqual(stack.count(), 3)
+            self.assertEqual(set(fake.page_widgets), {"Home", "Almanax", "Craft"})
+            self.assertEqual(fake.page_indexes["Craft"], stack.indexOf(real))
+            self.assertNotIn("Placeholder::Ocre", fake.page_nav_group)
+            # Re-entry creates only the single chosen placeholder anew.
+            self.assertIs(stack.currentWidget(), home)
+        finally:
+            stack.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
 
 if __name__ == "__main__":
