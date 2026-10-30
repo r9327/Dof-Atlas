@@ -241,7 +241,14 @@ def correlate_diagnostics(
             interpretation: str, next_probe: str, capabilities: tuple[str, ...]) -> None:
         if len(hypotheses) >= MAX_HYPOTHESES:
             return
-        independent = len({str(x.get("source", "")) for x in observations}) > 1
+        # 'cost_attribution' is a view of app_navigation's *same run*,
+        # not an independent specialist. Never inflate corroboration.
+        source_families = {
+            "app_navigation" if x.get("source") in {"app_navigation", "cost_attribution"}
+            else str(x.get("source", ""))
+            for x in observations
+        }
+        independent = len(source_families) > 1
         hypotheses.append({
             "id": code, "priority": priority, "title": title,
             "observations": observations,
