@@ -139,7 +139,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_json_static_guide_catalog_links_prove_only_manifest_scope(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file(
             "data/encyclopedia/guides/catalog.json",
             json.dumps({"categories": [{"id": "dofus"}], "guides": [
@@ -160,7 +160,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_json_guide_catalog_bad_ids_categories_paths_and_missing_files(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file(
             "data/encyclopedia/guides/catalog.json",
             json.dumps({"categories": [{"id": "dofus"}], "guides": [
