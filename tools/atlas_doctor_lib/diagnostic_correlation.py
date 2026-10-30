@@ -241,9 +241,15 @@ def correlate_diagnostics(
             interpretation: str, next_probe: str, capabilities: tuple[str, ...]) -> None:
         if len(hypotheses) >= MAX_HYPOTHESES:
             return
+        independent = len({str(x.get("source", "")) for x in observations}) > 1
         hypotheses.append({
             "id": code, "priority": priority, "title": title,
             "observations": observations,
+            # Different source labels are a stronger lead, never proof of
+            # independent experiments or a validated root cause.
+            "evidence_strength": (
+                "MULTI_SPECIALIST_LEAD" if independent else "SINGLE_REPORT_LEAD"
+            ),
             "interpretation": interpretation,
             "inference": "CORRELATION_NOT_CAUSATION",
             "root_cause_proven": False,
@@ -261,13 +267,13 @@ def correlate_diagnostics(
                          and _number(r.get("wall_ms")) is not None), None)
     if preload is not None and preload >= 5000 and preload_phase is not None:
         add(
-            "PRELOAD_WALL_CORRELATION", "P0", "Long preload confirmed in two measurements",
+            "PRELOAD_WALL_CORRELATION", "P0", "Long preload corroborated by two fields in one benchmark",
             [
                 {"source": "app_navigation", "metric": "preload_ms", "value": preload, "unit": "ms"},
                 {"source": "cost_attribution", "metric": "functional_preload.wall_ms",
                  "value": _number(preload_phase["wall_ms"]), "unit": "ms"},
             ],
-            "Both measurements may describe the same work; neither identifies the slow function.",
+            "Both fields describe overlapping work within one benchmark, not independent runs; neither identifies the slow function.",
             "Profile exact-SHA source indexing, I/O and startup workers before changing cache policy.",
             ("performance", "quest_data", "runtime_trace", "coverage"),
         )
