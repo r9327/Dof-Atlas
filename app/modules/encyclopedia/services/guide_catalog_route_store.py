@@ -48,6 +48,19 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
         key: value for key, value in service.route.items() if key != "steps"
     }
     light_cards = [compact_card(card) for card in cards]
+    # The global preparation panel scans all stable sheets. Compute its
+    # *filtered* preparation exactly once while source cards are still rich:
+    # an item acquired on the current map is not a requirement before travel.
+    # The panel may then aggregate metadata without 1,672 SQLite reads.
+    sections_for_card = getattr(service, "manual_sections_for_card", None)
+    if callable(sections_for_card):
+        for light, full in zip(light_cards, cards):
+            sections = sections_for_card("", full)
+            prepared = sections.get("prepare", []) if isinstance(sections, dict) else []
+            if prepared:
+                light["manual_sections"] = {"prepare": prepared}
+            else:
+                light.pop("manual_sections", None)
     index_route["steps"] = light_cards
     manifest = {
         "schema": SCHEMA,
