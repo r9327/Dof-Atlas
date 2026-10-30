@@ -427,6 +427,7 @@ def ensure_detail_source_offsets(
     data_dir: Path = qc.RAW_QUEST_DATA_DIR,
     *,
     cache_root: Path = _CACHE_ROOT,
+    indexed_paths: list[Path] | None = None,
 ) -> int:
     """Prepare disk-only indexes used by the first rich Quest detail.
 
@@ -448,6 +449,10 @@ def ensure_detail_source_offsets(
             )
             len(mapping)
             prepared += 1
+            if indexed_paths is not None:
+                disk_path = getattr(mapping, "_disk_index", None)
+                if isinstance(disk_path, Path):
+                    indexed_paths.append(disk_path)
         finally:
             sources.close()
 
@@ -460,6 +465,10 @@ def ensure_detail_source_offsets(
         )
         len(enrichment)
         prepared += 1
+        if indexed_paths is not None:
+            disk_path = getattr(enrichment, "_disk_index", None)
+            if isinstance(disk_path, Path):
+                indexed_paths.append(disk_path)
     finally:
         enrichment_sources.close()
     return prepared
