@@ -7,8 +7,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager
-from time import monotonic, sleep
 from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -16,6 +14,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.core.cache_write_lock import exclusive_cache_write_lock as _achievement_compact_write_lock
 from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
 from app.modules.encyclopedia.models.achievement import (
     Achievement,
@@ -1523,51 +1522,6 @@ def _unique_cache_temporary_path(target: Path) -> Path:
     """
     target = Path(target)
     return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
-
-
-@contextmanager
-def _achievement_compact_write_lock(path: Path, *, timeout_seconds: float = 90.0):
-    """Serialize rebuilds across Atlas processes, not merely across threads.
-
-    The dedicated lock file is never renamed/deleted; deleting a lock file
-    would allow a third process to lock a different inode. OS locks are
-    released automatically if a worker exits or crashes.
-    """
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.with_suffix(path.suffix + ".lock")
-    deadline = monotonic() + timeout_seconds
-    with lock_path.open("a+b") as lock_file:
-        # Windows byte-range locks need an actual lockable byte.
-        # Concurrent first creators may append another byte; byte zero stays stable.
-        lock_file.seek(0, os.SEEK_END)
-        if lock_file.tell() == 0:
-            lock_file.write(bytes([0]))
-            lock_file.flush()
-        while True:
-            try:
-                lock_file.seek(0)
-                if os.name == "nt":
-                    import msvcrt
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-                else:
-                    import fcntl
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except (OSError, BlockingIOError) as exc:
-                if monotonic() >= deadline:
-                    raise TimeoutError(
-                        f"Achievement compact-cache build lock timed out: {lock_path}"
-                    ) from exc
-                sleep(0.05)
-        try:
-            yield
-        finally:
-            lock_file.seek(0)
-            if os.name == "nt":
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def _build_compact_cache(path: Path) -> int:

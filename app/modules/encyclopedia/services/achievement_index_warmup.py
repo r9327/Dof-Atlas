@@ -6,6 +6,7 @@ from uuid import uuid4
 from time import sleep
 
 from app.constants import ROOT_DIR
+from app.core.cache_write_lock import exclusive_cache_write_lock
 
 
 _CACHE_ROOT = ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_sources_v1"
@@ -70,20 +71,22 @@ def _replace_name_index_with_windows_retry(
 
 
 def write_achievement_name_index() -> int:
-    names = achievement_name_index()
-    _ACHIEVEMENT_NAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
-        f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
-    )
-    temporary.write_text(
-        json.dumps(names, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
-    try:
-        _replace_name_index_with_windows_retry(temporary, _ACHIEVEMENT_NAMES_FILE)
-    finally:
-        # A failed replacement must not pollute the next worker attempt.
-        temporary.unlink(missing_ok=True)
+    # Unique temp names prevent source collisions, but Windows also requires
+    # serializing replacement of the *same destination* across Atlas workers.
+    # Do not classify WinError 5 as transient: a real ACL denial must still fail.
+    with exclusive_cache_write_lock(_ACHIEVEMENT_NAMES_FILE):
+        names = achievement_name_index()
+        temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
+            f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
+        )
+        temporary.write_text(
+            json.dumps(names, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        try:
+            _replace_name_index_with_windows_retry(temporary, _ACHIEVEMENT_NAMES_FILE)
+        finally:
+            temporary.unlink(missing_ok=True)
     return len(names)
 
 

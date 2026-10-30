@@ -174,5 +174,53 @@ class AchievementParallelCacheBuilderTests(unittest.TestCase):
             self.assertEqual(json.loads(dest.read_text(encoding="utf-8")), {"17": "Succès"})
 
 
+    def test_independent_name_index_workers_publish_without_collision(self):
+        # Real subprocesses exercise the OS lock, not only Python thread timing.
+        worker = r"""
+import sys, time
+from pathlib import Path
+from app.modules.encyclopedia.services import achievement_index_warmup as warm
+root, ident = Path(sys.argv[1]), sys.argv[2]
+warm._ACHIEVEMENT_NAMES_FILE = root / 'achievement_names.json'
+warm.achievement_name_index = lambda: {17: 'Success'}
+(root / ('ready_' + ident)).write_text('1', encoding='utf-8')
+deadline = time.monotonic() + 15
+while len(list(root.glob('ready_*'))) < 3:
+    if time.monotonic() >= deadline:
+        raise SystemExit('name index barrier timeout')
+    time.sleep(0.01)
+assert warm.write_achievement_name_index() == 1
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            processes = []
+            try:
+                for number in range(3):
+                    processes.append(subprocess.Popen(
+                        [os.sys.executable, "-c", worker, str(root), str(number)],
+                        cwd=Path(__file__).resolve().parents[1],
+                        env={**os.environ, "PYTHONUTF8": "1"},
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                    ))
+                for process in processes:
+                    try:
+                        output, error = process.communicate(timeout=30)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.communicate(timeout=5)
+                        self.fail("Name index writer deadlock")
+                    self.assertEqual(process.returncode, 0, error or output)
+                self.assertEqual(
+                    json.loads((root / "achievement_names.json").read_text(encoding="utf-8")),
+                    {"17": "Success"},
+                )
+                self.assertFalse(list(root.glob("*.tmp")))
+            finally:
+                for process in processes:
+                    if process.poll() is None:
+                        process.kill()
+                        process.communicate(timeout=5)
+
+
 if __name__ == "__main__":
     unittest.main()
