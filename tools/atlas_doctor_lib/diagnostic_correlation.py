@@ -133,6 +133,16 @@ def plan_investigation(
     # benchmark and does not remove any phase-required sentinels.
     ids = {row.get("id") for row in hypotheses}
     probes: list[dict[str, Any]] = []
+    if any(str(code).startswith("COLD_") and str(code).endswith("_DETAIL") for code in ids):
+        probes.append({
+            "scenario": "phase8_deep_first_use_same_fixture",
+            "owner": "tools.benchmark_phase8_preload",
+            "condition": "AFTER_CHEAP_TRIAGE_IF_UNRESOLVED",
+            "measure": ["quest_detail_ms", "achievement_detail_ms",
+                        "guide_detail_ms", "cold_vs_warm", "net_full_first_use_ms"],
+            "repeat_count_min": 3, "status": "NOT_RUN",
+            "comparison_owner": "tools.phase8_deep_comparison",
+        })
     if "PRELOAD_WALL_CORRELATION" in ids:
         probes.append({
             "scenario": "preload_cold_warm", "owner": "tools.atlas_doctor perf --app",
@@ -203,6 +213,7 @@ def correlate_diagnostics(
     hub: dict[str, Any] | None = None,
     guides: dict[str, Any] | None = None,
     catalog_report: dict[str, Any] | None = None,
+    phase8: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Cross-correlate independent observations; fail closed on stale evidence."""
     valid_sha = len(sha) == 40 and all(x in "0123456789abcdef" for x in sha)
@@ -362,6 +373,59 @@ def correlate_diagnostics(
                         "Compare exact-SHA warm/cold opens and map the observed method to Graphify consumers.",
                         ("guide", "performance", "graphify", "validation"),
                     )
+
+    # Reuse the canonical Phase 8 *real detail* probe. Unlike tab navigation,
+    # these timings include the first rendered Quest/Guide/Success content.
+    # The source publishes {"metrics": {...}} without an overall PASS flag.
+    # Only a complete, current-SHA three-detail fixture is usable.
+    if phase8 is None:
+        gaps.append("phase8_first_use: NOT_PROVIDED")
+    else:
+        metrics = phase8.get("metrics") if isinstance(phase8, dict) else None
+        if not isinstance(metrics, dict) or metrics.get("git_head") != sha:
+            gaps.append("phase8_first_use: STALE_OR_INVALID")
+        else:
+            deep = metrics.get("deep_first_content")
+            fields = (
+                ("quest", "deep_quest_detail_ms", "quest_id", "quest_data"),
+                ("achievement", "deep_achievement_detail_ms", "achievement_id", "validation"),
+                ("guide", "deep_guide_detail_ms", "guide_id", "guide"),
+            )
+            if not isinstance(deep, dict) or deep.get("all_details_rendered") is not True:
+                gaps.append("phase8_first_use: DETAILS_NOT_RENDERED")
+            elif any(
+                not isinstance(deep.get(key), (str, int)) or isinstance(deep.get(key), bool)
+                for _, _, key, _ in fields
+            ) or any(
+                _number(metrics.get(field)) is None or _number(metrics[field]) < 0
+                for _, field, _, _ in fields
+            ):
+                gaps.append("phase8_first_use: INCOMPLETE_OR_INVALID_TIMINGS")
+            else:
+                total = _number(metrics.get("deep_first_content_total_ms"))
+                measured = sum(float(metrics[field]) for _, field, _, _ in fields)
+                if total is None or abs(total - measured) > 0.1:
+                    gaps.append("phase8_first_use: INVALID_TIMING_ACCOUNTING")
+                else:
+                    for label, field, detail_key, capability in fields:
+                        duration = float(metrics[field])
+                        if duration < 1500:
+                            continue
+                        add(
+                            "COLD_" + label.upper() + "_DETAIL",
+                            "P0" if duration >= 5000 else "P1",
+                            "Slow first rendered " + label + " detail",
+                            [{
+                                "source": "phase8_first_use",
+                                "metric": field, "value": round(duration, 3),
+                                "unit": "ms", "fixture": str(deep[detail_key])[:120],
+                            }],
+                            "One actual first-use observation; cache/index, subprocess and Qt costs"
+                            " have not yet been isolated.",
+                            "Repeat the exact fixture at cold and warm start on the same runner;"
+                            " profile the existing stage worker and UI callbacks.",
+                            (capability, "performance", "runtime_trace", "coverage"),
+                        )
 
     hypotheses.sort(key=lambda r: ({"P0": 0, "P1": 1, "P2": 2}[r["priority"]], r["id"]))
     return {
