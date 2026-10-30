@@ -10,7 +10,7 @@
   "certified_actions": 0,
   "ready_to_replace": false,
   "manual_review_pending": 142,
-  "auto_extraction_unresolved_steps": 5,
+  "auto_extraction_unresolved_steps": 0,
   "steps": [
     {
       "source_step_number": 1,
@@ -3034,7 +3034,7 @@
       "source_step_number": 96,
       "stable_step_id": "ganymede_2261_step_0096",
       "source_page": 2,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -6,
@@ -3046,11 +3046,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [-6,-3] : bas, droite, bas ×2, gauche, bas, gauche, bas ×2, droite. Arrivée [-6,3]."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2261?page=96&stepsPerPage=1"
     },
     {
       "source_step_number": 97,
@@ -3195,7 +3196,7 @@
       "source_step_number": 102,
       "stable_step_id": "ganymede_2261_step_0102",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -82,
@@ -3207,11 +3208,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [-82,8], se déplacer d’une carte à gauche en évitant les Crocodyls."
+        },
+        {
+          "kind": "information",
+          "label": "Le chemin de contournement est illustré par le schéma de l’étape source."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2261?page=102&stepsPerPage=1"
     },
     {
       "source_step_number": 103,
@@ -3355,7 +3361,7 @@
       "source_step_number": 107,
       "stable_step_id": "ganymede_2261_step_0107",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -6,
@@ -3367,11 +3373,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [-6,-3] : bas, droite, bas ×2, gauche, bas, gauche, bas ×2, droite. Arrivée [-6,3]."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2261?page=107&stepsPerPage=1"
     },
     {
       "source_step_number": 108,
@@ -3543,7 +3550,7 @@
       "source_step_number": 114,
       "stable_step_id": "ganymede_2261_step_0114",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -6,
@@ -3555,11 +3562,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [-6,-3] : bas, droite, bas ×2, gauche, bas, gauche, bas ×2, droite. Arrivée [-6,3]."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2261?page=114&stepsPerPage=1"
     },
     {
       "source_step_number": 115,
@@ -4400,7 +4408,7 @@
       "source_step_number": 140,
       "stable_step_id": "ganymede_2261_step_0140",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -6,
@@ -4412,11 +4420,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [-6,-3] : bas, droite, bas ×2, gauche, bas, gauche, bas ×2, droite. Arrivée [-6,3]."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2261?page=140&stepsPerPage=1"
     },
     {
       "source_step_number": 141,

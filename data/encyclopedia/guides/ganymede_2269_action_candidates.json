@@ -10,7 +10,7 @@
   "certified_actions": 0,
   "ready_to_replace": false,
   "manual_review_pending": 174,
-  "auto_extraction_unresolved_steps": 4,
+  "auto_extraction_unresolved_steps": 0,
   "steps": [
     {
       "source_step_number": 1,
@@ -3762,7 +3762,7 @@
       "source_step_number": 105,
       "stable_step_id": "ganymede_2269_step_0105",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         23,
@@ -3774,11 +3774,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Quête 1442 : traverser les quartiers d’Armaguedon et la salle des poissons."
+        },
+        {
+          "kind": "move",
+          "label": "Depuis [23,20], une carte en bas à gauche, puis retour d’une carte."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2269?page=105&stepsPerPage=1"
     },
     {
       "source_step_number": 106,
@@ -3818,7 +3823,7 @@
       "source_step_number": 107,
       "stable_step_id": "ganymede_2269_step_0107",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         22,
@@ -3830,17 +3835,26 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Quête 1442 : l’ascenseur permet d’accéder aux différents étages du Sanctuaire."
+        },
+        {
+          "kind": "move",
+          "label": "Porte en haut à gauche, une carte à gauche, porte en bas à droite, puis une carte en bas à droite."
+        },
+        {
+          "kind": "information",
+          "label": "À cet embranchement, emprunter la porte et non l’escalier."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2269?page=107&stepsPerPage=1"
     },
     {
       "source_step_number": 108,
       "stable_step_id": "ganymede_2269_step_0108",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         21,
@@ -3852,11 +3866,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [21,25] : une carte en haut à gauche, porte en haut à droite, puis une carte à droite."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2269?page=108&stepsPerPage=1"
     },
     {
       "source_step_number": 109,
@@ -3934,7 +3949,7 @@
       "source_step_number": 112,
       "stable_step_id": "ganymede_2269_step_0112",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         22,
@@ -3946,11 +3961,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Quête 1442 : cet ascenseur permet d’atteindre le dernier étage des salles abyssales."
+        },
+        {
+          "kind": "move",
+          "label": "Porte en haut à gauche, une carte en bas à gauche, puis deux cartes en bas à droite."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2269?page=112&stepsPerPage=1"
     },
     {
       "source_step_number": 113,

@@ -10,7 +10,7 @@
   "certified_actions": 0,
   "ready_to_replace": false,
   "manual_review_pending": 237,
-  "auto_extraction_unresolved_steps": 5,
+  "auto_extraction_unresolved_steps": 0,
   "steps": [
     {
       "source_step_number": 1,
@@ -107,7 +107,7 @@
       "source_step_number": 4,
       "stable_step_id": "ganymede_2203_step_0004",
       "source_page": 1,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         -2,
@@ -119,11 +119,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Consulter à l’étape 5 les ressources utiles aux quêtes d’Incarnam."
+        },
+        {
+          "kind": "information",
+          "label": "Les récupérer pendant le parcours ou les préparer avant de commencer."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2203?page=4&stepsPerPage=1"
     },
     {
       "source_step_number": 5,
@@ -2209,7 +2214,7 @@
       "source_step_number": 60,
       "stable_step_id": "ganymede_2203_step_0060",
       "source_page": 2,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         5,
@@ -2221,11 +2226,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "La liste des ressources utiles aux quêtes d’Astrub est donnée à l’étape 61."
+        },
+        {
+          "kind": "information",
+          "label": "Elles peuvent être achetées, récoltées ou obtenues sur des monstres."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2203?page=60&stepsPerPage=1"
     },
     {
       "source_step_number": 61,
@@ -3894,7 +3904,7 @@
       "source_step_number": 112,
       "stable_step_id": "ganymede_2203_step_0112",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         10,
@@ -3907,10 +3917,15 @@
       "actions": [
         {
           "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "label": "Dans la première carte de la mine [10,-19], cliquer sur le tonneau de TNT."
+        },
+        {
+          "kind": "move",
+          "label": "Quitter ensuite la mine."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2203?page=112&stepsPerPage=1"
     },
     {
       "source_step_number": 113,
@@ -4080,7 +4095,7 @@
       "source_step_number": 119,
       "stable_step_id": "ganymede_2203_step_0119",
       "source_page": 3,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         3,
@@ -4092,11 +4107,12 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "move",
+          "label": "Depuis [3,-19] : [3,-17], [6,-17], [6,-19], [6,-18], [7,-18], puis [7,-20]."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2203?page=119&stepsPerPage=1"
     },
     {
       "source_step_number": 120,
@@ -7709,7 +7725,7 @@
       "source_step_number": 237,
       "stable_step_id": "ganymede_2203_step_0237",
       "source_page": 5,
-      "review_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+      "review_status": "REVIEW_SOURCE_ACTION",
       "quest_objectives_verified": false,
       "at": [
         3,
@@ -7721,11 +7737,16 @@
       ],
       "actions": [
         {
-          "kind": "interact",
-          "label": "Étape non détaillée : vérifier la source",
-          "requires_manual_review": true
+          "kind": "information",
+          "label": "Parcours terminé. Suite possible : Krosmoz (2230) ou Mais où sont les Dofus ? (2204)."
+        },
+        {
+          "kind": "information",
+          "label": "Pour suivre une route générale, reprendre le Guide complet Ganymède (2251)."
         }
-      ]
+      ],
+      "source_fact_checked_on": "2026-10-30",
+      "source_evidence_url": "https://ganymede-app.com/guides/2203?page=237&stepsPerPage=1"
     }
   ]
 }

@@ -3175,8 +3175,8 @@
         {
           "id": "ganymede_2216_step_0062",
           "type": "info",
-          "title": "Étape 62 — Étape à vérifier : instructions non extraites",
-          "content": "Étape à vérifier : instructions non extraites",
+          "title": "Étape 62 — Conseils contre Nileza",
+          "content": "Ne pas terminer son tour au contact d’un allié.\nTours 3, 5, 7, 9 : seuils de distance à Nileza de 9, 5, 4 puis 3 cases.\nDépasser le seuil au tour concerné peut imposer deux tours pacifistes.\nFrapper Nileza à distance échange les positions et déclenche des dégâts autour de la case initiale.\nAu contact, une attaque le soigne de 5 % de sa vitalité et augmente ses dommages.\nSes dégâts croissent lorsque ses PV diminuent : anticiper son placement.",
           "optional": false,
           "source_guide_id": 2216,
           "source_step_number": 62,
@@ -3197,19 +3197,40 @@
             ]
           },
           "verified_actions": [],
-          "action_reconstruction_status": "AUTO_EXTRACTED_ACTION_NOT_REVIEWED",
+          "action_reconstruction_status": "REVIEW_FACTUAL_ACTION_NOT_CANONICAL",
           "manual_completion_allowed": true,
           "auto_completion_allowed": false,
           "original_prose_imported": false,
-          "source_action_candidate_status": "AUTO_EXTRACTED_NEEDS_REVIEW",
+          "source_action_candidate_status": "REVIEW_SOURCE_ACTION",
           "source_action_candidates": [
             {
-              "kind": "interact",
-              "label": "Étape à vérifier : instructions non extraites",
-              "requires_manual_review": true
+              "kind": "combat",
+              "label": "Ne pas terminer son tour au contact d’un allié."
+            },
+            {
+              "kind": "information",
+              "label": "Tours 3, 5, 7, 9 : seuils de distance à Nileza de 9, 5, 4 puis 3 cases."
+            },
+            {
+              "kind": "information",
+              "label": "Dépasser le seuil au tour concerné peut imposer deux tours pacifistes."
+            },
+            {
+              "kind": "information",
+              "label": "Frapper Nileza à distance échange les positions et déclenche des dégâts autour de la case initiale."
+            },
+            {
+              "kind": "information",
+              "label": "Au contact, une attaque le soigne de 5 % de sa vitalité et augmente ses dommages."
+            },
+            {
+              "kind": "information",
+              "label": "Ses dégâts croissent lorsque ses PV diminuent : anticiper son placement."
             }
           ],
-          "source_action_review_status": "AUTO_EXTRACTED_NEEDS_REVIEW"
+          "source_action_review_status": "REVIEW_SOURCE_ACTION",
+          "source_evidence_url": "https://ganymede-app.com/guides/2216?page=62&stepsPerPage=1",
+          "source_evidence_checked_on": "2026-10-30"
         },
         {
           "id": "ganymede_2216_step_0063",
