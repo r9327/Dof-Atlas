@@ -161,8 +161,20 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(set(view.featured_cards), {
                         "guide_complet", "dofus_sylvestre",
                     })
+                    # The agreed home keeps featured routes and Alignements
+                    # together on the left, with the Dofus grid on the right.
+                    self.assertIs(
+                        view.home_columns.layout().itemAt(0).widget(), view.library_left
+                    )
+                    self.assertIs(
+                        view.home_columns.layout().itemAt(1).widget(), view.library_right
+                    )
+                    self.assertIs(view.optimized_pair.parentWidget(), view.library_left)
+                    self.assertIs(view.library_categories.parentWidget(), view.library_left)
+                    self.assertEqual(view.library_category, "dofus")
+                    # The narrower LEFT column stacks the two equal-size cards.
                     self.assertEqual(view.optimized_pair.pair_layout.direction(),
-                                     QBoxLayout.LeftToRight)
+                                     QBoxLayout.TopToBottom)
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
                     self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
