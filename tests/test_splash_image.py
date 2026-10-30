@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtGui import QColor, QImage
+from PySide6.QtWidgets import QApplication
 
 from app.ui.splash_image import clear_connected_dark_background
 
@@ -64,6 +68,28 @@ class SplashImageTests(unittest.TestCase):
         self.assertEqual(self._alpha(result, 1, 0), 255)
         self.assertEqual(self._alpha(result, 2, 0), 255)
         self.assertEqual(self._alpha(result, 3, 0), 0)
+
+    def test_atlas_brand_icon_uses_same_transparency_as_splash(self) -> None:
+        from app.ui import components
+
+        app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "atlas.png"
+            image = self._image(9, 9, QColor(18, 18, 18, 255))
+            image.setPixelColor(4, 4, QColor(255, 180, 30, 255))
+            self.assertTrue(image.save(str(path)))
+            prior = components._APPLICATION_ICON
+            try:
+                with patch.object(components, "APP_ICON_PATH", path):
+                    components._APPLICATION_ICON = None
+                    icon = components.atlas_application_icon()
+                    output = icon.pixmap(9, 9).toImage()
+                    self.assertFalse(icon.isNull())
+                    self.assertEqual(output.pixelColor(0, 0).alpha(), 0)
+                    self.assertEqual(output.pixelColor(4, 4).alpha(), 255)
+                    self.assertIsNotNone(app)
+            finally:
+                components._APPLICATION_ICON = prior
 
     def test_null_image_is_returned_safely(self) -> None:
         image = QImage()
