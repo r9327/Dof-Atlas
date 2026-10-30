@@ -368,6 +368,44 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
 
+    def test_shipped_cawotte_and_argente_are_real_browsable_manual_routes(self):
+        source_dir = (
+            Path(__file__).resolve().parents[1] / "data" / "encyclopedia"
+            / "guides" / "replacement_drafts" / "cutovers"
+        )
+        for guide_id, expected_count, source_id in (
+            ("dofus_cawotte", 64, 2205),
+            ("dofus_argente", 237, 2203),
+        ):
+            with self.subTest(guide_id=guide_id):
+                route = json.loads(
+                    (source_dir / f"{guide_id}.json").read_text(encoding="utf-8")
+                )
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1",),
+                )
+                self.addCleanup(panel.deleteLater)
+                self.assertEqual(len(panel.navigation.step_ids), expected_count)
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_0001",
+                )
+                self.assertNotIn(
+                    "Actions de cette étape non renseignées.",
+                    panel.body_label.text(),
+                )
+                panel.step_jump.setValue(expected_count)
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_{expected_count:04d}",
+                )
+                panel.actual_button.click()
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_0001",
+                )
+                self.assertEqual(self.store.manual_steps("character:1", guide_id), set())
+
     def test_copyable_source_items_and_coordinates_never_trigger_travel(self):
         from copy import deepcopy
 
