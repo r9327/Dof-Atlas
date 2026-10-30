@@ -158,6 +158,16 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(links["runtime_routes_verified"])
         self.assertFalse(audit["semantic_links_verified"])
 
+    def test_tracked_null_guide_catalog_is_not_reported_as_absent(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file("data/encyclopedia/guides/catalog.json", "null")
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        links = report["json_semantic_audit"]["guide_catalog_static_links"]
+        self.assertEqual(links["status"], "REVIEW")
+        self.assertEqual(report["json_semantic_audit"]["syntax_coverage"], "PASS")
+
     def test_json_guide_catalog_bad_ids_categories_paths_and_missing_files(self):
         self._unity()
         self._file("app/ok.py", "pass\n")

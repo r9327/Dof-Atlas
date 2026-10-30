@@ -74,8 +74,11 @@ def _verify_guide_catalog(catalog: Any, guide_headers: dict[str, dict[str, Any]]
                           tracked_paths: list[str]) -> dict[str, Any]:
     """Verify only manifest->Guide static links, never Quest, UI or runtime links."""
     if catalog is None:
+        present = _GUIDE_CATALOG in tracked_paths
         return {
-            "status": "NOT_RUN", "reason": "Canonical Guide catalog not parsed",
+            "status": "REVIEW" if present else "NOT_RUN",
+            "reason": "Canonical Guide catalog has no parsed object" if present
+                      else "Canonical Guide catalog not tracked",
             "checked": 0, "issues": [],
         }
     issues: list[dict[str, Any]] = []
