@@ -668,7 +668,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
         if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
             return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
         if args.parallel_instances == 8:
-            if args.one_core or args.idle_seconds or args.cycles != 1 or args.ram_forensics:
+            if args.one_core or args.idle_seconds or args.cycles != 1 or getattr(args, 'ram_forensics', False):
                 return {"status": "BLOCKED", "reason": "Eight-Atlas scenario requires cycles=1, no idle/one-core"}
             from tools.atlas_doctor_lib.parallel_app import run_eight
             report = run_eight(root, output=root / args.output, max_seconds=args.max_seconds)
@@ -681,7 +681,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
             output=root / args.output, timeout=args.timeout,
             max_seconds=args.max_seconds, cycles=args.cycles,
             idle_seconds=args.idle_seconds, one_core=args.one_core,
-            ram_forensics=args.ram_forensics,
+            ram_forensics=getattr(args, 'ram_forensics', False),
         )
         if not args.json:
             print(f"Doctor App Benchmark: {report['status']} "
