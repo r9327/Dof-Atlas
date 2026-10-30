@@ -6,11 +6,12 @@ progression. Sommaire stays open until the user explicitly closes it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from html import escape
 
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
+    QApplication, QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -139,6 +140,8 @@ class ContinuousGuideRoutePanel(QWidget):
         self._summary_open = False
         self._preparation_open = False
         self._characters_open = False
+        self._copyable_preparation_labels: tuple[str, ...] = ()
+        self._copyable_coordinates: tuple[str, ...] = ()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
@@ -311,6 +314,15 @@ class ContinuousGuideRoutePanel(QWidget):
         self.coordinates_label = QLabel()
         self.coordinates_label.setObjectName("GuideContinuousCoordinates")
         self.coordinates_label.setWordWrap(True)
+        self.coordinates_label.setTextFormat(Qt.RichText)
+        self.coordinates_label.setTextInteractionFlags(
+            Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard
+        )
+        self.coordinates_label.setOpenExternalLinks(False)
+        self.coordinates_label.setToolTip(
+            "Cliquer copie une position citée par la source ; aucun déplacement automatique"
+        )
+        self.coordinates_label.linkActivated.connect(self._copy_source_link)
         detail.addWidget(self.coordinates_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
@@ -332,7 +344,15 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_scroll.setMaximumHeight(136)
         self.preparation_label = QLabel()
         self.preparation_label.setObjectName("GuideContinuousPreparationItems")
-        self.preparation_label.setTextFormat(Qt.PlainText)
+        self.preparation_label.setTextFormat(Qt.RichText)
+        self.preparation_label.setTextInteractionFlags(
+            Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard
+        )
+        self.preparation_label.setOpenExternalLinks(False)
+        self.preparation_label.setToolTip(
+            "Cliquer sur un nom copie uniquement le nom de l’objet ; aucune quantité certifiée"
+        )
+        self.preparation_label.linkActivated.connect(self._copy_source_link)
         self.preparation_label.setWordWrap(True)
         self.preparation_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.preparation_scroll.setWidget(self.preparation_label)
@@ -379,6 +399,19 @@ class ContinuousGuideRoutePanel(QWidget):
         button.setText(text)
         button.setCursor(Qt.PointingHandCursor)
         return button
+
+    def _copy_source_link(self, href: str) -> None:
+        """Copy only currently visible source hints; never trigger travel."""
+        kind, separator, index_text = href.partition(":")
+        if not separator or not index_text.isascii() or not index_text.isdecimal():
+            return
+        targets = (
+            self._copyable_preparation_labels if kind == "item" else
+            self._copyable_coordinates if kind == "coordinate" else ()
+        )
+        index = int(index_text)
+        if 0 <= index < len(targets):
+            QApplication.clipboard().setText(targets[index])
 
     def toggle_characters(self, opened: bool) -> None:
         self._characters_open = bool(opened)
@@ -620,6 +653,7 @@ class ContinuousGuideRoutePanel(QWidget):
                 if position.status == "NO_SELECTED_CHARACTER"
                 else "Toutes les fiches du parcours sont terminées."
             )
+            self._copyable_coordinates = ()
             self.coordinates_label.clear()
             index = -1
         else:
@@ -636,8 +670,13 @@ class ContinuousGuideRoutePanel(QWidget):
                         location = f"[{value[0]}, {value[1]}]"
                         if location not in locations:
                             locations.append(location)
+            self._copyable_coordinates = tuple(locations)
             self.coordinates_label.setText(
-                "Positions citées : " + " · ".join(locations) if locations else ""
+                "Positions citées (clic pour copier) : "
+                + " · ".join(
+                    f'<a href="coordinate:{i}">{escape(location)}</a>'
+                    for i, location in enumerate(locations)
+                ) if locations else ""
             )
         references = (
             visible_object_references(self.route, current) if current else ()
@@ -645,15 +684,16 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
         self.preparation_toggle.setVisible(bool(references))
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
+        self._copyable_preparation_labels = tuple(item.label for item in references)
         self.preparation_label.setText(
-            "Références à vérifier (aucun achat présumé) :\n"
-            + "\n".join(
-                "• " + item.label
+            "Références à vérifier (aucun achat présumé) :<br>"
+            + "<br>".join(
+                f'• <a href="item:{i}">{escape(item.label)}</a>'
                 + (" · facultatif" if item.optional_or_conditional else "")
                 + (" · sur le trajet" if item.obtainable_on_route else "")
                 + (f" · étape {item.needed_at_step}"
                    if item.needed_at_step != index + 1 else "")
-                for item in references
+                for i, item in enumerate(references)
             ) if references else ""
         )
         self.position_label.setText(
