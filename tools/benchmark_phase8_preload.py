@@ -349,6 +349,23 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     )
     achievement_post_navigation_wait_ms = milliseconds(render_wait_started)
     achievement_detail_ms = milliseconds(started)
+    # The runtime may have completed a disposable Success detail on the main
+    # Qt thread. Read its already-recorded phases without initiating another
+    # provider or detail load; the timer above remains unchanged.
+    peek = getattr(getattr(page, "service", None), "peek_achievement_provider", None)
+    existing_provider = peek() if callable(peek) else None
+    provider_phases = (
+        getattr(existing_provider, "last_detail_breakdown_ms", None)
+        if existing_provider is not None else None
+    )
+    success_source_phases = (
+        {key: provider_phases[key] for key in (
+            "thread", "total_ms", "synchronous_subprocess_ms", "decode_ms",
+            "subprocess_path_used", "cache_source", "recent_cache_entries",
+        ) if key in provider_phases}
+        if isinstance(provider_phases, dict) and provider_phases.get("thread")
+        else {"status": "NOT_OBSERVED"}
+    )
 
     return {
         "quest_detail_ms": quest_detail_ms,
@@ -368,6 +385,7 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
             "catalogue_lookup": achievement_catalogue_lookup_ms,
             "navigation_call": achievement_navigation_call_ms,
             "post_navigation_wait": achievement_post_navigation_wait_ms,
+            "provider_last_detail_breakdown_ms": success_source_phases,
         },
         "quest_id": quest_id,
         "guide_id": guide_id,
