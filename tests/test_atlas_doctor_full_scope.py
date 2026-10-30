@@ -175,6 +175,26 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(audit["semantic_links_verified"])
         self.assertEqual(report["status"], "REVIEW")
 
+    def test_json_inventory_over_150_files_is_never_truncated(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        for index in range(151):
+            self._file(f"data/entry_{index:03}.json", '{"items":[{"id":1}]}')
+        self._file("data/entry_151.json", '{"items":[{"id":7},{"id":7}]}')
+        sha = self._commit()
+        audit = audit_full_scope(self.root, expected_sha=sha, with_json=True)[
+            "json_semantic_audit"
+        ]
+        self.assertEqual(audit["counts"]["tracked"], 152)
+        self.assertEqual(audit["counts"]["valid_syntax"], 152)
+        self.assertEqual(audit["counts"]["id_lists_inspected"], 152)
+        self.assertEqual(audit["counts"]["duplicate_id_review_files"], 1)
+        self.assertEqual(len(audit["files"]), 152)
+        self.assertEqual(audit["files"][-1]["file"], "data/entry_151.json")
+        self.assertFalse(audit["truncated"])
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
