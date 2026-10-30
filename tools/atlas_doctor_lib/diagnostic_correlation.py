@@ -59,11 +59,15 @@ def _catalog_tools(
         if entry is None:
             unresolved.append(capability)
             continue
-        if any(r["path"] == entry["path"] for r in selected):
+        existing = next((r for r in selected if r["path"] == entry["path"]), None)
+        if existing is not None:
+            if capability not in existing["capabilities"]:
+                existing["capabilities"].append(capability)
             continue
         selected.append({
             "path": entry["path"], "invocation": entry["invocation"],
-            "capability": capability, "cost_hint": entry["cost_hint"],
+            "capability": capability, "capabilities": [capability],
+            "cost_hint": entry["cost_hint"],
             "selection_reason": "CANONICAL_CATALOG_SAFE_READY",
             "automation_executed": False,
         })
@@ -115,8 +119,12 @@ def plan_investigation(
                 "recommended_invocation": tool.get("invocation"),
                 "status": "PLANNED_NOT_EXECUTED",
             })
-            if tool.get("capability") not in item["capabilities"]:
-                item["capabilities"].append(tool.get("capability"))
+            owned = tool.get("capabilities")
+            if not isinstance(owned, list) or not owned:
+                owned = [tool.get("capability")]
+            for capability in owned:
+                if isinstance(capability, str) and capability not in item["capabilities"]:
+                    item["capabilities"].append(capability)
             if hypothesis.get("id") not in item["hypotheses"]:
                 item["hypotheses"].append(hypothesis.get("id"))
 
@@ -125,7 +133,7 @@ def plan_investigation(
     def phase(item: dict[str, Any]) -> int:
         if "validation" in item["capabilities"]:
             return 2
-        if item["cost_hint"] in {"cheap", "unknown"}:
+        if item["cost_hint"] == "cheap":
             return 0
         return 1
 
