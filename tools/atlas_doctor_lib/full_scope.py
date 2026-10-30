@@ -241,7 +241,9 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
             "json_content_coverage": json_audit["syntax_coverage"],
             "asset_reference_verification": "NOT_RUN",
             "qss_visual_rendering": "NOT_RUN",
-            "note": "Inventory is exhaustive for tracked Git paths; parsing is Python-only.",
+            "note": ("Git inventory covers tracked paths; Python and JSON syntax parsed, "
+                     "but semantic links/assets/UI remain unverified." if with_json
+                     else "Inventory is exhaustive for tracked Git paths; parsing is Python-only."),
         },
         "source_coverage": {
             "status": source_status,

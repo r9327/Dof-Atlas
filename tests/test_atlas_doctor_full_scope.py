@@ -140,6 +140,20 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(report["status"], "BLOCKED")
         self.assertEqual(report["json_semantic_audit"]["syntax_coverage"], "BLOCKED")
 
+    def test_lfs_pointer_is_unavailable_not_a_valid_json_document(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file(
+            "data/pointer.json",
+            "version https://git-lfs.github.com/spec/v1\n"
+            "oid sha256:" + "a" * 64 + "\nsize 1000\n",
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["json_semantic_audit"]["counts"]["unavailable"], 1)
+        self.assertEqual(report["json_semantic_audit"]["files"][0]["status"], "NOT_AVAILABLE")
+
     def test_sha_mismatch_fails_closed(self):
         self._file("app/ok.py", "pass\n")
         sha = self._commit()
