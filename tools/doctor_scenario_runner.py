@@ -63,6 +63,7 @@ SCENARIOS = {
             "tests.test_achievement_compact_subprocess_lifecycle",
             "tests.test_achievement_frozen_detail_runtime",
             "tests.test_encyclopedia_success_detail_prewarm",
+            "tests.test_success_async_detail_runtime",
             "tests.test_phase8_preload_benchmark_contract",
         ],
         "metrics": ["first_success_detail_ms", "ui_thread_blocking"],
