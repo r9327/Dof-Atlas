@@ -92,7 +92,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
                     for card in view.featured_cards.values():
-                        self.assertIn("rgba(27, 39, 70, 0.88)", card.styleSheet())
+                        self.assertIn("qlineargradient(", card.styleSheet())
+                        self.assertIn("stop:0 #354971", card.styleSheet())
                     self.assertIsNone(
                         view.findChild(QListWidget, "GuideLibraryUnavailableList")
                     )
