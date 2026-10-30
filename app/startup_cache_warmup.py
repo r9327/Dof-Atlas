@@ -18,7 +18,8 @@ STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
 _MANIFEST_SCHEMA_VERSION = 1
 _DOMAIN_STAMP_VERSION = 1
-_DOMAIN_ORDER = ("guide", "quest", "success")
+# Quest is the Home dependency; Guide and Success may continue after Home paints.
+_DOMAIN_ORDER = ("quest", "guide", "success")
 
 _RAW_QUEST_ROOT = ROOT / "data" / "cache" / "dofus_maps" / "raw" / "doduda_cli"
 _GUIDES_ROOT = ROOT / "data" / "encyclopedia" / "guides"
@@ -418,6 +419,32 @@ def run_warmup(token: str = "") -> dict[str, object]:
             if isinstance(payload.get("timings_ms"), dict)
             else {},
         }
+        # Each domain's atomic, validated cache generation is independently
+        # usable. Publish its readiness immediately instead of making the
+        # Quest UI wait for all unrelated background workers to exit.
+        completed = tuple(name for name in _DOMAIN_ORDER if name in domain_results)
+        partial_tasks = {
+            str(label): dict(task)
+            for name in ("guide", "success")
+            for label, task in (
+                (domain_results.get(name, {}).get("tasks") or {}).items()
+                if isinstance(domain_results.get(name, {}).get("tasks"), dict)
+                else ()
+            )
+            if isinstance(task, dict)
+        }
+        _write_result({
+            "schema_version": SCHEMA_VERSION,
+            "token": token,
+            "status": "running",
+            "completed_domains": list(completed),
+            "quest_count": max(0, int(domain_results.get("quest", {}).get("quest_count") or 0)),
+            "encyclopedia_ready": all(
+                key in partial_tasks
+                for key in ("guide", "guide_items", "success", "success_names")
+            ),
+            "domains": dict(domain_timings),
+        })
 
     tasks: dict[str, dict[str, object]] = {}
     for domain in ("guide", "success"):
@@ -437,6 +464,7 @@ def run_warmup(token: str = "") -> dict[str, object]:
         "schema_version": SCHEMA_VERSION,
         "token": token,
         "status": "ready",
+        "completed_domains": list(_DOMAIN_ORDER),
         "quest_count": quest_count,
         "encyclopedia_ready": encyclopedia_ready,
         "tasks": tasks,

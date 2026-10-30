@@ -338,8 +338,10 @@ def _startup_cache_warmup_stamp() -> tuple[int, int] | None:
     return int(stat.st_mtime_ns), int(stat.st_size)
 
 
-def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]:
-    """Wait from a preload worker for the disposable sibling warmup, never the UI."""
+def _await_startup_cache_warmup(
+    timeout_seconds: float = 75.0, *, required_domain: str = "",
+) -> dict[str, Any]:
+    """Await one validated domain, not unrelated warmup work or the Qt UI."""
 
     if not os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip():
         return {}
@@ -350,7 +352,16 @@ def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]
         if stamp is not None and stamp != last_stamp:
             last_stamp = stamp
             payload = _startup_cache_warmup_payload()
-            if str(payload.get("status") or "") in {"ready", "failed"}:
+            status = str(payload.get("status") or "")
+            if status in {"ready", "failed"}:
+                return payload
+            completed = payload.get("completed_domains")
+            if (
+                required_domain in {"quest", "guide", "success"}
+                and status == "running"
+                and isinstance(completed, list)
+                and required_domain in completed
+            ):
                 return payload
         if monotonic() >= deadline:
             return {}
@@ -360,8 +371,8 @@ def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]
 def _warm_encyclopedia_compact_stores() -> None:
     """Prepare Guide/Success indexes outside the long-lived Atlas process."""
 
-    prewarmed = _await_startup_cache_warmup()
-    if str(prewarmed.get("status") or "") == "ready" and bool(
+    prewarmed = _await_startup_cache_warmup(required_domain="success")
+    if str(prewarmed.get("status") or "") in {"ready", "running"} and bool(
         prewarmed.get("encyclopedia_ready")
     ):
         return
@@ -466,12 +477,12 @@ def guide_progress_state(completed: int, total: int) -> str:
 def _warm_quest_catalogue() -> int:
     """Build/validate the Quest SQLite store outside the long-lived Atlas process."""
 
-    prewarmed = _await_startup_cache_warmup()
+    prewarmed = _await_startup_cache_warmup(required_domain="quest")
     try:
         prewarmed_count = int(prewarmed.get("quest_count") or 0)
     except (TypeError, ValueError):
         prewarmed_count = 0
-    if str(prewarmed.get("status") or "") == "ready" and prewarmed_count > 0:
+    if str(prewarmed.get("status") or "") in {"ready", "running"} and prewarmed_count > 0:
         return prewarmed_count
 
     raw = _run_preload_module_result(
