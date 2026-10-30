@@ -361,6 +361,8 @@ jobs:
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
       - name: Smoke frozen capture helper imports without UAC or network
         run: dist/AtlasApp/AtlasApp.exe --atlas-capture-smoke
+      - name: Smoke the real frozen portable 1976-Quest summary
+        run: dist/AtlasApp/AtlasApp.exe --atlas-prebuilt-quest-smoke
       - name: Smoke real frozen quest parser before accepting a Release
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Smoke real frozen Guides and Guide-item indexes
