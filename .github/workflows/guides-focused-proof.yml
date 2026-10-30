@@ -7,6 +7,9 @@ on:
       - '.github/workflows/guides-focused-proof.yml'
       - 'tests/test_guide_manual_selected_validation.py'
       - 'tests/test_guide_preparation_model.py'
+      - 'tests/test_lazy_quests_detail_cache.py'
+      - 'app/modules/encyclopedia/providers/quest_provider.py'
+      - 'app/modules/encyclopedia/views/guide_ultime_manual_view.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
       - 'app/pages/craft_page.py'
@@ -77,6 +80,11 @@ jobs:
       - name: Portable first-boot Quest SQLite index contracts
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_quest_index_prebuilt
+      - name: Batch Quest Guide-evidence parity (no rich Quest hydration)
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_lazy_quests_detail_cache.QuestEvidenceBatchTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Targeted preparation accounting if present
         shell: pwsh
         run: |

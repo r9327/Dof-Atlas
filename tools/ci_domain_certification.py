@@ -239,6 +239,13 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})
+    if path in {
+        "app/modules/encyclopedia/providers/quest_provider.py",
+        "app/quest_catalog_details.py",
+    }:
+        # Compact Quest evidence is shared by the Guide renderer and its
+        # startup prebuild; keep exact ownership instead of the Quest wildcard.
+        return frozenset({"quests", "guides", "startup"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
     if path == "app/pages/_quests_page_impl.py":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unittest
 import os
 import sqlite3
 import tempfile
@@ -69,58 +70,61 @@ def test_changed_last_quest_id_persists_once() -> None:
 
     base_save.assert_called_once_with(fake, 42)
 
-def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        path = Path(directory) / "details.sqlite3"
-        with sqlite3.connect(path) as connection:
-            connection.execute(
-                "CREATE TABLE quests(id INTEGER PRIMARY KEY, guide_evidence TEXT)"
-            )
-            connection.executemany(
-                "INSERT INTO quests VALUES (?, ?)",
-                [
-                    (qid, json.dumps({"combats": [{"objective_id": qid}]}))
-                    for qid in range(1, 451)
-                ],
-            )
-            connection.execute(
-                "UPDATE quests SET guide_evidence=? WHERE id=4",
-                ("malformed",),
-            )
-        details = QuestDetails(Path(directory), path, ())
-        expected = {
-            qid: details.guide_evidence(qid)
-            for qid in (1, 4, 401, 450)
-        }
-        with patch.object(
-            quest_details_module, "_connect",
-            wraps=quest_details_module._connect,
-        ) as connect:
-            batch = details.guide_evidence_many(
-                [1, 4, 401, 450, 1] + list(range(1, 451))
-            )
-        assert connect.call_count == 1  # 450 records, 2 SQL batches, 1 handle.
-        assert len(batch) == 450
-        assert {qid: batch[qid] for qid in expected} == expected
-        assert details.guide_evidence_many([9999]) == {}
 
-
-def test_quest_provider_keeps_optional_pack_semantics_in_bulk_mode() -> None:
-    batch = Mock(return_value={4: {"combats": [{"objective_id": 77}]}})
-    fake_catalog = SimpleNamespace(
-        guide_evidence_many=batch,
-        guide_evidence=Mock(return_value={}),
-        by_id={4: object()},
-    )
-    with tempfile.TemporaryDirectory() as directory:
-        provider = QuestProvider(catalog=fake_catalog, data_dir=Path(directory))
-        assert provider.guide_evidence_many([4, 4]) == {
-            4: {"combats": [{"objective_id": 77}]}
-        }
-        batch.assert_called_once_with((4,))
-
-        provider._pack_guide_evidence = {4: {"combats": [{"objective_id": 99}]}}
-        with patch.object(provider, "guide_evidence", return_value={"pack": True}) as point:
-            assert provider.guide_evidence_many([4, 4]) == {4: {"pack": True}}
-        point.assert_called_once_with(4)
-        batch.assert_called_once()
+class QuestEvidenceBatchTests(unittest.TestCase):
+    def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "details.sqlite3"
+            with sqlite3.connect(path) as connection:
+                connection.execute(
+                    "CREATE TABLE quests(id INTEGER PRIMARY KEY, guide_evidence TEXT)"
+                )
+                connection.executemany(
+                    "INSERT INTO quests VALUES (?, ?)",
+                    [
+                        (qid, json.dumps({"combats": [{"objective_id": qid}]}))
+                        for qid in range(1, 451)
+                    ],
+                )
+                connection.execute(
+                    "UPDATE quests SET guide_evidence=? WHERE id=4",
+                    ("malformed",),
+                )
+            details = QuestDetails(Path(directory), path, ())
+            expected = {
+                qid: details.guide_evidence(qid)
+                for qid in (1, 4, 401, 450)
+            }
+            with patch.object(
+                quest_details_module, "_connect",
+                wraps=quest_details_module._connect,
+            ) as connect:
+                batch = details.guide_evidence_many(
+                    [1, 4, 401, 450, 1] + list(range(1, 451))
+                )
+            assert connect.call_count == 1  # 450 records, 2 SQL batches, 1 handle.
+            assert len(batch) == 450
+            assert {qid: batch[qid] for qid in expected} == expected
+            assert details.guide_evidence_many([9999]) == {}
+    
+    
+    def test_quest_provider_keeps_optional_pack_semantics_in_bulk_mode(self) -> None:
+        batch = Mock(return_value={4: {"combats": [{"objective_id": 77}]}})
+        fake_catalog = SimpleNamespace(
+            guide_evidence_many=batch,
+            guide_evidence=Mock(return_value={}),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=fake_catalog, data_dir=Path(directory))
+            assert provider.guide_evidence_many([4, 4]) == {
+                4: {"combats": [{"objective_id": 77}]}
+            }
+            batch.assert_called_once_with((4,))
+    
+            provider._pack_guide_evidence = {4: {"combats": [{"objective_id": 99}]}}
+            with patch.object(provider, "guide_evidence", return_value={"pack": True}) as point:
+                assert provider.guide_evidence_many([4, 4]) == {4: {"pack": True}}
+            point.assert_called_once_with(4)
+            batch.assert_called_once()
+    

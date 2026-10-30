@@ -48,6 +48,17 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(path), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
+    def test_batch_quest_evidence_has_guide_and_startup_consumers(self):
+        for path in (
+            "app/quest_catalog_details.py",
+            "app/modules/encyclopedia/providers/quest_provider.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"quests", "guides", "startup"}))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertFalse(owners_for("app/quest_details_unreviewed.py"))
+        self.assertEqual(self.route(["app/quest_details_unreviewed.py"])["status"], "BLOCKED")
+
     def test_achievement_qt_view_has_cross_domain_ownership_without_wildcards(self):
         path = "app/modules/encyclopedia/views/achievements_view.py"
         self.assertEqual(owners_for(path), frozenset({"quests", "guides", "ui"}))
