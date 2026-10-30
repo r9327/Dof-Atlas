@@ -36,6 +36,19 @@ def _id_collision_candidates(payload: Any) -> tuple[list[dict[str, Any]], int]:
     they identify candidate containers, not evidence that IDs must be unique
     across different lists or entity types.
     """
+    def children(path: str, value: list[Any] | dict[str, Any]):
+        # Own function frame pins path/value for each active iterator; an
+        # inline generator would capture the outer loop's changing locals.
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                if isinstance(child, (dict, list)):
+                    yield f"{path}/{index}", child
+        else:
+            for key, child in value.items():
+                if isinstance(child, (dict, list)):
+                    escaped = str(key).replace("~", "~0").replace("/", "~1")
+                    yield f"{path}/{escaped}", child
+
     collisions: list[dict[str, Any]] = []
     lists_inspected = 0
     stack = [iter([("$root", payload)])]
@@ -52,17 +65,9 @@ def _id_collision_candidates(payload: Any) -> tuple[list[dict[str, Any]], int]:
                 collisions.append({
                     "collection": path, "ids": ids, "kind": "DUPLICATE_ID_REVIEW",
                 })
-            stack.append((
-                (f"{path}/{index}", child)
-                for index, child in enumerate(value)
-                if isinstance(child, (dict, list))
-            ))
+            stack.append(children(path, value))
         elif isinstance(value, dict):
-            stack.append((
-                (f"{path}/{str(key).replace('~', '~0').replace('/', '~1')}", child)
-                for key, child in value.items()
-                if isinstance(child, (dict, list))
-            ))
+            stack.append(children(path, value))
     return collisions, lists_inspected
 
 
