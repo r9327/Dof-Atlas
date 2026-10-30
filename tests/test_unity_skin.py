@@ -164,6 +164,14 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
 
+    def test_home_uses_canonical_transparent_logo_not_raw_png(self) -> None:
+        home_source = (Path(__file__).resolve().parents[1] / "app/pages/home_page.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("self.almanax_icon.setIcon(atlas_application_icon())", home_source)
+        self.assertIn("atlas_application_icon() if selected == fallback", home_source)
+        self.assertNotIn("self.almanax_icon.setIcon(QIcon(str(LOGO_PATH)))", home_source)
+
     def test_application_has_only_unity_palette(self) -> None:
         from app.ui import theme
         self.assertEqual(theme.PALETTE["BG"], UNITY_PALETTE["BG"])
