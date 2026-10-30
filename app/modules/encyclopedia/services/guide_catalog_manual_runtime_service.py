@@ -129,7 +129,9 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.manual_chapters = (self.guide_id,)
         self.manual_preview_error = ""
 
-    def _quest_segments(\n        self, guide_step, quest, *, finalize: bool = True,\n    ) -> list[dict[str, Any]]:
+    def _quest_segments(
+        self, guide_step, quest, *, finalize: bool = True,
+    ) -> list[dict[str, Any]]:
         quest_id = int(quest.id)
         quest_name = str(getattr(quest, "name", "") or f"Quête #{quest_id}")
         start = quest_start_info(quest)
