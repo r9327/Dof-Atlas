@@ -202,3 +202,13 @@ Chaque lot comporte : (a) inventaire des chemins/source et baseline exacte, (b) 
 - **Avant release** : validation du launcher + fenêtres Qt **Windows natif**, sur EXE exact-SHA et cas de fallback ; preuve par DPI et état, audit d'identité visuelle finale.
 
 **Statut : `TODO`.** L'ajout de cette exigence au document et à la PR ne constitue pas l'implémentation du moteur d'audit visuel ou la certification d'exhaustivité.
+
+
+## Lot implémenté : inventaire statique Doctor (à certifier)
+
+Commits de la PR #303 : `tools/atlas_doctor_lib/full_scope.py`, commande `full-scope` de `tools/atlas_doctor.py`, tests `tests/test_atlas_doctor_full_scope.py`, exécution stdlib Draft dans `scoped-pr-ci.yml`.
+
+- `python -m tools.atlas_doctor full-scope --json --output artifacts/doctor_full_scope/report.json` : parcourt **tous les Python suivis Git**, sans plafonds 150 fichiers/4 000 fonctions ni limite source 512 Kio, inventorie les fichiers Git suivis par famille (JSON, QSS, assets), classe les doublons AST, exceptions silencieuses, imports internes suspects et styles QSS locaux. Source erronée, absente ou worktree sale = `BLOCKED` ; SHA exact possible avec `--expected-sha`.
+- `python -m tools.atlas_doctor full-scope --with-graph --json` : réutilise le graphe Graphify **déjà construit et exact-SHA**, audite toutes les sections paginées existantes sans troncature et refuse `BLOCKED` si le graphe manque/est périmé ; ne génère pas le graphe implicitement.
+- Les JSON/assets sont actuellement **inventoriés**, non parsés/vérifiés en totalité ; les signaux Qt dynamiques, le rendu Unity et le launcher Windows natifs sont toujours `NOT_RUN`. Le verdict global reste donc `REVIEW` même si la couverture statique Python vaut `PASS` ; aucune certification de l'application entière n'est revendiquée.
+- Les tests couvrent des fixtures dépassant les anciens plafonds, les mauvaises sources, le SHA, les rapports confiné sous `artifacts/`, la couche style statique, le graphe manquant et l'intégration CLI. **Ne pas remplacer une mesure réelle par une hypothèse statique.**

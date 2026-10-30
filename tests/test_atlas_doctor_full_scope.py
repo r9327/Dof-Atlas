@@ -65,8 +65,11 @@ class DoctorFullScopeTests(unittest.TestCase):
         self._file("app/widgets.py", '''def update(button):
     button.setStyleSheet("QPushButton { color: #FFFFFF; }")
 ''')
+        self._file("data/quests.json", '{"quests": []}\n')
         sha = self._commit()
         report = audit_full_scope(self.root, expected_sha=sha)
+        self.assertEqual(report["tracked_file_inventory"]["categories"]["json"], 1)
+        self.assertEqual(report["tracked_file_inventory"]["json_content_coverage"], "NOT_RUN")
         names = {row["kind"] for row in report["unity_style"]["static_candidates"]}
         self.assertIn("LOCAL_QSS_OVERRIDE_REVIEW", names)
         self.assertIn("LOCAL_LITERAL_QSS_COLOR_REVIEW", names)
@@ -116,6 +119,25 @@ class DoctorFullScopeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             write_full_scope_report(self.root, Path("app/overwritten.json"), report)
 
+
+
+    def test_with_graph_requires_current_exact_sha_graph(self):
+        self._unity()
+        self._file("app/ok.py", "def ok():\n    return 1\n")
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_graph=True)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["graph_architecture_audit"]["status"], "BLOCKED")
+        self.assertFalse(report["complete_application_certified"])
+
+    def test_dirty_valid_checkout_cannot_claim_sha_bound_source_pass(self):
+        self._unity()
+        self._file("app/ok.py", "answer = 1\n")
+        sha = self._commit()
+        self._file("app/ok.py", "answer = 2\n")
+        report = audit_full_scope(self.root, expected_sha=sha)
+        self.assertEqual(report["source_coverage"]["status"], "BLOCKED")
+        self.assertTrue(report["source_coverage"]["worktree_dirty"])
 
     def test_doctor_cli_exposes_full_scope_without_claiming_completion(self):
         import contextlib

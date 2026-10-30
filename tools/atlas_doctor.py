@@ -412,7 +412,8 @@ def command_full_scope(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.full_scope import (
         audit_full_scope, write_full_scope_report,
     )
-    result = audit_full_scope(root, expected_sha=args.expected_sha)
+    result = audit_full_scope(root, expected_sha=args.expected_sha,
+                              with_graph=args.with_graph)
     if args.output:
         try:
             path = write_full_scope_report(root, args.output, result)
@@ -1001,6 +1002,8 @@ def build_parser() -> argparse.ArgumentParser:
     full_scope = sub.add_parser(
         'full-scope', help='Inventaire complet des sources Python et triage du style Unity, sans runtime.')
     full_scope.add_argument('--expected-sha', help='Refuser un checkout different de ce SHA Git exact.')
+    full_scope.add_argument('--with-graph', action='store_true',
+                            help='Inclure tous les candidats du graphe Graphify exact SHA, sans rebuild.')
     full_scope.add_argument('--output', type=Path,
                             help='Ecrire les preuves JSON sous artifacts/ uniquement (opt-in).')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')

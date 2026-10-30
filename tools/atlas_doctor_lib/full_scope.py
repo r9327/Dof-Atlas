@@ -92,7 +92,34 @@ def _silent_exceptions(path: str, tree: ast.AST) -> list[dict[str, Any]]:
     return hits
 
 
-def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str, Any]:
+
+def _current_graph_audit(root: Path, sha: str) -> dict[str, Any]:
+    """Reuse Doctor's exact-SHA Graphify audit, without rebuilding or truncation."""
+    try:
+        from .architecture import graph_status
+        from .graph_audit import audit_current_graph
+        evidence = graph_status(root)
+        if evidence.get("status") != "PASS":
+            return {
+                "status": "BLOCKED",
+                "reason": evidence.get("reason", "Current Graphify graph unavailable"),
+                "rebuild_command": evidence.get("rebuild_command"),
+            }
+        report = audit_current_graph(root, graph_evidence=evidence, all_candidates=True)
+        if report.get("candidate_sha") != sha:
+            return {"status": "BLOCKED", "reason": "Graphify candidate SHA differs"}
+        if report.get("status") == "BLOCKED":
+            return report
+        pagination = (report.get("limits") or {}).get("pagination") or {}
+        if any(section.get("truncated") for section in pagination.values()):
+            return {"status": "BLOCKED", "reason": "Graphify candidate section truncated"}
+        return report
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return {"status": "BLOCKED", "reason": str(exc)}
+
+
+def audit_full_scope(root: Path, *, expected_sha: str | None = None,
+                     with_graph: bool = False) -> dict[str, Any]:
     """Scan *every* tracked Python file, fail closed on missing or unreadable ones.
 
     SOURCE_COVERED does not imply runtime, Graphify, UI or native certification.
@@ -187,14 +214,18 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
         row["occurrences"][0]["line"],
     ))
     missing_files = sorted(set(paths) - set(inspected))
-    source_status = "PASS" if not missing_files and not failed else "BLOCKED"
+    source_status = "PASS" if not missing_files and not failed and clean else "BLOCKED"
     style_files_present = [path for path in _STYLE_FILES if path in inspected]
     style_status = "REVIEW" if len(style_files_present) == len(_STYLE_FILES) else "BLOCKED"
+    graph = _current_graph_audit(root, sha) if with_graph else {
+        "status": "NOT_RUN", "reason": "Use --with-graph with a current exact-SHA Graphify graph."
+    }
+    graph_failed = with_graph and graph.get("status") in {"FAIL", "BLOCKED"}
     return {
         "schema_version": 1, "kind": "doctor_full_scope_audit",
         "candidate_sha": sha, "worktree_clean": clean,
         # NO false global PASS: dynamic callbacks, EXE, UI, user paths NOT RUN.
-        "status": "BLOCKED" if source_status == "BLOCKED" else "REVIEW",
+        "status": "BLOCKED" if source_status == "BLOCKED" or graph_failed else "REVIEW",
         "tracked_file_inventory": {
             "status": "INVENTORIED_NOT_CONTENT_CERTIFIED",
             "tracked_total": len(all_paths),
@@ -208,6 +239,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
         },
         "source_coverage": {
             "status": source_status,
+            "worktree_dirty": not clean,
             "total": len(paths), "inspected": len(inspected),
             "missing": missing_files, "parse_errors": failed,
             "truncated": False, "file_count_limit": None, "function_count_limit": None,
@@ -242,6 +274,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
             "visual_certified": False,
         },
         "runtime_scenario_coverage": "NOT_RUN",
+        "graph_architecture_audit": graph,
         "graph_runtime_correlation": "NOT_RUN",
         "tests_executed": False, "benchmark_executed": False,
         "complete_application_certified": False,
