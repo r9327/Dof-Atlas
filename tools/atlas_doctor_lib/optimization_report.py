@@ -285,14 +285,17 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
     target = (root / output).resolve()
     if target.suffix != ".json" or not target.is_relative_to((root / "artifacts").resolve()):
         raise ValueError("Optimization report output must be a JSON file under artifacts/")
-    # Query the single canonical repository tool catalog. Correlation only
-    # recommends safe tools; it never dispatches or executes them.
-    from tools.tool_catalog import catalog
-    tooling = catalog(root)
+    # Reuse the existing Agent catalog cache (exact Git worktree digest) so
+    # repeated Doctor reports do not rescan every repository tool. This is
+    # discovery metadata only; never reuse test/benchmark verdicts as a cache.
+    from tools.agent_planner import _planning_catalog
+    catalog_cache: dict[str, Any] = {}
+    tooling = _planning_catalog(root, cache_info=catalog_cache)
     report = optimization_report(sha, load(root, app_report) or {},
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
         tool_catalog_report=tooling)
+    report["tool_catalog_cache"] = catalog_cache
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     target.with_suffix(".md").write_text(render_markdown(report), encoding="utf-8")
