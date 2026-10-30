@@ -160,6 +160,126 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertFalse(doc["is_certification"])
         self.assertIn("mesure unique", render_markdown(doc))
 
+    def test_repeated_phase8_pairs_detect_consistent_regression_without_certification(self):
+        from tools.atlas_doctor_lib.optimization_report import repeated_phase8_first_use
+
+        before = []
+        after = []
+        for i, value in enumerate([5000, 5300, 4800]):
+            baseline = phase8_report(OLD, success_ms=1000)
+            candidate = phase8_report(HEAD, success_ms=value)
+            for artifact in (baseline, candidate):
+                artifact["run_id"] = "windows-run-" + str(i)
+                artifact["runner_id"] = "same-windows-profile"
+            before.append(baseline)
+            after.append(candidate)
+        result = repeated_phase8_first_use(HEAD, before, after)
+        self.assertEqual(result["status"], "REPEATED_DIRECTIONAL_ONLY")
+        self.assertEqual(result["direction"], "REPEATED_SLOWER")
+        self.assertEqual(result["repeat_count"], 3)
+        self.assertEqual(result["median_net_gain_ms"], -4000.0)
+        self.assertEqual(result["p95"], "NOT_STABLE_UNDER_20_REPEATS")
+        self.assertFalse(result["certified_gain"])
+        doc = optimization_report(
+            HEAD, sample(),
+            phase8_baseline_runs=before,
+            phase8_candidate_runs=after,
+        )
+        self.assertIn("PHASE8_REPEAT_REGRESSION",
+                      {r["id"] for r in doc["priority_findings"]})
+        self.assertIn("paires: 3", render_markdown(doc))
+        self.assertFalse(doc["is_certification"])
+
+    def test_repeated_phase8_rejects_missing_pairs_duplicate_runs_and_mismatch(self):
+        from tools.atlas_doctor_lib.optimization_report import repeated_phase8_first_use
+
+        baselines = []
+        candidates = []
+        for i in range(3):
+            b, a = phase8_report(OLD), phase8_report(HEAD)
+            b.update({"run_id": str(i), "runner_id": "windows"})
+            a.update({"run_id": str(i), "runner_id": "windows"})
+            baselines.append(b)
+            candidates.append(a)
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines[:2], candidates[:2])["status"],
+            "INSUFFICIENT_REPEATS",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["run_id"] = "duplicate-or-missing-id"
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["metrics"] = dict(candidates[1]["metrics"])
+        bad[1]["metrics"]["deep_quest_detail_ms"] = True
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["metrics"] = dict(candidates[1]["metrics"])
+        bad[1]["metrics"]["deep_first_content"] = dict(
+            candidates[1]["metrics"]["deep_first_content"]
+        )
+        bad[1]["metrics"]["deep_first_content"]["quest_id"] = 999
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, None)["status"],
+            "INSUFFICIENT_REPEATS",
+        )
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, None, None)["status"], "NOT_RUN",
+        )
+
+    def test_repeated_phase8_artifacts_load_through_one_bounded_report_entrypoint(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "app.json").write_text(
+                json.dumps(sample()), encoding="utf-8",
+            )
+            b_paths, a_paths = [], []
+            for i in range(3):
+                before, after = phase8_report(OLD, success_ms=5000), phase8_report(
+                    HEAD, success_ms=2000,
+                )
+                for payload in (before, after):
+                    payload["run_id"] = "run_" + str(i)
+                    payload["runner_id"] = "test-runner"
+                b_path = artifacts / f"before-{i}.json"
+                a_path = artifacts / f"after-{i}.json"
+                b_path.write_text(json.dumps(before), encoding="utf-8")
+                a_path.write_text(json.dumps(after), encoding="utf-8")
+                b_paths.append(b_path.relative_to(root))
+                a_paths.append(a_path.relative_to(root))
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}),
+            ):
+                report = generate(
+                    root, sha=HEAD,
+                    app_report=Path("artifacts/app.json"),
+                    phase8_repeat_baselines=b_paths,
+                    phase8_repeat_candidates=a_paths,
+                )
+            result = report["phase8_repeated_comparison"]
+            self.assertEqual(result["direction"], "REPEATED_FASTER")
+            self.assertEqual(result["median_net_gain_ms"], 3000)
+            self.assertFalse(result["certified_gain"])
+            self.assertFalse(any(
+                r["id"] == "PHASE8_REPEAT_REGRESSION"
+                for r in report["priority_findings"]
+            ))
+
     def test_phase8_comparison_fails_closed_on_fixture_or_environment_mismatch(self):
         from tools.atlas_doctor_lib.optimization_report import comparable_phase8_first_use
 
