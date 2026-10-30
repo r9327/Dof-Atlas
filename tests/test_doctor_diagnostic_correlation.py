@@ -293,6 +293,57 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         })
         self.assertFalse(plan["tools_executed"])
 
+    def test_main_thread_success_wait_is_measured_not_guessed(self):
+        phase8 = {"metrics": {
+            "git_head": SHA,
+            "deep_first_content": {
+                "all_details_rendered": True,
+                "quest_id": 18, "achievement_id": 20, "guide_id": "bonta",
+                "achievement_detail_phases_ms": {
+                    "provider_last_detail_breakdown_ms": {
+                        "thread": "MainThread", "subprocess_path_used": True,
+                        "synchronous_subprocess_ms": 5100,
+                        "decode_ms": 72, "cache_source": "cold",
+                    }
+                },
+            },
+            "deep_quest_detail_ms": 7080,
+            "deep_achievement_detail_ms": 5430,
+            "deep_guide_detail_ms": 2480,
+            "deep_first_content_total_ms": 14990,
+        }}
+        result = correlate_diagnostics(SHA, app(), phase8=phase8,
+                                       catalog_report=catalog())
+        evidence = {item["id"]: item for item in result["hypotheses"]}
+        self.assertEqual(evidence["SUCCESS_MAIN_THREAD_SUBPROCESS"]["priority"], "P0")
+        self.assertEqual(
+            evidence["SUCCESS_MAIN_THREAD_SUBPROCESS"]["evidence_strength"],
+            "SINGLE_REPORT_LEAD",
+        )
+        self.assertEqual(
+            evidence["SUCCESS_MAIN_THREAD_SUBPROCESS"]["observations"][1]["value"],
+            5100,
+        )
+        self.assertFalse(evidence["SUCCESS_MAIN_THREAD_SUBPROCESS"]["root_cause_proven"])
+
+        # Misaligned subprocess timings are not laundered into a diagnosis.
+        phase8["metrics"]["deep_first_content"]["achievement_detail_phases_ms"][
+            "provider_last_detail_breakdown_ms"
+        ]["synchronous_subprocess_ms"] = 9000
+        invalid = correlate_diagnostics(SHA, app(), phase8=phase8)
+        self.assertIn("phase8_first_use: SUCCESS_WORKER_TIMING_MISMATCH",
+                      invalid["evidence_gaps"])
+        self.assertNotIn("SUCCESS_MAIN_THREAD_SUBPROCESS",
+                         {x["id"] for x in invalid["hypotheses"]})
+
+        # A worker-thread execution is not a blocking UI call.
+        phase8["metrics"]["deep_first_content"]["achievement_detail_phases_ms"][
+            "provider_last_detail_breakdown_ms"
+        ].update({"synchronous_subprocess_ms": 5100, "thread": "atlas-achievement"})
+        background = correlate_diagnostics(SHA, app(), phase8=phase8)
+        self.assertNotIn("SUCCESS_MAIN_THREAD_SUBPROCESS",
+                         {x["id"] for x in background["hypotheses"]})
+
     def test_phase8_incomplete_or_stale_data_cannot_claim_first_detail_diagnosis(self):
         complete = {
             "git_head": SHA,
