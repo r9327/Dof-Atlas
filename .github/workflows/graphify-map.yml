@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dof-atlas-graphify-${{ github.event.pull_request.number || github.ref }}
+  group: dof-atlas-graphify-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -200,6 +200,51 @@ jobs:
           print("Doctor interactive graph: exact SHA PASS; " +
                 str(metrics["interactive_nodes"]) + " interactive nodes")
           PY
+
+      - name: Export measured Graphify topology into Doctor shared evidence
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path("graphify-out")
+          graph_file = root / "atlas_graph_metrics.json"
+          audit_file = root / "doctor_graph_audit.json"
+          if not graph_file.is_file() or not audit_file.is_file():
+              raise SystemExit("Graphify metrics or real Doctor graph audit missing")
+          metrics = json.loads(graph_file.read_text(encoding="utf-8"))
+          audit = json.loads(audit_file.read_text(encoding="utf-8"))
+          sha = os.environ["CANDIDATE_SHA"]
+          status = "PASS" if (
+              metrics.get("candidate_sha") == sha
+              and metrics.get("node_count", 0) > 0
+              and metrics.get("relation_count", 0) > 0
+              and metrics.get("missing_tracked_python_files") == 0
+              and audit.get("status") in ("PASS", "REVIEW")
+              and not audit.get("blocking_findings")
+          ) else "FAIL"
+          payload = {
+              "kind": "atlas_doctor_graphify_specialist",
+              "candidate_sha": sha, "status": status,
+              "metrics": metrics,
+              "audit_status": audit.get("status"),
+              "blocking_findings": audit.get("blocking_findings", []),
+              "scope": "static AST/dependency topology, not runtime resource attribution",
+          }
+          (root / "doctor_shared_evidence.json").write_text(
+              json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          if status != "PASS":
+              raise SystemExit("Doctor shared graph evidence failed")
+          PY
+
+      - name: Archive small Graphify specialist report for Doctor audit bus
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-doctor-graph-summary-${{ env.CANDIDATE_SHA }}
+          path: graphify-out/doctor_shared_evidence.json
+          if-no-files-found: warn
 
       - name: Upload visual map and graph
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

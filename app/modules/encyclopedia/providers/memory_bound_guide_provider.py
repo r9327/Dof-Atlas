@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
+from uuid import uuid4
 from typing import Any, Iterable
 
 from app.constants import ROOT_DIR
@@ -807,7 +809,9 @@ def _build_compact_guide_cache(path: Path) -> int:
     provider._load_in_process()
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    # All Atlas instances can rebuild this shared source cache concurrently.
+    # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
 
     def line(payload: dict[str, object]) -> str:
         return json.dumps(

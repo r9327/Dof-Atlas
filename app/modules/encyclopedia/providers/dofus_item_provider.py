@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import struct
 import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
+from uuid import uuid4
 from typing import Any
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
@@ -706,7 +708,9 @@ def _build_guide_items_index(path: Path) -> int:
     }
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    # All Atlas instances can rebuild this shared source cache concurrently.
+    # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     temporary.write_text(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",

@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dof-atlas-phase8-preload-${{ github.event.pull_request.number || github.ref }}
+  group: dof-atlas-phase8-preload-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -71,6 +71,11 @@ jobs:
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Check comparable Craft preload benchmark contracts
+        run: |
+          python -m unittest -v tests.test_phase8_preload_benchmark_contract
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Prepare comparable benchmark inputs
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts/phase8_preload" | Out-Null
@@ -87,6 +92,30 @@ jobs:
           python -m scripts.windows.quest_assets --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # The download is a distribution seed, not the live SQLite path.
+          # Materialize the *same* validated Craft database for base and
+          # candidate inside this disposable checkout; never touch user data.
+          @'
+          from pathlib import Path
+          from shutil import copy2
+          from scripts.windows.craft_seed import validate_seed
+          from local_dofus_data.config import DEFAULT_CONFIG
+          from app.craft_preload import build_compact_craft_preload
+
+          seed = Path("data/bootstrap/craft_seed.sqlite")
+          validate_seed(seed)
+          target = DEFAULT_CONFIG.sqlite_path
+          target.parent.mkdir(parents=True, exist_ok=True)
+          if target.exists():
+              raise SystemExit("Refusing to replace existing Craft SQLite in the runner")
+          copy2(seed, target)
+          validate_seed(target)
+          payload = build_compact_craft_preload()
+          if payload.get("_prepared") is not True or payload.get("errors"):
+              raise SystemExit("Craft preload preflight: " + str(payload.get("errors") or payload.get("_skipped_reason")))
+          '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           @'
@@ -193,9 +222,13 @@ jobs:
           if missing:
               raise SystemExit("candidate benchmark missing metrics: " + ", ".join(missing))
 
-          states = after_metrics.get("preload_states_after") or {}
-          if states and any(str(value) not in {"READY", "FAILED"} for value in states.values()):
-              raise SystemExit(f"candidate preload did not reach terminal states: {states!r}")
+          required_states = {"quests", "encyclopedia", "craft"}
+          for measured_ref, metrics in (("base", before_metrics), ("candidate", after_metrics)):
+              states = metrics.get("preload_states_after") or {}
+              if set(states) != required_states or any(
+                  str(value) != "READY" for value in states.values()
+              ):
+                  raise SystemExit(f"{measured_ref} preload not fully READY: {states!r}")
 
           rss_after_preload = float(after_metrics["rss_after_preload_mb"])
           if rss_after_preload > 95.0:

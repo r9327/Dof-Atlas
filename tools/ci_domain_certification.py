@@ -76,6 +76,7 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/atlas_doctor.py",
     "tools/atlas_perf_attribution.py",
     "tools/benchmark_atlas_exhaustive.py",
+    "tools/doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
 })
 
@@ -132,6 +133,19 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
         return frozenset({"craft", "quests", "guides", "data"})
+    # Exact reviewed shared-cache ownership. These two implementations change
+    # startup and the Quest/Success/Guide cache seen by application consumers.
+    # Do not generalize to all app/* or encyclopedia services: unknown code
+    # must still BLOCK modular certification until separately reviewed.
+    if path == "app/startup_cache_warmup.py":
+        return frozenset({"startup", "quests", "guides", "data"})
+    if path == "app/modules/encyclopedia/services/achievement_index_warmup.py":
+        return frozenset({"startup", "quests", "guides"})
+    if path == "app/core/cache_write_lock.py":
+        # Shared by compact Success and name-index writers across processes.
+        # The same persisted cache is consumed by startup, Quests and Guides.
+        # Exact path only: new app/core helpers must still fail closed.
+        return frozenset({"startup", "quests", "guides", "data"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
