@@ -135,6 +135,37 @@ def _source_provenance(plan: dict[str, Any], state: dict[str, Any],
     }
 
 
+def _verified_check_modules(result: dict[str, Any]) -> list[str]:
+    """Export names ONLY if the focused unittest process actually passed.
+
+    A boolean tests_executed=True is not proof of which tests ran. Reconcile
+    execution and selection modules from the same bounded development run.
+    """
+    if not isinstance(result, dict) or result.get("status") != "FOCUSED_CHECKED":
+        return []
+    execution = result.get("targeted_test_execution")
+    selection = result.get("targeted_test_selection")
+    if not isinstance(execution, dict) or not isinstance(selection, dict):
+        return []
+    modules = execution.get("modules")
+    selected = selection.get("selected")
+    if (execution.get("status") != "PASS"
+            or execution.get("tests_executed") is not True
+            or result.get("tests_executed") is not True
+            or type(execution.get("exit_code")) is not int
+            or execution["exit_code"] != 0
+            or selection.get("status") != "READY"
+            or not isinstance(modules, list) or not 1 <= len(modules) <= 100
+            or modules != selected
+            or any(type(name) is not str or not 1 <= len(name) <= 240
+                   or not name.startswith("tests.")
+                   or not all(part.isidentifier() for part in name.split("."))
+                   for name in modules)
+            or len(set(modules)) != len(modules)):
+        return []
+    return modules
+
+
 def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
               plan: dict[str, Any], result: dict[str, Any] | None = None) -> dict[str, Any]:
     from .guardian_packs import guardian_plan
@@ -143,6 +174,12 @@ def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
     result = result or {}
     raw_status = result.get("status", plan.get("status", "REVIEW"))
     status = _status(raw_status, automation_safe=bool(plan.get("automation_safe")))
+    # Never turn an unqualified boolean into scoped PASS. In the focused
+    # development path, independently reconcile the actual unittest module
+    # list with the modules selected before running it.
+    check_modules = _verified_check_modules(result) if action == "check" else []
+    if action == "check" and status == "PASS" and not check_modules:
+        status = "REVIEW"
     requested = _unique(paths)
     planned = _unique(plan.get("paths", requested))
     checks = _plan_summary(plan)
@@ -200,7 +237,7 @@ def _envelope(root: Path, *, action: str, paths: list[str], base_ref: str,
         payload["execution"] = {
             "status": result.get("status", "NOT_RUN"),
             "checks": result.get("checks", []),
-            "tests_executed": result.get("tests_executed", []),
+            "tests_executed": check_modules if action == "check" else result.get("tests_executed", []),
             "duration_ms": result.get("duration_ms"),
         }
     if action == "explain":

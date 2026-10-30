@@ -236,6 +236,9 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui", "craft", "quests", "guides", "identity", "data"})
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
+        if leaf == "atlas_doctor_agent_protocol":
+            # Exact reviewed Doctor named test suite merged from #290.
+            return frozenset({"ci"})
         if leaf == "truthful_module_availability":
             # Existing cross-domain regression contract: truthful Craft
             # preload/startup state plus the concrete Qt availability views.
