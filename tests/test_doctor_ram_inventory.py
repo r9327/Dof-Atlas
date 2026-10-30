@@ -1,7 +1,10 @@
 """Doctor RAM inventory: provenance, object ownership and partial status."""
 from __future__ import annotations
 
+import json
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 from PySide6.QtCore import QEvent
@@ -10,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
 from tools.atlas_doctor_lib.ram_inventory import (
     ROUTE_CHECKPOINTS, ram_checkpoints_summary, ram_ownership_snapshot,
+    ram_scope_status,
 )
 
 
@@ -70,6 +74,29 @@ class DoctorRamInventoryTests(unittest.TestCase):
         self.assertEqual(result["home_widget_count_delta"], 1)
         self.assertNotIn("bad", result["checkpoints"])
         self.assertNotIn("home_rss_delta_mib", ram_checkpoints_summary([]))
+
+    def test_fifty_workstreams_have_exact_scope_and_partial_verdict(self):
+        result = ram_scope_status()
+        self.assertEqual(result["status"], "PARTIAL")
+        self.assertEqual(result["workstreams_total"], 50)
+        self.assertEqual(result["missing_ids"], [])
+        self.assertGreater(result["not_instrumented"], 0)
+        self.assertFalse(result["native_heap_attribution_confirmed"])
+        self.assertFalse(result["real_windows_release_certified"])
+
+    def test_scope_rejects_missing_and_duplicate_ids_without_false_complete(self):
+        manifest = Path(__file__).resolve().parents[1] / (
+            "docs/performance/atlas-ram-inventory-v1.json"
+        )
+        with TemporaryDirectory() as tmp:
+            file = Path(tmp) / "scope.json"
+            rows = json.loads(manifest.read_text(encoding="utf-8"))
+            rows["workstreams"].pop()
+            file.write_text(json.dumps(rows), encoding="utf-8")
+            self.assertEqual(ram_scope_status(file)["status"], "BLOCKED")
+            rows["workstreams"].append(dict(rows["workstreams"][-1]))
+            file.write_text(json.dumps(rows), encoding="utf-8")
+            self.assertEqual(ram_scope_status(file)["status"], "BLOCKED")
 
     def test_ram_checkpoints_are_bounded_not_per_widget_history(self):
         self.assertEqual(ROUTE_CHECKPOINTS,
