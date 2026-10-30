@@ -516,6 +516,22 @@ def main() -> int:
             "python": sys.version.split()[0],
             "qt_qpa_platform": os.environ.get("QT_QPA_PLATFORM", ""),
         },
+        # Paired base/candidate runs in one GitHub Actions job share this
+        # attempt ID and runner label. Local operators can explicitly supply
+        # the same pair ID for both invocations. These are metadata, not
+        # proof of identical CPU load or successful certification.
+        "run_id": (
+            os.environ.get("ATLAS_BENCH_PAIR_ID")
+            or (
+                os.environ["GITHUB_RUN_ID"] + "-" +
+                os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+                if os.environ.get("GITHUB_RUN_ID") else None
+            )
+        ),
+        "runner_id": (
+            os.environ.get("ATLAS_BENCH_RUNNER_ID")
+            or os.environ.get("RUNNER_NAME")
+        ),
         "metrics": measure(),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
