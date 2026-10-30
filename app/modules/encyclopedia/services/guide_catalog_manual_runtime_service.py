@@ -356,8 +356,11 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         # A cold route previously made 198 separate _load_source calls on
         # deferred Quest records. Reuse one source pass for at most eight IDs,
         # then immediately project that batch into route segments.
-        catalog = self.quest_provider.get_catalog()
-        prefetch = getattr(catalog, "warm_details_batch", None)
+        prefetch = None
+        if type(self.quest_provider) is QuestProvider:
+            catalog = self.quest_provider.get_catalog()
+            if bool(getattr(catalog, "deferred_details", False)):
+                prefetch = getattr(catalog, "warm_details_batch", None)
         for offset in range(0, len(candidates), 8):
             batch = candidates[offset:offset + 8]
             if callable(prefetch):
