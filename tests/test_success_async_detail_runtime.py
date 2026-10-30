@@ -122,6 +122,39 @@ class SuccessAsyncDetailRuntimeTests(unittest.TestCase):
         self.assertTrue(self.pump(lambda: not view._detail_worker_running))
         self.assertEqual([id_ for id_, _ in rendered], [2])
 
+    def test_50_rapid_clicks_keep_only_one_active_worker(self):
+        view, provider, rendered = self.view()
+        entered = threading.Event()
+        release = threading.Event()
+        active = [0]
+        peak = [0]
+        calls = []
+
+        def read(identifier):
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+            calls.append(identifier)
+            try:
+                if identifier == 1:
+                    entered.set()
+                    release.wait(timeout=3)
+                return SimpleNamespace(id=identifier)
+            finally:
+                active[0] -= 1
+
+        provider.get_detail_by_id.side_effect = read
+        view.show_achievement(1)
+        self.assertTrue(entered.wait(timeout=2))
+        for identifier in range(2, 52):
+            view.show_achievement(identifier)
+        self.assertFalse(view._detail_open)
+        release.set()
+        self.assertTrue(self.pump(lambda: rendered and rendered[-1][0] == 51))
+        self.assertEqual(calls, [1, 51])
+        self.assertEqual(peak, [1])
+        self.assertEqual([item[0] for item in rendered], [51])
+        self.assertFalse(view._detail_worker_running)
+
     def test_closed_panel_ignores_late_async_result(self):
         view, provider, rendered = self.view()
         entered = threading.Event()
