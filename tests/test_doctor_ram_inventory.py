@@ -60,6 +60,9 @@ class DoctorRamInventoryTests(unittest.TestCase):
                 "memory": {"tree_rss_mb": rss, "process_rss_mb": rss},
                 "ownership": {
                     "status": "OBSERVED_PARTIAL", "qt": {"total_live_widgets": widgets},
+                    "windows_process_private": {
+                        "status": "OBSERVED", "private_commit_mib": rss + 5.0,
+                    },
                 },
             }
 
@@ -71,6 +74,7 @@ class DoctorRamInventoryTests(unittest.TestCase):
         ])
         self.assertEqual(result["status"], "PARTIAL")
         self.assertEqual(result["home_rss_delta_mib"], 25.25)
+        self.assertEqual(result["home_private_commit_delta_mib"], 25.25)
         self.assertEqual(result["home_widget_count_delta"], 1)
         self.assertNotIn("bad", result["checkpoints"])
         self.assertNotIn("home_rss_delta_mib", ram_checkpoints_summary([]))
