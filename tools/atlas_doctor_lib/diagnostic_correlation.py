@@ -182,13 +182,41 @@ def correlate_diagnostics(
             if measured:
                 slow = max(measured, key=lambda row: _number(row["cost_ms"]) or 0)
                 if (_number(slow.get("cost_ms")) or 0) >= 150:
+                    observations = [
+                        {"source": "guides", "metric": "instrumented_python_method",
+                         "location": str(slow.get("location", "UNKNOWN"))[:200],
+                         "value": _number(slow["cost_ms"]), "unit": "ms"},
+                    ]
+                    repeated = (
+                        cost.get("repeated_work_suspects", [])
+                        if isinstance(cost, dict) and cost.get("status") == "OBSERVED"
+                        else []
+                    )
+                    guide_revisit = next(
+                        (row for row in repeated
+                         if isinstance(row, dict)
+                         and "guide" in str(row.get("route", "")).lower()
+                         and _number(row.get("max_warm_ms")) is not None),
+                        None,
+                    ) if isinstance(repeated, list) else None
+                    if guide_revisit is not None:
+                        observations.append({
+                            "source": "app_navigation",
+                            "metric": "repeated_work_suspects.max_warm_ms",
+                            "route": str(guide_revisit.get("route"))[:100],
+                            "value": _number(guide_revisit["max_warm_ms"]),
+                            "unit": "ms",
+                        })
                     add(
-                        "GUIDE_METHOD_HOTSPOT", "P1", "Guide method hotspot observed at candidate SHA",
-                        [{"source": "guides", "metric": "instrumented_python_method",
-                          "location": str(slow.get("location", "UNKNOWN"))[:200],
-                          "value": _number(slow["cost_ms"]), "unit": "ms"}],
-                        "Instrumented method cost is evidence of a hotspot, not an identified root cause.",
-                        "Inspect same-SHA consumers and compare cold/warm Guide timings on one runner.",
+                        "GUIDE_HOTSPOT_AND_REVISIT" if guide_revisit else "GUIDE_METHOD_HOTSPOT",
+                        "P0" if guide_revisit else "P1",
+                        "Guide method cost correlates with slow repeated opening" if guide_revisit
+                        else "Guide method hotspot observed at candidate SHA",
+                        observations,
+                        "Multiple measurements suggest a shared path, not function-level causality."
+                        if guide_revisit else
+                        "Instrumented method cost is a hotspot lead, not root-cause proof.",
+                        "Compare exact-SHA warm/cold opens and map the observed method to Graphify consumers.",
                         ("guide", "performance", "validation"),
                     )
 
