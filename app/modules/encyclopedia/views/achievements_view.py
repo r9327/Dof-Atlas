@@ -435,7 +435,12 @@ class AchievementsView(QWidget):
         if achievement_id is None:
             return
         achievement_id = int(achievement_id)
-        if self._detail_open and self.current_achievement_id == achievement_id:
+        if (
+            self.current_achievement_id == achievement_id
+            and (self._detail_open or
+                 self._detail_requested is not None and
+                 self._detail_requested[1] == achievement_id)
+        ):
             self.close_detail_panel()
             return
         self.show_achievement(achievement_id)
@@ -461,6 +466,12 @@ class AchievementsView(QWidget):
         active = getattr(self.provider, "_detail_cache", None)
         hot = active_id == achievement_id and active is not None
         warm = isinstance(recent, dict) and achievement_id in recent
+        if hot and self._detail_worker_running:
+            # A running worker may currently mutate the provider's LRU.
+            # Render the already-read immutable detail without touching
+            # provider caches or starting another subprocess.
+            self._display_achievement(active)
+            return
         if not self._detail_worker_running and (not isinstance(recent, dict) or hot or warm):
             achievement = self.provider.get_detail_by_id(achievement_id)
             if achievement is None:
