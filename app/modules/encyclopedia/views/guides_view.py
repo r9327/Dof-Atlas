@@ -3122,15 +3122,25 @@ class GuidesView(QWidget):
         if guide.category == "aventure":
             rewards = self._selected_series_rewards(guide)
         else:
-            rewards = guide_rewards(
-                guide,
-                self.achievement_provider,
-                (
-                    self.quest_catalog.by_id[quest_id]
-                    for quest_id in self._quest_ids_for_steps(guide.required_steps)
-                    if quest_id in self.quest_catalog.by_id
-                ),
+            # The build has already aggregated rewards from every Quest in
+            # this Guide. Without this snapshot the overview resolves hundreds
+            # of rich Quest records on the Qt thread (4s+ for alignments).
+            # Development/custom data and invalid bundles retain exact legacy
+            # behavior instead of silently showing incomplete rewards.
+            from app.modules.encyclopedia.services.guide_prebuilt_rewards import (
+                cached_rewards,
             )
+            rewards = cached_rewards(guide)
+            if rewards is None:
+                rewards = guide_rewards(
+                    guide,
+                    self.achievement_provider,
+                    (
+                        self.quest_catalog.by_id[quest_id]
+                        for quest_id in self._quest_ids_for_steps(guide.required_steps)
+                        if quest_id in self.quest_catalog.by_id
+                    ),
+                )
 
         if rewards:
             reward_widgets = [reward_row(reward) for reward in rewards]
