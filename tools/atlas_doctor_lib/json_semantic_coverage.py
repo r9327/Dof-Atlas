@@ -65,6 +65,73 @@ def _nested_duplicate_ids(payload: Any) -> tuple[list[dict[str, Any]], int]:
     return sorted(candidates, key=lambda item: item["collection"]), lists_scanned
 
 
+
+_GUIDE_DIR = "data/encyclopedia/guides/"
+_GUIDE_CATALOG = _GUIDE_DIR + "catalog.json"
+
+
+def _verify_guide_catalog(catalog: Any, guide_headers: dict[str, dict[str, Any]],
+                          tracked_paths: list[str]) -> dict[str, Any]:
+    """Verify only manifest->Guide static links, never Quest, UI or runtime links."""
+    if catalog is None:
+        return {
+            "status": "NOT_RUN", "reason": "Canonical Guide catalog not parsed",
+            "checked": 0, "issues": [],
+        }
+    issues: list[dict[str, Any]] = []
+    if (not isinstance(catalog, dict)
+            or not isinstance(catalog.get("categories"), list)
+            or not isinstance(catalog.get("guides"), list)):
+        return {"status": "REVIEW", "checked": 0,
+                "issues": [{"kind": "INVALID_CATALOG_SHAPE"}]}
+    categories: set[str] = set()
+    for index, row in enumerate(catalog["categories"]):
+        value = row.get("id") if isinstance(row, dict) else None
+        if not isinstance(value, str) or not value or value in categories:
+            issues.append({"kind": "INVALID_OR_DUPLICATE_CATEGORY", "index": index})
+        else:
+            categories.add(value)
+    seen_ids: set[str] = set()
+    seen_files: set[str] = set()
+    tracked = set(tracked_paths)
+    for index, row in enumerate(catalog["guides"]):
+        if not isinstance(row, dict):
+            issues.append({"kind": "INVALID_GUIDE_ENTRY", "index": index})
+            continue
+        gid, filename, category = row.get("id"), row.get("file"), row.get("category")
+        if not isinstance(gid, str) or not gid or gid in seen_ids:
+            issues.append({"kind": "INVALID_OR_DUPLICATE_GUIDE_ID", "index": index})
+        else:
+            seen_ids.add(gid)
+        if not isinstance(category, str) or category not in categories:
+            issues.append({"kind": "UNKNOWN_GUIDE_CATEGORY", "index": index, "id": gid})
+        # Do not resolve paths, follow symlinks, or accept untrusted subpaths.
+        if (not isinstance(filename, str) or not filename.endswith(".json")
+                or "/" in filename or "\\" in filename
+                or filename.startswith(".") or filename == ".json"):
+            issues.append({"kind": "UNSAFE_GUIDE_FILENAME", "index": index, "id": gid})
+            continue
+        target = _GUIDE_DIR + filename
+        if target in seen_files:
+            issues.append({"kind": "DUPLICATE_GUIDE_FILE", "index": index, "file": target})
+        seen_files.add(target)
+        if target not in tracked:
+            issues.append({"kind": "MISSING_TRACKED_GUIDE", "index": index, "file": target})
+        elif target not in guide_headers:
+            issues.append({"kind": "UNREADABLE_GUIDE_HEADER", "index": index, "file": target})
+        else:
+            header = guide_headers[target]
+            if header["id"] != gid:
+                issues.append({"kind": "GUIDE_ID_MISMATCH", "index": index, "file": target})
+            if header["category"] != category:
+                issues.append({"kind": "GUIDE_CATEGORY_MISMATCH", "index": index, "file": target})
+    return {
+        "status": "STATIC_PASS" if not issues and catalog["guides"] and categories else "REVIEW",
+        "checked": len(catalog["guides"]), "category_count": len(categories),
+        "issues": issues, "runtime_routes_verified": False,
+    }
+
+
 def _reject_non_finite(value: str) -> None:
     raise ValueError("Non-standard JSON number: " + value)
 
@@ -72,6 +139,8 @@ def _reject_non_finite(value: str) -> None:
 def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool) -> dict[str, Any]:
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
+    guide_catalog: Any = None
+    guide_headers: dict[str, dict[str, Any]] = {}
     counts = {
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
         "unavailable": 0, "duplicate_id_review_files": 0,
@@ -106,6 +175,12 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 payload = json.load(stream, parse_constant=_reject_non_finite,
                                     object_pairs_hook=observe_object)
             entry["top_level_type"] = type(payload).__name__
+            if relative == _GUIDE_CATALOG:
+                guide_catalog = payload
+            elif relative.startswith(_GUIDE_DIR) and isinstance(payload, dict):
+                guide_headers[relative] = {
+                    "id": payload.get("id"), "category": payload.get("category"),
+                }
             collisions, lists_scanned = _nested_duplicate_ids(payload)
             entry["duplicate_id_candidates"] = collisions
             # json.load accepts repeated object member keys by default: do not
@@ -142,6 +217,9 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "status": "REVIEW" if complete else "BLOCKED",
         "syntax_coverage": "PASS" if complete else "BLOCKED",
         "semantic_links_verified": False,
+        "guide_catalog_static_links": _verify_guide_catalog(
+            guide_catalog, guide_headers, paths,
+        ),
         "consumers_verified": False,
         "assets_verified": False,
         "worktree_clean": clean,
@@ -154,5 +232,6 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             "Nested ID and repeated object-key candidates require source semantics before cleanup",
             "Repeated object-key names are counted per file; exact object paths are not recovered",
             "Git-tracked inventory excludes generated and user-local files",
+            "Guide catalog STATIC_PASS covers only catalog filenames, IDs and categories",
         ],
     }

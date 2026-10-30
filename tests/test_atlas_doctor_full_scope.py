@@ -136,6 +136,57 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(audit["semantic_links_verified"])
         self.assertFalse(audit["automatic_deletion_authorized"])
 
+
+    def test_json_static_guide_catalog_links_prove_only_manifest_scope(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file(
+            "data/encyclopedia/guides/catalog.json",
+            json.dumps({"categories": [{"id": "dofus"}], "guides": [
+                {"id": "one", "file": "one.json", "category": "dofus"}]}),
+        )
+        self._file(
+            "data/encyclopedia/guides/one.json",
+            json.dumps({"id": "one", "category": "dofus", "sections": []}),
+        )
+        sha = self._commit()
+        audit = audit_full_scope(self.root, expected_sha=sha, with_json=True)["json_semantic_audit"]
+        links = audit["guide_catalog_static_links"]
+        self.assertEqual(links["status"], "STATIC_PASS")
+        self.assertEqual(links["checked"], 1)
+        self.assertEqual(links["issues"], [])
+        self.assertFalse(links["runtime_routes_verified"])
+        self.assertFalse(audit["semantic_links_verified"])
+
+    def test_json_guide_catalog_bad_ids_categories_paths_and_missing_files(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file(
+            "data/encyclopedia/guides/catalog.json",
+            json.dumps({"categories": [{"id": "dofus"}], "guides": [
+                {"id": "one", "file": "one.json", "category": "dofus"},
+                {"id": "missing", "file": "missing.json", "category": "unknown"},
+                {"id": "outside", "file": "../outside.json", "category": "dofus"}]}),
+        )
+        self._file(
+            "data/encyclopedia/guides/one.json",
+            json.dumps({"id": "other", "category": "aventure"}),
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        links = audit["guide_catalog_static_links"]
+        self.assertEqual(links["status"], "REVIEW")
+        self.assertEqual(links["checked"], 3)
+        self.assertEqual(
+            {row["kind"] for row in links["issues"]},
+            {"GUIDE_ID_MISMATCH", "GUIDE_CATEGORY_MISMATCH",
+             "UNKNOWN_GUIDE_CATEGORY", "MISSING_TRACKED_GUIDE",
+             "UNSAFE_GUIDE_FILENAME"},
+        )
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(audit["semantic_links_verified"])
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
