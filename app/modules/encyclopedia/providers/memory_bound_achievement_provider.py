@@ -654,6 +654,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
         self._progress_objectives = progress_objectives
+        # Compatibility subprocess may replace the whole catalogue in the
+        # same provider. Never retain rich detail objects from older sources.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_cold_detail_breakdown = {}
+        self._last_detail_cache_source = "cold"
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
