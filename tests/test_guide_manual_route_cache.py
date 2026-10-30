@@ -587,5 +587,116 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 (False,),
             )
 
+
+    def test_catalog_indexed_route_restores_only_skeleton_and_one_detail(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as module,
+            guide_catalog_route_store as store,
+        )
+        Service = module.GuideCatalogManualRuntimeService
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guide.json.gz"
+            source = object.__new__(Service)
+            source.guide_id = "dofus_sylvestre"
+            source.guide_title = "Sylvestre"
+            cards = [
+                {
+                    "index": index + 1,
+                    "manual_source": True,
+                    "manual_stage_id": f"dofus_sylvestre:gps:{index}",
+                    "manual_title": f"Fiche {index}",
+                    "manual_quest_ids": [42 + index],
+                    "a_preparer": [{"name": "Fée", "quantity": 1}],
+                    "manual_lines": [{"text": f"Ligne {index}"}],
+                    "manual_sections": {
+                        "now": [{"text": f"Parler au PNJ {index}"}],
+                        "prepare": [{"text": "Prépare 1 × Fée"}],
+                    },
+                }
+                for index in range(14)
+            ]
+            source.cards = cards
+            source.route = {
+                "id": "catalog_manual_dofus_sylvestre",
+                "steps": cards,
+                "route_model": "map_segments",
+            }
+            source.manual_audit_data = {"card_count": len(cards)}
+            source._common_quest_ids = (42, 43)
+            store.write_indexed_route(source, path, "quest-version-1")
+            self.assertEqual(source.cards[0]["manual_lines"], [{"text": "Ligne 0"}])
+
+            restored = object.__new__(Service)
+            restored.guide_id = source.guide_id
+            restored.guide_title = source.guide_title
+            self.assertTrue(store.restore_indexed_route(restored, path, "quest-version-1"))
+            self.assertEqual(len(restored.cards), 14)
+            self.assertEqual(restored._common_quest_ids, (42, 43))
+            self.assertEqual(restored.cards[0]["manual_stage_id"], cards[0]["manual_stage_id"])
+            self.assertEqual(restored.cards[0]["a_preparer"], cards[0]["a_preparer"])
+            self.assertNotIn("manual_lines", restored.cards[0])
+            self.assertEqual(
+                restored.cards[0]["manual_sections"],
+                {"prepare": [{"text": "Prépare 1 × Fée"}]},
+            )
+            self.assertFalse(restored._catalog_detail_cache)
+
+            # The actual card API hydrates a single body, with no visible
+            # mutation of the compact all-route skeleton or source object.
+            lines = restored.manual_lines_for_card("character:1", restored.cards[0])
+            self.assertEqual(lines, [{"text": "Ligne 0"}])
+            lines[0]["text"] = "modified by widget"
+            self.assertEqual(
+                restored.manual_lines_for_card("character:1", restored.cards[0]),
+                [{"text": "Ligne 0"}],
+            )
+            sections = restored.manual_sections_for_card("character:1", restored.cards[0])
+            self.assertEqual(sections["now"], [{"text": "Parler au PNJ 0"}])
+            self.assertEqual(source.cards[0]["manual_lines"], [{"text": "Ligne 0"}])
+            self.assertFalse(store.restore_indexed_route(
+                object.__new__(Service), path, "quest-version-2",
+            ))
+
+            # Bounded neighboring prefetch never hydrates the full itinerary.
+            with patch.object(
+                module, "load_catalog_card_detail",
+                wraps=module.load_catalog_card_detail,
+            ) as reader:
+                restored.prefetch_route_near(7)
+                self.assertLessEqual(len(restored._catalog_detail_cache), 10)
+                self.assertLessEqual(reader.call_count, 9)
+                count_after_first = reader.call_count
+                restored.prefetch_route_near(7)
+                self.assertEqual(reader.call_count, count_after_first)
+            self.assertLess(len(restored._catalog_detail_cache), len(restored.cards))
+
+    def test_catalog_indexed_route_invalid_rows_do_not_mask_full_route(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as module,
+            guide_catalog_route_store as store,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sylvestre.json.gz"
+            self.assertFalse(store.restore_indexed_route(
+                object.__new__(module.GuideCatalogManualRuntimeService), path, "v1",
+            ))
+            route = object.__new__(module.GuideCatalogManualRuntimeService)
+            route.guide_id = "dofus_sylvestre"
+            route.cards = [{
+                "index": 1, "manual_stage_id": "gps:1", "manual_source": True,
+                "manual_lines": [{"text": "all"}],
+                "manual_sections": {"now": [{"text": "all"}]},
+            }]
+            route.route = {"id": "catalog_manual_dofus_sylvestre", "steps": route.cards}
+            route.manual_audit_data = {"card_count": 1}
+            route._common_quest_ids = (1,)
+            stored = store.write_indexed_route(route, path, "v1")
+            # Bypass reads after invalid signatures, rather than using stale content.
+            reopened = object.__new__(module.GuideCatalogManualRuntimeService)
+            reopened.guide_id = "dofus_sylvestre"
+            self.assertFalse(store.restore_indexed_route(reopened, path, "v2"))
+            stored.write_bytes(b"not-a-sqlite-database")
+            self.assertFalse(store.restore_indexed_route(reopened, path, "v1"))
+
 if __name__ == "__main__":
     unittest.main()
