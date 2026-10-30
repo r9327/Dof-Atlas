@@ -547,5 +547,45 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertIsNone(catalog_module._catalog_route_cache_identity(service))
 
 
+
+    def test_catalog_cards_skip_only_unrelated_manual_branch_policies(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as module,
+        )
+        service = object.__new__(module.GuideCatalogManualRuntimeService)
+        service.guide_id = "dofus_sylvestre"
+        service.guide_title = "Sylvestre"
+        segment = service._new_segment(
+            position="[1,2]", zone="Astrub", quest_id=42,
+            quest_name="Quête test", guide_step_id="step-1",
+        )
+        segment["sections"]["now"].append(
+            service._line("action", "[1,2]", "Parler au PNJ"),
+        )
+        service._finalize_segment(segment)
+        card = service._segment_to_card(segment, 0)
+
+        # Other manual routes retain their original conditional policy:
+        # only this catalogue subclass bypasses the manual manifest.
+        with (
+            patch.object(service, "_manual_manifest", side_effect=AssertionError(
+                "catalogue cards must not parse an unrelated manual manifest"
+            )),
+            patch.object(service, "selected_order_name", side_effect=AssertionError(
+                "catalogue completion must not scan manual Order status"
+            )),
+        ):
+            self.assertIsNone(service.manual_class_gate_for_card(card))
+            self.assertIsNone(service.manual_order_gate_for_card(card))
+            self.assertEqual(service.card_success_ids(card), ())
+            self.assertEqual(
+                service.card_automatic_values("character:1", card, completed_quests={42}),
+                (True,),
+            )
+            self.assertEqual(
+                service.card_automatic_values("character:1", card, completed_quests=set()),
+                (False,),
+            )
+
 if __name__ == "__main__":
     unittest.main()
