@@ -41,6 +41,8 @@ on:
       - "tests/test_doctor_quick_app_probe.py"
       - "tests/test_achievement_compact_process_lock.py"
       - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+      - "app/ui/world_scan_panel.py"
+      - "tests/test_world_scan_async_loading.py"
       - "tools/ci_domain_certification.py"
 
 permissions:
@@ -95,7 +97,7 @@ jobs:
         # but do not need to replay these identical unit tests.
         if: ${{ !inputs.skip_preflight_unit_tests }}
         run: |
-          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock
+          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock tests.test_world_scan_async_loading
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize real Quest and Craft data
