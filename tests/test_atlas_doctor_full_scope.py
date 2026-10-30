@@ -231,6 +231,53 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(audit["semantic_links_verified"])
         self.assertEqual(report["status"], "REVIEW")
 
+    def test_canonical_manifest_optional_branches_and_registries_are_scanned(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "present.json", '{"stages":[]}')
+        self._file(
+            prefix + "manifest_v1.json",
+            '{"canonical":{'
+            '"chapters":[{"file":"present.json"}],'
+            '"conditional_routes":['
+            '{"file":"present.json"},'
+            '{"file":"../outside.json"},'
+            '{"file":"untracked.json"}],'
+            '"transversal_routes":[{"file":"present.json"}],'
+            '"temporal_registry":"present.json",'
+            '"ocre_capture_registry":"untracked.json",'
+            '"ocre_final_route":"C:\\\\unsafe.json",'
+            '"success_contracts":"present.json"'
+            '}}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        manifest = next(
+            row for row in audit["files"]
+            if row["file"] == prefix + "manifest_v1.json"
+        )
+        self.assertEqual(manifest["manifest_chapter_refs_inspected"], 1)
+        self.assertEqual(manifest["manual_manifest_reference_candidates"], [
+            {"kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
+             "collection": "conditional_routes", "index": 1,
+             "file": "../outside.json"},
+            {"kind": "MANIFEST_REFERENCE_NOT_TRACKED_REVIEW",
+             "collection": "conditional_routes", "index": 2,
+             "file": "untracked.json"},
+            {"kind": "MANIFEST_REFERENCE_NOT_TRACKED_REVIEW",
+             "collection": "ocre_capture_registry",
+             "file": "untracked.json"},
+            {"kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
+             "collection": "ocre_final_route",
+             "file": "C:\\unsafe.json"},
+        ])
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertFalse(audit["assets_verified"])
+        self.assertEqual(report["status"], "REVIEW")
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
