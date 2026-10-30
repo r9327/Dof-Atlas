@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QFrame,
@@ -41,6 +44,25 @@ from app.ui.unity_skin import sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+
+
+@lru_cache(maxsize=1)
+def _preparation_icon_roots() -> tuple[Path, ...]:
+    """Resolve shipped item images once, only on opening Preparation."""
+    roots = (DATA_DIR / "images" / "items", DATA_DIR / "images" / "resources")
+    return tuple(directory for root in roots if root.is_dir()
+                 for directory in root.iterdir() if directory.is_dir())
+
+
+@lru_cache(maxsize=1024)
+def _preparation_icon_path(item_id: int) -> Path | None:
+    # The canonical images are grouped by type, not in one flat directory.
+    # No eager image decode or full filesystem index at app startup.
+    for folder in _preparation_icon_roots():
+        candidate = folder / f"{item_id}.png"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 _COMBAT_STOP_WORDS = {
@@ -886,7 +908,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
-        self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
+        self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
@@ -1519,7 +1541,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not participant_keys:
             summary = aggregate_remaining((card, False) for card in self.service.cards)
             self._preparation_preview = tuple(
-                (need.category, need.name, need.quantity or 0) for need in summary
+                (need.category, need.name, need.quantity or 0, need.item_id)
+                for need in summary
             )
             self._preparation_needs = ()
             self._preparation_loaded = True
@@ -1670,15 +1693,19 @@ class SharedGuideManualView(GuideUltimeManualView):
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
             else:
-                # Read-only text, no checkbox and no anonymous persistence.
+                # Read-only progress, but names are still copyable and
+                # existing item artwork should be visible in preview mode.
                 visible = preview[:self._preparation_visible_limit]
-                lines = [f"• {quantity if quantity else '?'} × {name} ({category})"
-                         for category, name, quantity in visible]
-                details = QLabel(chr(10).join(lines))
-                details.setObjectName("GuidePreparationPreview")
-                details.setWordWrap(True)
-                details.setTextInteractionFlags(Qt.TextSelectableByMouse)
-                self.preparation_rows_layout.addWidget(details)
+                for category, name, quantity, item_id in visible:
+                    row = QFrame()
+                    row.setObjectName("GuidePreparationRow")
+                    row_layout = QHBoxLayout(row)
+                    row_layout.setContentsMargins(8, 3, 8, 3)
+                    row_layout.addWidget(self._copyable_preparation_item(
+                        name, f"{quantity if quantity else '?'} × {name} ({category})",
+                        item_id,
+                    ))
+                    self.preparation_rows_layout.addWidget(row)
                 self._append_preparation_more(
                     len(preview) - self._preparation_visible_limit
                 )
@@ -1737,6 +1764,30 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
 
+    def _copyable_preparation_item(self, name: str, display: str,
+                                   item_id: int | None) -> QPushButton:
+        button = QPushButton(display)
+        button.setObjectName("GuidePreparationItemCopy")
+        button.setFlat(True)
+        button.setCursor(Qt.PointingHandCursor)
+        button.setToolTip(f"Cliquer pour copier : {name}")
+        button.setAccessibleName(f"Copier {name}")
+        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        if item_id is not None:
+            path = _preparation_icon_path(item_id)
+            if path is not None:
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
+                if not pixmap.isNull():
+                    button.setIcon(QIcon(pixmap))
+        if button.icon().isNull():
+            fallback = sprite_icon_path("inventory")
+            if fallback:
+                button.setIcon(QIcon(str(fallback)))
+        button.setIconSize(QSize(24, 24))
+        button.clicked.connect(lambda _checked=False, value=name:
+                               QApplication.clipboard().setText(value))
+        return button
+
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
@@ -1758,11 +1809,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             else f"{quantity} × " if quantity is not None else "? × "
         )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
-        label = QLabel(f"{amount}{need.name} — {status}")
-        label.setToolTip(" ; ".join(need.sources[:8])
-                         or "Quantité ou provenance à confirmer")
-        label.setObjectName("GuidePreparationRowLabel")
-        top.addWidget(label, 1)
+        item_button = self._copyable_preparation_item(
+            need.name, f"{amount}{need.name}", need.item_id,
+        )
+        item_button.setToolTip("Cliquer pour copier le nom · " +
+                               (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
+        top.addWidget(item_button, 1)
+        status_label = QLabel(status)
+        status_label.setObjectName("GuidePreparationRowStatus")
+        top.addWidget(status_label)
         ready_button = QToolButton()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
