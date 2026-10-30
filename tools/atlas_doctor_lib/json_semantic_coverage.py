@@ -79,7 +79,7 @@ _MANUAL_DIR = "data/routes/guide_ultime_manual/"
 def _manual_manifest_chapter_refs(
     payload: Any, tracked_json: set[str],
 ) -> tuple[list[dict[str, Any]], int]:
-    """Triage the direct canonical chapter references consumed by Guide Ultime.
+    """Triage tracked canonical Guide Ultime chapter, branch and registry references.
 
     Chapter imports, option branches and resolved stage totals are deliberately
     outside this static check. A tracked file is not proof of runtime validity.
@@ -112,6 +112,64 @@ def _manual_manifest_chapter_refs(
             candidates.append({
                 "kind": "MANIFEST_CHAPTER_NOT_TRACKED_REVIEW",
                 "chapter_index": index, "file": filename,
+            })
+    # The runtime also uses named registries and conditionally resolved routes
+    # from the same canonical manifest. They are distinct from chapter cards;
+    # missing references must still be visible in the Git-wide audit.
+    for family in ("conditional_routes", "transversal_routes"):
+        rows = canonical.get(family) if isinstance(canonical, dict) else None
+        if rows is None:
+            continue
+        if not isinstance(rows, list):
+            candidates.append({
+                "kind": "MANIFEST_COLLECTION_INVALID_REVIEW", "collection": family,
+            })
+            continue
+        for index, row in enumerate(rows):
+            filename = row.get("file") if isinstance(row, dict) else None
+            if not isinstance(filename, str) or not filename:
+                candidates.append({
+                    "kind": "MANIFEST_REFERENCE_MISSING_REVIEW",
+                    "collection": family, "index": index,
+                })
+                continue
+            if (
+                "/" in filename or "\\" in filename or ":" in filename
+                or filename in {".", ".."} or not filename.lower().endswith(".json")
+            ):
+                candidates.append({
+                    "kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
+                    "collection": family, "index": index, "file": filename,
+                })
+            elif _MANUAL_DIR + filename not in tracked_json:
+                candidates.append({
+                    "kind": "MANIFEST_REFERENCE_NOT_TRACKED_REVIEW",
+                    "collection": family, "index": index, "file": filename,
+                })
+    for key in (
+        "temporal_registry", "ocre_capture_registry", "ocre_final_route",
+        "success_contracts",
+    ):
+        if not isinstance(canonical, dict) or key not in canonical:
+            # Do not invent a requirement for optional historical manifests.
+            continue
+        filename = canonical[key]
+        if not isinstance(filename, str) or not filename:
+            candidates.append({
+                "kind": "MANIFEST_REFERENCE_MISSING_REVIEW", "collection": key,
+            })
+        elif (
+            "/" in filename or "\\" in filename or ":" in filename
+            or filename in {".", ".."} or not filename.lower().endswith(".json")
+        ):
+            candidates.append({
+                "kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
+                "collection": key, "file": filename,
+            })
+        elif _MANUAL_DIR + filename not in tracked_json:
+            candidates.append({
+                "kind": "MANIFEST_REFERENCE_NOT_TRACKED_REVIEW",
+                "collection": key, "file": filename,
             })
     return candidates, inspected
 
@@ -232,7 +290,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             "Syntax PASS does not prove domain ID references, schema, active packaging or assets",
             "Duplicate ID/key candidates require source semantics before any cleanup",
             "Duplicate object keys are counted without invented JSON paths",
-            "Guide Ultime manifest check covers direct canonical chapter filenames only",
+            "Guide Ultime manifest check covers declared chapter, branch and registry filenames only",
             "Git-tracked inventory excludes generated and user-local files",
         ],
     }
