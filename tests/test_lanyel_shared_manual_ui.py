@@ -293,6 +293,29 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             2,
         )
 
+    def test_preparation_item_artwork_resolves_flat_and_grouped_layouts(self) -> None:
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views import shared_manual_guide_view as shared
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            flat = root / "images" / "items"
+            grouped = root / "images" / "resources" / "ingredients"
+            flat.mkdir(parents=True)
+            grouped.mkdir(parents=True)
+            (flat / "123456.png").write_bytes(b"fake-artwork-path")
+            (grouped / "789012.png").write_bytes(b"fake-artwork-path")
+            with patch.object(shared, "DATA_DIR", root):
+                shared._preparation_icon_roots.cache_clear()
+                shared._preparation_icon_path.cache_clear()
+                try:
+                    self.assertEqual(shared._preparation_icon_path(123456), flat / "123456.png")
+                    self.assertEqual(shared._preparation_icon_path(789012), grouped / "789012.png")
+                    self.assertIsNone(shared._preparation_icon_path(999999))
+                finally:
+                    shared._preparation_icon_path.cache_clear()
+                    shared._preparation_icon_roots.cache_clear()
+
     def test_preparation_without_selected_characters_is_read_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
