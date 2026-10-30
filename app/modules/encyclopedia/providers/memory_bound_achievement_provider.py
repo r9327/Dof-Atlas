@@ -564,6 +564,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def _finish_in_process_catalogue(self) -> None:
         self._trim_catalogue_payload()
+        # A rebuilt catalogue invalidates previously hydrated rich details.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
         self._progress_objectives = {
             int(achievement.id): json.dumps(
                 [
@@ -789,6 +794,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
         self._compact_quest_link_cache.clear()
         self._compact_summary_cache.clear()
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
         self._image_indexes.clear()
         self._reset_sources()
 
