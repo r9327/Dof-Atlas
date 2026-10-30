@@ -34,6 +34,7 @@ def catalog() -> dict:
             "path": path, "invocation": "py -3.13 -m " + path[:-3].replace("/", "."),
             "capabilities": [capability],
             "cost_hint": "cheap",
+            "side_effects": "read_only",
             "preferred_for_agent": preferred,
             "safe_for_agent": safe,
             "automation_ready": ready,
@@ -83,6 +84,56 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         )
         self.assertTrue(row["tool_plan"]["not_executed"])
         self.assertFalse(row["root_cause_proven"])
+
+    def test_investigation_deduplicates_tools_and_preserves_approval_boundaries(self):
+        result = correlate_diagnostics(SHA, app(), catalog_report=catalog())
+        plan = result["investigation_plan"]
+        self.assertEqual(plan["status"], "REVIEW_REQUIRED")
+        paths = [step["tool"] for step in plan["steps"]]
+        self.assertEqual(len(paths), len(set(paths)))
+        self.assertEqual(paths.count("tools/atlas_doctor.py"), 1)
+        self.assertTrue(all(step["requires_same_sha"] for step in plan["steps"]))
+        self.assertTrue(all(not step["mutation_authorized"] for step in plan["steps"]))
+        self.assertFalse(plan["certification_granted"])
+        self.assertFalse(plan["tools_executed"])
+        self.assertEqual(plan["verification_contract"]["final_phase_certification"],
+                         "REQUIRED_NOT_RUN")
+
+    def test_unsafe_or_mutating_tool_cannot_enter_read_only_investigation(self):
+        report = catalog()
+        for row in report["tools"]:
+            if row["path"] == "tools/atlas_doctor.py":
+                row["side_effects"] = "repo_mutation_explicit"
+            if row["path"] == "tools/untrusted_perf.py":
+                row["safe_for_agent"] = False
+        result = correlate_diagnostics(SHA, app(), catalog_report=report)
+        plans = [h["tool_plan"] for h in result["hypotheses"]]
+        self.assertTrue(all(
+            "tools/atlas_doctor.py" not in {r["path"] for r in p["selected"]}
+            for p in plans
+        ))
+        self.assertTrue(any("performance" in p["unresolved_capabilities"]
+                            for p in plans))
+
+    def test_stale_evidence_must_not_generate_an_executable_plan(self):
+        result = correlate_diagnostics(SHA, app(git_head=OTHER),
+                                       catalog_report=catalog())
+        plan = result["investigation_plan"]
+        self.assertEqual(plan["status"], "BLOCKED_MISSING_EVIDENCE")
+        self.assertEqual(plan["steps"], [])
+        self.assertFalse(plan["certification_granted"])
+
+    def test_validation_is_not_scheduled_before_code_complete(self):
+        guide = {"observed_sha": SHA, "status": "PASS", "bottleneck_candidates": [
+            {"kind": "python_method", "location": "Guide.load", "cost_ms": 250},
+        ]}
+        result = correlate_diagnostics(SHA, app(), guides=guide,
+                                       catalog_report=catalog())
+        by_capability = {c: step for step in result["investigation_plan"]["steps"]
+                         for c in step["capabilities"]}
+        self.assertEqual(by_capability["validation"]["phase"],
+                         "VALIDATION_AFTER_CODE_COMPLETE")
+        self.assertTrue(by_capability["validation"]["requires_prior_evidence_review"])
 
     def test_stale_benchmark_is_blocked_not_recycled_into_positive_diagnosis(self):
         result = correlate_diagnostics(SHA, app(git_head=OTHER),
