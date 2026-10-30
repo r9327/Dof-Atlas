@@ -560,16 +560,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
+            related_quest_ids = self._quest_ids_for_row(row)
             related_names = [
                 quest_names[quest_id]
-                for quest_id in self._quest_ids_for_row(row)
+                for quest_id in related_quest_ids
                 if quest_id in quest_names
             ]
             if related_names:
                 line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
             if section_key == "now":
-                self._add_inline_quest_links(row_layout, row)
+                self._add_inline_quest_links(
+                    row_layout, row, quest_ids=related_quest_ids
+                )
 
             current_key = group_keys[row_index]
             adjacent = bool(current_key) and (

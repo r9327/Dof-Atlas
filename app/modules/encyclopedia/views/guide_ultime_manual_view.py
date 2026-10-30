@@ -280,14 +280,19 @@ class GuideUltimeManualCard(QFrame):
         # its action says only "Parler au PNJ".
         return [self._quest_rows[0][0]] if len(self._quest_rows) == 1 else []
 
-    def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
+    def _add_inline_quest_links(
+        self, row_layout: QHBoxLayout, row: dict[str, Any],
+        *, quest_ids: list[int] | None = None,
+    ) -> None:
         if not self._quest_rows:
             return
         names = getattr(self, "_quest_row_names_by_id", None)
         if names is None:
             names = dict(self._quest_rows)
         stage_id = str(self.card.get("manual_stage_id") or "")
-        for quest_id in self._quest_ids_for_row(row):
+        if quest_ids is None:
+            quest_ids = self._quest_ids_for_row(row)
+        for quest_id in quest_ids:
             if int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))

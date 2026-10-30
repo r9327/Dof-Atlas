@@ -168,6 +168,44 @@ class GuideManualContractRowCacheTests(unittest.TestCase):
         # A multi-Quest sheet cannot invent a link for unrelated actions.
         self.assertEqual(lookup(fake, {"text": "Parler au PNJ"}), [])
 
+    def test_shared_section_reuses_quest_ids_for_tooltip_and_inline_button(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        path = (
+            root / "app" / "modules" / "encyclopedia" / "views"
+            / "shared_manual_guide_view.py"
+        )
+        module = ast.parse(path.read_text(encoding="utf-8"))
+        render = next(
+            node for node in ast.walk(module)
+            if isinstance(node, ast.FunctionDef) and node.name == "_add_line_section"
+        )
+        loop = next(
+            node for node in render.body
+            if isinstance(node, ast.For) and isinstance(node.target, ast.Tuple)
+            and any(isinstance(n, ast.Name) and n.id == "row_index"
+                    for n in node.target.elts)
+        )
+        lookup_calls = [
+            node for node in ast.walk(loop)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "_quest_ids_for_row"
+        ]
+        self.assertEqual(len(lookup_calls), 1)
+        inline = [
+            node for node in ast.walk(loop)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "_add_inline_quest_links"
+        ]
+        self.assertEqual(len(inline), 1)
+        self.assertTrue(any(
+            kw.arg == "quest_ids"
+            and isinstance(kw.value, ast.Name)
+            and kw.value.id == "related_quest_ids"
+            for kw in inline[0].keywords
+        ))
+
     def test_replacing_contract_rebuilds_index(self) -> None:
         first = {"card_key": "a", "quests": [1]}
         service = _Service({"cards": [first]})
