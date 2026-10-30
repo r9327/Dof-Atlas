@@ -195,6 +195,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "manual_base_reference_review_files": 0, "bytes_parsed": 0,
     }
     tracked_json = set(paths)
+    manual_base_edges: dict[str, str] = {}
     for relative in paths:
         file = root / relative
         entry: dict[str, Any] = {"file": relative}
@@ -273,6 +274,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                     base_findings.append({
                         "kind": "MANUAL_BASE_NOT_TRACKED_REVIEW", "file": filename,
                     })
+                else:
+                    manual_base_edges[relative] = _MANUAL_DIR + filename
                 entry["manual_base_reference_candidates"] = base_findings
                 if base_findings:
                     counts["manual_base_reference_review_files"] += 1
@@ -304,6 +307,33 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             entry["error"] = type(exc).__name__
             counts["unavailable"] += 1
         files.append(entry)
+
+    # A pair of individually tracked patch layers can still refer to one
+    # another. Detect cycles in the tiny filename graph after decoding, not
+    # by recursively loading the underlying JSON routes.
+    cyclic_layers: set[str] = set()
+    for origin in manual_base_edges:
+        positions: dict[str, int] = {}
+        chain: list[str] = []
+        node = origin
+        while node in manual_base_edges and node not in positions:
+            positions[node] = len(chain)
+            chain.append(node)
+            node = manual_base_edges[node]
+        if node in positions:
+            cyclic_layers.update(chain[positions[node]:])
+    if cyclic_layers:
+        for entry in files:
+            if entry["file"] not in cyclic_layers or entry.get("status") not in {
+                "VALID_SYNTAX", "VALID_SYNTAX_REVIEW",
+            }:
+                continue
+            findings = entry.setdefault("manual_base_reference_candidates", [])
+            if not findings:
+                counts["manual_base_reference_review_files"] += 1
+            findings.append({"kind": "MANUAL_BASE_CYCLE_REVIEW"})
+            entry["status"] = "VALID_SYNTAX_REVIEW"
+    counts["manual_base_cycle_files"] = len(cyclic_layers)
 
     complete = (
         clean and counts["tracked"] > 0 and len(files) == counts["tracked"]
