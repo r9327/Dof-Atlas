@@ -461,7 +461,7 @@ class GuideCatalogView(QWidget):
                 if count % candidate == 0:
                     columns = candidate
                     break
-        cell_width = max(1, width // max(1, columns))
+        cell_width = min(320, max(1, width // max(1, columns)))
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
@@ -480,6 +480,10 @@ class GuideCatalogView(QWidget):
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
+        if hasattr(self, "home_columns"):
+            # QScrollArea may retain the old child minimum before relayout;
+            # force the real host width so 610px genuinely stacks both panes.
+            self.home_columns.set_available_width(event.size().width())
         QTimer.singleShot(0, self._sync_grid_columns)
 
 
