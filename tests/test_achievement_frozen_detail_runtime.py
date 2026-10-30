@@ -65,6 +65,14 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         self.assertEqual(
             provider.last_detail_breakdown_ms["synchronous_subprocess_ms"], 0.0
         )
+        self.assertEqual(provider.last_cold_detail_breakdown_ms["achievement_id"], 321)
+        self.assertEqual(provider.last_cold_detail_breakdown_ms["status"], "OBSERVED")
+        self.assertFalse(
+            provider.last_cold_detail_breakdown_ms["subprocess_path_used"]
+        )
+        self.assertGreaterEqual(
+            provider.last_cold_detail_breakdown_ms["total_ms"], 0.0
+        )
 
     def test_frozen_reuses_recent_rich_details_without_reopening_sources(self) -> None:
         provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
@@ -106,6 +114,7 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         self.assertIsNone(provider._detail_cache)
         self.assertIsNone(provider._detail_cache_id)
         self.assertEqual(provider._last_detail_cache_source, "cold")
+        self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
 
     def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
