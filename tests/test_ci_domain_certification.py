@@ -29,6 +29,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "tools/atlas_perf_attribution.py",
             "tools/benchmark_atlas_exhaustive.py",
             "tests/test_atlas_exhaustive_benchmark.py",
+            "tests/test_atlas_doctor_full_scope.py",
         ]
         for path in paths:
             with self.subTest(path=path):

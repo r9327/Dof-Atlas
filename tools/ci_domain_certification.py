@@ -78,6 +78,7 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/benchmark_atlas_exhaustive.py",
     "tools/doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
+    "tests/test_atlas_doctor_full_scope.py",
 })
 
 CRAFT_PATHS = frozenset({
