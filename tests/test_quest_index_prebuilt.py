@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,7 +15,7 @@ from app import quest_index_prebuilt as seed
 
 class PortableQuestIndexTests(unittest.TestCase):
     def _create_source(self, path: Path, count: int = 1976) -> None:
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             db.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             db.execute("CREATE TABLE quests (id INTEGER PRIMARY KEY, name TEXT, detail TEXT)")
             db.execute("INSERT INTO metadata VALUES ('ready', '1')")
@@ -70,7 +71,7 @@ class PortableQuestIndexTests(unittest.TestCase):
             with patch.object(seed, "_source_sizes", return_value={"quests.json": 999}):
                 self.assertEqual(seed.verify_quest_index(root=root / "bundle"), 0)
 
-            with sqlite3.connect(source) as db:
+            with closing(sqlite3.connect(source)) as db, db:
                 db.execute("UPDATE quests SET detail='{}' WHERE id=1")
             with patch.object(seed, "_source_sizes", return_value={"quests.json": 12}):
                 with self.assertRaisesRegex(ValueError, "rich details"):
