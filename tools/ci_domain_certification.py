@@ -151,6 +151,10 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
+    if path == "app/modules/encyclopedia/views/achievements_view.py":
+        # The Success catalogue is a Qt view whose detail links and completion
+        # interact with Quest and Guide providers; fail closed for siblings.
+        return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
         "app/modules/encyclopedia/views/guides_view.py",

@@ -48,6 +48,20 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(path), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
+    def test_achievement_qt_view_has_cross_domain_ownership_without_wildcards(self):
+        path = "app/modules/encyclopedia/views/achievements_view.py"
+        self.assertEqual(owners_for(path), frozenset({"quests", "guides", "ui"}))
+        result = self.route([path])
+        self.assertEqual(result["status"], "READY_TO_EXECUTE")
+        self.assertEqual(result["domains"], ["quests", "guides", "ui"])
+        self.assertEqual(result["unknown_paths"], [])
+        for unknown in (
+            "app/modules/encyclopedia/views/achievements_unreviewed_view.py",
+            "app/modules/encyclopedia/views/unknown_success_detail.py",
+        ):
+            self.assertFalse(owners_for(unknown))
+            self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
         paths = [
             "tools/atlas_doctor.py",
