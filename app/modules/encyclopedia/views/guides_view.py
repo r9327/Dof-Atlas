@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
+from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal, Slot
@@ -4346,7 +4347,10 @@ def solution_objective_row(objective: SolutionObjective) -> QWidget:
     return row
 
 
+@lru_cache(maxsize=16)
 def atlas_icon(kind: str) -> QIcon:
+    # Bounded cache for the fixed Unity fallback icons. Reward rows otherwise
+    # repaint the same 20px QPixmap hundreds of times on the Qt UI thread.
     pixmap = QPixmap(20, 20)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)

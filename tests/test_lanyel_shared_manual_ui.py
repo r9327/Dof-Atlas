@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
+from app.modules.encyclopedia.views.guides_view import atlas_icon
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualCard,
     SharedGuideManualView,
@@ -90,6 +91,15 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             if widget is not None:
                 result.append(widget.objectName())
         return result
+
+    def test_guide_reward_fallback_icon_is_shared_and_bounded(self) -> None:
+        first = atlas_icon("item")
+        second = atlas_icon("item")
+        self.assertIs(first, second)
+        self.assertFalse(first.isNull())
+        for value in ("quest", "dungeon", "combat", "step", "solo", "group", "tactical", "drop"):
+            self.assertFalse(atlas_icon(value).isNull())
+        self.assertLessEqual(atlas_icon.cache_info().currsize, 16)
 
     def test_lanyel_opens_same_manual_roadbook_renderer_as_guide_succes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
