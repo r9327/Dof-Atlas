@@ -629,18 +629,36 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view._render_window()
         settle()
         initial_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        # The UX deliberately keeps Valider clickable with no selected identity:
+        # its first click must open the portrait picker, NEVER write anonymous
+        # progress or silently use the browsing character. This is the actual
+        # product contract, not the obsolete disabled-button expectation.
         empty_blocked = (
             view.selected_participant_keys() == ()
-            and initial_button is not None and not initial_button.isEnabled()
+            and initial_button is not None and initial_button.isEnabled()
+            and initial_button.text() == "Valider"
+            and not view.participants_button.isChecked()
+        )
+        picker_click = (
+            click_target(page, initial_button, view.scroll)
+            if initial_button is not None else {"accessible": False}
+        )
+        no_anonymous_write = (
+            not view._progress_participant_keys()
+            and not view.service.page_checked("character:990000001", view.service.cards[0], 0)
         )
         session.check(
-            "participant-empty-blocked", "Open Guide without explicitly selected characters",
-            "Valider disabled with no explicit recipient",
+            "participant-empty-blocked", "Click Valider with no explicitly selected characters",
+            "Valider opens the portrait picker without saving progress to any character",
             {"selected": list(view.selected_participant_keys()),
-             "validation_enabled": initial_button.isEnabled() if initial_button else None},
-            empty_blocked, page,
+             "validation_enabled": initial_button.isEnabled() if initial_button else None,
+             "picker_open": view.participants_button.isChecked(),
+             "click": picker_click, "anonymous_write": not no_anonymous_write},
+            empty_blocked and picker_click["accessible"]
+            and view.participants_button.isChecked() and no_anonymous_write, page,
         )
-        view.participants_button.setChecked(True)
+        if not view.participants_button.isChecked():
+            view.participants_button.setChecked(True)
         settle()
         portrait = view._participant_buttons.get(primary_key)
         selection_click = (
