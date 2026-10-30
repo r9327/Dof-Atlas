@@ -359,7 +359,7 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(entry["status"], "VALID_SYNTAX_REVIEW")
         self.assertEqual(
             entry["duplicate_id_candidates"],
-            [{"collection": "outer/0/steps", "ids": ["3"], "kind": "DUPLICATE_ID_REVIEW"}],
+            [{"collection": "$root/outer/0/steps", "ids": ["3"], "kind": "DUPLICATE_ID_REVIEW"}],
         )
         self.assertEqual(entry["duplicate_member_candidates"], ["same"])
         self.assertEqual(audit["counts"]["nested_lists_scanned"], 3)
