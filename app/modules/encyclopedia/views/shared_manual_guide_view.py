@@ -266,6 +266,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.index = index
         self.travel_command_callback = travel_command_callback
         self._quest_rows = self._canonical_quest_rows()
+        self._quest_row_names_by_id = dict(self._quest_rows)
+        self._waypoint_quest_ids_by_position = None
         # One visible quest shortcut per quest and per rendered guide sheet.
         self._shown_quest_ids: set[int] = set()
         self._resource_names = self._clickable_resource_names(service, card)
@@ -500,7 +502,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # This catalogue index is immutable for one sheet. Rebuilding it for
         # every rendered line multiplied the cost of long Guides by the
         # number of linked Quests, even for a simple hover tooltip.
-        quest_names = {quest_id: name for quest_id, name in self._quest_rows}
+        quest_names = getattr(self, "_quest_row_names_by_id", None)
+        if quest_names is None:
+            quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))

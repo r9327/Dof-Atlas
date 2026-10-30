@@ -229,26 +229,32 @@ class GuideUltimeManualCard(QFrame):
         if not row_position:
             return []
 
-        quest_ids_by_name = {
-            self._quest_name_key(name): quest_id
-            for quest_id, name in self._quest_rows
-        }
-        result: list[int] = []
-        for waypoint in stage.get("waypoints", []) or []:
-            if not isinstance(waypoint, dict):
-                continue
-            try:
-                coordinates = f"{int(waypoint.get('x'))},{int(waypoint.get('y'))}"
-            except (TypeError, ValueError):
-                coordinates = ""
-            waypoint_position = coordinates or self._position_key(str(waypoint.get("label") or ""))
-            if waypoint_position != row_position:
-                continue
-            for quest_name in waypoint.get("quests", []) or []:
-                quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
-                if quest_id is not None and quest_id not in result:
-                    result.append(quest_id)
-        return result
+        # The authored stage is immutable for this visible Guide sheet. Build
+        # its waypoint-to-Quest mapping once, not for each rendered action.
+        by_position = getattr(self, "_waypoint_quest_ids_by_position", None)
+        if by_position is None:
+            quest_ids_by_name = {
+                self._quest_name_key(name): quest_id
+                for quest_id, name in self._quest_rows
+            }
+            by_position = {}
+            for waypoint in stage.get("waypoints", []) or []:
+                if not isinstance(waypoint, dict):
+                    continue
+                try:
+                    coordinates = f"{int(waypoint.get('x'))},{int(waypoint.get('y'))}"
+                except (TypeError, ValueError):
+                    coordinates = ""
+                position = coordinates or self._position_key(str(waypoint.get("label") or ""))
+                if not position:
+                    continue
+                matches = by_position.setdefault(position, [])
+                for quest_name in waypoint.get("quests", []) or []:
+                    quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
+                    if quest_id is not None and quest_id not in matches:
+                        matches.append(quest_id)
+            self._waypoint_quest_ids_by_position = by_position
+        return list(by_position.get(row_position, ()))
 
     def _quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
         waypoint_ids = self._waypoint_quest_ids_for_row(row)
@@ -271,7 +277,9 @@ class GuideUltimeManualCard(QFrame):
     def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
         if not self._quest_rows:
             return
-        names = {quest_id: name for quest_id, name in self._quest_rows}
+        names = getattr(self, "_quest_row_names_by_id", None)
+        if names is None:
+            names = dict(self._quest_rows)
         stage_id = str(self.card.get("manual_stage_id") or "")
         for quest_id in self._quest_ids_for_row(row):
             if int(quest_id) in self._shown_quest_ids:

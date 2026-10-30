@@ -127,6 +127,32 @@ class GuideManualContractRowCacheTests(unittest.TestCase):
         )
         provider.guide_evidence.assert_called_once_with(10)
 
+    def test_waypoint_index_is_built_once_and_preserves_authored_order(self) -> None:
+        # A long Guide must not rescan all waypoints on every visible row.
+        waypoints = [
+            {"x": 1, "y": 2, "quests": ["Une quête", "Autre quête", "Une quête"]},
+            {"x": 3, "y": 4, "quests": ["Autre quête"]},
+            {"x": 1, "y": 2, "quests": ["Autre quête"]},
+            {"label": "[5,-6]", "quests": ["Une quête"]},
+        ]
+        fake = SimpleNamespace(
+            card={"manual_stage_data": {"waypoints": waypoints}},
+            _quest_rows=[(10, "Une quête"), (20, "Autre quête")],
+            _waypoint_quest_ids_by_position=None,
+            _position_key=GuideUltimeManualCard._position_key,
+            _quest_name_key=GuideUltimeManualCard._quest_name_key,
+        )
+        lookup = GuideUltimeManualCard._waypoint_quest_ids_for_row
+        self.assertEqual(lookup(fake, {"position": "[1, 2]"}), [10, 20])
+        self.assertEqual(lookup(fake, {"position": "[3, 4]"}), [20])
+        self.assertEqual(lookup(fake, {"position": "[5,-6]"}), [10])
+        self.assertEqual(lookup(fake, {"position": "inconnu"}), [])
+        first_cache = fake._waypoint_quest_ids_by_position
+        self.assertIsNotNone(first_cache)
+        waypoints.clear()
+        self.assertEqual(lookup(fake, {"position": "[1, 2]"}), [10, 20])
+        self.assertIs(first_cache, fake._waypoint_quest_ids_by_position)
+
     def test_replacing_contract_rebuilds_index(self) -> None:
         first = {"card_key": "a", "quests": [1]}
         service = _Service({"cards": [first]})
