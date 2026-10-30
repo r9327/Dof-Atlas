@@ -59,6 +59,43 @@ ROUTES: tuple[tuple[str, str, str, str, bool], ...] = (
     ("dofus_noob", "placeholder", "Dofus Noob", "Placeholder::Dofus Noob", True),
 )
 
+def startup_domain_breakdown(payload: object) -> dict[str, object]:
+    """Attribute the exact launcher warmup to source domain workers.
+
+    This is not reconstructed from a generic .cache timestamp: the calling
+    window already validates the session token, so stale/foreign measurements
+    never masquerade as evidence for this launch.
+    """
+    if not isinstance(payload, dict) or payload.get("status") != "ready":
+        return {"status": "UNAVAILABLE", "domains": {}}
+    raw = payload.get("domains")
+    if not isinstance(raw, dict):
+        return {"status": "UNAVAILABLE", "domains": {}}
+    domains: dict[str, object] = {}
+    for domain in ("guide", "quest", "success"):
+        info = raw.get(domain)
+        if not isinstance(info, dict):
+            continue
+        elapsed = info.get("elapsed_ms")
+        if type(elapsed) not in (int, float) or elapsed < 0:
+            continue
+        domains[domain] = {
+            "mode": str(info.get("mode") or "unknown"),
+            "elapsed_ms": float(elapsed),
+            "worker_elapsed_ms": float(info.get("worker_elapsed_ms") or 0),
+            "timings_ms": {
+                str(name): float(value)
+                for name, value in (info.get("timings_ms") or {}).items()
+                if isinstance(name, str) and type(value) in (int, float) and value >= 0
+            },
+        }
+    return {
+        "status": "OBSERVED" if len(domains) == 3 else "PARTIAL",
+        "warmup_elapsed_ms": float(payload.get("elapsed_ms") or 0),
+        "domains": domains,
+    }
+
+
 def assert_inventory(routes: tuple[tuple[str, str, str, str, bool], ...] = ROUTES) -> None:
     ids = [row[0] for row in routes]
     if len(ids) != len(set(ids)) or len(ids) != 20:
@@ -229,6 +266,9 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         finally:
             report["preload_qt"] = preload_lag.stop()
         report["preload_ms"] = round((time.perf_counter() - preload_start) * 1000, 2)
+        report["preload_domain_breakdown"] = startup_domain_breakdown(
+            app_main._startup_cache_warmup_payload()
+        )
         report["preload_cpu_ms"] = round((time.process_time() - preload_cpu_started) * 1000, 2)
         report["preload_cpu_rss"] = cpu.get("preload")
         report["preload_states"] = {str(k): str(v) for k, v in window.preload_states.items()}
