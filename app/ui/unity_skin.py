@@ -9,7 +9,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QRectF
 from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
@@ -96,6 +96,19 @@ def register_unity_fonts() -> tuple[str, ...]:
             if font_id >= 0:
                 families.extend(QFontDatabase.applicationFontFamilies(font_id))
     return tuple(dict.fromkeys(families))
+
+
+def apply_unity_panel_shadow(widget: QWidget, *, blur: int = 18, vertical: int = 4) -> None:
+    """A real Qt shadow for a few fixed Guide panels, never list rows.
+
+    Qt stylesheets cannot render box-shadow. This effect is intentionally
+    reserved for lightweight, static panels to protect scrolling performance.
+    """
+    effect = QGraphicsDropShadowEffect(widget)
+    effect.setBlurRadius(blur)
+    effect.setOffset(0, vertical)
+    effect.setColor(QColor(0, 0, 0, 195))
+    widget.setGraphicsEffect(effect)
 
 
 def unity_skin_stylesheet() -> str:
