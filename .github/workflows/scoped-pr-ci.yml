@@ -54,6 +54,41 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Doctor full-scope on the real exact-SHA checkout (not a UI certificate)
+        shell: bash
+        run: |
+          set +e
+          python -X faulthandler -m tools.atlas_doctor full-scope \
+            --expected-sha "$CANDIDATE_SHA" \
+            --output artifacts/doctor_full_scope/report.json --json \
+            > "$RUNNER_TEMP/doctor-full-scope.json"
+          result=$?
+          set -e
+          # REVIEW (1) is the only truthful complete-static verdict. Source
+          # failures and accidental global PASS are both failures of this gate.
+          if [ "$result" -ne 1 ]; then
+            echo "::error::Doctor static full-scope expected REVIEW, got $result"
+            exit 1
+          fi
+          python - <<'PY_SCOPE'
+          import json
+          import os
+          from pathlib import Path
+          proof = json.loads(Path("artifacts/doctor_full_scope/report.json").read_text(encoding="utf-8"))
+          coverage = proof["source_coverage"]
+          assert proof["candidate_sha"] == os.environ["CANDIDATE_SHA"]
+          assert proof["worktree_clean"] is True
+          assert coverage["status"] == "PASS"
+          assert coverage["total"] > 0 and coverage["total"] == coverage["inspected"]
+          assert coverage["truncated"] is False and coverage["missing"] == []
+          assert proof["tracked_file_inventory"]["truncated"] is False
+          assert proof["status"] == "REVIEW" and proof["complete_application_certified"] is False
+          assert proof["unity_style"]["native_windows_visual"] == "NOT_RUN"
+          print(f"Doctor source coverage: {coverage['inspected']}/{coverage['total']} Python files, "
+                f"{coverage['functions_inspected']} functions; JSON/assets inventoried, not certified")
+          print("Runtime/Graphify/Windows visual: NOT_RUN until separately evidenced")
+          PY_SCOPE
+
       - name: Validate canonical scope and development selectors
         shell: bash
         run: |
@@ -124,7 +159,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: doctor-draft-audit-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/doctor_ci/**
+          path: |
+            artifacts/doctor_ci/**
+            artifacts/doctor_full_scope/report.json
           if-no-files-found: error
           retention-days: 14
 
