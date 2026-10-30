@@ -151,7 +151,9 @@ def measure(cycles: int) -> dict:
             peak_rss = max(observed) if observed else None
             latest_rss = sizes[-1]
             return {
-                "status": "PASS" if all(ms < 10000 for ms in times) else "FAIL",
+                # Missing native RSS is a blocked measurement, not a false green.
+                "status": ("BLOCKED" if len(observed) != 2 * len(records)
+                           else "PASS" if all(ms < 10000 for ms in times) else "FAIL"),
                 "cycles_completed": len(records), "requested_cycles": cycles,
                 "source": "Doctor / production EncyclopediaPage and SharedGuideManualView",
                 "platform": platform.platform(), "qt": "offscreen; not installed EXE",
@@ -163,6 +165,7 @@ def measure(cycles: int) -> dict:
                 "rss_bytes": {
                     "first": sizes[0], "last": sizes[-1],
                     "peak_observed": peak_rss,
+                    "scope": "two samples per cycle: Guide opened and Home returned; current-process RSS only",
                     "max_guide_open": max((v for v in guide_sizes if v is not None), default=None),
                     "max_returned_home": max((v for v in sizes if v is not None), default=None),
                     "warmed_baseline": baseline, "warmed_growth": growth,
@@ -182,7 +185,10 @@ def measure(cycles: int) -> dict:
                 },
                 "image_cache": ENCYCLOPEDIA_IMAGE_SERVICE.info(),
                 "cycles": records,
-                "not_covered": ["installed user EXE", "physical GPU/DPI", "game client"],
+                "not_covered": [
+                    "installed user EXE", "physical GPU/DPI", "game client",
+                    "process-tree RSS / Qt child processes", "true sub-sample transient peaks",
+                ],
             }
         finally:
             page.close()
