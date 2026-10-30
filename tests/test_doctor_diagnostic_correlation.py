@@ -5,6 +5,7 @@ import unittest
 
 from tools.atlas_doctor_lib.diagnostic_correlation import (
     _catalog_tools, correlate_diagnostics, plan_investigation,
+    scenario_contract_recommendations,
 )
 from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown
 
@@ -292,6 +293,50 @@ class DiagnosticCorrelationTests(unittest.TestCase):
             item["scenario"] for item in plan["adaptive_benchmark_probes"]
         })
         self.assertFalse(plan["tools_executed"])
+
+    def test_correlated_symptoms_select_real_scenario_runner_contracts(self):
+        findings = [
+            {"id": "COLD_QUEST_DETAIL"},
+            {"id": "COLD_ACHIEVEMENT_DETAIL"},
+            {"id": "HOME_REVISIT_CORRELATION"},
+            {"id": "PRELOAD_WALL_CORRELATION"},
+        ]
+        plan = scenario_contract_recommendations(findings)
+        self.assertEqual(plan["status"], "PLANNED_NOT_RUN")
+        self.assertEqual(
+            [row["scenario"] for row in plan["selected"]],
+            ["startup_preload", "home_qt_lifecycle", "guide_quest_succes"],
+        )
+        self.assertEqual(plan["uncovered_hypotheses"], [])
+        self.assertTrue(all(row["execution_status"] == "NOT_RUN"
+                            for row in plan["selected"]))
+        self.assertTrue(all(row["required_sha_check"] for row in plan["selected"]))
+        self.assertFalse(plan["tests_executed"])
+        self.assertFalse(plan["perf_benchmarks_executed"])
+        self.assertFalse(plan["certification_granted"])
+
+    def test_unknown_hypotheses_are_reported_not_silently_certified(self):
+        plan = scenario_contract_recommendations([
+            {"id": "UNMAPPED_SPECIALIST"}, {"id": "COLD_GUIDE_DETAIL"},
+        ])
+        self.assertEqual(plan["status"], "PARTIAL_COVERAGE")
+        self.assertEqual(plan["uncovered_hypotheses"], ["UNMAPPED_SPECIALIST"])
+        self.assertEqual(plan["selected"][0]["scenario"], "guide_quest_succes")
+        self.assertFalse(plan["certification_granted"])
+        self.assertEqual(scenario_contract_recommendations([])["status"], "NOT_SELECTED")
+
+    def test_tools_have_just_one_catalog_selection_per_capability(self):
+        # The integration remains delegated to the canonical selector; a
+        # manifest with malformed metadata must be an explicit unavailable
+        # capability rather than an unhandled exception.
+        report = {"tools": [{
+            "path": "tools/malformed.py", "capabilities": ["memory"],
+            "safe_for_agent": True, "automation_ready": True,
+        }]}
+        routed = _catalog_tools(("memory",), report)
+        self.assertEqual(routed["selected"], [])
+        self.assertEqual(routed["unresolved_capabilities"],
+                         ["INVALID_TOOL_METADATA:memory"])
 
     def test_main_thread_success_wait_is_measured_not_guessed(self):
         phase8 = {"metrics": {
