@@ -22,11 +22,13 @@ ne doit **jamais** décaler une validation déjà sauvegardée.
 | Guides classiques | `providers/memory_bound_guide_provider.py`, `views/guides_view.py` | Index `jsonl` compact, un seul détail de Guide retenu, éléments de l'UI partiellement différés | **P1** : `_populate_guide_info` / récompenses peuvent encore hydrater des données de quêtes en bloc ; audit Doctor par Guide, sans toucher au catalogue sain |
 | Guide Ultime manuel | `services/guide_ultime_manual_runtime_core.py`, `views/shared_manual_guide_view.py` | Cache route compact complet (267 fiches), UI une seule fiche Qt ; contenu et progression propres | **P1** : le cache runtime JSON existant restaure la route complète, contrairement au nouvel index Sylvestre ; évaluer une indexation similaire, en conservant strictement les branches classe/Ordres |
 | Crafts | `app/craft_preload.py`, `app/pages/craft_page.py` | Précharge uniquement les métadonnées des métiers et la sélection ; items recherchés dans SQLite, résultats Qt par lots | Déjà lazy. **P1 suivi** : vérifier le coût d'une première recherche et la rétention des images après Home |
-| Stuffs / équipement | `app/pages/equipment_page.py` | Initialisation Chromium/WebEngine différée jusqu'à ouverture réelle | Déjà différé, **P2** : surveiller coût initial du processus WebEngine et sa libération après navigation |
+| Stuffs / équipement | `app/pages/equipment_page.py` | **Aucun Chromium embarqué en production** : ouvre Huzounet dans le navigateur externe ; l'ancien démarrage WebEngine n'est qu'une compatibilité de test | Faible coût au chargement de la vue ; ne pas prétendre mesurer un processus Chromium Atlas |
 | Carte monde | `app/cartography/world_db.py`, `app/cartography/world_service.py`, `app/ui/map_canvas_widget.py` | Données mondes dans SQLite ; rendu carte distinct de la base | **P2** : l'existence de SQLite ne prouve pas que les textures visibles sont chargées par tuile ; profiler QPixmap/affichage avant de modifier |
 | Accueil / changement de domaine | `app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py`, `app/pages/home_page.py` | Widgets onglets lazy + relâchement des catalogues/reconstitutions au retour Home | **P0** : RAM Home et destruction effective des QObject à quantifier ; pas de full preload par défaut |
 | Préchargement initial | `app/preload.py`, `app/startup_cache_warmup.py`, `app/startup_cache_domain_worker.py` | Workers jetables, caches par famille, versions et réutilisation ; préparation initiale distincte de l'hydratation UI | **P0** : éviter les doubles constructions et les workers simultanés ; garder les temps d'ouverture et de première installation séparés |
-| Bestiaire, Almanax, Ocre, Chasse | La revue du présent lot n'a pas établi de chemin de détail runtime comparable à celui des Guides | **Non vérifié**, ne pas affirmer un chargement intelligent | **P2** : tracer les vrais points d'entrée de navigation et les scans de données avant toute modification |
+| Bestiaire (Donjons / Monstres / Archimonstres / Avis) | `main.py` → `encyclopedia_page.py:ensure_tab_loaded` | **Placeholder explicite**, pas de catalogue runtime opérationnel dans ces onglets | **Non applicable** pour le lazy-detail ; ne jamais compter comme parcours fonctionnel PASS |
+| Almanax | `main.py`, `home_page.py` | **Placeholder désactivé** (« sera intégré ici ») | **Non applicable**, pas de données à hydrater |
+| Ocre / Chasse au trésor | `main.py:open_tools_tab` | **Placeholders explicites**, sans runtime fonctionnel | **Non applicable** : ne pas annoncer un chargement intelligent non testé |
 
 ## Contrats spécifiques Sylvestre (PR #303)
 
@@ -69,3 +71,18 @@ ne doit **jamais** décaler une validation déjà sauvegardée.
 
 Cet inventaire ne remplace pas une certification Windows réelle ; aucune
 optimisation supplémentaire ne doit être marquée PASS sans mesure.
+
+## Reprise développement — prélecture Qt échelonnée (2026-10-30)
+
+- **Code PR #303** : le rendu `SharedGuideManualView._render_window` ne déclenche plus neuf lectures SQLite synchrones. Un `QTimer` propre à la vue, cadencé à 16 ms, appelle `prefetch_route_near(index, max_reads=1)` : **au plus une nouvelle fiche par tick**, et toute navigation arrête la séquence précédente. La fiche visible reste prioritaire et chargée immédiatement.
+- **Mémoire / identité** : même cache LRU de dix détails, index et progression non modifiés ; les textes voisins sont purement reconstructibles. Aucune nouvelle file de workers, aucun widget en arrière-plan.
+- **Test ajouté** dans `tests/test_guide_manual_route_cache.py` : charge une seule fiche par tranche, termine la série bornée, conserve la parité des lignes demandées et le plafond LRU. L'audit complet sur Windows reste distinct.
+- **Contrôle source approfondi** : `LazyQuestsPage` utilise un thread détail et une file de résultats, `AchievementsView` un rendu progressif et recherche débouncée, `CraftPage` une recherche SQLite limitée et résultats par lots ; ce sont des **constats de structure**, non des temps mesurés.
+- **Rectification importante** : le runtime actuel de `equipment_page.py` **n'embarque pas Chromium**. De même, les menus Bestiaire, Almanax, Ocre et Chasse sont encore des placeholders ; ils ne doivent pas artificiellement figurer comme modules fonctionnels testés.
+
+### Vérifications restant nécessaires avant certification produit
+
+- Contrôle Windows exact-SHA : affichage immédiat de la fiche, navigation rapide pendant prélecture, retour Home et fermeture de la vue ; gels Qt >250 ms et P95/P99 avant/après.
+- Premier accès à froid Sylvestre (~10,47 s sur le HEAD antérieur) et construction du cache en arrière-plan **sans** retarder l'ouverture Quêtes/Succès.
+- Probes Doctor des premières recherches Métiers, des premières fiches Quêtes/Succès/Guides classiques et de Map monde, avec mémoire process-tree et retour Home ; comparer même configuration, sans gonfler les caches.
+- Aucun `PASS` de fonctionnalité pour les placeholders, et aucune revendication de budgets RAM atteints sans résultats du nouveau HEAD.
