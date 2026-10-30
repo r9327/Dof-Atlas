@@ -205,3 +205,68 @@ class QuestEvidenceBatchTests(unittest.TestCase):
                 self.assertIsNone(provider._pack_guide_evidence)
                 self.assertIs(provider._accepted_guide_evidence_pack(), pack)
                 self.assertEqual(loader.call_count, 2)
+
+
+class AchievementPreparationBatchTests(unittest.TestCase):
+    def test_preparation_batches_only_canonical_quest_refs_in_order(self) -> None:
+        from app.modules.encyclopedia.models.entity_ref import EntityRef
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        refs = (
+            EntityRef("quest", 4, "Première quête"),
+            EntityRef("monster", 18, "Monstre"),
+            EntityRef("quest", 5, "Deuxième quête"),
+            EntityRef("quest", 4, "Doublon ignoré"),
+            EntityRef("quest", "not-an-id", "Référence invalide"),
+        )
+        evidence = {
+            4: {"items": [{"id": 7, "quantity": 3}], "combats": []},
+            5: {"items": [], "combats": [{"objective_id": 9, "monster": "Tofu"}]},
+        }
+        bulk = Mock(return_value=evidence)
+        individual = Mock(side_effect=AssertionError("no per-quest SQL"))
+        owner = SimpleNamespace(
+            get_by_id=Mock(return_value=SimpleNamespace(
+                resolved_linked_quests=refs, linked_quests=(),
+            )),
+            quest_provider=SimpleNamespace(
+                guide_evidence_many=bulk,
+                guide_evidence=individual,
+            ),
+        )
+
+        result = AchievementProvider.get_quest_preparation(owner, 42)
+        self.assertEqual(list(bulk.call_args.args[0]), [4, 5])
+        individual.assert_not_called()
+        self.assertEqual(result, (
+            {
+                "quest_id": 4, "quest_name": "Première quête",
+                "items": [{"id": 7, "quantity": 3}], "combats": [],
+            },
+            {
+                "quest_id": 5, "quest_name": "Deuxième quête",
+                "items": [], "combats": [{"objective_id": 9, "monster": "Tofu"}],
+            },
+        ))
+        result[0]["items"][0]["quantity"] = 100
+        self.assertEqual(evidence[4]["items"][0]["quantity"], 3)
+
+    def test_preparation_supports_old_quest_provider_without_batch_api(self) -> None:
+        from app.modules.encyclopedia.models.entity_ref import EntityRef
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        point = Mock(return_value={
+            "items": [{"id": 3, "quantity": 1}], "combats": [],
+        })
+        owner = SimpleNamespace(
+            get_by_id=lambda _id: SimpleNamespace(
+                resolved_linked_quests=(), linked_quests=(
+                    EntityRef("quest", 42, "Quête"),
+                ),
+            ),
+            quest_provider=SimpleNamespace(guide_evidence=point),
+        )
+        result = AchievementProvider.get_quest_preparation(owner, 99)
+        point.assert_called_once_with(42)
+        self.assertEqual(result[0]["quest_id"], 42)
+        self.assertEqual(result[0]["items"][0]["quantity"], 1)
