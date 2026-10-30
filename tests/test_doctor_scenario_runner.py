@@ -23,11 +23,12 @@ class UserJourneyCertificationTests(unittest.TestCase):
                                 "    def test_real(self): self.assertTrue(True)\n", encoding="utf-8")
 
     def test_existing_contracts_wired_to_all_four_critical_journeys(self):
-        self.assertEqual(set(target.SCENARIOS), {
+        legacy = {
             "guide_quest_succes", "home_qt_lifecycle",
             "progress_persistence", "startup_preload", "guide_full_fixture_budget",
-        })
-        output = target.contract_plan(self.root, SHA, list(target.SCENARIOS))
+        }
+        self.assertTrue(legacy.issubset(set(target.SCENARIOS)))
+        output = target.contract_plan(self.root, SHA, sorted(legacy))
         self.assertEqual(output["status"], "READY_TO_RUN_CONTRACTS")
         self.assertIn("steady_rss_home", output["required_metrics"])
         self.assertIn("tests.test_guide_ultime_manual_success_sync",
@@ -35,6 +36,37 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertFalse(output["tests_executed"])
         self.assertFalse(output["all_end_to_end_certified"])
         self.assertFalse(output["full_suite_waived"])
+
+    def test_cold_detail_and_doctor_scenarios_have_real_modules(self):
+        added = (
+            "quest_cold_detail", "success_cold_detail",
+            "guide_cold_detail", "doctor_intelligence",
+        )
+        root = Path(__file__).resolve().parents[1]
+        for name in added:
+            with self.subTest(name=name):
+                self.assertIn(name, target.SCENARIOS)
+                for module in target.SCENARIOS[name]["modules"]:
+                    path = root / Path(*module.split(".")).with_suffix(".py")
+                    self.assertTrue(path.is_file(), str(path))
+                report = target.contract_plan(self.root, SHA, [name])
+                self.assertEqual(report["status"], "READY_TO_RUN_CONTRACTS")
+                self.assertFalse(report["tests_executed"])
+                self.assertFalse(report["phase_certified"])
+
+    def test_extra_scenario_preserves_clean_sha_and_process_isolation(self):
+        runs = []
+        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+            report = target.execute_scenarios(
+                self.root, SHA, ["success_cold_detail"],
+                runner=lambda _root, modules: runs.append(modules) or 0,
+            )
+        self.assertEqual(report["status"], "CONTRACTS_PASS_METRICS_NOT_RUN")
+        self.assertEqual(len(runs),
+                         len(target.SCENARIOS["success_cold_detail"]["modules"]))
+        self.assertTrue(all(len(module) == 1 for module in runs))
+        self.assertFalse(report["all_end_to_end_certified"])
+        self.assertEqual(report["metrics_executed"], [])
 
     def test_real_runner_eligible_only_on_exact_sha_and_clean_worktree(self):
         selected = []
