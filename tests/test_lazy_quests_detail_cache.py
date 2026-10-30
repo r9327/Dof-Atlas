@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import closing
 import unittest
 import os
 import sqlite3
@@ -75,7 +76,7 @@ class QuestEvidenceBatchTests(unittest.TestCase):
     def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "details.sqlite3"
-            with sqlite3.connect(path) as connection:
+            with closing(sqlite3.connect(path)) as connection:
                 connection.execute(
                     "CREATE TABLE quests(id INTEGER PRIMARY KEY, guide_evidence TEXT)"
                 )
@@ -90,6 +91,7 @@ class QuestEvidenceBatchTests(unittest.TestCase):
                     "UPDATE quests SET guide_evidence=? WHERE id=4",
                     ("malformed",),
                 )
+                connection.commit()
             details = QuestDetails(Path(directory), path, ())
             expected = {
                 qid: details.guide_evidence(qid)
@@ -123,8 +125,63 @@ class QuestEvidenceBatchTests(unittest.TestCase):
             batch.assert_called_once_with((4,))
     
             provider._pack_guide_evidence = {4: {"combats": [{"objective_id": 99}]}}
-            with patch.object(provider, "guide_evidence", return_value={"pack": True}) as point:
-                assert provider.guide_evidence_many([4, 4]) == {4: {"pack": True}}
-            point.assert_called_once_with(4)
-            batch.assert_called_once()
+            # Optional accepted packs are only active for the canonical data
+            # directory; the bulk method must preserve that exact boundary.
+            with patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True):
+                assert provider.guide_evidence_many([4, 4, 777]) == {
+                    4: {"combats": [{"objective_id": 99}]},
+                    777: {},
+                }
+            batch.assert_called_with((4, 777))
+            assert batch.call_count == 2
     
+    def test_pack_root_environment_keeps_bulk_sql_read_enabled(self) -> None:
+        baseline = {"combats": [{"objective_id": 37, "monster": "Tofu"}]}
+        batch = Mock(return_value={4: baseline})
+        catalogue = SimpleNamespace(
+            guide_evidence_many=batch,
+            guide_evidence=Mock(side_effect=AssertionError("no per-quest SQL")),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=catalogue, data_dir=Path(directory))
+            with (
+                patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True),
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value={},
+                ) as loader,
+            ):
+                self.assertEqual(provider.guide_evidence_many([4, 4]), {4: baseline})
+                self.assertEqual(provider.guide_evidence_many([4]), {4: baseline})
+            loader.assert_called_once()
+            self.assertEqual(batch.call_count, 2)
+
+    def test_pack_root_overrides_only_canonical_ids_and_copies_values(self) -> None:
+        baseline = {"combats": [{"objective_id": 37, "monster": "Tofu"}]}
+        offered = {"combats": [{"objective_id": 88, "monster": "Bouftou"}]}
+        pack = {4: offered, 9: {"fake": True}}
+        catalogue = SimpleNamespace(
+            guide_evidence_many=Mock(return_value={4: baseline}),
+            guide_evidence=Mock(side_effect=AssertionError("no per-quest SQL")),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=catalogue, data_dir=Path(directory))
+            with (
+                patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True),
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value=pack,
+                ) as loader,
+            ):
+                result = provider.guide_evidence_many([4, 9, 10])
+                self.assertEqual(result[4], offered)
+                self.assertEqual(result[9], {})
+                self.assertEqual(result[10], {})
+                self.assertIsNot(result[4], offered)
+                result[4]["combats"].clear()
+                self.assertTrue(offered["combats"])
+            loader.assert_called_once()

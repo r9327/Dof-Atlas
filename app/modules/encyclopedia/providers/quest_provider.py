@@ -89,6 +89,15 @@ class QuestProvider:
             baseline = {}
         if not _is_default_data_dir(self.data_dir):
             return baseline
+        pack = self._accepted_guide_evidence_pack()
+        # A package must never introduce a quest without canonical catalogue ID.
+        if int(quest_id) not in catalog.by_id:
+            return baseline
+        supplied = pack.get(int(quest_id))
+        return deepcopy(supplied) if supplied is not None else baseline
+
+    def _accepted_guide_evidence_pack(self) -> dict[int, dict[str, object]]:
+        """Resolve accepted pack once and share it across point/bulk lookups."""
         if self._pack_guide_evidence is None:
             pack_root = os.environ.get("DOFUS_ATLAS_PACK_ROOT", "")
             if not pack_root:
@@ -100,39 +109,43 @@ class QuestProvider:
                 except (OSError, ValueError) as exc:
                     _LOGGER.warning("Pack de preparation des quetes ignore: %s", exc)
                     self._pack_guide_evidence = {}
-        # A package must never introduce a quest without canonical catalogue ID.
-        if int(quest_id) not in catalog.by_id:
-            return baseline
-        supplied = self._pack_guide_evidence.get(int(quest_id))
-        return deepcopy(supplied) if supplied is not None else baseline
+        return self._pack_guide_evidence
 
     def guide_evidence_many(self, quest_ids) -> dict[int, dict[str, object]]:
         """One compact source read for the Guide sheet, with pack parity.
 
-        Optional external evidence packs still use the legacy per-quest merge,
-        which validates the canonical ID and deep-copies supplied facts.
+        Canonical records are loaded in one SQL operation. Optional accepted
+        pack overrides are applied only for known Quest IDs, by deep copy,
+        exactly as with the single-ID API.
         """
         ids = tuple(dict.fromkeys(int(value) for value in quest_ids))
         if not ids:
             return {}
-        if (
-            self._pack_guide_evidence
-            or (_is_default_data_dir(self.data_dir)
-                and os.environ.get("DOFUS_ATLAS_PACK_ROOT", "").strip())
-        ):
-            return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
-
         catalogue = self.get_catalog()
         batch = getattr(catalogue, "guide_evidence_many", None)
-        if callable(batch):
-            values = batch(ids)
-            if isinstance(values, dict):
-                return {
-                    quest_id: values.get(quest_id, {})
-                    if isinstance(values.get(quest_id), dict) else {}
-                    for quest_id in ids
-                }
-        return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
+        if not callable(batch):
+            # Custom and old catalogue implementations retain point semantics.
+            return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
+        values = batch(ids)
+        if not isinstance(values, dict):
+            return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
+        result = {
+            quest_id: values.get(quest_id, {})
+            if isinstance(values.get(quest_id), dict) else {}
+            for quest_id in ids
+        }
+        if not _is_default_data_dir(self.data_dir):
+            return result
+        # The normal launcher *always* exports DOFUS_ATLAS_PACK_ROOT. Merely
+        # seeing that variable must not fall back to hundreds of point SQL
+        # lookups when the optional accepted pack is empty.
+        pack = self._accepted_guide_evidence_pack()
+        if pack:
+            canonical_ids = catalogue.by_id
+            for quest_id in ids:
+                if quest_id in canonical_ids and quest_id in pack:
+                    result[quest_id] = deepcopy(pack[quest_id])
+        return result
 
     def count(self) -> int:
         return len(self.list_quests())
