@@ -4,11 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+
+from PySide6.QtWidgets import QApplication, QLabel
 from unittest.mock import patch
 
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
     GUIDE_ULTIME_TITLE,
+    CollapsibleInfoSection,
     GuidesView,
 )
 
@@ -145,6 +148,55 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
             view.result_model.subtitle_overrides,
             {GUIDE_ULTIME_LEGACY_ID: "12 / 34 fiches"},
         )
+
+
+class GuidePrerequisiteLazyWidgetTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.app = QApplication.instance() or QApplication([])
+
+    def test_collapsed_section_does_not_construct_hidden_rows(self) -> None:
+        made = []
+        rows = []
+
+        def factory():
+            made.append("constructed")
+            result = [QLabel("Préparation 1"), QLabel("Préparation 2")]
+            rows.extend(result)
+            return result
+
+        section = CollapsibleInfoSection(
+            "PRÉREQUIS", "2", "neutral", False, factory,
+        )
+        try:
+            self.assertEqual(made, [])
+            self.assertFalse(section.expanded)
+            self.assertEqual(section.body.layout().count(), 0)
+            section.set_expanded(True)
+            self.assertEqual(made, ["constructed"])
+            self.assertEqual(section.body.layout().count(), 2)
+            section.set_expanded(False)
+            section.set_expanded(True)
+            self.assertEqual(made, ["constructed"])
+            self.assertEqual(section.body.layout().count(), 2)
+            self.assertIs(section.body.layout().itemAt(0).widget(), rows[0])
+        finally:
+            section.close()
+            section.deleteLater()
+            self.app.processEvents()
+
+    def test_expanded_section_renders_rows_immediately(self) -> None:
+        built = []
+        section = CollapsibleInfoSection(
+            "PRÉREQUIS", "1", "neutral", True,
+            lambda: built.append(True) or [QLabel("Obligatoire")],
+        )
+        try:
+            self.assertEqual(built, [True])
+            self.assertEqual(section.body.layout().count(), 1)
+        finally:
+            section.close()
+            section.deleteLater()
+            self.app.processEvents()
 
 
 if __name__ == "__main__":
