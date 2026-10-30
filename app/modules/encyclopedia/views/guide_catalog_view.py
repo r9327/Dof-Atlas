@@ -68,6 +68,7 @@ class GuideCatalogView(QWidget):
         self.achievement_provider = achievement_provider
         self.quest_provider = quest_provider
         self._runtime_ready = False
+        self._grid_sync_queued = False
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
@@ -482,13 +483,22 @@ class GuideCatalogView(QWidget):
         columns = max(1, viewport_width // 230)
         return min(320, max(1, viewport_width // columns))
 
+    def _flush_grid_sync(self) -> None:
+        self._grid_sync_queued = False
+        if self._runtime_ready:
+            self._sync_grid_columns()
+
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         if hasattr(self, "home_columns"):
             # QScrollArea may retain the old child minimum before relayout;
             # force the real host width so 610px genuinely stacks both panes.
             self.home_columns.set_available_width(event.size().width())
-        QTimer.singleShot(0, self._sync_grid_columns)
+        # A DPI/resize burst previously enqueued a Qt callback per pixel-sized
+        # event. Only the final viewport geometry matters for the icon grid.
+        if not self._grid_sync_queued:
+            self._grid_sync_queued = True
+            QTimer.singleShot(0, self._flush_grid_sync)
 
 
 __all__ = ["GuideCatalogView"]
