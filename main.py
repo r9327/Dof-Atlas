@@ -1814,6 +1814,9 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            # Dynamically generated "not implemented" screens are cheap but
+            # otherwise accumulate for the whole session. Recreate on demand.
+            self.release_transient_placeholders()
             # deleteLater() tears down the Qt side, but signal/layout cycles can
             # keep Python wrappers alive until a generational GC eventually runs.
             # Flush deferred deletes once Home is visible, then collect only the
@@ -1866,6 +1869,29 @@ class AtlasWindow(QMainWindow):
         ]
         page.deleteLater()
         self.rebuild_page_indexes()
+
+    def release_transient_placeholders(self) -> None:
+        """Drop transient navigation-only screens; keep real modules intact."""
+
+        removed = False
+        for name, page in tuple(self.page_widgets.items()):
+            if not name.startswith("Placeholder::"):
+                continue
+            if self.stack.currentWidget() is page:
+                continue
+            self.stack.removeWidget(page)
+            self.page_widgets.pop(name, None)
+            self.page_nav_group.pop(name, None)
+            self.page_factories.pop(name, None)
+            self.pages = [
+                (page_name, widget)
+                for page_name, widget in self.pages
+                if page_name != name
+            ]
+            page.deleteLater()
+            removed = True
+        if removed:
+            self.rebuild_page_indexes()
 
     def ensure_pending_page_loaded(self, name: str) -> QWidget | None:
         if self.pending_page_name != name:
