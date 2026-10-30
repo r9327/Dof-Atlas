@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
+from app.ui.components import atlas_application_icon
 from app.ui.network_bridge import network_ui_bridge
 
 if TYPE_CHECKING:
@@ -379,7 +380,7 @@ class HomePage(QWidget):
         self.almanax_icon.setIconSize(QSize(126, 126))
         self.almanax_icon.setEnabled(False)
         if Path(LOGO_PATH).exists():
-            self.almanax_icon.setIcon(QIcon(str(LOGO_PATH)))
+            self.almanax_icon.setIcon(atlas_application_icon())
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
 
         badge = QLabel("En travaux")
@@ -969,4 +970,6 @@ class HomePage(QWidget):
         if selected is None:
             self.character_portrait.setIcon(QIcon())
             return
-        self.character_portrait.setIcon(QIcon(str(selected)))
+        self.character_portrait.setIcon(
+            atlas_application_icon() if selected == fallback else QIcon(str(selected))
+        )

@@ -4,11 +4,14 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from dataclasses import replace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
 
 from app.modules.encyclopedia.models.guide import Guide
@@ -83,6 +86,52 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         self.assertEqual(right.row_for_guide("dofus_sylvestre"), -1)
         self.assertEqual(right.rowCount(), 2)
 
+    def test_identical_guide_refresh_keeps_model_and_progress_idle(self) -> None:
+        provider = _CatalogProvider()
+        model = GuideListModel()
+        resets = QSignalSpy(model.modelReset)
+        changes = QSignalSpy(model.dataChanged)
+        model.set_home_column(provider.guides, "right")
+        self.assertEqual(resets.count(), 1)
+        before_ids = self._ids(model)
+        model.set_home_column(list(provider.guides), "right")
+        self.assertEqual(resets.count(), 1)
+        self.assertEqual(self._ids(model), before_ids)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (2, 3, "En cours")})
+        self.assertEqual(changes.count(), 2)
+        # Only a genuine replacement of the underlying Guide must reset Qt.
+        model.set_home_column([_guide("dofus_turquoise", "dofus", "Turquoise")], "right")
+        self.assertEqual(resets.count(), 2)
+        self.assertEqual(self._ids(model), ["dofus_turquoise"])
+
+    def test_icons_decode_only_once_until_guide_replacement(self) -> None:
+        model = GuideListModel()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "turquoise.png"
+            path.write_bytes(b"image-file-fixture")
+            guide = replace(_guide("dofus_turquoise", "dofus", "Turquoise"),
+                            image_path=str(path))
+            model.set_home_column([guide], "right")
+            with patch(
+                "app.modules.encyclopedia.widgets.guide_card.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                return_value=QPixmap(16, 16),
+            ) as decode:
+                index = model.index(0, 0)
+                for _ in range(12):
+                    self.assertIsNotNone(model.data(index, Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                model.set_home_column([guide], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                # Replaced metadata needs a fresh icon decision.
+                model.set_home_column([replace(guide, title="Turquoise +")], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 2)
+
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.
         self.assertEqual(GuideCatalogView._grid_cell_width(0), 0)
@@ -133,18 +182,34 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements are available without featured-card duplication.
-                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
+                    # Alignements have real nested entries in the left menu;
+                    # changing the menu does NOT overwrite the right Dofus grid.
+                    alignments = view._category_nodes["alignements"]
+                    self.assertEqual(
+                        sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
+                            for i in range(alignments.childCount())),
+                        2,
+                    )
+                    view.library_categories.setCurrentItem(alignments)
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["alignement_bonta", "alignement_brakmar"],
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
+                    view.library_categories.setCurrentItem(alignments.child(0))
+                    self.assertEqual(requested[-1], "alignement_bonta")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
-                    self.assertEqual(view.home_dofus_model.rowCount(), 1)
-                    view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+                    self.assertEqual(self._ids(view.home_dofus_model), [])
                     self.assertFalse(view.home_dofus_list.isVisible())
+                    view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
                     view.resize(610, 750)
                     self.app.processEvents()
                     self.assertEqual(

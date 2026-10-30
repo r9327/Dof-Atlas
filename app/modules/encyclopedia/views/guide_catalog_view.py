@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QIcon
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QListWidget,
-    QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
+    QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
-from app.ui.unity_skin import unity_enabled
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
@@ -67,6 +68,7 @@ class GuideCatalogView(QWidget):
         self.achievement_provider = achievement_provider
         self.quest_provider = quest_provider
         self._runtime_ready = False
+        self._grid_sync_queued = False
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
@@ -104,12 +106,21 @@ class GuideCatalogView(QWidget):
             guide_id: FeaturedGuideCard(guide_id, title, self.select_guide, self)
             for guide_id, title in FEATURED
         }
-        root.addWidget(heading("GUIDES OPTIMISÉS"))
+        # The agreed home is a single two-column workspace, not a full-width
+        # featured banner followed by a second, disconnected catalogue.
+        # Optimized routes and Alignements stay on the left; Dofus on the right.
+        self.library_left = QWidget(self)
+        self.library_left.setObjectName("GuideLibraryLeft")
+        left_layout = QVBoxLayout(self.library_left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+        left_layout.addWidget(heading("GUIDES OPTIMISÉS"))
         self.optimized_pair = FeaturedPair(
             (self.featured_cards["guide_complet"],
-             self.featured_cards["dofus_sylvestre"]), self
+             self.featured_cards["dofus_sylvestre"]), self.library_left
         )
-        root.addWidget(self.optimized_pair)
+        left_layout.addWidget(self.optimized_pair)
+        left_layout.addWidget(heading("EXPLORER LES GUIDES"))
 
         # Preserve the legacy model roles for integrations and external progress.
         self.result_model = GuideListModel(self)
@@ -128,7 +139,7 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.setFlow(QListView.LeftToRight)
         self.home_dofus_list.setWrapping(True)
         self.home_dofus_list.setResizeMode(QListView.Adjust)
-        self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.setGridSize(QSize(220, 96))
         self.home_dofus_list.clicked.connect(self._on_clicked)
         self.home_dofus_list.activated.connect(self._on_clicked)
 
@@ -136,16 +147,41 @@ class GuideCatalogView(QWidget):
         self.library_categories = QTreeWidget(self)
         self.library_categories.setObjectName("GuideLibraryCategories")
         self.library_categories.setHeaderHidden(True)
-        self.library_categories.setIndentation(16)
-        self.library_categories.setMaximumWidth(235)
+        self.library_categories.setIndentation(14)
+        self.library_categories.setMinimumWidth(0)
+        self.library_categories.setUniformRowHeights(True)
+        self.library_categories.setMaximumHeight(250)
+        self.library_categories.setStyleSheet(
+            "QTreeWidget#GuideLibraryCategories { "
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+            "stop:0 #293D65, stop:1 #121D34); border: 1px solid #809AC2; "
+            "border-radius: 8px; padding: 3px; }"
+            "QTreeWidget#GuideLibraryCategories::item { min-height: 23px; "
+            "padding: 2px 5px; border-radius: 4px; }"
+            "QTreeWidget#GuideLibraryCategories::item:hover { "
+            "background: rgba(91, 121, 174, 0.33); }"
+            "QTreeWidget#GuideLibraryCategories::item:selected { "
+            "background: #344978; color: #F1F6FB; }"
+        )
         self._category_nodes = {}
         for category_key, text in CATEGORIES:
+            # These categories already have their own featured/Dofus columns.
+            if category_key in {"optimized", "dofus"}:
+                continue
             node = QTreeWidgetItem((text,))
             node.setData(0, Qt.UserRole, category_key)
+            art = sprite_icon_path("guide")
+            if art:
+                node.setIcon(0, QIcon(str(art)))
             self.library_categories.addTopLevelItem(node)
             self._category_nodes[category_key] = node
-        self.library_categories.setCurrentItem(self._category_nodes["dofus"])
+        self.library_categories.setCurrentItem(self._category_nodes["alignements"])
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
+        self.library_categories.itemClicked.connect(self._toggle_library_category)
+        self.library_categories.itemActivated.connect(self._activate_library_item)
+        apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
+        left_layout.addWidget(self.library_categories, 0)
+        left_layout.addStretch(1)
 
         self.library_right = QWidget(self)
         self.library_right.setObjectName("GuideLibraryResults")
@@ -156,31 +192,6 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Autres guides répertoriés")
-        self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
-        result_layout.addWidget(self.metadata_title)
-        self.home_metadata_list = QListWidget(self)
-        self.home_metadata_list.setObjectName("GuideLibraryUnavailableList")
-        # Metadata-only guides are informational, never clickable.
-        # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
-        self.home_metadata_list.setAlternatingRowColors(False)
-        self.home_metadata_list.setMaximumHeight(148)
-        # Keep the disabled metadata legible; unlike the default opaque Atlas
-        # panel, the optional Unity skin leaves some of the sky visible.
-        metadata_background = (
-            "rgba(27, 39, 70, 0.88)"
-            if unity_enabled() else PALETTE["PANEL"]
-        )
-        self.home_metadata_list.setStyleSheet(
-            f"QListWidget#GuideLibraryUnavailableList {{ background: {metadata_background};"
-            f" color: {PALETTE['TEXT_MUTED']}; border: 1px solid {PALETTE['BORDER']}; }}"
-            f"QListWidget#GuideLibraryUnavailableList::item {{ padding: 4px 8px;"
-            f" background: {metadata_background}; color: {PALETTE['TEXT_MUTED']}; }}"
-            f"QListWidget#GuideLibraryUnavailableList::item:disabled {{"
-            f" color: {PALETTE['TEXT_MUTED']}; }}"
-        )
-        result_layout.addWidget(self.home_metadata_list, 0)
-
         self.home_empty = QLabel("Aucun parcours disponible dans cette catégorie.")
         self.home_empty.setObjectName("GuidesHomeEmptyText")
         self.home_empty.setAlignment(Qt.AlignCenter)
@@ -188,7 +199,7 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.home_empty, 1)
 
         self.home_columns = GuideHomeColumns(
-            self.library_categories, self.library_right, self
+            self.library_left, self.library_right, self
         )
         root.addWidget(self.home_columns, 1)
 
@@ -203,16 +214,12 @@ class GuideCatalogView(QWidget):
 
     def _show_runtime_loading(self) -> None:
         self.home_dofus_list.setVisible(False)
-        self.home_metadata_list.setVisible(False)
-        self.metadata_title.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
         self.home_empty.setWordWrap(False)
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_dofus_list.setVisible(False)
-        self.home_metadata_list.setVisible(False)
-        self.metadata_title.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
         self.home_empty.setWordWrap(True)
         self.home_empty.setVisible(True)
@@ -356,35 +363,54 @@ class GuideCatalogView(QWidget):
             )
 
     def _populate_library_tree(self) -> None:
-        """Attach only real playable guides; metadata-only sources never launch."""
-        for category in ("optimized", "alignements"):
-            parent = self._category_nodes[category]
+        """Group available guides and disabled references inside expandable menus.
+
+        The read-only source index is kept intact; metadata-only routes can
+        never dispatch a guideRequested signal.
+        """
+        catalog_ids = {str(guide.id) for guide in self.guides}
+        featured = {guide_id for guide_id, _title in FEATURED}
+        for category, parent in self._category_nodes.items():
             parent.takeChildren()
             for guide in self.guides:
-                is_optimized = guide.category == "aventure"
-                if not (is_optimized if category == "optimized"
-                        else guide.category == "alignements"):
+                group = "adventures" if guide.category == "aventure" else guide.category
+                if group != category or str(guide.id) in featured:
                     continue
-                title = dict(FEATURED).get(guide.id, guide.title)
-                child = QTreeWidgetItem((title,))
+                child = QTreeWidgetItem((str(guide.title),))
                 child.setData(0, Qt.UserRole + 1, str(guide.id))
                 child.setToolTip(0, str(guide.title))
                 parent.addChild(child)
-            parent.setExpanded(True)
+
+            for entry in displayable_listings(self.ganymede_listings, catalog_ids, category):
+                child = QTreeWidgetItem((entry.title,))
+                child.setFlags(child.flags() & ~Qt.ItemIsEnabled & ~Qt.ItemIsSelectable)
+                child.setData(0, Qt.UserRole + 2, entry.source_id)
+                child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
+                parent.addChild(child)
+            # A dense category menu starts folded instead of occupying
+            # half of the Guide home before the user chooses a section.
+            parent.setExpanded(False)
 
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
-        if item is None:
+        if item is None or not (item.flags() & Qt.ItemIsEnabled):
             return
         guide_id = item.data(0, Qt.UserRole + 1)
         if guide_id:
             self.select_guide(str(guide_id))
             return
         category = item.data(0, Qt.UserRole)
-        if not category:
-            return
-        self.library_category = str(category)
-        if self._runtime_ready:
-            self.refresh_home()
+        if category:
+            self.library_category = str(category)
+
+    def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
+        if item.data(0, Qt.UserRole) and item.childCount():
+            item.setExpanded(not item.isExpanded())
+
+    def _activate_library_item(self, item: QTreeWidgetItem, column: int) -> None:
+        # A child was already selected via currentItemChanged; activation must
+        # never dispatch guideRequested a second time (Enter/double-click).
+        if item.data(0, Qt.UserRole):
+            self._toggle_library_category(item, column)
 
     def refresh_home(self) -> None:
         if not self._runtime_ready:
@@ -395,17 +421,11 @@ class GuideCatalogView(QWidget):
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
-        category = self.library_category
-        if category == "optimized":
-            shown_guides = [
-                guide for guide in matched
-                if guide.category == "aventure" and guide.id not in featured_ids
-            ]
-        else:
-            shown_guides = [
-                guide for guide in matched
-                if guide.category == category and guide.id not in featured_ids
-            ]
+        # Browsing the left menu does not replace the permanent Dofus grid.
+        shown_guides = [
+            guide for guide in matched
+            if guide.category == "dofus" and guide.id not in featured_ids
+        ]
 
         # Read progress only for rendered cards; no eager per-guide widget creation.
         self.visible_guides = list({
@@ -422,30 +442,11 @@ class GuideCatalogView(QWidget):
 
         self.home_dofus_model.set_home_column(shown_guides, "catalog")
         self.home_dofus_model.set_progress(progress)
-        self.library_results_title.setText(dict(CATEGORIES).get(category, "Guides").upper())
+        self.library_results_title.setText("DOFUS")
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        # Source-only Ganymède entries remain informative and non-interactive.
-        entries = displayable_listings(
-            self.ganymede_listings, set(catalog_by_id), category, self.search_text,
-        )
-        self.home_metadata_list.clear()
-        for entry in entries:
-            item = QListWidgetItem(f"{entry.title} · non disponible")
-            item.setFlags(Qt.NoItemFlags)
-            item.setToolTip("Parcours non disponible actuellement.")
-            item.setData(Qt.UserRole, entry.source_id)
-            self.home_metadata_list.addItem(item)
-
-        has_metadata = bool(entries)
-        self.metadata_title.setVisible(has_metadata)
-        self.home_metadata_list.setVisible(has_metadata)
-        if category == "optimized" and not shown_guides:
-            # The two optimized routes are already shown as featured cards.
-            self.home_empty.setVisible(False)
-        else:
-            self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
-            self.home_empty.setVisible(not shown_guides and not has_metadata)
+        self.home_empty.setText("Aucun Dofus disponible.")
+        self.home_empty.setVisible(not shown_guides)
         self._sync_grid_columns()
 
     def _sync_grid_columns(self) -> None:
@@ -453,7 +454,19 @@ class GuideCatalogView(QWidget):
         width = self.home_dofus_list.viewport().width()
         if width <= 0:
             return
-        cell_width = self._grid_cell_width(width)
+        count = self.home_dofus_model.rowCount()
+        # Cards remain readable at roughly 205px, freeing space for 3–4
+        # Dofus per row on a normal desktop instead of oversized empty cells.
+        max_columns = min(4, max(1, width // 205))
+        # Keep the last row complete when feasible. With 20 Dofus a
+        # 3-column grid strands 2 at the bottom, whereas 2 is balanced.
+        columns = max_columns
+        if count > 1 and count % columns:
+            for candidate in range(columns - 1, 1, -1):
+                if count % candidate == 0:
+                    columns = candidate
+                    break
+        cell_width = min(320, max(1, width // max(1, columns)))
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
@@ -470,9 +483,22 @@ class GuideCatalogView(QWidget):
         columns = max(1, viewport_width // 230)
         return min(320, max(1, viewport_width // columns))
 
+    def _flush_grid_sync(self) -> None:
+        self._grid_sync_queued = False
+        if self._runtime_ready:
+            self._sync_grid_columns()
+
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        QTimer.singleShot(0, self._sync_grid_columns)
+        if hasattr(self, "home_columns"):
+            # QScrollArea may retain the old child minimum before relayout;
+            # force the real host width so 610px genuinely stacks both panes.
+            self.home_columns.set_available_width(event.size().width())
+        # A DPI/resize burst previously enqueued a Qt callback per pixel-sized
+        # event. Only the final viewport geometry matters for the icon grid.
+        if not self._grid_sync_queued:
+            self._grid_sync_queued = True
+            QTimer.singleShot(0, self._flush_grid_sync)
 
 
 __all__ = ["GuideCatalogView"]

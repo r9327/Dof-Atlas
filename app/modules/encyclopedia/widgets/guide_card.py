@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
 
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QRect, QSize, Qt
@@ -26,20 +27,30 @@ class GuideHomeColumns(QWidget):
         self.setObjectName("GuidesHomeColumns")
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
         layout.addWidget(left, 1)
-        layout.addWidget(right, 2)
+        layout.addWidget(right, 3)
+        # Left is navigation, right is content: never give the menu a third
+        # of the page on a normal monitor.
+        self._left = left
+        self._right = right
+        left.setMinimumWidth(0)
+        right.setMinimumWidth(0)
+        left.setMaximumWidth(295)
         self._columns_layout = layout
+
+    def set_available_width(self, width: int) -> None:
+        """Use the outer viewport width, not a stale oversized child width."""
+        direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
+        if self._columns_layout.direction() != direction:
+            self._columns_layout.setDirection(direction)
+        # The maximum must be relaxed when panes stack on narrow screens.
+        self._left.setMaximumWidth(295 if direction == QBoxLayout.LeftToRight else 16777215)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        direction = (
-            QBoxLayout.LeftToRight
-            if event.size().width() >= 730
-            else QBoxLayout.TopToBottom
-        )
-        if self._columns_layout.direction() != direction:
-            self._columns_layout.setDirection(direction)
+        parent_width = self.parentWidget().width() if self.parentWidget() else event.size().width()
+        self.set_available_width(min(event.size().width(), parent_width))
 
 
 class GuideListModel(QAbstractListModel):
@@ -50,6 +61,9 @@ class GuideListModel(QAbstractListModel):
         self.progress_by_guide: dict[str, tuple[int, int, str]] = {}
         self.title_overrides: dict[str, str] = {}
         self.subtitle_overrides: dict[str, str] = {}
+        # A small per-model memo avoids repeated filesystem stats on each
+        # Qt paint/hover event. Only 32 already-scaled 48px thumbnails.
+        self._icon_cache: OrderedDict[str, QPixmap] = OrderedDict()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self.entries)
@@ -75,8 +89,17 @@ class GuideListModel(QAbstractListModel):
                     if total else f"{title}\n{label}\n{levels}\nProgression inconnue")
         if role == Qt.DecorationRole:
             image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
-            if image_path.exists():
-                return ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
+            key = str(image_path)
+            cached = self._icon_cache.get(key)
+            if cached is not None:
+                self._icon_cache.move_to_end(key)
+                return cached if not cached.isNull() else None
+            pixmap = (ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
+                      if image_path.exists() else QPixmap())
+            self._icon_cache[key] = pixmap
+            if len(self._icon_cache) > 32:
+                self._icon_cache.popitem(last=False)
+            return pixmap if not pixmap.isNull() else None
         if role == Qt.ToolTipRole:
             return guide.description or guide.title
         if role == GUIDE_ID_ROLE:
@@ -99,13 +122,13 @@ class GuideListModel(QAbstractListModel):
 
     def set_guides(self, guides: list[Guide]) -> None:
         self.beginResetModel()
+        self._icon_cache.clear()
         self.guides = list(guides)
         self.entries = self._grouped_entries(self.guides)
         self.endResetModel()
 
     def set_home_column(self, guides: list[Guide], column: str) -> None:
         """Partition Home without materializing a QWidget for every guide."""
-        self.beginResetModel()
         if column == "left":
             sections = (
                 ("GUIDE SUCCÈS", [guide for guide in guides if guide.id == "guide_complet"]),
@@ -123,20 +146,37 @@ class GuideListModel(QAbstractListModel):
             sections = (("", list(guides)),)
         else:
             raise ValueError(f"Unknown Guide Home column: {column}")
-        self.guides = []
-        self.entries = []
+        guides_for_column: list[Guide] = []
+        entries_for_column: list[Guide | str] = []
         for title, section in sections:
             if section:
                 if title:
-                    self.entries.append(title)
-                self.entries.extend(section)
-                self.guides.extend(section)
+                    entries_for_column.append(title)
+                entries_for_column.extend(section)
+                guides_for_column.extend(section)
+        # Repeated Home refreshes often show exactly the same Guide objects.
+        # A model reset needlessly drops selection, relayouts the Qt grid and
+        # re-requests thumbnails. Keep the existing model in that case.
+        if len(self.entries) == len(entries_for_column) and all(
+            old is new if isinstance(new, Guide) else old == new
+            for old, new in zip(self.entries, entries_for_column)
+        ):
+            return
+        self.beginResetModel()
+        self._icon_cache.clear()
+        self.guides = guides_for_column
+        self.entries = entries_for_column
         self.endResetModel()
 
     def set_progress(self, progress_by_guide: dict[str, tuple[int, int, str]]) -> None:
+        if self.progress_by_guide == progress_by_guide:
+            return
         self.progress_by_guide = dict(progress_by_guide)
         if self.entries:
-            self.dataChanged.emit(self.index(0, 0), self.index(len(self.entries) - 1, 0), [Qt.DisplayRole])
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(len(self.entries) - 1, 0),
+                [Qt.DisplayRole, GUIDE_PROGRESS_ROLE],
+            )
 
     def row_for_guide(self, guide_id: str) -> int:
         for row, entry in enumerate(self.entries):
@@ -151,12 +191,18 @@ class GuideListModel(QAbstractListModel):
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
 
     def set_title_override(self, guide_id: str, title: str) -> None:
-        self.title_overrides[str(guide_id)] = str(title)
-        self._emit_guide_changed(str(guide_id))
+        guide_id, title = str(guide_id), str(title)
+        if self.title_overrides.get(guide_id) == title:
+            return
+        self.title_overrides[guide_id] = title
+        self._emit_guide_changed(guide_id)
 
     def set_subtitle_override(self, guide_id: str, subtitle: str) -> None:
-        self.subtitle_overrides[str(guide_id)] = str(subtitle)
-        self._emit_guide_changed(str(guide_id))
+        guide_id, subtitle = str(guide_id), str(subtitle)
+        if self.subtitle_overrides.get(guide_id) == subtitle:
+            return
+        self.subtitle_overrides[guide_id] = subtitle
+        self._emit_guide_changed(guide_id)
 
     def display_title(self, guide: Guide) -> str:
         title = self.title_overrides.get(guide.id, guide.title)
@@ -256,6 +302,12 @@ class GuideCardDelegate(QStyledItemDelegate):
             else PALETTE["PANEL_2"]
         )
         border = QColor(PALETTE["GREEN"] if selected else PALETTE["BORDER"])
+        # Small raster shadow belongs to the lightweight delegate, not one
+        # heavyweight graphics effect per Dofus row.
+        shadow = QColor(0, 0, 0, 125 if hovered else 95)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(shadow)
+        painter.drawRoundedRect(rect.translated(0, 2), 6, 6)
         painter.setPen(QPen(border, 1))
         painter.setBrush(fill)
         painter.drawRoundedRect(rect, 6, 6)

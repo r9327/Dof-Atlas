@@ -9,6 +9,20 @@ on:
       - 'tests/test_guide_preparation_model.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'app/modules/encyclopedia/views/guide_catalog_view.py'
+      - 'tools/atlas_doctor_lib/guide_ui_cycle_bench.py'
+      - 'tools/atlas_doctor_lib/doctor_ui_qt.py'
+      - 'tools/atlas_doctor_lib/doctor_ui.py'
+      - 'tests/test_doctor_ui.py'
+      - 'tests/test_doctor_guide_ui_cycle_bench.py'
+      - 'app/modules/encyclopedia/views/guide_featured_home.py'
+      - 'app/modules/encyclopedia/widgets/guide_card.py'
+      - 'app/ui/unity_skin.py'
+      - 'app/ui/components.py'
+      - 'tests/test_guide_library_home.py'
+      - 'tests/test_guide_home_two_columns.py'
+      - 'tests/test_lanyel_shared_manual_ui.py'
+      - 'tests/test_unity_skin.py'
       - 'app/pages/craft_page.py'
       - 'tests/test_craft_minimal_lazy.py'
 
@@ -20,6 +34,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  doctor-ui-visual-campaign:
+    # Reuse Doctor's production Qt capture engine. It collects real
+    # screenshot PNGs, widget-tree assertions and a hash-verified verdict
+    # as GitHub Actions artifacts. It is NOT a release/full certification.
+    name: Doctor / Guides visual capture pack
+    uses: ./.github/workflows/doctor-ui.yml
+    with:
+      base_ref: main
+      complete_campaign: true
+
   guide-targeted-windows:
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
@@ -47,9 +71,26 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
+      - name: Pure-stdlib Doctor Guide benchmark contracts
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_doctor_guide_ui_cycle_bench tests.test_doctor_ui
       - name: Install pinned runtime for focused Qt tests
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Materialize only needed public Guide fixture data
+        shell: pwsh
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Actual Qt Guide catalogue, Unity icons and compact header
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_library_home tests.test_guide_home_two_columns tests.test_unity_skin tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_validate_click_without_selected_identity_opens_portrait_picker tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_preparation_item_name_is_click_to_copy_even_in_preview tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_guide_legend_starts_collapsed_and_can_show_help tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_route_progress_advances_when_the_current_sheet_is_validated
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Targeted manual multi-character validation
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation
@@ -79,6 +120,27 @@ jobs:
       - name: Reconstructible Craft release regression
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_craft_minimal_lazy
+      - name: Guide UI high DPI layout checks (125 and 150 percent)
+        shell: pwsh
+        run: |
+          foreach ($scale in @('1.25', '1.50')) {
+            $env:QT_SCALE_FACTOR = $scale
+            python -X faulthandler -m unittest -v tests.test_guide_home_two_columns tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Remove-Item Env:QT_SCALE_FACTOR -ErrorAction SilentlyContinue
+      - name: Doctor real Guide/catalog 30-cycle time and native RSS
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.atlas_doctor_lib.guide_ui_cycle_bench --cycles 30 --output .ai/runtime/atlas_doctor/guide_ui_cycles.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve Doctor Guide cycle metrics even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: doctor-guide-cycles-${{ env.CANDIDATE_SHA }}
+          path: .ai/runtime/atlas_doctor/guide_ui_cycles.json
+          if-no-files-found: warn
       - name: Provenance summary
         if: always()
         shell: pwsh

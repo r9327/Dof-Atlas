@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
+    QGraphicsDropShadowEffect,
     QLabel,
     QProgressBar,
     QPushButton,
@@ -292,6 +293,77 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             2,
         )
 
+    def test_preparation_item_artwork_resolves_flat_and_grouped_layouts(self) -> None:
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views import shared_manual_guide_view as shared
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            flat = root / "images" / "items"
+            grouped = root / "images" / "resources" / "ingredients"
+            flat.mkdir(parents=True)
+            grouped.mkdir(parents=True)
+            (flat / "123456.png").write_bytes(b"fake-artwork-path")
+            (grouped / "789012.png").write_bytes(b"fake-artwork-path")
+            with patch.object(shared, "DATA_DIR", root):
+                shared._preparation_icon_roots.cache_clear()
+                shared._preparation_icon_path.cache_clear()
+                try:
+                    self.assertEqual(shared._preparation_icon_path(123456), flat / "123456.png")
+                    self.assertEqual(shared._preparation_icon_path(789012), grouped / "789012.png")
+                    self.assertIsNone(shared._preparation_icon_path(999999))
+                finally:
+                    shared._preparation_icon_path.cache_clear()
+                    shared._preparation_icon_roots.cache_clear()
+
+    def test_guide_symbol_icons_are_shared_without_retaining_widgets(self) -> None:
+        from app.modules.encyclopedia.views import shared_manual_guide_view as shared
+
+        shared._cached_guide_symbol_icon.cache_clear()
+        try:
+            first = QToolButton()
+            second = QToolButton()
+            same = shared._guide_symbol_icon(first, "check", size=14)
+            self.assertIs(same, shared._guide_symbol_icon(second, "check", size=14))
+            self.assertIsNot(same, shared._guide_symbol_icon(second, "target", size=14))
+            self.assertEqual(shared._cached_guide_symbol_icon.cache_info().currsize, 2)
+            first.deleteLater()
+            second.deleteLater()
+        finally:
+            shared._cached_guide_symbol_icon.cache_clear()
+            self.app.processEvents()
+
+    def test_preparation_participant_details_are_lazy_and_open_once(self) -> None:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _PreparationNeed
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            need = _PreparationNeed(
+                item_key="name:preparation-test", item_id=None,
+                name="Potion de rappel", category="Potions",
+                required_by_character=(("character:1", 2),),
+            )
+            # The details were previously materialized on EVERY row build,
+            # including rows that would never be expanded.
+            row = shared._preparation_row(need)
+            toggle = row.findChild(QToolButton, "GuidePreparationDetailsButton")
+            self.assertIsNotNone(toggle)
+            self.assertEqual(len(row.findChildren(QLabel, "GuidePreparationParticipantNeed")), 0)
+            toggle.setChecked(True)
+            self.app.processEvents()
+            labels = row.findChildren(QLabel, "GuidePreparationParticipantNeed")
+            self.assertEqual(len(labels), 1)
+            self.assertIn("besoin 2", labels[0].text())
+            toggle.setChecked(False)
+            toggle.setChecked(True)
+            self.assertEqual(len(row.findChildren(QLabel, "GuidePreparationParticipantNeed")), 1)
+            row.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_preparation_without_selected_characters_is_read_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
@@ -310,6 +382,68 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_validate_click_without_selected_identity_opens_portrait_picker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            shared.participant_service.save_selected_keys([])
+            shared._refresh_participants_panel()
+            shared._render_window()
+            button = shared.findChild(QPushButton, "GuideManualPageCheck")
+            self.assertIsNotNone(button)
+            self.assertEqual(button.text(), "Valider")
+            self.assertTrue(button.isEnabled())
+            self.assertFalse(shared.participants_button.isChecked())
+            button.click()
+            self.app.processEvents()
+            self.assertTrue(shared.participants_button.isChecked())
+            self.assertFalse(shared._progress_participant_keys())
+            self.assertEqual(
+                shared.findChild(QPushButton, "GuideManualPageCheck").text(),
+                "Valider",
+            )
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_guide_legend_starts_collapsed_and_can_show_help(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            legend = shared.findChild(QFrame, "GuideManualLegendCard")
+            self.assertIsNotNone(legend)
+            toggle = legend.findChild(QToolButton, "GuideManualLegendToggle")
+            self.assertIsNotNone(toggle)
+            # QWidget is intentionally used for the details body.
+            from PySide6.QtWidgets import QWidget
+            details = legend.findChild(QWidget, "GuideManualLegendDetails")
+            self.assertIsNotNone(details)
+            self.assertFalse(toggle.isChecked())
+            self.assertTrue(details.isHidden())
+            toggle.click()
+            self.assertTrue(toggle.isChecked())
+            self.assertFalse(details.isHidden())
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_preparation_item_name_is_click_to_copy_even_in_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            button = shared._copyable_preparation_item(
+                "Potion de rappel", "3 × Potion de rappel", None,
+            )
+            QApplication.clipboard().clear()
+            button.click()
+            self.assertEqual(QApplication.clipboard().text(), "Potion de rappel")
+            self.assertEqual(button.objectName(), "GuidePreparationItemCopy")
+            button.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
@@ -324,6 +458,8 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsNotNone(nav)
             self.assertIsNotNone(compact)
             self.assertIsNotNone(sheet_header)
+            self.assertIsInstance(compact.graphicsEffect(), QGraphicsDropShadowEffect)
+            self.assertIsInstance(sheet_header.graphicsEffect(), QGraphicsDropShadowEffect)
             self.assertEqual(
                 self._layout_widget_names(nav),
                 [
@@ -348,6 +484,15 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 ["GuidePreparationToggle", "GuideSummaryButton", "GuideParticipantsButton"],
             )
             self.assertFalse(hasattr(shared, "page_jump_button"))
+            # The compact header starts with the guide icon/title; the
+            # working catalogue back action belongs to the sheet below.
+            self.assertIsNone(
+                compact.findChild(QPushButton, "GuideManualGuideButton")
+            )
+            self.assertIs(
+                sheet_header.findChild(QPushButton, "GuideManualGuideButton"),
+                shared.guide_button,
+            )
             self.assertEqual(shared.guide_button.text(), "←")
             self.assertFalse(shared.overlay_button.isEnabled())
             self.assertGreater(len(shared.service.cards), 1)
