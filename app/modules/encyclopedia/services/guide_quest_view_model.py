@@ -851,7 +851,12 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
 
 
 def _clean_solution_instruction_text(text: str) -> str:
-    text = MINIMAP_PLACEHOLDER_RE.sub("", clean_text(text))
+    """Filter an already normalized objective (solution_objective calls clean_text).
+
+    Avoid repeating HTML decoding, markup substitution and regex normalization
+    for every objective while projecting an entire Guide catalogue.
+    """
+    text = MINIMAP_PLACEHOLDER_RE.sub("", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
