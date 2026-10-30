@@ -171,9 +171,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertIs(view.optimized_pair.parentWidget(), view.library_left)
                     self.assertIs(view.library_categories.parentWidget(), view.library_left)
                     self.assertEqual(view.library_category, "dofus")
-                    # The narrower LEFT column stacks the two equal-size cards.
-                    self.assertEqual(view.optimized_pair.pair_layout.direction(),
-                                     QBoxLayout.TopToBottom)
+                    # Responsive layout follows the actual LEFT width; cards
+                    # stay compact whether two fit alongside or must stack.
+                    expected = (QBoxLayout.LeftToRight
+                                if view.optimized_pair.width() >= 580
+                                else QBoxLayout.TopToBottom)
+                    self.assertEqual(view.optimized_pair.pair_layout.direction(), expected)
+                    for card in view.featured_cards.values():
+                        self.assertLessEqual(card.maximumHeight(), 90)
+                        self.assertTrue(card.open_button.isHidden())
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
                     alignments = view._category_nodes["alignements"]
