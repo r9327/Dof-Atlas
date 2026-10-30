@@ -172,8 +172,11 @@ class RamForensics:
         self._previous = per_file
 
     def finish(self) -> dict[str, Any]:
+        # Never stop tracing owned by a different diagnostic. A probe that
+        # never started must not disable an already active external profiler.
+        owned_trace = self._active
         self._active = False
-        if tracemalloc.is_tracing():
+        if owned_trace and tracemalloc.is_tracing():
             tracemalloc.stop()
         if not self.entries:
             return {"status": "BLOCKED", "reason": "NO_PYTHON_HEAP_CHECKPOINTS"}

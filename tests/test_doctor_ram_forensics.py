@@ -92,6 +92,17 @@ class DoctorRamForensicsTests(unittest.TestCase):
         if __import__("os").name != "nt":
             self.assertEqual(private_windows_memory()["status"], "UNAVAILABLE")
 
+    def test_finish_without_start_does_not_stop_external_tracemalloc(self):
+        probe = RamForensics(Path(__file__).resolve().parents[1])
+        self.assertFalse(tracemalloc.is_tracing())
+        tracemalloc.start()
+        try:
+            result = probe.finish()
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertTrue(tracemalloc.is_tracing())
+        finally:
+            tracemalloc.stop()
+
     def test_no_checkpoint_is_blocked_not_false_pass(self):
         self.assertEqual(
             RamForensics(Path(__file__).resolve().parents[1]).finish()["status"],
