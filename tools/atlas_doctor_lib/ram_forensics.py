@@ -84,7 +84,9 @@ class RamForensics:
     def start(self) -> None:
         if tracemalloc.is_tracing():
             raise RuntimeError("TRACEMALLOC_ALREADY_ACTIVE")
-        tracemalloc.start(8)
+        # Filename/lineno attribution only needs the allocation site. One
+        # frame avoids collecting unused traceback stacks for every block.
+        tracemalloc.start(1)
         self._active = True
 
     def capture(self, label: str) -> None:
@@ -93,42 +95,19 @@ class RamForensics:
         # This is intentionally AFTER the official RSS checkpoint.
         snapshot = tracemalloc.take_snapshot()
         current, peak = tracemalloc.get_traced_memory()
-        rows: list[dict[str, Any]] = []
-        by_file: dict[str, list[int]] = {}
-        if self._previous is not None:
-            for diff in snapshot.compare_to(self._previous, "filename"):
-                file = _source_name(diff.traceback[0].filename, self.root)
-                if file == "<stdlib-or-third-party>":
-                    continue
-                amount = by_file.setdefault(file, [0, 0])
-                amount[0] += int(diff.size_diff)
-                amount[1] += int(diff.count_diff)
-            rows = [
-                {"source": name, "delta_mib": round(sizes[0] / MB, 4),
-                 "delta_blocks": sizes[1]}
-                for name, sizes in sorted(
-                    by_file.items(), key=lambda item: (-item[1][0], item[0])
-                )[:TOP_SITES]
-            ]
-        absolute: list[dict[str, Any]] = []
-        for item in snapshot.statistics("filename"):
-            source = _source_name(item.traceback[0].filename, self.root)
-            if source == "<stdlib-or-third-party>":
-                continue
-            absolute.append({
-                "source": source,
-                "traced_mib": round(item.size / MB, 4),
-                "blocks": item.count,
-            })
-        absolute.sort(key=lambda item: (-item["traced_mib"], item["source"]))
-        # Location is allocation site, not the object's actual owner.
-        # Tool harness allocations must not be presented as app memory.
+        # One grouped pass replaces three whole-snapshot sorts: filename,
+        # previous-vs-current compare and lineno. Only aggregated numbers
+        # survive this call, not multi-MiB Snapshot traceback objects.
+        per_file: dict[str, list[int]] = {}
         top_lines: list[dict[str, Any]] = []
         for statistic in snapshot.statistics("lineno"):
             frame = statistic.traceback[0]
             source = _source_name(frame.filename, self.root)
             if source == "<stdlib-or-third-party>":
                 continue
+            totals = per_file.setdefault(source, [0, 0])
+            totals[0] += int(statistic.size)
+            totals[1] += int(statistic.count)
             top_lines.append({
                 "source": source,
                 "line": int(frame.lineno),
@@ -136,7 +115,29 @@ class RamForensics:
                 "blocks": statistic.count,
                 "is_benchmark_harness": source.startswith("tools/"),
             })
+        absolute = [
+            {"source": name, "traced_mib": round(amounts[0] / MB, 4),
+             "blocks": amounts[1]}
+            for name, amounts in per_file.items()
+        ]
+        absolute.sort(key=lambda item: (-item["traced_mib"], item["source"]))
         top_lines.sort(key=lambda item: (-item["traced_mib"], item["source"], item["line"]))
+        rows: list[dict[str, Any]] = []
+        if self._previous is not None:
+            # A file missing from the current snapshot may have released its
+            # entire retained heap; keep negative deltas instead of omitting it.
+            for name in sorted(set(per_file) | set(self._previous)):
+                size, blocks = per_file.get(name, [0, 0])
+                prior_size, prior_blocks = self._previous.get(name, [0, 0])
+                delta_size = size - prior_size
+                delta_blocks = blocks - prior_blocks
+                if delta_size or delta_blocks:
+                    rows.append({
+                        "source": name, "delta_mib": round(delta_size / MB, 4),
+                        "delta_blocks": delta_blocks,
+                    })
+            rows.sort(key=lambda item: (-item["delta_mib"], item["source"]))
+            rows = rows[:TOP_SITES]
         app_traced_mib = round(sum(
             row["traced_mib"] for row in absolute
             if row["source"].startswith("app/") or row["source"] == "main.py"
@@ -159,8 +160,8 @@ class RamForensics:
         }
         self.entries.append(entry)
         if self._initial is None:
-            self._initial = snapshot
-        self._previous = snapshot
+            self._initial = per_file
+        self._previous = per_file
 
     def finish(self) -> dict[str, Any]:
         self._active = False

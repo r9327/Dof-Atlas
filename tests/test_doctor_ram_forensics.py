@@ -49,6 +49,35 @@ class DoctorRamForensicsTests(unittest.TestCase):
         ))
         self.assertIn("benchmark_top_sources_traced_mib", result["checkpoints"][1])
 
+    def test_single_frame_retention_and_negative_allocation_deltas(self):
+        probe = RamForensics(Path(__file__).resolve().parents[1], max_checkpoints=3)
+        retained = []
+        with patch(
+            "tools.atlas_doctor_lib.ram_forensics.private_windows_memory",
+            return_value={"status": "UNAVAILABLE", "reason": "TEST"},
+        ):
+            probe.start()
+            try:
+                self.assertEqual(tracemalloc.get_traceback_limit(), 1)
+                probe.capture("baseline")
+                retained.append(bytearray(800_000))
+                probe.capture("allocated")
+                retained.clear()
+                probe.capture("released")
+            finally:
+                result = probe.finish()
+        self.assertEqual(result["status"], "PARTIAL_PYTHON_ONLY")
+        self.assertEqual(len(result["checkpoints"]), 3)
+        self.assertIsInstance(probe._previous, dict)
+        source = "tests/test_doctor_ram_forensics.py"
+        increased = result["checkpoints"][1]["top_increased_sources_since_previous_checkpoint"]
+        decreased = result["checkpoints"][2]["top_increased_sources_since_previous_checkpoint"]
+        self.assertTrue(any(row["source"] == source and row["delta_mib"] > 0.5
+                            for row in increased))
+        self.assertTrue(any(row["source"] == source and row["delta_mib"] < -0.5
+                            for row in decreased))
+        self.assertFalse(tracemalloc.is_tracing())
+
     def test_invalid_existing_tracing_is_not_silently_reused(self):
         tracemalloc.start()
         try:
