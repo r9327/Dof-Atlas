@@ -58,6 +58,7 @@ def measure(cycles: int) -> dict:
     # Keep all real profiles, progress and runtime caches in a disposable root.
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
     from shiboken6 import isValid
+    from PySide6.QtWidgets import QApplication
     from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
     from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
     from app.modules.encyclopedia.constants import GUIDES_TAB
@@ -123,7 +124,7 @@ def measure(cycles: int) -> dict:
                     "cycle": turn + 1, "route": route, "open_ms": opened_ms,
                     "return_ms": round((time.perf_counter() - before) * 1000 - opened_ms, 2),
                     "rss_bytes": resident_bytes(),
-                    "catalog_qt_widgets": len(back.findChildren(type(back))),
+                    "live_qt_widgets": len(QApplication.allWidgets()),
                     "dofus_count": back.home_dofus_model.rowCount(),
                 })
             sizes = [r["rss_bytes"] for r in records]
@@ -134,6 +135,9 @@ def measure(cycles: int) -> dict:
             baseline = min(warm[:max(1, min(5, len(warm)))]) if warm else None
             growth = max(warm[-min(5, len(warm)):]) - baseline if baseline is not None else None
             times = [r["open_ms"] for r in records]
+            widget_counts = [r["live_qt_widgets"] for r in records]
+            peak_rss = max(observed) if observed else None
+            latest_rss = sizes[-1]
             return {
                 "status": "PASS" if all(ms < 10000 for ms in times) else "FAIL",
                 "cycles_completed": len(records), "requested_cycles": cycles,
@@ -146,9 +150,17 @@ def measure(cycles: int) -> dict:
                 },
                 "rss_bytes": {
                     "first": sizes[0], "last": sizes[-1],
-                    "peak_observed": max(observed) if observed else None,
+                    "peak_observed": peak_rss,
                     "warmed_baseline": baseline, "warmed_growth": growth,
                     "growth_target_bytes": 32 * 1024 * 1024,
+                },
+                "ui_widget_counts": {"first": widget_counts[0], "last": widget_counts[-1],
+                                     "peak": max(widget_counts)},
+                "performance_targets": {
+                    "stable_below_100_mib": latest_rss < 100 * 1024 * 1024 if latest_rss is not None else None,
+                    "observed_peak_below_250_mib": peak_rss <= 250 * 1024 * 1024 if peak_rss is not None else None,
+                    "warmed_growth_under_32_mib": growth <= 32 * 1024 * 1024 if growth is not None else None,
+                    "every_guide_open_under_10_seconds": all(ms < 10000 for ms in times),
                 },
                 "image_cache": ENCYCLOPEDIA_IMAGE_SERVICE.info(),
                 "cycles": records,
