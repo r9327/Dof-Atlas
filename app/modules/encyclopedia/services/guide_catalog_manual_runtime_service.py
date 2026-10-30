@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 import re
@@ -87,14 +88,25 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
     sources = (
         Path(__file__), Path(guide_quest_view_model.__file__),
     )
+    # Frozen Windows builds may not expose Python source files on disk;
+    # the executable signature still changes on application updates.
+    executable = Path(sys.executable)
+    source_stats = []
+    for path in sources:
+        try:
+            meta = path.stat()
+        except OSError:
+            source_stats.append((str(path), None, None))
+        else:
+            source_stats.append((str(path), meta.st_mtime_ns, meta.st_size))
+    if any(row[1] is None for row in source_stats):
+        meta = executable.stat()
+        source_stats.append((str(executable), meta.st_mtime_ns, meta.st_size))
     payload = {
         "schema": _CATALOG_ROUTE_CACHE_SCHEMA,
         "guide": [service.guide_id, service.guide_title, steps],
         "quest_sources": quest_catalog_cache_signature(data_dir),
-        "projection_files": [
-            (str(path), path.stat().st_mtime_ns, path.stat().st_size)
-            for path in sources
-        ],
+        "projection_files": source_stats,
     }
     digest = hashlib.sha256(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
@@ -109,7 +121,12 @@ def _restore_catalog_route_cache(
     try:
         if path.stat().st_size > 24 * 1024 * 1024:
             return False
-        payload = json.loads(gzip.decompress(path.read_bytes()))
+        # Bound decompressed bytes even for a malformed cache on disk.
+        with gzip.open(path, "rb") as stream:
+            content = stream.read(64 * 1024 * 1024 + 1)
+        if len(content) > 64 * 1024 * 1024:
+            return False
+        payload = json.loads(content)
     except (OSError, EOFError, ValueError, TypeError):
         return False
     if not isinstance(payload, dict):
@@ -127,6 +144,8 @@ def _restore_catalog_route_cache(
     if not isinstance(cards, list) or not cards or not all(isinstance(row, dict) for row in cards):
         return False
     if route.get("id") != f"catalog_manual_{service.guide_id}":
+        return False
+    if audit.get("card_count") != len(cards):
         return False
     if not isinstance(ids, list) or any(type(value) is not int for value in ids):
         return False
@@ -270,7 +289,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         if cached_identity is not None:
             try:
                 _write_catalog_route_cache(self, *cached_identity)
-            except OSError as exc:
+            except (OSError, ValueError, TypeError) as exc:
                 _LOGGER.warning("Cache reconstructible de Guide non écrit: %s", exc)
 
     def _quest_segments(
