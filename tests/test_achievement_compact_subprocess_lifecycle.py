@@ -125,6 +125,55 @@ class AchievementDetailColdTimingTests(unittest.TestCase):
             self.assertIs(provider.get_detail_by_id(123), detail)
             child.assert_called_once()
 
+    def test_recent_success_details_reuse_small_bounded_cache(self) -> None:
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        opened: list[int] = []
+
+        def worker(argv, **_kwargs):
+            ident = int(argv[-1])
+            opened.append(ident)
+            return subprocess.CompletedProcess(
+                args=argv, returncode=0,
+                stdout=json.dumps({"id": ident, "category_id": 8,
+                                   "name": f"Achievement {ident}"}) + "\\n",
+                stderr="",
+            )
+
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=worker,
+            ),
+        ):
+            first = provider.get_detail_by_id(1)
+            provider.get_detail_by_id(2)
+            self.assertIs(provider.get_detail_by_id(1), first)
+            self.assertEqual(opened, [1, 2])
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "recent")
+            self.assertEqual(provider.last_detail_breakdown_ms["synchronous_subprocess_ms"], 0.0)
+            self.assertFalse(provider.last_detail_breakdown_ms["subprocess_path_used"])
+
+            self.assertIs(provider.get_detail_by_id(1), first)
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "hot")
+            provider.get_detail_by_id(3)
+            provider.get_detail_by_id(4)
+            self.assertEqual(len(provider._recent_rich_details), 2)
+            self.assertEqual(opened, [1, 2, 3, 4])
+            # ID 2 was evicted on the fourth distinct detail.
+            provider.get_detail_by_id(2)
+            self.assertEqual(opened, [1, 2, 3, 4, 2])
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "cold")
+
+        provider.release_catalogue()
+        self.assertEqual(len(provider._recent_rich_details), 0)
+        self.assertIsNone(provider._detail_cache)
+        self.assertIsNone(provider._detail_cache_id)
+
     def test_failed_subprocess_still_records_blocking_phase(self) -> None:
         from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
             RAW_QUEST_DATA_DIR,
