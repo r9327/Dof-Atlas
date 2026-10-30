@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.modules.encyclopedia.services import (
@@ -386,6 +388,85 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertEqual(_position_key_short.cache_info().misses, misses)
         _position_key_short.cache_clear()
 
+
+
+    def test_catalog_batch_merge_matches_legacy_incremental_render(self) -> None:
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        positions = ("[1, 2]", "[1,2]", "[1, 2]", "[3,4]", "[3, 4]")
+        raw = []
+        for idx, position in enumerate(positions):
+            segment = service._new_segment(
+                position=position, zone="Astrub", quest_id=40 + idx,
+                quest_name=f"Quête {idx}", guide_step_id=f"stage-{idx}",
+            )
+            segment["sections"]["now"].extend((
+                service._line("action", position, "Action commune"),
+                service._line("action", position, "Action commune"),
+                service._line("action", position, f"Objectif {idx}"),
+            ))
+            raw.append(segment)
+        untouched = copy.deepcopy(raw)
+
+        # Legacy: finalize every quest segment and then every consecutive merge.
+        legacy = copy.deepcopy(raw)
+        for segment in legacy:
+            service._finalize_segment(segment)
+        expected = []
+        for segment in legacy:
+            value = copy.deepcopy(segment)
+            key = service._position_key(value["position"])
+            if expected and key and key == service._position_key(expected[-1]["position"]):
+                service._merge_segment(expected[-1], value)
+            else:
+                expected.append(value)
+
+        with patch.object(service, "_finalize_segment", wraps=service._finalize_segment) as finalize:
+            result = service._merge_consecutive_positions(raw)
+        self.assertEqual(result, expected)
+        self.assertEqual(finalize.call_count, 2)
+        self.assertEqual(raw, untouched)
+        self.assertEqual(len(result), 2)
+        result[0]["manual_lines"][0]["text"] = "modified"
+        self.assertEqual(raw, untouched)
+        self.assertNotEqual(result[0]["sections"]["now"][0]["text"], "modified")
+
+    def test_catalog_deferred_quest_segments_keep_identical_cards(self) -> None:
+        from app.modules.encyclopedia.services import guide_catalog_manual_runtime_service as catalog_module
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        quest = SimpleNamespace(id=42, name="Test", zones=("Astrub",), prerequisites=())
+        guide_step = SimpleNamespace(id="guide-step-42")
+        solution_step = SimpleNamespace(
+            title="Étape", description="Description",
+            objectives=(
+                SimpleNamespace(text="Action 1", position="[0,0]", combat=False),
+                SimpleNamespace(text="Action 2", position="[0,0]", combat=False),
+                SimpleNamespace(text="Action 3", position="[1,1]", combat=True),
+            ),
+        )
+        start = SimpleNamespace(position="[0,0]", zone="Astrub", npc="PNJ")
+        with (
+            patch.object(catalog_module, "quest_start_info", return_value=start),
+            patch.object(catalog_module, "quest_items_from_objectives", return_value=()),
+            patch.object(catalog_module, "quest_solution_steps", return_value=(solution_step,)),
+        ):
+            with patch.object(service, "_position_key", wraps=service._position_key) as key:
+                deferred = service._quest_segments(guide_step, quest, finalize=False)
+            self.assertEqual(key.call_count, 4)  # initial map + three objectives
+            self.assertTrue(all(not segment["manual_lines"] for segment in deferred))
+            for segment in deferred:
+                service._finalize_segment(segment)
+            regular = service._quest_segments(guide_step, quest)
+
+        self.assertEqual(deferred, regular)
+        self.assertEqual(len(regular), 2)
 
 if __name__ == "__main__":
     unittest.main()
