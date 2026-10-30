@@ -41,6 +41,9 @@ class FeaturedGuideCard(QFrame):
             "#GuideFeaturedCard { background: " + card_background
             + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
             + "; border-radius: 8px; }"
+            "#GuideFeaturedCard:hover { background: rgba(50, 70, 114, 0.96); "
+            "border: 1px solid #AACB77; }"
+            "#GuideFeaturedCard:focus { border: 2px solid #C6E691; }"
             "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
         )
         layout = QVBoxLayout(self)
@@ -74,8 +77,6 @@ class FeaturedGuideCard(QFrame):
             f" border-radius: 4px; }}"
         )
         layout.addWidget(self.progress)
-        actions = QHBoxLayout()
-        actions.addStretch(1)
         self.open_button = QPushButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
         self.open_button.clicked.connect(lambda: on_open(self.guide_id))
@@ -129,7 +130,7 @@ class FeaturedGuideCard(QFrame):
         self.artwork.clear()
         local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
         # Only two featured QIcons, backed by local assets when explicitly enabled.
-        self.open_button.setIcon(QIcon(str(local_icon)) if local_icon else QIcon())
+        # Visual artwork belongs on the card, not the hidden compatibility button.
         if local_icon:
             self.artwork.setPixmap(QIcon(str(local_icon)).pixmap(24, 24))
         if usable:
