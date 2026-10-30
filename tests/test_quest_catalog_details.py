@@ -48,6 +48,29 @@ class QuestDetailsTests(unittest.TestCase):
             row.steps = [QuestStep(row.id * 10, 'Étape', 'Détail')]
         return QuestCatalog(records)
 
+    def test_bounded_batch_compiles_once_and_reuses_signed_quest_details(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalog = self.build(root, limit=2)
+            with patch.object(QuestCatalog, "_load_source", side_effect=self.compile) as compiler:
+                self.assertEqual(catalog.warm_details_batch((1, 2, 1)), 2)
+                self.assertEqual(compiler.call_count, 1)
+                self.assertEqual(compiler.call_args.kwargs["quest_ids"], {1, 2})
+                self.assertEqual(catalog.warm_details_batch((2, 1)), 0)
+                self.assertEqual(catalog.get_detail(1).steps[0].name, "Étape")
+                self.assertEqual(compiler.call_count, 1)
+            self.assertLessEqual(catalog.detail_cache_info()["records"], 2)
+            with self.assertRaises(ValueError):
+                catalog.warm_details_batch(tuple(range(9)))
+
+            # A second fresh catalogue must read the details from SQLite,
+            # rather than recompiling or keeping old process-wide objects.
+            reopened = self.build(root, limit=2)
+            with patch.object(QuestCatalog, "_load_source") as compiler:
+                self.assertEqual(reopened.warm_details_batch((1, 2)), 0)
+                self.assertEqual(reopened.get_detail(2).id, 2)
+                compiler.assert_not_called()
+
     def test_guide_evidence_reads_sqlite_without_hydrating_detail(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
