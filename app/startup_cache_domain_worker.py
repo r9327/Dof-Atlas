@@ -139,6 +139,7 @@ def _quest_domain() -> dict[str, object]:
         "domain": "quest",
         "quest_count": max(0, count),
         "detail_source_index_count": max(0, detail_source_index_count),
+        "detail_index_artifact_count": len(detail_indexes),
         # The first file is the Quest catalogue; the rest are immutable
         # source-offset indexes used by the first rich Quest detail. Their
         # absence must invalidate warmup instead of rebuilding on the UI path.
