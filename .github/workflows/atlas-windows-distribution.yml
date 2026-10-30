@@ -327,6 +327,8 @@ jobs:
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Smoke real frozen Guides and Guide-item indexes
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke guide
+      - name: Smoke real frozen release-precompiled Sylvestre route
+        run: dist/AtlasApp/AtlasApp.exe --atlas-prebuilt-guide-smoke
       - name: Smoke real frozen Successes and retained catalog
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke success
       - name: Smoke exact frozen Success worker on clean first installation
