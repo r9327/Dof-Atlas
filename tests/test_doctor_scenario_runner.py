@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import io
+import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -67,6 +70,104 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertTrue(all(len(module) == 1 for module in runs))
         self.assertFalse(report["all_end_to_end_certified"])
         self.assertEqual(report["metrics_executed"], [])
+
+    @staticmethod
+    def _doctor_document(*, sha: str = SHA, scenario: str = "success_cold_detail"):
+        return {
+            "kind": "atlas_doctor_optimization_report",
+            "git_head": sha,
+            "status": "DIAGNOSTIC_READY",
+            "diagnostic_correlation": {
+                "candidate_sha": sha,
+                "status": "REVIEW",
+                "certification": False,
+                "tests_executed": False,
+                "evidence_gaps": ["guides: NOT_PROVIDED"],
+                "hypotheses": [{"id": "COLD_ACHIEVEMENT_DETAIL"}],
+                "investigation_plan": {
+                    "candidate_sha": sha,
+                    "tests_executed": False,
+                    "unresolved": ["tool_unavailable: graphify"],
+                    "scenario_contracts": {
+                        "status": "PLANNED_NOT_RUN",
+                        "uncovered_hypotheses": [],
+                        "selected": [{
+                            "scenario": scenario,
+                            "covered_hypotheses": ["COLD_ACHIEVEMENT_DETAIL"],
+                            "runner": "tools.doctor_scenario_runner",
+                            "test_modules": list(target.SCENARIOS[scenario]["modules"]),
+                            "execution_status": "NOT_RUN",
+                            "required_sha_check": True,
+                        }],
+                    },
+                },
+            },
+        }
+
+    def test_diagnostic_report_can_plan_contracts_without_running_tests(self):
+        doc = self._doctor_document()
+        report = target.execute_doctor_report(self.root, SHA, doc)
+        self.assertEqual(report["status"], "READY_TO_RUN_CONTRACTS")
+        self.assertFalse(report["tests_executed"])
+        self.assertFalse(report["phase_certified"])
+        self.assertFalse(report["all_end_to_end_certified"])
+        self.assertEqual(report["selected_scenarios"], ["success_cold_detail"])
+        self.assertIn("guides: NOT_PROVIDED", report["diagnostic_evidence_gaps"])
+        self.assertEqual(report["doctor_report_selection"]["completeness"], "PARTIAL_REVIEW")
+
+    def test_diagnostic_explicit_run_reuses_same_sha_isolated_runner(self):
+        runs = []
+        with mock.patch.object(target, "_git", side_effect=[SHA, ""]):
+            report = target.execute_doctor_report(
+                self.root, SHA, self._doctor_document(), run=True,
+                runner=lambda _root, modules: runs.append(modules) or 0,
+            )
+        self.assertEqual(report["status"], "CONTRACTS_PASS_METRICS_NOT_RUN")
+        self.assertTrue(report["tests_executed"])
+        self.assertTrue(all(len(batch) == 1 for batch in runs))
+        self.assertEqual(len(runs), len(target.SCENARIOS["success_cold_detail"]["modules"]))
+        self.assertFalse(report["phase_certified"])
+        self.assertFalse(report["all_end_to_end_certified"])
+        self.assertIn("tool_unavailable: graphify", report["diagnostic_evidence_gaps"])
+
+    def test_diagnostic_report_guards_stale_malformed_and_forged_contracts(self):
+        stale = self._doctor_document(sha="a" * 40)
+        forged = self._doctor_document()
+        forged["diagnostic_correlation"]["investigation_plan"]["scenario_contracts"][
+            "selected"][0]["test_modules"] = ["tests.test_nonexistent"]
+        incomplete = self._doctor_document()
+        incomplete["diagnostic_correlation"]["hypotheses"].append(
+            {"id": "UNMAPPED"}
+        )
+        invalid = self._doctor_document()
+        invalid["diagnostic_correlation"]["investigation_plan"]["scenario_contracts"][
+            "selected"][0]["scenario"] = ["not-a-hashable-string"]
+        for doc in (stale, forged, incomplete, invalid):
+            with self.subTest(rejected=doc):
+                runs = []
+                report = target.execute_doctor_report(
+                    self.root, SHA, doc, run=True,
+                    runner=lambda _root, module: runs.append(module) or 0,
+                )
+                self.assertEqual(report["status"], "BLOCKED")
+                self.assertEqual(runs, [])
+                self.assertFalse(report["tests_executed"])
+                self.assertFalse(report["certification_granted"])
+
+    def test_diagnostic_report_cli_never_runs_without_explicit_run_flag(self):
+        output = io.StringIO()
+        artifacts = self.root / "artifacts"
+        artifacts.mkdir()
+        path = artifacts / "doctor.json"
+        path.write_text(json.dumps(self._doctor_document()), encoding="utf-8")
+        with mock.patch.object(target, "ROOT", self.root), redirect_stdout(output):
+            exit_code = target.main([
+                "--doctor-report", "artifacts/doctor.json", "--expected-sha", SHA,
+            ])
+        self.assertEqual(exit_code, 0)
+        plan = json.loads(output.getvalue())
+        self.assertEqual(plan["status"], "READY_TO_RUN_CONTRACTS")
+        self.assertFalse(plan["tests_executed"])
 
     def test_real_runner_eligible_only_on_exact_sha_and_clean_worktree(self):
         selected = []
