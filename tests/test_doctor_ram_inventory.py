@@ -61,6 +61,30 @@ class DoctorRamInventoryTests(unittest.TestCase):
             world.deleteLater()
             QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
+    def test_thread_handle_inventory_exposes_finished_owners_without_rss_guess(self):
+        from threading import Thread
+
+        page = QWidget()
+        completed = Thread(target=lambda: None, name="atlas-done")
+        completed.start()
+        completed.join(timeout=2)
+        self.assertFalse(completed.is_alive())
+        page._runtime_threads = [completed]
+        window = SimpleNamespace(
+            page_widgets={"Quetes": page},
+            page_factories={},
+        )
+        try:
+            result = ram_ownership_snapshot(window, "last_home")
+            self.assertEqual(result["runtime_thread_handles"]["Quetes"], {
+                "retained_handles": 1, "active": 0, "inactive": 1,
+            })
+            self.assertNotIn("rss_bytes", result["runtime_thread_handles"]["Quetes"])
+            self.assertIn("do not establish native memory attribution", " ".join(result["limits"]))
+        finally:
+            page.deleteLater()
+            QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
     def test_summary_never_invents_rss_for_missing_or_unobserved_checkpoints(self):
         def checkpoint(name, rss, widgets):
             return {
