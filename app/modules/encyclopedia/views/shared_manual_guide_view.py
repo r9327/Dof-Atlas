@@ -1416,6 +1416,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, index)
+            # Normalization is expensive across a 1,000+ card route. Persist
+            # only a tiny search key on the item, not a second route model.
+            item.setData(Qt.UserRole + 1, normalize_text(label))
             self.summary_list.addItem(item)
         # Rebuilding the model must not silently discard the active search.
         self._filter_summary(self.summary_search.text())
@@ -1424,7 +1427,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         needle = normalize_text(value)
         for index in range(self.summary_list.count()):
             item = self.summary_list.item(index)
-            item.setHidden(bool(needle and needle not in normalize_text(item.text())))
+            normalized = item.data(Qt.UserRole + 1)
+            # Old/external QListWidgetItems still obey the original semantics.
+            if not isinstance(normalized, str):
+                normalized = normalize_text(item.text())
+            item.setHidden(bool(needle and needle not in normalized))
 
     def _summary_item_clicked(self, item: QListWidgetItem) -> None:
         try:
