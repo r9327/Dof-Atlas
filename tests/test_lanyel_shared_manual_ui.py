@@ -44,6 +44,22 @@ class _VerifiedSoloParticipant:
         return tuple(values)
 
 
+class GuideFallbackIconCacheTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # This test validates a 20px icon, not the full Doduda Success tree.
+        # A focused CI runner intentionally has no source achievement JSON.
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_guide_reward_fallback_icon_is_shared_and_bounded(self) -> None:
+        first = atlas_icon("item")
+        second = atlas_icon("item")
+        self.assertIs(first, second)
+        self.assertFalse(first.isNull())
+        for value in ("quest", "dungeon", "combat", "step", "solo", "group", "tactical", "drop"):
+            self.assertFalse(atlas_icon(value).isNull())
+        self.assertLessEqual(atlas_icon.cache_info().currsize, 16)
+
 class LanyelSharedManualUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -91,15 +107,6 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             if widget is not None:
                 result.append(widget.objectName())
         return result
-
-    def test_guide_reward_fallback_icon_is_shared_and_bounded(self) -> None:
-        first = atlas_icon("item")
-        second = atlas_icon("item")
-        self.assertIs(first, second)
-        self.assertFalse(first.isNull())
-        for value in ("quest", "dungeon", "combat", "step", "solo", "group", "tactical", "drop"):
-            self.assertFalse(atlas_icon(value).isNull())
-        self.assertLessEqual(atlas_icon.cache_info().currsize, 16)
 
     def test_lanyel_opens_same_manual_roadbook_renderer_as_guide_succes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

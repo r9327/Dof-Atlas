@@ -132,7 +132,7 @@ jobs:
       - name: Bounded Unity fallback icon cache
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_guide_reward_fallback_icon_is_shared_and_bounded
+          python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.GuideFallbackIconCacheTests.test_guide_reward_fallback_icon_is_shared_and_bounded
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh
