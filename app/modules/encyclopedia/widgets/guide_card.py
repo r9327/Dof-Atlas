@@ -115,7 +115,6 @@ class GuideListModel(QAbstractListModel):
 
     def set_home_column(self, guides: list[Guide], column: str) -> None:
         """Partition Home without materializing a QWidget for every guide."""
-        self.beginResetModel()
         if column == "left":
             sections = (
                 ("GUIDE SUCCÈS", [guide for guide in guides if guide.id == "guide_complet"]),
@@ -133,20 +132,36 @@ class GuideListModel(QAbstractListModel):
             sections = (("", list(guides)),)
         else:
             raise ValueError(f"Unknown Guide Home column: {column}")
-        self.guides = []
-        self.entries = []
+        guides_for_column: list[Guide] = []
+        entries_for_column: list[Guide | str] = []
         for title, section in sections:
             if section:
                 if title:
-                    self.entries.append(title)
-                self.entries.extend(section)
-                self.guides.extend(section)
+                    entries_for_column.append(title)
+                entries_for_column.extend(section)
+                guides_for_column.extend(section)
+        # Repeated Home refreshes often show exactly the same Guide objects.
+        # A model reset needlessly drops selection, relayouts the Qt grid and
+        # re-requests thumbnails. Keep the existing model in that case.
+        if len(self.entries) == len(entries_for_column) and all(
+            old is new if isinstance(new, Guide) else old == new
+            for old, new in zip(self.entries, entries_for_column)
+        ):
+            return
+        self.beginResetModel()
+        self.guides = guides_for_column
+        self.entries = entries_for_column
         self.endResetModel()
 
     def set_progress(self, progress_by_guide: dict[str, tuple[int, int, str]]) -> None:
+        if self.progress_by_guide == progress_by_guide:
+            return
         self.progress_by_guide = dict(progress_by_guide)
         if self.entries:
-            self.dataChanged.emit(self.index(0, 0), self.index(len(self.entries) - 1, 0), [Qt.DisplayRole])
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(len(self.entries) - 1, 0),
+                [Qt.DisplayRole, GUIDE_PROGRESS_ROLE],
+            )
 
     def row_for_guide(self, guide_id: str) -> int:
         for row, entry in enumerate(self.entries):
@@ -161,12 +176,18 @@ class GuideListModel(QAbstractListModel):
             self.dataChanged.emit(index, index, [Qt.DisplayRole])
 
     def set_title_override(self, guide_id: str, title: str) -> None:
-        self.title_overrides[str(guide_id)] = str(title)
-        self._emit_guide_changed(str(guide_id))
+        guide_id, title = str(guide_id), str(title)
+        if self.title_overrides.get(guide_id) == title:
+            return
+        self.title_overrides[guide_id] = title
+        self._emit_guide_changed(guide_id)
 
     def set_subtitle_override(self, guide_id: str, subtitle: str) -> None:
-        self.subtitle_overrides[str(guide_id)] = str(subtitle)
-        self._emit_guide_changed(str(guide_id))
+        guide_id, subtitle = str(guide_id), str(subtitle)
+        if self.subtitle_overrides.get(guide_id) == subtitle:
+            return
+        self.subtitle_overrides[guide_id] = subtitle
+        self._emit_guide_changed(guide_id)
 
     def display_title(self, guide: Guide) -> str:
         title = self.title_overrides.get(guide.id, guide.title)
