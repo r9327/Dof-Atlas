@@ -33,7 +33,7 @@ def catalog() -> dict:
         return {
             "path": path, "invocation": "py -3.13 -m " + path[:-3].replace("/", "."),
             "capabilities": [capability],
-            "cost_hint": "low",
+            "cost_hint": "cheap",
             "preferred_for_agent": preferred,
             "safe_for_agent": safe,
             "automation_ready": ready,
