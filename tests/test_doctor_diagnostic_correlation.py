@@ -174,6 +174,39 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertFalse(doc["diagnostic_correlation"]["investigation_plan"]
                          ["certification_granted"])
 
+    def test_shared_tool_keeps_all_capabilities_without_redundant_invocations(self):
+        report = {"tools": [{
+            "path": "tools/specialist.py", "invocation": "py -m tools.specialist",
+            "capabilities": ["memory", "runtime_trace", "performance"],
+            "safe_for_agent": True, "automation_ready": True,
+            "preferred_for_agent": True, "cost_hint": "cheap",
+            "side_effects": "read_only", "readiness_score": 100,
+        }]}
+        planned = _catalog_tools(("memory", "runtime_trace", "performance"), report)
+        self.assertEqual(len(planned["selected"]), 1)
+        self.assertEqual(planned["selected"][0]["capabilities"],
+                         ["memory", "runtime_trace", "performance"])
+        graph = plan_investigation(SHA, [{
+            "id": "RAM", "tool_plan": planned,
+        }], [])
+        self.assertEqual(len(graph["steps"]), 1)
+        self.assertEqual(graph["steps"][0]["capabilities"],
+                         ["memory", "runtime_trace", "performance"])
+        self.assertFalse(graph["tools_executed"])
+
+    def test_unknown_tool_cost_is_not_assumed_free(self):
+        plan = plan_investigation(SHA, [{
+            "id": "X", "tool_plan": {
+                "selected": [{
+                    "path": "tools/unknown.py", "invocation": "tool",
+                    "capability": "validation", "cost_hint": "unknown",
+                }],
+                "unresolved_capabilities": [],
+            },
+        }], [])
+        self.assertEqual(plan["steps"][0]["phase"],
+                         "VALIDATION_AFTER_CODE_COMPLETE")
+
     def test_tool_selection_budget_reports_skipped_capabilities(self):
         capabilities = tuple("cap_" + str(i) for i in range(7))
         report = {"tools": [
