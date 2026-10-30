@@ -33,6 +33,9 @@ from benchmark_phase8_preload import (
 )
 from benchmark_phase8_memory import PeakTreeSampler, memory_snapshot
 from benchmark_atlas_exhaustive import CpuRssSampler, EventLoopLag
+from tools.atlas_doctor_lib.ram_inventory import (
+    ROUTE_CHECKPOINTS, ram_ownership_snapshot, ram_checkpoints_summary,
+)
 
 # Inventory is intentionally explicit: a new menu entry must receive a review
 # instead of disappearing silently from the benchmark.
@@ -232,7 +235,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         "home_stabilization_wait_ms": 750, "idle_seconds_requested": idle_seconds,
         "is_certification": False, "one_core_requested": one_core,
         "expected_routes": [x[0] for x in ROUTES],
-        "routes": [], "preload_states": {}, "measurement_limits": [
+        "routes": [], "preload_states": {}, "ram_ownership_checkpoints": [],
+        "measurement_limits": [
             "Qt offscreen is not a GPU/FPS/real desktop validation",
             "Visible placeholder pages are checked as navigation, not working features",
             "One character and one Atlas process; not 8 Dofus clients",
@@ -293,6 +297,10 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                                     and all(v == "READY" for v in report["preload_states"].values())
                                     else "FAIL")
         report["after_preload"] = memory_snapshot("quick_after_preload")
+        report["ram_ownership_checkpoints"].append({
+            "label": "initial_home", "memory": report["after_preload"],
+            "ownership": ram_ownership_snapshot(window, "initial_home"),
+        })
 
         for cycle in range(1, cycles + 1):
             for entry in ROUTES:
@@ -339,6 +347,15 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         row["home_stabilized"] = memory_snapshot("quick_home_stabilized")
                         if window.active_page_name() != "Home":
                             raise RuntimeError("Home not active after settling")
+                        if cycle == 1 and route_id in ROUTE_CHECKPOINTS:
+                            # RSS is captured *before* enumerating Qt widgets.
+                            report["ram_ownership_checkpoints"].append({
+                                "label": f"{route_id}_home_after_first",
+                                "memory": row["home_stabilized"],
+                                "ownership": ram_ownership_snapshot(
+                                    window, f"{route_id}_home_after_first"
+                                ),
+                            })
                     except Exception as exc:
                         row["status"] = "FAIL"
                         row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
@@ -347,6 +364,18 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         row["return_home_cpu_ms"] = round((time.process_time() - home_cpu_at) * 1000, 2)
                     report["routes"].append(row)
         report["revisit_comparison"] = summarize_revisits(report["routes"], cycles)
+        final_home_memory = next(
+            (row["home_stabilized"] for row in reversed(report["routes"])
+             if "home_stabilized" in row), None,
+        )
+        if isinstance(final_home_memory, dict):
+            report["ram_ownership_checkpoints"].append({
+                "label": "last_home", "memory": final_home_memory,
+                "ownership": ram_ownership_snapshot(window, "last_home"),
+            })
+        report["ram_ownership_summary"] = ram_checkpoints_summary(
+            report["ram_ownership_checkpoints"]
+        )
         # A longer idle observation is separate from the fast 750ms post-route
         # snapshot, and never presented as evidence of a native-memory leak.
         if idle_seconds:
