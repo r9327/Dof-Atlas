@@ -135,12 +135,34 @@ class GuideUltimeManualCard(QFrame):
         frame = QFrame()
         frame.setObjectName("GuideManualLegendCard")
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(5)
+        layout.setContentsMargins(9, 5, 9, 5)
+        layout.setSpacing(3)
 
+        heading = QHBoxLayout()
+        heading.setSpacing(6)
         title = QLabel("LÉGENDE")
         title.setObjectName("GuideManualLegendTitle")
-        layout.addWidget(title)
+        heading.addWidget(title)
+        heading.addStretch(1)
+        toggle = QToolButton()
+        toggle.setObjectName("GuideManualLegendToggle")
+        toggle.setText("Afficher l’aide")
+        toggle.setCheckable(True)
+        toggle.setArrowType(Qt.RightArrow)
+        toggle.setCursor(Qt.PointingHandCursor)
+        heading.addWidget(toggle)
+        layout.addLayout(heading)
+        details = QWidget()
+        details.setObjectName("GuideManualLegendDetails")
+        details_layout = QVBoxLayout(details)
+        details_layout.setContentsMargins(0, 2, 0, 0)
+        details_layout.setSpacing(4)
+        details.setVisible(False)
+        toggle.toggled.connect(details.setVisible)
+        toggle.toggled.connect(
+            lambda open_: toggle.setArrowType(Qt.DownArrow if open_ else Qt.RightArrow)
+        )
+        layout.addWidget(details)
 
         travel_action = (
             "déplace les participants sélectionnés"
@@ -157,7 +179,7 @@ class GuideUltimeManualCard(QFrame):
             label = QLabel(f"• {text}")
             label.setObjectName("GuideManualLegendText")
             label.setWordWrap(True)
-            layout.addWidget(label)
+            details_layout.addWidget(label)
         root.addWidget(frame)
 
     @staticmethod
