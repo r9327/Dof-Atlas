@@ -281,6 +281,33 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
     return [label, count, 1 if ready is not None else 0]
 
 
+def _quest_offset_artifact_stamp(path: Path) -> list[object]:
+    """Check an indexed source exists *and* contains a readable offsets table.
+
+    A non-empty .sqlite3 filename is not evidence of a usable disk-backed
+    Quest index. Keep validation bounded to a single indexed row; full
+    integrity/offset scanning belongs to explicit Doctor forensics.
+    """
+    label = _path_label(path)
+    try:
+        stat = path.stat()
+        if not path.is_file() or stat.st_size <= 0:
+            return [label, -1, -1]
+        # mode=ro prevents a missing SQLite file from being created during
+        # a cache-hit check (including with multiple Atlas processes).
+        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1) as connection:
+            row = connection.execute(
+                "SELECT start, end FROM offsets LIMIT 1"
+            ).fetchone()
+        if row is not None and not (
+            type(row[0]) is int and type(row[1]) is int and 0 <= row[0] < row[1]
+        ):
+            return [label, -1, -1]
+        return [label, int(stat.st_size), int(stat.st_mtime_ns)]
+    except (OSError, sqlite3.Error, ValueError):
+        return [label, -1, -1]
+
+
 def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
     if not isinstance(cache_files, list) or not cache_files:
         return []
@@ -291,6 +318,9 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
             return []
         if domain == "quest" and index == 0:
             rows.append(_quest_artifact_stamp(path))
+            continue
+        if domain == "quest":
+            rows.append(_quest_offset_artifact_stamp(path))
             continue
         label = _path_label(path)
         try:
