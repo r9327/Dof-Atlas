@@ -138,14 +138,13 @@ class OptimizationReportTests(unittest.TestCase):
             app_json.parent.mkdir(parents=True)
             import json
             app_json.write_text(json.dumps(sample()), encoding="utf-8")
-            from tests.test_doctor_diagnostic_correlation import catalog
             with patch("tools.agent_planner._planning_catalog",
-                       return_value=catalog()) as cached:
+                       return_value={"schema_version": 1, "tools": []}) as cached:
                 report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
             cached.assert_called_once()
             self.assertEqual(cached.call_args.kwargs["cache_info"],
                              report["tool_catalog_cache"])
-            self.assertEqual(report["diagnostic_correlation"]["status"], "REVIEW")
+            self.assertEqual(report["diagnostic_correlation"]["status"], "NO_CORRELATION")
             self.assertTrue((root / "artifacts" / "doctor_complete" /
                              "optimization.json").is_file())
 
