@@ -84,7 +84,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 continue
             seen_quests.add(quest_id)
             quest_count += 1
-            raw_segments.extend(self._quest_segments(step, quest))
+            raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
         segments = self._merge_consecutive_positions(raw_segments)
         cards = [
@@ -129,7 +129,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         self.manual_chapters = (self.guide_id,)
         self.manual_preview_error = ""
 
-    def _quest_segments(self, guide_step, quest) -> list[dict[str, Any]]:
+    def _quest_segments(\n        self, guide_step, quest, *, finalize: bool = True,\n    ) -> list[dict[str, Any]]:
         quest_id = int(quest.id)
         quest_name = str(getattr(quest, "name", "") or f"Quête #{quest_id}")
         start = quest_start_info(quest)
@@ -193,6 +193,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
         segments: list[dict[str, Any]] = []
         current = first
+        current_key = self._position_key(current["position"])
         for solution_step in quest_solution_steps(quest):
             if solution_step.title:
                 current["sections"]["now"].append(
@@ -215,9 +216,9 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 ).strip()
                 # Resolve each coordinate once; preserve the original split rule.
                 objective_key = self._position_key(objective_position)
-                current_key = self._position_key(current["position"])
                 if objective_key and current_key and objective_key != current_key:
-                    self._finalize_segment(current)
+                    if finalize:
+                        self._finalize_segment(current)
                     if self._segment_has_content(current):
                         segments.append(current)
                     current = self._new_segment(
@@ -229,6 +230,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                             getattr(guide_step, "id", "") or f"quest-{quest_id}"
                         ),
                     )
+                    current_key = objective_key
 
                 row = self._line(
                     "combat" if bool(objective.combat) else "action",
@@ -240,7 +242,8 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 else:
                     current["sections"]["now"].append(row)
 
-        self._finalize_segment(current)
+        if finalize:
+            self._finalize_segment(current)
         if self._segment_has_content(current):
             segments.append(current)
         return segments
@@ -295,24 +298,26 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         segments: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         merged: list[dict[str, Any]] = []
+        previous_key = ""
         for raw in segments:
             segment = copy.deepcopy(raw)
             key = self._position_key(segment.get("position"))
-            previous_key = (
-                self._position_key(merged[-1].get("position"))
-                if merged
-                else ""
-            )
             if merged and key and key == previous_key:
-                self._merge_segment(merged[-1], segment)
+                # Copy and dedupe the final sheet once, not after every join.
+                self._merge_segment(merged[-1], segment, finalize=False)
                 continue
             merged.append(segment)
+            previous_key = key
+        for segment in merged:
+            self._finalize_segment(segment)
         return merged
 
     def _merge_segment(
         self,
         target: dict[str, Any],
         source: dict[str, Any],
+        *,
+        finalize: bool = True,
     ) -> None:
         for field in ("guide_step_ids", "quest_ids", "quest_names", "resource_names"):
             for value in source.get(field, ()) or ():
@@ -324,7 +329,8 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         for key, rows in source.get("sections", {}).items():
             target["sections"].setdefault(key, [])
             target["sections"][key].extend(copy.deepcopy(rows))
-        self._finalize_segment(target)
+        if finalize:
+            self._finalize_segment(target)
 
     def _segment_to_card(
         self,
