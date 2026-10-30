@@ -86,3 +86,11 @@ optimisation supplémentaire ne doit être marquée PASS sans mesure.
 - Premier accès à froid Sylvestre (~10,47 s sur le HEAD antérieur) et construction du cache en arrière-plan **sans** retarder l'ouverture Quêtes/Succès.
 - Probes Doctor des premières recherches Métiers, des premières fiches Quêtes/Succès/Guides classiques et de Map monde, avec mémoire process-tree et retour Home ; comparer même configuration, sans gonfler les caches.
 - Aucun `PASS` de fonctionnalité pour les placeholders, et aucune revendication de budgets RAM atteints sans résultats du nouveau HEAD.
+
+## Contrat Doctor : ne pas promouvoir les placeholders en fonctions
+
+Le parcours court `tools/doctor_quick_app_probe.py` inventorie **20 entrées** par cycle, dont **9 placeholders** (quatre onglets Bestiaire + Chasse + Ocre + Almanax + Tutoriels + Dofus Noob). Il n'y a donc que **11 navigations vers des modules existants** à classer `PASS` par cycle, et 9 entrées `PLACEHOLDER`. Sur trois cycles : **33 PASS de navigation + 27 PLACEHOLDER**, sans prétendre que ces 33 exercices couvrent chaque fonction métier.
+
+- Le Bestiaire nécessite une vérification du widget **interne** `EncyclopediaUnavailableBestiary` : le conteneur externe est une vraie page Encyclopédie et produisait à tort un `PASS` fonctionnel.
+- Le validateur Doctor huit instances dérive maintenant les compteurs de la liste canonique `ROUTES`, et rejette les anciens chiffres 15/5 avec `FALSE_FUNCTIONAL_COVERAGE`.
+- Tests `tests/test_doctor_quick_app_probe.py` : vérification du placeholder interne et échec en cas de remplacement par une vraie vue non réinventoriée, ainsi que détection des faux anciens comptes. Ce n'est pas une certification des modules à venir.
