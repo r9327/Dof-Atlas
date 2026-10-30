@@ -35,10 +35,12 @@ def resident_bytes() -> int | None:
             ]
         counters = MemoryCounters()
         counters.cb = ctypes.sizeof(counters)
-        if ctypes.windll.psapi.GetProcessMemoryInfo(
-            ctypes.windll.kernel32.GetCurrentProcess(),
-            ctypes.byref(counters), counters.cb,
-        ):
+        get_handle = ctypes.windll.kernel32.GetCurrentProcess
+        get_handle.restype = ctypes.c_void_p
+        get_info = ctypes.windll.psapi.GetProcessMemoryInfo
+        get_info.argtypes = [ctypes.c_void_p, ctypes.POINTER(MemoryCounters), ctypes.c_ulong]
+        get_info.restype = ctypes.c_int
+        if get_info(get_handle(), ctypes.byref(counters), counters.cb):
             return int(counters.WorkingSetSize)
         return None
     if sys_platform_linux():
