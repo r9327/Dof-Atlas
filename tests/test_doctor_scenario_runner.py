@@ -203,6 +203,12 @@ class UserJourneyCertificationTests(unittest.TestCase):
         self.assertTrue(all(len(batch) == 1 for batch in batches))
         self.assertEqual(len(output["module_results"]), len(selected))
         self.assertTrue(all(row["exit_code"] == 0 for row in output["module_results"]))
+        costs = output["observed_test_cost"]
+        self.assertEqual(costs["status"], "OBSERVED")
+        self.assertEqual(costs["test_module_count"], len(selected))
+        self.assertGreaterEqual(costs["total_module_wall_seconds"], 0)
+        self.assertLessEqual(len(costs["slowest_modules"]), 8)
+        self.assertIn("not application CPU or RSS", costs["limits"][0])
         self.assertFalse(output["all_end_to_end_certified"])
         self.assertEqual(output["metrics_executed"], [])
 
