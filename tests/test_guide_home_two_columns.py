@@ -9,6 +9,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
 
 from app.modules.encyclopedia.models.guide import Guide
@@ -82,6 +83,28 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         self.assertEqual(left.row_for_guide("dofus_turquoise"), -1)
         self.assertEqual(right.row_for_guide("dofus_sylvestre"), -1)
         self.assertEqual(right.rowCount(), 2)
+
+    def test_identical_guide_refresh_keeps_model_and_progress_idle(self) -> None:
+        provider = _CatalogProvider()
+        model = GuideListModel()
+        resets = QSignalSpy(model.modelReset)
+        changes = QSignalSpy(model.dataChanged)
+        model.set_home_column(provider.guides, "right")
+        self.assertEqual(resets.count(), 1)
+        before_ids = self._ids(model)
+        model.set_home_column(list(provider.guides), "right")
+        self.assertEqual(resets.count(), 1)
+        self.assertEqual(self._ids(model), before_ids)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (2, 3, "En cours")})
+        self.assertEqual(changes.count(), 2)
+        # Only a genuine replacement of the underlying Guide must reset Qt.
+        model.set_home_column([_guide("dofus_turquoise", "dofus", "Turquoise")], "right")
+        self.assertEqual(resets.count(), 2)
+        self.assertEqual(self._ids(model), ["dofus_turquoise"])
 
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.
