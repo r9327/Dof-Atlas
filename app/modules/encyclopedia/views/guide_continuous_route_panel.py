@@ -39,9 +39,8 @@ def _source_actions_for_display(step: Mapping[str, object]) -> str:
     candidates = step.get("source_action_candidates")
     if not isinstance(candidates, list) or not candidates:
         return str(step.get("content") or "Actions de cette étape non renseignées.")
-    prerequisites = []
-    actions = []
-    preparation = []
+    lines = []
+    previous_heading = None
     for candidate in candidates:
         if not isinstance(candidate, Mapping):
             continue
@@ -50,22 +49,21 @@ def _source_actions_for_display(step: Mapping[str, object]) -> str:
             continue
         kind = candidate.get("kind")
         if kind in {"quest_prerequisite", "guide_dependency"}:
-            prerequisites.append(label.strip())
+            heading = "Avant de commencer"
         elif kind in {"prepare_object", "optional_preparation"}:
-            preparation.append(label.strip())
+            heading = "À préparer · références à vérifier"
         else:
-            actions.append(label.strip())
-    sections = []
-    for heading, items in (
-        ("Avant de commencer", prerequisites),
-        ("À faire maintenant", actions),
-        ("À préparer · références à vérifier", preparation),
-    ):
-        if items:
-            sections.append(heading + "\\n" + "\\n".join("• " + item for item in items))
-    return "\\n\\n".join(sections) or str(
+            heading = "À faire maintenant"
+        if heading != previous_heading:
+            if lines:
+                lines.append("")
+            lines.append(heading)
+            previous_heading = heading
+        lines.append("• " + label.strip())
+    return "\n".join(lines) or str(
         step.get("content") or "Actions de cette étape non renseignées."
     )
+
 
 class _GuideCharacterProgressButton(QToolButton):
     """Lightweight circular progress over a normal, clickable class portrait."""
@@ -557,7 +555,7 @@ class ContinuousGuideRoutePanel(QWidget):
             if done == len(checked) and checked:
                 prefix = "✓ "
             elif step_id == position.actual_step_id:
-                prefix = "→ "
+                prefix = "→◐ " if done else "→ "
             elif done:
                 prefix = "◐ "
             else:
