@@ -72,6 +72,47 @@ def test_changed_last_quest_id_persists_once() -> None:
     base_save.assert_called_once_with(fake, 42)
 
 
+
+class QuestObjectiveStepIndexTests(unittest.TestCase):
+    def test_first_rich_detail_primes_index_once_without_intermediate_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            raw = {"15": [101, 102], "16": [103]}
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute(
+                    "INSERT INTO metadata VALUES ('objective_step_ids', ?)",
+                    (json.dumps(raw),),
+                )
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            prime = Mock()
+            details._sources = SimpleNamespace(prime_objective_steps=prime)
+            details._prime_objective_step_index()
+            prime.assert_called_once_with(raw)
+            self.assertTrue(details._objective_step_index_checked)
+            details._prime_objective_step_index()
+            prime.assert_called_once()
+
+    def test_invalid_step_index_does_not_mark_ready_or_prime_partial_data(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute(
+                    "INSERT INTO metadata VALUES ('objective_step_ids', ?)",
+                    (json.dumps({"15": ["not-an-id"]}),),
+                )
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            prime = Mock()
+            details._sources = SimpleNamespace(prime_objective_steps=prime)
+            with self.assertRaises(ValueError):
+                details._prime_objective_step_index()
+            prime.assert_not_called()
+            self.assertFalse(details._objective_step_index_checked)
+
+
 class QuestEvidenceBatchTests(unittest.TestCase):
     def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
