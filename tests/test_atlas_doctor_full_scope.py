@@ -195,6 +195,42 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(audit["syntax_coverage"], "PASS")
         self.assertFalse(audit["semantic_links_verified"])
 
+    def test_canonical_guide_manifest_chapters_check_tracked_references_only(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "present.json", '{"stages":[]}')
+        self._file(
+            prefix + "manifest_v1.json",
+            '{"canonical":{"chapters":['
+            '{"id":"ok","file":"present.json"},'
+            '{"id":"missing","file":"missing.json"},'
+            '{"id":"unsafe","file":"../escape.json"},'
+            '{"id":"blank"}'
+            ']}}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        manifest = next(
+            row for row in audit["files"]
+            if row["file"] == prefix + "manifest_v1.json"
+        )
+        self.assertEqual(manifest["manifest_chapter_refs_inspected"], 4)
+        self.assertEqual(audit["counts"]["manifest_chapter_refs_inspected"], 4)
+        self.assertEqual(audit["counts"]["manifest_reference_review_files"], 1)
+        self.assertEqual(manifest["manual_manifest_reference_candidates"], [
+            {"kind": "MANIFEST_CHAPTER_NOT_TRACKED_REVIEW",
+             "chapter_index": 1, "file": "missing.json"},
+            {"kind": "MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW",
+             "chapter_index": 2, "file": "../escape.json"},
+            {"kind": "MANIFEST_CHAPTER_FILE_MISSING_REVIEW", "chapter_index": 3},
+        ])
+        self.assertEqual(manifest["status"], "VALID_SYNTAX_REVIEW")
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertEqual(report["status"], "REVIEW")
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
