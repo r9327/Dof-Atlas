@@ -406,6 +406,37 @@ def command_code_inspect(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+
+def command_full_scope(root: Path, args) -> dict[str, Any]:
+    """Full static inventory + Unity triage; no runtime/visual certification."""
+    from tools.atlas_doctor_lib.full_scope import (
+        audit_full_scope, write_full_scope_report,
+    )
+    result = audit_full_scope(root, expected_sha=args.expected_sha)
+    if args.output:
+        try:
+            path = write_full_scope_report(root, args.output, result)
+            result["report_path"] = str(path)
+        except (OSError, ValueError) as exc:
+            result["status"] = "BLOCKED"
+            result["output_error"] = str(exc)
+    if not args.json:
+        coverage = result.get("source_coverage") or {}
+        style = result.get("unity_style") or {}
+        print(
+            f"Doctor full-scope: {result['status']} | "
+            f"{coverage.get('inspected', 0)}/{coverage.get('total', 0)} fichiers Python "
+            f"| {coverage.get('functions_inspected', 0)} fonctions"
+        )
+        print(
+            f"Unity style: {style.get('status', 'NOT_RUN')} "
+            f"| {style.get('candidate_count', 0)} anomalies candidates "
+            "| rendu Windows natif NOT_RUN"
+        )
+        print("Analyse statique seulement; aucune certification UI ou runtime implicite.")
+    return result
+
+
 def command_graph_compare(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.architecture import graph_status
     from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
@@ -967,6 +998,11 @@ def build_parser() -> argparse.ArgumentParser:
     ci.add_argument('--entrypoint', action='append', help='Point entree connu (plusieurs possibles).')
     ci.add_argument('--baseline', type=Path, help='Ancien Graphify graph.json pour comparaison.')
     ci.add_argument('--trace', type=Path, help='Trace opt-in .ai/runtime du même commit.')
+    full_scope = sub.add_parser(
+        'full-scope', help='Inventaire complet des sources Python et triage du style Unity, sans runtime.')
+    full_scope.add_argument('--expected-sha', help='Refuser un checkout different de ce SHA Git exact.')
+    full_scope.add_argument('--output', type=Path,
+                            help='Ecrire les preuves JSON sous artifacts/ uniquement (opt-in).')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
     gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
@@ -1160,6 +1196,7 @@ def main(argv: list[str] | None = None) -> int:
         'consumer-sites': command_consumer_sites,
         'isolate-triage': command_isolate_triage,
         'code-inspect': command_code_inspect,
+        'full-scope': command_full_scope,
         'runtime-trace': command_runtime_trace,
         'capture-ui': command_capture_ui,
         'ui': command_ui,
@@ -1230,6 +1267,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if payload['status'] in {'PASS', 'RECORDED'} else 1
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
+    if args.command == 'full-scope':
+        return {'REVIEW': 1, 'BLOCKED': 2}.get(payload['status'], 2)
     if args.command == 'code-inspect':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'isolate-triage':
