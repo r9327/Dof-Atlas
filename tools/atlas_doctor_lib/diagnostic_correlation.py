@@ -40,16 +40,18 @@ def _catalog_tools(
     for capability in capabilities:
         # A guarded mutation tool can be agent-ready while still being the
         # wrong choice for an automatic read-only investigation.
-        preferred = select_tools(
-            catalog_report, capability=capability, safe_only=True,
-            ready_only=True, preferred_only=True,
-        )["tools"]
-        alternatives = select_tools(
-            catalog_report, capability=capability, safe_only=True,
-            ready_only=True,
-        )["tools"]
+        # The canonical selector already sorts preferred and ready tools
+        # first. One query avoids repeating the full tool-catalogue sort.
+        try:
+            candidates = select_tools(
+                catalog_report, capability=capability, safe_only=True,
+                ready_only=True,
+            )["tools"]
+        except (KeyError, TypeError, ValueError):
+            unresolved.append("INVALID_TOOL_METADATA:" + capability)
+            continue
         entry = next(
-            (row for row in [*preferred, *alternatives]
+            (row for row in candidates
              if row.get("side_effects") in {"read_only", "artifact_output"}),
             None,
         )
@@ -80,6 +82,59 @@ def _catalog_tools(
     }
 
 
+def scenario_contract_recommendations(
+    hypotheses: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Select *existing* Doctor scenario contracts, not invented benchmark IDs.
+
+    This function plans canonical contract execution but does not run tests,
+    trigger workflows, claim performance metrics or replace Phase certification.
+    """
+    from tools.doctor_scenario_runner import MAX_SELECTED, SCENARIOS
+
+    mapped = (
+        ("startup_preload", ("PRELOAD_WALL_CORRELATION",)),
+        ("home_qt_lifecycle", ("HOME_REVISIT_CORRELATION",)),
+        ("guide_quest_succes", (
+            "GUIDE_METHOD_HOTSPOT", "GUIDE_HOTSPOT_AND_REVISIT",
+            "COLD_QUEST_DETAIL", "COLD_ACHIEVEMENT_DETAIL",
+            "COLD_GUIDE_DETAIL", "SUCCESS_MAIN_THREAD_SUBPROCESS",
+        )),
+    )
+    ids = {str(row.get("id")) for row in hypotheses if isinstance(row, dict)}
+    selected: list[dict[str, Any]] = []
+    uncovered = set(ids)
+    for scenario, related in mapped:
+        present = sorted(ids.intersection(related))
+        if not present:
+            continue
+        if scenario not in SCENARIOS:
+            continue
+        if len(selected) >= MAX_SELECTED:
+            break
+        selected.append({
+            "scenario": scenario,
+            "covered_hypotheses": present,
+            "runner": "tools.doctor_scenario_runner",
+            "test_modules": list(SCENARIOS[scenario]["modules"]),
+            "scenario_metrics_are_not_proof": list(SCENARIOS[scenario]["metrics"]),
+            "execution_status": "NOT_RUN",
+            "required_sha_check": True,
+        })
+        uncovered.difference_update(present)
+    return {
+        "status": "PLANNED_NOT_RUN" if selected and not uncovered
+                  else "PARTIAL_COVERAGE" if selected else "NOT_SELECTED",
+        "selected": selected,
+        "uncovered_hypotheses": sorted(uncovered),
+        "tests_executed": False,
+        "perf_benchmarks_executed": False,
+        "certification_granted": False,
+        "requires_explicit_execution": True,
+        "note": "Scenario runner validates contracts only, not end-to-end RAM or UI latency",
+    }
+
+
 def plan_investigation(
     sha: str, hypotheses: list[dict[str, Any]], gaps: list[str],
 ) -> dict[str, Any]:
@@ -95,6 +150,7 @@ def plan_investigation(
         return {
             "status": "BLOCKED_MISSING_EVIDENCE" if gaps else "NO_ACTION",
             "candidate_sha": sha, "steps": [], "unresolved": sorted(set(gaps)),
+            "scenario_contracts": scenario_contract_recommendations([]),
             "tests_executed": False, "tools_executed": False,
             "certification_granted": False,
         }
@@ -196,6 +252,7 @@ def plan_investigation(
         "status": "REVIEW_REQUIRED" if unresolved else "READY_TO_REVIEW",
         "candidate_sha": sha, "steps": steps, "unresolved": sorted(unresolved),
         "tools_considered": len(ranked_tools), "tools_truncated": truncated,
+        "scenario_contracts": scenario_contract_recommendations(hypotheses),
         "adaptive_benchmark_probes": probes,
         "all_required_certification_scenarios_retained": True,
         "stopping_conditions": [
