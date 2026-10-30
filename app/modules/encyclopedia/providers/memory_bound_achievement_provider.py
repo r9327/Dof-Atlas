@@ -132,6 +132,8 @@ def ensure_achievement_compact_cache(
         env=_utf8_subprocess_env(),
         timeout=90,
         check=True,
+        # No transient console/conhost for captured disposable Windows workers.
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
     )
     lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
     if not lines:
@@ -1478,6 +1480,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     env=_utf8_subprocess_env(),
                     timeout=90,
                     check=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
                 )
             finally:
                 self._last_detail_subprocess_ms = round(
