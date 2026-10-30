@@ -154,6 +154,22 @@ class UserJourneyCertificationTests(unittest.TestCase):
                 self.assertFalse(report["tests_executed"])
                 self.assertFalse(report["certification_granted"])
 
+    def test_cli_rejects_output_outside_artifacts_before_running_anything(self):
+        bad_output = self.root / "tools" / "unexpected.json"
+        output = io.StringIO()
+        with mock.patch.object(target, "ROOT", self.root), redirect_stdout(output):
+            result = target.main([
+                "--scenario", "success_cold_detail",
+                "--expected-sha", SHA, "--run",
+                "--output", "tools/unexpected.json",
+            ])
+        self.assertEqual(result, 2)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["status"], "BLOCKED")
+        self.assertEqual(payload["errors"], ["OUTPUT_MUST_BE_ARTIFACT_JSON"])
+        self.assertFalse(payload["tests_executed"])
+        self.assertFalse(bad_output.exists())
+
     def test_diagnostic_report_cli_never_runs_without_explicit_run_flag(self):
         output = io.StringIO()
         artifacts = self.root / "artifacts"
