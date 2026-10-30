@@ -113,7 +113,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_json_nested_id_collisions_and_repeated_members_are_review_only(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file(
             "data/deep.json",
             '{"outer":[{"steps":[{"id":3},{"id":3},{"id":"3"}]}],'
