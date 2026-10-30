@@ -25,6 +25,7 @@ env:
   PYTHONUTF8: "1"
   CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.base_ref }}
+  PR_NUMBER: ${{ github.event.pull_request.number || '0' }}
 
 jobs:
   plan:
@@ -58,8 +59,12 @@ jobs:
         shell: bash
         run: |
           set +e
+          # PR #303 requests a complete source JSON syntax pass once its
+          # implementation is integrated; other PRs keep the cheap Python AST.
+          json_args=()
+          if [ "$PR_NUMBER" = "303" ]; then json_args=(--with-json); fi
           python -X faulthandler -m tools.atlas_doctor full-scope \
-            --expected-sha "$CANDIDATE_SHA" \
+            --expected-sha "$CANDIDATE_SHA" "${json_args[@]}" \
             --output artifacts/doctor_full_scope/report.json --json \
             > "$RUNNER_TEMP/doctor-full-scope.json"
           result=$?
@@ -84,6 +89,18 @@ jobs:
           assert proof["tracked_file_inventory"]["truncated"] is False
           assert proof["status"] == "REVIEW" and proof["complete_application_certified"] is False
           assert proof["unity_style"]["native_windows_visual"] == "NOT_RUN"
+          if os.environ.get("PR_NUMBER") == "303":
+              json_audit = proof["json_semantic_audit"]
+              counts = json_audit["counts"]
+              expected_json = proof["tracked_file_inventory"]["categories"]["json"]
+              assert counts["tracked"] == expected_json and counts["tracked"] > 0
+              assert counts["valid_syntax"] == counts["tracked"]
+              assert counts["invalid_syntax"] == counts["unavailable"] == 0
+              assert json_audit["syntax_coverage"] == "PASS"
+              assert json_audit["truncated"] is False
+              assert json_audit["semantic_links_verified"] is False
+              print(f"Doctor JSON syntax coverage: {counts['valid_syntax']}/{counts['tracked']} "
+                    f"tracked JSON, {counts['duplicate_id_review_files']} ID-collision review leads")
           print(f"Doctor source coverage: {coverage['inspected']}/{coverage['total']} Python files, "
                 f"{coverage['functions_inspected']} functions; JSON/assets inventoried, not certified")
           print("Runtime/Graphify/Windows visual: NOT_RUN until separately evidenced")
