@@ -7,6 +7,11 @@ on:
         type: boolean
         default: false
   workflow_dispatch:
+  # One unpublished full Windows candidate when a reviewed PR leaves Draft.
+  # The windows-bundle job remains restricted to explicitly listed branches.
+  pull_request:
+    types: [ready_for_review]
+    branches: [main]
   workflow_run:
     workflows: ["Phase Certification"]
     types: [completed]
@@ -170,7 +175,8 @@ jobs:
         inputs.full_candidate == true ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
-         (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
+         (github.head_ref == 'perf/atlas-global-optimization-backlog-20261030' ||
+          github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
           github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
           github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
           github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
