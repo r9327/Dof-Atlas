@@ -183,6 +183,34 @@ class ShellTransientPlaceholderReleaseTests(unittest.TestCase):
 
 
 class EncyclopediaThreadLifecycleTests(unittest.TestCase):
+    def test_home_prunes_completed_workers_even_without_another_warmup(self):
+        from threading import Event, Thread
+        from app.modules.encyclopedia.views.memory_bound_encyclopedia_page import (
+            EncyclopediaPage,
+        )
+
+        finished = Thread(target=lambda: None, name="finished-at-Home")
+        finished.start()
+        finished.join(timeout=2)
+        self.assertFalse(finished.is_alive())
+        live_exit = Event()
+        live_entered = Event()
+
+        def ongoing():
+            live_entered.set()
+            live_exit.wait(2)
+
+        live = Thread(target=ongoing, name="still-running-at-Home")
+        live.start()
+        self.assertTrue(live_entered.wait(2))
+        owner = SimpleNamespace(_runtime_threads=[finished, live])
+        try:
+            EncyclopediaPage._prune_finished_runtime_threads(owner)
+            self.assertEqual(owner._runtime_threads, [live])
+        finally:
+            live_exit.set()
+            live.join(timeout=2)
+
     def test_repeated_warmups_prune_finished_thread_handles(self):
         from threading import Event
         from app.modules.encyclopedia.views.encyclopedia_page import (
