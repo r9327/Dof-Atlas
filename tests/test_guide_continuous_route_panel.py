@@ -40,6 +40,25 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_step_navigation_preserves_summary_model_and_updates_only_markers(self):
+        resets = []
+        changed = []
+        self.panel.summary_model.modelReset.connect(lambda: resets.append(True))
+        self.panel.summary_model.dataChanged.connect(lambda *_: changed.append(True))
+        model = self.panel.summary_model
+        old_first = model.data(model.index(0, 0))
+        old_second = model.data(model.index(1, 0))
+        self.panel.next_button.click()
+        self.assertEqual(resets, [])
+        self.assertTrue(changed)
+        self.assertNotEqual(model.data(model.index(0, 0)), old_first)
+        self.assertNotEqual(model.data(model.index(1, 0)), old_second)
+        self.assertTrue(model.data(model.index(1, 0)).startswith("→ "))
+        self.panel.previous_button.click()
+        self.assertEqual(resets, [])
+        self.assertEqual(model.data(model.index(0, 0)), old_first)
+        self.assertEqual(model.data(model.index(1, 0)), old_second)
+
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
             self.panel.navigation.position().viewed_step_id,
