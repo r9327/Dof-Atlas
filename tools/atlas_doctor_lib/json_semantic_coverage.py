@@ -72,6 +72,50 @@ def _id_collision_candidates(payload: Any) -> tuple[list[dict[str, Any]], int]:
 
 
 
+_MANUAL_MANIFEST = "data/routes/guide_ultime_manual/manifest_v1.json"
+_MANUAL_DIR = "data/routes/guide_ultime_manual/"
+
+
+def _manual_manifest_chapter_refs(
+    payload: Any, tracked_json: set[str],
+) -> tuple[list[dict[str, Any]], int]:
+    """Triage the direct canonical chapter references consumed by Guide Ultime.
+
+    Chapter imports, option branches and resolved stage totals are deliberately
+    outside this static check. A tracked file is not proof of runtime validity.
+    """
+    candidates: list[dict[str, Any]] = []
+    canonical = payload.get("canonical") if isinstance(payload, dict) else None
+    chapters = canonical.get("chapters") if isinstance(canonical, dict) else None
+    if not isinstance(chapters, list) or not chapters:
+        return ([{"kind": "CANONICAL_CHAPTERS_MISSING_REVIEW"}], 0)
+    inspected = 0
+    for index, row in enumerate(chapters):
+        inspected += 1
+        filename = row.get("file") if isinstance(row, dict) else None
+        if not isinstance(filename, str) or not filename:
+            candidates.append({
+                "kind": "MANIFEST_CHAPTER_FILE_MISSING_REVIEW", "chapter_index": index,
+            })
+            continue
+        # The actual runtime joins filenames with MANUAL_DIR. Do not follow
+        # absolute/parent-relative paths even in read-only audit logic.
+        if (
+            "/" in filename or "\\" in filename or filename in {".", ".."}
+            or not filename.lower().endswith(".json")
+        ):
+            candidates.append({
+                "kind": "MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW",
+                "chapter_index": index, "file": filename,
+            })
+        elif _MANUAL_DIR + filename not in tracked_json:
+            candidates.append({
+                "kind": "MANIFEST_CHAPTER_NOT_TRACKED_REVIEW",
+                "chapter_index": index, "file": filename,
+            })
+    return candidates, inspected
+
+
 def _reject_non_finite(value: str) -> None:
     raise ValueError("Non-standard JSON number: " + value)
 
@@ -83,8 +127,10 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
         "unavailable": 0, "duplicate_id_review_files": 0,
         "duplicate_key_review_files": 0, "id_lists_inspected": 0,
-        "bytes_parsed": 0,
+        "manifest_chapter_refs_inspected": 0,
+        "manifest_reference_review_files": 0, "bytes_parsed": 0,
     }
+    tracked_json = set(paths)
     for relative in paths:
         file = root / relative
         entry: dict[str, Any] = {"file": relative}
@@ -125,6 +171,17 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             counts["id_lists_inspected"] += lists_inspected
             entry["id_lists_inspected"] = lists_inspected
             entry["duplicate_id_candidates"] = collisions
+            if relative == _MANUAL_MANIFEST:
+                manifest_findings, chapter_refs = _manual_manifest_chapter_refs(
+                    payload, tracked_json,
+                )
+                entry["manual_manifest_reference_candidates"] = manifest_findings
+                entry["manifest_chapter_refs_inspected"] = chapter_refs
+                counts["manifest_chapter_refs_inspected"] += chapter_refs
+                if manifest_findings:
+                    counts["manifest_reference_review_files"] += 1
+            else:
+                manifest_findings = []
             # A duplicate member name can silently change the interpreted
             # source even if JSON syntax and list-level IDs are otherwise OK.
             # The decoder hook has no parent path: never invent one.
@@ -134,7 +191,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 for key, number in sorted(duplicate_keys.items())
             ]
             entry["status"] = (
-                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys
+                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys or manifest_findings
                 else "VALID_SYNTAX"
             )
             counts["valid_syntax"] += 1
@@ -175,6 +232,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             "Syntax PASS does not prove domain ID references, schema, active packaging or assets",
             "Duplicate ID/key candidates require source semantics before any cleanup",
             "Duplicate object keys are counted without invented JSON paths",
+            "Guide Ultime manifest check covers direct canonical chapter filenames only",
             "Git-tracked inventory excludes generated and user-local files",
         ],
     }
