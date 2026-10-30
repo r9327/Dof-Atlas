@@ -29,6 +29,12 @@ on:
       - 'tests/test_shared_guide_combat_global_contract.py'
       - 'scripts/windows/build_quest_index.py'
       - 'app/modules/encyclopedia/views/guides_view.py'
+      - 'app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py'
+      - 'app/ui/world_scan_panel.py'
+      - 'tests/test_world_scan_async_loading.py'
+      - 'tests/test_shell_home_character_compact.py'
+      - 'tests/test_guide_manual_contract_row_cache.py'
+      - 'tests/test_guide_ultime_manual_runtime_text.py'
 
 permissions:
   contents: read
@@ -112,6 +118,21 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Guide line/waypoint and runtime text parity
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_manual_contract_row_cache tests.test_guide_ultime_manual_runtime_text
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: World Map return-to-Home and Qt lifecycle parity
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_world_scan_async_loading tests.test_shell_home_character_compact.ShellWorldScanHibernationTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Bounded Unity fallback icon cache
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_guide_reward_fallback_icon_is_shared_and_bounded
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh
