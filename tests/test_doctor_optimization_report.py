@@ -148,6 +148,20 @@ class OptimizationReportTests(unittest.TestCase):
             self.assertTrue((root / "artifacts" / "doctor_complete" /
                              "optimization.json").is_file())
 
+    def test_stale_app_skips_expensive_tool_catalog_discovery(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            import json
+            app_json.write_text(json.dumps(sample(sha=OLD)), encoding="utf-8")
+            with patch("tools.agent_planner._planning_catalog",
+                       side_effect=AssertionError("catalog must not scan stale data")):
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            self.assertEqual(report["status"], "BLOCKED")
+            self.assertEqual(report["tool_catalog_cache"]["status"], "NOT_REQUIRED")
+            self.assertEqual(report["diagnostic_correlation"]["status"], "BLOCKED")
+
     def test_bad_rss_numbers_not_counted(self):
         doc = optimization_report(HEAD, sample(
             peak_process_tree_rss_mib=True, idle_tree_rss_delta_mib=float("nan")))
