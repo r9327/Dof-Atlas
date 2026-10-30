@@ -101,6 +101,27 @@ class DeepAchievementTimingContractTests(unittest.TestCase):
         )
 
 
+class DeepSuccessSubprocessAttributionContractTests(unittest.TestCase):
+    def test_success_probe_peeks_existing_provider_only_after_real_render(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        block = source[
+            source.index("    # Achievement: request the first real retained Achievement detail;"):
+            source.index("\ndef measure() -> dict[str, Any]:")
+        ]
+        self.assertIn("peek_achievement_provider", block)
+        self.assertIn('"provider_last_detail_breakdown_ms": success_source_phases', block)
+        self.assertIn('"synchronous_subprocess_ms"', block)
+        self.assertNotIn("provider.get_detail_by_id(", block)
+        self.assertLess(
+            block.index('label="first rendered Achievement detail"'),
+            block.index('achievement_detail_ms = milliseconds(started)'),
+        )
+        self.assertLess(
+            block.index("achievement_detail_ms = milliseconds(started)"),
+            block.index('peek_achievement_provider'),
+        )
+
+
 class DeepQuestTimingContractTests(unittest.TestCase):
     def test_quest_breakdown_does_not_replace_real_detail_wait(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")
