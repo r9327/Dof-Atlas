@@ -1902,6 +1902,20 @@ def worker(folder: Path) -> int:
                 session.scenario = "guides-catalog-" + label
                 session.card_id = "catalog"
                 session.snapshot(page)
+            # Capture real expansion states as well as the compact default;
+            # otherwise a visually broken dropdown can pass as invisible.
+            if any(card.maximumHeight() > 100 or
+                   card.open_button.isVisibleTo(catalog)
+                   for card in catalog.featured_cards.values()):
+                raise RuntimeError("Optimized Guide cards are not compact/click-only")
+            page.resize(1200, 800)
+            for category in ("alignements", "dimensions"):
+                node = catalog._category_nodes[category]
+                node.setExpanded(True)
+                settle()
+                session.scenario = "guides-catalog-" + category + "-open"
+                session.snapshot(page)
+                node.setExpanded(False)
             # Restore the canonical rich owner for the existing Guide scenarios.
             owner = page.ensure_full_guides_view()
             if not owner._runtime_ready:
