@@ -153,8 +153,8 @@ class RamForensics:
             "top_increased_sources_since_previous_checkpoint": rows,
             "top_traced_sources_now": absolute[:TOP_SITES],
             "top_traced_lines_now": top_lines[:TOP_SITES],
-            "app_source_traced_mib": app_traced_mib,
-            "benchmark_harness_traced_mib": harness_traced_mib,
+            "app_top_sources_traced_mib": app_traced_mib,
+            "benchmark_top_sources_traced_mib": harness_traced_mib,
             "windows_process": private_windows_memory(),
         }
         self.entries.append(entry)
