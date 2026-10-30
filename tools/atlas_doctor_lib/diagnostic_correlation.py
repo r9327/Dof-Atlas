@@ -30,7 +30,7 @@ def _catalog_tools(
     if catalog_report is None:
         return {"status": "NOT_PROVIDED", "selected": [],
                 "unresolved_capabilities": list(capabilities), "not_executed": True}
-    if not isinstance(catalog_report.get("tools"), list):
+    if not isinstance(catalog_report, dict) or not isinstance(catalog_report.get("tools"), list):
         return {"status": "INVALID_CATALOG", "selected": [],
                 "unresolved_capabilities": list(capabilities), "not_executed": True}
     from tools.tool_catalog import select_tools
@@ -311,7 +311,7 @@ def correlate_diagnostics(
         gaps.append("guides: STALE_OR_NOT_PASS")
     if catalog_report is None:
         gaps.append("tool_catalog: NOT_PROVIDED")
-    elif not isinstance(catalog_report.get("tools"), list):
+    elif not isinstance(catalog_report, dict) or not isinstance(catalog_report.get("tools"), list):
         gaps.append("tool_catalog: INVALID")
 
     hypotheses: list[dict[str, Any]] = []
