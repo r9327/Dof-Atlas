@@ -110,6 +110,32 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(audit["files"][1]["duplicate_id_candidates"][0]["ids"], ["1"])
         self.assertFalse(audit["automatic_deletion_authorized"])
 
+
+    def test_json_nested_id_collisions_and_repeated_members_are_review_only(self):
+        self._unity()
+        self._file("app/ok.py", "pass\\n")
+        self._file(
+            "data/deep.json",
+            '{"outer":[{"steps":[{"id":3},{"id":3},{"id":"3"}]}],'
+            '"same":1,"same":2,"untouched":[{"id":1},{"id":"1"}]}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        entry = audit["files"][0]
+        self.assertEqual(entry["status"], "VALID_SYNTAX_REVIEW")
+        self.assertEqual(
+            entry["duplicate_id_candidates"],
+            [{"collection": "outer/0/steps", "ids": ["3"], "kind": "DUPLICATE_ID_REVIEW"}],
+        )
+        self.assertEqual(entry["duplicate_member_candidates"], ["same"])
+        self.assertEqual(audit["counts"]["nested_lists_scanned"], 3)
+        self.assertEqual(audit["counts"]["duplicate_member_review_files"], 1)
+        self.assertEqual(audit["counts"]["duplicate_id_review_files"], 1)
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertFalse(audit["automatic_deletion_authorized"])
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
