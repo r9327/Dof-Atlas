@@ -150,6 +150,7 @@ class QuestColdDetailBreakdownTests(unittest.TestCase):
                 patch.object(quest_details_module, "_signature", return_value=()),
                 patch.object(details, "_prime_objective_step_index"),
                 patch.object(details, "_load_source_context"),
+                patch.object(quest_details_module, "asdict", return_value={"id": 42}),
                 patch.object(
                     quest_details_module.qc.QuestCatalog, "_load_source",
                     return_value=SimpleNamespace(by_id={42: record}),
