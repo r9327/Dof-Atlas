@@ -8,9 +8,11 @@ from __future__ import annotations
 import json
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
-    select_verified_replacement_path,
+    select_verified_replacement_path, certified_payload_sha256,
+    reconstruct_trusted_manual_route,
 )
 
 
@@ -58,6 +60,29 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
                 self.assertTrue(any(item.get("content") for item in steps))
                 step_count += len(steps)
         self.assertEqual(step_count, 1694)
+
+    def test_compacted_memory_provider_keeps_exact_source_steps_on_open(self) -> None:
+        """Route reconstructed from typed Guide models must preserve full SHA."""
+        path = GUIDES / "replacement_drafts" / "cutovers" / "dofus_cawotte.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        section = payload["sections"][0]
+        guide = SimpleNamespace(
+            raw={key: value for key, value in payload.items()
+                 if key not in {"sections", "parts"}},
+            sections=(SimpleNamespace(
+                raw={key: value for key, value in section.items() if key != "steps"},
+                steps=tuple(SimpleNamespace(raw=dict(step)) for step in section["steps"]),
+            ),),
+        )
+        rebuilt = reconstruct_trusted_manual_route(guide)
+        self.assertEqual(certified_payload_sha256(rebuilt),
+                         certified_payload_sha256(payload))
+        self.assertEqual(
+            rebuilt["sections"][0]["steps"][3]["id"], "ganymede_2205_step_0004"
+        )
+        guide.sections[0].steps[0].raw["source_step_number"] = 99
+        with self.assertRaisesRegex(ValueError, "source route lost"):
+            reconstruct_trusted_manual_route(guide)
 
     def test_unmapped_or_disabled_sources_keep_original_atlas_guide(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
