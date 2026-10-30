@@ -53,6 +53,55 @@ class SharedGuideCombatHotPathTests(unittest.TestCase):
         )
         fake._combat_evidence.assert_not_called()
 
+    def test_cold_deferred_quest_never_loads_on_qt_combat_fallback(self) -> None:
+        """An authored combat row must not force a cold rich Quest compilation."""
+        deferred = SimpleNamespace(
+            deferred_details=True,
+            is_detail_cached=Mock(return_value=False),
+        )
+        provider = SimpleNamespace(
+            _catalog=deferred,
+            get_quest=Mock(side_effect=AssertionError("rich Quest loaded on Qt")),
+        )
+        target = {"quest_id": 14, "objective_id": 37, "monster": "Royal Bouftou"}
+        fake = SimpleNamespace(
+            card={"manual_quest_ids": [14]},
+            service=SimpleNamespace(quest_provider=provider),
+            _combat_targets=[target],
+            _rendered_combat_keys=set(),
+            _combat_evidence_cache={},
+            _combat_key=SharedGuideManualCard._combat_key,
+            _combat_text_matches=SharedGuideManualCard._combat_text_matches,
+            _is_combat_row=SharedGuideManualCard._is_combat_row,
+            _position_key=SharedGuideManualCard._position_key,
+            _cached_quest_for_combat=lambda quest_id: SharedGuideManualCard._cached_quest_for_combat(fake, quest_id),
+            _combat_evidence=lambda value: SharedGuideManualCard._combat_evidence(fake, value),
+            _solution_combat_targets_for_row=lambda row: SharedGuideManualCard._solution_combat_targets_for_row(fake, row),
+        )
+        row = {"text": "Faire le combat prévu", "position": "[1, 2]", "kind": "combat"}
+        # One unambiguous compact objective remains displayed.
+        self.assertEqual(SharedGuideManualCard._combat_targets_for_row(fake, row, "boss"), [target])
+        provider.get_quest.assert_not_called()
+        deferred.is_detail_cached.assert_called_with(14)
+
+    def test_already_cached_detail_retains_rich_combat_evidence(self) -> None:
+        record = SimpleNamespace(
+            steps=(SimpleNamespace(objectives=(
+                SimpleNamespace(id=37, text="Vaincre le Roi", map_label="[1, 2]"),
+            )),)
+        )
+        provider = SimpleNamespace(
+            _catalog=SimpleNamespace(
+                deferred_details=True,
+                is_detail_cached=Mock(return_value=True),
+            ),
+            get_quest=Mock(return_value=record),
+        )
+        fake = SimpleNamespace(service=SimpleNamespace(quest_provider=provider))
+        quest = SharedGuideManualCard._cached_quest_for_combat(fake, 14)
+        self.assertIs(quest, record)
+        provider.get_quest.assert_called_once_with(14)
+
     def test_ambiguous_combat_still_resolves_source_evidence(self) -> None:
         target = {"quest_id": 14, "objective_id": 37, "monster": "Bouftou Royal"}
         fake = SimpleNamespace(

@@ -601,6 +601,28 @@ class SharedGuideManualCard(GuideUltimeManualCard):
     def _combat_key(target: dict[str, Any]) -> tuple[int, int]:
         return int(target["quest_id"]), int(target["objective_id"])
 
+    def _cached_quest_for_combat(self, quest_id: int) -> Any:
+        """Never compile a cold rich Quest while painting a Guide sheet.
+
+        Canonical compact combat evidence and the authored Guide remain the
+        first sources. Rich objective/solution fallback is permitted only when
+        those details have already been hydrated by a Quest worker or an
+        earlier user action. No background job is launched from Qt painting.
+        """
+        provider = getattr(self.service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        if not callable(getter):
+            return None
+        catalog = getattr(provider, "_catalog", None)
+        if bool(getattr(catalog, "deferred_details", False)):
+            cached = getattr(catalog, "is_detail_cached", None)
+            if not callable(cached) or not bool(cached(int(quest_id))):
+                return None
+        try:
+            return getter(int(quest_id))
+        except (KeyError, LookupError, TypeError, ValueError):
+            return None
+
     def _combat_evidence(self, target: dict[str, Any]) -> tuple[str, str]:
         key = self._combat_key(target)
         cached = self._combat_evidence_cache.get(key)
@@ -609,13 +631,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         position = ""
         objective_text = ""
-        provider = getattr(self.service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if callable(getter):
-            try:
-                quest = getter(key[0])
-            except (KeyError, LookupError, TypeError, ValueError):
-                quest = None
+        quest = self._cached_quest_for_combat(key[0])
+        if quest is not None:
             for step in getattr(quest, "steps", ()) or ():
                 for objective in getattr(step, "objectives", ()) or ():
                     try:
@@ -707,20 +724,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if not row_is_combat:
             return []
 
-        provider = getattr(self.service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if not callable(getter):
-            return []
-
         row_position = self._position_key(str(row.get("position") or ""))
         candidates: list[tuple[dict[str, Any], str, str, str]] = []
         seen: set[tuple[int, int]] = set()
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
                 quest_id = int(raw)
-                quest = getter(quest_id)
-            except (KeyError, LookupError, TypeError, ValueError):
+            except (TypeError, ValueError):
                 continue
+            quest = self._cached_quest_for_combat(quest_id)
             if quest is None:
                 continue
             quest_name = str(getattr(quest, "name", "") or "").strip()
