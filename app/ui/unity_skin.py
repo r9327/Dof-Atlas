@@ -246,11 +246,9 @@ def unity_skin_stylesheet() -> str:
         "QPushButton#GuideManualPageCheck",
         "btn_green", 8,
     )
-    sprites_for_states(
-        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
-        "QToolButton#GuideParticipantsButton",
-        "btn_green_small", 6,
-    )
+    # The tiny green button sprite turns the whole Guide header neon yellow
+    # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
+    # toggles; reserve green action sprites for the actual Valider command.
     add_border(
         "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel, QFrame#GuideParticipantsPanel",
         "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
