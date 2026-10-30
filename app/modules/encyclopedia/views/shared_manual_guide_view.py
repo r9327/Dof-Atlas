@@ -1528,6 +1528,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 sections_for_card=(
                     lambda card, key=character_key: (
                         None if "_manual_stage_payload" in card else
+                        card.get("manual_sections", {})
+                        if card.get("_catalog_route_detail_lazy") else
                         sections_getter(key, card) if callable(sections_getter)
                         else card.get("manual_sections", {})
                     )
