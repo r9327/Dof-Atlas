@@ -255,7 +255,6 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
     guide_catalog: Any = None
-    guide_catalog_present = False
     guide_headers: dict[str, dict[str, Any]] = {}
     counts = {
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
@@ -306,7 +305,6 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             entry["top_level_type"] = type(payload).__name__
             if relative == _GUIDE_CATALOG:
                 guide_catalog = payload
-                guide_catalog_present = True
             elif relative.startswith(_GUIDE_DIR) and isinstance(payload, dict):
                 guide_headers[relative] = {
                     "id": payload.get("id"), "category": payload.get("category"),
