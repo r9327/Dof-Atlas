@@ -174,6 +174,55 @@ class AchievementDetailColdTimingTests(unittest.TestCase):
         self.assertIsNone(provider._detail_cache)
         self.assertIsNone(provider._detail_cache_id)
 
+    def test_cold_worker_cost_survives_hot_hit_then_clears_on_release(self) -> None:
+        from threading import Thread
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        output = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout=json.dumps({"id": 123, "category_id": 8,
+                               "name": "Warmup success"}) + "\n",
+            stderr="",
+        )
+        errors = []
+
+        def warm_one():
+            try:
+                provider.get_detail_by_id(123)
+            except Exception as exc:
+                errors.append(exc)
+
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                return_value=output,
+            ) as child,
+        ):
+            worker = Thread(target=warm_one, name="DofusAtlasAchievementStage")
+            worker.start()
+            worker.join(timeout=5)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(errors, [])
+            child.assert_called_once()
+            cold = provider.last_cold_detail_breakdown_ms
+            self.assertEqual(cold["achievement_id"], 123)
+            self.assertEqual(cold["status"], "OBSERVED")
+            self.assertEqual(cold["thread"], "DofusAtlasAchievementStage")
+            self.assertTrue(cold["subprocess_path_used"])
+            self.assertGreaterEqual(cold["total_ms"], 0)
+            self.assertIs(provider.get_detail_by_id(123), provider._detail_cache)
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "hot")
+            self.assertEqual(provider.last_detail_breakdown_ms["total_ms"], 0.0)
+            self.assertEqual(provider.last_cold_detail_breakdown_ms, cold)
+            child.assert_called_once()
+
+        provider.release_catalogue()
+        self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
+
     def test_failed_subprocess_still_records_blocking_phase(self) -> None:
         from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
             RAW_QUEST_DATA_DIR,
