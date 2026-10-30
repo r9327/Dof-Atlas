@@ -2148,6 +2148,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
+        # The visible sheet is already rendered; prefetch only nearby text,
+        # never 1,672 Qt cards or a full Guide payload in memory.
+        prefetch = getattr(self.service, "prefetch_route_near", None)
+        if callable(prefetch):
+            prefetch(index)
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
         self.guide_button.setToolTip(
