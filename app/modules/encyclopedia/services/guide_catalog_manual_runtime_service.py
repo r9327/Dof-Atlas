@@ -359,11 +359,16 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             quest_count += 1
             raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
-        segments = self._merge_consecutive_positions(raw_segments)
+        raw_segment_count = len(raw_segments)
+        # These segments are newly built and exclusively owned by this route.
+        # Transfer their lists into cards instead of copying every rich row
+        # two more times while all Quest details are still resident.
+        segments = self._merge_consecutive_positions(raw_segments, consume=True)
         cards = [
-            self._segment_to_card(segment, index)
+            self._segment_to_card(segment, index, consume=True)
             for index, segment in enumerate(segments)
         ]
+        del raw_segments, segments
         if not cards:
             raise ValueError(f"Aucune fiche route exploitable pour {self.guide_id}")
 
@@ -392,9 +397,9 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             "guide_id": self.guide_id,
             "route_model": "map_segments",
             "card_count": len(cards),
-            "raw_segment_count": len(raw_segments),
+            "raw_segment_count": raw_segment_count,
             "quest_count": quest_count,
-            "merged_segment_count": max(0, len(raw_segments) - len(cards)),
+            "merged_segment_count": max(0, raw_segment_count - len(cards)),
         }
         self.manual_preview_active = True
         self.manual_preview_chapters = (self.guide_id,)
@@ -564,12 +569,14 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             "manual_lines": [],
         }
 
-    def _finalize_segment(self, segment: dict[str, Any]) -> None:
+    def _finalize_segment(
+        self, segment: dict[str, Any], *, consume: bool = False,
+    ) -> None:
         sections = segment["sections"]
         for key in sections:
             sections[key] = self._dedupe_rows(sections[key])
         segment["manual_lines"] = [
-            copy.deepcopy(row)
+            row if consume else copy.deepcopy(row)
             for key in ("prepare", "now", "boss", "before_leave")
             for row in sections[key]
         ]
@@ -584,20 +591,27 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
     def _merge_consecutive_positions(
         self,
         segments: list[dict[str, Any]],
+        *,
+        consume: bool = False,
     ) -> list[dict[str, Any]]:
         merged: list[dict[str, Any]] = []
         previous_key = ""
         for raw in segments:
-            segment = copy.deepcopy(raw)
+            segment = raw if consume else copy.deepcopy(raw)
             key = self._position_key(segment.get("position"))
             if merged and key and key == previous_key:
-                # Copy and dedupe the final sheet once, not after every join.
-                self._merge_segment(merged[-1], segment, finalize=False)
+                # The source is private to this route only in consume mode.
+                self._merge_segment(
+                    merged[-1], segment, finalize=False, consume=consume,
+                )
                 continue
             merged.append(segment)
             previous_key = key
         for segment in merged:
-            self._finalize_segment(segment)
+            if consume:
+                self._finalize_segment(segment, consume=True)
+            else:
+                self._finalize_segment(segment)
         return merged
 
     def _merge_segment(
@@ -606,24 +620,31 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         source: dict[str, Any],
         *,
         finalize: bool = True,
+        consume: bool = False,
     ) -> None:
         for field in ("guide_step_ids", "quest_ids", "quest_names", "resource_names"):
             for value in source.get(field, ()) or ():
                 if value not in target[field]:
                     target[field].append(value)
+        prepared = source.get("structured_preparation", ())
         target["structured_preparation"].extend(
-            copy.deepcopy(source.get("structured_preparation", ()))
+            prepared if consume else copy.deepcopy(prepared)
         )
         for key, rows in source.get("sections", {}).items():
             target["sections"].setdefault(key, [])
-            target["sections"][key].extend(copy.deepcopy(rows))
+            target["sections"][key].extend(rows if consume else copy.deepcopy(rows))
         if finalize:
-            self._finalize_segment(target)
+            if consume:
+                self._finalize_segment(target, consume=True)
+            else:
+                self._finalize_segment(target)
 
     def _segment_to_card(
         self,
         segment: dict[str, Any],
         index: int,
+        *,
+        consume: bool = False,
     ) -> dict[str, Any]:
         position = str(segment.get("position") or "").strip()
         zone = str(segment.get("zone") or "").strip()
@@ -663,8 +684,14 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             "zone": zone,
             "subzone": zone,
             "destination": route_label or title,
-            "manual_lines": copy.deepcopy(segment.get("manual_lines", ())),
-            "manual_sections": copy.deepcopy(segment.get("sections", {})),
+            "manual_lines": (
+                segment.get("manual_lines", ())
+                if consume else copy.deepcopy(segment.get("manual_lines", ()))
+            ),
+            "manual_sections": (
+                segment.get("sections", {})
+                if consume else copy.deepcopy(segment.get("sections", {}))
+            ),
             "structured_runtime_lines": [],
             "manual_quest_ids": quest_ids,
             "manual_quest_names": quest_names,
