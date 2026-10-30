@@ -775,6 +775,8 @@ class AtlasWindow(QMainWindow):
             and initial_quests.get("quest_graph") is not None
         )
         self.preload_started = False
+        self._home_revealed = False
+        self._post_preload_services_started = False
         self.preload_finished = bool(initial_preload) and initial_related_ready
         self.preload_states = {
             "quests": PRELOAD_READY if "quests" in self.preload_results else PRELOAD_IDLE,
@@ -2151,22 +2153,35 @@ class AtlasWindow(QMainWindow):
             popup.update_states(dict(self.preload_states))
 
     def _reveal_after_preload(self) -> None:
-        """Only expose the main interface after every preload task is terminal."""
-        if not self.preload_finished:
+        """Show Home once the Quest base is terminal; finish other warmups in background."""
+        if self._home_revealed or self.preload_states.get("quests") not in {
+            PRELOAD_READY, PRELOAD_FAILED,
+        }:
             return
+        self._home_revealed = True
         self.show()
         app = QApplication.instance()
         if app is not None:
-            # Once the main window exists, normal close-to-quit semantics resume.
             app.setQuitOnLastWindowClosed(True)
         if self.topmost_enabled:
             self.apply_topmost_state(True)
+        # Avoid competing with the disposable preload workers for CPU/RAM:
+        # service startup is deferred until *all* warmups are terminal.
+        self._start_post_preload_services()
+        LOGGER.info("[main] Home shown; remaining preloads continue in background")
+
+    def _start_post_preload_services(self) -> None:
+        """Start secondary services exactly once, after all warmup workers exit."""
+        if not self._home_revealed or not self.preload_finished:
+            return
+        if self._post_preload_services_started:
+            return
+        self._post_preload_services_started = True
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
-        LOGGER.info("[main] AtlasWindow shown after functional preload")
 
     def start_preload(
         self,
@@ -2363,6 +2378,12 @@ class AtlasWindow(QMainWindow):
                 for state in self.preload_states.values()
             )
         self.refresh_preload_popup()
+        if not self._home_revealed and self.preload_states.get("quests") in {
+            PRELOAD_READY, PRELOAD_FAILED,
+        }:
+            self.preload_popup.handoff()
+        if self.preload_finished:
+            self._start_post_preload_services()
         if not loading:
             self.preload_poll_timer.stop()
         if fatal_error:

@@ -23,8 +23,8 @@ TERMINAL_STATES = {"READY", "FAILED"}
 class PreloadProgressPopup(QDialog):
     """Show logo, title, task status and real progress, never fake percentages.
 
-    The main Atlas window remains hidden until all preloading tasks have
-    reached a terminal state. No nested Qt event loop or duplicate workers.
+    Home appears when the Quest base is ready; optional warmups continue
+    without an application-modal popup. No duplicate workers or event loops.
     """
 
     readyForMainWindow = Signal()
@@ -97,6 +97,7 @@ class PreloadProgressPopup(QDialog):
 
         self._has_started = False
         self._finished = False
+        self._handed_off = False
         self._hide_generation = 0
 
     def begin(self, states: Mapping[str, str] | None = None) -> None:
@@ -107,6 +108,10 @@ class PreloadProgressPopup(QDialog):
             self._show_centered()
 
     def update_states(self, states: Mapping[str, str]) -> None:
+        # Once Home is visible, background warmups must never reopen a
+        # modal dialog or emit a second launch handoff.
+        if self._handed_off:
+            return
         task_states = {
             task: str(states.get(task, "IDLE")).upper()
             for task in PRELOAD_TASK_ORDER
@@ -161,6 +166,15 @@ class PreloadProgressPopup(QDialog):
         elif not self.isVisible():
             self._show_centered()
 
+    def handoff(self) -> None:
+        """Release the modal gate once the Quest preload reaches terminal state."""
+        if not self._has_started or self._handed_off:
+            return
+        self._handed_off = True
+        self._hide_generation += 1
+        self.hide()
+        self.readyForMainWindow.emit()
+
     def _show_centered(self) -> None:
         parent = self.parentWidget()
         self.adjustSize()
@@ -187,9 +201,7 @@ class PreloadProgressPopup(QDialog):
     def _hide_if_current(self, generation: int) -> None:
         if generation != self._hide_generation or not self._finished:
             return
-        self._hide_generation += 1
-        self.hide()
-        self.readyForMainWindow.emit()
+        self.handoff()
 
 
 __all__ = [
