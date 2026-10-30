@@ -1855,18 +1855,27 @@ class SharedGuideManualView(GuideUltimeManualView):
         details_layout = QVBoxLayout(details)
         details_layout.setContentsMargins(8, 2, 8, 3)
         details_layout.setSpacing(2)
-        labels_by_key = {
-            character.key: character.label
-            for character in self.participant_service.available_characters()
-        }
-        for character_key, quantity in need.required_by_character:
-            detail = QLabel(
-                f"{labels_by_key.get(character_key, character_key)} : "
-                f"besoin {quantity if quantity is not None else 'à confirmer'}"
-            )
-            detail.setObjectName("GuidePreparationParticipantNeed")
-            details_layout.addWidget(detail)
+        # Most preparation rows stay collapsed. The previous implementation
+        # fetched all character labels and constructed a QLabel per participant
+        # for EVERY need, even if the user never opened its details.
+        # Populate on the first expansion only, preserving copy/ready actions.
+        def populate_details(opened: bool) -> None:
+            if not opened or details_layout.count():
+                return
+            labels_by_key = {
+                character.key: character.label
+                for character in self.participant_service.available_characters()
+            }
+            for character_key, quantity in need.required_by_character:
+                detail = QLabel(
+                    f"{labels_by_key.get(character_key, character_key)} : "
+                    f"besoin {quantity if quantity is not None else 'à confirmer'}"
+                )
+                detail.setObjectName("GuidePreparationParticipantNeed")
+                details_layout.addWidget(detail)
+
         details.setVisible(False)
+        details_button.toggled.connect(populate_details)
         details_button.toggled.connect(details.setVisible)
         details_button.toggled.connect(
             lambda opened, button=details_button: button.setArrowType(
