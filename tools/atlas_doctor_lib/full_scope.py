@@ -29,14 +29,15 @@ def _git(root: Path, *args: str) -> str:
     return process.stdout.decode("utf-8", errors="strict")
 
 
-def _snapshot(root: Path) -> tuple[str, list[str], bool]:
+def _snapshot(root: Path) -> tuple[str, list[str], list[str], bool]:
     sha = _git(root, "rev-parse", "--verify", "HEAD").strip()
     if not _SHA.fullmatch(sha):
         raise ValueError("No exact Git HEAD")
     raw = _git(root, "ls-files", "-z", "--", "*.py")
     paths = sorted(set(filter(None, raw.split("\0"))))
+    all_paths = sorted(set(filter(None, _git(root, "ls-files", "-z").split("\0"))))
     dirty = bool(_git(root, "status", "--porcelain", "--untracked-files=no").strip())
-    return sha, paths, not dirty
+    return sha, paths, all_paths, not dirty
 
 
 def _imports_missing(root: Path, path: str, tree: ast.AST) -> list[dict[str, Any]]:
@@ -99,7 +100,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
     """
     root = root.resolve()
     try:
-        sha, paths, clean = _snapshot(root)
+        sha, paths, all_paths, clean = _snapshot(root)
     except (OSError, UnicodeError, subprocess.TimeoutExpired, ValueError) as exc:
         return {
             "schema_version": 1, "kind": "doctor_full_scope_audit",
@@ -119,6 +120,18 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
             "status": "BLOCKED", "candidate_sha": sha, "reason": "No tracked Python files",
             "source_coverage": {"status": "BLOCKED", "truncated": False},
         }
+
+    inventory_counts = {"python": 0, "json": 0, "qss": 0, "visual_asset": 0, "other": 0}
+    json_files = []
+    for name in all_paths:
+        suffix = Path(name).suffix.casefold()
+        group = ("python" if suffix == ".py" else "json" if suffix == ".json"
+                 else "qss" if suffix == ".qss"
+                 else "visual_asset" if suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".ttf", ".otf"}
+                 else "other")
+        inventory_counts[group] += 1
+        if group == "json":
+            json_files.append(name)
 
     inspected: list[str] = []
     failed: list[dict[str, str]] = []
@@ -182,6 +195,17 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None) -> dict[str
         "candidate_sha": sha, "worktree_clean": clean,
         # NO false global PASS: dynamic callbacks, EXE, UI, user paths NOT RUN.
         "status": "BLOCKED" if source_status == "BLOCKED" else "REVIEW",
+        "tracked_file_inventory": {
+            "status": "INVENTORIED_NOT_CONTENT_CERTIFIED",
+            "tracked_total": len(all_paths),
+            "categories": inventory_counts,
+            "json_files": json_files,
+            "truncated": False,
+            "json_content_coverage": "NOT_RUN",
+            "asset_reference_verification": "NOT_RUN",
+            "qss_visual_rendering": "NOT_RUN",
+            "note": "Inventory is exhaustive for tracked Git paths; parsing is Python-only.",
+        },
         "source_coverage": {
             "status": source_status,
             "total": len(paths), "inspected": len(inspected),
