@@ -66,6 +66,30 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
             provider.last_detail_breakdown_ms["synchronous_subprocess_ms"], 0.0
         )
 
+    def test_frozen_reuses_recent_rich_details_without_reopening_sources(self) -> None:
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        first, second = object(), object()
+        with (
+            patch.object(sys, "frozen", True, create=True),
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(
+                MemoryBoundAchievementProvider, "_get_detail_in_process",
+                side_effect=[first, second],
+            ) as reader,
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=AssertionError("EXE may not launch a detail child"),
+            ),
+        ):
+            self.assertIs(provider.get_detail_by_id(101), first)
+            self.assertIs(provider.get_detail_by_id(102), second)
+            self.assertIs(provider.get_detail_by_id(101), first)
+            self.assertIs(provider.get_detail_by_id(102), second)
+        self.assertEqual(reader.call_count, 2)
+        self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "recent")
+        self.assertFalse(provider.last_detail_breakdown_ms["subprocess_path_used"])
+        self.assertEqual(len(provider._recent_rich_details), 1)
+
     def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             provider = self._provider(Path(directory))
