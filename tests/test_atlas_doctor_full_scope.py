@@ -146,6 +146,35 @@ class DoctorFullScopeTests(unittest.TestCase):
             '"rows":[{"id":1,"name":"a","name":"b"},{"id":2}]}',
         )
 
+    def test_nested_json_id_lists_preserve_container_boundaries(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file(
+            "data/nested.json",
+            '{"chapters":[{"stages":[{"id":"a"},{"id":"a"}]},'
+            '{"stages":[{"id":"a"},{"id":"b"}]}],'
+            '"meta":{"a/b":[{"id":1},{"id":1}]}}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        entry = audit["files"][0]
+        self.assertEqual(entry["id_lists_inspected"], 4)
+        self.assertEqual(audit["counts"]["id_lists_inspected"], 4)
+        self.assertEqual(entry["duplicate_id_candidates"], [
+            {"collection": "$root/chapters/0/stages", "ids": ["a"],
+             "kind": "DUPLICATE_ID_REVIEW"},
+            {"collection": "$root/meta/a~1b", "ids": ["1"],
+             "kind": "DUPLICATE_ID_REVIEW"},
+        ])
+        # IDs may repeat across separate stage lists without a collision.
+        self.assertNotIn("$root/chapters/1/stages", [
+            row["collection"] for row in entry["duplicate_id_candidates"]
+        ])
+        self.assertEqual(entry["status"], "VALID_SYNTAX_REVIEW")
+        self.assertFalse(audit["semantic_links_verified"])
+        self.assertEqual(report["status"], "REVIEW")
+
     def test_invalid_and_missing_tracked_json_fail_closed(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
