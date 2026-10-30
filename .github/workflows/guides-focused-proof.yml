@@ -26,6 +26,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  doctor-ui-visual-campaign:
+    # Reuse Doctor's production Qt capture engine. It collects real
+    # screenshot PNGs, widget-tree assertions and a hash-verified verdict
+    # as GitHub Actions artifacts. It is NOT a release/full certification.
+    name: Doctor / Guides visual capture pack
+    uses: ./.github/workflows/doctor-ui.yml
+    with:
+      base_ref: main
+      complete_campaign: true
+
   guide-targeted-windows:
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
