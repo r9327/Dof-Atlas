@@ -110,6 +110,9 @@ jobs:
       - name: Build real portable Sylvestre source route for PR 303 performance proof
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 303
         run: |
+          $questSeed = Join-Path $env:RUNNER_TEMP "atlas-prebuilt-quests"
+          python -m scripts.windows.build_quest_index --source-sha "$env:CANDIDATE_SHA" --output "$questSeed"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $bundle = Join-Path $env:RUNNER_TEMP "atlas-prebuilt-route"
           python -m scripts.windows.build_guide_routes --source-sha "$env:CANDIDATE_SHA" --output "$bundle"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -130,6 +133,7 @@ jobs:
         env:
           DOFUS_ATLAS_PREBUILT_ROUTE_DIR: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 303 && format('{0}/atlas-prebuilt-route', runner.temp) || '' }}
           DOFUS_ATLAS_PREBUILT_REWARDS_FILE: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 303 && format('{0}/atlas-prebuilt-rewards.json', runner.temp) || '' }}
+          DOFUS_ATLAS_PREBUILT_QUEST_INDEX_DIR: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 303 && format('{0}/atlas-prebuilt-quests', runner.temp) || '' }}
         run: |
           $cycles = "2"
           if ("${{ github.event_name }}" -eq "workflow_dispatch") {
