@@ -118,6 +118,28 @@ class DoctorRamInventoryTests(unittest.TestCase):
             page.deleteLater()
             QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
+    def test_home_checkpoint_keeps_success_detail_subprocess_breakdown(self):
+        snapshot = {
+            "status": "OBSERVED_PARTIAL",
+            "qt": {"total_live_widgets": 120},
+            "last_success_detail_timing": {
+                "status": "OBSERVED", "thread": "MainThread",
+                "total_ms": 5080.0, "synchronous_subprocess_ms": 5000.0,
+                "decode_ms": 80.0, "subprocess_path_used": True,
+            },
+        }
+        report = ram_checkpoints_summary([{
+            "label": "last_home",
+            "memory": {"process_rss_mb": 105.0, "tree_rss_mb": 117.0},
+            "ownership": snapshot,
+        }])
+        self.assertEqual(
+            report["checkpoints"]["last_home"]["last_success_detail_timing"],
+            snapshot["last_success_detail_timing"],
+        )
+        self.assertNotIn("home_rss_delta_mib", report)
+        self.assertNotIn("home_inactive_thread_handle_delta", report)
+
     def test_home_summary_reports_thread_handles_without_inventing_rss(self):
         def checkpoint(label: str, finished: int):
             return {
