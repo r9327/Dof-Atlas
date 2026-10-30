@@ -1789,6 +1789,9 @@ class GuidesView(QWidget):
             keys,
             available_characters=characters,
         )
+        # The parent GuideHeader already displays the guide title and artwork.
+        # Avoid a duplicated, oversized heading inside the source sheet.
+        panel.guide_title.setVisible(False)
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         if self.launch_travel_callback is not None:
             panel.travelRequested.connect(self.launch_travel_callback)
