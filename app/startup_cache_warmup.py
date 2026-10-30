@@ -323,10 +323,13 @@ def _cached_domain_result(
         # Old manifests validated the catalogue alone. Require the source
         # indexes too, or first detail silently rebuilds them on demand.
         expected_count = result.get("detail_source_index_count")
+        actual_index_count = result.get("detail_index_artifact_count")
         files = result.get("cache_files")
         if (
             type(expected_count) is not int or expected_count <= 0
-            or not isinstance(files, list) or len(files) < expected_count
+            or type(actual_index_count) is not int or actual_index_count <= 0
+            or actual_index_count > expected_count
+            or not isinstance(files, list) or len(files) != actual_index_count + 1
         ):
             return None
     current_artifacts = _artifact_stamp(domain, result.get("cache_files"))
