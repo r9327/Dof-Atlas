@@ -315,6 +315,15 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         return False
 
     def _load_manual_preview(self) -> None:
+        # A certified Windows bundle already contains the entire immutable
+        # Sylvestre itinerary. Restore it before attempting any source Quest
+        # compilation; keep local caches and canonical reconstruction as fallback.
+        from app.modules.encyclopedia.services.guide_catalog_prebuilt_route import (
+            restore_prebuilt_route,
+        )
+        if restore_prebuilt_route(self):
+            return
+
         # Restore only compact card identities, then fetch walkthroughs on demand.
         try:
             cached_identity = _catalog_route_cache_identity(self)
