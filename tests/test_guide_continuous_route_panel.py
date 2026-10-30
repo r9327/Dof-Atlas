@@ -107,6 +107,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0002")
+        self.assertEqual(self.panel.step_jump.value(), 2)
         self.assertTrue(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id,
@@ -120,6 +123,20 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
+
+    def test_reviewing_future_step_does_not_replace_actual_route_position(self):
+        future = "ganymede_2205_step_0003"
+        self.panel.show_step(future)
+        self.panel.validate_button.click()
+        self.assertEqual(self.panel.navigation.position().viewed_step_id, future)
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 3 / 3")
+        self.assertEqual(self.panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", future
+        ))
+        self.panel.actual_button.click()
+        self.assertEqual(self.panel.step_jump.value(), 1)
 
     def test_character_picker_switches_real_keys_without_changing_manual_progress(self):
         characters = [
