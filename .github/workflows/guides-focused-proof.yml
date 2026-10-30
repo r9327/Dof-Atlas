@@ -9,6 +9,12 @@ on:
       - 'tests/test_guide_preparation_model.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'app/modules/encyclopedia/views/guide_catalog_view.py'
+      - 'app/ui/components.py'
+      - 'tests/test_guide_library_home.py'
+      - 'tests/test_guide_home_two_columns.py'
+      - 'tests/test_lanyel_shared_manual_ui.py'
+      - 'tests/test_unity_skin.py'
       - 'app/pages/craft_page.py'
       - 'tests/test_craft_minimal_lazy.py'
 
@@ -50,6 +56,11 @@ jobs:
       - name: Install pinned runtime for focused Qt tests
         shell: pwsh
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Actual Qt Guide catalogue, Unity icons and compact header
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_library_home tests.test_guide_home_two_columns tests.test_unity_skin tests.test_lanyel_shared_manual_ui.LanyelSharedManualUiTests.test_navigation_and_compact_headers_have_the_requested_hierarchy
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Targeted manual multi-character validation
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation
