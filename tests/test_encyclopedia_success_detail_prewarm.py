@@ -5,6 +5,7 @@ import importlib
 import unittest
 from contextlib import nullcontext
 from pathlib import Path
+from threading import Event, Thread, current_thread
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -66,6 +67,45 @@ class SuccessDetailPrewarmTests(unittest.TestCase):
         provider.get_detail_by_id.assert_called_once_with(20)
         receiver.emit.assert_called_once()
         self.assertTrue(page._achievement_load_started)
+
+    def test_pending_success_uses_real_existing_worker_thread(self):
+        page, provider, receiver, events = page_probe(pending_id=20)
+        completed = Event()
+        threads = []
+
+        def record_detail(detail_id):
+            events.append(("detail", detail_id, current_thread().name))
+
+        provider.get_detail_by_id.side_effect = record_detail
+        receiver.emit.side_effect = lambda _result: completed.set()
+
+        def launch(_page, target, name):
+            thread = Thread(target=target, name=name, daemon=True)
+            threads.append(thread)
+            thread.start()
+
+        with (
+            patch.object(page_module, "background_io_priority",
+                         return_value=nullcontext()),
+            patch.object(page_module, "_start_runtime_thread",
+                         side_effect=launch) as start,
+        ):
+            page_module.EncyclopediaPage._start_achievement_stage(
+                page, open_success=True,
+            )
+            self.assertTrue(completed.wait(5), "Stage never published its result")
+            for thread in threads:
+                thread.join(timeout=5)
+
+        start.assert_called_once()
+        self.assertEqual(len(threads), 1)
+        self.assertFalse(threads[0].is_alive())
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple)],
+            [("detail", 20, "DofusAtlasAchievementStage")],
+        )
+        self.assertNotEqual(threads[0].name, current_thread().name)
+        receiver.emit.assert_called_once()
 
     def test_regular_success_tab_does_not_prefetch_unrequested_details(self):
         page, provider, receiver, events = page_probe(pending_id=None)
