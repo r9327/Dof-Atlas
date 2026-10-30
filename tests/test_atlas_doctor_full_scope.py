@@ -265,6 +265,36 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(audit["syntax_coverage"], "PASS")
         self.assertFalse(audit["semantic_links_verified"])
 
+    def test_manual_patch_cycle_is_review_even_when_all_files_exist(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "a.json", '{"base_file":"b.json"}')
+        self._file(prefix + "b.json", '{"base_file":"a.json"}')
+        self._file(prefix + "c.json", '{"base_file":"a.json"}')
+        self._file(
+            prefix + "manifest_v1.json",
+            '{"canonical":{"chapters":[{"file":"c.json"}]}}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        self.assertEqual(audit["counts"]["manual_base_refs_inspected"], 3)
+        self.assertEqual(audit["counts"]["manual_base_cycle_files"], 2)
+        self.assertEqual(audit["counts"]["manual_base_reference_review_files"], 2)
+        entries = {row["file"]: row for row in audit["files"]}
+        for filename in ("a.json", "b.json"):
+            self.assertEqual(
+                entries[prefix + filename]["manual_base_reference_candidates"],
+                [{"kind": "MANUAL_BASE_CYCLE_REVIEW"}],
+            )
+            self.assertEqual(
+                entries[prefix + filename]["status"], "VALID_SYNTAX_REVIEW"
+            )
+        self.assertEqual(entries[prefix + "c.json"]["manual_base_reference_candidates"], [])
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+
     def test_canonical_manifest_optional_branches_and_registries_are_scanned(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
