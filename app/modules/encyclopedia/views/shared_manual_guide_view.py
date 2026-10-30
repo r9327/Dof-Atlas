@@ -971,7 +971,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
-        title_row.addWidget(self.guide_button)
+        # Keep the back action available beside the sheet title, outside
+        # the three-row compact progress header agreed with the user.
         guide_icon = QLabel()
         guide_icon.setObjectName("GuideCompactTitleIcon")
         guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
@@ -1157,6 +1158,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         layout.setSpacing(6)
         top = QHBoxLayout()
         top.setSpacing(7)
+        top.addWidget(self.guide_button, 0, Qt.AlignVCenter)
         labels = QVBoxLayout()
         labels.setSpacing(1)
         self.sheet_meta_label = QLabel()
