@@ -484,7 +484,7 @@ class DoctorFullScopeTests(unittest.TestCase):
 
     def test_nonfinite_json_numeric_overflow_fails_closed(self):
         self._unity()
-        self._file("app/ok.py", "pass\\n")
+        self._file("app/ok.py", "pass\n")
         self._file("data/not_standard.json", '{"values":[1e10000,-1e10000]}')
         sha = self._commit()
         report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
