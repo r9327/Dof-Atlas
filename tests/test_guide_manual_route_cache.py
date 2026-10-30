@@ -468,5 +468,84 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertEqual(deferred, regular)
         self.assertEqual(len(regular), 2)
 
+
+    def test_catalog_projection_disk_cache_skips_quest_rebuild_and_isolated(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as catalog_module,
+        )
+        Service = catalog_module.GuideCatalogManualRuntimeService
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "sylvestre.json.gz"
+            service = object.__new__(Service)
+            service.guide_id = "dofus_sylvestre"
+            service.guide_title = "Sylvestre"
+            service.route = {
+                "id": "catalog_manual_dofus_sylvestre",
+                "route_model": "map_segments",
+                "steps": [{
+                    "index": 1, "manual_stage_id": "stable:001",
+                    "manual_sections": {"now": [{"text": "Parler au PNJ"}]},
+                    "manual_lines": [{"text": "Parler au PNJ"}],
+                }],
+            }
+            service.cards = service.route["steps"]
+            service.manual_audit_data = {"card_count": 1, "quest_count": 198}
+            service._common_quest_ids = (42, 43)
+            catalog_module._write_catalog_route_cache(service, path, "sources-v1")
+
+            # This exercises the real Guide constructor's override of
+            # _load_manual_preview: no Quest detail may be hydrated on a hit.
+            restored = object.__new__(Service)
+            restored.guide_id = service.guide_id
+            restored.guide_title = service.guide_title
+            with patch.object(
+                catalog_module, "_catalog_route_cache_identity",
+                return_value=(path, "sources-v1"),
+            ):
+                restored._load_manual_preview()
+            self.assertEqual(restored.route, service.route)
+            self.assertEqual(restored.cards, service.cards)
+            self.assertEqual(restored._common_quest_ids, (42, 43))
+            self.assertTrue(restored.manual_preview_active)
+            restored.cards[0]["manual_sections"]["now"][0]["text"] = "Changed"
+            self.assertEqual(service.cards[0]["manual_sections"]["now"][0]["text"], "Parler au PNJ")
+
+            self.assertFalse(catalog_module._restore_catalog_route_cache(
+                object.__new__(Service), path, "sources-v2",
+            ))
+            path.write_bytes(b"invalid-cache-not-user-data")
+            self.assertFalse(catalog_module._restore_catalog_route_cache(
+                object.__new__(Service), path, "sources-v1",
+            ))
+
+    def test_catalog_projection_signature_invalidates_guide_and_quest_changes(self) -> None:
+        from app.constants import RAW_QUEST_DATA_DIR
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as catalog_module,
+        )
+        service = object.__new__(catalog_module.GuideCatalogManualRuntimeService)
+        service.guide_id = "dofus_sylvestre"
+        service.guide_title = "Sylvestre"
+        service.use_disk_cache = True
+        service.quest_provider = QuestProvider(data_dir=RAW_QUEST_DATA_DIR)
+        step = SimpleNamespace(id="step-1", step_type="quest", entity_id=42, order=1)
+        service.catalog_guide = SimpleNamespace(required_steps=[step])
+        with patch.object(
+            catalog_module, "quest_catalog_cache_signature", return_value=(("source", "v1"),),
+        ) as signature:
+            first = catalog_module._catalog_route_cache_identity(service)
+            step.order = 2
+            changed_order = catalog_module._catalog_route_cache_identity(service)
+            step.order = 1
+            signature.return_value = (("source", "v2"),)
+            changed_sources = catalog_module._catalog_route_cache_identity(service)
+        self.assertEqual(first[0], changed_order[0])
+        self.assertNotEqual(first[1], changed_order[1])
+        self.assertNotEqual(first[1], changed_sources[1])
+        service.use_disk_cache = False
+        self.assertIsNone(catalog_module._catalog_route_cache_identity(service))
+
+
 if __name__ == "__main__":
     unittest.main()
