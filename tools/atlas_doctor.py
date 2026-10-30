@@ -668,7 +668,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
         if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
             return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
         if args.parallel_instances == 8:
-            if args.one_core or args.idle_seconds or args.cycles != 1:
+            if args.one_core or args.idle_seconds or args.cycles != 1 or args.ram_forensics:
                 return {"status": "BLOCKED", "reason": "Eight-Atlas scenario requires cycles=1, no idle/one-core"}
             from tools.atlas_doctor_lib.parallel_app import run_eight
             report = run_eight(root, output=root / args.output, max_seconds=args.max_seconds)
@@ -681,6 +681,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
             output=root / args.output, timeout=args.timeout,
             max_seconds=args.max_seconds, cycles=args.cycles,
             idle_seconds=args.idle_seconds, one_core=args.one_core,
+            ram_forensics=args.ram_forensics,
         )
         if not args.json:
             print(f"Doctor App Benchmark: {report['status']} "
@@ -689,7 +690,8 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                   f" | idle {report.get('idle_seconds_requested')}s")
         return report
     if (getattr(args, 'one_core', False) or getattr(args, 'idle_seconds', 0.0)
-            or getattr(args, 'parallel_instances', 1) != 1):
+            or getattr(args, 'parallel_instances', 1) != 1
+            or getattr(args, 'ram_forensics', False)):
         return {"status": "BLOCKED", "reason": "App-only performance flags require Doctor perf --app"}
     if getattr(args, 'deep', False):
         return command_perf_lab(root, args)
@@ -1039,6 +1041,8 @@ def build_parser() -> argparse.ArgumentParser:
                       help='Observation post-Home; ne prétend pas démontrer une fuite.')
     perf.add_argument('--one-core', action='store_true',
                       help='Affinité effective sur un cœur logique Windows; pas une machine bas de gamme.')
+    perf.add_argument('--ram-forensics', action='store_true',
+                      help='Python tracemalloc + Private Bytes Windows, opt-in, vitesse non comparable.')
     perf.add_argument('--parallel-instances', type=int, choices=(1, 8), default=1,
                       help='8 vrais processus Atlas CI isolés; jamais 8 comptes DOFUS.')
     perf.add_argument('--cycles', type=int, choices=(1, 2, 3, 5, 10), default=2)
