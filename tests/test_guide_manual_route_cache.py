@@ -673,6 +673,54 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
 
 
+    def test_enriched_quest_update_invalidates_cached_sylvestre_signature(self) -> None:
+        from app.constants import RAW_QUEST_DATA_DIR
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as module,
+        )
+        service = object.__new__(module.GuideCatalogManualRuntimeService)
+        service.guide_id = "dofus_sylvestre"
+        service.guide_title = "Sylvestre"
+        service.use_disk_cache = True
+        service.quest_provider = QuestProvider(data_dir=RAW_QUEST_DATA_DIR)
+        service.catalog_guide = SimpleNamespace(required_steps=[
+            SimpleNamespace(id="one", step_type="quest", entity_id=1, order=1),
+        ])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            enriched = root / "encyclopedia" / "quests" / "quests_enriched.json"
+            enriched.parent.mkdir(parents=True, exist_ok=True)
+            enriched.write_text("{}", encoding="utf-8")
+            with (
+                patch.object(module, "DATA_DIR", root),
+                patch.object(module, "quest_catalog_cache_signature", return_value=(("raw", "same"),)),
+            ):
+                first = module._catalog_route_cache_identity(service)
+                enriched.write_text('{"quests":{}}', encoding="utf-8")
+                second = module._catalog_route_cache_identity(service)
+        self.assertEqual(first[0], second[0])
+        self.assertNotEqual(first[1], second[1])
+
+    def test_release_route_source_sizes_include_enriched_quest_file(self) -> None:
+        from app.modules.encyclopedia.services import (
+            guide_catalog_prebuilt_route as prebuilt_module,
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            enriched = root / "encyclopedia" / "quests" / "quests_enriched.json"
+            enriched.parent.mkdir(parents=True, exist_ok=True)
+            enriched.write_bytes(b"tiny-enrichment")
+            with (
+                patch.object(prebuilt_module, "DATA_DIR", root),
+                patch.object(prebuilt_module, "QUEST_CATALOG_SOURCE_FILES", ()),
+            ):
+                sizes = prebuilt_module._source_sizes(root)
+            self.assertEqual(
+                sizes["encyclopedia/quests/quests_enriched.json"],
+                len(b"tiny-enrichment"),
+            )
+
     def test_catalog_cards_skip_only_unrelated_manual_branch_policies(self) -> None:
         from app.modules.encyclopedia.services import (
             guide_catalog_manual_runtime_service as module,
