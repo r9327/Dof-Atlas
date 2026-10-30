@@ -441,12 +441,15 @@ class AchievementsView(QWidget):
 
     def show_achievement(self, achievement_id: int) -> None:
         achievement_id = int(achievement_id)
+        if self._detail_requested is not None and self._detail_requested[1] == achievement_id:
+            return
         summary = self.provider.get_by_id(achievement_id)
         if summary is None or not self.provider.is_retained(achievement_id):
             self.show_empty()
             return
         self._detail_generation += 1
         generation = self._detail_generation
+        self._detail_requested = None
         self.current_achievement_id = achievement_id
 
         # Only MemoryBoundAchievementProvider's cold path starts a disposable
@@ -800,6 +803,11 @@ class AchievementsView(QWidget):
         self._detail_open = False
         self.detail_stack.setCurrentWidget(self.detail_scroll)
         self.clear_detail()
+
+    def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
+        self._detail_generation += 1
+        self._detail_requested = None
+        super().closeEvent(event)
 
     def clear_detail(self) -> None:
         while self.detail_layout.count():
