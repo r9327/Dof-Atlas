@@ -289,11 +289,23 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
     catalog_cache: dict[str, Any] = {"status": "NOT_REQUIRED"}
     tooling = None
     if app_evidence.get("git_head") == sha and app_evidence.get("status") == "PASS":
-        # The Agent cache is keyed by Git head + dirty digest; do not rescan
-        # every tool if the same worktree was already inspected.
-        from tools.agent_planner import _planning_catalog
-        catalog_cache = {}
-        tooling = _planning_catalog(root, cache_info=catalog_cache)
+        # Catalog metadata must be from the same *clean* repository revision
+        # as the measured benchmark. Never route a historical SHA to tools
+        # discovered from a newer worktree.
+        from .core import git_state
+        try:
+            state = git_state(root)
+        except (OSError, RuntimeError, ValueError):
+            state = {}
+        if state.get("head") != sha or state.get("dirty") is not False:
+            catalog_cache = {
+                "status": "SHA_OR_WORKTREE_MISMATCH",
+                "reason": "Current clean worktree must match benchmark SHA",
+            }
+        else:
+            from tools.agent_planner import _planning_catalog
+            catalog_cache = {}
+            tooling = _planning_catalog(root, cache_info=catalog_cache)
     report = optimization_report(sha, app_evidence,
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
