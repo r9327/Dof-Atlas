@@ -55,6 +55,49 @@ class HomeCharacterComboCacheTests(unittest.TestCase):
             self.assertEqual(fake.current_character_key, "character:2")
 
 
+class ShellWorldScanHibernationTests(unittest.TestCase):
+    def test_home_eviction_preserves_world_state_only_when_idle(self):
+        state = {
+            "view_key": "world-a", "world_name": "Astrub",
+            "history": ("world-b",), "select_coord": (1, -2),
+        }
+        scan = SimpleNamespace(export_lightweight_navigation_state=Mock(return_value=state))
+        factory = Mock()
+        release = Mock()
+        fake = SimpleNamespace(
+            page_widgets={"Scan Monde": scan},
+            page_factories={},
+            _world_scan_return_state=None,
+            create_world_scan_page=factory,
+            release_reconstructible_page=release,
+        )
+        AtlasWindow._hibernate_world_scan_on_home(fake)
+        self.assertEqual(fake._world_scan_return_state, state)
+        release.assert_called_once_with("Scan Monde", factory)
+
+        release.reset_mock()
+        scan.export_lightweight_navigation_state.return_value = None
+        AtlasWindow._hibernate_world_scan_on_home(fake)
+        release.assert_not_called()
+
+        fake.page_factories["Scan Monde"] = factory
+        AtlasWindow._hibernate_world_scan_on_home(fake)
+        release.assert_not_called()
+
+    def test_page_factory_rehydrates_only_the_saved_map_navigation(self):
+        saved = {"view_key": "world-a", "history": (), "select_coord": (1, -2)}
+        panel = Mock(spec=["restore_navigation_state"])
+        fake = SimpleNamespace(
+            _world_scan_return_state=saved,
+            set_status=Mock(),
+        )
+        with patch("app.ui.world_scan_panel.WorldScanPanel", return_value=panel) as ctor:
+            self.assertIs(AtlasWindow.create_world_scan_page(fake), panel)
+        ctor.assert_called_once_with(fake.set_status)
+        panel.restore_navigation_state.assert_called_once_with(saved)
+        self.assertIsNone(fake._world_scan_return_state)
+
+
 class ShellTransientPlaceholderReleaseTests(unittest.TestCase):
     def test_home_releases_only_dynamic_placeholders_not_almanax_or_real_pages(self):
         QApplication.instance() or QApplication([])

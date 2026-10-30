@@ -777,6 +777,8 @@ class AtlasWindow(QMainWindow):
         self.page_indexes: dict[str, int] = {}
         self.page_widgets: dict[str, QWidget] = {}
         self.page_factories: dict[str, Any] = {}
+        # Only primitive Map Monde navigation state survives a Home hibernation.
+        self._world_scan_return_state: dict[str, Any] | None = None
         self.preload_results: dict[str, Any] = dict(initial_preload) if isinstance(initial_preload, dict) else {}
         initial_quests = self.preload_results.get("quests")
         initial_related_ready = bool(
@@ -1827,6 +1829,10 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            # The cartography canvas is reconstructible; keep only the last
+            # selected world/map and history, never the loaded Qt widget tree.
+            # Active I/O deliberately prevents hibernation until a safe visit.
+            self._hibernate_world_scan_on_home()
             # Dynamically generated "not implemented" screens are cheap but
             # otherwise accumulate for the whole session. Recreate on demand.
             self.release_transient_placeholders()
@@ -1845,6 +1851,21 @@ class AtlasWindow(QMainWindow):
                 page.set_character_key(self.current_character_key)
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
+
+    def _hibernate_world_scan_on_home(self) -> None:
+        if "Scan Monde" in self.page_factories:
+            return
+        page = self.page_widgets.get("Scan Monde")
+        snapshot = getattr(page, "export_lightweight_navigation_state", None)
+        if not callable(snapshot):
+            return
+        state = snapshot()
+        if not isinstance(state, dict):
+            # A map worker may still be computing a generation. Do not tear
+            # down its Qt receiver or discard the pending result.
+            return
+        self._world_scan_return_state = state
+        self.release_reconstructible_page("Scan Monde", self.create_world_scan_page)
 
     @staticmethod
     def collect_released_page_cycles() -> None:
@@ -1984,7 +2005,12 @@ class AtlasWindow(QMainWindow):
     def create_world_scan_page(self) -> QWidget:
         from app.ui.world_scan_panel import WorldScanPanel
 
-        return WorldScanPanel(self.set_status)
+        panel = WorldScanPanel(self.set_status)
+        state = self._world_scan_return_state
+        if isinstance(state, dict):
+            panel.restore_navigation_state(state)
+            self._world_scan_return_state = None
+        return panel
 
     def create_organizer_page(self) -> QWidget:
         organizer_type = _resolve_organizer_page()

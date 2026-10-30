@@ -202,6 +202,53 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
             finally:
                 self._dispose_panel(panel)
 
+    def test_home_snapshot_restores_world_history_and_selected_map_without_pixels(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            first = WorldScanPanel()
+            second = WorldScanPanel()
+            try:
+                first.current_view_key = "world-astrub"
+                first.current_world_name = "Astrub"
+                first.history = ["previous-world"]
+                first.selected_map = {"x": 12, "y": -4, "rich": ["not cached"]}
+                state = first.export_lightweight_navigation_state()
+                self.assertEqual(state, {
+                    "view_key": "world-astrub",
+                    "world_name": "Astrub",
+                    "history": ("previous-world",),
+                    "select_coord": (12, -4),
+                })
+                self.assertNotIn("maps", state)
+                first.history.append("later")
+                second.restore_navigation_state(state)
+                self.assertEqual(second.history, ["previous-world"])
+                self.assertEqual(second.current_view_key, "world-astrub")
+                self.assertIsNone(second.selected_map)
+                with patch.object(second, "_queue_cartography_load") as queue:
+                    second.show()
+                queue.assert_called_once_with(
+                    mode="reload", view_key="world-astrub",
+                    push_history=False, select_coord=(12, -4),
+                )
+                self.assertIsNone(second._restore_selected_coord)
+            finally:
+                self._dispose_panel(first)
+                self._dispose_panel(second)
+
+    def test_active_cartography_worker_prevents_home_hibernation_snapshot(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                panel._load_in_flight = True
+                self.assertIsNone(panel.export_lightweight_navigation_state())
+                panel._load_in_flight = False
+                panel._pending_load_request = {"generation": 9}
+                self.assertIsNone(panel.export_lightweight_navigation_state())
+                panel._pending_load_request = None
+                self.assertIsInstance(panel.export_lightweight_navigation_state(), dict)
+            finally:
+                self._dispose_panel(panel)
+
     def test_background_map_result_does_not_retain_pixels_on_home(self) -> None:
         with (
             patch.object(world_scan_module, "WorldService", _FakeWorldService),

@@ -69,6 +69,7 @@ class WorldScanPanel(QWidget):
         # when this page is hidden behind Home or another Atlas module.
         self._image_suspended = False
         self._world_menu_suspended = False
+        self._restore_selected_coord: tuple[int, int] | None = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 10, 12, 10)
@@ -225,6 +226,48 @@ class WorldScanPanel(QWidget):
         self.set_scan_progress(summary.scanned_count, summary.total_count)
         self.set_cache_state(summary.cache_state)
 
+    def export_lightweight_navigation_state(self) -> dict[str, Any] | None:
+        """A safe, primitive snapshot; never retain Pixmaps or DB rows on Home."""
+        if self._load_in_flight or self._pending_load_request is not None:
+            return None
+        selected = self.selected_map
+        coord = None
+        if isinstance(selected, dict):
+            try:
+                coord = (int(selected["x"]), int(selected["y"]))
+            except (KeyError, TypeError, ValueError):
+                pass
+        return {
+            "view_key": str(self.current_view_key or ""),
+            "world_name": str(self.current_world_name or DEFAULT_WORLD_NAME),
+            "history": tuple(str(key) for key in self.history[-64:] if str(key)),
+            "select_coord": coord,
+        }
+
+    def restore_navigation_state(self, state: dict[str, Any]) -> None:
+        """Restore only user navigation; the fresh worker owns map contents."""
+        if not isinstance(state, dict):
+            return
+        self.current_view_key = str(state.get("view_key") or "")
+        self.current_world_name = str(state.get("world_name") or DEFAULT_WORLD_NAME)
+        history = state.get("history")
+        self.history = [
+            str(key) for key in history[-64:] if isinstance(key, str) and key
+        ] if isinstance(history, (tuple, list)) else []
+        coord = state.get("select_coord")
+        if isinstance(coord, (tuple, list)) and len(coord) == 2:
+            try:
+                self._restore_selected_coord = (int(coord[0]), int(coord[1]))
+            except (TypeError, ValueError):
+                self._restore_selected_coord = None
+        self._initial_load_pending = True
+
+    def release_runtime(self) -> None:
+        """Drop our global Qt event filter before a reconstructed page is deleted."""
+        app = QApplication.instance()
+        if app is not None:
+            app.removeEventFilter(self)
+
     def reload_all(self) -> None:
         if not self.isVisible():
             self._initial_load_pending = True
@@ -232,10 +275,15 @@ class WorldScanPanel(QWidget):
         self._initial_load_pending = False
         self.set_message("Chargement de la cartographie…")
         self.set_map_placeholder("Chargement de la cartographie…")
+        # A Home-recreated page restores its selected map once, when the
+        # asynchronous canonical map data has been reloaded.
+        restore_coord = self._restore_selected_coord
+        self._restore_selected_coord = None
         self._queue_cartography_load(
             mode="reload",
             view_key=self.current_view_key,
             push_history=False,
+            select_coord=restore_coord,
         )
 
     def import_manifest(self) -> None:
