@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
+    QGraphicsDropShadowEffect,
     QLabel,
     QProgressBar,
     QPushButton,
@@ -386,6 +387,8 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsNotNone(nav)
             self.assertIsNotNone(compact)
             self.assertIsNotNone(sheet_header)
+            self.assertIsInstance(compact.graphicsEffect(), QGraphicsDropShadowEffect)
+            self.assertIsInstance(sheet_header.graphicsEffect(), QGraphicsDropShadowEffect)
             self.assertEqual(
                 self._layout_widget_names(nav),
                 [
