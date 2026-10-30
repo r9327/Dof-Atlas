@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.services.guide_progress_service import (
@@ -367,6 +368,83 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIn("Cawottes facultatives", panel.preparation_label.text())
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
+
+    def test_all_twenty_enabled_source_guides_open_with_inert_progress(self):
+        guides_dir = (
+            Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        )
+        catalog = json.loads((guides_dir / "catalog.json").read_text(encoding="utf-8"))
+        rows = [
+            row for row in catalog["guides"]
+            if row.get("ganymede_manual_ui_ready") is True
+        ]
+        self.assertEqual(len(rows), 20)
+        for row in rows:
+            with self.subTest(guide=row["id"]):
+                route_file = (
+                    guides_dir / "replacement_drafts" / "cutovers"
+                    / f"{row['id']}.json"
+                )
+                route = json.loads(route_file.read_text(encoding="utf-8"))
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1",),
+                )
+                try:
+                    total = route["expected_source_step_count"]
+                    self.assertEqual(len(panel.navigation.step_ids), total)
+                    self.assertIn(f"ÉTAPE 1 / {total}", panel.position_label.text())
+                    self.assertTrue(panel.body_label.text().strip())
+                    self.assertFalse(panel.travel_button.isEnabled())
+                    panel.step_jump.setValue(total)
+                    self.assertEqual(panel.step_jump.value(), total)
+                    self.assertIn(
+                        f"ÉTAPE {total} / {total}", panel.position_label.text()
+                    )
+                    panel.actual_button.click()
+                    self.assertEqual(panel.step_jump.value(), 1)
+                    self.assertEqual(
+                        self.store.manual_steps("character:1", row["id"]), set()
+                    )
+                finally:
+                    panel.deleteLater()
+                    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
+    def test_thirty_reopens_keep_manual_progress_and_source_step_identity(self):
+        route = _source_route()
+        first_step = "ganymede_2205_step_0001"
+        self.store.set_manual_step_completed(
+            "character:1", "dofus_cawotte", first_step, True,
+        )
+        for cycle in range(30):
+            with self.subTest(cycle=cycle):
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1", "character:2"),
+                )
+                try:
+                    panel.show()
+                    self.app.processEvents()
+                    self.assertEqual(
+                        panel.navigation.position().actual_step_id, first_step
+                    )
+                    self.assertEqual(
+                        panel.navigation.position().completed_by_character,
+                        {"character:1": 1, "character:2": 0},
+                    )
+                    panel.next_button.click()
+                    panel.actual_button.click()
+                    self.assertEqual(
+                        panel.navigation.position().viewed_step_id, first_step
+                    )
+                finally:
+                    panel.hide()
+                    panel.deleteLater()
+                    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertEqual(
+            self.store.manual_steps("character:1", "dofus_cawotte"), {first_step}
+        )
+        self.assertEqual(
+            self.store.manual_steps("character:2", "dofus_cawotte"), set()
+        )
 
     def test_shipped_cawotte_and_argente_are_real_browsable_manual_routes(self):
         source_dir = (
