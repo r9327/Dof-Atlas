@@ -250,8 +250,8 @@ class WorldScanPanel(QWidget):
                 return None  # Keep the original view to surface its error.
             next_key = str(payload.get("view_key") or "")
             if next_key:
-                if payload.get("view") is None:
-                    return None
+                if "view" in payload and payload.get("view") is None:
+                    return None  # An explicitly missing canonical view is not success.
                 if bool(payload.get("push_history")) and view_key and next_key != view_key:
                     history.append(view_key)
                 if next_key != view_key:
