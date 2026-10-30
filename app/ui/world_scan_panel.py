@@ -65,6 +65,9 @@ class WorldScanPanel(QWidget):
         self._deferred_load_result: tuple[int, object] | None = None
         self._initial_load_pending = True
         self._last_cache_summary = None
+        # Keep the map coordinates/history, but not the full native pixmap
+        # when this page is hidden behind Home or another Atlas module.
+        self._image_suspended = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 10, 12, 10)
@@ -386,10 +389,22 @@ class WorldScanPanel(QWidget):
             self._start_next_cartography_load()
             return
         if not self.isVisible():
+            if isinstance(payload, dict):
+                image = payload.get("image")
+                if isinstance(image, QImage) and not image.isNull():
+                    # A finished worker must not keep megabytes of QImage
+                    # alive while Map Monde is no longer visible.
+                    payload = dict(payload)
+                    payload["image"] = QImage()
+                    self._image_suspended = True
             self._deferred_load_result = (int(generation), payload)
             self._start_next_cartography_load()
             return
         self._apply_cartography_payload(payload)
+        if isinstance(payload, dict):
+            image = payload.get("image")
+            if isinstance(image, QImage) and not image.isNull():
+                self._image_suspended = False
         self._start_next_cartography_load()
 
     def _apply_cartography_payload(self, payload: object) -> None:
@@ -815,12 +830,39 @@ class WorldScanPanel(QWidget):
         deferred = self._deferred_load_result
         self._deferred_load_result = None
         if deferred is not None and int(deferred[0]) == self._load_generation:
-            self._apply_cartography_payload(deferred[1])
+            if self._image_suspended and isinstance(deferred[1], dict):
+                # The unseen bitmap was discarded on purpose. Remember which
+                # area must be reloaded, not its memory-heavy pixel payload.
+                self.current_view_key = str(
+                    deferred[1].get("view_key") or self.current_view_key
+                )
+            else:
+                self._apply_cartography_payload(deferred[1])
         if self._initial_load_pending and not self._load_in_flight:
             self.reload_all()
+        elif self._image_suspended and not self._load_in_flight:
+            self._image_suspended = False
+            coord = self.selected_map
+            select_coord = (
+                (int(coord["x"]), int(coord["y"]))
+                if isinstance(coord, dict) and "x" in coord and "y" in coord
+                else None
+            )
+            self._queue_cartography_load(
+                mode="view" if self.current_view_key else "reload",
+                view_key=self.current_view_key,
+                push_history=False,
+                select_coord=select_coord,
+            )
 
     def hideEvent(self, event) -> None:
         self.hide_world_menu()
+        if not self.canvas.pixmap.isNull():
+            # QPixmap is the largest long-lived native allocation in this
+            # module (often a full 1400x880 ARGB image). Release pixels but
+            # preserve the selected world, coordinates, and navigation history.
+            self.canvas.pixmap = QPixmap()
+            self._image_suspended = True
         super().hideEvent(event)
 
     def resizeEvent(self, event) -> None:
