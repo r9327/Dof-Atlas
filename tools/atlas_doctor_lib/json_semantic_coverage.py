@@ -260,6 +260,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
         "unavailable": 0, "duplicate_id_review_files": 0,
         "duplicate_key_review_files": 0, "id_lists_inspected": 0,
+        # Compatible aliases retained from the five current-PR commits.
+        "duplicate_member_review_files": 0, "nested_lists_scanned": 0,
         "manifest_chapter_refs_inspected": 0,
         "manifest_refs_inspected": 0,
         "manifest_reference_review_files": 0, "manual_base_refs_inspected": 0,
@@ -311,6 +313,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 }
             collisions, lists_inspected = _id_collision_candidates(payload)
             counts["id_lists_inspected"] += lists_inspected
+            counts["nested_lists_scanned"] += lists_inspected
             entry["id_lists_inspected"] = lists_inspected
             entry["duplicate_id_candidates"] = collisions
             if relative == _MANUAL_MANIFEST:
@@ -364,6 +367,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                  "json_path": None}
                 for key, number in sorted(duplicate_keys.items())
             ]
+            entry["duplicate_member_candidates"] = sorted(duplicate_keys)
             entry["status"] = (
                 "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys or manifest_findings or base_findings
                 else "VALID_SYNTAX"
@@ -374,6 +378,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 counts["duplicate_id_review_files"] += 1
             if duplicate_keys:
                 counts["duplicate_key_review_files"] += 1
+                counts["duplicate_member_review_files"] += 1
             del payload
         except (json.JSONDecodeError, UnicodeError, ValueError) as exc:
             entry["status"] = "INVALID"
