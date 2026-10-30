@@ -434,6 +434,70 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertEqual(raw, untouched)
         self.assertNotEqual(result[0]["sections"]["now"][0]["text"], "modified")
 
+    def test_catalog_owned_segments_match_copy_mode_without_shared_output(self) -> None:
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        raw = []
+        for idx, position in enumerate(("[1,2]", "[1, 2]", "[3,4]")):
+            part = service._new_segment(
+                position=position, zone="Astrub", quest_id=42 + idx,
+                quest_name=f"Quête {idx}", guide_step_id=f"step-{idx}",
+            )
+            part["sections"]["now"].append(
+                service._line("action", position, f"Parler au PNJ {idx}")
+            )
+            raw.append(part)
+
+        originals = copy.deepcopy(raw)
+        expected = service._merge_consecutive_positions(raw)
+        self.assertEqual(raw, originals)
+        owned = service._merge_consecutive_positions(copy.deepcopy(raw), consume=True)
+        self.assertEqual(expected, owned)
+        expected_cards = [
+            service._segment_to_card(part, idx)
+            for idx, part in enumerate(expected)
+        ]
+        owned_cards = [
+            service._segment_to_card(part, idx, consume=True)
+            for idx, part in enumerate(owned)
+        ]
+        self.assertEqual(owned_cards, expected_cards)
+        # Private ownership permits transfer, but public non-consuming methods
+        # still return copies and never mutate caller-supplied source segments.
+        self.assertIs(owned_cards[0]["manual_sections"], owned[0]["sections"])
+        self.assertIsNot(expected_cards[0]["manual_sections"], expected[0]["sections"])
+        self.assertEqual(raw, originals)
+
+    def test_fast_solution_text_filter_preserves_legacy_double_clean(self) -> None:
+        import re
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            MINIMAP_PLACEHOLDER_RE,
+            _clean_solution_instruction_text,
+            clean_text,
+        )
+        samples = (
+            "Parlez au PNJ.",
+            "Action en [4, -19].",
+            "&amp;lt;em&amp;gt;Instruction&amp;lt;/em&amp;gt;",
+            "{{Potion::Potion de rappel}}",
+            "Ligne &amp; élixir",
+            "Mini-carte L’aperçu de la carte sera affiché ici sur le site.",
+            "Action Mini-carte L'aperçu de la carte sera affiché ici sur le site. Suite.",
+            "Achetez 2 × bois.",
+        )
+        for raw in samples:
+            normalized = clean_text(raw)
+            legacy = re.sub(
+                r"\\s+", " ",
+                MINIMAP_PLACEHOLDER_RE.sub("", clean_text(normalized)),
+            ).strip()
+            self.assertEqual(
+                _clean_solution_instruction_text(normalized), legacy,
+                msg=f"Guide objective changed for {raw!r}",
+            )
+
     def test_catalog_deferred_quest_segments_keep_identical_cards(self) -> None:
         from app.modules.encyclopedia.services import guide_catalog_manual_runtime_service as catalog_module
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
