@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 from pathlib import Path
@@ -295,7 +296,7 @@ def _quest_offset_artifact_stamp(path: Path) -> list[object]:
             return [label, -1, -1]
         # mode=ro prevents a missing SQLite file from being created during
         # a cache-hit check (including with multiple Atlas processes).
-        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1) as connection:
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
             row = connection.execute(
                 "SELECT start, end FROM offsets LIMIT 1"
             ).fetchone()
