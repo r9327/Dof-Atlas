@@ -191,7 +191,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "duplicate_key_review_files": 0, "id_lists_inspected": 0,
         "manifest_chapter_refs_inspected": 0,
         "manifest_refs_inspected": 0,
-        "manifest_reference_review_files": 0, "bytes_parsed": 0,
+        "manifest_reference_review_files": 0, "manual_base_refs_inspected": 0,
+        "manual_base_reference_review_files": 0, "bytes_parsed": 0,
     }
     tracked_json = set(paths)
     for relative in paths:
@@ -247,6 +248,34 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                     counts["manifest_reference_review_files"] += 1
             else:
                 manifest_findings = []
+            # Canonical chapter layers are frequently patch-only JSON. The
+            # manifest can point at a valid v2 file whose base_file v1 is
+            # missing, so validate each declared predecessor separately.
+            # This is reference triage, not stage-merging or route validation.
+            base_findings: list[dict[str, str]] = []
+            if relative.startswith(_MANUAL_DIR) and isinstance(payload, dict) and "base_file" in payload:
+                counts["manual_base_refs_inspected"] += 1
+                filename = payload["base_file"]
+                if not isinstance(filename, str) or not filename:
+                    base_findings.append({"kind": "MANUAL_BASE_MISSING_REVIEW"})
+                elif (
+                    "/" in filename or "\\" in filename or ":" in filename
+                    or filename in {".", ".."} or not filename.lower().endswith(".json")
+                ):
+                    base_findings.append({
+                        "kind": "MANUAL_BASE_UNSAFE_REVIEW", "file": filename,
+                    })
+                elif _MANUAL_DIR + filename == relative:
+                    base_findings.append({
+                        "kind": "MANUAL_BASE_SELF_REFERENCE_REVIEW", "file": filename,
+                    })
+                elif _MANUAL_DIR + filename not in tracked_json:
+                    base_findings.append({
+                        "kind": "MANUAL_BASE_NOT_TRACKED_REVIEW", "file": filename,
+                    })
+                entry["manual_base_reference_candidates"] = base_findings
+                if base_findings:
+                    counts["manual_base_reference_review_files"] += 1
             # A duplicate member name can silently change the interpreted
             # source even if JSON syntax and list-level IDs are otherwise OK.
             # The decoder hook has no parent path: never invent one.
@@ -256,7 +285,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 for key, number in sorted(duplicate_keys.items())
             ]
             entry["status"] = (
-                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys or manifest_findings
+                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys or manifest_findings or base_findings
                 else "VALID_SYNTAX"
             )
             counts["valid_syntax"] += 1
