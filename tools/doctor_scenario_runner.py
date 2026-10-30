@@ -199,10 +199,22 @@ def execute_scenarios(
         report["required_test_modules"]
     ) else 2
     report["duration_seconds"] = round(time.perf_counter() - started, 3)
+    # The contract runner may execute many isolated modules. Nothing may
+    # modify tracked code after the initial exact-SHA gate without invalidating
+    # *every* check result from the batch.
+    try:
+        post_sha = _git(root, "rev-parse", "HEAD")
+        post_dirty = _git(root, "status", "--porcelain", "--untracked-files=no")
+        changed = post_sha != sha or bool(post_dirty)
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+        changed = True
+    report["worktree_changed_during_tests"] = changed
     report["status"] = (
         "CONTRACTS_PASS_METRICS_NOT_RUN"
-        if report["test_exit_code"] == 0 else "BLOCKED"
+        if report["test_exit_code"] == 0 and not changed else "BLOCKED"
     )
+    if changed:
+        report["errors"].append("WORKTREE_CHANGED_DURING_TESTS")
     if failures or len(executed) != len(report["required_test_modules"]):
         report["errors"].append("SCENARIO_TESTS_FAILED")
     # The actual full UI journey and performance gate need independent
