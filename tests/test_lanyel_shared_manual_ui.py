@@ -310,6 +310,47 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_validate_click_without_selected_identity_opens_portrait_picker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            shared.participant_service.save_selected_keys([])
+            shared._refresh_participants_panel()
+            shared._render_window()
+            button = shared.findChild(QPushButton, "GuideManualPageCheck")
+            self.assertIsNotNone(button)
+            self.assertEqual(button.text(), "Valider")
+            self.assertTrue(button.isEnabled())
+            self.assertFalse(shared.participants_button.isChecked())
+            button.click()
+            self.app.processEvents()
+            self.assertTrue(shared.participants_button.isChecked())
+            self.assertFalse(shared._progress_participant_keys())
+            self.assertEqual(
+                shared.findChild(QPushButton, "GuideManualPageCheck").text(),
+                "Valider",
+            )
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_preparation_item_name_is_click_to_copy_even_in_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            button = shared._copyable_preparation_item(
+                "Potion de rappel", "3 × Potion de rappel", None,
+            )
+            QApplication.clipboard().clear()
+            button.click()
+            self.assertEqual(QApplication.clipboard().text(), "Potion de rappel")
+            self.assertEqual(button.objectName(), "GuidePreparationItemCopy")
+            button.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_navigation_and_compact_headers_have_the_requested_hierarchy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
