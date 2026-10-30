@@ -155,6 +155,33 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_repeated_refresh_preserves_deferred_success_batches(self) -> None:
+        view = self._view(150)
+        try:
+            view.refresh()
+            snapshot_generation = view._achievement_render_generation
+            pending = tuple(view._achievement_pending_rows)
+            view.refresh()  # Re-entrant update before the first visible frame.
+            self.assertEqual(view._achievement_render_generation, snapshot_generation)
+            self.assertEqual(tuple(view._achievement_pending_rows), pending)
+
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            visible = view.list_widget.count()
+            self.assertGreater(visible, 0)
+            self.assertTrue(view._achievement_pending_rows)
+            view.refresh()  # Activation without any filter/category change.
+            self.assertEqual(view._achievement_render_generation, snapshot_generation)
+            self.assertEqual(view.list_widget.count(), visible)
+            self.assertGreater(len(view._achievement_pending_rows), 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_new_search_discards_old_pending_generation(self) -> None:
         achievements = [
             *[_achievement(index + 1, f"Alpha succes {index:02d}") for index in range(90)],
