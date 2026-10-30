@@ -652,15 +652,26 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if self._combat_key(target) not in self._rendered_combat_keys
         ]
 
-        direct: list[dict[str, Any]] = []
+        # The compact Guide evidence already contains the monster name and
+        # objective ID. Match it before touching any deferred rich Quest.
+        # _combat_evidence() can hydrate a cold 69 MiB source catalogue on
+        # the Qt thread; doing that for every ordinary text row caused the
+        # 19-second mid-route stall observed in the Windows Guide benchmark.
+        direct = [
+            target for target in unseen
+            if self._combat_text_matches(row_text, target.get("monster"))
+        ]
+        if direct:
+            return direct
+        # Non-combat rows can never consume position/solution fallbacks;
+        # avoid triggering even one rich Quest hydration for such rows.
+        if not row_is_combat:
+            return []
+
         same_position: list[dict[str, Any]] = []
         for target in unseen:
             target_position, objective_text = self._combat_evidence(target)
-            if self._combat_text_matches(
-                row_text,
-                target.get("monster"),
-                objective_text,
-            ):
+            if self._combat_text_matches(row_text, objective_text):
                 direct.append(target)
                 continue
             if (

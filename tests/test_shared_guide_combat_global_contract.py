@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -93,6 +95,58 @@ class SharedGuideCombatGlobalContractTests(unittest.TestCase):
 
             view.deleteLater()
             self.app.processEvents()
+
+
+    def test_non_combat_rows_do_not_hydrate_cold_quest_details(self) -> None:
+        """Rich Quest lookups are reserved for genuinely ambiguous combat rows."""
+        targets = [
+            {"quest_id": 14, "objective_id": 37, "monster": "Bouftou Royal"},
+            {"quest_id": 14, "objective_id": 38, "monster": "Tofu Royal"},
+        ]
+        fake = SimpleNamespace(
+            _combat_targets=targets,
+            _rendered_combat_keys=set(),
+            _combat_key=SharedGuideManualCard._combat_key,
+            _combat_text_matches=SharedGuideManualCard._combat_text_matches,
+            _is_combat_row=SharedGuideManualCard._is_combat_row,
+            _position_key=SharedGuideManualCard._position_key,
+            _combat_evidence=Mock(side_effect=AssertionError("eager rich quest load")),
+            _solution_combat_targets_for_row=Mock(return_value=[]),
+        )
+        ordinary = {"text": "Parler au garde du village", "position": "[1, 2]", "kind": "talk"}
+        self.assertEqual(
+            SharedGuideManualCard._combat_targets_for_row(fake, ordinary, "now"), []
+        )
+        fake._combat_evidence.assert_not_called()
+        fake._solution_combat_targets_for_row.assert_not_called()
+
+        # Even when the action kind is not marked combat, a monster name is
+        # enough canonical evidence to preserve its inline objective.
+        named = {"text": "Voir le Bouftou Royal", "position": "[1, 2]", "kind": "talk"}
+        self.assertEqual(
+            SharedGuideManualCard._combat_targets_for_row(fake, named, "now"),
+            [targets[0]],
+        )
+        fake._combat_evidence.assert_not_called()
+
+    def test_ambiguous_combat_still_resolves_source_evidence(self) -> None:
+        target = {"quest_id": 14, "objective_id": 37, "monster": "Bouftou Royal"}
+        fake = SimpleNamespace(
+            _combat_targets=[target],
+            _rendered_combat_keys=set(),
+            _combat_key=SharedGuideManualCard._combat_key,
+            _combat_text_matches=SharedGuideManualCard._combat_text_matches,
+            _is_combat_row=SharedGuideManualCard._is_combat_row,
+            _position_key=SharedGuideManualCard._position_key,
+            _combat_evidence=Mock(return_value=("[1, 2]", "Vaincre la créature")),
+            _solution_combat_targets_for_row=Mock(return_value=[]),
+        )
+        row = {"text": "Faire le combat indiqué", "position": "[1, 2]", "kind": "combat"}
+        self.assertEqual(
+            SharedGuideManualCard._combat_targets_for_row(fake, row, "boss"),
+            [target],
+        )
+        fake._combat_evidence.assert_called_once_with(target)
 
 
 if __name__ == "__main__":
