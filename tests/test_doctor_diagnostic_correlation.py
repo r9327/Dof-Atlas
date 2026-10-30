@@ -135,6 +135,41 @@ class DiagnosticCorrelationTests(unittest.TestCase):
                          "VALIDATION_AFTER_CODE_COMPLETE")
         self.assertTrue(by_capability["validation"]["requires_prior_evidence_review"])
 
+    def test_adaptive_probes_reuse_canonical_benchmarks_and_keep_sentinels(self):
+        guide = {"observed_sha": SHA, "status": "PASS", "bottleneck_candidates": [
+            {"kind": "python_method", "location": "Guide.render",
+             "cost_ms": 180},
+        ]}
+        result = correlate_diagnostics(
+            SHA, app(), guides=guide, catalog_report=catalog(),
+        )
+        plan = result["investigation_plan"]
+        scenarios = {x["scenario"]: x for x in plan["adaptive_benchmark_probes"]}
+        self.assertEqual(set(scenarios), {
+            "preload_cold_warm", "home_module_home_stabilized",
+            "guides_cold_warm_regression",
+        })
+        self.assertEqual(scenarios["preload_cold_warm"]["owner"],
+                         "tools.atlas_doctor perf --app")
+        self.assertEqual(scenarios["guides_cold_warm_regression"]["owner"],
+                         "tools.atlas_doctor perf --deep")
+        self.assertTrue(all(p["status"] == "NOT_RUN" and p["repeat_count_min"] >= 3
+                            for p in scenarios.values()))
+        self.assertTrue(plan["all_required_certification_scenarios_retained"])
+        self.assertFalse(plan["tests_executed"])
+
+    def test_report_shows_adaptive_investigation_without_claiming_pass(self):
+        doc = optimization_report(SHA, app(), tool_catalog_report=catalog())
+        rendered = render_markdown(doc)
+        self.assertIn("Plan de décision adaptatif", rendered)
+        self.assertIn("preload_cold_warm", rendered)
+        self.assertEqual(doc["diagnostic_correlation"]["investigation_plan"]
+                         ["verification_contract"]["final_phase_certification"],
+                         "REQUIRED_NOT_RUN")
+        self.assertIn("REQUIRED_NOT_RUN", rendered)
+        self.assertFalse(doc["diagnostic_correlation"]["investigation_plan"]
+                         ["certification_granted"])
+
     def test_stale_benchmark_is_blocked_not_recycled_into_positive_diagnosis(self):
         result = correlate_diagnostics(SHA, app(git_head=OTHER),
                                        catalog_report=catalog())
