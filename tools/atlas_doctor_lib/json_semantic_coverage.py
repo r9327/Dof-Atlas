@@ -78,7 +78,7 @@ _MANUAL_DIR = "data/routes/guide_ultime_manual/"
 
 def _manual_manifest_chapter_refs(
     payload: Any, tracked_json: set[str],
-) -> tuple[list[dict[str, Any]], int]:
+) -> tuple[list[dict[str, Any]], int, int]:
     """Triage tracked canonical Guide Ultime chapter, branch and registry references.
 
     Chapter imports, option branches and resolved stage totals are deliberately
@@ -88,10 +88,12 @@ def _manual_manifest_chapter_refs(
     canonical = payload.get("canonical") if isinstance(payload, dict) else None
     chapters = canonical.get("chapters") if isinstance(canonical, dict) else None
     if not isinstance(chapters, list) or not chapters:
-        return ([{"kind": "CANONICAL_CHAPTERS_MISSING_REVIEW"}], 0)
+        return ([{"kind": "CANONICAL_CHAPTERS_MISSING_REVIEW"}], 0, 0)
     inspected = 0
+    references_inspected = 0
     for index, row in enumerate(chapters):
         inspected += 1
+        references_inspected += 1
         filename = row.get("file") if isinstance(row, dict) else None
         if not isinstance(filename, str) or not filename:
             candidates.append({
@@ -126,6 +128,7 @@ def _manual_manifest_chapter_refs(
             })
             continue
         for index, row in enumerate(rows):
+            references_inspected += 1
             filename = row.get("file") if isinstance(row, dict) else None
             if not isinstance(filename, str) or not filename:
                 candidates.append({
@@ -153,6 +156,7 @@ def _manual_manifest_chapter_refs(
         if not isinstance(canonical, dict) or key not in canonical:
             # Do not invent a requirement for optional historical manifests.
             continue
+        references_inspected += 1
         filename = canonical[key]
         if not isinstance(filename, str) or not filename:
             candidates.append({
@@ -171,7 +175,7 @@ def _manual_manifest_chapter_refs(
                 "kind": "MANIFEST_REFERENCE_NOT_TRACKED_REVIEW",
                 "collection": key, "file": filename,
             })
-    return candidates, inspected
+    return candidates, inspected, references_inspected
 
 
 def _reject_non_finite(value: str) -> None:
@@ -186,6 +190,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "unavailable": 0, "duplicate_id_review_files": 0,
         "duplicate_key_review_files": 0, "id_lists_inspected": 0,
         "manifest_chapter_refs_inspected": 0,
+        "manifest_refs_inspected": 0,
         "manifest_reference_review_files": 0, "bytes_parsed": 0,
     }
     tracked_json = set(paths)
@@ -230,12 +235,14 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             entry["id_lists_inspected"] = lists_inspected
             entry["duplicate_id_candidates"] = collisions
             if relative == _MANUAL_MANIFEST:
-                manifest_findings, chapter_refs = _manual_manifest_chapter_refs(
+                manifest_findings, chapter_refs, total_refs = _manual_manifest_chapter_refs(
                     payload, tracked_json,
                 )
                 entry["manual_manifest_reference_candidates"] = manifest_findings
                 entry["manifest_chapter_refs_inspected"] = chapter_refs
+                entry["manifest_refs_inspected"] = total_refs
                 counts["manifest_chapter_refs_inspected"] += chapter_refs
+                counts["manifest_refs_inspected"] += total_refs
                 if manifest_findings:
                     counts["manifest_reference_review_files"] += 1
             else:
