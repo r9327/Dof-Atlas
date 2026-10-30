@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QIcon
+from app.ui.unity_skin import sprite_icon_path
 from PySide6.QtWidgets import (
     QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget,
@@ -110,7 +112,7 @@ class GuideCatalogView(QWidget):
         self.library_left.setObjectName("GuideLibraryLeft")
         left_layout = QVBoxLayout(self.library_left)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(8)
+        left_layout.setSpacing(6)
         left_layout.addWidget(heading("GUIDES OPTIMISÉS"))
         self.optimized_pair = FeaturedPair(
             (self.featured_cards["guide_complet"],
@@ -144,8 +146,21 @@ class GuideCatalogView(QWidget):
         self.library_categories = QTreeWidget(self)
         self.library_categories.setObjectName("GuideLibraryCategories")
         self.library_categories.setHeaderHidden(True)
-        self.library_categories.setIndentation(16)
+        self.library_categories.setIndentation(14)
         self.library_categories.setMinimumWidth(0)
+        self.library_categories.setUniformRowHeights(True)
+        self.library_categories.setMaximumHeight(250)
+        self.library_categories.setStyleSheet(
+            "QTreeWidget#GuideLibraryCategories { "
+            "background: rgba(21, 32, 59, 0.75); border: 1px solid #536E9A; "
+            "border-radius: 8px; padding: 3px; }"
+            "QTreeWidget#GuideLibraryCategories::item { min-height: 23px; "
+            "padding: 2px 5px; border-radius: 4px; }"
+            "QTreeWidget#GuideLibraryCategories::item:hover { "
+            "background: rgba(91, 121, 174, 0.33); }"
+            "QTreeWidget#GuideLibraryCategories::item:selected { "
+            "background: #344978; color: #F1F6FB; }"
+        )
         self._category_nodes = {}
         for category_key, text in CATEGORIES:
             # These categories already have their own featured/Dofus columns.
@@ -153,13 +168,17 @@ class GuideCatalogView(QWidget):
                 continue
             node = QTreeWidgetItem((text,))
             node.setData(0, Qt.UserRole, category_key)
+            art = sprite_icon_path("guide")
+            if art:
+                node.setIcon(0, QIcon(str(art)))
             self.library_categories.addTopLevelItem(node)
             self._category_nodes[category_key] = node
         self.library_categories.setCurrentItem(self._category_nodes["alignements"])
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
         self.library_categories.itemClicked.connect(self._toggle_library_category)
         self.library_categories.itemActivated.connect(self._activate_library_item)
-        left_layout.addWidget(self.library_categories, 1)
+        left_layout.addWidget(self.library_categories, 0)
+        left_layout.addStretch(1)
 
         self.library_right = QWidget(self)
         self.library_right.setObjectName("GuideLibraryResults")
@@ -365,7 +384,9 @@ class GuideCatalogView(QWidget):
                 child.setData(0, Qt.UserRole + 2, entry.source_id)
                 child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
                 parent.addChild(child)
-            parent.setExpanded(category == "alignements")
+            # A dense category menu starts folded instead of occupying
+            # half of the Guide home before the user chooses a section.
+            parent.setExpanded(False)
 
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None or not (item.flags() & Qt.ItemIsEnabled):
@@ -430,7 +451,17 @@ class GuideCatalogView(QWidget):
         width = self.home_dofus_list.viewport().width()
         if width <= 0:
             return
-        cell_width = self._grid_cell_width(width)
+        count = self.home_dofus_model.rowCount()
+        max_columns = max(1, width // 230)
+        # Keep the last row complete when feasible. With 20 Dofus a
+        # 3-column grid strands 2 at the bottom, whereas 2 is balanced.
+        columns = max_columns
+        if count > 1 and count % columns:
+            for candidate in range(columns - 1, 1, -1):
+                if count % candidate == 0:
+                    columns = candidate
+                    break
+        cell_width = max(1, width // max(1, columns))
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
