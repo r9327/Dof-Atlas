@@ -529,8 +529,44 @@ def menu_graph(root: Path) -> dict[str, Any]:
     return payload
 
 
+def _read_doctor_shared_evidence(root: Path, head: str | None) -> dict[str, Any]:
+    """Read specialists' latest common evidence without rewriting their verdicts."""
+    filename = root / "artifacts" / "doctor_complete" / "doctor_evidence.json"
+    try:
+        data = json.loads(filename.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return {"status": "NOT_RUN", "reason": "No collected Doctor specialist evidence"}
+    if not head or data.get("git_head") != head:
+        return {"status": "STALE", "reason": "Evidence does not match audited HEAD",
+                "evidence_sha": data.get("git_head")}
+    return data
+
+
+def command_optimization_report(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.optimization_report import generate
+    report = generate(root, sha=args.sha, app_report=args.app_report,
+                      hub_report=args.hub_report, baseline=args.baseline,
+                      guides=args.guides, ci_costs=args.ci_costs, output=args.output)
+    if not args.json:
+        print(f"Doctor optimization: {report['status']} | {len(report['priority_findings'])} findings")
+        print("Measured diagnosis only: no new benchmark or certification is executed.")
+    return report
+
+
+def command_evidence_hub(root: Path, args) -> dict[str, Any]:
+    from tools.atlas_doctor_lib.evidence_hub import build_hub
+    report = build_hub(root, sha=args.sha, sources=args.source, jobs_json=args.jobs_json,
+                       output=args.output)
+    if not args.json:
+        print(f"Doctor evidence hub: {report['status']} | sources: {len(report['sources'])}")
+        print(f"Unverified/missing: {', '.join(report['required_missing_or_bad'])}")
+    return report
+
+
 def command_audit(root: Path, args) -> dict[str, Any]:
     payload = _audit(root, force=args.force, integrity_mode=args.gate)
+    payload["specialist_evidence"] = _read_doctor_shared_evidence(
+        root, (payload.get("git") or {}).get("head"))
     if not args.json:
         _summary(payload)
         print(f"Snapshot : {root / '.ai/runtime/atlas_doctor/latest_audit.json'}")
@@ -555,7 +591,76 @@ def command_live(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def command_perf_lab(root: Path, args) -> dict[str, Any]:
+    """Doctor is the single public entrypoint for exhaustive guide profiling."""
+    from tools.atlas_doctor_lib.exhaustive_performance import run_doctor_lab
+    report = run_doctor_lab(
+        root, cycles=args.cycles, output=args.output, timeout=args.timeout,
+        diagnose_slow_ms=args.diagnose_slow_ms,
+        diagnose_guides=tuple(args.diagnose_guide), py_spy=args.py_spy,
+        checkpoints=args.checkpoints, profile_startup=args.profile_startup,
+        profile_imports=args.profile_imports,
+    )
+    if not args.json:
+        summary = report.get("summary", {})
+        print(f"Doctor Performance Lab: {report['status']} "
+              f"| guides {report.get('atlas_guides', 0)} "
+              f"| mesures {report.get('measured_routes', 0)}/{report.get('expected_routes', 0)}")
+        print(f"Open P50/P95/P99: {summary.get('open_p50_ms')} / "
+              f"{summary.get('open_p95_ms')} / {summary.get('open_p99_ms')} ms")
+        print(f"Qt delays >= 250 ms: {summary.get('freeze_count_250ms')}")
+        candidates = report.get("bottleneck_candidates") or []
+        for item in candidates[:8]:
+            print(f"Diagnostic suspect [{item.get('kind')}]: "
+                  f"{item.get('location')} · {item.get('cost_ms')} ms "
+                  f"({item.get('evidence')})")
+        if candidates:
+            print("Observation ≠ causalité ; profils natifs Windows à confirmer.")
+        for module in (report.get("startup_import_costs") or [])[:10]:
+            print(f"Startup import: {module.get('module')} "
+                  f"self={module.get('self_ms')} ms "
+                  f"cumulative={module.get('cumulative_ms')} ms")
+        for fn in (report.get("startup_cpu_functions") or [])[:10]:
+            print(f"Startup CPU: {fn.get('file')}:{fn.get('line')} "
+                  f"{fn.get('function')} {fn.get('cumulative_cpu_ms')} ms")
+        for failure in report.get("failures", [])[:20]:
+            print(f"FAIL guide {failure.get('guide_id')} cycle {failure.get('cycle')}: "
+                  f"{failure.get('error')}")
+        for reason in report.get("blocking_reasons", []):
+            print(f"Doctor BLOCKED: {reason}")
+    return report
+
+
 def command_perf(root: Path, args) -> dict[str, Any]:
+    if getattr(args, 'app', False):
+        if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
+            return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
+        if args.parallel_instances == 8:
+            if args.one_core or args.idle_seconds or args.cycles != 1:
+                return {"status": "BLOCKED", "reason": "Eight-Atlas scenario requires cycles=1, no idle/one-core"}
+            from tools.atlas_doctor_lib.parallel_app import run_eight
+            report = run_eight(root, output=root / args.output, max_seconds=args.max_seconds)
+            if not args.json:
+                print(f"Doctor eight Atlas processes: {report['status']} "
+                      f"| {len(report.get('instances', []))}/8 actual processes")
+            return report
+        from tools.doctor_quick_app_probe import run as run_app_benchmark
+        report = run_app_benchmark(
+            output=root / args.output, timeout=args.timeout,
+            max_seconds=args.max_seconds, cycles=args.cycles,
+            idle_seconds=args.idle_seconds, one_core=args.one_core,
+        )
+        if not args.json:
+            print(f"Doctor App Benchmark: {report['status']} "
+                  f"| parcours {report.get('measured_routes')}/{report.get('planned_samples')}"
+                  f" | preload {report.get('preload_status')}"
+                  f" | idle {report.get('idle_seconds_requested')}s")
+        return report
+    if (getattr(args, 'one_core', False) or getattr(args, 'idle_seconds', 0.0)
+            or getattr(args, 'parallel_instances', 1) != 1):
+        return {"status": "BLOCKED", "reason": "App-only performance flags require Doctor perf --app"}
+    if getattr(args, 'deep', False):
+        return command_perf_lab(root, args)
     _audit(root, force=False, integrity_mode=None)
     payload = run_performance(root, include_runtime=not args.files_only)
     if not args.json:
@@ -653,8 +758,10 @@ def command_verify(root: Path, args) -> dict[str, Any]:
 
 
 def command_report(root: Path, args) -> dict[str, Any]:
-    _audit(root, force=False, integrity_mode=None)
+    audit = _audit(root, force=False, integrity_mode=None)
     payload = build_ai_report(root)
+    payload["specialist_evidence"] = _read_doctor_shared_evidence(
+        root, (audit.get("git") or {}).get("head"))
     if not args.json:
         print(f"Rapport IA : {root / '.ai/runtime/atlas_doctor/latest_report.json'}")
     return payload
@@ -685,6 +792,8 @@ def command_all(root: Path, args) -> dict[str, Any]:
         'audit': audit.get('summary'),
         'ponytail': ponytail,
         'performance_status': (perf.get('runtime') or {}).get('status'),
+        'specialist_evidence': _read_doctor_shared_evidence(
+            root, (audit.get('git') or {}).get('head')),
         'report': report,
     }
     if not args.json:
@@ -879,8 +988,34 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument('--sample-seconds', type=float, default=0.5)
     live.add_argument('--no-io-trace', action='store_true')
 
-    perf = sub.add_parser('perf')
+    perf = sub.add_parser('perf', help='Doctor Performance Lab, standard ou --deep tous les guides.')
     perf.add_argument('--files-only', action='store_true', help='Ne pas lancer le benchmark Qt runtime.')
+    perf.add_argument('--deep', action='store_true',
+                      help='Mode exhaustif par guide, sans relancer le bench standard.')
+    perf.add_argument('--app', action='store_true',
+                      help='Navigation de toutes les routes Atlas, via Doctor, sans second moteur.')
+    perf.add_argument('--max-seconds', type=float, default=540.0,
+                      help='Budget borné du bench complet des menus.')
+    perf.add_argument('--idle-seconds', type=float, default=0.0,
+                      help='Observation post-Home; ne prétend pas démontrer une fuite.')
+    perf.add_argument('--one-core', action='store_true',
+                      help='Affinité effective sur un cœur logique Windows; pas une machine bas de gamme.')
+    perf.add_argument('--parallel-instances', type=int, choices=(1, 8), default=1,
+                      help='8 vrais processus Atlas CI isolés; jamais 8 comptes DOFUS.')
+    perf.add_argument('--cycles', type=int, choices=(1, 2, 3, 5, 10), default=2)
+    perf.add_argument('--checkpoints', type=int, choices=(0, 3), default=3,
+                      help='Jalons de chaque guide: début/milieu/fin, ou 0.')
+    perf.add_argument('--output', type=Path,
+                      default=Path('artifacts/atlas_exhaustive/guides.json'))
+    perf.add_argument('--timeout', type=float, default=45.0)
+    perf.add_argument('--diagnose-slow-ms', type=float, default=1000.0)
+    perf.add_argument('--diagnose-guide', action='append', default=[])
+    perf.add_argument('--profile-imports', action='store_true',
+                      help='Profilage des imports Python du démarrage (intrusif, opt-in).')
+    perf.add_argument('--profile-startup', action='store_true',
+                      help='Enregistrer les fonctions CPU les plus lentes lors du premier lancement.')
+    perf.add_argument('--py-spy', action='store_true',
+                      help='Profiler externe optionnel; nécessite installation séparée.')
 
     sub.add_parser('compare')
     issues = sub.add_parser('issues')
@@ -898,6 +1033,25 @@ def build_parser() -> argparse.ArgumentParser:
     baselines.add_argument('--baseline', help='Comparer une baseline nommee et sa base SHA immuable.')
     baselines.add_argument('--save-baseline', help='Enregistrer une baseline avant modification; aucun ecrasement.')
     verify.add_argument('--base-ref', help='Base du changement; sinon HEAD du snapshot precedent, puis HEAD.')
+    evidence = sub.add_parser('evidence-hub',
+                              help='Rassembler les preuves Doctor/UI/Graphify/CI/Distribution au SHA exact.')
+    evidence.add_argument('--sha', required=True)
+    evidence.add_argument('--source', action='append', default=[],
+                          help='specialist=artifacts/path.json; répétable, jamais un PASS implicite')
+    evidence.add_argument('--jobs-json', type=Path,
+                          help='Statuts GitHub Actions exacts sous artifacts/')
+    evidence.add_argument('--output', type=Path,
+                          default=Path('artifacts/doctor_complete/doctor_evidence.json'))
+    optimization = sub.add_parser('optimization-report',
+                                  help='Rapport d optimisation priorisé, sans relancer le bench.')
+    optimization.add_argument('--sha', required=True)
+    optimization.add_argument('--app-report', type=Path, required=True)
+    optimization.add_argument('--hub-report', type=Path)
+    optimization.add_argument('--baseline', type=Path)
+    optimization.add_argument('--guides', type=Path)
+    optimization.add_argument('--ci-costs', type=Path)
+    optimization.add_argument('--output', type=Path,
+                              default=Path('artifacts/doctor_complete/optimization.json'))
     sub.add_parser('report')
     sub.add_parser('clean')
     sub.add_parser('all')
@@ -1025,6 +1179,8 @@ def main(argv: list[str] | None = None) -> int:
         'issues': command_issues,
         'verify': command_verify,
         'report': command_report,
+        'evidence-hub': command_evidence_hub,
+        'optimization-report': command_optimization_report,
         'clean': command_clean,
         'all': command_all,
     }
@@ -1050,6 +1206,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2 if payload['status'] == 'BLOCKED' else 0
     if args.command == 'agent':
         return int(payload.get('exit_code', 2))
+    if args.command == 'evidence-hub':
+        return 0 if payload.get('status') == 'PASS' else 2
+    if args.command == 'optimization-report':
+        return 0 if payload.get('status') == 'DIAGNOSTIC_READY' else 2
     if args.command == 'source-impact':
         return 2 if payload.get('status') == 'BLOCKED' else 0
     if args.command == 'file-audit':
@@ -1093,6 +1253,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {'audit', 'quick'}:
         verdict = (payload.get('summary') or {}).get('verdict')
         return 2 if verdict == 'FAIL' else (1 if verdict == 'WARN' else 0)
+    if args.command == 'perf' and (args.deep or args.app):
+        return 0 if payload.get('status') == 'PASS' else 2
     if args.command == 'perf':
         runtime = payload.get('runtime') or {}
         if runtime and runtime.get('status') == 'FAIL':

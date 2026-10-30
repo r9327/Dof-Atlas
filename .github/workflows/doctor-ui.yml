@@ -6,6 +6,9 @@ on:
       base_ref:
         required: true
         type: string
+      complete_campaign:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       base_ref:
@@ -22,7 +25,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: doctor-ui-${{ github.event.pull_request.number || github.ref }}
+  group: doctor-ui-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.complete_campaign || false }}
   cancel-in-progress: true
 
 env:
@@ -60,6 +63,10 @@ jobs:
         run: |
           args=()
           if [ -n "$FORCED_SCENARIO" ]; then args+=(--force "$FORCED_SCENARIO"); fi
+          if [ "${{ inputs.complete_campaign || false }}" = "true" ]; then
+            args+=(--force guides-success --force guides-lanyel
+                   --force guide-quests --force validator-smoke --force achievement-detail)
+          fi
           python -m tools.atlas_doctor_lib.doctor_ui_ci plan --exhaustive-on-review --base-ref "$BASE_SHA" --candidate-sha "$CANDIDATE_SHA" --github-output "$GITHUB_OUTPUT" "${args[@]}"
       - name: Upload selection even on uncertainty
         if: always()

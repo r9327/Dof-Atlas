@@ -1,0 +1,199 @@
+name: Atlas Short Complete App Journey
+
+on:
+  workflow_call:
+    inputs:
+      cycles:
+        type: number
+        default: 3
+      idle_seconds:
+        type: number
+        default: 0
+      max_seconds:
+        type: number
+        default: 540
+      one_core:
+        type: boolean
+        default: false
+      parallel_instances:
+        type: number
+        default: 1
+      skip_preflight_unit_tests:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      cycles:
+        description: "3 passages rapides, ou 10 passages pour une campagne étendue"
+        type: choice
+        default: "3"
+        options: ["3", "10"]
+      idle_seconds:
+        description: "Observation supplémentaire à l'arrêt sur Home (secondes)"
+        type: choice
+        default: "0"
+        options: ["0", "60"]
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-short-full-app.yml"
+      - "tools/doctor_quick_app_probe.py"
+      - "tools/atlas_doctor.py"
+      - "tests/test_doctor_quick_app_probe.py"
+      - "tests/test_achievement_compact_process_lock.py"
+      - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+      - "tools/ci_domain_certification.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-short-app-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.cycles || 3 }}-${{ inputs.one_core || false }}-${{ inputs.parallel_instances || 1 }}
+  cancel-in-progress: true
+
+env:
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+  QTWEBENGINE_DISABLE_SANDBOX: "1"
+  QT_OPENGL: software
+  QT_QUICK_BACKEND: software
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  quick-whole-app:
+    name: Full menu / preload / RAM / CPU / Qt (short)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Install Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+
+      - name: Install exact pinned dependencies
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test complete route inventory and no false PASS for placeholders
+        # The all-menu job runs these canonical contracts. The one-core and
+        # 8-process sibling modes must produce their own real probe evidence,
+        # but do not need to replay these identical unit tests.
+        if: ${{ !inputs.skip_preflight_unit_tests }}
+        run: |
+          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Materialize real Quest and Craft data
+        run: |
+          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.windows.craft_seed --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The downloaded seed is a distribution asset. Atlas' local Craft
+          # adapter reads data/local/dofus_data.sqlite in the Windows sandbox.
+          # Populate only this ephemeral CI checkout, never a real user store.
+          @'
+          from pathlib import Path
+          from shutil import copy2
+          from scripts.windows.craft_seed import validate_seed
+          from local_dofus_data.config import DEFAULT_CONFIG
+          from app.craft_preload import build_compact_craft_preload
+
+          seed = Path("data/bootstrap/craft_seed.sqlite")
+          validate_seed(seed)
+          target = DEFAULT_CONFIG.sqlite_path
+          target.parent.mkdir(parents=True, exist_ok=True)
+          if target.exists():
+              raise SystemExit(f"Refusing to overwrite existing Craft catalog: {target}")
+          copy2(seed, target)
+          validate_seed(target)
+          craft = build_compact_craft_preload()
+          if craft.get("_prepared") is not True or craft.get("errors"):
+              raise SystemExit(
+                  f"Craft preflight failed: {craft.get('errors') or craft.get('_skipped_reason')}"
+              )
+          print(f"Craft data READY: {target}")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          from app.quest_catalog import QuestCatalog
+          total = len(QuestCatalog.load().quests)
+          print(f"Materialized QuestCatalog: {total}")
+          if total < 1900:
+              raise SystemExit("Incomplete Quest catalog")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Inspect every menu route, startup and preloads in one Qt session
+        run: |
+          $cycles = [int]'${{ inputs.cycles || 3 }}'
+          $idle = [double]'${{ inputs.idle_seconds || 0 }}'
+          $max = [double]'${{ inputs.max_seconds || 1200 }}'
+          $instances = [int]'${{ inputs.parallel_instances || 1 }}'
+          $affinity = @()
+          if ('${{ inputs.one_core || false }}' -eq 'true') { $affinity = @('--one-core') }
+          python -X faulthandler -m tools.atlas_doctor perf --app --max-seconds $max --timeout 18 --cycles $cycles --idle-seconds $idle --parallel-instances $instances --output artifacts/quick_app/report.json @affinity
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Print results and coverage
+        if: always()
+        run: |
+          @'
+          import json
+          from pathlib import Path
+          p = Path("artifacts/quick_app/report.json")
+          if p.exists():
+              report = json.loads(p.read_text(encoding="utf-8"))
+              print(json.dumps({
+                  "status": report.get("status"),
+                  "sha": report.get("git_head"),
+                  "cycles": report.get("cycles"),
+                  "preload_ms": report.get("preload_ms"),
+                  "preload_states": report.get("preload_states"),
+                  "functional": report.get("functional_pass"),
+                  "placeholders": report.get("placeholder_pass"),
+                  "routes": report.get("measured_routes"),
+                  "failed_routes": report.get("failed_routes"),
+                  "peak_tree_rss_mib": report.get("peak_process_tree_rss_mib"),
+                  "elapsed_seconds": report.get("elapsed_seconds"),
+                  "last_home_tree_mib": (report.get("last_home_stabilized") or {}).get("tree_rss_mb"),
+              }, indent=2, ensure_ascii=False))
+              if report.get("kind") == "doctor_eight_independent_atlas_processes_not_dofus_clients":
+                  for instance in report.get("instances", []):
+                      print(json.dumps({
+                          "instance": instance.get("index"), "pid": instance.get("pid"),
+                          "exit": instance.get("exit_code"), "issues": instance.get("issues"),
+                          "preload": instance.get("preload_states"),
+                          "errors": instance.get("preload_errors"),
+                      }, ensure_ascii=False))
+              for row in report.get("routes", []):
+                  print(f"cycle={row.get('cycle')} {row['id']:18} {row['status']:12} {row['open_ms']:8}ms {row.get('error', '')}")
+              for name, item in sorted(report.get("revisit_comparison", {}).items()):
+                  print(f"REVISIT {name:18} cold={item['cold_open_ms']}ms warm={item['warm_open_ms']}ms observed_home_delta={item['home_tree_delta_first_to_last_mib']}MiB")
+          '@ | python -
+
+      - name: Upload full-app JSON evidence even when blocked
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: atlas-short-complete-app-c${{ inputs.cycles || 3 }}-cpu${{ inputs.one_core || false }}-p${{ inputs.parallel_instances || 1 }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quick_app/**
+          if-no-files-found: warn
+          retention-days: 14

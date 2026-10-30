@@ -23,9 +23,32 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
+        paths = [
+            "tools/atlas_doctor.py",
+            "tools/atlas_perf_attribution.py",
+            "tools/benchmark_atlas_exhaustive.py",
+            "tests/test_atlas_exhaustive_benchmark.py",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(paths + [
+            "tools/atlas_doctor_lib/exhaustive_performance.py",
+            "tests/test_doctor_exhaustive_performance.py",
+            ".github/workflows/atlas-exhaustive-benchmark.yml",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertEqual(plan["unknown_paths"], [])
+        for unrelated in (
+            "tools/benchmark_unreviewed.py", "tools/atlas_perf_unreviewed.py",
+            "tests/test_atlas_exhaustive_unreviewed.py",
+        ):
+            self.assertFalse(owners_for(unrelated))
+            self.assertEqual(self.route([unrelated])["status"], "BLOCKED")
+
     def test_doctor_agent_protocol_test_is_explicit_ci_owned(self):
-        # PR #290 is blocked by an UNKNOWN_OWNER even though the test's
-        # quality_ci manifest and context map already select its module.
         known = "tests/test_atlas_doctor_agent_protocol.py"
         unknown = "tests/test_atlas_doctor_unreviewed.py"
         self.assertEqual(owners_for(known), frozenset({"ci"}))
@@ -423,6 +446,33 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("tools/unknown_new_policy.py"), frozenset())
         self.assertEqual(self.route(["tools/unknown_new_policy.py"])["status"], "BLOCKED")
+
+    def test_eight_atlas_shared_cache_files_have_reviewed_cross_domain_owners(self):
+        affected = {
+            "app/startup_cache_warmup.py": {"startup", "quests", "guides", "data"},
+            "app/core/cache_write_lock.py": {"startup", "quests", "guides", "data"},
+            "app/modules/encyclopedia/services/achievement_index_warmup.py":
+                {"startup", "quests", "guides"},
+        }
+        for path, domains in affected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(domains))
+        plan = self.route(list(affected) + [
+            "tools/ci_domain_certification.py",
+            ".github/workflows/atlas-doctor-complete-benchmark.yml",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(set(plan["domains"]),
+                         {"ci", "quests", "guides", "startup", "data"})
+        # Do not create a loophole for a new cache worker or unrelated module.
+        self.assertEqual(owners_for("app/startup_cache_unreviewed.py"), frozenset())
+        self.assertEqual(owners_for("app/core/cache_write_lock_unreviewed.py"), frozenset())
+        self.assertEqual(self.route(["app/core/cache_write_lock_unreviewed.py"])["status"], "BLOCKED")
+        self.assertEqual(
+            owners_for("app/modules/encyclopedia/services/achievement_unreviewed.py"),
+            frozenset(),
+        )
 
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])

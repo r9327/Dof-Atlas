@@ -9,7 +9,7 @@ import tempfile
 import textwrap
 import unittest
 
-from tools.atlas_doctor_lib.ci_orchestrator import plan_ci, select_workflows
+from tools.atlas_doctor_lib.ci_orchestrator import plan_ci, select_workflows, large_change_benchmark
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPED = {'route': 'SCOPED'}
@@ -19,6 +19,64 @@ UI_NONE = {'status': 'NOT_APPLICABLE', 'selected_scenarios': []}
 class DoctorCiOrchestratorTests(unittest.TestCase):
     def select(self, paths, *, route=SCOPED, event='pull_request', ui=UI_NONE, deleted=()):
         return select_workflows(paths, event=event, phase_route=route, ui_plan=ui, deleted=deleted)
+
+    def test_large_changes_require_full_benchmark_before_certification(self):
+        files = ['app/modules/encyclopedia/providers/p%d.py' % i for i in range(6)]
+        files += ['tools/atlas_doctor_lib/extra%d.py' % i for i in range(7)]
+        selected = self.select(files, route={'route': 'FULL'})
+        self.assertTrue(selected['benchmark_first'])
+        self.assertEqual(selected['benchmark_selection']['reason'], 'LARGE_PRODUCT_RUNTIME_DIFF')
+        self.assertTrue(selected['phase'])
+        self.assertTrue(selected['outputs']['benchmark_first'])
+
+    def test_large_product_benchmark_deduplicates_canonical_specialists(self):
+        paths = [
+            *('app/core/large_feature_%d.py' % i for i in range(8)),
+            '.github/workflows/atlas-doctor-complete-benchmark.yml',
+            '.github/workflows/phase8-preload-benchmark.yml',
+            'tools/atlas_doctor_lib/ci_orchestrator.py',
+            'tests/test_doctor_ci_orchestrator.py',
+        ]
+        plan = self.select(paths, route={'route': 'FULL'}, ui={
+            'status': 'UI_REQUIRED', 'selected_scenarios': ['guides-success']})
+        self.assertTrue(plan['benchmark_first'])
+        for name in ('phase8-memory-benchmark', 'phase8-preload-benchmark',
+                     'doctor-ui', 'atlas-windows-distribution', 'graphify-map'):
+            with self.subTest(specialist=name):
+                self.assertFalse(plan['workflows'][name]['selected'])
+                self.assertIn('COVERED_BY_REQUIRED_DOCTOR_COMPLETE_SAME_SHA',
+                              plan['workflows'][name]['reasons'][0])
+                self.assertFalse(plan['outputs'][name.replace('-', '_')])
+        self.assertTrue(plan['workflows']['ai-context-ci']['selected'])
+        self.assertTrue(plan['workflows']['signature-report']['selected'])
+
+    def test_small_changes_and_policy_docs_do_not_run_exhaustive_campaign(self):
+        self.assertFalse(self.select(['app/ui/theme.py'])['benchmark_first'])
+        self.assertFalse(self.select(['docs/usage.md', 'PHASE_CERTIFICATION.md'])['benchmark_first'])
+        self.assertFalse(self.select(
+            ['tools/atlas_doctor_lib/ci_orchestrator.py', '.github/workflows/phase-certification.yml'],
+            route={'route': 'FULL'})['benchmark_first'])
+        self.assertFalse(large_change_benchmark(['app/core/a.py'] * 14, event='pull_request')['selected'])
+        self.assertFalse(large_change_benchmark(
+            ['app/core/%d.py' % i for i in range(12)], event='push')['selected'])
+
+    def test_deletions_are_counted_and_benchmark_not_faked_by_risk(self):
+        d = ['app/core/%d.py' % i for i in range(8)]
+        self.assertTrue(large_change_benchmark([], deleted=d, event='pull_request')['selected'])
+        self.assertFalse(large_change_benchmark([], deleted=d, event='pull_request',
+                                                  tooling_only=True)['selected'])
+        self.assertFalse(self.select(['app/core/json_store.py'], route={'route':'FULL'})['benchmark_first'])
+
+    def test_benchmark_first_workflow_is_explicitly_sequenced_and_not_double_triggered(self):
+        phase = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        suite = (ROOT / '.github/workflows/atlas-doctor-complete-benchmark.yml').read_text(encoding='utf-8')
+        self.assertIn('  doctor-benchmark-first:', phase)
+        self.assertIn('needs: [doctor-plan, doctor-benchmark-first, pr-fast-validation', phase)
+        self.assertIn("report['required_jobs'].append('doctor-benchmark-first')",
+                      (ROOT / 'tools/atlas_doctor_lib/ci_orchestrator.py').read_text(encoding='utf-8'))
+        self.assertIn('  workflow_call:', suite)
+        self.assertNotIn('  pull_request:', suite)
+        self.assertIn('doctor-benchmark-first, focused-validation', phase)
 
     def test_docs_only_retains_metadata_and_required_pr_check_without_heavy_jobs(self):
         p = self.select(['docs/usage.md', '.ai/context_index.json'], route={})

@@ -40,6 +40,23 @@ def test_preload_workflow_enforces_phase8_memory_budget() -> None:
 import unittest
 
 
+class ComparableCraftSeedTests(unittest.TestCase):
+    def test_workflow_materializes_real_catalog_and_blocks_failed_preload(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        setup = workflow.split("      - name: Prepare comparable benchmark inputs", 1)[1].split(
+            "      - name: Measure base and candidate on the same runner", 1)[0]
+        self.assertIn('seed = Path("data/bootstrap/craft_seed.sqlite")', setup)
+        self.assertIn('target = DEFAULT_CONFIG.sqlite_path', setup)
+        self.assertIn('validate_seed(target)', setup)
+        self.assertIn('build_compact_craft_preload()', setup)
+        self.assertIn('if target.exists():', setup)
+        self.assertIn('copy2(seed, target)', setup)
+        self.assertIn('for measured_ref, metrics in (("base", before_metrics), ("candidate", after_metrics)):', workflow)
+        self.assertIn('set(states) != required_states', workflow)
+        self.assertIn('str(value) != "READY"', workflow)
+        self.assertNotIn('{"READY", "FAILED"}', workflow)
+
+
 class ComparablePreloadCacheIsolationTests(unittest.TestCase):
     def test_base_and_candidate_reset_generated_caches_independently(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")

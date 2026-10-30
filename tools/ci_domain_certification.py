@@ -69,6 +69,17 @@ CI_FILES = frozenset({
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
     "tools/doctor_policy_authority.py", "tools/ci_guide_full_evidence.py",
 })
+# Explicitly audited Doctor-only profiling tools. These do not alter app
+# runtime or Guide data; their real Qt Windows campaign remains independently
+# required by atlas-exhaustive-benchmark.yml. Never permit a tools/* wildcard.
+DOCTOR_PERF_TOOLS = frozenset({
+    "tools/atlas_doctor.py",
+    "tools/atlas_perf_attribution.py",
+    "tools/benchmark_atlas_exhaustive.py",
+    "tools/doctor_quick_app_probe.py",
+    "tests/test_atlas_exhaustive_benchmark.py",
+})
+
 CRAFT_PATHS = frozenset({
     "app/local_data_cache.py", "app/craft_preload.py",
     "app/pages/craft_page.py", "tools/benchmark_phase8_memory.py",
@@ -87,6 +98,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset()
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
             or path in {".github/pull_request_template.md", "AGENTS.md"}):
+        return frozenset({"ci"})
+    if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
     if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
@@ -120,6 +133,19 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
         return frozenset({"craft", "quests", "guides", "data"})
+    # Exact reviewed shared-cache ownership. These two implementations change
+    # startup and the Quest/Success/Guide cache seen by application consumers.
+    # Do not generalize to all app/* or encyclopedia services: unknown code
+    # must still BLOCK modular certification until separately reviewed.
+    if path == "app/startup_cache_warmup.py":
+        return frozenset({"startup", "quests", "guides", "data"})
+    if path == "app/modules/encyclopedia/services/achievement_index_warmup.py":
+        return frozenset({"startup", "quests", "guides"})
+    if path == "app/core/cache_write_lock.py":
+        # Shared by compact Success and name-index writers across processes.
+        # The same persisted cache is consumed by startup, Quests and Guides.
+        # Exact path only: new app/core helpers must still fail closed.
+        return frozenset({"startup", "quests", "guides", "data"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
@@ -210,8 +236,7 @@ def owners_for(path: str) -> frozenset[str]:
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
         if leaf == "atlas_doctor_agent_protocol":
-            # Reviewed Doctor protocol regression suite (PR #290). Preserve
-            # closed-world CI ownership; do not match future test_atlas_doctor_*.
+            # Reviewed exact CI test; no wildcard ownership expansion.
             return frozenset({"ci"})
         if leaf == "truthful_module_availability":
             # Existing cross-domain regression contract: truthful Craft
