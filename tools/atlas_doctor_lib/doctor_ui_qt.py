@@ -1879,8 +1879,17 @@ def worker(folder: Path) -> int:
                 catalog.hydrate_runtime(graph=page._quest_graph)
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
             settle()
+            # Count playable routes, not reference-only Ganymède records:
+            # the new expandable catalog can show disabled metadata children.
+            from PySide6.QtCore import Qt
+            alignments = catalog._category_nodes["alignements"]
+            playable_alignments = {
+                str(alignments.child(i).data(0, Qt.UserRole + 1))
+                for i in range(alignments.childCount())
+                if alignments.child(i).data(0, Qt.UserRole + 1)
+            }
             if (set(catalog.featured_cards) != {"guide_complet", "dofus_sylvestre"}
-                    or catalog._category_nodes["alignements"].childCount() != 2
+                    or playable_alignments != {"alignement_bonta", "alignement_brakmar"}
                     or page.findChild(QLineEdit, "EncyclopediaSearch") is not None):
                 raise RuntimeError("Catalog PR254 visible-contract mismatch")
             for label, width, height in (
