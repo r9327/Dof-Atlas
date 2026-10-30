@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from tools.atlas_doctor_lib.cost_attribution import cost_attribution
 from tools.atlas_doctor_lib.evidence_hub import summarize_sources
 from tools.atlas_doctor_lib.actions_step_costs import step_costs
+from tools.atlas_doctor_lib.workflow_artifacts import latest_attempt_report
 
 
 SHA = "a" * 40
@@ -162,6 +165,81 @@ class DoctorASTDuplicateEvidenceTests(unittest.TestCase):
         y = self.inspection()
         y["source"]["budgets"]["function_limit_reached"] = True
         self.assertEqual(summarize_ast_duplicates(y, sha=SHA)["status"], "BLOCKED")
+
+
+class DoctorWorkflowArtifactSelectionTests(unittest.TestCase):
+    @staticmethod
+    def write_artifact(directory: Path, name: str, report: str = "report.json") -> Path:
+        target = directory / name / "nested" / report
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text('{"status":"PASS"}', encoding="utf-8")
+        return target
+
+    def test_job_retry_picks_latest_same_run_and_does_not_mix_attempts(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            self.write_artifact(folder, "atlas-short-complete-app-c3-cpufalse-p1-999-1")
+            latest = self.write_artifact(folder, "atlas-short-complete-app-c3-cpufalse-p1-999-2")
+            self.write_artifact(folder, "atlas-short-complete-app-c3-cpufalse-p1-888-3")
+            self.assertEqual(latest_attempt_report(
+                folder, artifact_prefix="atlas-short-complete-app-c3-cpufalse-p1",
+                report_name="report.json", run_id=999, max_attempt=2), latest)
+
+    def test_aggregator_only_retry_uses_last_available_producer(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            saved = self.write_artifact(folder, "atlas-exhaustive-guides-999-1",
+                                        "guides.doctor.json")
+            self.assertEqual(latest_attempt_report(
+                folder, artifact_prefix="atlas-exhaustive-guides",
+                report_name="guides.doctor.json", run_id=999, max_attempt=3), saved)
+
+    def test_future_attempt_or_foreign_run_cannot_certify_current(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            self.write_artifact(folder, "doctor-code-duplicate-review-998-1",
+                                "duplicate_review.json")
+            self.write_artifact(folder, "doctor-code-duplicate-review-999-3",
+                                "duplicate_review.json")
+            self.assertIsNone(latest_attempt_report(
+                folder, artifact_prefix="doctor-code-duplicate-review",
+                report_name="duplicate_review.json", run_id=999, max_attempt=2))
+
+    def test_missing_latest_report_blocks_instead_of_using_stale_success(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            self.write_artifact(folder, "atlas-short-complete-app-c3-cpufalse-p1-999-1")
+            (folder / "atlas-short-complete-app-c3-cpufalse-p1-999-2").mkdir()
+            with self.assertRaisesRegex(ValueError, "expected exactly one"):
+                latest_attempt_report(
+                    folder, artifact_prefix="atlas-short-complete-app-c3-cpufalse-p1",
+                    report_name="report.json", run_id=999, max_attempt=2)
+
+    def test_multiple_reports_in_selected_attempt_block(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            name = "atlas-short-complete-app-c3-cpufalse-p1-999-2"
+            self.write_artifact(folder, name)
+            sibling = folder / name / "other" / "report.json"
+            sibling.parent.mkdir(parents=True)
+            sibling.write_text('{"status":"PASS"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "2 report.json reports"):
+                latest_attempt_report(
+                    folder, artifact_prefix="atlas-short-complete-app-c3-cpufalse-p1",
+                    report_name="report.json", run_id=999, max_attempt=2)
+
+    def test_invalid_selector_is_rejected(self):
+        with TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError):
+                latest_attempt_report(Path(temp), artifact_prefix="atlas",
+                                      report_name="report.json", run_id="oops", max_attempt=2)
+
+    def test_workflow_uses_attempt_selection_for_hub_and_optimization(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" /
+                    "atlas-doctor-complete-benchmark.yml").read_text(encoding="utf-8")
+        self.assertEqual(workflow.count("latest_attempt_report("), 4)
+        self.assertIn("github.run_id", workflow)
+        self.assertIn('os.environ["GITHUB_RUN_ATTEMPT"]', workflow)
 
 
 if __name__ == "__main__":
