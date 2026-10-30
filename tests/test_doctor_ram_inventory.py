@@ -85,6 +85,35 @@ class DoctorRamInventoryTests(unittest.TestCase):
             page.deleteLater()
             QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
+    def test_home_summary_reports_thread_handles_without_inventing_rss(self):
+        def checkpoint(label: str, finished: int):
+            return {
+                "label": label,
+                "memory": {"process_rss_mb": 80.0, "tree_rss_mb": 100.0},
+                "ownership": {
+                    "status": "OBSERVED_PARTIAL",
+                    "qt": {"total_live_widgets": 120},
+                    "runtime_thread_handles": {
+                        "Quetes": {
+                            "retained_handles": finished,
+                            "active": 0,
+                            "inactive": finished,
+                        },
+                    },
+                },
+            }
+
+        report = ram_checkpoints_summary([
+            checkpoint("initial_home", 5),
+            checkpoint("last_home", 1),
+        ])
+        self.assertEqual(report["home_inactive_thread_handle_delta"], -4)
+        self.assertEqual(
+            report["checkpoints"]["last_home"]["runtime_thread_handles_inactive"], 1
+        )
+        self.assertTrue(report["thread_counts_are_not_native_rss_attribution"])
+        self.assertNotIn("home_private_commit_delta_mib", report)
+
     def test_summary_never_invents_rss_for_missing_or_unobserved_checkpoints(self):
         def checkpoint(name, rss, widgets):
             return {
