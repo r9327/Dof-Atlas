@@ -42,10 +42,10 @@ ROUTES: tuple[tuple[str, str, str, str, bool], ...] = (
     ("guide", "encyclopedia", "GUIDES", "Quetes", False),
     ("quests", "encyclopedia", "QUESTS", "Quetes", False),
     ("achievements", "encyclopedia", "ACHIEVEMENTS", "Quetes", False),
-    ("dungeons", "encyclopedia", "DONJONS", "Quetes", False),
-    ("monsters", "encyclopedia", "MONSTRES", "Quetes", False),
-    ("archmonsters", "encyclopedia", "ARCHIMONSTRES", "Quetes", False),
-    ("wanted", "encyclopedia", "AVIS DE RECHERCHE", "Quetes", False),
+    ("dungeons", "encyclopedia", "DONJONS", "Quetes", True),
+    ("monsters", "encyclopedia", "MONSTRES", "Quetes", True),
+    ("archmonsters", "encyclopedia", "ARCHIMONSTRES", "Quetes", True),
+    ("wanted", "encyclopedia", "AVIS DE RECHERCHE", "Quetes", True),
     ("crafts", "tools", "Crafts", "Craft", False),
     ("world_map", "tools", "Map monde", "Scan Monde", False),
     ("treasure_hunt", "tools", "Chasse au trésor", "Placeholder::Chasse au trésor", True),
@@ -98,6 +98,17 @@ def open_route(app: QApplication, window: Any, entry: tuple[str, str, str, str, 
     if widget is None:
         raise RuntimeError(f"{key}: missing real Qt page")
     is_placeholder = widget.objectName() == "PlaceholderPage"
+    if group == "encyclopedia" and label in {
+        "DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE",
+    }:
+        # Bestiary has a real Encyclopedia shell but a placeholder inner tab.
+        # A navigation-only census must not call it a functional module.
+        tabs = getattr(widget, "tabs", None)
+        inner = tabs.currentWidget() if tabs is not None else None
+        is_placeholder = (
+            inner is not None
+            and inner.objectName() == "EncyclopediaUnavailableBestiary"
+        )
     if is_placeholder != placeholder:
         raise RuntimeError(f"{key}: placeholder classification mismatch")
 
