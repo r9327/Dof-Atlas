@@ -684,7 +684,9 @@ def _aggregate_global_rewards(
     return tuple(merged[key] for key in order)
 
 
-def quest_start_info(quest: QuestRecord) -> QuestStartInfo:
+def quest_start_info(
+    quest: QuestRecord, *, include_map_images: bool = True,
+) -> QuestStartInfo:
     source_info = getattr(quest, "source_info", {}) or {}
     launch = source_info.get("launch_position") if isinstance(source_info, dict) else {}
     launch = launch if isinstance(launch, dict) else {}
@@ -698,7 +700,11 @@ def quest_start_info(quest: QuestRecord) -> QuestStartInfo:
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),
         source_zone or (quest.zones[0] if quest.zones else ""),
     )
-    map_image_paths = _explicit_start_map_paths(source_meta)
+    # Route generation needs only NPC, position and zone; avoid thousands of
+    # filesystem image existence checks that never affect the GPS itinerary.
+    map_image_paths = (
+        _explicit_start_map_paths(source_meta) if include_map_images else ()
+    )
     map_image_path = map_image_paths[0] if map_image_paths else ""
     for step in quest.steps:
         for objective in step.objectives:
@@ -907,8 +913,10 @@ def related_quests(
     )
 
 
-def first_position_from_quest(quest: QuestRecord) -> str:
-    info = quest_start_info(quest)
+def first_position_from_quest(
+    quest: QuestRecord, *, start_info: QuestStartInfo | None = None,
+) -> str:
+    info = start_info if start_info is not None else quest_start_info(quest)
     if info.position:
         return info.position
     for step in quest.steps:
