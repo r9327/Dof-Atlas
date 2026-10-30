@@ -46,6 +46,14 @@ def _source_sizes(data_dir: Path) -> dict[str, int]:
             sizes[str(relative).replace("\\", "/")] = file.stat().st_size
         except OSError:
             sizes[str(relative).replace("\\", "/")] = -1
+    # The release route incorporates authored walkthrough text too. Check
+    # its presence/size just like raw Quest sources; an updated bundle must
+    # not silently reuse Sylvestre cards built from obsolete enrichment.
+    enriched = DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"
+    try:
+        sizes["encyclopedia/quests/quests_enriched.json"] = enriched.stat().st_size
+    except OSError:
+        sizes["encyclopedia/quests/quests_enriched.json"] = -1
     return sizes
 
 
