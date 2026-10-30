@@ -75,7 +75,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             self.panel.summary_toggle,
         ):
             self.assertIs(control.parentWidget(), card)
-        self.assertEqual(self.panel.position_label.text(), "FICHE 1")
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 1 / 3")
         self.assertFalse(self.panel._characters_menu.isVisible())
         self.addCleanup(self.panel.hide)
         self.panel.show()
