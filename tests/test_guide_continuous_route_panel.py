@@ -368,6 +368,40 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
 
+    def test_copyable_source_items_and_coordinates_never_trigger_travel(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_action_candidates"] = [
+            {"kind": "prepare_object", "object_id": 969,
+             "label": 'Cape du "Wa" <Wabbit>'},
+        ]
+        route["sections"][0]["steps"][0]["source_coordinates_mentioned"] = [
+            [25, -4], [24, -3],
+        ]
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda *args: emitted.append(args))
+        self.assertIn("&lt;Wabbit&gt;", panel.preparation_label.text())
+        self.assertFalse(panel.preparation_label.openExternalLinks())
+        self.assertFalse(panel.coordinates_label.openExternalLinks())
+
+        clipboard = QApplication.clipboard()
+        clipboard.clear()
+        panel.preparation_label.linkActivated.emit("item:0")
+        self.assertEqual(clipboard.text(), 'Cape du "Wa" <Wabbit>')
+        panel.coordinates_label.linkActivated.emit("coordinate:1")
+        self.assertEqual(clipboard.text(), "[24, -3]")
+        for invalid in ("item:1000", "item:-1", "item:0/other", "https://bad.test"):
+            panel._copy_source_link(invalid)
+            self.assertEqual(clipboard.text(), "[24, -3]")
+
+        self.assertEqual(emitted, [])
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
     def test_route_progress_reports_only_manual_selected_checks(self):
         self.assertEqual(self.panel.route_progress.value(), 0)
         self.assertIn("0/6", self.panel.route_progress.format())
