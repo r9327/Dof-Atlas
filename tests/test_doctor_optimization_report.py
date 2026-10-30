@@ -138,8 +138,12 @@ class OptimizationReportTests(unittest.TestCase):
             app_json.parent.mkdir(parents=True)
             import json
             app_json.write_text(json.dumps(sample()), encoding="utf-8")
-            with patch("tools.agent_planner._planning_catalog",
-                       return_value={"schema_version": 1, "tools": []}) as cached:
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}) as cached,
+            ):
                 report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
             cached.assert_called_once()
             self.assertEqual(cached.call_args.kwargs["cache_info"],
@@ -147,6 +151,36 @@ class OptimizationReportTests(unittest.TestCase):
             self.assertEqual(report["diagnostic_correlation"]["status"], "NO_CORRELATION")
             self.assertTrue((root / "artifacts" / "doctor_complete" /
                              "optimization.json").is_file())
+
+    def test_catalog_routing_requires_same_clean_git_revision_as_benchmark(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            for state in ({"head": OLD, "dirty": False},
+                          {"head": HEAD, "dirty": True}):
+                with (
+                    self.subTest(state=state),
+                    patch("tools.atlas_doctor_lib.core.git_state", return_value=state),
+                    patch("tools.agent_planner._planning_catalog",
+                          side_effect=AssertionError("stale or dirty worktree")) as scan,
+                ):
+                    report = generate(root, sha=HEAD,
+                                      app_report=Path("artifacts/app.json"))
+                    scan.assert_not_called()
+                    self.assertEqual(
+                        report["tool_catalog_cache"]["status"],
+                        "SHA_OR_WORKTREE_MISMATCH",
+                    )
+                    self.assertEqual(
+                        report["diagnostic_correlation"]["investigation_plan"]
+                        ["steps"], [],
+                    )
+                    self.assertFalse(
+                        report["diagnostic_correlation"]["tools_executed"],
+                    )
 
     def test_stale_app_skips_expensive_tool_catalog_discovery(self):
         with tempfile.TemporaryDirectory() as folder:
