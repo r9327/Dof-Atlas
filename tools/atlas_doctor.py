@@ -677,11 +677,16 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                       f"| {len(report.get('instances', []))}/8 actual processes")
             return report
         from tools.doctor_quick_app_probe import run as run_app_benchmark
+        # Preserve the historical exact kwargs for all normal Doctor callers:
+        # RAM forensics is an opt-in mode, never a changed default contract.
+        forensic_options = (
+            {'ram_forensics': True} if getattr(args, 'ram_forensics', False) else {}
+        )
         report = run_app_benchmark(
             output=root / args.output, timeout=args.timeout,
             max_seconds=args.max_seconds, cycles=args.cycles,
             idle_seconds=args.idle_seconds, one_core=args.one_core,
-            ram_forensics=getattr(args, 'ram_forensics', False),
+            **forensic_options,
         )
         if not args.json:
             print(f"Doctor App Benchmark: {report['status']} "
