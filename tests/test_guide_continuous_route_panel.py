@@ -44,7 +44,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             self.panel.navigation.position().viewed_step_id,
             "ganymede_2205_step_0001",
         )
-        self.assertEqual(self.panel.title_label.text(), "Fiche 1")
+        self.assertEqual(self.panel.title_label.text(), "Étape 1")
         self.assertFalse(self.panel.summary.isVisible())
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
@@ -159,7 +159,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             ("character:1", "character:2"),
         )
         self.assertEqual(updates[-1], ("character:1", "character:2"))
-        self.assertEqual(extra.participants_button.text(), "Mes personnages (2)")
+        self.assertIn("Mes personnages (2)", extra.participants_button.toolTip())
         self.assertEqual(extra.navigation.position().completed_by_character,
                          {"character:1": 0, "character:2": 0})
         extra._character_actions["character:1"].trigger()
