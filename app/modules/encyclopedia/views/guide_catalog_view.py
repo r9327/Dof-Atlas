@@ -383,12 +383,10 @@ class GuideCatalogView(QWidget):
             item.setExpanded(not item.isExpanded())
 
     def _activate_library_item(self, item: QTreeWidgetItem, column: int) -> None:
+        # A child was already selected via currentItemChanged; activation must
+        # never dispatch guideRequested a second time (Enter/double-click).
         if item.data(0, Qt.UserRole):
             self._toggle_library_category(item, column)
-        else:
-            guide_id = item.data(0, Qt.UserRole + 1)
-            if guide_id and (item.flags() & Qt.ItemIsEnabled):
-                self.select_guide(str(guide_id))
 
     def refresh_home(self) -> None:
         if not self._runtime_ready:
