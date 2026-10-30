@@ -55,9 +55,13 @@ class QuestProvider:
         return self._catalog
 
     def release_catalogue(self) -> None:
-        """Drop the reconstructible Quest summary graph when Encyclopedia sleeps."""
+        """Drop reconstructible Quest summaries and optional Guide pack on Home."""
 
         self._catalog = None
+        # An accepted evidence pack may retain many nested Quest preparation
+        # records. It is reloadable, and must not stay pinned after the Guide
+        # and Encyclopedia have hibernated.
+        self._pack_guide_evidence = None
 
     def compact_name_index(self) -> dict[str, int]:
         """Return normalized quest names without materializing the Quest catalogue."""
