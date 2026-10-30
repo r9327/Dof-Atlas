@@ -6,6 +6,26 @@
 >
 > **Provenance :** [Doctor intégral, run 40982772985](https://github.com/r9327/Dof-Atlas/actions/runs/40982772985) (`dba3003f`, sondes spécialisées PASS, agrégation ancienne FAILURE par doublon de rapports) et [Phase Certification post-fusion #300, run 41019075070](https://github.com/r9327/Dof-Atlas/actions/runs/41019075070) (`9128e7ca`, sous-tests vérifiés ; verdict global à vérifier). La PR #300 est fusionnée, et ne constitue pas un gain de performance. Toutes les mesures sont des scénarios distincts, sur runners Windows / Qt offscreen : elles ne se cumulent pas et ne démontrent ni le FPS d'un vrai bureau ni un PC client.
 
+## État du candidat de développement — PR #303
+
+> **Important :** les actions du backlog restent des objectifs de certification ; une
+> modification de code n'est pas une preuve de gain. Les artefacts Windows et
+> contrôles d'installation sont distincts des tests Python. Ce document ne
+> remplace pas les contrats de la Phase Certification.
+
+| Famille | Code présent sur le candidat | Preuve encore indispensable |
+|---|---|---|
+| Succès P0-05 | Détails froids ouverts dans un worker Python unique ; rendu seulement dans le thread Qt ; requêtes rapides coalescées (dernière gagne) ; réutilisation LRU bornée ; deep-link préparé dans le worker de stage | Contrats Qt ciblés + vrai premier détail froid sur Windows, MainThread freezes, latence et RSS |
+| Quêtes P0-04 / P2-15/19 | Index de détails préparés, validation SQLite dans le preload **et** le lecteur, reconstruction si index invalide | Mesures de compilation/enrichissement, parité sources, warm/cold et coût réel |
+| Guides P0-03 / P1-12 | Route précompilée, caches de navigation et trace instrumentée ; aucune suppression des guides d'origine | Sylvestre cycles 1/2, carte 134/267, 52/52 Guides et p95/p99 au nouveau SHA |
+| RAM P1-07/08/09/10 | Caches Succès bornés et purgés, stage worker libérant sa référence forte à la page Qt | Pics process-tree ≤250 Mio et RSS stabilisée Home <100 Mio dans un run Windows comparable |
+| Doctor P1-11/14 / P3 | Catalogue canonique, corrélations explicables, scénarios ciblés, preuve SHA, comparateur Phase 8 unique et mesures répétées directionnelles ; `NOT_RUN` jamais transformé en `PASS` | Tests ciblés, audit Graphify exact SHA et Phase Certification complète |
+| Launcher P0-01 / P2-21/24 | **Périmètre #285**, aucune nouvelle implémentation ici | Recette native launcher install/update/offline / rollback dédiée |
+
+Le statut global demeure **CHANGES REQUIRED** jusqu'à exécution réelle des
+tests et benchmarks sur le candidat final. Aucun gain RAM ni P95/P99 n'est
+attribué à ces commits sans comparaison exacte avant/après.
+
 ## Résultats à préserver comme baselines
 
 | Mesure | Valeur et conditions | Statut / limite |
