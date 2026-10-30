@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import weakref
 from threading import Thread
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -487,7 +488,7 @@ class AchievementsView(QWidget):
         generation, achievement_id = requested
         self._detail_worker_running = True
         provider = self.provider
-        dispatch = self._detailLoaded.emit
+        view_ref = weakref.ref(self)
 
         def load_detail() -> None:
             try:
@@ -495,12 +496,15 @@ class AchievementsView(QWidget):
             except Exception:
                 _LOGGER.exception("Chargement du succès %s impossible", achievement_id)
                 detail = None
-            try:
-                dispatch(generation, achievement_id, detail)
-            except RuntimeError:
-                # The view's QObject may have been deleted while this bounded
-                # read was in progress; no UI interaction from this thread.
-                pass
+            view = view_ref()
+            if view is not None:
+                try:
+                    # Emitting a Qt signal is thread-safe; the @Slot body runs
+                    # on the view's owner thread, not this Python worker.
+                    view._detailLoaded.emit(generation, achievement_id, detail)
+                except RuntimeError:
+                    # QWidget destroyed while this bounded read was running.
+                    pass
 
         Thread(
             target=load_detail, name="DofusAtlasAchievementDetail",
