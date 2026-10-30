@@ -233,6 +233,38 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertFalse(audit["semantic_links_verified"])
         self.assertEqual(report["status"], "REVIEW")
 
+    def test_manual_chapter_patch_base_file_dependencies_are_tracked(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "base.json", '{"stages":[]}')
+        self._file(prefix + "valid.json", '{"base_file":"base.json"}')
+        self._file(prefix + "missing.json", '{"base_file":"not-tracked.json"}')
+        self._file(prefix + "self.json", '{"base_file":"self.json"}')
+        self._file(prefix + "invalid.json", '{"base_file":"../escape.json"}')
+        self._file(
+            prefix + "manifest_v1.json",
+            '{"canonical":{"chapters":[{"file":"valid.json"}]}}',
+        )
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        audit = report["json_semantic_audit"]
+        self.assertEqual(audit["counts"]["manual_base_refs_inspected"], 4)
+        self.assertEqual(audit["counts"]["manual_base_reference_review_files"], 3)
+        entries = {row["file"]: row for row in audit["files"]}
+        self.assertEqual(entries[prefix + "valid.json"]["manual_base_reference_candidates"], [])
+        self.assertEqual(entries[prefix + "missing.json"]["manual_base_reference_candidates"], [
+            {"kind": "MANUAL_BASE_NOT_TRACKED_REVIEW", "file": "not-tracked.json"}
+        ])
+        self.assertEqual(entries[prefix + "self.json"]["manual_base_reference_candidates"], [
+            {"kind": "MANUAL_BASE_SELF_REFERENCE_REVIEW", "file": "self.json"}
+        ])
+        self.assertEqual(entries[prefix + "invalid.json"]["manual_base_reference_candidates"], [
+            {"kind": "MANUAL_BASE_UNSAFE_REVIEW", "file": "../escape.json"}
+        ])
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertFalse(audit["semantic_links_verified"])
+
     def test_canonical_manifest_optional_branches_and_registries_are_scanned(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
