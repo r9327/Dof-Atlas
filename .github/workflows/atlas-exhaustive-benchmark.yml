@@ -104,6 +104,7 @@ jobs:
           python -m py_compile tools/benchmark_atlas_exhaustive.py tools/atlas_perf_attribution.py tools/atlas_doctor_lib/exhaustive_performance.py tools/atlas_doctor.py tests/test_atlas_exhaustive_benchmark.py tests/test_doctor_exhaustive_performance.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -X faulthandler -m unittest -v tests.test_atlas_exhaustive_benchmark tests.test_doctor_exhaustive_performance
+          python -X faulthandler -m unittest -v tests.test_guide_manual_route_cache
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Doctor orchestrates all guides with real Qt evidence
