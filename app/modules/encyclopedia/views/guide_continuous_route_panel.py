@@ -407,7 +407,12 @@ class ContinuousGuideRoutePanel(QWidget):
                 key, self.navigation.guide_id, step_id,
             ) for key in self.navigation.selected_character_keys
         )
-        self.navigation.mark_manual_step(step_id, not all_done)
+        was_actual = self.navigation.position().actual_step_id == step_id
+        changed = self.navigation.mark_manual_step(step_id, not all_done)
+        # Only advance when validating the step genuinely being followed.
+        # Reviewing a later/earlier fiche or undoing a check never jumps.
+        if changed and not all_done and was_actual:
+            self.navigation.show_actual()
         self.refresh()
 
     @staticmethod
