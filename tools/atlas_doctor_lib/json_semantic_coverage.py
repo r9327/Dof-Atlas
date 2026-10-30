@@ -28,6 +28,45 @@ def _duplicate_ids(rows: list[Any]) -> list[str]:
     return sorted(duplicates)
 
 
+def _id_collision_candidates(payload: Any) -> tuple[list[dict[str, Any]], int]:
+    """Inspect ID collisions in every nested JSON list, not just root children.
+
+    Use a depth-first iterator stack instead of materializing a second copy of
+    large nested quest/guide catalogues. Locations are JSON-pointer-like paths;
+    they identify candidate containers, not evidence that IDs must be unique
+    across different lists or entity types.
+    """
+    collisions: list[dict[str, Any]] = []
+    lists_inspected = 0
+    stack = [iter([("$root", payload)])]
+    while stack:
+        try:
+            path, value = next(stack[-1])
+        except StopIteration:
+            stack.pop()
+            continue
+        if isinstance(value, list):
+            lists_inspected += 1
+            ids = _duplicate_ids(value)
+            if ids:
+                collisions.append({
+                    "collection": path, "ids": ids, "kind": "DUPLICATE_ID_REVIEW",
+                })
+            stack.append((
+                (f"{path}/{index}", child)
+                for index, child in enumerate(value)
+                if isinstance(child, (dict, list))
+            ))
+        elif isinstance(value, dict):
+            stack.append((
+                (f"{path}/{str(key).replace('~', '~0').replace('/', '~1')}", child)
+                for key, child in value.items()
+                if isinstance(child, (dict, list))
+            ))
+    return collisions, lists_inspected
+
+
+
 def _reject_non_finite(value: str) -> None:
     raise ValueError("Non-standard JSON number: " + value)
 
@@ -38,7 +77,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
     counts = {
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
         "unavailable": 0, "duplicate_id_review_files": 0,
-        "duplicate_key_review_files": 0, "bytes_parsed": 0,
+        "duplicate_key_review_files": 0, "id_lists_inspected": 0,
+        "bytes_parsed": 0,
     }
     for relative in paths:
         file = root / relative
@@ -76,16 +116,9 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                     object_pairs_hook=record_object_keys,
                 )
             entry["top_level_type"] = type(payload).__name__
-            collections = (
-                {"$root": payload} if isinstance(payload, list)
-                else {key: value for key, value in payload.items() if isinstance(value, list)}
-                if isinstance(payload, dict) else {}
-            )
-            collisions = [
-                {"collection": name, "ids": ids, "kind": "DUPLICATE_ID_REVIEW"}
-                for name, rows in collections.items()
-                if (ids := _duplicate_ids(rows))
-            ]
+            collisions, lists_inspected = _id_collision_candidates(payload)
+            counts["id_lists_inspected"] += lists_inspected
+            entry["id_lists_inspected"] = lists_inspected
             entry["duplicate_id_candidates"] = collisions
             # A duplicate member name can silently change the interpreted
             # source even if JSON syntax and list-level IDs are otherwise OK.
