@@ -139,7 +139,7 @@ def correlate_diagnostics(
             ],
             "Both measurements may describe the same work; neither identifies the slow function.",
             "Profile exact-SHA source indexing, I/O and startup workers before changing cache policy.",
-            ("performance", "quest_data", "coverage"),
+            ("performance", "quest_data", "runtime_trace", "coverage"),
         )
     elif preload is not None and preload >= 5000:
         gaps.append("preload: MISSING_VALID_COST_ATTRIBUTION")
@@ -166,7 +166,7 @@ def correlate_diagnostics(
             ],
             "The samples do not prove a memory leak or allocate bytes to a specific module.",
             "Repeat Home-module-Home with stabilized RSS, worker lifetime and QObject ownership.",
-            ("performance", "coverage"),
+            ("memory", "performance", "runtime_trace", "coverage"),
         )
     elif idle is not None and idle >= 10:
         gaps.append("home_ram: MISSING_REVISIT_CORROBORATION")
@@ -217,7 +217,7 @@ def correlate_diagnostics(
                         if guide_revisit else
                         "Instrumented method cost is a hotspot lead, not root-cause proof.",
                         "Compare exact-SHA warm/cold opens and map the observed method to Graphify consumers.",
-                        ("guide", "performance", "validation"),
+                        ("guide", "performance", "graphify", "validation"),
                     )
 
     hypotheses.sort(key=lambda r: ({"P0": 0, "P1": 1, "P2": 2}[r["priority"]], r["id"]))
