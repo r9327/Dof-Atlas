@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sqlite3
+from contextlib import closing
 import tempfile
 from pathlib import Path
 import unittest
@@ -56,7 +57,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             catalog = source / "catalog.sqlite3"
             offset = source / "source_offset.sqlite3"
             catalog.write_bytes(b"catalog")
-            with sqlite3.connect(offset) as connection:
+            with closing(sqlite3.connect(offset)) as connection, connection:
                 connection.execute(
                     "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
                 )
@@ -110,13 +111,13 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             self.assertEqual(invalid[1:], [-1, -1])
             path.unlink()
 
-            with sqlite3.connect(path) as connection:
+            with closing(sqlite3.connect(path)) as connection, connection:
                 connection.execute("CREATE TABLE something_else(id INTEGER)")
             missing_table = warmup._quest_offset_artifact_stamp(path)
             self.assertEqual(missing_table[1:], [-1, -1])
             path.unlink()
 
-            with sqlite3.connect(path) as connection:
+            with closing(sqlite3.connect(path)) as connection, connection:
                 connection.execute(
                     "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
                 )
@@ -125,7 +126,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             self.assertEqual(bad_span[1:], [-1, -1])
             path.unlink()
 
-            with sqlite3.connect(path) as connection:
+            with closing(sqlite3.connect(path)) as connection, connection:
                 connection.execute(
                     "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
                 )
