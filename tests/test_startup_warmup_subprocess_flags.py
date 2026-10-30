@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sqlite3
 import tempfile
 from pathlib import Path
 import unittest
@@ -55,7 +56,11 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             catalog = source / "catalog.sqlite3"
             offset = source / "source_offset.sqlite3"
             catalog.write_bytes(b"catalog")
-            offset.write_bytes(b"offset")
+            with sqlite3.connect(offset) as connection:
+                connection.execute(
+                    "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
+                )
+                connection.execute("INSERT INTO offsets VALUES ('42', 10, 20)")
             lookup = {"catalog": catalog, "offset": offset}
             result = {
                 "domain": "quest",
@@ -96,6 +101,39 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 self.assertIsNone(
                     warmup._cached_domain_result("quest", manifest, sources)
                 )
+
+    def test_quest_source_offset_stamp_rejects_invalid_and_corrupt_databases(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "offset.sqlite3"
+            path.write_bytes(b"not a SQLite source-offset index")
+            invalid = warmup._quest_offset_artifact_stamp(path)
+            self.assertEqual(invalid[1:], [-1, -1])
+            path.unlink()
+
+            with sqlite3.connect(path) as connection:
+                connection.execute("CREATE TABLE something_else(id INTEGER)")
+            missing_table = warmup._quest_offset_artifact_stamp(path)
+            self.assertEqual(missing_table[1:], [-1, -1])
+            path.unlink()
+
+            with sqlite3.connect(path) as connection:
+                connection.execute(
+                    "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
+                )
+                connection.execute("INSERT INTO offsets VALUES ('bad', 30, 10)")
+            bad_span = warmup._quest_offset_artifact_stamp(path)
+            self.assertEqual(bad_span[1:], [-1, -1])
+            path.unlink()
+
+            with sqlite3.connect(path) as connection:
+                connection.execute(
+                    "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
+                )
+                connection.execute("INSERT INTO offsets VALUES ('42', 10, 20)")
+            valid = warmup._quest_offset_artifact_stamp(path)
+            self.assertGreater(valid[1], 0)
+            self.assertGreater(valid[2], 0)
+            self.assertEqual(valid[0], warmup._path_label(path))
 
     def test_cold_warmup_wait_requires_real_sampler_signal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
