@@ -280,8 +280,16 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     archive = download_archive(
                         remote, ROOT / "downloads",
                         lambda done, total: report(
-                            f"Telechargement : {int(done * 100 / total)} %",
-                            10 + int(done * 65 / total),
+                            f"Telechargement : {int(done * 100 / max(total, 1))} %",
+                            10 + int(done * 55 / max(total, 1)),
+                        ),
+                        # Transfer completion is not full ZIP readiness: a 2.7GB
+                        # multipart release must still be assembled and verified.
+                        # Expose the real disk-work phase instead of appearing
+                        # permanently frozen near 75% on slower Windows disks.
+                        assemble_progress=lambda done, total: report(
+                            f"Assemblage et SHA-256 : {int(done * 100 / max(total, 1))} %",
+                            65 + int(done * 10 / max(total, 1)),
                         ),
                     )
                     record_startup_event("full_download_done")
