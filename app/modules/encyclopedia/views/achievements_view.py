@@ -461,7 +461,7 @@ class AchievementsView(QWidget):
         active = getattr(self.provider, "_detail_cache", None)
         hot = active_id == achievement_id and active is not None
         warm = isinstance(recent, dict) and achievement_id in recent
-        if not isinstance(recent, dict) or hot or warm:
+        if not self._detail_worker_running and (not isinstance(recent, dict) or hot or warm):
             achievement = self.provider.get_detail_by_id(achievement_id)
             if achievement is None:
                 self.show_empty()
