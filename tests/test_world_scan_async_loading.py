@@ -235,6 +235,52 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self._dispose_panel(first)
                 self._dispose_panel(second)
 
+    def test_hidden_worker_completion_preserves_latest_selected_world_and_history(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                panel._initial_load_pending = False
+                panel.current_view_key = "world-old"
+                panel.current_world_name = "Astrub"
+                panel.history = ["world-before"]
+                panel.selected_map = {"x":4, "y":5}
+                panel._load_generation = 3
+                panel._load_in_flight = True
+                image = QImage(1400, 880, QImage.Format_ARGB32)
+                image.fill(0)
+                panel._on_cartography_load_finished(3, {
+                    "mode": "view",
+                    "view_key": "world-new",
+                    "view": {"view_key": "world-new"},
+                    "world_name": "Frigost",
+                    "push_history": True,
+                    "select_coord": (7, 8),
+                    "image": image,
+                    "error": "",
+                })
+                self.assertTrue(panel._deferred_load_result[1]["image"].isNull())
+                state = panel.export_lightweight_navigation_state()
+                self.assertEqual(state, {
+                    "view_key": "world-new",
+                    "world_name": "Frigost",
+                    "history": ("world-before", "world-old"),
+                    "select_coord": (7, 8),
+                })
+                self.assertFalse(any(isinstance(v, QImage) for v in state.values()))
+            finally:
+                self._dispose_panel(panel)
+
+    def test_failed_hidden_worker_is_not_silently_dropped_on_home(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                panel._load_generation = 2
+                panel._load_in_flight = False
+                panel._deferred_load_result = (2, {"error": "source missing"})
+                self.assertIsNone(panel.export_lightweight_navigation_state())
+            finally:
+                self._dispose_panel(panel)
+
     def test_active_cartography_worker_prevents_home_hibernation_snapshot(self) -> None:
         with patch.object(world_scan_module, "WorldService", _FakeWorldService):
             panel = WorldScanPanel()

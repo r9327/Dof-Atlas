@@ -237,10 +237,37 @@ class WorldScanPanel(QWidget):
                 coord = (int(selected["x"]), int(selected["y"]))
             except (KeyError, TypeError, ValueError):
                 pass
+        view_key = str(self.current_view_key or "")
+        world_name = str(self.current_world_name or DEFAULT_WORLD_NAME)
+        history = [str(key) for key in self.history[-64:] if str(key)]
+        deferred = self._deferred_load_result
+        if deferred is not None and int(deferred[0]) == self._load_generation:
+            # A user can return Home before the next world is applied. The
+            # hidden worker has completed and discarded its image, so its
+            # *latest* validated view is the correct state to restore.
+            payload = deferred[1]
+            if not isinstance(payload, dict) or payload.get("error"):
+                return None  # Keep the original view to surface its error.
+            next_key = str(payload.get("view_key") or "")
+            if next_key:
+                if payload.get("view") is None:
+                    return None
+                if bool(payload.get("push_history")) and view_key and next_key != view_key:
+                    history.append(view_key)
+                if next_key != view_key:
+                    coord = None
+                view_key = next_key
+            world_name = str(payload.get("world_name") or world_name)
+            requested_coord = payload.get("select_coord")
+            if isinstance(requested_coord, (tuple, list)) and len(requested_coord) == 2:
+                try:
+                    coord = (int(requested_coord[0]), int(requested_coord[1]))
+                except (TypeError, ValueError):
+                    coord = None
         return {
-            "view_key": str(self.current_view_key or ""),
-            "world_name": str(self.current_world_name or DEFAULT_WORLD_NAME),
-            "history": tuple(str(key) for key in self.history[-64:] if str(key)),
+            "view_key": view_key,
+            "world_name": world_name,
+            "history": tuple(history[-64:]),
             "select_coord": coord,
         }
 
