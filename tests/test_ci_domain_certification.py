@@ -441,6 +441,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_eight_atlas_shared_cache_files_have_reviewed_cross_domain_owners(self):
         affected = {
             "app/startup_cache_warmup.py": {"startup", "quests", "guides", "data"},
+            "app/core/cache_write_lock.py": {"startup", "quests", "guides", "data"},
             "app/modules/encyclopedia/services/achievement_index_warmup.py":
                 {"startup", "quests", "guides"},
         }
@@ -457,6 +458,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
                          {"ci", "quests", "guides", "startup", "data"})
         # Do not create a loophole for a new cache worker or unrelated module.
         self.assertEqual(owners_for("app/startup_cache_unreviewed.py"), frozenset())
+        self.assertEqual(owners_for("app/core/cache_write_lock_unreviewed.py"), frozenset())
+        self.assertEqual(self.route(["app/core/cache_write_lock_unreviewed.py"])["status"], "BLOCKED")
         self.assertEqual(
             owners_for("app/modules/encyclopedia/services/achievement_unreviewed.py"),
             frozenset(),
