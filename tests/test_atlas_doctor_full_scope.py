@@ -217,7 +217,9 @@ class DoctorFullScopeTests(unittest.TestCase):
             if row["file"] == prefix + "manifest_v1.json"
         )
         self.assertEqual(manifest["manifest_chapter_refs_inspected"], 4)
+        self.assertEqual(manifest["manifest_refs_inspected"], 4)
         self.assertEqual(audit["counts"]["manifest_chapter_refs_inspected"], 4)
+        self.assertEqual(audit["counts"]["manifest_refs_inspected"], 4)
         self.assertEqual(audit["counts"]["manifest_reference_review_files"], 1)
         self.assertEqual(manifest["manual_manifest_reference_candidates"], [
             {"kind": "MANIFEST_CHAPTER_NOT_TRACKED_REVIEW",
@@ -259,6 +261,8 @@ class DoctorFullScopeTests(unittest.TestCase):
             if row["file"] == prefix + "manifest_v1.json"
         )
         self.assertEqual(manifest["manifest_chapter_refs_inspected"], 1)
+        self.assertEqual(manifest["manifest_refs_inspected"], 9)
+        self.assertEqual(audit["counts"]["manifest_refs_inspected"], 9)
         self.assertEqual(manifest["manual_manifest_reference_candidates"], [
             {"kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
              "collection": "conditional_routes", "index": 1,
