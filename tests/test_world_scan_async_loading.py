@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 import app.cartography.world_service as world_service_module
@@ -138,6 +139,67 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 panel._on_cartography_load_finished(1, {"marker": "old"})
 
                 self.assertEqual(applied, [])
+            finally:
+                self._dispose_panel(panel)
+
+    def test_hidden_map_drops_native_pixels_but_keeps_selected_world(self) -> None:
+        with (
+            patch.object(world_scan_module, "WorldService", _FakeWorldService),
+            patch.object(world_scan_module, "Thread", _FakeThread),
+        ):
+            panel = WorldScanPanel()
+            try:
+                panel._initial_load_pending = False
+                panel.current_view_key = "world-a"
+                panel.history = ["world-before"]
+                panel.selected_map = {"x": 4, "y": 5}
+                panel.show()
+                pixels = QPixmap(1400, 880)
+                pixels.fill()
+                panel.canvas.set_view(
+                    {"view_key": "world-a"}, pixels, [], [], "map.png", False
+                )
+                self.assertFalse(panel.canvas.pixmap.isNull())
+                panel.hide()
+                self.assertTrue(panel.canvas.pixmap.isNull())
+                self.assertTrue(panel._image_suspended)
+                self.assertEqual(panel.current_view_key, "world-a")
+                self.assertEqual(panel.history, ["world-before"])
+                self.assertEqual(panel.selected_map, {"x": 4, "y": 5})
+                panel.show()
+                self.assertEqual(len(_FakeThread.created), 1)
+                self.assertTrue(panel._load_in_flight)
+                self.assertFalse(panel._image_suspended)
+                self.assertEqual(panel._pending_load_request, None)
+                self.assertEqual(panel._load_generation, 1)
+                self.assertEqual(panel.history, ["world-before"])
+            finally:
+                self._dispose_panel(panel)
+
+    def test_background_map_result_does_not_retain_pixels_on_home(self) -> None:
+        with (
+            patch.object(world_scan_module, "WorldService", _FakeWorldService),
+            patch.object(world_scan_module, "Thread", _FakeThread),
+        ):
+            panel = WorldScanPanel()
+            try:
+                panel._initial_load_pending = False
+                panel._load_generation = 1
+                panel._load_in_flight = True
+                image = QImage(1400, 880, QImage.Format_ARGB32)
+                image.fill(0)
+                panel._on_cartography_load_finished(1, {
+                    "mode": "view", "view_key": "world-b",
+                    "image": image, "error": "",
+                })
+                self.assertIsNotNone(panel._deferred_load_result)
+                self.assertTrue(panel._deferred_load_result[1]["image"].isNull())
+                self.assertTrue(panel._image_suspended)
+                panel.show()
+                self.assertIsNone(panel._deferred_load_result)
+                self.assertEqual(panel.current_view_key, "world-b")
+                self.assertEqual(len(_FakeThread.created), 1)
+                self.assertEqual(panel.history, [])
             finally:
                 self._dispose_panel(panel)
 
