@@ -307,7 +307,16 @@ def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None 
         else:
             from tools.agent_planner import _planning_catalog
             catalog_cache = {}
-            tooling = _planning_catalog(root, cache_info=catalog_cache)
+            try:
+                tooling = _planning_catalog(root, cache_info=catalog_cache)
+            except (OSError, RuntimeError, ValueError) as exc:
+                # Missing inventory is explicit; keep the measured report
+                # available and never promote tool routing to a PASS.
+                catalog_cache = {
+                    "status": "UNAVAILABLE",
+                    "reason": type(exc).__name__,
+                }
+                tooling = None
     report = optimization_report(sha, app_evidence,
         hub=load(root, hub_report), baseline=load(root, baseline),
         guides=load(root, guides), ci_costs=load(root, ci_costs),
