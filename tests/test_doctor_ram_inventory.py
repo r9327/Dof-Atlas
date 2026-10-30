@@ -61,6 +61,39 @@ class DoctorRamInventoryTests(unittest.TestCase):
             world.deleteLater()
             QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
+    def test_success_worker_breakdown_is_read_without_loading_cold_provider(self):
+        detail = {
+            "thread": "MainThread",
+            "total_ms": 5283.0,
+            "synchronous_subprocess_ms": 5100.0,
+            "decode_ms": 183.0,
+            "subprocess_path_used": True,
+        }
+        class ExistingService:
+            def __init__(self):
+                self.calls = 0
+
+            def peek_achievement_provider(self):
+                self.calls += 1
+                return SimpleNamespace(last_detail_breakdown_ms=detail)
+
+        service = ExistingService()
+        quetes = QWidget()
+        quetes.service = service
+        window = SimpleNamespace(
+            page_widgets={"Quetes": quetes},
+            page_factories={},
+        )
+        try:
+            snapshot = ram_ownership_snapshot(window, "last_home")
+            self.assertEqual(snapshot["last_success_detail_timing"], {
+                "status": "OBSERVED", **detail,
+            })
+            self.assertEqual(service.calls, 1)
+        finally:
+            quetes.deleteLater()
+            QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
     def test_thread_handle_inventory_exposes_finished_owners_without_rss_guess(self):
         from threading import Thread
 
