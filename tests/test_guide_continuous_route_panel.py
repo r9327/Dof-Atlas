@@ -67,15 +67,19 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
 
-    def test_character_and_summary_controls_belong_to_the_active_card_header(self):
+    def test_compact_header_keeps_step_navigation_and_source_card_separate(self):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
+        header = self.panel.position_label.parentWidget()
+        self.assertEqual(header.objectName(), "GuideCompactHeader")
         for control in (
-            self.panel.position_label, self.panel.participants_button,
-            self.panel.summary_toggle,
+            self.panel.participants_button, self.panel.summary_toggle,
+            self.panel.preparation_toggle, self.panel.step_jump,
+            self.panel.actual_button,
         ):
-            self.assertIs(control.parentWidget(), card)
+            self.assertIs(control.parentWidget(), header)
         self.assertEqual(self.panel.position_label.text(), "ÉTAPE 1 / 3")
+        self.assertEqual(self.panel.step_jump.value(), 1)
         self.assertFalse(self.panel._characters_menu.isVisible())
         self.addCleanup(self.panel.hide)
         self.panel.show()
@@ -87,11 +91,18 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 self.assertFalse(self.panel.participants_button.geometry().intersects(
                     self.panel.summary_toggle.geometry(),
                 ))
-                self.assertLess(
-                    self.panel.participants_button.geometry().bottom(),
-                    self.panel.title_label.geometry().top(),
-                )
-                self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+                self.assertLess(header.geometry().bottom(), card.geometry().top())
+                self.assertTrue(header.rect().contains(
+                    self.panel.summary_toggle.geometry()
+                ))
+        self.panel.step_jump.setValue(3)
+        self.assertEqual(
+            self.panel.navigation.position().viewed_step_id,
+            "ganymede_2205_step_0003",
+        )
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 3 / 3")
+        self.panel.actual_button.click()
+        self.assertEqual(self.panel.step_jump.value(), 1)
 
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
@@ -235,6 +246,32 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(extra._character_actions["character:1"].isChecked())
         self.assertEqual(received, [])
         self.assertEqual(extra.navigation.position().actual_step_id, "ganymede_2205_step_0001")
+
+    def test_empty_selection_can_browse_first_step_and_validation_opens_picker(self):
+        from types import SimpleNamespace
+        panel = ContinuousGuideRoutePanel(
+            _source_route(), self.store, (),
+            available_characters=(
+                SimpleNamespace(key="character:1", label="Premier", class_key="iop"),
+            ),
+        )
+        self.addCleanup(panel.deleteLater)
+        self.assertEqual(panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertIsNone(panel.navigation.position().actual_step_id)
+        self.assertEqual(panel.step_jump.value(), 1)
+        self.assertTrue(panel.validate_button.isEnabled())
+        panel.validate_button.click()
+        self.assertTrue(panel.participants_button.isChecked())
+        self.assertTrue(panel.characters_panel.isVisibleTo(panel))
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+        panel.character_icon_buttons["character:1"].click()
+        self.assertEqual(panel.navigation.position().selected_character_keys,
+                         ("character:1",))
+        panel.validate_button.click()
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", "ganymede_2205_step_0001"
+        ))
 
     def test_no_character_can_browse_source_without_checking_steps(self):
         self.panel.set_characters(())
