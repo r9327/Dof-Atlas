@@ -1169,9 +1169,13 @@ class EncyclopediaPage(QWidget):
                         achievement_provider.load_all()
                     if pending_detail_id is not None:
                         try:
-                            # The provider owns its bounded rich-detail cache.
-                            # There is no extra thread or second provider.
-                            achievement_provider.get_detail_by_id(pending_detail_id)
+                            # Refuse an unrelated/non-retained link before an
+                            # expensive cold source read. The provider is
+                            # already loaded in this same canonical stage.
+                            retained = getattr(achievement_provider, "is_retained", None)
+                            if not callable(retained) or retained(pending_detail_id):
+                                # Reuse the same provider and its bounded cache.
+                                achievement_provider.get_detail_by_id(pending_detail_id)
                         except Exception:
                             # A missing/corrupt individual detail must not
                             # prevent the entire Success catalogue from opening.
