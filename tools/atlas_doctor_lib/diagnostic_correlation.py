@@ -16,8 +16,11 @@ MAX_TOOLS_PER_HYPOTHESIS = 5
 def _number(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    result = float(value)
-    return result if math.isfinite(result) else None
+    try:
+        result = float(value)
+    except OverflowError:
+        return None
+    return result if math.isfinite(result) and abs(result) < 1e15 else None
 
 
 def _catalog_tools(
@@ -35,7 +38,6 @@ def _catalog_tools(
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for capability in capabilities:
-        matching = select_tools(catalog_report, capability=capability, limit=1)["tools"]
         safe = select_tools(
             catalog_report, capability=capability, safe_only=True,
             ready_only=True, preferred_only=True, limit=1,
@@ -100,6 +102,8 @@ def correlate_diagnostics(
         gaps.append("guides: STALE_OR_NOT_PASS")
     if catalog_report is None:
         gaps.append("tool_catalog: NOT_PROVIDED")
+    elif not isinstance(catalog_report.get("tools"), list):
+        gaps.append("tool_catalog: INVALID")
 
     hypotheses: list[dict[str, Any]] = []
 
