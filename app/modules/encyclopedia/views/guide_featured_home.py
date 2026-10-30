@@ -105,6 +105,13 @@ class FeaturedGuideCard(QFrame):
         super().keyPressEvent(event)
 
     def set_guide(self, guide, values: tuple[int, int, str]) -> None:
+        # Progress refresh and library filtering can call this many times with
+        # identical data. Avoid repeatedly clearing and decoding two icons.
+        if (getattr(self, "_rendered_guide", object()) is guide
+                and getattr(self, "_rendered_values", None) == values):
+            return
+        self._rendered_guide = guide
+        self._rendered_values = values
         done, total, state = values
         usable = guide is not None
         self.open_button.setEnabled(usable)
