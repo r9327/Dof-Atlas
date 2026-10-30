@@ -95,9 +95,16 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         )
         for step in getattr(guide, "required_steps", ()) or ()
     ]
-    from app.modules.encyclopedia.services import guide_quest_view_model
+    from app.modules.encyclopedia.services import (
+        guide_catalog_route_store,
+        guide_quest_view_model,
+        guide_ultime_player_policy,
+    )
     sources = (
-        Path(__file__), Path(guide_quest_view_model.__file__),
+        Path(__file__),
+        Path(guide_quest_view_model.__file__),
+        Path(guide_ultime_player_policy.__file__),
+        Path(guide_catalog_route_store.__file__),
     )
     # Frozen bundles unpack sources to a different temporary path on each
     # launch. Bind cache validity to the durable executable version instead.
