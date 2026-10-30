@@ -1853,6 +1853,12 @@ class AtlasWindow(QMainWindow):
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
     def _hibernate_world_scan_on_home(self) -> None:
+        # Worker completion is queued from the map pane. If the player
+        # navigated away from Home in the meantime, keep their live page.
+        if self.stack.currentWidget() is not self.page_widgets.get("Home"):
+            return
+        if self.pending_page_name == "Scan Monde":
+            return
         if "Scan Monde" in self.page_factories:
             return
         page = self.page_widgets.get("Scan Monde")
@@ -1866,6 +1872,13 @@ class AtlasWindow(QMainWindow):
             return
         self._world_scan_return_state = state
         self.release_reconstructible_page("Scan Monde", self.create_world_scan_page)
+
+    def _on_world_scan_load_finished(self, _generation: int, _payload: object) -> None:
+        """Finish a previously deferred Home eviction after map I/O completes."""
+        if self.stack.currentWidget() is self.page_widgets.get("Home"):
+            # Let WorldScanPanel first apply or defer its worker result and
+            # start any coalesced request; never delete a receiver mid-signal.
+            self._schedule_owned_callback(0, self._hibernate_world_scan_on_home)
 
     @staticmethod
     def collect_released_page_cycles() -> None:
@@ -2006,6 +2019,7 @@ class AtlasWindow(QMainWindow):
         from app.ui.world_scan_panel import WorldScanPanel
 
         panel = WorldScanPanel(self.set_status)
+        panel.cartographyLoadFinished.connect(self._on_world_scan_load_finished)
         state = self._world_scan_return_state
         if isinstance(state, dict):
             panel.restore_navigation_state(state)

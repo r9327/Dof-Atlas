@@ -62,10 +62,16 @@ class ShellWorldScanHibernationTests(unittest.TestCase):
             "history": ("world-b",), "select_coord": (1, -2),
         }
         scan = SimpleNamespace(export_lightweight_navigation_state=Mock(return_value=state))
+        home = QWidget()
+        stack = QStackedWidget()
+        stack.addWidget(home)
+        stack.setCurrentWidget(home)
         factory = Mock()
         release = Mock()
         fake = SimpleNamespace(
-            page_widgets={"Scan Monde": scan},
+            stack=stack,
+            pending_page_name="",
+            page_widgets={"Scan Monde": scan, "Home": home},
             page_factories={},
             _world_scan_return_state=None,
             create_world_scan_page=factory,
@@ -84,16 +90,50 @@ class ShellWorldScanHibernationTests(unittest.TestCase):
         AtlasWindow._hibernate_world_scan_on_home(fake)
         release.assert_not_called()
 
+        # A late worker completion must not evict a page the player reopened.
+        fake.page_factories.clear()
+        scan.export_lightweight_navigation_state.return_value = state
+        new_active = QWidget()
+        stack.addWidget(new_active)
+        stack.setCurrentWidget(new_active)
+        AtlasWindow._hibernate_world_scan_on_home(fake)
+        release.assert_not_called()
+        stack.deleteLater()
+
+    def test_finished_worker_eviction_only_when_home_is_current(self):
+        home, other = QWidget(), QWidget()
+        stack = QStackedWidget()
+        stack.addWidget(home)
+        stack.addWidget(other)
+        scheduler = Mock()
+        fake = SimpleNamespace(
+            stack=stack,
+            page_widgets={"Home": home},
+            _schedule_owned_callback=scheduler,
+            _hibernate_world_scan_on_home=Mock(),
+        )
+        try:
+            stack.setCurrentWidget(other)
+            AtlasWindow._on_world_scan_load_finished(fake, 1, {})
+            scheduler.assert_not_called()
+            stack.setCurrentWidget(home)
+            AtlasWindow._on_world_scan_load_finished(fake, 2, {})
+            scheduler.assert_called_once_with(0, fake._hibernate_world_scan_on_home)
+        finally:
+            stack.deleteLater()
+
     def test_page_factory_rehydrates_only_the_saved_map_navigation(self):
         saved = {"view_key": "world-a", "history": (), "select_coord": (1, -2)}
-        panel = Mock(spec=["restore_navigation_state"])
+        panel = Mock(spec=["restore_navigation_state", "cartographyLoadFinished"])
         fake = SimpleNamespace(
             _world_scan_return_state=saved,
             set_status=Mock(),
+            _on_world_scan_load_finished=Mock(),
         )
         with patch("app.ui.world_scan_panel.WorldScanPanel", return_value=panel) as ctor:
             self.assertIs(AtlasWindow.create_world_scan_page(fake), panel)
         ctor.assert_called_once_with(fake.set_status)
+        panel.cartographyLoadFinished.connect.assert_called_once_with(fake._on_world_scan_load_finished)
         panel.restore_navigation_state.assert_called_once_with(saved)
         self.assertIsNone(fake._world_scan_return_state)
 
