@@ -199,10 +199,12 @@ class EncyclopediaThreadLifecycleTests(unittest.TestCase):
 
         running_release = Event()
         running_entered = Event()
+        running_completed = Event()
 
         def running_worker():
             running_entered.set()
-            self.assertTrue(running_release.wait(2))
+            if running_release.wait(2):
+                running_completed.set()
 
         _start_runtime_thread(owner, running_worker, "running-worker")
         self.assertTrue(running_entered.wait(2))
@@ -215,6 +217,7 @@ class EncyclopediaThreadLifecycleTests(unittest.TestCase):
         self.assertTrue(second_done.wait(2))
         running_release.set()
         _join_runtime_threads(owner._runtime_threads)
+        self.assertTrue(running_completed.is_set())
         # All old workers ended, but closeEvent can still join a new active one.
         final_done = Event()
         _start_runtime_thread(owner, final_done.set, "next-worker")
