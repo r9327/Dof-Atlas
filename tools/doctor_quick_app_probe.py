@@ -85,7 +85,10 @@ def startup_domain_breakdown(payload: object) -> dict[str, object]:
             "worker_elapsed_ms": float(info.get("worker_elapsed_ms") or 0),
             "timings_ms": {
                 str(name): float(value)
-                for name, value in (info.get("timings_ms") or {}).items()
+                for name, value in (
+                    info.get("timings_ms") if isinstance(info.get("timings_ms"), dict)
+                    else {}
+                ).items()
                 if isinstance(name, str) and type(value) in (int, float) and value >= 0
             },
         }
