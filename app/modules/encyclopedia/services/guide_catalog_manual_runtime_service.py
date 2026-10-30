@@ -284,21 +284,35 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             cache.popitem(last=False)
         return detail
 
-    def prefetch_route_near(self, index: int) -> None:
-        """Read at most nine nearby detail rows without making QWidget objects."""
+    def prefetch_route_near(self, index: int, *, max_reads: int = 9) -> bool:
+        """Hydrate a bounded neighborhood, optionally one SQLite row per UI tick.
+
+        True means another slice may be useful. This only caches texts: no Qt
+        objects, character state or persisted progress are ever touched.
+        """
         if not isinstance(getattr(self, "_catalog_detail_store_path", None), Path):
-            return
+            return False
         total = len(self.cards)
         if not total:
-            return
+            return False
         index = max(0, min(total - 1, int(index)))
+        budget = max(1, min(9, int(max_reads)))
+        reads = 0
         for candidate in (index, *range(index + 1, min(total, index + 7)),
                           *range(max(0, index - 2), index)):
+            cache = getattr(self, "_catalog_detail_cache", {})
+            if candidate in cache:
+                continue
             try:
                 self._catalog_card_detail(self.cards[candidate])
             except (OSError, ValueError, sqlite3.Error) as exc:
                 _LOGGER.warning("Prélecture de fiche Guide indisponible: %s", exc)
-                return
+                return False
+            reads += 1
+            if reads >= budget:
+                # The next slice will determine whether all neighbors are ready.
+                return True
+        return False
 
     def _load_manual_preview(self) -> None:
         # Restore only compact card identities, then fetch walkthroughs on demand.
