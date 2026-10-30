@@ -40,6 +40,20 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_progress_refresh_does_not_clear_current_summary_selection(self):
+        changes = []
+        selection = self.panel.summary.selectionModel()
+        selection.selectionChanged.connect(lambda *_: changes.append(True))
+        self.panel.refresh()
+        self.panel.refresh()
+        self.assertEqual(changes, [])
+        self.panel.show_step("ganymede_2205_step_0002")
+        self.assertEqual(self.panel.summary.currentIndex().row(), 1)
+        changes.clear()
+        self.panel.refresh()
+        self.assertEqual(changes, [])
+        self.assertEqual(self.panel.summary.currentIndex().row(), 1)
+
     def test_step_navigation_preserves_summary_model_and_updates_only_markers(self):
         resets = []
         changed = []
