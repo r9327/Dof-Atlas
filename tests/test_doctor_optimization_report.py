@@ -32,6 +32,42 @@ def sample(sha=HEAD, **kwargs):
     return report
 
 
+def phase8_report(sha: str, *, success_ms: float = 5000,
+                  environment: dict | None = None) -> dict:
+    quest_ms, guide_ms = 2000.0, 1000.0
+    deep_total = quest_ms + guide_ms + success_ms
+    opens = {
+        "quests_open_ms": 100,
+        "achievements_open_ms": 100,
+        "guide_open_ms": 100,
+        "craft_open_ms": 100,
+        "equipment_open_ms": 100,
+    }
+    metrics = {
+        "git_head": sha,
+        "deep_first_content": {
+            "all_details_rendered": True, "quest_id": 18,
+            "guide_id": "bonta", "achievement_id": 20,
+        },
+        "preload_completed_from_constructor_ms": 1000,
+        **opens,
+        "deep_quest_detail_ms": quest_ms,
+        "deep_guide_detail_ms": guide_ms,
+        "deep_achievement_detail_ms": success_ms,
+        "deep_first_content_total_ms": deep_total,
+        "total_first_path_ms": 1000 + sum(opens.values()) + deep_total,
+    }
+    return {
+        "schema_version": 1,
+        "environment": (
+            environment if environment is not None
+            else {"platform": "win32", "python": "3.13.0",
+                  "qt_qpa_platform": "offscreen"}
+        ),
+        "metrics": metrics,
+    }
+
+
 class OptimizationReportTests(unittest.TestCase):
     def test_costs_ranked_but_not_certified_or_fake_rss_split(self):
         doc = optimization_report(HEAD, sample(
@@ -89,6 +125,49 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["comparison"]["status"], "DIRECTIONAL_ONLY")
         self.assertEqual(next(x["delta_pct"] for x in doc["comparison"]["metrics"]
                               if x["name"] == "preload_ms"), -50)
+
+    def test_phase8_comparison_reuses_canonical_deep_fixture_verdict(self):
+        from tools.atlas_doctor_lib.optimization_report import comparable_phase8_first_use
+
+        before = phase8_report(OLD, success_ms=1000)
+        after = phase8_report(HEAD, success_ms=5000)
+        result = comparable_phase8_first_use(HEAD, after, before)
+        self.assertEqual(result["status"], "DIRECTIONAL_ONLY")
+        self.assertEqual(result["verdict"], "NET_REGRESSION")
+        self.assertEqual(result["details"]["net_full_first_use_gain_ms"], -4000)
+        self.assertFalse(result["same_runner_attested"])
+        self.assertFalse(result["repeat_runs_verified"])
+        self.assertFalse(result["certified_gain"])
+        doc = optimization_report(
+            HEAD, sample(), phase8=after, phase8_baseline=before,
+        )
+        self.assertIn("PHASE8_FIRST_CONTENT_REGRESSION",
+                      {row["id"] for row in doc["priority_findings"]})
+        self.assertFalse(doc["is_certification"])
+        self.assertIn("mesure unique", render_markdown(doc))
+
+    def test_phase8_comparison_fails_closed_on_fixture_or_environment_mismatch(self):
+        from tools.atlas_doctor_lib.optimization_report import comparable_phase8_first_use
+
+        baseline = phase8_report(OLD)
+        candidate = phase8_report(HEAD)
+        changed_environment = phase8_report(
+            HEAD, environment={"platform": "linux",
+                               "python": "3.13.0", "qt_qpa_platform": "offscreen"},
+        )
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, changed_environment, baseline)["status"],
+            "NOT_COMPARABLE",
+        )
+        candidate["metrics"]["deep_first_content"]["achievement_id"] = 21
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, candidate, baseline)["status"],
+            "NOT_COMPARABLE",
+        )
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, candidate, None)["status"],
+            "NOT_RUN",
+        )
 
     def test_not_run_cannot_claim_full_ui_or_launcher(self):
         doc = optimization_report(HEAD, sample())
