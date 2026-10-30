@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon
-from app.ui.unity_skin import sprite_icon_path
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
     QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget,
@@ -138,7 +138,7 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.setFlow(QListView.LeftToRight)
         self.home_dofus_list.setWrapping(True)
         self.home_dofus_list.setResizeMode(QListView.Adjust)
-        self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.setGridSize(QSize(220, 96))
         self.home_dofus_list.clicked.connect(self._on_clicked)
         self.home_dofus_list.activated.connect(self._on_clicked)
 
@@ -152,7 +152,8 @@ class GuideCatalogView(QWidget):
         self.library_categories.setMaximumHeight(250)
         self.library_categories.setStyleSheet(
             "QTreeWidget#GuideLibraryCategories { "
-            "background: rgba(21, 32, 59, 0.75); border: 1px solid #536E9A; "
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+            "stop:0 #293D65, stop:1 #121D34); border: 1px solid #809AC2; "
             "border-radius: 8px; padding: 3px; }"
             "QTreeWidget#GuideLibraryCategories::item { min-height: 23px; "
             "padding: 2px 5px; border-radius: 4px; }"
@@ -177,6 +178,7 @@ class GuideCatalogView(QWidget):
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
         self.library_categories.itemClicked.connect(self._toggle_library_category)
         self.library_categories.itemActivated.connect(self._activate_library_item)
+        apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
         left_layout.addWidget(self.library_categories, 0)
         left_layout.addStretch(1)
 
@@ -452,7 +454,9 @@ class GuideCatalogView(QWidget):
         if width <= 0:
             return
         count = self.home_dofus_model.rowCount()
-        max_columns = max(1, width // 230)
+        # Cards remain readable at roughly 205px, freeing space for 3–4
+        # Dofus per row on a normal desktop instead of oversized empty cells.
+        max_columns = min(4, max(1, width // 205))
         # Keep the last row complete when feasible. With 20 Dofus a
         # 3-column grid strands 2 at the bottom, whereas 2 is balanced.
         columns = max_columns
