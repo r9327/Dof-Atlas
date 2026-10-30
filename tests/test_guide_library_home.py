@@ -186,6 +186,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     requested.clear()
                     view.library_categories.setCurrentItem(alignments.child(0))
                     self.assertEqual(requested, ["alignement_bonta"])
+                    view.library_categories.itemActivated.emit(alignments.child(0), 0)
+                    self.assertEqual(requested, ["alignement_bonta"])
                     dimensions = view._category_nodes["dimensions"]
                     view.library_categories.setCurrentItem(dimensions)
                     self.assertEqual(view.library_category, "dimensions")
