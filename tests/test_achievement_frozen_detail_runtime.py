@@ -116,6 +116,21 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         self.assertEqual(provider._last_detail_cache_source, "cold")
         self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
 
+    def test_replacing_compact_catalogue_invalidates_cold_event_and_cached_details(self):
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        provider._recent_rich_details[10] = object()
+        provider._detail_cache_id = 12
+        provider._detail_cache = object()
+        provider._last_cold_detail_breakdown = {
+            "achievement_id": 12, "status": "OBSERVED", "total_ms": 1234,
+        }
+        provider._install_compact_rows({}, [], {})
+        self.assertIsNone(provider._detail_cache_id)
+        self.assertIsNone(provider._detail_cache)
+        self.assertEqual(provider._recent_rich_details, {})
+        self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
+        self.assertEqual(provider._last_detail_cache_source, "cold")
+
     def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             provider = self._provider(Path(directory))
