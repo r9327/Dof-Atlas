@@ -4,11 +4,13 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from dataclasses import replace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
 
@@ -105,6 +107,30 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         model.set_home_column([_guide("dofus_turquoise", "dofus", "Turquoise")], "right")
         self.assertEqual(resets.count(), 2)
         self.assertEqual(self._ids(model), ["dofus_turquoise"])
+
+    def test_icons_decode_only_once_until_guide_replacement(self) -> None:
+        model = GuideListModel()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "turquoise.png"
+            path.write_bytes(b"image-file-fixture")
+            guide = replace(_guide("dofus_turquoise", "dofus", "Turquoise"),
+                            image_path=str(path))
+            model.set_home_column([guide], "right")
+            with patch(
+                "app.modules.encyclopedia.widgets.guide_card.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                return_value=QPixmap(16, 16),
+            ) as decode:
+                index = model.index(0, 0)
+                for _ in range(12):
+                    self.assertIsNotNone(model.data(index, Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                model.set_home_column([guide], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                # Replaced metadata needs a fresh icon decision.
+                model.set_home_column([replace(guide, title="Turquoise +")], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 2)
 
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.
