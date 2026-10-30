@@ -37,6 +37,9 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
+from app.ui.unity_skin import sprite_icon_path
+from app.constants import DATA_DIR
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
 
 
@@ -1103,13 +1106,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             _guide_symbol_icon(self.preparation_button, "clipboard")
         )
         self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.preparation_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.preparation_button.setMinimumHeight(32)
+        self.preparation_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.preparation_button.setFixedHeight(28)
+        self.preparation_button.setMaximumWidth(148)
         self.preparation_button.setArrowType(Qt.RightArrow)
         self.preparation_button.setCheckable(True)
         self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        self.header_actions_row.addWidget(self.preparation_button, 1)
+        self.header_actions_row.addWidget(self.preparation_button, 0)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1172,13 +1176,16 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setText("Mes personnages")
+        self.participants_button.setText("")
+        portrait_icon = sprite_icon_path("character")
         self.participants_button.setIcon(
+            QIcon(str(portrait_icon)) if portrait_icon else
             _guide_symbol_icon(self.participants_button, "people")
         )
-        self.participants_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.participants_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.participants_button.setMinimumHeight(32)
+        self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.participants_button.setFixedSize(32, 28)
+        self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self.summary_button = QToolButton()
@@ -1186,13 +1193,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_button.setText("Sommaire")
         self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
         self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.summary_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.summary_button.setMinimumHeight(32)
+        self.summary_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.summary_button.setFixedHeight(28)
+        self.summary_button.setMaximumWidth(122)
         self.summary_button.setArrowType(Qt.RightArrow)
         self.summary_button.setCheckable(True)
         self.summary_button.setCursor(Qt.PointingHandCursor)
-        self.header_actions_row.addWidget(self.summary_button, 1)
-        self.header_actions_row.addWidget(self.participants_button, 1)
+        self.header_actions_row.addWidget(self.summary_button, 0)
+        self.header_actions_row.addWidget(self.participants_button, 0)
+        self.header_actions_row.addStretch(1)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1237,7 +1246,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         count = len(self.selected_participant_keys())
         full_label = f"Mes personnages · {count}"
         narrow = self.width() < 520
-        self.participants_button.setText(str(count) if narrow else full_label)
+        # Icon-only participant selector: the count remains accessible through
+        # its tooltip and accessibility label without stretching the header.
+        self.participants_button.setText("")
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
             label.setText("Prép." if narrow and name == "Préparation" else name)
         self.participants_button.setAccessibleName(full_label)
@@ -2064,9 +2075,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         reversible = any(manual for _, _, manual, _ in statuses)
         batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
         page_key = getattr(self.service, "page_key", None)
-        enabled = bool(statuses) and callable(batcher) and callable(page_key) and not blocked and (not all_done or reversible)
+        enabled = (not statuses) or (bool(statuses) and callable(batcher) and callable(page_key)
+                                   and not blocked and (not all_done or reversible))
         if not statuses:
-            label, hint = "Choisir des personnages", "Sélectionnez un ou plusieurs personnages vérifiés dans Mes personnages."
+            label, hint = "Valider", "Choisissez d'abord un personnage avec le bouton portrait ; ce clic ouvre le sélecteur."
         elif blocked:
             label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
         elif all_done and reversible:
@@ -2094,7 +2106,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         statuses = self._validation_status(card, index)
         all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
         blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
-        if not statuses or blocked or checked == all_done:
+        if not statuses:
+            # A visible "Valider" must never silently write to the browsing
+            # character. Open the explicit portrait selector on first click.
+            self.participants_button.setChecked(True)
+            self._render_window()
+            return
+        if blocked or checked == all_done:
             self._render_window()
             return
         # A mixed team click fills only incomplete manual states; undo removes
