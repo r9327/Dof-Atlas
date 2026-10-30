@@ -38,6 +38,8 @@ def _catalog_tools(
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for capability in capabilities:
+        if any(capability in row["capabilities"] for row in selected):
+            continue
         # A guarded mutation tool can be agent-ready while still being the
         # wrong choice for an automatic read-only investigation.
         # The canonical selector already sorts preferred and ready tools
@@ -83,7 +85,11 @@ def _catalog_tools(
             continue
         selected.append({
             "path": entry["path"], "invocation": entry["invocation"],
-            "capability": capability, "capabilities": [capability],
+            "capability": capability,
+            "capabilities": [
+                name for name in capabilities
+                if name in entry["capabilities"]
+            ],
             "cost_hint": entry["cost_hint"],
             "selection_reason": "CANONICAL_CATALOG_SAFE_READY",
             "automation_executed": False,
