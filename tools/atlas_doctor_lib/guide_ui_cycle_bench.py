@@ -106,6 +106,8 @@ def measure(cycles: int) -> dict:
                     raise RuntimeError(f"Real Guide page missing at cycle {turn}")
                 detail = owner.stack.currentWidget()
                 opened_ms = round((time.perf_counter() - before) * 1000, 2)
+                guide_rss = resident_bytes()
+                guide_widgets = len(QApplication.allWidgets())
                 if not detail.service.cards:
                     raise RuntimeError(f"Empty Guide route at cycle {turn}")
                 # Go back through the *production* Guide signal, not an
@@ -125,19 +127,27 @@ def measure(cycles: int) -> dict:
                 records.append({
                     "cycle": turn + 1, "route": route, "open_ms": opened_ms,
                     "return_ms": round((time.perf_counter() - before) * 1000 - opened_ms, 2),
-                    "rss_bytes": resident_bytes(),
-                    "live_qt_widgets": len(QApplication.allWidgets()),
+                    # Always sample both sides of the transition: post-return
+                    # RSS alone cannot expose a 300 MiB Guide peak.
+                    "rss_guide_bytes": guide_rss,
+                    "rss_home_bytes": resident_bytes(),
+                    "qt_widgets_guide": guide_widgets,
+                    "qt_widgets_home": len(QApplication.allWidgets()),
                     "dofus_count": back.home_dofus_model.rowCount(),
                 })
-            sizes = [r["rss_bytes"] for r in records]
-            observed = [v for v in sizes if v is not None]
+            sizes = [r["rss_home_bytes"] for r in records]
+            guide_sizes = [r["rss_guide_bytes"] for r in records]
+            observed = [v for r in records
+                        for v in (r["rss_guide_bytes"], r["rss_home_bytes"])
+                        if v is not None]
             # Compare warmed tail to warmed baseline; a single allocator
             # high-water mark isn't evidence of a leak.
             warm = [v for v in sizes[min(4, len(sizes) - 1):] if v is not None]
             baseline = min(warm[:max(1, min(5, len(warm)))]) if warm else None
             growth = max(warm[-min(5, len(warm)):]) - baseline if baseline is not None else None
             times = [r["open_ms"] for r in records]
-            widget_counts = [r["live_qt_widgets"] for r in records]
+            widget_counts = [r["qt_widgets_home"] for r in records]
+            guide_widget_counts = [r["qt_widgets_guide"] for r in records]
             peak_rss = max(observed) if observed else None
             latest_rss = sizes[-1]
             return {
@@ -153,11 +163,17 @@ def measure(cycles: int) -> dict:
                 "rss_bytes": {
                     "first": sizes[0], "last": sizes[-1],
                     "peak_observed": peak_rss,
+                    "max_guide_open": max((v for v in guide_sizes if v is not None), default=None),
+                    "max_returned_home": max((v for v in sizes if v is not None), default=None),
                     "warmed_baseline": baseline, "warmed_growth": growth,
                     "growth_target_bytes": 32 * 1024 * 1024,
                 },
-                "ui_widget_counts": {"first": widget_counts[0], "last": widget_counts[-1],
-                                     "peak": max(widget_counts)},
+                "ui_widget_counts": {
+                    "first_return": widget_counts[0],
+                    "last_return": widget_counts[-1],
+                    "max_guide_open": max(guide_widget_counts),
+                    "max_returned_home": max(widget_counts),
+                },
                 "performance_targets": {
                     "stable_below_100_mib": latest_rss < 100 * 1024 * 1024 if latest_rss is not None else None,
                     "observed_peak_below_250_mib": peak_rss <= 250 * 1024 * 1024 if peak_rss is not None else None,
