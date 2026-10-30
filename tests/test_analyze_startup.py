@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tools.analyze_startup import _elapsed_ms, build_report
+from tools.analyze_startup import _elapsed_ms, _latest_profile, build_report
 
 
 def _write(path: Path, text: str) -> Path:
@@ -106,3 +106,14 @@ def test_build_report_tolerates_missing_and_corrupt_files(tmp_path) -> None:
     assert report.launcher_to_first_ui_ms is None
     assert report.app_start_to_main_ms is None
     assert report.profile_marks == ()
+
+def test_legacy_profile_survives_interleaved_jsonl_trace(tmp_path) -> None:
+    target = tmp_path / "startup_profile.jsonl"
+    rows = [
+        {"timestamp": "2026-10-28T10:00:00", "total_ms": 120.0, "marks": []},
+        {"session": "123", "event": "home_first_paint", "t_ns": 1000},
+        {"timestamp": "2026-10-28T11:00:00", "total_ms": 90.0, "marks": []},
+        {"session": "456", "event": "launcher_entry", "t_ns": 2000},
+    ]
+    target.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    assert _latest_profile(target)["total_ms"] == 90.0

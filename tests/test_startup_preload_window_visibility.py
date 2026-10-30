@@ -46,6 +46,35 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
             popup.deleteLater()
             self.app.processEvents()
 
+    def test_launcher_owned_preload_has_no_second_visible_window(self) -> None:
+        from unittest.mock import patch
+
+        main_window = QWidget()
+        revealed: list[bool] = []
+        with patch.dict(os.environ, {"DOFUS_ATLAS_LAUNCHER_HANDOFF": "1"}):
+            popup = PreloadProgressPopup(main_window)
+        popup.readyForMainWindow.connect(lambda: (revealed.append(True), main_window.show()))
+        try:
+            popup.begin({"quests": "IDLE", "encyclopedia": "IDLE", "craft": "IDLE"})
+            self.app.processEvents()
+            self.assertFalse(popup.isVisible())
+            self.assertFalse(main_window.isVisible())
+
+            popup.update_states({"quests": "READY", "encyclopedia": "LOADING", "craft": "IDLE"})
+            self.app.processEvents()
+            self.assertFalse(revealed)
+            self.assertFalse(popup.isVisible())
+
+            popup.update_states({"quests": "READY", "encyclopedia": "READY", "craft": "READY"})
+            self.app.processEvents()
+            self.assertEqual(revealed, [True])
+            self.assertFalse(popup.isVisible())
+            self.assertTrue(main_window.isVisible())
+        finally:
+            main_window.close()
+            popup.deleteLater()
+            self.app.processEvents()
+
     def test_nonessential_services_start_after_preload_not_during_it(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
         tree = ast.parse(source)

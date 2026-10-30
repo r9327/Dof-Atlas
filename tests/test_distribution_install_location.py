@@ -26,6 +26,41 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertEqual(json.loads((user / "installation.json").read_text())["schema_version"], 1)
                 self.assertFalse(custom.exists(), "Path selection must not extract or install files")
 
+    def test_unicode_and_spaces_in_runtime_migration_preserve_state(self):
+        # Test the path representation and migration contract without
+        # installing a new release or relying on a local Windows account.
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp) / "Profil utilisateur" / "Atlas"
+            source = user / "runtime"
+            executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+            executable.parent.mkdir(parents=True)
+            payload = b"MZ!valid"
+            executable.write_bytes(payload)
+            (source / "state.json").write_text(json.dumps({
+                "active": "v1", "previous": None, "pending": False,
+                "entrypoint": "AtlasApp/AtlasApp.exe",
+                "entrypoint_size": len(payload),
+                "entrypoint_sha256": hashlib.sha256(payload).hexdigest(),
+                "source_sha": "a" * 40,
+            }), encoding="utf-8")
+            destination = Path(temp) / "Jeux été" / "Dofus Atlas" / "runtime"
+            with (patch.object(loc, "APP_DATA", user),
+                  patch.object(loc, "_SETTINGS", user / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", source)):
+                loc.set_runtime_root(source)
+                selected = loc.relocate_runtime(destination)
+                self.assertEqual(selected, destination.resolve())
+                self.assertEqual(loc.runtime_root(), destination.resolve())
+                self.assertEqual(
+                    (destination / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe").read_bytes(),
+                    payload,
+                )
+                self.assertEqual(
+                    (destination / "state.json").read_bytes(),
+                    (source / "state.json").read_bytes(),
+                )
+                self.assertTrue(executable.exists(), "A migration must retain rollback source")
+
     def test_invalid_path_cannot_replace_last_working_selection(self):
         with tempfile.TemporaryDirectory() as temp:
             user = Path(temp) / "Data"

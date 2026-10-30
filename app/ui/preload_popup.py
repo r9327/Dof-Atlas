@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import os
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
@@ -95,6 +96,9 @@ class PreloadProgressPopup(QDialog):
             "}"
         )
 
+        # The standalone launcher remains the only visible progress window.
+        # The same Qt state machine still drives Home's reveal in silent mode.
+        self._silent_handoff = os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") == "1"
         self._has_started = False
         self._finished = False
         self._hide_generation = 0
@@ -103,7 +107,7 @@ class PreloadProgressPopup(QDialog):
         """Show preload before any application pages are made visible."""
         self._has_started = True
         self.update_states(states or {})
-        if not self.isVisible():
+        if not self._silent_handoff and not self.isVisible():
             self._show_centered()
 
     def update_states(self, states: Mapping[str, str]) -> None:
@@ -155,10 +159,10 @@ class PreloadProgressPopup(QDialog):
         generation = self._hide_generation
         if self._finished:
             QTimer.singleShot(
-                500 if failed == 0 else 1800,
+                0 if self._silent_handoff else (500 if failed == 0 else 1800),
                 lambda: self._hide_if_current(generation),
             )
-        elif not self.isVisible():
+        elif not self._silent_handoff and not self.isVisible():
             self._show_centered()
 
     def _show_centered(self) -> None:

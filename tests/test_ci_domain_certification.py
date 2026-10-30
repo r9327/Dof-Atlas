@@ -209,6 +209,19 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertFalse(owners_for("tests/test_phase8_unreviewed_contract.py"))
 
+    def test_unicode_install_relocation_has_exact_distribution_ownership(self):
+        path = "tests/test_distribution_install_location.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_distribution_unknown_location.py"))
+        self.assertEqual(
+            self.route(["tests/test_distribution_unknown_location.py"])["status"],
+            "BLOCKED",
+        )
+
     def test_manual_rtk_bootstrap_has_narrow_ci_ownership(self):
         paths = ["tools/install_rtk.ps1", "tests/test_install_rtk.py"]
         for path in paths:
@@ -345,6 +358,45 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.route(["app/distribution/unchecked_helper.py"])["status"],
             "BLOCKED",
         )
+
+    def test_pr285_startup_trace_paths_are_reviewed_without_wildcard(self):
+        expected = {
+            "app/distribution/startup_trace.py": {"startup", "ui"},
+            "app/distribution/health.py": {"startup", "ui"},
+            "tests/test_distribution_health.py": {"startup", "ui"},
+            "tools/startup_trace_report.py": {"ci", "startup"},
+            "tools/analyze_startup.py": {"ci", "startup"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route([
+            *expected,
+            "tests/test_startup_trace.py",
+            "tests/test_startup_trace_report.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci", "ui", "startup"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(plan["merge_authorized"])
+        for path in (
+            "app/distribution/unreviewed_startup_helper.py",
+            "app/distribution/health_unknown.py",
+            "tests/test_distribution_health_unknown.py",
+            "tools/startup_trace_unknown.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+    def test_multipart_assembler_has_strict_distribution_ownership(self):
+        paths = ["app/distribution/archive_parts.py", "tests/test_distribution_multipart.py"]
+        for path in paths:
+            self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        result = self.route(paths)
+        self.assertEqual(result["status"], "READY_TO_EXECUTE")
+        self.assertEqual(result["unknown_paths"], [])
+        self.assertFalse(owners_for("app/distribution/unreviewed_archive.py"))
 
     def test_launcher_ui_and_qt_preload_have_exact_shared_owners(self):
         paths = [

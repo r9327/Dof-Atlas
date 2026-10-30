@@ -139,7 +139,7 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             result = launcher.main()
         return result, window
 
-    def test_same_release_goes_directly_to_preload_without_updater_popup(self):
+    def test_same_release_uses_one_launcher_window_until_home(self):
         status = [
             ("Verification des mises a jour...", 5),
             ("Atlas est a jour", 96),
@@ -148,9 +148,71 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         ]
         result, window = self._drive(status)
         self.assertEqual(result, 0)
-        window.withdraw.assert_called_once()
-        window.deiconify.assert_not_called()
+        self.assertEqual(window.deiconify.call_count, 1)  # displayed at spawn
+        self.assertEqual(window.withdraw.call_count, 2)  # initial + Home
         window.destroy.assert_called_once()
+
+    def test_visible_updater_waits_for_home_ack_before_hiding(self):
+        result, window = self._drive([
+            ("Differentiel : 10 %", 17),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Preparation de Home...", 98),
+            ("Dofus Atlas est pret", 100),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        # One initial hide, one real Home takeover; never hide at Qt preload.
+        self.assertEqual(window.withdraw.call_count, 2)
+
+    def test_spawn_without_qt_ack_keeps_updater_visible(self):
+        result, window = self._drive([
+            ("Installation differentielle...", 83),
+            ("Lancement de Dofus Atlas...", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        self.assertEqual(window.withdraw.call_count, 1)  # initial hidden only
+
+    def test_rollback_reveals_updater_until_old_qt_is_ready(self):
+        result, window = self._drive([
+            ("Differentiel : 10 %", 17),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Preparation de Home...", 98),
+            ("Demarrage echoue — restauration precedente", 95),
+            ("Lancement de Dofus Atlas...", 98),
+            ("Preparation de Home...", 98),
+            ("Dofus Atlas est pret", 100),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        self.assertEqual(window.withdraw.call_count, 2)
+
+    def test_qt_preload_never_hides_launcher_before_home(self):
+        result, window = self._drive([
+            ("Lancement de Dofus Atlas...", 98),
+            ("Preparation de Home...", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        window.withdraw.assert_called_once()  # initial withdraw only
+
+    def test_legacy_client_hands_over_to_its_qt_preload(self):
+        result, window = self._drive([
+            ("Lancement de Dofus Atlas...", 98),
+            ("Prechargement Qt actif", 98),
+        ])
+        self.assertEqual(result, 0)
+        self.assertEqual(window.deiconify.call_count, 1)
+        self.assertEqual(window.withdraw.call_count, 2)  # Tk -> legacy Qt
+
+    def test_gui_handoff_flag_is_scoped_to_worker(self):
+        with patch.dict("os.environ", {}, clear=True):
+            result, _ = self._drive([
+                ("Lancement de Dofus Atlas...", 98),
+                ("Dofus Atlas est pret", 100),
+            ])
+            self.assertEqual(result, 0)
+            self.assertNotIn("DOFUS_ATLAS_LAUNCHER_HANDOFF", __import__("os").environ)
 
     def test_real_delta_shows_progress_only_once(self):
         result, window = self._drive([
