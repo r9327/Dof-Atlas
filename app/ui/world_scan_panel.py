@@ -914,26 +914,43 @@ class WorldScanPanel(QWidget):
             self.rebuild_world_menu(self.world_names_from_views())
             self.refresh_world_menu_state()
         deferred = self._deferred_load_result
-        self._deferred_load_result = None
         if deferred is not None and int(deferred[0]) == self._load_generation:
-            if self._image_suspended and isinstance(deferred[1], dict):
-                # The unseen bitmap was discarded on purpose. Remember which
-                # area must be reloaded, not its memory-heavy pixel payload.
-                self.current_view_key = str(
-                    deferred[1].get("view_key") or self.current_view_key
-                )
+            if (
+                self._image_suspended and isinstance(deferred[1], dict)
+                and not deferred[1].get("error")
+            ):
+                # Reuse the exact Home snapshot semantics before consuming
+                # the deferred worker result. The bitmap was deliberately
+                # dropped, but its world, history and selection still matter.
+                state = self.export_lightweight_navigation_state()
+                if isinstance(state, dict):
+                    previous_key = self.current_view_key
+                    self.current_view_key = state["view_key"]
+                    self.current_world_name = state["world_name"]
+                    self.history = list(state["history"])
+                    self._restore_selected_coord = state["select_coord"]
+                    if self.current_view_key != previous_key:
+                        self.selected_map = None
+                else:
+                    self._apply_cartography_payload(deferred[1])
             else:
+                # A worker error must remain visible on re-entry; it is not
+                # a successful world switch just because the bitmap is cold.
                 self._apply_cartography_payload(deferred[1])
+        self._deferred_load_result = None
         if self._initial_load_pending and not self._load_in_flight:
             self.reload_all()
         elif self._image_suspended and not self._load_in_flight:
             self._image_suspended = False
-            coord = self.selected_map
-            select_coord = (
-                (int(coord["x"]), int(coord["y"]))
-                if isinstance(coord, dict) and "x" in coord and "y" in coord
-                else None
-            )
+            select_coord = self._restore_selected_coord
+            self._restore_selected_coord = None
+            if select_coord is None:
+                coord = self.selected_map
+                select_coord = (
+                    (int(coord["x"]), int(coord["y"]))
+                    if isinstance(coord, dict) and "x" in coord and "y" in coord
+                    else None
+                )
             self._queue_cartography_load(
                 mode="view" if self.current_view_key else "reload",
                 view_key=self.current_view_key,

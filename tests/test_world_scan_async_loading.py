@@ -267,6 +267,16 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                     "select_coord": (7, 8),
                 })
                 self.assertFalse(any(isinstance(v, QImage) for v in state.values()))
+                with patch.object(panel, "_queue_cartography_load") as load:
+                    panel.show()
+                self.assertEqual(panel.current_view_key, "world-new")
+                self.assertEqual(panel.current_world_name, "Frigost")
+                self.assertEqual(panel.history, ["world-before", "world-old"])
+                self.assertIsNone(panel.selected_map)
+                load.assert_called_once_with(
+                    mode="view", view_key="world-new", push_history=False,
+                    select_coord=(7, 8),
+                )
             finally:
                 self._dispose_panel(panel)
 
@@ -278,6 +288,11 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 panel._load_in_flight = False
                 panel._deferred_load_result = (2, {"error": "source missing"})
                 self.assertIsNone(panel.export_lightweight_navigation_state())
+                panel._image_suspended = True
+                panel._initial_load_pending = False
+                with patch.object(panel, "_queue_cartography_load"):
+                    panel.show()
+                self.assertIn("source missing", panel.status_label.text())
             finally:
                 self._dispose_panel(panel)
 
