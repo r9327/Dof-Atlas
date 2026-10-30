@@ -264,7 +264,9 @@ def correlate_diagnostics(
         # not an independent specialist. Never inflate corroboration.
         source_families = {
             "app_navigation" if x.get("source") in {"app_navigation", "cost_attribution"}
-            else str(x.get("source", ""))
+            else "phase8" if x.get("source") in {
+                "phase8_first_use", "phase8_success_provider"
+            } else str(x.get("source", ""))
             for x in observations
         }
         independent = len(source_families) > 1
@@ -434,6 +436,49 @@ def correlate_diagnostics(
                             " profile the existing stage worker and UI callbacks.",
                             (capability, "performance", "runtime_trace", "coverage"),
                         )
+
+                    # The first-use harness now captures the existing Success
+                    # provider's own blocking wall span. This is stronger than
+                    # a guessed CPU share, but it still comes from one run.
+                    success_phases = deep.get("achievement_detail_phases_ms")
+                    worker = (
+                        success_phases.get("provider_last_detail_breakdown_ms")
+                        if isinstance(success_phases, dict) else None
+                    )
+                    if isinstance(worker, dict):
+                        blocking = _number(worker.get("synchronous_subprocess_ms"))
+                        rendered = _number(metrics.get("deep_achievement_detail_ms"))
+                        if (
+                            worker.get("thread") == "MainThread"
+                            and worker.get("subprocess_path_used") is True
+                            and blocking is not None and rendered is not None
+                            and blocking >= 1000
+                        ):
+                            if blocking > rendered + 50:
+                                gaps.append("phase8_first_use: SUCCESS_WORKER_TIMING_MISMATCH")
+                            else:
+                                add(
+                                    "SUCCESS_MAIN_THREAD_SUBPROCESS", "P0",
+                                    "Measured synchronous Success subprocess on main Qt thread",
+                                    [
+                                        {
+                                            "source": "phase8_first_use",
+                                            "metric": "deep_achievement_detail_ms",
+                                            "value": rendered, "unit": "ms",
+                                        },
+                                        {
+                                            "source": "phase8_success_provider",
+                                            "metric": "synchronous_subprocess_ms",
+                                            "value": blocking, "unit": "ms",
+                                            "thread": "MainThread",
+                                        },
+                                    ],
+                                    "Provider reports time spent waiting synchronously in the same"
+                                    " measured first-detail path; this is not exclusive CPU cost.",
+                                    "Review the actual Qt lifecycle and exact-SHA dependency graph"
+                                    " before moving detail construction to an existing worker.",
+                                    ("runtime_trace", "performance", "graphify", "validation"),
+                                )
 
     hypotheses.sort(key=lambda r: ({"P0": 0, "P1": 1, "P2": 2}[r["priority"]], r["id"]))
     return {
