@@ -77,6 +77,24 @@ _GUIDE_DIR = "data/encyclopedia/guides/"
 _GUIDE_CATALOG = _GUIDE_DIR + "catalog.json"
 
 
+# Git permits names which Win32 cannot open; static links must not PASS them.
+_WINDOWS_DEVICE_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    | {f"COM{number}" for number in range(1, 10)}
+    | {f"LPT{number}" for number in range(1, 10)}
+)
+
+
+def _safe_windows_json_basename(filename: Any) -> bool:
+    if (not isinstance(filename, str) or not filename
+            or filename.strip() != filename or filename.startswith(".")
+            or not filename.lower().endswith(".json")):
+        return False
+    if any(ord(char) < 32 or char in '<>:"/\\|?*' for char in filename):
+        return False
+    return filename.split(".", 1)[0].rstrip(" ").upper() not in _WINDOWS_DEVICE_NAMES
+
+
 def _verify_guide_catalog(catalog: Any, guide_headers: dict[str, dict[str, Any]],
                           tracked_paths: list[str]) -> dict[str, Any]:
     """Verify only manifest->Guide static links, never Quest, UI or runtime links."""
@@ -116,9 +134,7 @@ def _verify_guide_catalog(catalog: Any, guide_headers: dict[str, dict[str, Any]]
         if not isinstance(category, str) or category not in categories:
             issues.append({"kind": "UNKNOWN_GUIDE_CATEGORY", "index": index, "id": gid})
         # Do not resolve paths, follow symlinks, or accept untrusted subpaths.
-        if (not isinstance(filename, str) or not filename.endswith(".json")
-                or "/" in filename or "\\" in filename or ":" in filename
-                or filename.startswith(".") or filename == ".json"):
+        if not _safe_windows_json_basename(filename):
             issues.append({"kind": "UNSAFE_GUIDE_FILENAME", "index": index, "id": gid})
             continue
         target = _GUIDE_DIR + filename
@@ -172,10 +188,7 @@ def _manual_manifest_chapter_refs(
             continue
         # The actual runtime joins filenames with MANUAL_DIR. Do not follow
         # absolute/parent-relative paths even in read-only audit logic.
-        if (
-            "/" in filename or "\\" in filename or ":" in filename
-            or filename in {".", ".."} or not filename.lower().endswith(".json")
-        ):
+        if not _safe_windows_json_basename(filename):
             candidates.append({
                 "kind": "MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW",
                 "chapter_index": index, "file": filename,
@@ -206,10 +219,7 @@ def _manual_manifest_chapter_refs(
                     "collection": family, "index": index,
                 })
                 continue
-            if (
-                "/" in filename or "\\" in filename or ":" in filename
-                or filename in {".", ".."} or not filename.lower().endswith(".json")
-            ):
+            if not _safe_windows_json_basename(filename):
                 candidates.append({
                     "kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
                     "collection": family, "index": index, "file": filename,
@@ -232,10 +242,7 @@ def _manual_manifest_chapter_refs(
             candidates.append({
                 "kind": "MANIFEST_REFERENCE_MISSING_REVIEW", "collection": key,
             })
-        elif (
-            "/" in filename or "\\" in filename or ":" in filename
-            or filename in {".", ".."} or not filename.lower().endswith(".json")
-        ):
+        elif not _safe_windows_json_basename(filename):
             candidates.append({
                 "kind": "MANIFEST_REFERENCE_UNSAFE_REVIEW",
                 "collection": key, "file": filename,
@@ -350,10 +357,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 filename = payload["base_file"]
                 if not isinstance(filename, str) or not filename:
                     base_findings.append({"kind": "MANUAL_BASE_MISSING_REVIEW"})
-                elif (
-                    "/" in filename or "\\" in filename or ":" in filename
-                    or filename in {".", ".."} or not filename.lower().endswith(".json")
-                ):
+                elif not _safe_windows_json_basename(filename):
                     base_findings.append({
                         "kind": "MANUAL_BASE_UNSAFE_REVIEW", "file": filename,
                     })
@@ -395,6 +399,12 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             entry["status"] = "INVALID"
             entry["error"] = type(exc).__name__
             counts["invalid_syntax"] += 1
+        except RecursionError:
+            # Valid but excessively nested JSON can exhaust the decoder.
+            # This is incomplete coverage, not a malformed source or a PASS.
+            entry["status"] = "NOT_AVAILABLE"
+            entry["error"] = "JSON_NESTING_LIMIT_EXCEEDED"
+            counts["unavailable"] += 1
         except OSError as exc:
             entry["status"] = "NOT_AVAILABLE"
             entry["error"] = type(exc).__name__

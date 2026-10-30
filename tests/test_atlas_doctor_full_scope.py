@@ -263,6 +263,64 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(audit["syntax_coverage"], "PASS")
         self.assertFalse(audit["semantic_links_verified"])
 
+    def test_windows_reserved_and_invalid_json_reference_names_are_unsafe(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        names = ["CON.json", "com1.json", "chapter?.json", "bad\u0001.json"]
+        self._file(
+            "data/encyclopedia/guides/catalog.json",
+            json.dumps({"categories": [{"id": "dofus"}],
+                        "guides": [
+                            {"id": f"g{i}", "category": "dofus", "file": name}
+                            for i, name in enumerate(names)
+                        ]}),
+        )
+        prefix = "data/routes/guide_ultime_manual/"
+        self._file(prefix + "manifest_v1.json", json.dumps({
+            "canonical": {
+                "chapters": [{"file": "NUL.json"}],
+                "conditional_routes": [{"file": "bad|branch.json"}],
+                "transversal_routes": [{"file": "CON.json"}],
+                "temporal_registry": "LPT9.json",
+            },
+        }))
+        self._file(prefix + "patch.json", json.dumps({"base_file": "AUX.json"}))
+        sha = self._commit()
+        audit = audit_full_scope(self.root, expected_sha=sha, with_json=True)["json_semantic_audit"]
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertEqual(audit["guide_catalog_static_links"]["status"], "REVIEW")
+        self.assertEqual(
+            [issue["kind"] for issue in audit["guide_catalog_static_links"]["issues"]],
+            ["UNSAFE_GUIDE_FILENAME"] * len(names),
+        )
+        by_file = {entry["file"]: entry for entry in audit["files"]}
+        self.assertEqual(
+            {issue["kind"] for issue in
+             by_file[prefix + "manifest_v1.json"]["manual_manifest_reference_candidates"]},
+            {"MANIFEST_CHAPTER_PATH_UNSAFE_REVIEW", "MANIFEST_REFERENCE_UNSAFE_REVIEW"},
+        )
+        self.assertEqual(
+            by_file[prefix + "patch.json"]["manual_base_reference_candidates"],
+            [{"kind": "MANUAL_BASE_UNSAFE_REVIEW", "file": "AUX.json"}],
+        )
+        self.assertFalse(audit["semantic_links_verified"])
+
+    def test_excessive_json_nesting_is_blocked_without_aborting_inventory(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file("data/deep.json", "[" * 12000 + "0" + "]" * 12000)
+        self._file("data/other.json", '{"ok":true}')
+        sha = self._commit()
+        audit = audit_full_scope(self.root, expected_sha=sha, with_json=True)["json_semantic_audit"]
+        self.assertEqual(audit["counts"]["tracked"], 2)
+        self.assertEqual(audit["counts"]["unavailable"], 1)
+        self.assertEqual(audit["counts"]["valid_syntax"], 1)
+        self.assertEqual(audit["syntax_coverage"], "BLOCKED")
+        by_file = {entry["file"]: entry for entry in audit["files"]}
+        self.assertEqual(by_file["data/deep.json"]["status"], "NOT_AVAILABLE")
+        self.assertEqual(by_file["data/deep.json"]["error"], "JSON_NESTING_LIMIT_EXCEEDED")
+        self.assertEqual(by_file["data/other.json"]["status"], "VALID_SYNTAX")
+
     def test_manual_chapter_patch_base_file_dependencies_are_tracked(self):
         self._unity()
         self._file("app/ok.py", "pass\n")
