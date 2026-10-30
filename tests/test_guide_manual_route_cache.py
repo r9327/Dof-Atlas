@@ -669,6 +669,27 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 object.__new__(Service), path, "quest-version-2",
             ))
 
+            # Qt can request just one SQLite row per timer tick; the
+            # interrupted prefetch must never materialize the whole route.
+            with patch.object(
+                module, "load_catalog_card_detail",
+                wraps=module.load_catalog_card_detail,
+            ) as reader:
+                self.assertTrue(restored.prefetch_route_near(11, max_reads=1))
+                self.assertEqual(reader.call_count, 1)
+                self.assertEqual(len(restored._catalog_detail_cache), 2)
+                for _ in range(10):
+                    if not restored.prefetch_route_near(11, max_reads=1):
+                        break
+                else:
+                    self.fail("Neighborhood prefetch did not terminate")
+                self.assertLessEqual(reader.call_count, 5)
+                self.assertLessEqual(len(restored._catalog_detail_cache), 10)
+                self.assertEqual(
+                    restored.manual_lines_for_card("character:2", restored.cards[11]),
+                    [{"text": "Ligne 11"}],
+                )
+
             # Bounded neighboring prefetch never hydrates the full itinerary.
             with patch.object(
                 module, "load_catalog_card_detail",
