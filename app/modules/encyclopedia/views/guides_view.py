@@ -3265,17 +3265,28 @@ class GuidesView(QWidget):
         return rows
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
-        clean = clean_text(line)
-        key = normalize_text(clean)
-        prefixes = ("quete_terminee_", "quete_active_")
-        prefix = next((value for value in prefixes if key.startswith(value)), "")
-        if not prefix:
+        key = normalize_text(clean_text(line))
+        prefix = next(
+            (value for value in ("quete_terminee_", "quete_active_")
+             if key.startswith(value)), "",
+        )
+        if not prefix or self.quest_catalog is None:
             return None
-        target = key[len(prefix) :]
-        for quest in self.quest_catalog.quests:
-            if normalize_text(quest.name) == target:
-                return int(quest.id)
-        return None
+        target = key[len(prefix):]
+        catalog = self.quest_catalog
+        quests = catalog.quests
+        # Prerequisites in the right panel may resolve dozens of names. The
+        # previous implementation scanned every Quest (up to ~2k) per line,
+        # while Qt was rendering Guide widgets. Build once per catalog; the
+        # rich Guide view and this index are both disposed on catalogue Home.
+        stamp = (id(catalog), id(quests), len(quests))
+        if getattr(self, "_quest_name_id_index_stamp", None) != stamp:
+            lookup: dict[str, int] = {}
+            for quest in quests:
+                lookup.setdefault(normalize_text(quest.name), int(quest.id))
+            self._quest_name_id_index = lookup
+            self._quest_name_id_index_stamp = stamp
+        return self._quest_name_id_index.get(target)
 
     def _guide_prerequisite_row(
         self, text: str, quest_id: int | None, success_id: int | None = None,
