@@ -43,6 +43,11 @@ class DoctorRamForensicsTests(unittest.TestCase):
             )
         )
         self.assertTrue(any("Qt/C++ native" in limit for limit in result["limits"]))
+        self.assertTrue(any(
+            row["source"] == "tests/test_doctor_ram_forensics.py"
+            for row in result["checkpoints"][1]["top_traced_lines_now"]
+        ))
+        self.assertIn("benchmark_top_sources_traced_mib", result["checkpoints"][1])
 
     def test_invalid_existing_tracing_is_not_silently_reused(self):
         tracemalloc.start()
