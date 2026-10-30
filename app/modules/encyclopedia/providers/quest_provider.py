@@ -106,5 +106,33 @@ class QuestProvider:
         supplied = self._pack_guide_evidence.get(int(quest_id))
         return deepcopy(supplied) if supplied is not None else baseline
 
+    def guide_evidence_many(self, quest_ids) -> dict[int, dict[str, object]]:
+        """One compact source read for the Guide sheet, with pack parity.
+
+        Optional external evidence packs still use the legacy per-quest merge,
+        which validates the canonical ID and deep-copies supplied facts.
+        """
+        ids = tuple(dict.fromkeys(int(value) for value in quest_ids))
+        if not ids:
+            return {}
+        if (
+            self._pack_guide_evidence
+            or (_is_default_data_dir(self.data_dir)
+                and os.environ.get("DOFUS_ATLAS_PACK_ROOT", "").strip())
+        ):
+            return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
+
+        catalogue = self.get_catalog()
+        batch = getattr(catalogue, "guide_evidence_many", None)
+        if callable(batch):
+            values = batch(ids)
+            if isinstance(values, dict):
+                return {
+                    quest_id: values.get(quest_id, {})
+                    if isinstance(values.get(quest_id), dict) else {}
+                    for quest_id in ids
+                }
+        return {quest_id: self.guide_evidence(quest_id) for quest_id in ids}
+
     def count(self) -> int:
         return len(self.list_quests())

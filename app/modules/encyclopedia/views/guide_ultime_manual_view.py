@@ -318,21 +318,36 @@ class GuideUltimeManualCard(QFrame):
         result: list[dict[str, Any]] = []
         seen: set[tuple[int, int]] = set()
         names = {quest_id: name for quest_id, name in self._quest_rows}
-
+        quest_ids: list[int] = []
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
-                quest_id = int(raw)
+                quest_ids.append(int(raw))
             except (TypeError, ValueError):
                 continue
 
+        # The compact-backed Quest provider can fetch all these rows with one
+        # SQLite handle. Custom/legacy providers retain the old point lookup.
+        batch_getter = getattr(provider, "guide_evidence_many", None)
+        evidence_by_id = None
+        if callable(evidence) and callable(batch_getter) and quest_ids:
+            try:
+                evidence_by_id = batch_getter(quest_ids)
+            except (KeyError, LookupError, TypeError, ValueError):
+                evidence_by_id = None
+
+        for quest_id in quest_ids:
             combat_rows: list[dict[str, Any]] = []
             if callable(evidence):
                 try:
-                    payload = evidence(quest_id)
+                    payload = (
+                        evidence_by_id.get(quest_id, {})
+                        if isinstance(evidence_by_id, dict)
+                        else evidence(quest_id)
+                    )
                 except (KeyError, LookupError, TypeError, ValueError):
                     payload = None
                 if isinstance(payload, dict):
-                    combat_rows = [
+                    combat_rows: list[dict[str, Any]] = [
                         objective
                         for objective in payload.get("combats", []) or []
                         if isinstance(objective, dict)

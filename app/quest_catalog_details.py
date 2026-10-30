@@ -151,6 +151,32 @@ class QuestDetails:
             return {}
         return payload if isinstance(payload, dict) else {}
 
+    def guide_evidence_many(self, quest_ids) -> dict[int, dict[str, object]]:
+        """Read canonical compact evidence in bounded SQL batches, no rich Quests.
+
+        The long Guide-complet sheet can reference 700+ quests. Reopening the
+        same SQLite index for every row stalls Qt even with warm caches.
+        """
+        unique_ids = tuple(dict.fromkeys(int(value) for value in quest_ids))
+        if not unique_ids:
+            return {}
+        result: dict[int, dict[str, object]] = {}
+        # Stay below the oldest supported SQLite bind-variable limit.
+        with _connect(self.path) as connection:
+            for start in range(0, len(unique_ids), 400):
+                chunk = unique_ids[start:start + 400]
+                placeholders = ",".join("?" for _ in chunk)
+                for quest_id, raw in connection.execute(
+                    f"SELECT id, guide_evidence FROM quests WHERE id IN ({placeholders})",
+                    chunk,
+                ):
+                    try:
+                        payload = json.loads(raw or "{}")
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        payload = {}
+                    result[int(quest_id)] = payload if isinstance(payload, dict) else {}
+        return result
+
     def cached(self, quest_id: int) -> bool:
         with self._lock:
             return int(quest_id) in self._records
@@ -513,6 +539,7 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
     catalog.is_detail_cached = details.cached
     catalog.detail_cache_info = details.info
     catalog.guide_evidence = details.guide_evidence
+    catalog.guide_evidence_many = details.guide_evidence_many
     # Do not let a catalogue-owned search callback retain its own catalogue.
     # Home hibernation drops the provider reference; keeping a self-capturing
     # lambda would form a cycle and accumulate Quest graphs across navigations.
