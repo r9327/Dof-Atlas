@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from app.quest_source_index import QuestSourceError, QuestSources
@@ -44,6 +46,63 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
             self.assertIsNone(rows._disk_connection)
+
+    def test_corrupt_disk_offsets_rebuild_before_source_read(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"101": "Premier", "102": "Deuxième"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries")
+                self.assertEqual(rows["101"], "Premier")
+                db = rows._disk_index
+                self.assertIsNotNone(db)
+            finally:
+                sources.close()
+
+            with closing(sqlite3.connect(db)) as conn, conn:
+                conn.execute("UPDATE offsets SET end = ?", (source.stat().st_size * 2,))
+            fresh = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = fresh.mapping(source, "entries")
+                self.assertEqual(rows["101"], "Premier")
+                self.assertEqual(rows["102"], "Deuxième")
+                with closing(sqlite3.connect(db)) as conn:
+                    bad = conn.execute(
+                        "SELECT COUNT(*) FROM offsets WHERE end > ?",
+                        (source.stat().st_size,),
+                    ).fetchone()[0]
+                self.assertEqual(bad, 0)
+            finally:
+                fresh.close()
+
+    def test_missing_offsets_schema_rebuilds_readable_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "bonne donnée"}}),
+                encoding="utf-8",
+            )
+            reader = QuestSources(root / "cache", disk_backed=True)
+            rows = reader.mapping(source, "entries")
+            self.assertEqual(rows["1"], "bonne donnée")
+            db = rows._disk_index
+            reader.close()
+            with closing(sqlite3.connect(db)) as conn, conn:
+                conn.execute("DROP TABLE offsets")
+                conn.execute("CREATE TABLE other(id INTEGER)")
+            fresh = QuestSources(root / "cache", disk_backed=True)
+            try:
+                self.assertEqual(
+                    fresh.mapping(source, "entries")["1"], "bonne donnée",
+                )
+            finally:
+                fresh.close()
 
     def test_disk_backed_connection_pool_is_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
