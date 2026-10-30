@@ -222,6 +222,28 @@ class OptimizationReportTests(unittest.TestCase):
             self.assertIn("phase8_deep_first_use_same_fixture",
                           render_markdown(report))
 
+    def test_inventory_unavailable_preserves_benchmark_and_exposes_missing_evidence(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      side_effect=OSError("tool metadata unavailable")),
+            ):
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            self.assertEqual(report["tool_catalog_cache"]["status"], "UNAVAILABLE")
+            self.assertEqual(report["tool_catalog_cache"]["reason"], "OSError")
+            self.assertEqual(report["diagnostic_correlation"]["status"], "NO_CORRELATION")
+            self.assertIn("tool_catalog: NOT_PROVIDED",
+                          report["diagnostic_correlation"]["evidence_gaps"])
+            self.assertTrue((root / "artifacts" / "doctor_complete" /
+                             "optimization.json").is_file())
+
     def test_stale_app_skips_expensive_tool_catalog_discovery(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
