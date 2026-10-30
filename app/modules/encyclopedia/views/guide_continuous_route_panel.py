@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import DATA_DIR
+from app.ui.theme import PALETTE
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
@@ -100,20 +101,28 @@ class ContinuousGuideRoutePanel(QWidget):
         self.character_icon_buttons = {}
         self._summary_open = False
         self._preparation_open = False
+        self._characters_open = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(7)
+        self.guide_title = QLabel(str(route.get("title") or "Guide Ganymède"))
+        self.guide_title.setObjectName("GuideCompactTitle")
+        layout.addWidget(self.guide_title)
         head = QHBoxLayout()
+        head.setSpacing(5)
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         head.addWidget(self.position_label, 1)
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideContinuousCharactersButton")
-        self.participants_button.setPopupMode(QToolButton.InstantPopup)
+        # Use the same stable inline character panel as the optimized Guide.
+        # Keep the QAction model for existing keyboard/progress consumers, but
+        # do not expose its oversized native QMenu as the primary control.
+        self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self._characters_menu = QMenu(self.participants_button)
-        self.participants_button.setMenu(self._characters_menu)
+        self.participants_button.setToolTip("Afficher les personnages du parcours")
         for character in self.available_characters:
             if character.key in self._character_actions:
                 continue
@@ -135,7 +144,10 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.setText("Sommaire")
         self.summary_toggle.clicked.connect(self.toggle_summary)
         head.addWidget(self.summary_toggle)
-        portraits = QHBoxLayout()
+        self.characters_panel = QFrame(self)
+        self.characters_panel.setObjectName("GuideContinuousCharactersPanel")
+        portraits = QHBoxLayout(self.characters_panel)
+        portraits.setContentsMargins(6, 5, 6, 5)
         portraits.setSpacing(4)
         for character in self.available_characters:
             if character.key in self.character_icon_buttons:
@@ -163,7 +175,11 @@ class ContinuousGuideRoutePanel(QWidget):
             portraits.addWidget(button)
         if self.character_icon_buttons:
             portraits.addStretch(1)
-            layout.addLayout(portraits)
+        else:
+            portraits.addWidget(QLabel("Aucun personnage identifié"))
+        self.characters_panel.setVisible(False)
+        self.participants_button.toggled.connect(self.toggle_characters)
+        layout.addWidget(self.characters_panel)
         self.route_progress = QProgressBar()
         self.route_progress.setObjectName("GuideContinuousRouteProgress")
         self.route_progress.setRange(0, 100)
@@ -188,6 +204,11 @@ class ContinuousGuideRoutePanel(QWidget):
 
         content = QFrame()
         content.setObjectName("GuideContinuousCard")
+        content.setStyleSheet(
+            f"QFrame#GuideContinuousCard {{ background: {PALETTE['PANEL']}; "
+            f"border: 1px solid {PALETTE['BORDER']}; border-radius: 9px; }}"
+            "QFrame#GuideContinuousCard QLabel { border: none; background: transparent; }"
+        )
         detail = QVBoxLayout(content)
         detail.setContentsMargins(8, 8, 8, 8)
         detail.setSpacing(6)
@@ -201,7 +222,19 @@ class ContinuousGuideRoutePanel(QWidget):
         self.body_label.setObjectName("GuideContinuousActions")
         self.body_label.setTextFormat(Qt.PlainText)
         self.body_label.setWordWrap(True)
-        detail.addWidget(self.body_label)
+        self.body_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.body_scroll = QScrollArea()
+        self.body_scroll.setObjectName("GuideContinuousActionsScroll")
+        self.body_scroll.setWidgetResizable(True)
+        self.body_scroll.setMinimumHeight(110)
+        self.body_scroll.setMaximumHeight(280)
+        self.body_scroll.setFrameShape(QFrame.NoFrame)
+        self.body_scroll.setWidget(self.body_label)
+        detail.addWidget(self.body_scroll, 1)
+        self.coordinates_label = QLabel()
+        self.coordinates_label.setObjectName("GuideContinuousCoordinates")
+        self.coordinates_label.setWordWrap(True)
+        detail.addWidget(self.coordinates_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
         self.preparation_toggle = self._button(
@@ -244,7 +277,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        self.validate_button = self._button("✓", "GuideContinuousValidate")
+        self.validate_button = self._button("Valider", "GuideContinuousValidate")
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
         )
@@ -266,6 +299,10 @@ class ContinuousGuideRoutePanel(QWidget):
         button.setText(text)
         button.setCursor(Qt.PointingHandCursor)
         return button
+
+    def toggle_characters(self, opened: bool) -> None:
+        self._characters_open = bool(opened)
+        self.characters_panel.setVisible(self._characters_open)
 
     def toggle_summary(self) -> None:
         self._summary_open = not self._summary_open
@@ -449,6 +486,12 @@ class ContinuousGuideRoutePanel(QWidget):
             current is not None and bool(position.selected_character_keys)
         )
         self.validate_button.setVisible(current is not None)
+        all_done = bool(current and position.selected_character_keys) and all(
+            self.navigation.progress.is_manual_step_completed(
+                key, self.navigation.guide_id, current,
+            ) for key in position.selected_character_keys
+        )
+        self.validate_button.setText("Annuler validation" if all_done else "Valider l'étape")
         travel = self._current_verified_travel()
         self.travel_button.setEnabled(travel is not None)
         if current is None:
@@ -458,13 +501,26 @@ class ContinuousGuideRoutePanel(QWidget):
                 if position.status == "NO_SELECTED_CHARACTER"
                 else "Toutes les fiches du parcours sont terminées."
             )
+            self.coordinates_label.clear()
             index = -1
         else:
             index = self.navigation.step_ids.index(current)
             row = self.rows[index]
-            self.title_label.setText(str(row.get("title") or f"Fiche {index + 1}"))
+            self.title_label.setText(str(row.get("title") or f"Étape {index + 1}"))
             self.body_label.setText(str(row.get("content") or
                                         "Actions de cette étape non renseignées."))
+            coordinates = row.get("source_coordinates_mentioned")
+            locations = []
+            if isinstance(coordinates, list):
+                for value in coordinates:
+                    if (isinstance(value, list) and len(value) == 2
+                            and all(type(number) is int for number in value)):
+                        location = f"[{value[0]}, {value[1]}]"
+                        if location not in locations:
+                            locations.append(location)
+            self.coordinates_label.setText(
+                "Positions citées : " + " · ".join(locations) if locations else ""
+            )
         references = (
             visible_object_references(self.route, current) if current else ()
         )
@@ -483,8 +539,8 @@ class ContinuousGuideRoutePanel(QWidget):
             ) if references else ""
         )
         self.position_label.setText(
-            f"FICHE {index + 1}" if index >= 0
-            else "PARCOURS CONTINU"
+            f"ÉTAPE {index + 1} / {position.total_steps}" if index >= 0
+            else f"PARCOURS · {position.total_steps} ÉTAPES"
         )
         self.previous_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < position.total_steps - 1)
