@@ -1,9 +1,12 @@
 """Doctor optimization-report contracts: no fabricated savings or certification."""
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown
+from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown, generate
 
 HEAD = "a" * 40
 OLD = "b" * 40
@@ -127,6 +130,24 @@ class OptimizationReportTests(unittest.TestCase):
                 {"step": "EXE", "duration_seconds": 30.0, "percent_of_job_measured_steps": 75.0}]}]})
         self.assertEqual(doc["ci_step_costs"][0]["job"], "Windows Packaging")
         self.assertIn("75.0% du job", render_markdown(doc))
+
+    def test_report_reuses_canonical_agent_tool_catalog_cache(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            import json
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            from tests.test_doctor_diagnostic_correlation import catalog
+            with patch("tools.agent_planner._planning_catalog",
+                       return_value=catalog()) as cached:
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            cached.assert_called_once()
+            self.assertEqual(cached.call_args.kwargs["cache_info"],
+                             report["tool_catalog_cache"])
+            self.assertEqual(report["diagnostic_correlation"]["status"], "REVIEW")
+            self.assertTrue((root / "artifacts" / "doctor_complete" /
+                             "optimization.json").is_file())
 
     def test_bad_rss_numbers_not_counted(self):
         doc = optimization_report(HEAD, sample(
