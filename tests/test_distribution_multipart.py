@@ -52,7 +52,15 @@ class MultipartDistributionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             archive, _, manifest, original = self._package(base)
-            assembled = assemble_archive_parts(manifest, archive.parent, base / "joined.zip")
+            assembly_progress = []
+            assembled = assemble_archive_parts(
+                manifest, archive.parent, base / "joined.zip",
+                progress=lambda done, total: assembly_progress.append((done, total)),
+            )
+            self.assertTrue(assembly_progress)
+            self.assertEqual(assembly_progress[-1], (manifest.archive_size, manifest.archive_size))
+            self.assertEqual([row[0] for row in assembly_progress],
+                             sorted(set(row[0] for row in assembly_progress)))
             self.assertEqual(archive.read_bytes(), assembled.read_bytes())
             self.assertTrue(install_release(base / "installed", assembled, manifest))
             self.assertEqual(active_executable(base / "installed").read_bytes(), original)
@@ -78,8 +86,17 @@ class MultipartDistributionTests(unittest.TestCase):
             def serve(url, headers=None):
                 observed.append((url, headers))
                 return Response(chunks[url])
+            transfer_progress, joined_progress = [], []
             with patch("app.distribution.release_client._open", side_effect=serve):
-                result = download_archive(remote, base / "downloads")
+                result = download_archive(
+                    remote, base / "downloads",
+                    lambda done, total: transfer_progress.append((done, total)),
+                    assemble_progress=lambda done, total: joined_progress.append((done, total)),
+                )
+            self.assertTrue(transfer_progress)
+            self.assertEqual(transfer_progress[-1], (manifest.archive_size, manifest.archive_size))
+            self.assertTrue(joined_progress)
+            self.assertEqual(joined_progress[-1], (manifest.archive_size, manifest.archive_size))
             self.assertEqual(result.read_bytes(), archive.read_bytes())
             self.assertEqual(len(observed), len(chunks))
             with patch("app.distribution.release_client._open", side_effect=AssertionError("network")):
