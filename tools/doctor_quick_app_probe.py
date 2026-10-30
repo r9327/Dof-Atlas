@@ -214,7 +214,7 @@ def pin_single_cpu_core() -> dict[str, int]:
 
 def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         cycles: int = 3, idle_seconds: float = 0.0,
-        one_core: bool = False) -> dict[str, Any]:
+        one_core: bool = False, ram_forensics: bool = False) -> dict[str, Any]:
     assert_inventory()
     if (not 5 <= timeout <= 45 or not 120 <= max_seconds <= 1800
             or cycles not in (1, 2, 3, 5, 10) or not 0 <= idle_seconds <= 120):
@@ -229,12 +229,18 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     sampler = PeakTreeSampler()
     cpu = CpuRssSampler()
     app = QApplication.instance() or QApplication([])
+    profiler = None
+    if ram_forensics:
+        from tools.atlas_doctor_lib.ram_forensics import RamForensics
+        profiler = RamForensics(ROOT)
     report: dict[str, Any] = {
         "schema": 2, "kind": "atlas_quick_full_app_navigation",
         "git_head": git_head(), "qt_platform": os.environ["QT_QPA_PLATFORM"],
         "cycles": cycles, "planned_samples": len(ROUTES) * cycles,
         "home_stabilization_wait_ms": 750, "idle_seconds_requested": idle_seconds,
         "is_certification": False, "one_core_requested": one_core,
+        "ram_forensics_enabled": ram_forensics,
+        "timing_comparable": not ram_forensics,
         "expected_routes": [x[0] for x in ROUTES],
         "routes": [], "preload_states": {}, "ram_ownership_checkpoints": [],
         "measurement_limits": [
@@ -250,6 +256,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     try:
         if one_core:
             report["cpu_affinity"] = pin_single_cpu_core()
+        if profiler is not None:
+            profiler.start()
         sampler.set_phase("startup")
         sampler.start()
         cpu.start()
@@ -298,6 +306,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                                     and all(v == "READY" for v in report["preload_states"].values())
                                     else "FAIL")
         report["after_preload"] = memory_snapshot("quick_after_preload")
+        if profiler is not None:
+            profiler.capture("initial_home")
         report["ram_ownership_checkpoints"].append({
             "label": "initial_home", "memory": report["after_preload"],
             "ownership": ram_ownership_snapshot(window, "initial_home"),
@@ -334,6 +344,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                     row["qt"] = lag.stop()
                     row["cpu_rss"] = cpu.get(phase)
                     row["active"] = memory_snapshot("quick_active")
+                    if profiler is not None and cycle == 1 and route_id in ROUTE_CHECKPOINTS:
+                        profiler.capture(f"{route_id}_active")
                     home_at = time.perf_counter()
                     home_cpu_at = time.process_time()
                     try:
@@ -349,6 +361,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         if window.active_page_name() != "Home":
                             raise RuntimeError("Home not active after settling")
                         if cycle == 1 and route_id in ROUTE_CHECKPOINTS:
+                            if profiler is not None:
+                                profiler.capture(f"{route_id}_after_home")
                             # RSS is captured *before* enumerating Qt widgets.
                             report["ram_ownership_checkpoints"].append({
                                 "label": f"{route_id}_home_after_first",
@@ -370,6 +384,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
              if "home_stabilized" in row), None,
         )
         if isinstance(final_home_memory, dict):
+            if profiler is not None:
+                profiler.capture("last_home")
             report["ram_ownership_checkpoints"].append({
                 "label": "last_home", "memory": final_home_memory,
                 "ownership": ram_ownership_snapshot(window, "last_home"),
@@ -404,6 +420,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     except Exception as exc:
         report["fatal"] = f"{type(exc).__name__}: {exc}"[:600]
     finally:
+        if profiler is not None:
+            report["ram_forensics"] = profiler.finish()
         cpu.close()
         sampler.stop()
         if window is not None:
@@ -454,10 +472,12 @@ def main() -> int:
     parser.add_argument("--cycles", type=int, choices=(1, 2, 3, 5, 10), default=3)
     parser.add_argument("--idle-seconds", type=float, default=0.0)
     parser.add_argument("--one-core", action="store_true")
+    parser.add_argument("--ram-forensics", action="store_true",
+                        help="Profilage Python tracemalloc en session isolee; timings non comparables.")
     args = parser.parse_args()
     report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds,
                  cycles=args.cycles, idle_seconds=args.idle_seconds,
-                 one_core=args.one_core)
+                 one_core=args.one_core, ram_forensics=args.ram_forensics)
     print(json.dumps({k: report.get(k) for k in (
         "status", "git_head", "cycles", "preload_ms", "preload_states", "functional_pass",
         "placeholder_pass", "failed_routes", "fatal", "peak_process_tree_rss_mib",
