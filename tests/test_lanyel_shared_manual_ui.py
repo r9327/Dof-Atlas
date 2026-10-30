@@ -316,6 +316,37 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     shared._preparation_icon_path.cache_clear()
                     shared._preparation_icon_roots.cache_clear()
 
+    def test_preparation_participant_details_are_lazy_and_open_once(self) -> None:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _PreparationNeed
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            self.assertTrue(view.select_guide("dofus_sylvestre"))
+            shared = view.stack.currentWidget()
+            self.assertIsInstance(shared, SharedGuideManualView)
+            need = _PreparationNeed(
+                item_key="name:preparation-test", item_id=None,
+                name="Potion de rappel", category="Potions",
+                required_by_character=(("character:1", 2),),
+            )
+            # The details were previously materialized on EVERY row build,
+            # including rows that would never be expanded.
+            row = shared._preparation_row(need)
+            toggle = row.findChild(QToolButton, "GuidePreparationDetailsButton")
+            self.assertIsNotNone(toggle)
+            self.assertEqual(len(row.findChildren(QLabel, "GuidePreparationParticipantNeed")), 0)
+            toggle.setChecked(True)
+            self.app.processEvents()
+            labels = row.findChildren(QLabel, "GuidePreparationParticipantNeed")
+            self.assertEqual(len(labels), 1)
+            self.assertIn("besoin 2", labels[0].text())
+            toggle.setChecked(False)
+            toggle.setChecked(True)
+            self.assertEqual(len(row.findChildren(QLabel, "GuidePreparationParticipantNeed")), 1)
+            row.deleteLater()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_preparation_without_selected_characters_is_read_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
