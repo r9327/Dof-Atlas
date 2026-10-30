@@ -348,6 +348,15 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 ["GuidePreparationToggle", "GuideSummaryButton", "GuideParticipantsButton"],
             )
             self.assertFalse(hasattr(shared, "page_jump_button"))
+            # The compact header starts with the guide icon/title; the
+            # working catalogue back action belongs to the sheet below.
+            self.assertIsNone(
+                compact.findChild(QPushButton, "GuideManualGuideButton")
+            )
+            self.assertIs(
+                sheet_header.findChild(QPushButton, "GuideManualGuideButton"),
+                shared.guide_button,
+            )
             self.assertEqual(shared.guide_button.text(), "←")
             self.assertFalse(shared.overlay_button.isEnabled())
             self.assertGreater(len(shared.service.cards), 1)
