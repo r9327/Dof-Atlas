@@ -15,7 +15,8 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import asdict
 from pathlib import Path
-from threading import RLock
+from threading import RLock, current_thread
+from time import perf_counter
 
 from app import quest_catalog as qc
 from app.quest_source_index import QuestSources
@@ -78,6 +79,7 @@ class QuestDetails:
             tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]],
         ] = OrderedDict()
         self.loads = self.hits = 0
+        self._last_detail_breakdown_ms: dict[str, object] = {}
 
     def _load_source_context(self) -> None:
         """Hydrate precomputed global names only for the first rich detail."""
@@ -219,30 +221,53 @@ class QuestDetails:
                     self.hits += 1
                     self._records.move_to_end(quest_id)
                     return record
+            started = perf_counter()
+            phases: dict[str, object] = {
+                "quest_id": quest_id, "thread": current_thread().name,
+            }
             with _connect(self.path) as connection:
                 row = connection.execute("SELECT detail FROM quests WHERE id=?", (quest_id,)).fetchone()
+            phases["sqlite_lookup_ms"] = round((perf_counter() - started) * 1000.0, 3)
             if row is None:
                 raise KeyError(quest_id)
             if row[0] is not None:
+                phases["sqlite_cache_hit"] = True
                 record = qc._record_from_cache(json.loads(row[0]))
             else:
+                phases["sqlite_cache_hit"] = False
                 if _signature(self.data_dir) != self.signature:
                     raise RuntimeError("Les sources Quêtes ont changé ; rechargez le catalogue.")
+                source_started = perf_counter()
                 try:
                     self._prime_objective_step_index()
                     self._load_source_context()
-                    record = qc.QuestCatalog._load_source(self.data_dir, quest_ids={quest_id}, sources=self._sources).by_id[quest_id]
+                    phases["source_index_and_context_ms"] = round(
+                        (perf_counter() - source_started) * 1000.0, 3,
+                    )
+                    compilation_started = perf_counter()
+                    record = qc.QuestCatalog._load_source(
+                        self.data_dir, quest_ids={quest_id}, sources=self._sources,
+                    ).by_id[quest_id]
+                    phases["source_compile_ms"] = round(
+                        (perf_counter() - compilation_started) * 1000.0, 3,
+                    )
                 finally:
                     self._sources.close()
+                persistence_started = perf_counter()
                 if _signature(self.data_dir) != self.signature:
                     raise RuntimeError("Les sources Quêtes ont changé pendant le chargement.")
                 with _connect(self.path) as connection:
                     connection.execute("UPDATE quests SET detail=? WHERE id=?", (_json(asdict(record)), quest_id))
+                phases["sqlite_serialize_and_persist_ms"] = round(
+                    (perf_counter() - persistence_started) * 1000.0, 3,
+                )
             with self._lock:
                 self._records[quest_id] = record
                 self.loads += 1
                 while len(self._records) > self.limit:
                     self._records.popitem(last=False)
+                phases["total_ms"] = round((perf_counter() - started) * 1000.0, 3)
+                self._last_detail_breakdown_ms = phases
             return record
 
     def info(self):
@@ -254,6 +279,7 @@ class QuestDetails:
                 "hits": self.hits,
                 # Diagnostic only: the same rich-detail worker owns these timings.
                 "last_source_phases_ms": dict(getattr(self._sources, "last_detail_phase_ms", {})),
+                "last_detail_breakdown_ms": dict(self._last_detail_breakdown_ms),
             }
 
     def search_documents(self, quest_ids):
