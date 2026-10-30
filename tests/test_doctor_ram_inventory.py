@@ -47,7 +47,10 @@ class DoctorRamInventoryTests(unittest.TestCase):
             self.assertTrue(detail["native_image_indicators"]["world_canvas"]["image_suspended"])
             self.assertGreaterEqual(detail["native_image_indicators"]["qt_global_pixmap_cache_limit_kib"], 0)
             self.assertIn("cannot identify native RSS", " ".join(detail["limits"]))
-            self.assertIn("app", detail["loaded_application_modules"])
+            self.assertEqual(
+                detail["loaded_application_modules"],
+                sorted(detail["loaded_application_modules"]),
+            )
             self.assertTrue(all(
                 name == "app" or name.startswith("app.")
                 for name in detail["loaded_application_modules"]
