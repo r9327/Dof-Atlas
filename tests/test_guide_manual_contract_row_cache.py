@@ -4,6 +4,7 @@ import ast
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
 
@@ -70,6 +71,61 @@ class GuideManualContractRowCacheTests(unittest.TestCase):
             )
             for node in ast.walk(line_loop)
         ))
+
+    def test_bulk_guide_combat_evidence_preserves_order_ids_quantities_and_dedup(self) -> None:
+        combat_10 = {"objective_id": 80, "monster": "Bouftou Royal", "quantity": 2}
+        combat_20 = {"objective_id": 90, "monster": "Tofu Royal", "quantity": 3}
+        per_quest = Mock(side_effect=AssertionError("must use one batch"))
+        batch = Mock(return_value={
+            10: {"combats": [combat_10, combat_10]},
+            20: {"combats": [combat_20]},
+        })
+        provider = SimpleNamespace(
+            guide_evidence=per_quest,
+            guide_evidence_many=batch,
+            get_quest=Mock(side_effect=AssertionError("rich Quest read on Qt")),
+        )
+        fake = SimpleNamespace(
+            service=SimpleNamespace(quest_provider=provider),
+            card={"manual_quest_ids": [10, 20, 10]},
+            _quest_rows=[(10, "Première quête"), (20, "Seconde quête")],
+            _safe_positive_int=GuideUltimeManualCard._safe_positive_int,
+        )
+        result = GuideUltimeManualCard._quest_combat_targets(
+            fake, {"now": [{"text": "Combattre Bouftou Royal puis Tofu Royal"}]}
+        )
+        self.assertEqual(result, [
+            {"quest_id": 10, "objective_id": 80, "quest_name": "Première quête",
+             "monster": "Bouftou Royal", "quantity": 2},
+            {"quest_id": 20, "objective_id": 90, "quest_name": "Seconde quête",
+             "monster": "Tofu Royal", "quantity": 3},
+        ])
+        batch.assert_called_once_with([10, 20, 10])
+        per_quest.assert_not_called()
+        provider.get_quest.assert_not_called()
+
+    def test_legacy_provider_combat_evidence_remains_identical(self) -> None:
+        provider = SimpleNamespace(
+            guide_evidence=Mock(return_value={
+                "combats": [{"objective_id": 80, "monster": "Bouftou Royal",
+                             "quantity": 2}]
+            }),
+            get_quest=Mock(side_effect=AssertionError("compact source exists")),
+        )
+        fake = SimpleNamespace(
+            service=SimpleNamespace(quest_provider=provider),
+            card={"manual_quest_ids": [10]},
+            _quest_rows=[(10, "Quête stable")],
+            _safe_positive_int=GuideUltimeManualCard._safe_positive_int,
+        )
+        result = GuideUltimeManualCard._quest_combat_targets(
+            fake, {"now": [{"text": "Combattre Bouftou Royal"}]}
+        )
+        self.assertEqual(
+            [(row["quest_id"], row["objective_id"], row["quantity"]) for row in result],
+            [(10, 80, 2)],
+        )
+        provider.guide_evidence.assert_called_once_with(10)
 
     def test_replacing_contract_rebuilds_index(self) -> None:
         first = {"card_key": "a", "quests": [1]}
