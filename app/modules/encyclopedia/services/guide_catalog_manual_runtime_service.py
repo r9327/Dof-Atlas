@@ -13,7 +13,7 @@ import re
 from typing import Any
 from uuid import uuid4
 
-from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
@@ -51,7 +51,7 @@ def _position_key_uncached(text: str) -> str:
 
 
 
-_CATALOG_ROUTE_CACHE_DIR = ROOT_DIR / ".cache" / "dofus_atlas" / "catalog_routes_v1"
+_CATALOG_ROUTE_CACHE_DIR = (USER_DATA_ROOT or ROOT_DIR) / ".cache" / "dofus_atlas" / "catalog_routes_v1"
 _CATALOG_ROUTE_CACHE_SCHEMA = 1
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,24 +88,28 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
     sources = (
         Path(__file__), Path(guide_quest_view_model.__file__),
     )
-    # Frozen Windows builds may not expose Python source files on disk;
-    # the executable signature still changes on application updates.
-    executable = Path(sys.executable)
-    source_stats = []
-    for path in sources:
-        try:
-            meta = path.stat()
-        except OSError:
-            source_stats.append((str(path), None, None))
-        else:
-            source_stats.append((str(path), meta.st_mtime_ns, meta.st_size))
-    if any(row[1] is None for row in source_stats):
+    # Frozen bundles unpack sources to a different temporary path on each
+    # launch. Bind cache validity to the durable executable version instead.
+    frozen = bool(getattr(sys, "frozen", False))
+    if frozen:
+        executable = Path(sys.executable)
         meta = executable.stat()
-        source_stats.append((str(executable), meta.st_mtime_ns, meta.st_size))
+        source_stats = [("frozen_executable", meta.st_mtime_ns, meta.st_size)]
+    else:
+        source_stats = [
+            (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+            for path in sources
+        ]
+    quest_sources = quest_catalog_cache_signature(data_dir)
+    frozen_root = getattr(sys, "_MEIPASS", None) if frozen else None
+    if frozen_root and data_dir.resolve().is_relative_to(Path(frozen_root).resolve()):
+        # Content is bundled immutably with the signed executable; disregard
+        # ephemeral extraction paths and mtimes while retaining file sizes.
+        quest_sources = tuple((label, size) for label, _, _, size in quest_sources)
     payload = {
         "schema": _CATALOG_ROUTE_CACHE_SCHEMA,
         "guide": [service.guide_id, service.guide_title, steps],
-        "quest_sources": quest_catalog_cache_signature(data_dir),
+        "quest_sources": quest_sources,
         "projection_files": source_stats,
     }
     digest = hashlib.sha256(
