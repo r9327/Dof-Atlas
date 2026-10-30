@@ -138,7 +138,7 @@ class AchievementDetailColdTimingTests(unittest.TestCase):
             return subprocess.CompletedProcess(
                 args=argv, returncode=0,
                 stdout=json.dumps({"id": ident, "category_id": 8,
-                                   "name": f"Achievement {ident}"}) + "\\n",
+                                   "name": f"Achievement {ident}"}) + "\n",
                 stderr="",
             )
 
