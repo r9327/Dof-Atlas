@@ -11,6 +11,7 @@ import sqlite3
 from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
+from time import perf_counter
 import re
 from typing import Any
 from uuid import uuid4
@@ -314,7 +315,13 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 return True
         return False
 
+    @property
+    def last_catalog_route_load_ms(self) -> dict[str, object]:
+        """Diagnostic for Guide open latency; timings are not a certification."""
+        return dict(getattr(self, "_last_catalog_route_load_ms", {}))
+
     def _load_manual_preview(self) -> None:
+        started = perf_counter()
         # A certified Windows bundle already contains the entire immutable
         # Sylvestre itinerary. Restore it before attempting any source Quest
         # compilation; keep local caches and canonical reconstruction as fallback.
@@ -322,16 +329,26 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             restore_prebuilt_route,
         )
         if restore_prebuilt_route(self):
+            self._last_catalog_route_load_ms = {
+                "mode": "prebuilt", "total_ms": round((perf_counter() - started) * 1000, 3),
+            }
             return
+        prebuilt_ms = round((perf_counter() - started) * 1000, 3)
 
         # Restore only compact card identities, then fetch walkthroughs on demand.
         try:
             cached_identity = _catalog_route_cache_identity(self)
         except (OSError, ValueError, TypeError):
             cached_identity = None
+        identity_ms = round((perf_counter() - started) * 1000, 3) - prebuilt_ms
         if cached_identity is not None:
             try:
                 if restore_indexed_route(self, *cached_identity):
+                    self._last_catalog_route_load_ms = {
+                        "mode": "indexed", "prebuilt_probe_ms": prebuilt_ms,
+                        "signature_ms": round(identity_ms, 3),
+                        "total_ms": round((perf_counter() - started) * 1000, 3),
+                    }
                     return
             except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
                 _LOGGER.warning("Index de Guide invalide, reconstruction: %s", exc)
@@ -342,8 +359,15 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                     restore_indexed_route(self, *cached_identity)
                 except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
                     _LOGGER.warning("Migration cache Guide ignorée: %s", exc)
+                self._last_catalog_route_load_ms = {
+                    "mode": "legacy_migration",
+                    "prebuilt_probe_ms": prebuilt_ms,
+                    "signature_ms": round(identity_ms, 3),
+                    "total_ms": round((perf_counter() - started) * 1000, 3),
+                }
                 return
 
+        projection_started = perf_counter()
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
         seen_quests: set[int] = set()
@@ -382,6 +406,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             raise ValueError(f"Aucune fiche route exploitable pour {self.guide_id}")
 
         self._link_next_cards(cards)
+        projection_ms = round((perf_counter() - projection_started) * 1000, 3)
         self.route = {
             "schema_version": 5,
             "id": f"catalog_manual_{self.guide_id}",
@@ -428,6 +453,16 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                     _write_catalog_route_cache(self, *cached_identity)
                 except (OSError, ValueError, TypeError) as fallback_exc:
                     _LOGGER.warning("Cache Guide de repli indisponible: %s", fallback_exc)
+        self._last_catalog_route_load_ms = {
+            "mode": "source_projection",
+            "prebuilt_probe_ms": prebuilt_ms,
+            "signature_ms": round(identity_ms, 3),
+            "projection_ms": projection_ms,
+            "persistence_ms": round(
+                (perf_counter() - projection_started) * 1000 - projection_ms, 3,
+            ),
+            "total_ms": round((perf_counter() - started) * 1000, 3),
+        }
 
     def _quest_segments(
         self, guide_step, quest, *, finalize: bool = True,
