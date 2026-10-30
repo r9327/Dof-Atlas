@@ -26,9 +26,16 @@ class GuideHomeColumns(QWidget):
         self.setObjectName("GuidesHomeColumns")
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
         layout.addWidget(left, 1)
-        layout.addWidget(right, 2)
+        layout.addWidget(right, 3)
+        # Left is navigation, right is content: never give the menu a third
+        # of the page on a normal monitor.
+        self._left = left
+        self._right = right
+        left.setMinimumWidth(0)
+        right.setMinimumWidth(0)
+        left.setMaximumWidth(295)
         self._columns_layout = layout
 
     def set_available_width(self, width: int) -> None:
@@ -36,6 +43,8 @@ class GuideHomeColumns(QWidget):
         direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
         if self._columns_layout.direction() != direction:
             self._columns_layout.setDirection(direction)
+        # The maximum must be relaxed when panes stack on narrow screens.
+        self._left.setMaximumWidth(295 if direction == QBoxLayout.LeftToRight else 16777215)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -257,6 +266,12 @@ class GuideCardDelegate(QStyledItemDelegate):
             else PALETTE["PANEL_2"]
         )
         border = QColor(PALETTE["GREEN"] if selected else PALETTE["BORDER"])
+        # Small raster shadow belongs to the lightweight delegate, not one
+        # heavyweight graphics effect per Dofus row.
+        shadow = QColor(0, 0, 0, 125 if hovered else 95)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(shadow)
+        painter.drawRoundedRect(rect.translated(0, 2), 6, 6)
         painter.setPen(QPen(border, 1))
         painter.setBrush(fill)
         painter.drawRoundedRect(rect, 6, 6)
