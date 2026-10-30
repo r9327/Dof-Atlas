@@ -37,11 +37,28 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
     files: list[dict[str, Any]] = []
     counts = {
         "tracked": len(paths), "valid_syntax": 0, "invalid_syntax": 0,
-        "unavailable": 0, "duplicate_id_review_files": 0, "bytes_parsed": 0,
+        "unavailable": 0, "duplicate_id_review_files": 0,
+        "duplicate_key_review_files": 0, "bytes_parsed": 0,
     }
     for relative in paths:
         file = root / relative
         entry: dict[str, Any] = {"file": relative}
+        duplicate_keys: dict[str, int] = {}
+
+        def record_object_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+            # json.load normally silently keeps the last value for repeated
+            # object keys. Retain the same decoded object for further triage,
+            # but report every collision (including nested JSON objects).
+            result = dict(pairs)
+            if len(result) != len(pairs):
+                seen: set[str] = set()
+                for key, _ in pairs:
+                    if key in seen:
+                        duplicate_keys[key] = duplicate_keys.get(key, 0) + 1
+                    else:
+                        seen.add(key)
+            return result
+
         try:
             if file.is_symlink() or not file.is_file():
                 raise OSError("Missing or symlinked tracked JSON")
@@ -54,7 +71,10 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 if prefix.startswith("version https://git-lfs.github.com/spec/v1"):
                     raise OSError("Tracked JSON is a Git LFS pointer, not materialized data")
                 stream.seek(0)
-                payload = json.load(stream, parse_constant=_reject_non_finite)
+                payload = json.load(
+                    stream, parse_constant=_reject_non_finite,
+                    object_pairs_hook=record_object_keys,
+                )
             entry["top_level_type"] = type(payload).__name__
             collections = (
                 {"$root": payload} if isinstance(payload, list)
@@ -67,11 +87,24 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                 if (ids := _duplicate_ids(rows))
             ]
             entry["duplicate_id_candidates"] = collisions
-            entry["status"] = "VALID_SYNTAX_REVIEW" if collisions else "VALID_SYNTAX"
+            # A duplicate member name can silently change the interpreted
+            # source even if JSON syntax and list-level IDs are otherwise OK.
+            # The decoder hook has no parent path: never invent one.
+            entry["duplicate_key_candidates"] = [
+                {"key": key, "occurrences": number, "kind": "DUPLICATE_KEY_REVIEW",
+                 "json_path": None}
+                for key, number in sorted(duplicate_keys.items())
+            ]
+            entry["status"] = (
+                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys
+                else "VALID_SYNTAX"
+            )
             counts["valid_syntax"] += 1
             counts["bytes_parsed"] += entry["bytes"]
             if collisions:
                 counts["duplicate_id_review_files"] += 1
+            if duplicate_keys:
+                counts["duplicate_key_review_files"] += 1
             del payload
         except (json.JSONDecodeError, UnicodeError, ValueError) as exc:
             entry["status"] = "INVALID"
@@ -102,7 +135,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
         "automatic_deletion_authorized": False,
         "limits": [
             "Syntax PASS does not prove domain ID references, schema, active packaging or assets",
-            "Duplicate ID candidates require source semantics before any cleanup",
+            "Duplicate ID/key candidates require source semantics before any cleanup",
+            "Duplicate object keys are counted without invented JSON paths",
             "Git-tracked inventory excludes generated and user-local files",
         ],
     }
