@@ -147,3 +147,58 @@ Chaque lot comporte : (a) inventaire des chemins/source et baseline exacte, (b) 
 - Les cibles mémoire ne sont pas abaissées pour faire PASS ; les mesures de différents scénarios ne sont jamais additionnées.
 - Les modifications app runtime, données et launcher sont regroupées en lots indépendants avec contrats de parité des quêtes, succès, guides, personnages et données personnelles.
 - **Ce document n'est qu'un cadrage à développer**. Aucun des 36 items ne passe à `IMPLEMENTED` du seul fait de sa présence ici.
+
+
+## Obligation nouvelle — exhaustivité vérifiable (OPT-EXH, aucune analyse partielle certifiée)
+
+**Demande :** inventorier **100 % des objets du périmètre déclaré**, mesurer la part réellement analysée et **refuser une conclusion `AUDIT_COMPLET` si un fichier, scénario obligatoire, symbole ou lien requis n'a pas été vérifié**. Un résultat partiel peut servir au diagnostic rapide FAST, mais doit être explicitement `PARTIAL / NOT_RUN / REVIEW / BLOCKED`, avec les manques, et ne peut jamais être présenté comme une certification complète.
+
+### Lacunes existantes confirmées dans le code de main
+
+- `tools/atlas_doctor_lib/deep_intelligence.py` : `MAX_FILES = 150`, `MAX_FUNCTIONS = 4000`, `MAX_SOURCE_BYTES = 512 * 1024`, `MAX_FINDINGS = 80`. Cette analyse **bornée** ne couvre donc pas forcément tous les fichiers Python du dépôt ; `duplicate_evidence.py` indique explicitement qu'un PASS de la sélection AST ne certifie pas un scan du dépôt entier.
+- `tools/atlas_doctor_lib/graph_audit.py` : `MAX_CANDIDATES = 30` dans les rapports paginés ; `--all-candidates` existe pour des sections, mais le rapport tronqué ne doit jamais être interprété comme une absence d'autres problèmes. Graphify a couvert **1 173/1 173 fichiers Python suivis** dans le run précédent ; cela **ne signifie pas** qu'il a exécuté toutes les branches et interfaces.
+- `tools/atlas_doctor_lib/runtime_file_focus.py` : les imports AST statiques ne captent pas exhaustivement imports dynamiques, signaux Qt, callbacks, entrées externes ou registre de plugins. Un fichier isolé **n'est pas** prouvé mort.
+- `tools/atlas_doctor_lib/scenario_coverage.py` : les traces prouvent uniquement les scénarios effectivement observés. Un symbole absent d'une trace **n'est pas** une preuve d'inutilité.
+- Doctor UI : les 5 scénarios sélectionnés/118 actions PASS précédemment ne prouvent ni tous les écrans ni leur qualité visuelle sur Windows natif.
+
+### Livrables à implémenter pour une certification exhaustive
+
+1. **Inventaire de référence immuable et sans trous** : `git ls-files -z`, SHA du candidat, tous fichiers suivis et générés/embarqués dans la Release pour les périmètres applicables ; séparer code, JSON/source, assets, QSS, écrans, launcher, tests, scripts et caches. Décompter `total/analysés/non analysés/erreurs/inaccessibles/exclus` par catégorie. Fichiers non suivis et caches personnels : **hors périmètre explicite**, jamais parcourus ou effacés sans autorisation.
+2. **Audit complet du graphe et des sources** : parcourir par lots déterministes toutes les sources Python éligibles, sans omettre les fichiers après le cap 150 ; parser tous les symboles éligibles sans écrêter le résultat final à 4 000 fonctions ; rapport paginé, compte total conservé, fichiers >512 Kio traités explicitement ou `BLOCKED`. Détecter imports absents, cycles, points d'entrée, API re-exportées, symboles isolés, doublons AST et comportements redondants (candidats), appels indirects et responsabilités contradictoires. Rapprocher les consommations Graphify et les traces Doctor.
+3. **Connexions / fonctionnalités** : relier chaque menu, page, bouton, signal, slot, action, plugin, macro, worker, fichier de données et route à un point d'entrée, un consommateur, une preuve d'exécution et un résultat de test. Cas des actions optionnelles explicités. Examiner les signalements `NO_STATIC_IMPORT_EDGES_REVIEW` et chemins dynamiques avant toute décision.
+4. **JSON et ressources** : inventorier toutes les sources canoniques, historiques, Ganymède et candidates ; fichiers chargés / non chargés, références ID, images, liens et SHA ; distinguer versions archivables des dépendances réellement actives. En cas de données manquantes, collisions, doublons de responsabilité ou source jamais lue, publier fichier, consommateur et preuve. Conserver parité complète quêtes/succès/guides et sauvegardes.
+5. **Couverture runtime honnête** : matrice de tous les écrans/fonctions jouables, états et transitions ; par fonction/action : `TESTED`, `NOT_TESTED`, `NOT_APPLICABLE_JUSTIFIED` ou `FAILED`. Inclure les 5 placeholders séparément sans les compter comme fonctionnalités réussies. Distinguer tests Qt hors écran, EXE desktop Windows, sessions réelles, cas dégradés et 8 Atlas distincts (pas 8 DOFUS).
+6. **Croisement automatique** : associer à chaque anomalie `fichier:ligne`, `symbole`, utilisateurs/dépendances, preuve statique, trace runtime, mesures wall/CPU/RSS, statut de confiance, gravité, hypothèse et test ciblé. Pour les anomalies réellement confirmées, proposer changement minimal réversible et estimation à vérifier, jamais un gain chiffré inventé.
+7. **Vérificateur de complétude dans Doctor** : sortie structurée avec `inventory_sha`, `inspected_sha`, `all_files_covered`, `missing_files`, `candidate_count_total`, `candidate_count_reviewed`, `truncated`, `scenario_coverage`, `native_windows_status` et `status`. Toute source erreur, absence de preuve obligatoire, troncature non résolue ou SHA différent interdit `COMPLETE_PASS`. Les scans FAST bornés restent possibles **mais obligatoirement marqués PARTIAL**, jamais remplacés par un banc de test concurrent.
+8. **Recette** : fixtures dépassant 150 fichiers, 4 000 fonctions, 30 anomalies, imports dynamiques, Qt signaux et sources >512 Kio ; comparaison exhaustif vs lots paginés. Aucune suppression automatique de code sans preuve positive multi-source et tests fonctionnels ; audit commit par commit puis global.
+
+**Limite fondamentale :** même avec inventaire statique exhaustif, on ne peut pas prouver automatiquement que tous les comportements possibles de Python/Qt ou toutes les configurations utilisateur ont été exécutés. Afficher exactement la couverture de scénarios revendiquée, et classer les scénarios non observés `NOT_RUN` plutôt que d'affirmer « 100 % de comportement » à tort.
+
+## Obligation nouvelle — style et cohérence UI Unity / Launcher (OPT-STYLE)
+
+### Ce qui existe déjà et ce qui n'est pas certifié
+
+- `app/ui/unity_skin.py` fixe `UNITY_PALETTE`, les règles globales, sprites/bordures, focus et fonds ; `unity_enabled()` retourne toujours vrai : le thème Unity est la référence, non un thème alternatif.
+- `app/ui/theme.py` centralise `PALETTE`, `TYPOGRAPHY`, `SPACING`, `SIZES`, les tokens QSS et un catalogue conséquent de `LEGACY_COLOR_ROLES` / `LEGACY_LITERAL_ALIASES`. Ces **alias de compatibilité** ne prouvent pas que tous les styles historiques ont disparu, ni qu'ils sont tous visuellement corrects.
+- `tests/test_unity_skin.py` teste tokens, sprites locaux, fallback, focus et quelques sélecteurs. Les tests Doctor UI effectuent des interactions/captures Qt, mais **aucune comparaison visuelle exhaustive Windows native n'est démontrée**. La présence d'un QSS valide ne prouve pas un rendu pixel, une police ou une mise en page.
+- Le Launcher V2 peut utiliser des fenêtres Tk alors que l'application est en Qt ; une apparence Unity équivalente et une seule transition fluide doivent être **testées dans #285**, pas présumées par les constantes de palette.
+- Les polices et sprites personnels restent des assets **locaux facultatifs** hors release publique ; ne pas diffuser d'assets ou polices protégés. Valider **avec et sans** assets locaux pour le fallback public.
+
+### Audit visuel exhaustif à intégrer à Doctor, sans second moteur UI
+
+1. **Inventaire de tous les composants graphiques** : chaque page/fenêtre/menu/dialogue/popup et états réels (normal, hover, pressed, focus clavier, disabled, selected, chargement, erreur, vide, scrollbar, infobulle, navigation, dock). Comptabilité des composants non couverts et des sélecteurs QSS sans consommateur ou masqués par priorité/cascade Qt.
+2. **Style commun** : couleurs et transparence dérivées des tokens Unity, typographies/taille/gras, espacement, bordures, rayons, iconographie, fonds, boutons, barres, checkboxes, onglets, panneaux, raccourcis ; identifier les **littéraux codés en dur** et anciennes règles QSS, corriger leurs consommateurs avant suppression. Privilégier des rôles sémantiques plutôt que remplacer aveuglément les couleurs d'alerte.
+3. **Cohérence du launcher** : la même identité visuelle, tailles de police et boutons entre Tk et Qt ; passage mise à jour → lancement dans la même fenêtre visible, progression vérifiable et états d'erreur ; contrat et implémentation de ce point **#285**.
+4. **Comparaison visuelle automatisée** : captures par scénario et état depuis le **même SHA**, résolution, DPI, polices et données. Diff perceptuel avec zones dynamiques masquées et seuils par famille de composant ; toute divergence inattendue doit être examinée humainement, **pas corrigée en acceptant la nouvelle baseline sans justification**.
+5. **Windows réel + matrice d'affichage** : DPI 100/125/150 %, 1080p/1440p/4K, petite fenêtre, textes longs/français, défilement et listes volumineuses, thème avec assets/fallback ; vérifier contenu coupé, chevauchement, contrastes, focus clavier, lisibilité, accessibilité, alt/icon et usage souris/clavier. Qt hors écran seul = preuve partielle.
+6. **Mesures coût du style** : latence du premier rendu, CSS/QSS recalculé, polices chargées, pixmaps et sprites reconstruits, temps de paint, coût des effets, tailles de widgets, freezes et RAM par écran ; corréler à Graphify pour savoir **quel composant** introduit régression visuelle ou performance.
+7. **Qualité / style du code** : inventaire complet règles Python/Qt et formats : répétitions QSS, helpers styles dupliqués, constantes magiques, fonctions trop complexes, imports inter-domaines, exceptions silencieuses, normes de nommage et contrats type. Mettre des linters ciblés sur **tout le périmètre déclaré**, publier le décompte de violations et distinguer dette existante de régression, sans reformatage massif créant des régressions.
+8. **Gates et preuves** : rapport `ui_style_coverage.json` avec `sha`, `screens_total/screens_tested`, `states_required/states_tested`, `styles_consumer_coverage`, `screenshots_compared`, `fallback_tested`, `native_desktop_tested`, `errors`, `truncated` ; style `PASS` uniquement si le périmètre requis est entièrement testé et conforme. La couverture **statique** des tokens et celle du **rendu natif** doivent être deux statuts distincts.
+
+### Ordre d'exécution et dépendances
+
+- **Immédiat en ciblé** : détecter les anciens styles QSS, problèmes de sélecteurs, valeurs codées en dur, doublons de déclarations, inventaire de pages/contrôles ; résultat `REVIEW` si la preuve du rendu manque.
+- **Après correctifs UI** : campagne de captures Qt avec tous scénarios obligatoires ; budget latence et visuel par écran. Conserver les tests existants, **aucun duplicata** d'outillage.
+- **Avant release** : validation du launcher + fenêtres Qt **Windows natif**, sur EXE exact-SHA et cas de fallback ; preuve par DPI et état, audit d'identité visuelle finale.
+
+**Statut : `TODO`.** L'ajout de cette exigence au document et à la PR ne constitue pas l'implémentation du moteur d'audit visuel ou la certification d'exhaustivité.
