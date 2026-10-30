@@ -90,6 +90,23 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         self.assertFalse(provider.last_detail_breakdown_ms["subprocess_path_used"])
         self.assertEqual(len(provider._recent_rich_details), 1)
 
+    def test_rebuilding_catalogue_drops_recent_rich_detail_cache(self) -> None:
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        provider._recent_rich_details[10] = object()
+        provider._detail_cache_id = 12
+        provider._detail_cache = object()
+        provider._last_detail_cache_source = "hot"
+        provider._achievements = []
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_trim_catalogue_payload"),
+            patch.object(MemoryBoundAchievementProvider, "_reset_sources"),
+        ):
+            provider._finish_in_process_catalogue()
+        self.assertEqual(provider._recent_rich_details, {})
+        self.assertIsNone(provider._detail_cache)
+        self.assertIsNone(provider._detail_cache_id)
+        self.assertEqual(provider._last_detail_cache_source, "cold")
+
     def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             provider = self._provider(Path(directory))
