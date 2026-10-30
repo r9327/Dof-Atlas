@@ -96,11 +96,11 @@ def write_bundle(
     guide_rows: dict[str, dict[str, object]] = {}
     for guide in guides:
         guide_id = str(guide.id)
-        quest_ids = {
+        quest_ids = tuple(dict.fromkeys(
             int(step.entity_id)
             for step in guide.required_steps
             if step.step_type == "quest" and step.entity_id is not None
-        }
+        ))
         # Reuse canonical aggregation and the original Guide order: no
         # independent reward rules or accidental quest duplicates.
         quests = (
