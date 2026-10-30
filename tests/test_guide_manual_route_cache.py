@@ -562,6 +562,24 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         self.assertEqual(len(regular), 2)
 
 
+    def test_release_prebuilt_guide_open_reports_real_path_without_source_fallback(self):
+        from app.modules.encyclopedia.services import (
+            guide_catalog_manual_runtime_service as catalog_module,
+            guide_catalog_prebuilt_route as prebuilt_module,
+        )
+
+        service = object.__new__(catalog_module.GuideCatalogManualRuntimeService)
+        with (
+            patch.object(prebuilt_module, "restore_prebuilt_route", return_value=True) as restore,
+            patch.object(catalog_module, "_catalog_route_cache_identity",
+                         side_effect=AssertionError("No source fallback on prebuilt")) as identity,
+        ):
+            service._load_manual_preview()
+        restore.assert_called_once_with(service)
+        identity.assert_not_called()
+        self.assertEqual(service.last_catalog_route_load_ms["mode"], "prebuilt")
+        self.assertGreaterEqual(service.last_catalog_route_load_ms["total_ms"], 0)
+
     def test_catalog_projection_disk_cache_skips_quest_rebuild_and_isolated(self) -> None:
         from app.modules.encyclopedia.services import (
             guide_catalog_manual_runtime_service as catalog_module,
@@ -606,6 +624,8 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertNotIn("manual_lines", restored.cards[0])
             self.assertEqual(restored._common_quest_ids, (42, 43))
             self.assertTrue(restored.manual_preview_active)
+            self.assertEqual(restored.last_catalog_route_load_ms["mode"], "legacy_migration")
+            self.assertGreaterEqual(restored.last_catalog_route_load_ms["total_ms"], 0)
             sections = restored.manual_sections_for_card("character:1", restored.cards[0])
             self.assertEqual(sections["now"], [{"text": "Parler au PNJ"}])
             sections["now"][0]["text"] = "Changed"
