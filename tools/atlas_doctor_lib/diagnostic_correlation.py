@@ -38,6 +38,9 @@ def _catalog_tools(
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for capability in capabilities:
+        if len(selected) >= MAX_TOOLS_PER_HYPOTHESIS:
+            unresolved.append("TOOL_BUDGET_EXCEEDED:" + capability)
+            continue
         # A guarded mutation tool can be agent-ready while still being the
         # wrong choice for an automatic read-only investigation.
         preferred = select_tools(
@@ -64,8 +67,6 @@ def _catalog_tools(
             "selection_reason": "CANONICAL_CATALOG_SAFE_READY",
             "automation_executed": False,
         })
-        if len(selected) >= MAX_TOOLS_PER_HYPOTHESIS:
-            break
     return {
         "status": "READY_TO_REVIEW" if not unresolved else
                   "PARTIAL_TOOL_COVERAGE" if selected else "NO_SAFE_TOOLS",
@@ -157,8 +158,12 @@ def plan_investigation(
             "repeat_count_min": 3, "status": "NOT_RUN",
         })
 
+    ranked_tools = sorted(tools.values(), key=lambda row: (phase(row), row["tool"]))
+    truncated = len(ranked_tools) > 32
+    if truncated:
+        unresolved.add("TOOL_PLAN_TRUNCATED:" + str(len(ranked_tools) - 32))
     steps = []
-    for item in sorted(tools.values(), key=lambda row: (phase(row), row["tool"]))[:32]:
+    for item in ranked_tools[:32]:
         steps.append({
             **item,
             "phase": ("READ_ONLY_TRIAGE" if phase(item) == 0 else
@@ -172,6 +177,7 @@ def plan_investigation(
     return {
         "status": "REVIEW_REQUIRED" if unresolved else "READY_TO_REVIEW",
         "candidate_sha": sha, "steps": steps, "unresolved": sorted(unresolved),
+        "tools_considered": len(ranked_tools), "tools_truncated": truncated,
         "adaptive_benchmark_probes": probes,
         "all_required_certification_scenarios_retained": True,
         "stopping_conditions": [
