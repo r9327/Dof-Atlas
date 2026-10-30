@@ -136,7 +136,11 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                     # Alignements have real nested entries in the left menu;
                     # changing the menu does NOT overwrite the right Dofus grid.
                     alignments = view._category_nodes["alignements"]
-                    self.assertEqual(alignments.childCount(), 2)
+                    self.assertEqual(
+                        sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
+                            for i in range(alignments.childCount())),
+                        2,
+                    )
                     view.library_categories.setCurrentItem(alignments)
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
