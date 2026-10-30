@@ -33,7 +33,7 @@ def _catalog_tools(
     if not isinstance(catalog_report, dict) or not isinstance(catalog_report.get("tools"), list):
         return {"status": "INVALID_CATALOG", "selected": [],
                 "unresolved_capabilities": list(capabilities), "not_executed": True}
-    from tools.tool_catalog import select_tools
+    from tools.tool_catalog import _COST_ORDER, select_tools
 
     selected: list[dict[str, Any]] = []
     unresolved: list[str] = []
@@ -50,11 +50,26 @@ def _catalog_tools(
         except (KeyError, TypeError, ValueError):
             unresolved.append("INVALID_TOOL_METADATA:" + capability)
             continue
-        entry = next(
-            (row for row in candidates
-             if row.get("side_effects") in {"read_only", "artifact_output"}),
-            None,
-        )
+        # The same safe tool may cover several symptoms. Prefer a cheap
+        # multi-capability specialist instead of dispatching separate tools
+        # for each inferred problem, without trusting unknown/unsafe metadata.
+        candidates = [
+            row for row in candidates
+            if row.get("side_effects") in {"read_only", "artifact_output"}
+            and isinstance(row.get("capabilities"), list)
+            and isinstance(row.get("path"), str)
+            and isinstance(row.get("invocation"), str)
+            and row.get("cost_hint") in _COST_ORDER
+        ]
+        requested = set(capabilities)
+        candidates.sort(key=lambda row: (
+            _COST_ORDER[row["cost_hint"]],
+            -len(requested.intersection(row["capabilities"])),
+            0 if row.get("preferred_for_agent") else 1,
+            -int(row.get("readiness_score", 0)),
+            row["path"],
+        ))
+        entry = candidates[0] if candidates else None
         if entry is None:
             unresolved.append(capability)
             continue
