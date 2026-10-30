@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, startup_domain_breakdown, run
+from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, startup_domain_breakdown, home_handoff_ready, run
 from tools.atlas_doctor import command_perf
 from tools.atlas_doctor_lib.parallel_app import validate_instance, prepare_instance_user_root
 
@@ -26,6 +26,20 @@ class ShortWholeAppProbeTests(unittest.TestCase):
             "dungeons", "monsters", "archmonsters", "wanted",
             "treasure_hunt", "ocre", "almanax", "tutorials", "dofus_noob",
         ])
+
+    def test_home_handoff_is_separate_from_all_preloads_finished(self):
+        window = SimpleNamespace(
+            preload_states={"quests": "READY", "encyclopedia": "LOADING", "craft": "IDLE"},
+            _home_revealed=True,
+        )
+        self.assertTrue(home_handoff_ready(window))
+        window._home_revealed = False
+        self.assertFalse(home_handoff_ready(window))
+        window._home_revealed = True
+        window.preload_states["quests"] = "LOADING"
+        self.assertFalse(home_handoff_ready(window))
+        window.preload_states["quests"] = "FAILED"
+        self.assertTrue(home_handoff_ready(window))
 
     def test_preload_timings_only_accept_exact_session_and_valid_domains(self):
         self.assertEqual(startup_domain_breakdown({})["status"], "UNAVAILABLE")

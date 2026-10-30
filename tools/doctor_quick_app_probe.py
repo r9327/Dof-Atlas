@@ -156,6 +156,16 @@ def open_route(app: QApplication, window: Any, entry: tuple[str, str, str, str, 
     if is_placeholder != placeholder:
         raise RuntimeError(f"{key}: placeholder classification mismatch")
 
+def home_handoff_ready(window: Any) -> bool:
+    """Observe the actual Quest→Home gate, not a benchmark-forced show()."""
+    states = getattr(window, "preload_states", {})
+    return bool(
+        isinstance(states, dict)
+        and states.get("quests") in {"READY", "FAILED"}
+        and getattr(window, "_home_revealed", False)
+    )
+
+
 def summarize_revisits(rows: list[dict[str, Any]], cycles: int) -> dict[str, Any]:
     """Describe cold/warm timings and observed Home drift, without calling it a leak."""
     by_route: dict[str, list[dict[str, Any]]] = {}
@@ -250,6 +260,7 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
             "Each screen is checked for real navigation/ready state, not all internal functions",
             "Runner is not a constrained low-end PC",
             "Short post-Home idle observations do not prove a native Qt memory leak",
+            "Home handoff is a Qt readiness gate; benchmark-forced show() does not prove a real first desktop paint",
         ]
     }
     window = None
@@ -276,11 +287,25 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         preload_cpu_started = time.process_time()
         preload_lag = EventLoopLag()
         preload_lag.start()
+        report["home_handoff_ms_from_constructor"] = None
+
+        def observe_preload() -> bool:
+            if report["home_handoff_ms_from_constructor"] is None and home_handoff_ready(window):
+                report["home_handoff_ms_from_constructor"] = round(
+                    (time.perf_counter() - born) * 1000, 2,
+                )
+            return preload_terminal(window)
+
         try:
-            wait_until(app, lambda: preload_terminal(window), timeout=min(90.0, max_seconds / 3),
+            wait_until(app, observe_preload, timeout=min(90.0, max_seconds / 3),
                        label="functional preload", poll_seconds=0.025)
+            observe_preload()
         finally:
             report["preload_qt"] = preload_lag.stop()
+        report["home_handoff_status"] = (
+            "OBSERVED_GATE_ONLY" if report["home_handoff_ms_from_constructor"] is not None
+            else "NOT_OBSERVED"
+        )
         report["preload_ms"] = round((time.perf_counter() - preload_start) * 1000, 2)
         report["preload_domain_breakdown"] = startup_domain_breakdown(
             app_main._startup_cache_warmup_payload()
