@@ -212,17 +212,108 @@ def execute_scenarios(
     return report
 
 
+def doctor_report_scenarios(document: dict[str, Any], sha: str) -> dict[str, Any]:
+    """Accept only a current, successful diagnostic and registered contracts."""
+    reasons: list[str] = []
+    if not isinstance(sha, str) or not SHA.fullmatch(sha):
+        reasons.append("INVALID_SHA")
+    if not isinstance(document, dict) or document.get("kind") != "atlas_doctor_optimization_report":
+        reasons.append("NOT_A_DOCTOR_OPTIMIZATION_REPORT")
+        document = {}
+    if document.get("git_head") != sha or document.get("status") != "DIAGNOSTIC_READY":
+        reasons.append("STALE_OR_BLOCKED_DIAGNOSTIC")
+    correlation = document.get("diagnostic_correlation")
+    if not isinstance(correlation, dict) or correlation.get("candidate_sha") != sha:
+        reasons.append("STALE_OR_MISSING_CORRELATION")
+        correlation = {}
+    if correlation.get("status") != "REVIEW" or correlation.get("certification") is not False:
+        reasons.append("UNTRUSTED_CORRELATION")
+    investigation = correlation.get("investigation_plan")
+    if not isinstance(investigation, dict) or investigation.get("candidate_sha") != sha:
+        reasons.append("STALE_OR_MISSING_INVESTIGATION")
+        investigation = {}
+    contracts = investigation.get("scenario_contracts")
+    if not isinstance(contracts, dict) or contracts.get("status") != "PLANNED_NOT_RUN":
+        reasons.append("SCENARIO_COVERAGE_NOT_COMPLETE")
+        contracts = {}
+    entries = contracts.get("selected")
+    names = [row.get("scenario") for row in entries
+             if isinstance(row, dict)] if isinstance(entries, list) else []
+    if (
+        not names or len(names) > MAX_SELECTED or len(names) != len(set(names))
+        or any(not isinstance(name, str) or name not in SCENARIOS for name in names)
+        or len(names) != (len(entries) if isinstance(entries, list) else 0)
+        or contracts.get("uncovered_hypotheses")
+    ):
+        reasons.append("INVALID_OR_INCOMPLETE_SCENARIO_SELECTION")
+    if correlation.get("tests_executed") is not False or investigation.get("tests_executed") is not False:
+        reasons.append("UNTRUSTED_PREEXECUTION_CLAIMS")
+    gaps = sorted(set(
+        str(item) for item in [
+            *(correlation.get("evidence_gaps") or []),
+            *(investigation.get("unresolved") or []),
+        ] if isinstance(item, str)
+    ))
+    return {
+        "status": "BLOCKED" if reasons else "READY_TO_RUN_CONTRACTS",
+        "selected_scenarios": names if not reasons else [],
+        "errors": sorted(set(reasons)),
+        "evidence_gaps": gaps,
+        "completeness": "PARTIAL_REVIEW" if gaps else "SCENARIOS_MAPPED_NOT_EXECUTED",
+        "candidate_sha": sha,
+        "tests_executed": False, "phase_certified": False,
+        "certification_granted": False,
+    }
+
+
+def execute_doctor_report(
+    root: Path, sha: str, document: dict[str, Any], *,
+    runner: Callable[[Path, list[str]], int] | None = None,
+    run: bool = False,
+) -> dict[str, Any]:
+    """Reuse the canonical scenario runner; execution requires explicit --run."""
+    selection = doctor_report_scenarios(document, sha)
+    if selection["status"] == "BLOCKED":
+        return selection
+    selected = selection["selected_scenarios"]
+    result = execute_scenarios(root, sha, selected, runner=runner) if run else (
+        contract_plan(root, sha, selected)
+    )
+    result["doctor_report_selection"] = selection
+    result["diagnostic_evidence_gaps"] = selection["evidence_gaps"]
+    result["all_end_to_end_certified"] = False
+    result["phase_certified"] = False
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--scenario", action="append", required=True,
-                    choices=sorted(SCENARIOS))
+    source = ap.add_mutually_exclusive_group(required=True)
+    source.add_argument("--scenario", action="append", choices=sorted(SCENARIOS))
+    source.add_argument("--doctor-report", type=Path,
+                        help="Existing Doctor optimization JSON under artifacts/")
     ap.add_argument("--expected-sha", required=True)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--output", type=Path)
     args = ap.parse_args(argv)
-    plan = execute_scenarios(ROOT, args.expected_sha, args.scenario) if args.run else (
-        contract_plan(ROOT, args.expected_sha, args.scenario)
-    )
+    if args.doctor_report is not None:
+        from tools.atlas_doctor_lib.optimization_report import load
+        try:
+            report = load(ROOT, args.doctor_report)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            plan = {
+                "status": "BLOCKED", "candidate_sha": args.expected_sha,
+                "errors": ["INVALID_OR_UNREADABLE_DOCTOR_REPORT", type(exc).__name__],
+                "tests_executed": False, "phase_certified": False,
+            }
+        else:
+            plan = execute_doctor_report(
+                ROOT, args.expected_sha, report or {}, run=args.run,
+            )
+    else:
+        plan = execute_scenarios(ROOT, args.expected_sha, args.scenario) if args.run else (
+            contract_plan(ROOT, args.expected_sha, args.scenario)
+        )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
