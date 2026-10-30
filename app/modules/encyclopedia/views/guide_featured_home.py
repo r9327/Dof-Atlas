@@ -44,15 +44,17 @@ class FeaturedGuideCard(QFrame):
             "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 9, 12, 9)
-        layout.setSpacing(4)
+        layout.setContentsMargins(9, 6, 9, 6)
+        layout.setSpacing(3)
+        self.setMinimumHeight(64)
+        self.setMaximumHeight(85)
         self.title = QLabel(title)
         self.title.setStyleSheet(
-            f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 14px;"
+            f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 12px;"
         )
         title_row = QHBoxLayout()
         self.artwork = QLabel()
-        self.artwork.setFixedSize(36, 36)
+        self.artwork.setFixedSize(28, 28)
         self.artwork.setAlignment(Qt.AlignCenter)
         title_row.addWidget(self.artwork)
         title_row.addWidget(self.title, 1)
@@ -60,10 +62,10 @@ class FeaturedGuideCard(QFrame):
         self.subtitle = QLabel("")
         self.subtitle.setObjectName("FeaturedSubtitle")
         self.subtitle.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']};")
-        self.subtitle.setWordWrap(True)
+        self.subtitle.setWordWrap(False)
         layout.addWidget(self.subtitle)
         self.progress = QProgressBar()
-        self.progress.setMaximumHeight(9)
+        self.progress.setMaximumHeight(5)
         self.progress.setTextVisible(False)
         self.progress.setStyleSheet(
             f"QProgressBar {{ border: 0; background: {PALETTE['BORDER_SOFT']};"
@@ -77,8 +79,10 @@ class FeaturedGuideCard(QFrame):
         self.open_button = QPushButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
         self.open_button.clicked.connect(lambda: on_open(self.guide_id))
-        actions.addWidget(self.open_button)
-        layout.addLayout(actions)
+        # A card already opens on click, Enter and Space; a second visible
+        # "Ouvrir" action consumed height without adding functionality.
+        # Retain the signal owner for existing keyboard/API integrations.
+        self.open_button.setHidden(True)
         self.set_guide(None, (0, 0, ""))
 
     def mouseReleaseEvent(self, event) -> None:
@@ -116,20 +120,23 @@ class FeaturedGuideCard(QFrame):
             status = f"{done}/{total} quêtes · {state or 'Non commencé'}"
         else:
             status = "Progression indisponible"
-        self.subtitle.setText(f"{description}\n{status}" if description else status)
+        self.subtitle.setText(status)
+        self.subtitle.setToolTip(description or status)
         # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
             self.progress.setValue(max(0, min(100, round(done * 100 / total))))
         self.artwork.clear()
-        local_icon = sprite_icon_path("guide")
+        local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
         # Only two featured QIcons, backed by local assets when explicitly enabled.
         self.open_button.setIcon(QIcon(str(local_icon)) if local_icon else QIcon())
+        if local_icon:
+            self.artwork.setPixmap(QIcon(str(local_icon)).pixmap(24, 24))
         if usable:
             image_path = getattr(guide, "image_path", None)
             if image_path and Path(image_path).is_file():
                 from PySide6.QtCore import QSize
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(32, 32))
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(28, 28))
                 if pixmap is not None and not pixmap.isNull():
                     self.artwork.setPixmap(pixmap)
 
@@ -141,7 +148,7 @@ class FeaturedPair(QWidget):
         super().__init__(parent)
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(6)
         for card in cards:
             layout.addWidget(card, 1)
         self.pair_layout = layout
