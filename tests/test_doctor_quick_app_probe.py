@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, run
+from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, startup_domain_breakdown, run
 from tools.atlas_doctor import command_perf
 from tools.atlas_doctor_lib.parallel_app import validate_instance, prepare_instance_user_root
 
@@ -26,6 +26,26 @@ class ShortWholeAppProbeTests(unittest.TestCase):
             "dungeons", "monsters", "archmonsters", "wanted",
             "treasure_hunt", "ocre", "almanax", "tutorials", "dofus_noob",
         ])
+
+    def test_preload_timings_only_accept_exact_session_and_valid_domains(self):
+        self.assertEqual(startup_domain_breakdown({})["status"], "UNAVAILABLE")
+        self.assertEqual(startup_domain_breakdown({"status": "failed"})["status"], "UNAVAILABLE")
+        evidence = {
+            "status": "ready", "elapsed_ms": 25000,
+            "domains": {
+                "guide": {"elapsed_ms": 7000, "worker_elapsed_ms": 6800,
+                          "mode": "rebuilt", "timings_ms": {"items": 3200}},
+                "quest": {"elapsed_ms": 17000, "mode": "rebuilt", "timings_ms": []},
+                "success": {"elapsed_ms": 800, "mode": "reused"},
+            },
+        }
+        result = startup_domain_breakdown(evidence)
+        self.assertEqual(result["status"], "OBSERVED")
+        self.assertEqual(result["domains"]["quest"]["elapsed_ms"], 17000)
+        self.assertEqual(result["domains"]["quest"]["timings_ms"], {})
+        self.assertEqual(result["domains"]["guide"]["timings_ms"]["items"], 3200)
+        evidence["domains"].pop("success")
+        self.assertEqual(startup_domain_breakdown(evidence)["status"], "PARTIAL")
 
     def test_new_unreviewed_category_cannot_be_silent(self):
         rows = list(ROUTES)
