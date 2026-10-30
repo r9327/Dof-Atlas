@@ -185,3 +185,23 @@ class QuestEvidenceBatchTests(unittest.TestCase):
                 result[4]["combats"].clear()
                 self.assertTrue(offered["combats"])
             loader.assert_called_once()
+
+    def test_home_release_drops_optional_guide_pack_and_loads_it_only_on_reentry(self) -> None:
+        pack = {4: {"combats": [{"objective_id": 1, "monster": "Tofu"}]}}
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=object(), data_dir=Path(directory))
+            with (
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value=pack,
+                ) as loader,
+            ):
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                loader.assert_called_once()
+                provider.release_catalogue()
+                self.assertIsNone(provider._catalog)
+                self.assertIsNone(provider._pack_guide_evidence)
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                self.assertEqual(loader.call_count, 2)
