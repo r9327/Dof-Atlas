@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import unittest
 
-from tools.atlas_doctor_lib.diagnostic_correlation import correlate_diagnostics
+from tools.atlas_doctor_lib.diagnostic_correlation import (
+    _catalog_tools, correlate_diagnostics, plan_investigation,
+)
 from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown
 
 SHA = "a" * 40
@@ -169,6 +171,46 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertIn("REQUIRED_NOT_RUN", rendered)
         self.assertFalse(doc["diagnostic_correlation"]["investigation_plan"]
                          ["certification_granted"])
+
+    def test_tool_selection_budget_reports_skipped_capabilities(self):
+        capabilities = tuple("cap_" + str(i) for i in range(7))
+        report = {"tools": [
+            {
+                "path": "tools/a" + str(i) + ".py",
+                "invocation": "tool " + str(i),
+                "capabilities": [capability],
+                "safe_for_agent": True, "automation_ready": True,
+                "preferred_for_agent": True, "cost_hint": "cheap",
+                "side_effects": "read_only", "readiness_score": 100,
+            }
+            for i, capability in enumerate(capabilities)
+        ]}
+        result = _catalog_tools(capabilities, report)
+        self.assertEqual(len(result["selected"]), 5)
+        self.assertEqual(
+            result["unresolved_capabilities"],
+            ["TOOL_BUDGET_EXCEEDED:cap_5", "TOOL_BUDGET_EXCEEDED:cap_6"],
+        )
+        self.assertEqual(result["status"], "PARTIAL_TOOL_COVERAGE")
+
+    def test_large_plan_never_silently_discards_tools(self):
+        hypotheses = [
+            {"id": "H" + str(i), "tool_plan": {
+                "unresolved_capabilities": [], "selected": [
+                    {"path": "tools/t" + str(i) + "_" + str(j) + ".py",
+                     "invocation": "not executed", "capability": "coverage",
+                     "cost_hint": "cheap"}
+                    for j in range(5)
+                ]}}
+            for i in range(10)
+        ]
+        result = plan_investigation(SHA, hypotheses, [])
+        self.assertEqual(result["tools_considered"], 50)
+        self.assertEqual(len(result["steps"]), 32)
+        self.assertTrue(result["tools_truncated"])
+        self.assertIn("TOOL_PLAN_TRUNCATED:18", result["unresolved"])
+        self.assertEqual(result["status"], "REVIEW_REQUIRED")
+        self.assertFalse(result["tools_executed"])
 
     def test_stale_benchmark_is_blocked_not_recycled_into_positive_diagnosis(self):
         result = correlate_diagnostics(SHA, app(git_head=OTHER),
