@@ -50,7 +50,7 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
             # Loading one file at a time avoids accidentally retaining the
             # 70 MiB Quest index alongside the 28 MiB image manifest.
             with file.open("r", encoding="utf-8-sig") as stream:
-                prefix = stream.read(32)
+                prefix = stream.read(80)
                 if prefix.startswith("version https://git-lfs.github.com/spec/v1"):
                     raise OSError("Tracked JSON is a Git LFS pointer, not materialized data")
                 stream.seek(0)
