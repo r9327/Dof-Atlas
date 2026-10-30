@@ -56,12 +56,106 @@ def comparable_phase8_first_use(
     }
 
 
+def repeated_phase8_first_use(
+    sha: str, baseline_runs: list[dict] | None,
+    candidate_runs: list[dict] | None,
+) -> dict[str, Any]:
+    """Aggregate real A/B Phase 8 pairs without inventing independent proof.
+
+    Each pair comes from a unique measured run, retaining raw source and runner
+    identity. Canonical single-run validation still owns every timing check.
+    This is directional evidence, NOT a full certification or a new benchmark.
+    """
+    from statistics import median
+
+    if not baseline_runs and not candidate_runs:
+        return {"status": "NOT_RUN", "repeat_count": 0,
+                "reason": "No repeated Phase 8 reports"}
+    if (not isinstance(baseline_runs, list) or not isinstance(candidate_runs, list)
+            or len(baseline_runs) != len(candidate_runs)
+            or len(baseline_runs) < 3 or len(baseline_runs) > 20):
+        return {"status": "INSUFFICIENT_REPEATS",
+                "reason": "Require 3–20 baseline/candidate pairs in identical order",
+                "repeat_count": 0, "certified_gain": False}
+
+    samples: list[float] = []
+    run_ids: set[str] = set()
+    expected_env = None
+    base_sha = None
+    for index, (baseline, candidate) in enumerate(zip(baseline_runs, candidate_runs)):
+        if not isinstance(baseline, dict) or not isinstance(candidate, dict):
+            return {"status": "NOT_COMPARABLE", "reason": f"Malformed run {index}",
+                    "certified_gain": False}
+        b_id = baseline.get("run_id")
+        a_id = candidate.get("run_id")
+        runner = baseline.get("runner_id")
+        if (not isinstance(b_id, str) or not b_id or b_id != a_id
+                or b_id in run_ids or not isinstance(runner, str) or not runner
+                or candidate.get("runner_id") != runner):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Missing, duplicate or cross-run identities for pair {index}",
+                    "certified_gain": False}
+        run_ids.add(b_id)
+        env = baseline.get("environment")
+        if not isinstance(env, dict) or not env or env != candidate.get("environment"):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Environment mismatch for pair {index}",
+                    "certified_gain": False}
+        if expected_env is None:
+            expected_env = env
+        elif env != expected_env:
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Mixed environment configurations at pair {index}",
+                    "certified_gain": False}
+        b_metrics, a_metrics = baseline.get("metrics"), candidate.get("metrics")
+        if not isinstance(b_metrics, dict) or not isinstance(a_metrics, dict):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Metrics missing in pair {index}",
+                    "certified_gain": False}
+        if base_sha is None:
+            base_sha = b_metrics.get("git_head")
+        if b_metrics.get("git_head") != base_sha or a_metrics.get("git_head") != sha:
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Wrong immutable commit in pair {index}",
+                    "certified_gain": False}
+        comparison = comparable_phase8_first_use(sha, candidate, baseline)
+        if comparison["status"] != "DIRECTIONAL_ONLY":
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Invalid benchmark accounting in pair {index}: "
+                              + str(comparison.get("reason", "unknown")),
+                    "certified_gain": False}
+        samples.append(float(comparison["details"]["net_full_first_use_gain_ms"]))
+
+    direction = (
+        "REPEATED_FASTER" if all(value > 0 for value in samples)
+        else "REPEATED_SLOWER" if all(value < 0 for value in samples)
+        else "MIXED_OR_NOISY"
+    )
+    return {
+        "status": "REPEATED_DIRECTIONAL_ONLY",
+        "candidate_sha": sha, "baseline_sha": base_sha,
+        "repeat_count": len(samples),
+        "paired_run_ids": sorted(run_ids),
+        "median_net_gain_ms": round(median(samples), 2),
+        "min_net_gain_ms": round(min(samples), 2),
+        "max_net_gain_ms": round(max(samples), 2),
+        "direction": direction,
+        "p95": "NOT_STABLE_UNDER_20_REPEATS" if len(samples) < 20 else "NOT_COMPUTED",
+        "p99": "NOT_STABLE_UNDER_100_REPEATS",
+        "certified_gain": False,
+        "warning": "Runner labels and repeated timings are not proof of identical hardware, "
+                   "correct UI completion or full Phase certification",
+    }
+
+
 def optimization_report(sha: str, app: dict, hub: dict | None = None,
                         baseline: dict | None = None, guides: dict | None = None,
                         ci_costs: dict | None = None,
                         tool_catalog_report: dict | None = None,
                         phase8: dict | None = None,
-                        phase8_baseline: dict | None = None) -> dict[str, Any]:
+                        phase8_baseline: dict | None = None,
+                        phase8_baseline_runs: list[dict] | None = None,
+                        phase8_candidate_runs: list[dict] | None = None) -> dict[str, Any]:
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Full immutable hexadecimal SHA required")
     hub, guides = hub or {}, guides or {}
@@ -180,6 +274,9 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
                           "baseline_sha": baseline["git_head"], "metrics": metrics,
                           "warning": "Same scenario not proof of same hardware/load; repeat before claiming gain"}
     deep_comparison = comparable_phase8_first_use(sha, phase8, phase8_baseline)
+    repeated_comparison = repeated_phase8_first_use(
+        sha, phase8_baseline_runs, phase8_candidate_runs,
+    )
     if (
         deep_comparison["status"] == "DIRECTIONAL_ONLY"
         and deep_comparison["verdict"] == "NET_REGRESSION"
@@ -189,6 +286,14 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
             str(deep_comparison["details"]["net_full_first_use_gain_ms"]) +
             " ms net change (single comparable observation)",
             "Confirm with repeats on one runner; profile actual first details before merging")
+    if (repeated_comparison["status"] == "REPEATED_DIRECTIONAL_ONLY"
+            and repeated_comparison["direction"] == "REPEATED_SLOWER"):
+        add("P0", "PHASE8_REPEAT_REGRESSION",
+            "Repeated first-content path is slower across comparable pairs",
+            str(repeated_comparison["median_net_gain_ms"]) +
+            " ms median net gain across " + str(repeated_comparison["repeat_count"]) +
+            " runs (directional, not certified)",
+            "Inspect cold stage costs; retain identical fixtures and Phase certification")
     findings.sort(key=lambda x: ({"P0": 0, "P1": 1, "P2": 2}[x["priority"]], x["id"]))
     # Correlate the same immutable evidence without introducing a second
     # benchmark or promoting advisory hypotheses to certification.
@@ -220,6 +325,7 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
             "eight_real_dofus_clients": "NOT_RUN", "public_network_rollback": "NOT_RUN"},
         "comparison": comparison,
         "phase8_first_use_comparison": deep_comparison,
+        "phase8_repeated_comparison": repeated_comparison,
         "diagnostic_correlation": correlation,
         "limitations": ["Phase wall% and process CPU% have different denominators",
                         "Worker CPU excluded from main-process CPU ratios",
