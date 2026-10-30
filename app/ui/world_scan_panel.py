@@ -68,6 +68,7 @@ class WorldScanPanel(QWidget):
         # Keep the map coordinates/history, but not the full native pixmap
         # when this page is hidden behind Home or another Atlas module.
         self._image_suspended = False
+        self._world_menu_suspended = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 10, 12, 10)
@@ -768,13 +769,20 @@ class WorldScanPanel(QWidget):
             names.append(name)
         return names or list(WORLD_NAMES)
 
-    def rebuild_world_menu(self, names: list[str]) -> None:
+    def _evict_world_menu_items(self) -> None:
+        """Remove inactive menu buttons without losing the loaded view data."""
+
         while self.world_menu_list.count():
             item = self.world_menu_list.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
         self.world_buttons = {}
+        self._world_menu_suspended = True
+
+    def rebuild_world_menu(self, names: list[str]) -> None:
+        self._evict_world_menu_items()
+        self._world_menu_suspended = False
         for world in names:
             item = QPushButton(world)
             item.setObjectName("WorldMenuItem")
@@ -827,6 +835,9 @@ class WorldScanPanel(QWidget):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
+        if self._world_menu_suspended:
+            self.rebuild_world_menu(self.world_names_from_views())
+            self.refresh_world_menu_state()
         deferred = self._deferred_load_result
         self._deferred_load_result = None
         if deferred is not None and int(deferred[0]) == self._load_generation:
@@ -857,6 +868,9 @@ class WorldScanPanel(QWidget):
 
     def hideEvent(self, event) -> None:
         self.hide_world_menu()
+        # The menu is recreated on show from the already retained list of
+        # worlds; keep its Qt children out of the resident Home widget tree.
+        self._evict_world_menu_items()
         if not self.canvas.pixmap.isNull():
             # QPixmap is the largest long-lived native allocation in this
             # module (often a full 1400x880 ARGB image). Release pixels but
