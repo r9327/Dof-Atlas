@@ -46,6 +46,9 @@ def catalog() -> dict:
         row("tools/coverage_scan.py", "coverage"),
         row("tools/guide_integrity.py", "guide"),
         row("tools/atlas_integrity.py", "validation"),
+        row("tools/graphify_reader.py", "graphify"),
+        row("tools/ram_profile.py", "memory"),
+        row("tools/runtime_trace_reader.py", "runtime_trace"),
         row("tools/untrusted_perf.py", "performance", safe=False),
     ]}
 
@@ -65,10 +68,21 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertEqual(preload["inference"], "CORRELATION_NOT_CAUSATION")
         self.assertEqual(
             [x["path"] for x in preload["tool_plan"]["selected"]],
-            ["tools/atlas_doctor.py", "tools/coverage_scan.py"],
+            ["tools/atlas_doctor.py", "tools/runtime_trace_reader.py",
+             "tools/coverage_scan.py"],
         )
         self.assertEqual(preload["tool_plan"]["unresolved_capabilities"], ["quest_data"])
         self.assertFalse(preload["root_cause_proven"])
+
+    def test_home_drift_selects_memory_tools_but_never_executes(self):
+        result = correlate_diagnostics(SHA, app(), catalog_report=catalog())
+        row = next(h for h in result["hypotheses"] if h["id"] == "HOME_REVISIT_CORRELATION")
+        self.assertEqual(
+            [t["capability"] for t in row["tool_plan"]["selected"]],
+            ["memory", "performance", "runtime_trace", "coverage"],
+        )
+        self.assertTrue(row["tool_plan"]["not_executed"])
+        self.assertFalse(row["root_cause_proven"])
 
     def test_stale_benchmark_is_blocked_not_recycled_into_positive_diagnosis(self):
         result = correlate_diagnostics(SHA, app(git_head=OTHER),
