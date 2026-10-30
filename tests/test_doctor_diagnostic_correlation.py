@@ -69,6 +69,8 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertIn("HOME_REVISIT_CORRELATION", by_id)
         preload = by_id["PRELOAD_WALL_CORRELATION"]
         self.assertEqual(preload["inference"], "CORRELATION_NOT_CAUSATION")
+        self.assertEqual(preload["evidence_strength"], "MULTI_SPECIALIST_LEAD")
+        self.assertFalse(preload["root_cause_proven"])
         self.assertEqual(
             [x["path"] for x in preload["tool_plan"]["selected"]],
             ["tools/atlas_doctor.py", "tools/runtime_trace_reader.py",
@@ -252,6 +254,7 @@ class DiagnosticCorrelationTests(unittest.TestCase):
                                        catalog_report=catalog())
         row = next(x for x in result["hypotheses"] if x["id"] == "GUIDE_METHOD_HOTSPOT")
         self.assertEqual(row["observations"][0]["value"], 170.0)
+        self.assertEqual(row["evidence_strength"], "SINGLE_REPORT_LEAD")
         self.assertEqual(row["tool_plan"]["selected"][0]["path"],
                          "tools/guide_integrity.py")
         self.assertFalse(row["tool_plan"]["selected"][0]["automation_executed"])
@@ -275,6 +278,7 @@ class DiagnosticCorrelationTests(unittest.TestCase):
         self.assertEqual(len(row["observations"]), 2)
         self.assertEqual(row["observations"][0]["source"], "guides")
         self.assertEqual(row["observations"][1]["source"], "app_navigation")
+        self.assertEqual(row["evidence_strength"], "MULTI_SPECIALIST_LEAD")
         self.assertFalse(row["root_cause_proven"])
 
     def test_memory_drift_without_revisit_is_not_labeled_a_leak(self):
