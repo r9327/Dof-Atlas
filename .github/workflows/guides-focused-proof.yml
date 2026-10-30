@@ -21,6 +21,9 @@ on:
       - 'tests/test_quest_index_prebuilt.py'
       - 'app/quest_index_prebuilt.py'
       - 'app/quest_catalog_details.py'
+      - 'app/startup_cache_warmup.py'
+      - 'tests/test_startup_warmup_subprocess_flags.py'
+      - 'tests/test_shared_guide_combat_global_contract.py'
       - 'scripts/windows/build_quest_index.py'
       - 'app/modules/encyclopedia/views/guides_view.py'
 
@@ -96,6 +99,11 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Nonblocking combat matching and early domain warmup regressions
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh
