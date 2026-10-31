@@ -504,7 +504,7 @@ class DofusItemProvider:
                 data = ref.get("data")
                 if not isinstance(data, dict):
                     continue
-    
+
                 rid = safe_int(ref.get("rid"))
                 effect_id = safe_int(data.get("effectId"))
                 if rid is not None and effect_id is not None:
@@ -517,7 +517,7 @@ class DofusItemProvider:
                             safe_int(data.get("value"), 0) or 0,
                         )
                     )
-    
+
                 item_id = safe_int(data.get("id"))
                 if item_id is None:
                     continue
@@ -535,9 +535,12 @@ class DofusItemProvider:
                     effect_rid = safe_int(effect_ref.get("rid"))
                     if effect_rid is not None:
                         effect_rids.add(int(effect_rid))
-    
+
             effect_instances = _selected_effect_instances(effect_candidates, effect_rids)
-) or 0
+
+        needed_type_ids = {DOFUS_TYPE_ID}
+        needed_type_ids.update(
+            safe_int(row.get("typeId"), 0) or 0
             for row in extra_rows.values()
         )
         type_rows: dict[int, dict[str, Any]] = {}
