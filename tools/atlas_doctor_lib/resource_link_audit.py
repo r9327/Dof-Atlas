@@ -119,7 +119,6 @@ class ResourceLinkCollector:
         if PurePosixPath(literal).suffix.lower() not in _RESOURCE_SUFFIXES:
             return
         self.counts["literals_checked"] += 1
-        parts = PurePosixPath(literal).parts
         row: dict[str, Any] = {"source": origin, "literal": value}
         if line is not None:
             row["line"] = line
@@ -128,8 +127,12 @@ class ResourceLinkCollector:
             row["json_role"] = json_role or "value"
         row["triage_bucket"] = _link_triage_bucket(origin, value, json_pointer)
         row["triage_verified"] = False
-        if (literal.startswith("/") or ":" in literal or
-                any(part in {"..", "."} for part in parts)):
+        # Never promote a normalized spelling to a confirmed static edge.
+        # The source string (including whitespace or dot segments) is what
+        # the application actually consumes; retain ambiguous paths for review.
+        if (literal.startswith("/") or ":" in literal
+                or value != value.strip()
+                or any(part in {"..", ".", ""} for part in literal.split("/"))):
             self.counts["unsafe_literals"] += 1
             entry = {**row, "kind": "UNSAFE_RESOURCE_LITERAL_REVIEW"}
             self.unresolved_all.append(entry)

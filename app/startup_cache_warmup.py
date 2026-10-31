@@ -309,7 +309,9 @@ def _quest_offset_artifact_stamp(path: Path) -> list[object]:
             row = connection.execute(
                 "SELECT start, end FROM offsets LIMIT 1"
             ).fetchone()
-        if row is not None and not (
+        # A database with only a table schema is not a populated offset index.
+        # A cold first detail must rebuild rather than silently reuse it.
+        if row is None or not (
             type(row[0]) is int and type(row[1]) is int and 0 <= row[0] < row[1]
         ):
             return [label, -1, -1]

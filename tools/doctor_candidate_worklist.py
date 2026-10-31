@@ -77,7 +77,10 @@ def build_worklists(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
     if not (isinstance(sha, str) and len(sha) == 40
             and all(char in "0123456789abcdef" for char in sha)):
         raise ValueError("Invalid exact Git SHA in Doctor evidence")
-    if not (report.get("worktree_clean") is True and
+    if not (report.get("status") == "REVIEW" and
+            report.get("worktree_clean") is True and
+            links.get("status") == "REVIEW" and
+            not links.get("scan_errors") and
             links.get("all_link_candidates_exported") is True and
             links.get("all_candidates_exported") is True and
             links.get("triage_counts_complete") is True and

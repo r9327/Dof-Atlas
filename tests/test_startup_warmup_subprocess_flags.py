@@ -124,6 +124,16 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 connection.execute(
                     "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
                 )
+            self.assertEqual(
+                warmup._quest_offset_artifact_stamp(path)[1:], [-1, -1],
+                "An empty offsets table is not an initialized Quest source index",
+            )
+            path.unlink()
+
+            with closing(sqlite3.connect(path)) as connection, connection:
+                connection.execute(
+                    "CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)"
+                )
                 connection.execute("INSERT INTO offsets VALUES ('bad', 30, 10)")
             bad_span = warmup._quest_offset_artifact_stamp(path)
             self.assertEqual(bad_span[1:], [-1, -1])

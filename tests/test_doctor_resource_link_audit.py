@@ -88,6 +88,19 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertTrue(full["all_candidates_exported"])
         self.assertFalse(full["automatic_deletion_authorized"])
 
+    def test_source_whitespace_and_dot_segments_are_not_false_resolved_links(self):
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        collector = ResourceLinkCollector(["data/icons/a.png"])
+        for literal in (" data/icons/a.png ", "data/icons/./a.png",
+                        "data/icons//a.png", "data/icons/../icons/a.png"):
+            collector.inspect_literal("app/view.py", literal)
+        report = collector.finish(include_all=True)
+        self.assertEqual(report["counts"]["static_resolved_resources"], 0)
+        self.assertEqual(report["counts"]["unsafe_literals"], 4)
+        self.assertEqual(len(report["unresolved_literal_all_candidates"]), 4)
+        self.assertTrue(report["all_link_candidates_exported"])
+        self.assertFalse(report["automatic_deletion_authorized"])
+
     def test_untrusted_parent_path_never_resolves(self):
         self.file("app/view.py", 'DATA = "../escape.json"\n')
         result = self.audit(["app/view.py"])

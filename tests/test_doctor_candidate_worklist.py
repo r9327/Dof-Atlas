@@ -11,8 +11,9 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
     def report(self):
         sha = "a" * 40
         return {
-            "candidate_sha": sha, "worktree_clean": True,
+            "candidate_sha": sha, "status": "REVIEW", "worktree_clean": True,
             "resource_link_audit": {
+                "status": "REVIEW", "scan_errors": [],
                 "all_link_candidates_exported": True,
                 "all_candidates_exported": True,
                 "triage_counts_complete": True,
@@ -149,6 +150,22 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
             self.assertEqual(row["literal"], "\u0027=HYPERLINK(1)")
             self.assertEqual(row["source"], " app.py")
             self.assertEqual(row["other"], "normal")
+
+    def test_blocked_or_partial_doctor_scan_cannot_publish_complete_worklist(self):
+        report = self.report()
+        report["status"] = "BLOCKED"
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            build_worklists(report)
+        report = self.report()
+        report["resource_link_audit"]["status"] = "BLOCKED"
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            build_worklists(report)
+        report = self.report()
+        report["resource_link_audit"]["scan_errors"] = [
+            {"file": "app/bad.py", "error": "SyntaxError"}
+        ]
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            build_worklists(report)
 
     def test_untrusted_worktree_clean_string_is_not_accepted_as_proof(self):
         report = self.report()
