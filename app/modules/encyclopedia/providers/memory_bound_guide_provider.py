@@ -827,36 +827,41 @@ def _build_compact_guide_cache(path: Path) -> int:
         for linked_guide in linked_guides:
             entity_keys_by_guide[str(linked_guide.id)].add(entity_key)
 
-    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-        stream.write(
-            line(
-                {
-                    "kind": "meta",
-                    "schema_version": _GUIDE_COMPACT_SCHEMA,
-                    "source_signature": _guide_compact_source_signature(GUIDES_DIR),
-                }
-            )
-        )
-        for guide in provider._guides:
-            entity_keys = entity_keys_by_guide.get(str(guide.id), set())
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
             stream.write(
                 line(
                     {
-                        "kind": "guide",
-                        "value": _summary_payload(guide),
+                        "kind": "meta",
+                        "schema_version": _GUIDE_COMPACT_SCHEMA,
+                        "source_signature": _guide_compact_source_signature(GUIDES_DIR),
                     }
                 )
             )
-            if entity_keys:
+            for guide in provider._guides:
+                entity_keys = entity_keys_by_guide.get(str(guide.id), set())
                 stream.write(
                     line(
                         {
-                            "kind": "entity_index",
-                            "value": _entity_index_payload(guide.id, entity_keys),
+                            "kind": "guide",
+                            "value": _summary_payload(guide),
                         }
                     )
                 )
-    temporary.replace(path)
+                if entity_keys:
+                    stream.write(
+                        line(
+                            {
+                                "kind": "entity_index",
+                                "value": _entity_index_payload(guide.id, entity_keys),
+                            }
+                        )
+                    )
+        temporary.replace(path)
+    finally:
+        # Large Guide JSONL cache writers must not leak partial generations
+        # after a disk error; the previous complete cache stays readable.
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {"guide_count": len(provider._guides), "path": str(path)},

@@ -135,5 +135,33 @@ class CompactGuideRelationTests(unittest.TestCase):
             provider._ensure_loaded.assert_not_called()
 
 
+    def test_compact_guide_writer_keeps_previous_generation_after_disk_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cache = root / "compact.jsonl"
+            fake_provider = SimpleNamespace(
+                _guides=[SimpleNamespace(id="synthetic-guide")],
+                _by_entity={},
+                _load_in_process=Mock(),
+            )
+            with (
+                patch.object(mod, "MemoryBoundGuideProvider", return_value=fake_provider),
+                patch.object(mod, "_CompactGuideNoopItemProvider", return_value=object()),
+                patch.object(mod, "_guide_compact_source_signature", return_value=[]),
+                patch.object(mod, "_summary_payload", return_value={"id": "synthetic-guide"}),
+                patch("builtins.print"),
+            ):
+                self.assertEqual(mod._build_compact_guide_cache(cache), 0)
+                old_bytes = cache.read_bytes()
+                self.assertIn(b"synthetic-guide", old_bytes)
+                for failing_method in ("open", "replace"):
+                    with self.subTest(failing_method=failing_method):
+                        with patch.object(Path, failing_method, side_effect=OSError("locked cache")):
+                            with self.assertRaisesRegex(OSError, "locked cache"):
+                                mod._build_compact_guide_cache(cache)
+                        self.assertEqual(cache.read_bytes(), old_bytes)
+                        self.assertEqual(list(root.glob(".compact.jsonl.*.tmp")), [])
+
+
 if __name__ == "__main__":
     unittest.main()
