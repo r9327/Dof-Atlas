@@ -61,8 +61,10 @@ class CommitAuditTests(unittest.TestCase):
             ("diff", "--no-ext-diff", "--unified=0", "--find-renames", a, b): "+ram = 1",
             ("log", "-1", "--format=%s", b): "fix memory",
         }
-        with patch("tools.audit_pr303_commits.git", side_effect=lambda *args: calls[args]), \\
-             patch("tools.audit_pr303_commits.subprocess.run") as run:
+        with (
+            patch("tools.audit_pr303_commits.git", side_effect=lambda *args: calls[args]),
+            patch("tools.audit_pr303_commits.subprocess.run") as run,
+        ):
             report = review(a, b)
             self.assertEqual(report["expected"], 1)
             self.assertEqual(report["expected_policy"], "DYNAMIC_RANGE")
