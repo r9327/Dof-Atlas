@@ -85,6 +85,26 @@ class CommitAuditTests(unittest.TestCase):
         )
         self.assertIsNone(scan_patch(no_hunk)["risk_locations"][-1]["line"])
 
+    def test_removed_assertions_keep_original_file_and_old_hunk_line(self):
+        patch = (
+            "diff --git a/tests/one.py b/tests/one.py\n"
+            "--- a/tests/one.py\n+++ b/tests/one.py\n"
+            "@@ -17,4 +17,3 @@\n context\n-assert ready\n"
+            " keep\n-self.assertTrue(result)\n+value = 1\n"
+            "diff --git a/tests/two.py b/tests/two.py\n"
+            "--- a/tests/two.py\n+++ b/tests/two.py\n"
+            "@@ -50,2 +50 @@\n-with pytest.raises(ValueError):\n"
+            "-# assert only a comment\n+value = 2\n"
+        )
+        result = scan_patch(patch)
+        self.assertEqual(result["deleted_assertions"], 3)
+        self.assertEqual(result["deleted_assertion_locations"], [
+            {"file": "tests/one.py", "line": 18},
+            {"file": "tests/one.py", "line": 20},
+            {"file": "tests/two.py", "line": 50},
+        ])
+        self.assertEqual(result["risk_locations"], [])
+
     def test_dynamic_expected_commit_count(self):
         from unittest.mock import patch
         from tools.audit_pr303_commits import review
