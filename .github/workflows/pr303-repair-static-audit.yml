@@ -36,6 +36,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_doctor_resource_link_audit.py -v
           python -m unittest discover -s tests -p test_atlas_doctor_full_scope.py -v
+          python -m unittest discover -s tests -p test_doctor_candidate_worklist.py -v
       - name: Test relative Windows SQLite contract with real read-only mode
         run: python -m unittest discover -s tests -p test_guide_catalog_route_store_relative.py -v
       - name: Run Doctor full Python JSON and literal/resource links without truncating candidates
@@ -92,11 +93,44 @@ jobs:
           print("LINK TRIAGE:",links["link_triage_buckets"])
           print("UNLINKED ASSET FAMILIES:",{key: value["count"] for key,value in links["asset_triage_buckets"].items()})
           PY
+      - name: Export one open review row per link and asset, with App-mirror rules
+        shell: bash
+        run: |
+          python -m tools.doctor_candidate_worklist \
+            --input artifacts/pr303_repair_static/full_scope.json \
+            --out-dir artifacts/pr303_repair_static/worklist \
+            --expected-sha "$CANDIDATE_SHA"
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+          base=Path("artifacts/pr303_repair_static/worklist")
+          report=json.loads((base/"summary.json").read_text())
+          source=json.loads(Path("artifacts/pr303_repair_static/full_scope.json").read_text())
+          with (base/"link_reviews.csv").open(newline="", encoding="utf-8") as f:
+              links=list(csv.DictReader(f))
+          with (base/"asset_reviews.csv").open(newline="", encoding="utf-8") as f:
+              assets=list(csv.DictReader(f))
+          expected=source["resource_link_audit"]
+          assert report["candidate_sha"] == source["candidate_sha"]
+          assert len(links) == report["links_count"] == (
+              expected["counts"]["unresolved_literals"] +
+              expected["counts"]["unsafe_literals"] +
+              expected["counts"]["possible_edges"])
+          assert len(assets) == report["assets_count"] == expected["no_static_consumer_total"]
+          assert all(row["review_status"].startswith("OPEN_") for row in links + assets)
+          assert not report["automatic_deletion_authorized"]
+          print("Candidate worklists:",len(links),"links;",len(assets),"assets.")
+          print("Direct App mirror allowlist:",report["assets_by_mirror_allowlist"])
+          PY
       - name: Persist exact-SHA all-candidate static scan
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pr303-repair-static-all-candidates-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/pr303_repair_static/full_scope.json
+          path: |
+            artifacts/pr303_repair_static/full_scope.json
+            artifacts/pr303_repair_static/worklist/*.csv
+            artifacts/pr303_repair_static/worklist/*.json
           if-no-files-found: error
           retention-days: 30
