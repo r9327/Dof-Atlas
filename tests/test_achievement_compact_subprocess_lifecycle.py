@@ -688,7 +688,9 @@ class AchievementNameIndexIntegrityTests(unittest.TestCase):
                 value = real_stat(path, *args, **kwargs)
                 if path == catalogue:
                     hits.append(True)
-                    if len(hits) == 2:
+                    if len(hits) % 2 == 0:
+                        # Both the direct read and the later write's read
+                        # observe a concurrent source change at their end.
                         return type("NewStat", (), {
                             "st_size": value.st_size,
                             "st_mtime_ns": value.st_mtime_ns,
