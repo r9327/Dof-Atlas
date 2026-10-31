@@ -44,6 +44,20 @@ def _link_family(row: dict[str, Any]) -> str:
 
 
 def _asset_family(path: str) -> str:
+    # Real runtime selector reads these paths dynamically, so absence of
+    # their literal filenames in AST is not evidence that files are unused.
+    if path.startswith("data/encyclopedia/guides/replacement_drafts/cutovers/"):
+        return "GANYMEDE_TRUSTED_CUTOVER_ROUTE_DYNAMIC_CONSUMER_REVIEW"
+    if path.startswith("data/encyclopedia/guides/replacement_drafts/"):
+        return "GANYMEDE_REPLACEMENT_ROUTE_DYNAMIC_CONSUMER_REVIEW"
+    if path.startswith("data/encyclopedia/guides/ganymede_") and path.endswith(
+        ("_observed_links.json", "_action_candidates.json", "_evidence.json")
+    ):
+        return "GANYMEDE_DIAGNOSTIC_INPUT_REVIEW"
+    if path.startswith(("data/images/classes/", "data/images/breeds/")):
+        return "CLASS_PORTRAIT_BUNDLE_REVIEW"
+    if path.startswith("data/routes/guide_ultime_manual/"):
+        return "MANUAL_ROUTE_DYNAMIC_CONSUMER_REVIEW"
     if path.startswith("data/images/archive/unmatched/"):
         return "ARCHIVED_UNMATCHED_IMAGE_REVIEW"
     if path.startswith("data/images/items/"):
@@ -111,6 +125,12 @@ def build_worklists(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
             "triage_family": _asset_family(name),
             "app_mirror_allowlist": "INCLUDED" if selected else "EXCLUDED",
             "allowlist_source": "scripts/windows/export_app_repository.py:selected_runtime_path",
+            "known_dynamic_loader": (
+                "app/modules/encyclopedia/services/guide_ganymede_cutover.py:"
+                "select_verified_replacement_path"
+                if name.startswith("data/encyclopedia/guides/replacement_drafts/")
+                else ""
+            ),
             "packaged_in_exe_verified": "NOT_RUN",
             "runtime_consumer_verified": "NOT_RUN",
             "review_status": "OPEN_REQUIRES_RUNTIME_OR_PACKAGING_EVIDENCE",
