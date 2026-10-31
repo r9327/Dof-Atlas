@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from contextlib import closing
 from unittest.mock import patch, MagicMock
 import sqlite3
 
@@ -62,7 +63,7 @@ class RelativeGuideSQLiteTests(unittest.TestCase):
                 manual_audit_data={"card_count": 1}, _common_quest_ids=(42,),
             )
             sqlite_path = write_indexed_route(original, store, "d" * 40)
-            with sqlite3.connect(sqlite_path) as connection:
+            with closing(sqlite3.connect(sqlite_path)) as connection, connection:
                 payload = connection.execute("SELECT data FROM details WHERE idx=0").fetchone()[0]
                 connection.execute("UPDATE details SET data=? WHERE idx=0",
                                    (payload + b"trailing-corruption",))
