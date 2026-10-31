@@ -111,7 +111,7 @@ def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bo
     if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
         return False
     try:
-        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE name='manifest'"
             ).fetchone()
@@ -162,7 +162,7 @@ def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bo
 
 def load_detail(path: Path, index: int) -> dict[str, Any]:
     """One bounded row, no full-route inflation and no mutable shared tree."""
-    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
         row = connection.execute(
             "SELECT data FROM details WHERE idx=?", (int(index),)
         ).fetchone()
