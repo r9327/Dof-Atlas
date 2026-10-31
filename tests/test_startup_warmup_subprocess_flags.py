@@ -149,6 +149,28 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             self.assertGreater(valid[2], 0)
             self.assertEqual(valid[0], warmup._path_label(path))
 
+    def test_duplicate_and_malformed_domain_artifacts_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact = root / "cache.bin"
+            artifact.write_bytes(b"valid cache fixture")
+            with patch.object(warmup, "ROOT", root):
+                self.assertEqual(
+                    warmup._artifact_stamp("guide", ["cache.bin", "./cache.bin"]), [],
+                )
+                self.assertEqual(
+                    warmup._artifact_stamp("guide", ["cache.bin", "cache.bin"]), [],
+                )
+                for invalid in (True, 1, None, " cache.bin ", ""):
+                    with self.subTest(value=invalid):
+                        self.assertIsNone(warmup._safe_artifact_path(invalid))
+                        self.assertEqual(
+                            warmup._artifact_stamp("guide", ["cache.bin", invalid]), [],
+                        )
+                self.assertGreater(
+                    warmup._artifact_stamp("guide", ["cache.bin"])[0][1], 0,
+                )
+
     def test_quest_catalogue_ready_marker_must_be_exactly_one(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "quest.sqlite3"

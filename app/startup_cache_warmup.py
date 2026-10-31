@@ -254,9 +254,11 @@ def _source_stamp(domain: str) -> list[list[object]]:
 
 
 def _safe_artifact_path(raw_path: object) -> Path | None:
-    value = str(raw_path or "").strip()
-    if not value:
+    # Domain workers publish relative/absolute strings, not arbitrary objects.
+    # Trimming a different spelling would silently trust the wrong artifact.
+    if not isinstance(raw_path, str) or not raw_path or raw_path != raw_path.strip():
         return None
+    value = raw_path
     path = Path(value)
     if not path.is_absolute():
         path = ROOT / path
@@ -324,10 +326,14 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
     if not isinstance(cache_files, list) or not cache_files:
         return []
     rows: list[list[object]] = []
+    seen_paths: set[Path] = set()
     for index, raw_path in enumerate(cache_files):
         path = _safe_artifact_path(raw_path)
-        if path is None:
+        # Two declared artifacts resolving to the same file must never
+        # masquerade as two independently prepared domain indexes.
+        if path is None or path in seen_paths:
             return []
+        seen_paths.add(path)
         if domain == "quest" and index == 0:
             rows.append(_quest_artifact_stamp(path))
             continue
