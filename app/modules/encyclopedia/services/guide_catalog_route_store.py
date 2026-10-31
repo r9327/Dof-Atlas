@@ -173,7 +173,10 @@ def load_detail(path: Path, index: int) -> dict[str, Any]:
         row = connection.execute(
             "SELECT data FROM details WHERE idx=?", (int(index),)
         ).fetchone()
-    if row is None or len(row[0]) > MAX_DETAIL_BYTES:
+    if (row is None or not isinstance(row[0], bytes)
+            or len(row[0]) > MAX_DETAIL_BYTES):
+        # A malformed/replaced SQLite BLOB can be a TEXT value. Do not let
+        # zlib's TypeError escape the rebuildable-cache error boundary.
         raise ValueError(f"Fiche Guide absente ou invalide: {index}")
     try:
         decompressor = zlib.decompressobj()

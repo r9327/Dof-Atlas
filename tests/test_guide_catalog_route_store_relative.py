@@ -121,6 +121,13 @@ class RelativeGuideSQLiteTests(unittest.TestCase):
                                    (b"not a zlib stream",))
             with self.assertRaisesRegex(ValueError, "compressée altérée"):
                 load_detail(sqlite_path, 0)
+            # SQLite permits a TEXT replacement in a BLOB column. It must
+            # trigger a controlled cache fallback, not an uncaught TypeError.
+            with closing(sqlite3.connect(sqlite_path)) as connection, connection:
+                connection.execute("UPDATE details SET data=? WHERE idx=0",
+                                   ("wrong sqlite storage class",))
+            with self.assertRaisesRegex(ValueError, "absente ou invalide"):
+                load_detail(sqlite_path, 0)
 
 
 
