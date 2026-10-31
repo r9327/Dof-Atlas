@@ -190,3 +190,9 @@ La recherche `guide_ids_for_quest_fast` accepte désormais seulement les caches 
 Correction du chemin `MemoryBoundGuideProvider._load()` : l'ancien test `sys.frozen` imposait systématiquement `_load_in_process()` **avant** de consulter le JSONL compact, même si le préchargement avait produit des résumés valides. Les installations Windows packagées perdaient donc le bénéfice mémoire de ce cache et relisaient les gros JSON sources dans le processus UI. Pour les sources canoniques, la lecture compacte validée est maintenant utilisée **également en EXE figé**. Si cache absent ou corrompu : repli `_load_in_process` préexistant, sans tentative d'exécuter `python -m` depuis l'EXE. Les sources personnalisées restent en mode in-process. Tests ciblés des trois branches (cache valide, absent, corrompu) avec `sys.frozen` simulé.
 
 Le chemin compact élimine le chargement lourd **dans ce scénario**, mais le gain RSS/latence réel et le fonctionnement d'un EXE packagé restent à mesurer sur Windows exact-SHA. Aucun contrat de données ou progression modifié.
+
+## Runtime Windows figé : même optimisation sur Succès (31/10/2026)
+
+`MemoryBoundAchievementProvider._load()` contournait lui aussi le cache compact dès que `sys.frozen` était vrai : le runtime Windows lisait alors les sources complètes dans la mémoire UI malgré un cache de catalogue valide. La lecture compacte devient prioritaire pour les sources canoniques, y compris dans un EXE. Si elle échoue ou que le cache n'existe pas, le chemin in-process d'origine reste le repli sans lancer de subprocess Python depuis l'EXE. Les sources personnalisées conservent leur comportement. Deux tests de la priorité cache et du repli, ajoutés à la campagne Windows ciblée existante.
+
+Les contrats de progression et de détails riches ne sont pas modifiés. Les gains RAM/latence et la recette EXE exigent toujours une mesure Windows sur le SHA exact.

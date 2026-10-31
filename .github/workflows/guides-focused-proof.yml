@@ -36,6 +36,7 @@ on:
       - 'tests/test_guide_entity_query_reuse.py'
       - 'tests/test_compact_guide_item_effects.py'
       - 'tests/test_achievement_compact_subprocess_lifecycle.py'
+      - 'tests/test_achievement_frozen_detail_runtime.py'
       - 'app/modules/encyclopedia/services/achievement_index_warmup.py'
       - 'tests/test_shared_guide_combat_global_contract.py'
       - 'scripts/windows/build_quest_index.py'
@@ -148,7 +149,7 @@ jobs:
       - name: Nonblocking combat matching and early domain warmup regressions
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags tests.test_guide_cold_relation_lookup tests.test_guide_entity_query_reuse tests.test_compact_guide_item_effects tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests tests.test_achievement_compact_subprocess_lifecycle.AchievementNameIndexIntegrityTests
+          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags tests.test_guide_cold_relation_lookup tests.test_guide_entity_query_reuse tests.test_compact_guide_item_effects tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests tests.test_achievement_compact_subprocess_lifecycle.AchievementNameIndexIntegrityTests tests.test_achievement_frozen_detail_runtime.AchievementFrozenDetailRuntimeTests.test_frozen_success_catalogue_prefers_prebuilt_compact_rows tests.test_achievement_frozen_detail_runtime.AchievementFrozenDetailRuntimeTests.test_frozen_success_missing_or_bad_compact_uses_inprocess_fallback
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Guide line/waypoint and runtime text parity
         shell: pwsh

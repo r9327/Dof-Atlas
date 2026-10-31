@@ -900,7 +900,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     def _load(self) -> None:
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
+        if current_data_dir != default_data_dir:
             self._load_in_process()
             return
         if _achievement_compact_cache_valid(
@@ -908,14 +908,18 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             data_dir=self.data_dir,
         ):
             try:
+                # Packaged Windows can consume the compact Success catalogue.
+                # Avoid materializing the full raw graph in the UI heap.
                 self._load_from_compact_cache()
                 return
             except (OSError, UnicodeError, ValueError, TypeError, KeyError, RuntimeError) as exc:
-                # The header can still be valid while its offsets sidecar is
-                # missing or corrupt. Preserve the existing disposable fallback.
                 logging.getLogger(__name__).warning(
                     "Success compact cache rejected; rebuilding from sources: %s", exc,
                 )
+        if bool(getattr(sys, "frozen", False)):
+            # The frozen executable cannot launch a Python -m child.
+            self._load_in_process()
+            return
         self._load_from_compact_subprocess()
 
     def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
