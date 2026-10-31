@@ -4,10 +4,12 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QListWidget, QLineEdit
 
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
@@ -18,6 +20,41 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideM
 
 
 class GuideManualLongLayoutTests(unittest.TestCase):
+    def test_long_summary_search_normalizes_rows_only_on_population(self):
+        QApplication.instance() or QApplication([])
+        view = SimpleNamespace(
+            service=SimpleNamespace(cards=[
+                {"manual_title": "Astrub — entrée"},
+                {"manual_chapter_label": "Amakna", "destination": "Village"},
+                {"manual_title": "Astrub — sortie"},
+            ]),
+            summary_list=QListWidget(),
+            summary_search=QLineEdit(),
+        )
+        view._filter_summary = lambda value: SharedGuideManualView._filter_summary(view, value)
+        try:
+            from app.modules.encyclopedia.views import shared_manual_guide_view as module
+            with patch.object(module, "normalize_text", wraps=module.normalize_text) as normalize:
+                SharedGuideManualView._populate_summary(view)
+                initial_calls = normalize.call_count
+                self.assertEqual(initial_calls, 4)  # 3 labels + initial empty search
+                SharedGuideManualView._filter_summary(view, "Astrub")
+                self.assertEqual(normalize.call_count, initial_calls + 1)
+                self.assertEqual(
+                    [view.summary_list.item(i).isHidden() for i in range(3)],
+                    [False, True, False],
+                )
+                SharedGuideManualView._filter_summary(view, "Village")
+                self.assertEqual(normalize.call_count, initial_calls + 2)
+                self.assertEqual(
+                    [view.summary_list.item(i).isHidden() for i in range(3)],
+                    [True, False, True],
+                )
+        finally:
+            view.summary_list.deleteLater()
+            view.summary_search.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
     def test_long_canonical_card_scrolls_and_navigation_stays_reachable(self):
         app = QApplication.instance() or QApplication([])
         with tempfile.TemporaryDirectory() as temp:

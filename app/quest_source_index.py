@@ -265,8 +265,21 @@ class JsonSourceMapping(Mapping):
         disk_index = cache_root / f"source_{digest}.sqlite3"
         if self.disk_backed and disk_index.is_file():
             try:
+                # The preload cache stamp and the source reader must agree:
+                # merely having an "offsets" table does not prove its spans
+                # point inside the current immutable source JSON.
                 with closing(sqlite3.connect(disk_index)) as connection:
-                    connection.execute("SELECT COUNT(*) FROM offsets").fetchone()
+                    span = connection.execute(
+                        "SELECT start, end FROM offsets LIMIT 1"
+                    ).fetchone()
+                    if span is not None and not (
+                        type(span[0]) is int
+                        and type(span[1]) is int
+                        and 0 <= span[0] < span[1] <= stat.st_size
+                    ):
+                        raise sqlite3.DatabaseError(
+                            "Disk source index contains an out-of-bounds span"
+                        )
                 self._disk_index = disk_index
                 self._offsets = {}
                 return

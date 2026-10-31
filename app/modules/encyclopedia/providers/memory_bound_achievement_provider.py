@@ -10,6 +10,8 @@ import tempfile
 from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
+from threading import current_thread
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -130,6 +132,8 @@ def ensure_achievement_compact_cache(
         env=_utf8_subprocess_env(),
         timeout=90,
         check=True,
+        # No transient console/conhost for captured disposable Windows workers.
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
     )
     lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
     if not lines:
@@ -479,6 +483,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
+        # One active rich detail + two previous ones. Reopening a Success must
+        # not spend another 5s rebuilding a disposable detail worker.
+        self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
+        self._last_detail_cache_source = "cold"
+        # The previous cold event survives hot/recent hits, so Doctor can
+        # measure the worker cost even when Qt renders from an already warm
+        # detail after the stage signal.
+        self._last_cold_detail_breakdown: dict[str, object] = {}
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -505,6 +517,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
         self._detail_cache_id = None
         self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._detail_sources_ready = False
         self._progress_objectives = {}
         self._compat_cache_id = None
@@ -554,6 +569,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def _finish_in_process_catalogue(self) -> None:
         self._trim_catalogue_payload()
+        # A rebuilt catalogue invalidates previously hydrated rich details.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._progress_objectives = {
             int(achievement.id): json.dumps(
                 [
@@ -633,6 +654,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
         self._progress_objectives = progress_objectives
+        # Compatibility subprocess may replace the whole catalogue in the
+        # same provider. Never retain rich detail objects from older sources.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_cold_detail_breakdown = {}
+        self._last_detail_cache_source = "cold"
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
@@ -779,6 +807,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
         self._compact_quest_link_cache.clear()
         self._compact_summary_cache.clear()
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._image_indexes.clear()
         self._reset_sources()
 
@@ -1428,11 +1461,69 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._reset_sources()
 
+    def _remember_rich_detail(
+        self, achievement_id: int, detail: Achievement,
+        old_id: int | None, old_detail: Achievement | None,
+    ) -> None:
+        """Retain only the last few details; never the whole rich catalogue."""
+        if old_detail is not None and old_id is not None and old_id != achievement_id:
+            self._recent_rich_details[old_id] = old_detail
+            self._recent_rich_details.move_to_end(old_id)
+        self._recent_rich_details.pop(achievement_id, None)
+        while len(self._recent_rich_details) > 2:
+            self._recent_rich_details.popitem(last=False)
+        self._detail_cache_id = achievement_id
+        self._detail_cache = detail
+
+    def _reuse_recent_rich_detail(self, achievement_id: int) -> Achievement | None:
+        cached = self._recent_rich_details.pop(achievement_id, None)
+        if cached is None:
+            return None
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._remember_rich_detail(achievement_id, cached, old_id, old_detail)
+        self._last_detail_cache_source = "recent"
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
+        self._last_detail_ms = 0.0
+        self._last_detail_thread_name = current_thread().name
+        return cached
+
+    @property
+    def last_cold_detail_breakdown_ms(self) -> dict[str, object]:
+        """Last successful cold detail cost, independent of subsequent cache hits."""
+        return dict(self._last_cold_detail_breakdown)
+
+    @property
+    def last_detail_breakdown_ms(self) -> dict[str, object]:
+        """Identify cold Success detail blocking work, without importing a profiler."""
+        return {
+            "thread": self._last_detail_thread_name,
+            "total_ms": self._last_detail_ms,
+            "synchronous_subprocess_ms": getattr(self, "_last_detail_subprocess_ms", 0.0),
+            "decode_ms": getattr(self, "_last_detail_decode_ms", 0.0),
+            "subprocess_path_used": bool(getattr(self, "_last_detail_subprocess_used", False)),
+            "cache_source": self._last_detail_cache_source,
+            "recent_cache_entries": len(self._recent_rich_details),
+        }
+
     def get_detail_by_id(self, achievement_id: int):
         self._ensure_loaded()
         achievement_id = int(achievement_id)
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+            self._last_detail_cache_source = "hot"
+            self._last_detail_subprocess_used = False
+            self._last_detail_subprocess_ms = 0.0
+            self._last_detail_decode_ms = 0.0
+            self._last_detail_ms = 0.0
+            self._last_detail_thread_name = current_thread().name
             return self._detail_cache
+        recent = self._reuse_recent_rich_detail(achievement_id)
+        if recent is not None:
+            return recent
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
 
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
@@ -1441,35 +1532,87 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and current_data_dir == default_data_dir
             and _DUMP_DETAIL_FLAG not in sys.argv
         ):
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-                    _DUMP_DETAIL_FLAG,
-                    str(achievement_id),
-                ],
-                cwd=ROOT_DIR,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=_utf8_subprocess_env(),
-                timeout=90,
-                check=True,
-            )
-            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-            if not lines:
-                return None
-            payload = json.loads(lines[-1])
-            if not isinstance(payload, dict):
-                return None
-            detail = _achievement_from_dict(payload)
-            self._detail_cache_id = achievement_id
-            self._detail_cache = detail
-            return detail
+            # Doctor must distinguish the expensive disposable worker from
+            # JSON decoding instead of reporting only an opaque Qt stall.
+            # This path is intentionally synchronous until an exact-SHA
+            # Graphify impact review authorizes an async UI lifecycle change.
+            started = perf_counter()
+            self._last_detail_subprocess_used = True
+            self._last_detail_decode_ms = 0.0
+            try:
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                        _DUMP_DETAIL_FLAG,
+                        str(achievement_id),
+                    ],
+                    cwd=ROOT_DIR,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=_utf8_subprocess_env(),
+                    timeout=90,
+                    check=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+                )
+            finally:
+                self._last_detail_subprocess_ms = round(
+                    (perf_counter() - started) * 1000.0, 3,
+                )
+                self._last_detail_ms = self._last_detail_subprocess_ms
+                self._last_detail_thread_name = current_thread().name
 
-        return self._get_detail_in_process(achievement_id)
+            decode_started = perf_counter()
+            try:
+                lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+                if not lines:
+                    return None
+                payload = json.loads(lines[-1])
+                if not isinstance(payload, dict):
+                    return None
+                detail = _achievement_from_dict(payload)
+                self._remember_rich_detail(
+                    achievement_id, detail, old_id, old_detail,
+                )
+                return detail
+            finally:
+                self._last_detail_decode_ms = round(
+                    (perf_counter() - decode_started) * 1000.0, 3,
+                )
+                self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+                if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+                    self._last_cold_detail_breakdown = {
+                        "achievement_id": achievement_id,
+                        "status": "OBSERVED",
+                        "thread": self._last_detail_thread_name,
+                        "total_ms": self._last_detail_ms,
+                        "synchronous_subprocess_ms": self._last_detail_subprocess_ms,
+                        "decode_ms": self._last_detail_decode_ms,
+                        "subprocess_path_used": True,
+                    }
+
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
+        started = perf_counter()
+        detail = self._get_detail_in_process(achievement_id)
+        self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+        self._last_detail_thread_name = current_thread().name
+        if detail is not None:
+            self._remember_rich_detail(achievement_id, detail, old_id, old_detail)
+            self._last_cold_detail_breakdown = {
+                "achievement_id": achievement_id,
+                "status": "OBSERVED",
+                "thread": self._last_detail_thread_name,
+                "total_ms": self._last_detail_ms,
+                "synchronous_subprocess_ms": 0.0,
+                "decode_ms": 0.0,
+                "subprocess_path_used": False,
+            }
+        return detail
 
     def get_linked_quests(self, achievement_id: int):
         self._ensure_loaded()

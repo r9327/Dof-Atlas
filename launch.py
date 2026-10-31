@@ -32,6 +32,26 @@ def main() -> int:
                 return 4
         return 0
 
+    if sys.argv[1:2] == ["--atlas-prebuilt-quest-smoke"]:
+        # Prove the actual frozen EXE ships an importable immutable Quest
+        # summary: 1,976 records without recompiling raw sources.
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from app.quest_index_prebuilt import (
+            verify_quest_index, restore_quest_index, _check_index,
+        )
+        count = verify_quest_index()
+        if count < 1900:
+            print("Frozen portable Quest summary is absent or invalid", file=sys.stderr)
+            return 18
+        with TemporaryDirectory(prefix="atlas-portable-quest-") as folder:
+            dest = Path(folder) / "runtime-quest.sqlite3"
+            if not restore_quest_index(dest) or _check_index(dest) != count:
+                print("Frozen Quest summary restoration failed", file=sys.stderr)
+                return 19
+        print(f"VERIFIED: frozen portable Quest index {count} summaries")
+        return 0
+
     if sys.argv[1:2] == ["--atlas-quest-smoke"]:
         # Exercise the real source parser, not just a directory existence check.
         from app.quest_catalog_details import ensure_lazy_catalog_cache
@@ -63,6 +83,54 @@ def main() -> int:
                 print(f"Frozen Success data incomplete: {tasks}", file=sys.stderr)
                 return 7
         print(f"VERIFIED: frozen {domain} startup data")
+        return 0
+
+    if sys.argv[1:2] == ["--atlas-prebuilt-guide-smoke"]:
+        # Certify the actual frozen EXE consumes the bundled portable route.
+        # Do not accidentally accept a source reconstruction or user cache.
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+        from app.modules.encyclopedia.providers.memory_bound_guide_provider import (
+            MemoryBoundGuideProvider,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_prebuilt_route import (
+            restore_prebuilt_route,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_route_store import load_detail
+        quests = QuestProvider()
+        guide = MemoryBoundGuideProvider(quest_provider=quests).get_by_id("dofus_sylvestre")
+        if guide is None:
+            print("Frozen Sylvestre Guide metadata unavailable", file=sys.stderr)
+            return 13
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        service.guide_id = str(guide.id)
+        service.catalog_guide = guide
+        service.quest_provider = quests
+        if not restore_prebuilt_route(service):
+            print("Frozen portable Sylvestre route rejected", file=sys.stderr)
+            return 14
+        if len(service.cards) < 1000:
+            return 15
+        for index in (0, len(service.cards) // 2, len(service.cards) - 1):
+            detail = load_detail(service._catalog_detail_store_path, index)
+            if not detail["manual_lines"]:
+                return 16
+        print(f"VERIFIED: frozen precompiled Sylvestre {len(service.cards)} indexed cards")
+        # The same certified Windows payload must carry ready-to-display
+        # aggregate rewards for every alignment without hydrating Quest rows.
+        from app.modules.encyclopedia.services.guide_prebuilt_rewards import (
+            cached_rewards,
+        )
+        guide_provider = MemoryBoundGuideProvider(quest_provider=quests)
+        for guide_id in ("alignement_bonta", "alignement_brakmar"):
+            alignment = guide_provider.get_by_id(guide_id)
+            rewards = cached_rewards(alignment) if alignment is not None else None
+            if rewards is None:
+                print(f"Frozen precomputed rewards unavailable: {guide_id}", file=sys.stderr)
+                return 17
+            print(f"VERIFIED: frozen {guide_id} {len(rewards)} rewards without rich Quest reads")
         return 0
 
     if sys.argv[1:2] == ["--atlas-success-detail-smoke"]:

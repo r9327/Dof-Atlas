@@ -21,13 +21,15 @@ def validate_instance(report: dict[str, Any], *, sha: str) -> list[str]:
         errors.append("WRONG_COMMIT")
     if report.get("status") != "PASS" or report.get("cycles") != 1:
         errors.append("INCOMPLETE_ATLAS_PROCESS")
-    if report.get("planned_samples") != 20 or report.get("measured_routes") != 20:
+    from tools.doctor_quick_app_probe import ROUTES
+    expected_placeholders = sum(placeholder for *_, placeholder in ROUTES)
+    if report.get("planned_samples") != len(ROUTES) or report.get("measured_routes") != len(ROUTES):
         errors.append("INCOMPLETE_20_MENU_COVERAGE")
-    if report.get("functional_pass") != 15 or report.get("placeholder_pass") != 5:
+    if (report.get("functional_pass") != len(ROUTES) - expected_placeholders
+            or report.get("placeholder_pass") != expected_placeholders):
         errors.append("FALSE_FUNCTIONAL_COVERAGE")
     if set((report.get("preload_states") or {}).values()) != {"READY"} or len(report.get("preload_states") or {}) != 3:
         errors.append("PRELOAD_NOT_READY")
-    from tools.doctor_quick_app_probe import ROUTES
     samples = report.get("routes") or []
     actual = [(r.get("id"), r.get("cycle"), r.get("status")) for r in samples]
     expected = [(key, 1, "PLACEHOLDER" if placeholder else "PASS")

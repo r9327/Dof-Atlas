@@ -1,0 +1,24 @@
+name: Doctor Full-Scope / Graphify Exact SHA
+
+on:
+  pull_request:
+    branches: [main]
+    # Run the existing canonical Graphify workflow only when Doctor's full
+    # scope or its Graphify contract changes. No duplicate graph engine.
+    paths:
+      - "tools/atlas_doctor_lib/full_scope.py"
+      - "tools/atlas_doctor.py"
+      - "tests/test_atlas_doctor_full_scope.py"
+      - ".github/workflows/graphify-map.yml"
+      - ".github/workflows/doctor-full-scope-graphify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  graphify-current:
+    name: Doctor / Existing Graphify exhaustive contract
+    uses: ./.github/workflows/graphify-map.yml
+    permissions:
+      contents: read

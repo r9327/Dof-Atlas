@@ -127,7 +127,10 @@ def _quest_domain() -> dict[str, object]:
     from app import quest_catalog_details as details
 
     count = int(details.ensure_lazy_catalog_cache() or 0)
-    detail_source_index_count = int(details.ensure_detail_source_offsets() or 0)
+    detail_indexes: list[Path] = []
+    detail_source_index_count = int(
+        details.ensure_detail_source_offsets(indexed_paths=detail_indexes) or 0
+    )
     _signature, cache_path = details._cache_identity(
         details.qc.RAW_QUEST_DATA_DIR,
         details._CACHE_ROOT,
@@ -136,7 +139,11 @@ def _quest_domain() -> dict[str, object]:
         "domain": "quest",
         "quest_count": max(0, count),
         "detail_source_index_count": max(0, detail_source_index_count),
-        "cache_files": [_relative(cache_path)],
+        "detail_index_artifact_count": len(detail_indexes),
+        # The first file is the Quest catalogue; the rest are immutable
+        # source-offset indexes used by the first rich Quest detail. Their
+        # absence must invalidate warmup instead of rebuilding on the UI path.
+        "cache_files": [_relative(cache_path), *(_relative(path) for path in detail_indexes)],
     }
 
 

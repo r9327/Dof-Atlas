@@ -7,6 +7,11 @@ on:
         type: boolean
         default: false
   workflow_dispatch:
+  # One unpublished full Windows candidate when a reviewed PR leaves Draft.
+  # The windows-bundle job remains restricted to explicitly listed branches.
+  pull_request:
+    types: [ready_for_review]
+    branches: [main]
   workflow_run:
     workflows: ["Phase Certification"]
     types: [completed]
@@ -170,7 +175,8 @@ jobs:
         inputs.full_candidate == true ||
         (github.event_name == 'pull_request' &&
          github.event.action == 'ready_for_review' &&
-         (github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
+         (github.head_ref == 'perf/atlas-global-optimization-backlog-20261030' ||
+          github.head_ref == 'fix/pr249-frozen-capture-organizer-portraits-20261024' ||
           github.head_ref == 'feature/atlas-auto-update-distribution-20261013' ||
           github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
           github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
@@ -236,6 +242,16 @@ jobs:
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           python -m pip install pyinstaller==6.16.0
+      - name: Precompile Quest SQLite summary index outside the user process
+        run: |
+          python -m scripts.windows.build_quest_index --source-sha "$SOURCE_SHA" --output data/bootstrap
+      - name: Precompile portable Sylvestre itinerary outside the user process
+        run: |
+          python -m scripts.windows.build_guide_routes --source-sha "$SOURCE_SHA" --output data/bootstrap/guide_routes
+          python -m scripts.windows.build_guide_routes --verify-only --output data/bootstrap/guide_routes
+      - name: Precompile canonical rewards for all Guide overviews
+        run: |
+          python -m scripts.windows.build_guide_rewards --source-sha "$SOURCE_SHA" --output data/bootstrap/guide_rewards_v1.json
       - name: Compile application bundle with QtWebEngine and worker modules
         run: |
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name AtlasApp --paths . \
@@ -267,6 +283,46 @@ jobs:
           PY
       - name: Certify actual frozen quest asset integrity
         run: python -m scripts.windows.quest_assets --root dist/AtlasApp/_internal
+      - name: Verify Quest compact bootstrap index is packaged
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("dist/AtlasApp/_internal/data/bootstrap")
+          manifest = json.loads((root / "quest_index_v1.manifest.json").read_text(encoding="utf-8"))
+          if manifest.get("quest_count", 0) < 1900 or not (root / "quest_index_v1.sqlite3").is_file():
+              raise SystemExit("Frozen Quest summary bootstrap index missing")
+          print("Verified: Quest SQLite source summary is shipped in Windows package")
+          PY
+      - name: Verify precompiled Sylvestre itinerary was shipped inside frozen bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app.modules.encyclopedia.services.guide_catalog_prebuilt_route import (
+              MANIFEST_NAME, LEGACY_STORE_NAME,
+          )
+          from app.modules.encyclopedia.services.guide_catalog_route_store import indexed_path
+          root = Path("dist/AtlasApp/_internal/data/bootstrap/guide_routes")
+          for path in (root / MANIFEST_NAME, indexed_path(root / LEGACY_STORE_NAME)):
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Frozen Guide asset missing: {path}")
+          print("Verified: portable Sylvestre route included in exact Windows candidate")
+          PY
+      - name: Verify canonical reward index ships in frozen Windows bundle
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          index = Path("dist/AtlasApp/_internal/data/bootstrap/guide_rewards_v1.json")
+          payload = json.loads(index.read_text(encoding="utf-8"))
+          guides = payload.get("guides", {})
+          if payload.get("schema") != 1 or not 20 <= len(guides) <= 100:
+              raise SystemExit("Portable Guide reward index absent or incomplete")
+          for guide in ("alignement_bonta", "alignement_brakmar"):
+              if guide not in guides:
+                  raise SystemExit(f"Missing reward projection: {guide}")
+          print(f"Verified: {len(guides)} portable Guide reward projections")
+          PY
       - name: Certify packaged public Craft SQLite seed
         run: python -m scripts.windows.craft_seed --verify --output dist/AtlasApp/_internal/data/bootstrap/craft_seed.sqlite
       - name: Compile lightweight standalone launcher
@@ -305,10 +361,14 @@ jobs:
         run: dist/AtlasApp/AtlasApp.exe --atlas-package-smoke
       - name: Smoke frozen capture helper imports without UAC or network
         run: dist/AtlasApp/AtlasApp.exe --atlas-capture-smoke
+      - name: Smoke the real frozen portable 1976-Quest summary
+        run: dist/AtlasApp/AtlasApp.exe --atlas-prebuilt-quest-smoke
       - name: Smoke real frozen quest parser before accepting a Release
         run: dist/AtlasApp/AtlasApp.exe --atlas-quest-smoke
       - name: Smoke real frozen Guides and Guide-item indexes
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke guide
+      - name: Smoke real frozen release-precompiled Sylvestre route
+        run: dist/AtlasApp/AtlasApp.exe --atlas-prebuilt-guide-smoke
       - name: Smoke real frozen Successes and retained catalog
         run: dist/AtlasApp/AtlasApp.exe --atlas-domain-smoke success
       - name: Smoke exact frozen Success worker on clean first installation

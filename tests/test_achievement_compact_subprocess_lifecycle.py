@@ -84,6 +84,165 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         self.assertEqual(child_env["PYTHONUTF8"], "1")
 
 
+class AchievementDetailColdTimingTests(unittest.TestCase):
+    def test_cold_subprocess_reports_real_blocking_and_decode_phases(self) -> None:
+        from threading import current_thread
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout='{"id":123,"name":"Succès témoin","category_id":8}\n',
+            stderr="",
+        )
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(
+                __import__("sys"), "frozen", False, create=True
+            ),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                return_value=completed,
+            ) as child,
+        ):
+            detail = provider.get_detail_by_id(123)
+            self.assertEqual(detail.id, 123)
+            child.assert_called_once()
+            self.assertEqual(child.call_args.kwargs["timeout"], 90)
+            self.assertEqual(
+                child.call_args.kwargs["creationflags"],
+                getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+            )
+            timing = provider.last_detail_breakdown_ms
+            self.assertEqual(timing["thread"], current_thread().name)
+            self.assertTrue(timing["subprocess_path_used"])
+            self.assertGreaterEqual(timing["synchronous_subprocess_ms"], 0.0)
+            self.assertGreaterEqual(timing["decode_ms"], 0.0)
+            self.assertGreaterEqual(timing["total_ms"], timing["decode_ms"])
+            # Returning to the same detail remains a cheap cache hit.
+            self.assertIs(provider.get_detail_by_id(123), detail)
+            child.assert_called_once()
+
+    def test_recent_success_details_reuse_small_bounded_cache(self) -> None:
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        opened: list[int] = []
+
+        def worker(argv, **_kwargs):
+            ident = int(argv[-1])
+            opened.append(ident)
+            return subprocess.CompletedProcess(
+                args=argv, returncode=0,
+                stdout=json.dumps({"id": ident, "category_id": 8,
+                                   "name": f"Achievement {ident}"}) + "\n",
+                stderr="",
+            )
+
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=worker,
+            ),
+        ):
+            first = provider.get_detail_by_id(1)
+            provider.get_detail_by_id(2)
+            self.assertIs(provider.get_detail_by_id(1), first)
+            self.assertEqual(opened, [1, 2])
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "recent")
+            self.assertEqual(provider.last_detail_breakdown_ms["synchronous_subprocess_ms"], 0.0)
+            self.assertFalse(provider.last_detail_breakdown_ms["subprocess_path_used"])
+
+            self.assertIs(provider.get_detail_by_id(1), first)
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "hot")
+            provider.get_detail_by_id(3)
+            provider.get_detail_by_id(4)
+            self.assertEqual(len(provider._recent_rich_details), 2)
+            self.assertEqual(opened, [1, 2, 3, 4])
+            # ID 2 was evicted on the fourth distinct detail.
+            provider.get_detail_by_id(2)
+            self.assertEqual(opened, [1, 2, 3, 4, 2])
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "cold")
+
+        provider.release_catalogue()
+        self.assertEqual(len(provider._recent_rich_details), 0)
+        self.assertIsNone(provider._detail_cache)
+        self.assertIsNone(provider._detail_cache_id)
+
+    def test_cold_worker_cost_survives_hot_hit_then_clears_on_release(self) -> None:
+        from threading import Thread
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        output = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout=json.dumps({"id": 123, "category_id": 8,
+                               "name": "Warmup success"}) + "\n",
+            stderr="",
+        )
+        errors = []
+
+        def warm_one():
+            try:
+                provider.get_detail_by_id(123)
+            except Exception as exc:
+                errors.append(exc)
+
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                return_value=output,
+            ) as child,
+        ):
+            worker = Thread(target=warm_one, name="DofusAtlasAchievementStage")
+            worker.start()
+            worker.join(timeout=5)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(errors, [])
+            child.assert_called_once()
+            cold = provider.last_cold_detail_breakdown_ms
+            self.assertEqual(cold["achievement_id"], 123)
+            self.assertEqual(cold["status"], "OBSERVED")
+            self.assertEqual(cold["thread"], "DofusAtlasAchievementStage")
+            self.assertTrue(cold["subprocess_path_used"])
+            self.assertGreaterEqual(cold["total_ms"], 0)
+            self.assertIs(provider.get_detail_by_id(123), provider._detail_cache)
+            self.assertEqual(provider.last_detail_breakdown_ms["cache_source"], "hot")
+            self.assertEqual(provider.last_detail_breakdown_ms["total_ms"], 0.0)
+            self.assertEqual(provider.last_cold_detail_breakdown_ms, cold)
+            child.assert_called_once()
+
+        provider.release_catalogue()
+        self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
+
+    def test_failed_subprocess_still_records_blocking_phase(self) -> None:
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            RAW_QUEST_DATA_DIR,
+        )
+        provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
+        with (
+            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded"),
+            patch.object(__import__("sys"), "frozen", False, create=True),
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(cmd="detail", timeout=90),
+            ),
+        ):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                provider.get_detail_by_id(123)
+        timing = provider.last_detail_breakdown_ms
+        self.assertTrue(timing["subprocess_path_used"])
+        self.assertGreaterEqual(timing["synchronous_subprocess_ms"], 0.0)
+
+
 class AchievementDetailWorkerFastPathTests(unittest.TestCase):
     def test_disposable_detail_uses_existing_fast_loader_and_preserves_data(self) -> None:
         detail = _achievement_from_dict({

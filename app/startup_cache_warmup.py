@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 from pathlib import Path
@@ -16,13 +17,15 @@ CACHE_ROOT = ROOT / ".cache" / "dofus_atlas"
 RESULT_PATH = CACHE_ROOT / "startup_cache_warmup_v1.json"
 STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
-_MANIFEST_SCHEMA_VERSION = 1
+_MANIFEST_SCHEMA_VERSION = 2
 _DOMAIN_STAMP_VERSION = 1
-_DOMAIN_ORDER = ("guide", "quest", "success")
+# Quest is the Home dependency; Guide and Success may continue after Home paints.
+_DOMAIN_ORDER = ("quest", "guide", "success")
 
 _RAW_QUEST_ROOT = ROOT / "data" / "cache" / "dofus_maps" / "raw" / "doduda_cli"
 _GUIDES_ROOT = ROOT / "data" / "encyclopedia" / "guides"
 _MANUAL_GUIDE_ROOT = ROOT / "data" / "routes" / "guide_ultime_manual"
+_QUEST_ENRICHED_SOURCE = ROOT / "data" / "encyclopedia" / "quests" / "quests_enriched.json"
 
 _QUEST_SOURCE_FILES = (
     "languages/fr.json",
@@ -194,9 +197,10 @@ def _source_paths(domain: str) -> list[Path]:
     if name == "guide":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _QUEST_SOURCE_FILES)
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _GUIDE_EXTRA_SOURCE_FILES)
-        paths.extend((_GUIDES_ROOT, _MANUAL_GUIDE_ROOT))
+        paths.extend((_GUIDES_ROOT, _MANUAL_GUIDE_ROOT, _QUEST_ENRICHED_SOURCE))
     elif name == "quest":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _QUEST_SOURCE_FILES)
+        paths.append(_QUEST_ENRICHED_SOURCE)
     elif name == "success":
         paths.extend(_RAW_QUEST_ROOT / relative for relative in _SUCCESS_SOURCE_FILES)
     return paths
@@ -278,16 +282,46 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
     return [label, count, 1 if ready is not None else 0]
 
 
+def _quest_offset_artifact_stamp(path: Path) -> list[object]:
+    """Check an indexed source exists *and* contains a readable offsets table.
+
+    A non-empty .sqlite3 filename is not evidence of a usable disk-backed
+    Quest index. Keep validation bounded to a single indexed row; full
+    integrity/offset scanning belongs to explicit Doctor forensics.
+    """
+    label = _path_label(path)
+    try:
+        stat = path.stat()
+        if not path.is_file() or stat.st_size <= 0:
+            return [label, -1, -1]
+        # mode=ro prevents a missing SQLite file from being created during
+        # a cache-hit check (including with multiple Atlas processes).
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
+            row = connection.execute(
+                "SELECT start, end FROM offsets LIMIT 1"
+            ).fetchone()
+        if row is not None and not (
+            type(row[0]) is int and type(row[1]) is int and 0 <= row[0] < row[1]
+        ):
+            return [label, -1, -1]
+        return [label, int(stat.st_size), int(stat.st_mtime_ns)]
+    except (OSError, sqlite3.Error, ValueError):
+        return [label, -1, -1]
+
+
 def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
-    if not isinstance(cache_files, list):
+    if not isinstance(cache_files, list) or not cache_files:
         return []
     rows: list[list[object]] = []
-    for raw_path in cache_files:
+    for index, raw_path in enumerate(cache_files):
         path = _safe_artifact_path(raw_path)
         if path is None:
             return []
-        if domain == "quest":
+        if domain == "quest" and index == 0:
             rows.append(_quest_artifact_stamp(path))
+            continue
+        if domain == "quest":
+            rows.append(_quest_offset_artifact_stamp(path))
             continue
         label = _path_label(path)
         try:
@@ -316,6 +350,19 @@ def _cached_domain_result(
         return None
     if entry.get("source_stamp") != source_stamp:
         return None
+    if domain == "quest":
+        # Old manifests validated the catalogue alone. Require the source
+        # indexes too, or first detail silently rebuilds them on demand.
+        expected_count = result.get("detail_source_index_count")
+        actual_index_count = result.get("detail_index_artifact_count")
+        files = result.get("cache_files")
+        if (
+            type(expected_count) is not int or expected_count <= 0
+            or type(actual_index_count) is not int or actual_index_count <= 0
+            or actual_index_count > expected_count
+            or not isinstance(files, list) or len(files) != actual_index_count + 1
+        ):
+            return None
     current_artifacts = _artifact_stamp(domain, result.get("cache_files"))
     if not current_artifacts or current_artifacts != expected_artifacts:
         return None
@@ -418,6 +465,32 @@ def run_warmup(token: str = "") -> dict[str, object]:
             if isinstance(payload.get("timings_ms"), dict)
             else {},
         }
+        # Each domain's atomic, validated cache generation is independently
+        # usable. Publish its readiness immediately instead of making the
+        # Quest UI wait for all unrelated background workers to exit.
+        completed = tuple(name for name in _DOMAIN_ORDER if name in domain_results)
+        partial_tasks = {
+            str(label): dict(task)
+            for name in ("guide", "success")
+            for label, task in (
+                (domain_results.get(name, {}).get("tasks") or {}).items()
+                if isinstance(domain_results.get(name, {}).get("tasks"), dict)
+                else ()
+            )
+            if isinstance(task, dict)
+        }
+        _write_result({
+            "schema_version": SCHEMA_VERSION,
+            "token": token,
+            "status": "running",
+            "completed_domains": list(completed),
+            "quest_count": max(0, int(domain_results.get("quest", {}).get("quest_count") or 0)),
+            "encyclopedia_ready": all(
+                key in partial_tasks
+                for key in ("guide", "guide_items", "success", "success_names")
+            ),
+            "domains": dict(domain_timings),
+        })
 
     tasks: dict[str, dict[str, object]] = {}
     for domain in ("guide", "success"):
@@ -437,6 +510,7 @@ def run_warmup(token: str = "") -> dict[str, object]:
         "schema_version": SCHEMA_VERSION,
         "token": token,
         "status": "ready",
+        "completed_domains": list(_DOMAIN_ORDER),
         "quest_count": quest_count,
         "encyclopedia_ready": encyclopedia_ready,
         "tasks": tasks,
