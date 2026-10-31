@@ -212,6 +212,21 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
             self.assertEqual(provider.get_guides_for_entity("quest", 42)[0].id, "two")
             self.assertEqual(provider.get_by_id.call_count, 2)
 
+    def test_recent_entity_cache_is_lru_including_negative_results(self):
+        provider = self.provider()
+        with patch(
+            "app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",
+            return_value=False,
+        ):
+            for ident in range(64):
+                provider.get_guides_for_entity("quest", ident)
+            self.assertIn(("quest", 0), provider._by_entity)
+            provider.get_guides_for_entity("quest", 0)
+            provider.get_guides_for_entity("quest", 64)
+            self.assertEqual(len(provider._by_entity), 64)
+            self.assertIn(("quest", 0), provider._by_entity)
+            self.assertNotIn(("quest", 1), provider._by_entity)
+
     def test_only_a_bounded_set_of_explicit_queries_is_retained(self):
         provider = self.provider()
         with patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",

@@ -274,3 +274,7 @@ Le dictionnaire de 32 `DofusItem` récemment décodés retournait un résultat a
 ## Préparation Guide : garder réellement les 32 objets les plus récemment utilisés (31/10/2026)
 
 Le cache `DofusItemProvider._by_id` plafonné à 32 objets fonctionnait en FIFO : les consultations d'un objet déjà chargé n'actualisaient pas sa position et un prérequis populaire pouvait être expulsé au prochain ajout. La récupération en mode **catalogue froid** déplace maintenant un hit en fin du dictionnaire, ce qui réalise une politique LRU réelle sans augmenter la capacité ni modifier la voie `_loaded=True` du catalogue complet. Test de 33 objets, hit sur le premier avant insertion du 33e : le premier reste, le deuxième est expulsé. Aucun gain temporel prétendu avant mesure.
+
+## Navigation Guide : LRU de 64 relations réellement basée sur l'usage (31/10/2026)
+
+`_by_entity` limitait déjà la taille à 64 entrées, mais la restitution des requêtes existantes ne rafraîchissait jamais leur position ; les relations souvent consultées étaient expulsées comme en FIFO. Les hits de navigation (positifs ou négatifs) déplacent désormais l'entrée en fin de dictionnaire avant le retour d'une copie, sans changer le contrat de `_building_compact_cache` ni la limite. Test 64 entrées, réutilisation d'une relation négative, 65e insertion : conservation de l'entrée chaude et éviction de la plus ancienne non réutilisée. Aucun gain de temps prétendu sans bench.

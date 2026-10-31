@@ -445,7 +445,13 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 self._by_entity.clear()
                 self._entity_query_cache_stamp = generation
         if key in self._by_entity:
-            return list(self._by_entity[key])
+            matches = self._by_entity[key]
+            if not bool(getattr(self, "_building_compact_cache", False)):
+                # Insertion-order eviction is FIFO unless cache hits refresh
+                # recency. Keep frequently opened entity links in the 64 cap.
+                self._by_entity.pop(key)
+                self._by_entity[key] = matches
+            return list(matches)
 
         if (not bool(getattr(self, "include_drafts", False))
                 and _guide_compact_cache_valid(
