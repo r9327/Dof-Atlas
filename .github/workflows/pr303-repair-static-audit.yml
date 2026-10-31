@@ -3,7 +3,7 @@ on:
   pull_request:
     branches:
       - perf/atlas-global-optimization-backlog-20261030
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
 concurrency:
@@ -28,6 +28,14 @@ jobs:
       - name: Verify checkout and Python runtime
         shell: bash
         run: test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+      - name: Set up pinned Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Test real full-scope and all-link export contracts
+        run: |
+          python -m unittest discover -s tests -p test_doctor_resource_link_audit.py -v
+          python -m unittest discover -s tests -p test_atlas_doctor_full_scope.py -v
       - name: Test relative Windows SQLite contract with real read-only mode
         run: python -m unittest discover -s tests -p test_guide_catalog_route_store_relative.py -v
       - name: Run Doctor full Python JSON and literal/resource links without truncating candidates
@@ -60,9 +68,16 @@ jobs:
           assert links["status"]=="REVIEW" and links["all_candidates_exported"]
           assert links["automatic_deletion_authorized"] is False
           assert links["no_static_consumer_total"]==len(links["no_static_consumer_all_candidates"])
+          assert links["all_link_candidates_exported"] is True
+          counts=links["counts"]
+          assert len(links["unresolved_literal_all_candidates"]) == counts["unresolved_literals"] + counts["unsafe_literals"]
+          assert len(links["ambiguous_literal_all_candidates"]) == counts["possible_edges"]
+          assert all(len(item["candidates"]) == item["candidate_count"] for item in links["ambiguous_literal_all_candidates"])
           print("SOURCE:",c["inspected"],"/",c["total"])
           print("JSON:",j["counts"]["valid_syntax"],"/",j["counts"]["tracked"])
           print("UNLINKED CANDIDATES:",links["no_static_consumer_total"])
+          print("UNRESOLVED + UNSAFE:",len(links["unresolved_literal_all_candidates"]))
+          print("AMBIGUOUS:",len(links["ambiguous_literal_all_candidates"]))
           PY
       - name: Persist exact-SHA all-candidate static scan
         if: always()
@@ -70,5 +85,5 @@ jobs:
         with:
           name: pr303-repair-static-all-candidates-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/pr303_repair_static/full_scope.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
