@@ -464,7 +464,6 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 )
                 self._remember_entity_query(key, matches)
                 return matches
-    
             except (OSError, UnicodeError, ValueError, TypeError) as exc:
                 # An atomic cache replacement may race this reader. Do not
                 # retain a partial result; use the existing source fallback.
