@@ -367,6 +367,47 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             first = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual(first["cache_generation"], sidecar["cache_generation"])
 
+    def test_success_compact_builder_rejects_changed_sources_without_partial_publication(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+        from app.modules.encyclopedia.models.achievement import AchievementCategory
+
+        fake = Mock()
+        fake._categories = {
+            8: AchievementCategory(id=8, name="Test", parent_id=0),
+        }
+        fake._achievements = [
+            SimpleNamespace(id=10, category_id=8, subcategory_id=None,
+                            linked_quests=()),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            sidecar = mod._achievement_compact_index_path(cache)
+            cache.write_text("old success\n", encoding="utf-8")
+            sidecar.write_text("old offsets\n", encoding="utf-8")
+            for signatures in (
+                [[], [["changed", 1]]],
+                [[], [], [["changed", 2]]],
+            ):
+                with self.subTest(signatures=signatures):
+                    with (
+                        patch.object(mod, "MemoryBoundAchievementProvider", return_value=fake),
+                        patch.object(mod, "RETAINED_TOP_CATEGORY_IDS", (8,)),
+                        patch.object(mod, "_compact_achievement_dict",
+                                     return_value={"id": 10, "linked_quests": []}),
+                        patch.object(mod, "_achievement_compact_source_signature",
+                                     side_effect=signatures),
+                        redirect_stdout(io.StringIO()),
+                    ):
+                        with self.assertRaisesRegex(RuntimeError, "Success sources changed"):
+                            mod._build_compact_cache_unlocked(cache)
+                    self.assertEqual(cache.read_text(encoding="utf-8"), "old success\n")
+                    self.assertEqual(sidecar.read_text(encoding="utf-8"), "old offsets\n")
+                    self.assertEqual(
+                        [p for p in cache.parent.iterdir()
+                         if p.name not in (cache.name, sidecar.name)], [],
+                    )
+
     def test_new_sidecar_quest_relations_skip_jsonl_scan_and_preserve_order(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

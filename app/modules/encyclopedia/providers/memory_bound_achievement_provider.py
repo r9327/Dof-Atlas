@@ -1935,8 +1935,11 @@ def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
 
 
 def _build_compact_cache_unlocked(path: Path) -> int:
+    source_generation = _achievement_compact_source_signature(RAW_QUEST_DATA_DIR)
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_disposable_worker_fast()
+    if _achievement_compact_source_signature(RAW_QUEST_DATA_DIR) != source_generation:
+        raise RuntimeError("Success sources changed during compact-cache build")
     retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
     path = Path(path)
     index_path = _achievement_compact_index_path(path)
@@ -1958,9 +1961,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                     "kind": "meta",
                     "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
                     "cache_generation": generation,
-                    "source_signature": _achievement_compact_source_signature(
-                        RAW_QUEST_DATA_DIR
-                    ),
+                    "source_signature": source_generation,
                 }
             )
         )
@@ -2044,6 +2045,12 @@ def _build_compact_cache_unlocked(path: Path) -> int:
         + "\n",
         encoding="utf-8",
     )
+    if _achievement_compact_source_signature(RAW_QUEST_DATA_DIR) != source_generation:
+        # Do not sign old data as current after a concurrent source update.
+        # Neither half of the JSONL/sidecar pair may be published.
+        temp_path.unlink(missing_ok=True)
+        temp_index.unlink(missing_ok=True)
+        raise RuntimeError("Success sources changed before compact-cache publication")
     temp_path.replace(path)
     temp_index.replace(index_path)
     print(
