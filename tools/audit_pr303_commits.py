@@ -8,6 +8,7 @@ from pathlib import Path
 
 PATTERNS = {
     "CI_BYPASS": r"skip[\s_-]*ci|continue-on-error:\s*true|--no-verify",
+    "TEST_SKIP": r"\b(?:unittest\.skip(?:If|Unless)?|pytest\.mark\.(?:skip|skipif|xfail)|pytest\.(?:skip|xfail)|self\.skipTest)\s*\(",
     "EXCEPTION": r"\bexcept\*?(?:\s+(?:[A-Za-z_][\w.]*(?:\s*,\s*[A-Za-z_][\w.]*)*|\([^)]*\))(?:\s+as\s+[A-Za-z_]\w*)?)?\s*:",
     "PROCESS": r"subprocess\.(?:run|Popen)|os\.system|shell\s*=\s*True",
     "CACHE": r"lru_cache|cached_property|QPixmapCache|\.deleteLater\(",
@@ -135,6 +136,8 @@ def review(base: str, head: str, expected: int | None = None) -> dict:
             flags.append("REMOVED_ASSERTIONS_REVIEW")
         if any(p["deleted_test_definitions"] for p in parents):
             flags.append("REMOVED_TEST_DEFINITIONS_REVIEW")
+        if any(p["risk_leads"].get("TEST_SKIP") for p in parents):
+            flags.append("ADDED_TEST_SKIP_REVIEW")
         if any(p["binary_manual_review"] for p in parents):
             flags.append("BINARY_CONTENT_REVIEW")
         records.append({

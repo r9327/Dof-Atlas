@@ -45,6 +45,24 @@ class CommitAuditTests(unittest.TestCase):
                 report = scan_patch("+" + source + "\n+    pass\n")
                 self.assertEqual(report["risk_leads"].get("EXCEPTION"), 1)
 
+    def test_added_skips_and_xfails_require_review_not_automatic_rejection(self):
+        for line in (
+            "@unittest.skip('reason')",
+            "@unittest.skipIf(True, 'reason')",
+            "@unittest.skipUnless(False, 'reason')",
+            "@pytest.mark.skip(reason='reason')",
+            "@pytest.mark.skipif(True, reason='reason')",
+            "@pytest.mark.xfail(reason='reason')",
+            "pytest.skip('reason')",
+            "pytest.xfail('reason')",
+            "self.skipTest('reason')",
+        ):
+            with self.subTest(line=line):
+                candidate = scan_patch("+    " + line + "\n")
+                self.assertEqual(candidate["risk_leads"].get("TEST_SKIP"), 1)
+                self.assertEqual(candidate["risk_locations"][0]["category"], "TEST_SKIP")
+        self.assertNotIn("TEST_SKIP", scan_patch("+counter = 1\n")["risk_leads"])
+
     def test_performance_does_not_match_general_words(self):
         report = scan_patch("+program = 1\n+framework = 2\n+parameter = 3\n")
         self.assertNotIn("PERFORMANCE", report["risk_leads"])
@@ -165,7 +183,8 @@ class CommitAuditTests(unittest.TestCase):
             ("diff", "--no-ext-diff", "--unified=0", "--find-renames", a, b): (
                 "diff --git a/tests/example.py b/tests/example.py\n"
                 "--- a/tests/example.py\n+++ b/tests/example.py\n"
-                "@@ -3 +3 @@\n-def test_old():\n+ram = 1"
+                "@@ -3 +3,2 @@\n-def test_old():\n"
+                "+ram = 1\n+@pytest.mark.skipif(True, reason='temporary')"
             ),
             ("log", "-1", "--format=%s", b): "fix memory",
         }
@@ -180,6 +199,7 @@ class CommitAuditTests(unittest.TestCase):
             self.assertEqual(report["status"], "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED")
             self.assertEqual(report["records"][0]["human_review"], "NOT_RUN")
             self.assertIn("REMOVED_TEST_DEFINITIONS_REVIEW", report["records"][0]["flags"])
+            self.assertIn("ADDED_TEST_SKIP_REVIEW", report["records"][0]["flags"])
             self.assertFalse(report["auto_merge_authorized"])
             run.assert_called_once()
 
