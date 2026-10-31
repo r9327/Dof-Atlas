@@ -28,7 +28,10 @@ def scan_patch(patch: str) -> dict:
     lines = patch.splitlines()
     added = [s[1:] for s in lines if s.startswith("+") and not s.startswith("+++")]
     removed = [s[1:] for s in lines if s.startswith("-") and not s.startswith("---")]
-    removed_check = re.compile(\n        r"^\\s*(?:assert\\b|self\\.assert\\w*\\s*\\(|self\\.fail\\s*\\("|\n        r"(?:with\\s+)?pytest\\.raises\\s*\\()", re.I\n    )\n    findings = {\n        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
+    removed_check = re.compile(
+        r"^\s*(?:assert\b|self\.assert\w*\s*\(|self\.fail\s*\(|(?:with\s+)?pytest\.raises\s*\()", re.I
+    )
+    findings = {\n        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
         for name, pattern in PATTERNS.items()
     }
     return {
