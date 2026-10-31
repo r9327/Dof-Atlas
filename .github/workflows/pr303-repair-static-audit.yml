@@ -69,6 +69,15 @@ jobs:
           assert links["automatic_deletion_authorized"] is False
           assert links["no_static_consumer_total"]==len(links["no_static_consumer_all_candidates"])
           assert links["all_link_candidates_exported"] is True
+          assert links["triage_counts_complete"] is True
+          assert links["triage_verified"] is False
+          assert not links["automatic_deletion_authorized"]
+          assert sum(links["link_triage_buckets"].values()) == (
+              links["counts"]["unresolved_literals"] + links["counts"]["unsafe_literals"]
+              + links["counts"]["possible_edges"])
+          assert sum(row["count"] for row in links["asset_triage_buckets"].values()) == links["no_static_consumer_total"]
+          assert j["counts"]["map_view_assets_inspected"] > 0
+          assert j["semantic_links_verified"] is False
           counts=links["counts"]
           assert len(links["unresolved_literal_all_candidates"]) == counts["unresolved_literals"] + counts["unsafe_literals"]
           assert len(links["ambiguous_literal_all_candidates"]) == counts["possible_edges"]
@@ -78,6 +87,10 @@ jobs:
           print("UNLINKED CANDIDATES:",links["no_static_consumer_total"])
           print("UNRESOLVED + UNSAFE:",len(links["unresolved_literal_all_candidates"]))
           print("AMBIGUOUS:",len(links["ambiguous_literal_all_candidates"]))
+          print("MAP VIEW ASSETS:",j["counts"]["map_view_assets_inspected"])
+          print("MAP VIEW ASSET CANDIDATES:",j["counts"]["map_view_asset_reference_candidates"])
+          print("LINK TRIAGE:",links["link_triage_buckets"])
+          print("UNLINKED ASSET FAMILIES:",{key: value["count"] for key,value in links["asset_triage_buckets"].items()})
           PY
       - name: Persist exact-SHA all-candidate static scan
         if: always()
