@@ -175,10 +175,18 @@ def build_worklists(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:
+    # CSV consumers may open these untrusted Doctor literals in spreadsheets.
+    # Quote formula-like values without changing the underlying JSON evidence.
+    def safe_cell(value: Any) -> Any:
+        if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+            return "\u0027" + value
+        return value
+
     with path.open("w", encoding="utf-8", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
-        writer.writerows(rows)
+        for row in rows:
+            writer.writerow({key: safe_cell(value) for key, value in row.items()})
 
 
 def main() -> int:
