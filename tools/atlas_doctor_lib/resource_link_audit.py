@@ -15,6 +15,42 @@ _RESOURCE_SUFFIXES = {".json", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico",
 _PRODUCTION_PREFIXES = ("app/", "data/", "assets/", "resources/")
 _EXAMPLE_LIMIT = 40
 
+# Advisory buckets only: a filename / JSON pointer never certifies actual usage.
+_QUEST_SOURCE = "data/encyclopedia/quests/quests_enriched.json"
+_MAP_PROVENANCE_SOURCE = "data/cartography/worldmap_catalog.json"
+
+
+def _link_triage_bucket(source: str, literal: str, json_pointer: str | None) -> str:
+    """Explain the likely ownership of a candidate without closing it."""
+    if source == _QUEST_SOURCE and json_pointer is not None:
+        if (json_pointer.endswith(("/source_meta/image", "/source_meta/startMapImage"))
+                and literal.startswith("/images/")):
+            return "QUEST_SOURCE_METADATA_IMAGE_REVIEW"
+        if (json_pointer.endswith("/quality/lot6_final_integration/source_report")
+                and literal.startswith("artifacts/")):
+            return "QUEST_BUILD_EVIDENCE_REFERENCE_REVIEW"
+    if source == _MAP_PROVENANCE_SOURCE and json_pointer is not None:
+        if json_pointer.rsplit("/", 1)[-1] in {
+            "preview", "promoted_source", "previous_asset_backup",
+        }:
+            return "MAP_PROVENANCE_SOURCE_REVIEW"
+    return "UNCLASSIFIED_REFERENCE_REVIEW"
+
+
+def _asset_triage_bucket(path: str) -> str:
+    """Name the probable consumption family, not whether the asset is unused."""
+    if path.startswith("data/images/archive/unmatched/"):
+        return "ARCHIVED_UNMATCHED_IMAGE_REVIEW"
+    if path.startswith("data/images/items/"):
+        return "INDEXED_ITEM_IMAGE_REVIEW"
+    if path.startswith("data/images/resources/"):
+        return "INDEXED_RESOURCE_IMAGE_REVIEW"
+    if path.startswith("data/encyclopedia/images/quests/"):
+        return "QUEST_VISUAL_MANIFEST_REVIEW"
+    if path.startswith("app/assets/themes/"):
+        return "UNITY_THEME_ASSET_REVIEW"
+    return "OTHER_STATIC_CANDIDATE_REVIEW"
+
 
 class ResourceLinkCollector:
     """One per Doctor audit; retains only references and filenames, not payloads."""
@@ -84,6 +120,8 @@ class ResourceLinkCollector:
         if json_pointer is not None:
             row["json_pointer"] = json_pointer
             row["json_role"] = json_role or "value"
+        row["triage_bucket"] = _link_triage_bucket(origin, value, json_pointer)
+        row["triage_verified"] = False
         if (literal.startswith("/") or ":" in literal or
                 any(part in {"..", "."} for part in parts)):
             self.counts["unsafe_literals"] += 1
@@ -167,7 +205,27 @@ class ResourceLinkCollector:
         absent = [name for name in self.resources
                   if name not in self.definite and name not in self.possible]
         next_offset = self.offset + _EXAMPLE_LIMIT
+        asset_families: dict[str, dict[str, Any]] = {}
+        for path in absent:
+            family = _asset_triage_bucket(path)
+            group = asset_families.setdefault(family, {"count": 0, "examples": []})
+            group["count"] += 1
+            if len(group["examples"]) < 3:
+                group["examples"].append(path)
+        link_families: dict[str, int] = {}
+        for row in (*self.unresolved_all, *self.ambiguous_all):
+            family = row["triage_bucket"]
+            link_families[family] = link_families.get(family, 0) + 1
         report = {
+            "triage_model": "static_path_and_pointer_buckets_v1",
+            "triage_verified": False,
+            "link_triage_buckets": dict(sorted(link_families.items())),
+            "asset_triage_buckets": dict(sorted(asset_families.items())),
+            "triage_counts_complete": (
+                sum(link_families.values()) == self.counts["unresolved_literals"]
+                + self.counts["unsafe_literals"] + self.counts["possible_edges"]
+                and sum(row["count"] for row in asset_families.values()) == len(absent)
+            ),
             "status": "BLOCKED" if self.errors else "REVIEW",
             "kind": "resource_consumer_static_triage",
             "counts": {**self.counts, "production_resources": len(self.resources),
