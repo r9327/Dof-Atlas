@@ -59,6 +59,44 @@ class CompactGuideItemEffectTests(unittest.TestCase):
             self.assertEqual(_selected_effect_instances(stream, set()), {})
             self.assertTrue(stream._rolled)
 
+    def test_real_item_worker_uses_spool_and_retains_late_effect_override(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        class EmptyEntries(dict):
+            def close(self):
+                pass
+
+        def references(path):
+            if path.name == "items.json":
+                yield {"rid": 77, "data": {"effectId": 300, "value": 2}}
+                yield {"rid": 41, "data": {
+                    "id": 42001, "typeId": mod.DOFUS_TYPE_ID,
+                    "possibleEffects": [{"rid": 77}],
+                }}
+                yield {"rid": 77, "data": {"effectId": 300, "value": 9}}
+            elif path.name == "item_types.json":
+                yield {"data": {"id": mod.DOFUS_TYPE_ID}}
+            elif path.name == "effects.json":
+                yield {"data": {"id": 300}}
+
+        with tempfile.TemporaryDirectory() as directory:
+            provider = mod.DofusItemProvider(Path(directory))
+            real_spool = tempfile.SpooledTemporaryFile
+            with (
+                patch.object(mod, "_iter_doduda_refs", side_effect=references),
+                patch.object(mod, "SelectedJsonValueMapping",
+                             return_value=EmptyEntries()),
+                patch.object(provider, "_image_for_icon", return_value=""),
+                patch.object(provider, "_effect_label",
+                             side_effect=lambda effect, *_: str(effect["value"]) if effect else ""),
+                patch.object(mod.tempfile, "SpooledTemporaryFile",
+                             wraps=real_spool) as spooled,
+            ):
+                self.assertEqual(provider._load_in_process(), {})
+                self.assertEqual(provider._items[0].effects, ("9",))
+                self.assertEqual(spooled.call_count, 1)
+                self.assertEqual(spooled.call_args.kwargs["max_size"], 1024 * 1024)
+
     def test_compact_effects_keep_signed_64bit_source_values(self) -> None:
         packed = _EFFECT_CANDIDATE_ROW.pack(456, 123, -(2**40), 2**40, -1)
         self.assertEqual(

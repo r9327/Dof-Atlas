@@ -222,3 +222,7 @@ Le repli correct `_load_in_process` pour `include_drafts=True` ne suffisait pas 
 `write_achievement_name_index` encode désormais directement le dictionnaire de noms avec `json.dump` dans le temporaire atomique, sans garder sa représentation complète `json.dumps` en mémoire. Le nettoyage du temporaire englobe **aussi les erreurs d'écriture/sérialisation**, qui auparavant précédaient le `try/finally` et laissaient un `.tmp` inachevé. Le verrou interprocessus, la détection de contenu inchangé et le remplacement Win32 inchangés. Régression vérifiant un disque plein simulé : génération précédente intacte et zéro temporaire résiduel.
 
 L'amélioration concerne la copie transitoire et la fiabilité, sans démonstration d'un gain RSS sur une installation réelle.
+
+## Preuve d'intégration du tampon d'effets dans le vrai constructeur Objets (31/10/2026)
+
+En plus du test autonome des 4097 lignes, la régression `CompactGuideItemEffectTests.test_real_item_worker_uses_spool_and_retains_late_effect_override` traverse `DofusItemProvider._load_in_process` avec les références source synthétiques : ligne d'effet RID 77 avant et après l'objet Dofus, valeur finale 9, une seule ouverture de `SpooledTemporaryFile(max_size=1048576)`. Elle couvre le branchement effectif du nouveau tampon dans le worker, sans lire ni modifier les données réelles. Le budget RSS Windows n'est pas encore attesté.
