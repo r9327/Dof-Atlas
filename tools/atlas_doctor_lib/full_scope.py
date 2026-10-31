@@ -120,13 +120,16 @@ def _current_graph_audit(root: Path, sha: str) -> dict[str, Any]:
 
 def audit_full_scope(root: Path, *, expected_sha: str | None = None,
                      with_graph: bool = False, with_json: bool = False,
-                     with_links: bool = False, links_offset: int = 0) -> dict[str, Any]:
+                     with_links: bool = False, links_offset: int = 0,
+                     links_all: bool = False) -> dict[str, Any]:
     """Scan *every* tracked Python file, fail closed on missing or unreadable ones.
 
     SOURCE_COVERED does not imply runtime, Graphify, UI or native certification.
     The static findings are complete for this declared source inventory.
     """
     root = root.resolve()
+    if links_all and not with_links:
+        return {"status": "BLOCKED", "reason": "--links-all requires --with-links"}
     try:
         sha, paths, all_paths, clean = _snapshot(root)
     except (OSError, UnicodeError, subprocess.TimeoutExpired, ValueError) as exc:
@@ -244,7 +247,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
     if link_collector is not None:
         if not with_json:
             link_collector.inspect_json_files(root, json_files)
-        links_audit = link_collector.finish()
+        links_audit = link_collector.finish(include_all=links_all)
     else:
         links_audit = {"status": "NOT_RUN", "reason": "Use --with-links for advisory resource consumer triage."}
     links_failed = with_links and links_audit.get("status") == "BLOCKED"

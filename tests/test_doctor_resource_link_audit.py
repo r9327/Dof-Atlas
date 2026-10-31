@@ -76,6 +76,18 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertIsNone(pages[-1]["no_static_consumer_next_offset"])
         self.assertTrue(all(not page["automatic_deletion_authorized"] for page in pages))
 
+    def test_single_pass_exhaustive_export_lists_every_candidate(self):
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        tracked = [f"data/unlinked_{i:03d}.json" for i in range(105)]
+        collector = ResourceLinkCollector(tracked)
+        short = collector.finish()
+        self.assertNotIn("no_static_consumer_all_candidates", short)
+        full = collector.finish(include_all=True)
+        self.assertEqual(len(full["no_static_consumer_all_candidates"]), 105)
+        self.assertEqual(full["no_static_consumer_total"], 105)
+        self.assertTrue(full["all_candidates_exported"])
+        self.assertFalse(full["automatic_deletion_authorized"])
+
     def test_untrusted_parent_path_never_resolves(self):
         self.file("app/view.py", 'DATA = "../escape.json"\n')
         result = self.audit(["app/view.py"])

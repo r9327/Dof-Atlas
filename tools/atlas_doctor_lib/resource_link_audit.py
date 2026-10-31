@@ -127,11 +127,11 @@ class ResourceLinkCollector:
             except (OSError, UnicodeError, ValueError, RecursionError) as exc:
                 self.errors.append({"file": name, "error": type(exc).__name__})
 
-    def finish(self) -> dict[str, Any]:
+    def finish(self, *, include_all: bool = False) -> dict[str, Any]:
         absent = [name for name in self.resources
                   if name not in self.definite and name not in self.possible]
         next_offset = self.offset + _EXAMPLE_LIMIT
-        return {
+        report = {
             "status": "BLOCKED" if self.errors else "REVIEW",
             "kind": "resource_consumer_static_triage",
             "counts": {**self.counts, "production_resources": len(self.resources),
@@ -144,7 +144,7 @@ class ResourceLinkCollector:
             "ambiguous_literal_examples": self.ambiguous,
             "ambiguous_literal_examples_limited": self.counts["possible_edges"] > _EXAMPLE_LIMIT,
             "no_static_consumer_examples": absent[self.offset:next_offset],
-            "no_static_consumer_examples_limited": len(absent) > _EXAMPLE_LIMIT,
+            "no_static_consumer_examples_limited": next_offset < len(absent),
             "no_static_consumer_total": len(absent),
             "no_static_consumer_offset": self.offset,
             "no_static_consumer_next_offset": next_offset if next_offset < len(absent) else None,
@@ -155,6 +155,10 @@ class ResourceLinkCollector:
             "automatic_deletion_authorized": False,
             "note": "Only literal paths and basenames: dynamic paths, Qt resources, packagers and external consumers remain unverified.",
         }
+        if include_all:
+            report["no_static_consumer_all_candidates"] = absent
+            report["all_candidates_exported"] = True
+        return report
 
 
 def inspect_resource_links(root: Path, tracked: list[str], python_files: list[str],
