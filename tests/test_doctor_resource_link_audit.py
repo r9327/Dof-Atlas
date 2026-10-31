@@ -94,6 +94,57 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertEqual(result["counts"]["unsafe_literals"], 1)
         self.assertFalse(result["automatic_deletion_authorized"])
 
+    def test_all_reference_occurrences_exported_not_just_first_40(self):
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        tracked = ["app/view.py"] + [
+            f"data/variant_{i:02}/flag.png" for i in range(7)
+        ]
+        collector = ResourceLinkCollector(tracked)
+        for index in range(65):
+            collector.inspect_literal("app/view.py", f"data/not_found_{index:03}.png", index + 1)
+        for index in range(45):
+            collector.inspect_literal("app/view.py", f"../escape_{index:03}.png", 100 + index)
+        for index in range(60):
+            collector.inspect_literal("app/view.py", "flag.png", 200 + index)
+        result = collector.finish(include_all=True)
+        self.assertEqual(len(result["unresolved_literal_examples"]), 40)
+        self.assertEqual(len(result["unresolved_literal_all_candidates"]), 110)
+        self.assertEqual(len(result["ambiguous_literal_examples"]), 40)
+        self.assertEqual(len(result["ambiguous_literal_all_candidates"]), 60)
+        self.assertEqual(result["ambiguous_literal_all_candidates"][0]["candidate_count"], 7)
+        self.assertEqual(len(result["ambiguous_literal_all_candidates"][0]["candidates"]), 7)
+        self.assertTrue(result["all_link_candidates_exported"])
+        self.assertFalse(result["automatic_deletion_authorized"])
+
+    def test_json_key_values_and_pointer_preserve_provenance(self):
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        tracked = ["data/manifest.json", "data/icons/present.png"]
+        collector = ResourceLinkCollector(tracked)
+        collector.observe_json("data/manifest.json", {
+            "images": [{"data/icons/missing.png": "data/icons/present.png"}],
+            "path/with~escape": {"key_missing.png": "ignored"},
+        })
+        result = collector.finish(include_all=True)
+        self.assertEqual(result["counts"]["static_resolved_resources"], 1)
+        self.assertEqual(result["counts"]["unresolved_literals"], 2)
+        findings = {x["literal"]: x for x in result["unresolved_literal_all_candidates"]}
+        self.assertEqual(findings["data/icons/missing.png"]["json_pointer"],
+                         "/images/0/data~1icons~1missing.png")
+        self.assertEqual(findings["data/icons/missing.png"]["json_role"], "key")
+        self.assertEqual(findings["key_missing.png"]["json_pointer"],
+                         "/path~1with~0escape/key_missing.png")
+        self.assertTrue(result["all_link_candidates_exported"])
+
+    def test_scripts_windows_and_tools_are_audited_as_possible_consumers(self):
+        self.file("scripts/windows/build.py", 'IMAGE = "data/icons/used.png"\n')
+        self.file("tools/packager.py", 'OTHER = "data/icons/also.png"\n')
+        tracked = ["scripts/windows/build.py", "tools/packager.py",
+                   "data/icons/used.png", "data/icons/also.png"]
+        report = self.audit(tracked)
+        self.assertEqual(report["counts"]["static_resolved_resources"], 2)
+        self.assertEqual(report["counts"]["python_files_scanned"], 2)
+
+
 
 if __name__ == "__main__":
     unittest.main()
