@@ -121,6 +121,41 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             ):
                 self.assertEqual(mod._build_compact_cache(path), 0)
 
+    def test_preload_rejects_same_count_wrong_offset_ids_or_negative_lengths(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta"}\n', encoding="utf-8")
+            sidecar = mod._achievement_compact_index_path(path)
+            worker_result = subprocess.CompletedProcess(
+                args=[], returncode=0,
+                stdout='{"achievement_count":2}\n', stderr="",
+            )
+            for offsets in ({"99": [10, 20]}, {"10": [10, -1]},
+                            {"10": [-1, 20]}, {"10": [0, True]}):
+                with self.subTest(offsets=offsets):
+                    sidecar.write_text(json.dumps({
+                        "achievement_count": 2, "retained_count": 1,
+                        "retained_ids": [10], "offsets": offsets,
+                    }), encoding="utf-8")
+                    with (
+                        patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                        patch.object(mod.sys, "frozen", False, create=True),
+                        patch.object(mod.subprocess, "run",
+                                     return_value=worker_result) as worker,
+                    ):
+                        self.assertEqual(mod.ensure_achievement_compact_cache(path=path), 2)
+                        worker.assert_called_once()
+                    with (
+                        patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                        patch.object(mod, "_build_compact_cache_unlocked",
+                                     return_value=0) as repair,
+                        redirect_stdout(io.StringIO()),
+                    ):
+                        self.assertEqual(mod._build_compact_cache(path), 0)
+                        repair.assert_called_once_with(path)
+
     def test_ensure_success_preload_rebuilds_invalid_existing_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

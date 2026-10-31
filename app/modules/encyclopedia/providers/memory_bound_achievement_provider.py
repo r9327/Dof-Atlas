@@ -137,7 +137,14 @@ def ensure_achievement_compact_cache(
                         and all(type(value) is int for value in retained_ids)
                         and len(set(retained_ids)) == retained
                         and isinstance(offsets, dict)
-                        and len(offsets) == retained):
+                        and len(offsets) == retained
+                        and set(offsets) == {str(value) for value in retained_ids}
+                        and all(
+                            isinstance(span, list) and len(span) == 2
+                            and type(span[0]) is int and span[0] >= 0
+                            and type(span[1]) is int and span[1] > 0
+                            for span in offsets.values()
+                        )):
                     return count
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             pass
@@ -1818,7 +1825,14 @@ def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
                         and all(type(value) is int for value in retained_ids)
                         and len(set(retained_ids)) == retained
                         and isinstance(offsets, dict)
-                        and len(offsets) == retained):
+                        and len(offsets) == retained
+                        and set(offsets) == {str(value) for value in retained_ids}
+                        and all(
+                            isinstance(span, list) and len(span) == 2
+                            and type(span[0]) is int and span[0] >= 0
+                            and type(span[1]) is int and span[1] > 0
+                            for span in offsets.values()
+                        )):
                     print(json.dumps(
                         {"achievement_count": count, "path": str(path)},
                         ensure_ascii=False, separators=(",", ":"),
