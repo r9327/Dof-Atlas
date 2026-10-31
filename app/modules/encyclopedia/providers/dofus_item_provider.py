@@ -312,6 +312,11 @@ class DofusItemProvider:
                 self._recent_item_index_stamp = current
         cached = self._by_id.get(item_id)
         if cached is not None:
+            if not self._loaded:
+                # The bounded per-Guide cache should evict the least recently
+                # accessed item, not the oldest loaded hot prerequisite.
+                self._by_id.pop(item_id)
+                self._by_id[item_id] = cached
             return cached
         if self._loaded:
             return None

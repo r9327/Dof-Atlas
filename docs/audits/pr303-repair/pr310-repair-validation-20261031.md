@@ -270,3 +270,7 @@ Le contrôle de génération avant/après le scan de `get_guides_for_entity` ne 
 ## Objets Guide : invalidation des éléments récents après remplacement atomique (31/10/2026)
 
 Le dictionnaire de 32 `DofusItem` récemment décodés retournait un résultat avant de contrôler la génération de `GUIDE_ITEMS_INDEX`. `_guide_index_row` savait déjà se recharger, mais le cache des objets **l'en empêchait sur les hits**. La vérification légère `size/mtime_ns/ctime_ns/inode` a été mutualisée avec le lecteur compact et invalide seulement les objets récents lorsque la génération change. Le catalogue Dofus `_loaded=True` conserve ses objets et évite cette vérification, et le cleanup de chargement complet libère l'empreinte. Test : même ID, nom « Old »→« New », remplacement atomique à taille et mtime identiques sans fallback source. Aucune mesure de gain de RAM annoncée.
+
+## Préparation Guide : garder réellement les 32 objets les plus récemment utilisés (31/10/2026)
+
+Le cache `DofusItemProvider._by_id` plafonné à 32 objets fonctionnait en FIFO : les consultations d'un objet déjà chargé n'actualisaient pas sa position et un prérequis populaire pouvait être expulsé au prochain ajout. La récupération en mode **catalogue froid** déplace maintenant un hit en fin du dictionnaire, ce qui réalise une politique LRU réelle sans augmenter la capacité ni modifier la voie `_loaded=True` du catalogue complet. Test de 33 objets, hit sur le premier avant insertion du 33e : le premier reste, le deuxième est expulsé. Aucun gain temporel prétendu avant mesure.

@@ -209,6 +209,35 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                 self.assertEqual(provider.get_by_id(42).name, "Dofus fixture")
                 self.assertTrue(old_rows)
 
+    def test_recent_guide_item_cache_evicts_least_recently_used(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "items.json"
+            cache.write_text(json.dumps({
+                "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                "source_signature": [],
+                "items": {
+                    str(item_id): {"id": item_id, "name": f"Item {item_id}"}
+                    for item_id in range(1, 34)
+                },
+            }), encoding="utf-8")
+            provider = mod.DofusItemProvider()
+            with (
+                patch.object(mod, "GUIDE_ITEMS_INDEX", cache),
+                patch.object(mod, "_guide_item_source_signature", return_value=[]),
+                patch.object(provider, "_load_one",
+                             side_effect=AssertionError("compact cache expected")),
+            ):
+                for item_id in range(1, 33):
+                    self.assertEqual(provider.get_by_id(item_id).id, item_id)
+                first = provider.get_by_id(1)
+                provider.get_by_id(33)
+                self.assertEqual(len(provider._by_id), 32)
+                self.assertIn(1, provider._by_id)
+                self.assertNotIn(2, provider._by_id)
+                self.assertIs(provider.get_by_id(1), first)
+
     def test_recent_guide_item_is_not_stale_after_atomic_index_replacement(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 
