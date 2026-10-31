@@ -237,8 +237,8 @@ class QuestEvidenceBatchTests(unittest.TestCase):
             assert len(batch) == 450
             assert {qid: batch[qid] for qid in expected} == expected
             assert details.guide_evidence_many([9999]) == {}
-    
-    
+
+
     def test_quest_provider_keeps_optional_pack_semantics_in_bulk_mode(self) -> None:
         batch = Mock(return_value={4: {"combats": [{"objective_id": 77}]}})
         fake_catalog = SimpleNamespace(
@@ -252,7 +252,7 @@ class QuestEvidenceBatchTests(unittest.TestCase):
                 4: {"combats": [{"objective_id": 77}]}
             }
             batch.assert_called_once_with((4,))
-    
+
             provider._pack_guide_evidence = {4: {"combats": [{"objective_id": 99}]}}
             # Optional accepted packs are only active for the canonical data
             # directory; the bulk method must preserve that exact boundary.
@@ -263,7 +263,7 @@ class QuestEvidenceBatchTests(unittest.TestCase):
                 }
             batch.assert_called_with((4, 777))
             assert batch.call_count == 2
-    
+
     def test_pack_root_environment_keeps_bulk_sql_read_enabled(self) -> None:
         baseline = {"combats": [{"objective_id": 37, "monster": "Tofu"}]}
         batch = Mock(return_value={4: baseline})

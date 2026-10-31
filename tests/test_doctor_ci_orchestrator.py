@@ -557,6 +557,15 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
         self.assertNotIn("continue-on-error: true", verdict.split(
             "      - name: Reject failed or skipped selected CI", 1)[1])
 
+    def test_doctor_plan_preflights_exact_sha_whitespace_and_ai_index(self):
+        workflow = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
+        plan = workflow.split('  doctor-plan:', 1)[1].split('  focused-validation:', 1)[0]
+        self.assertIn('Fail fast on PR whitespace and stale AI context', plan)
+        self.assertIn('test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"', plan)
+        self.assertIn('git diff --check "$BASE_SHA...HEAD"', plan)
+        self.assertIn('python -m tools.ai_context check', plan)
+        self.assertLess(plan.index('git diff --check'), plan.index('Determine required CI from exact Git diff'))
+
     def test_single_automatic_entry_and_no_required_public_check_rename(self):
         registry = json.loads((ROOT / 'tools/atlas_doctor_lib/ci_routes.json').read_text(encoding='utf-8'))
         for name in registry:
