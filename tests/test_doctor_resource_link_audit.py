@@ -50,6 +50,19 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertEqual(len(result["scan_errors"]), 2)
         self.assertFalse(result["automatic_deletion_authorized"])
 
+    def test_page_all_candidates_without_false_cleanup(self):
+        self.file("app/view.py", "pass\n")
+        tracked = ["app/view.py"] + [f"data/icons/unused_{i:03d}.png" for i in range(125)]
+        pages = [inspect_resource_links(self.root, tracked, ["app/view.py"], [], offset=i)
+                 for i in (0, 40, 80, 120)]
+        names = [name for page in pages for name in page["no_static_consumer_examples"]]
+        self.assertEqual(len(names), 125)
+        self.assertEqual(len(set(names)), 125)
+        self.assertTrue(all(page["no_static_consumer_total"] == 125 for page in pages))
+        self.assertEqual(pages[0]["no_static_consumer_next_offset"], 40)
+        self.assertIsNone(pages[-1]["no_static_consumer_next_offset"])
+        self.assertTrue(all(not page["automatic_deletion_authorized"] for page in pages))
+
     def test_untrusted_parent_path_never_resolves(self):
         self.file("app/view.py", 'DATA = "../escape.json"\n')
         result = self.audit(["app/view.py"])

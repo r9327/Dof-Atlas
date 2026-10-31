@@ -414,7 +414,7 @@ def command_full_scope(root: Path, args) -> dict[str, Any]:
     )
     result = audit_full_scope(root, expected_sha=args.expected_sha,
                               with_graph=args.with_graph, with_json=args.with_json,
-                              with_links=args.with_links)
+                              with_links=args.with_links, links_offset=getattr(args, "links_offset", 0))
     if args.output:
         try:
             path = write_full_scope_report(root, args.output, result)
@@ -1016,6 +1016,8 @@ def build_parser() -> argparse.ArgumentParser:
                             help='Parser tous les JSON suivis, sans prétendre certifier leurs relations métier.')
     full_scope.add_argument('--with-links', action='store_true',
                             help='Trier les liens statiques JSON/assets sans suppression ni preuve runtime.')
+    full_scope.add_argument('--links-offset', type=int, default=0,
+                            help='Page de 40 ressources sans consommateur statique; --with-links requis.')
     full_scope.add_argument('--output', type=Path,
                             help='Ecrire les preuves JSON sous artifacts/ uniquement (opt-in).')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')

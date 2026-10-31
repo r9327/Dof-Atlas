@@ -17,12 +17,14 @@ _EXAMPLE_LIMIT = 40
 
 
 def inspect_resource_links(root: Path, tracked: list[str], python_files: list[str],
-                           json_files: list[str]) -> dict[str, Any]:
+                           json_files: list[str], *, offset: int = 0) -> dict[str, Any]:
     """Inventory all production resources and identify *static* candidate edges.
 
     Parse tracked app Python and production JSON, including dynamic-path caveats.
     This scan does not execute Python, open assets, or prove consumer absence.
     """
+    if offset < 0:
+        raise ValueError("Link candidate page offset must be >= 0")
     root = root.resolve()
     tracked_set = set(tracked)
     resources = sorted(path for path in tracked_set
@@ -134,8 +136,11 @@ def inspect_resource_links(root: Path, tracked: list[str], python_files: list[st
         "unresolved_literal_examples_limited": counts["unresolved_literals"] + counts["unsafe_literals"] > _EXAMPLE_LIMIT,
         "ambiguous_literal_examples": ambiguous,
         "ambiguous_literal_examples_limited": counts["possible_edges"] > _EXAMPLE_LIMIT,
-        "no_static_consumer_examples": absent[:_EXAMPLE_LIMIT],
+        "no_static_consumer_examples": absent[offset:offset + _EXAMPLE_LIMIT],
         "no_static_consumer_examples_limited": len(absent) > _EXAMPLE_LIMIT,
+        "no_static_consumer_total": len(absent),
+        "no_static_consumer_offset": offset,
+        "no_static_consumer_next_offset": (offset + _EXAMPLE_LIMIT if offset + _EXAMPLE_LIMIT < len(absent) else None),
         "scan_errors": errors,
         "semantic_links_verified": False,
         "runtime_consumers_verified": False,
