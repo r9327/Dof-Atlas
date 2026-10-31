@@ -637,6 +637,42 @@ class DoctorFullScopeTests(unittest.TestCase):
         self.assertEqual(report["source_coverage"]["inspected"], 3)
         self.assertEqual(report["unity_style"]["native_windows_visual"], "NOT_RUN")
 
+    def test_map_view_active_asset_missing_is_distinct_from_source_preview(self):
+        self._unity()
+        self._file("app/ok.py", "pass\n")
+        self._file("data/cartography/assets/world/exists.png", "fixture content")
+        self._file("data/cartography/map_views.json", json.dumps({
+            "views": [
+                {"view_key": "world", "asset_path": "data/cartography/assets/world/exists.png",
+                 "source_tiles": {"preview": "data/reports/historical_preview.png"}},
+                {"view_key": "cave_mine_astrub_1",
+                 "asset_path": "data/cartography/assets/caves/mine_astrub_1.png"},
+                {"view_key": "unsafe", "asset_path": "../untrusted.png"},
+            ],
+        }))
+        sha = self._commit()
+        report = audit_full_scope(self.root, expected_sha=sha, with_json=True)
+        self.assertEqual(report["status"], "REVIEW")
+        audit = report["json_semantic_audit"]
+        self.assertEqual(audit["syntax_coverage"], "PASS")
+        self.assertEqual(audit["counts"]["map_view_assets_inspected"], 3)
+        self.assertEqual(audit["counts"]["map_view_asset_reference_candidates"], 2)
+        self.assertEqual(audit["counts"]["map_view_asset_review_files"], 1)
+        row = next(item for item in audit["files"]
+                   if item["file"] == "data/cartography/map_views.json")
+        self.assertEqual(row["status"], "VALID_SYNTAX_REVIEW")
+        self.assertEqual(row["map_view_asset_candidates"], [
+            {"view_index": 1, "view_key": "cave_mine_astrub_1",
+             "asset_path": "data/cartography/assets/caves/mine_astrub_1.png",
+             "kind": "MAP_VIEW_ASSET_NOT_TRACKED_REVIEW"},
+            {"view_index": 2, "view_key": "unsafe",
+             "asset_path": "../untrusted.png",
+             "kind": "MAP_VIEW_ASSET_UNSAFE_REVIEW"},
+        ])
+        self.assertFalse(audit["assets_verified"])
+        self.assertFalse(audit["automatic_deletion_authorized"])
+
+
 
 if __name__ == "__main__":
     unittest.main()
