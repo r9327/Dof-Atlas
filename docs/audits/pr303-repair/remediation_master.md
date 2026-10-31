@@ -1,0 +1,88 @@
+# PR #303 — réparation globale : registre maître des problèmes, preuves et critères de clôture
+
+**Dépôt** `r9327/Dof-Atlas` | **PR mère** [#303](https://github.com/r9327/Dof-Atlas/pull/303) | **HEAD audité** `c04c8134870bd22c52bb414ebc6c530fe6094d12` | **base Git** `0ee44aeeb09358783dcceca799b743c6fb375299`. Cette PR de réparation cible la branche de la #303 pour éviter de dupliquer ses 387 commits dans un nouveau diff `main`.
+
+**Règles non négociables :** anomalies statiques `REVIEW` ≠ bugs, `SKIPPED/NOT_RUN` ≠ `PASS`, mesures de scénarios distincts non additionnées, aucun fichier supprimé sans consommateur et parité vérifiés, aucun seuil affaibli, aucune fusion/release automatisée, remise à jour de l'index .ai en ordre canonique si les sources changent. **Cette PR en Draft est un lot de réparation et un suivi, pas une certification acquise.**
+
+## P0 — défauts confirmés et blockers d'audit
+
+| ID | Source / observation | Action exigée | Validation pour VERIFIÉ |
+|---|---|---|---|
+| P0-01 | FULL #41197183499 : route Sylvestre refusée à `Precompile portable Sylvestre itinerary`; chemin relatif vers SQLite via `as_uri` dans `guide_catalog_route_store.py` (2 sites) | `path.resolve().as_uri()` aux 2 lectures, test dossier relatif, conserver signature/hash et fallback sûr | test régression + véritable build Sylvestre + EXE/installer Windows au nouveau SHA |
+| P0-02 | Pas d'artefact final de bundle Windows certifié | Vérifier build EXE, launcher, installer, prérequis, réinstallation, update différentiel, SHA256, rollback/offline, dossier choisi, même fenêtre update→lancement, aucune perte d'assets | preuves Windows exact SHA et bundle téléchargeable |
+| P0-03 | FULL déjà passée sur `c04c813` mais verdict FAIL en cascade après packaging | Distinguer erreur primaire et gates dépendants; refaire sans rendre facultatifs les contrôles | rapport complet de la nouvelle FULL, tous les tests requis et aucune preuve obsolète |
+| P0-04 | Scan Doctor JSON complet + liens sur `613ec84`, pas `c04c813`; scoped-pr-ci Draft-only | Exécuter `--with-json --with-links --links-all` et conserver le dump exhaustif sur chaque SHA final, y compris Ready (routage explicite) | `json_syntax_coverage` + liens avec 0 omissions de fichier, SHA et limites |
+| P0-05 | 387 commits / 92 fichiers : inventaire acquis, historique patch-by-patch incomplet | Registre 387 SHA, inspection machine diff pour chaque SHA puis décisions humaines, revue séparée de tous les patches finaux et mergers | `387/387` patches inspectés, aucun manquant et revue manuelle justifiée par commit |
+| P0-06 | Reste 27 passages placeholders sur 60 nav, qui ne sont PAS 27 modules vérifiés | Distinguer `FUNCTIONAL`, `PLACEHOLDER`, `NOT_RUN`, tester les opérations de chaque écran annoncé | matrice des fonctionnalités réelles et preuves de comportements |
+
+## P1 — performances et mémoire
+
+| ID | Observation / anomalie | Suite mesurable |
+|---|---|---|
+| P1-01 | Home stabilisé **115,73 Mio** (cible <100), ancien stress ~115,3–115,5 Mio | owner Qt, Python/native, traceback allocations, caches/threads; ne pas maquiller par trim du working set |
+| P1-02 | Pic Guides **247,61 Mio** pour plafond 250 : marge seulement 2,39 Mio (0,96 %) | répéter bench sur même runner/scénario et réduire le pic sans casser les données |
+| P1-03 | Préload Guides **13 897,99 ms**, navigation courte **6794,85 ms** | profiler domaine/IO/source/parsing/cold/warm, supprimer travail doublé prouvé |
+| P1-04 | Guides 52/52 ; p50/p95/p99 **103,25/284,54/309,39ms** ; top latence `dofus_du_cauchemar` et `dofus_dom_de_pin` | compteurs causaux et tests ouverture fiches/étapes |
+| P1-05 | 0 gel Qt ≥250ms sur HEAD mais 6 sur ancienne campagne | répétitions n≥3 même configuration pour contrôler la variance, analyser stack Qt échantillonnée sans conclusion causale hâtive |
+| P1-06 | 8 Atlas simulés ≠ 8 clients DOFUS ; CPU 1 cœur, 10 parcours et 60s idle couverts en CI | labelliser exactement les scénarios, conserver p50/p95/p99, CPU/RSS/arbre/pids/temps |
+| P1-07 | Comparateur Phase8 : environ 512ms de gain total sur UNE paire, pas une moyenne certifiée | >=3 paires baseline/candidat avec provenance runner/attempt, refus de comparer des workloads différents |
+| P1-08 | `lru_cache(maxsize=4096)` Guide et `maxsize=2048` Quête | peser valeur + fermeture/invalidations + taux de hits, ne pas réduire arbitrairement |
+
+## P2 — audit architecture/liaisons/doublons/erreurs des données : TOUS les signaux conservés
+
+| ID | Signal source | Contrôle et garde-fou |
+|---|---|---|
+| P2-01 | **213 groupes AST identiques, 706 occurrences** : 120 tests-only, 73 touchent app | ligne par ligne, API/sémantique/persistance consommateurs; dédupliquer uniquement si preuve sans régression; ne pas fusionner `setUpClass` triviales |
+| P2-02 | **253 sites d'exception silencieuse candidats** | classifier exception attendue / masquage / fallback / log / statut, en priorité launcher, warmup, pages, providers, sauvegardes |
+| P2-03 | **33 411 ressources** sans consommateur statique prouvé sur ancien scan : 28 918 PNG, 4 335 WebP, 153 JSON, 5 TTF | associer path→runtime→manifest→build/release→fallback, état ACTIVE/LEGACY/UNUSED_CONFIRMED, aucune suppression heuristique |
+| P2-04 | **582** références ressources non résolues et **537** unsafe/ambiguous sur ancien scan; **111** possibles | exporter **toutes** les lignes et leur origine, ne pas se limiter aux 40 exemples; contrôler chemins relatifs/dynamiques/Qt, générateurs et Win32 |
+| P2-05 | **420 JSON/420 syntaxes valides** sur `613ec84`, mais pas totalité des schémas et IDs au HEAD | identifiants Quêtes/Succès/Guide/Objets/Images, références croisées, data LFS, cutover Ganymède, vérif provenance/packaging |
+| P2-06 | **2 fichiers** à collisions d'ID candidates, dans des journaux Doctor historiques (pas quêtes métier) | identifier l'ID `cad8e520683a3aee`/`ffac453b55dce4bb`, vérifier unicité attendue avant toute modification |
+| P2-07 | **2 669 références JSON littérales** détectées; imports dynamiques hors preuve | graphe source→consommateur→bundle (génération si besoin) et contrats de disponibilité |
+| P2-08 | Graphify HEAD : **1198/1198** Python, **11816** fonctions, **16787 nœuds / 48375 arêtes** ; moteur `REVIEW` | tri exhaustif paginé des anomalies, mesures causales avant refactor, conserver source et SHA |
+| P2-09 | Ancien Graphify : **6 orphelins**, **8 fichiers sans arête import**, **345 candidats faiblement connectés**, **118 communautés isolées**, **80 à faible cohésion** | vérifier scripts de lancement externes/Qt et imports différés; pas « fichier mort » par défaut |
+| P2-10 | **4 cycles d'import candidats** : macros/runtime_state, Quest catalog/details/index, Guide ultime/shared view, Guide vs Quest detail | distinguer cycles exécutables vs imports typés/différés; refactor ciblé seulement si bloquant |
+| P2-11 | **50 modules** à fanout élevé, notamment `guides_view.py`, `encyclopedia_page.py`, launcher, réseau | trier limites de responsabilité, jamais refactor massif sans gain concret |
+| P2-12 | Graphe interactif borné à **15 000/16 787 nœuds**, 18 communautés brutes <3 nœuds, 234 sections omises du rendu | paginer/filtrer via moteur réel sans prétendre que vue HTML = inventaire brut complet |
+| P2-13 | **15 QSS Unity overrides locaux** et styles anciens en coexistence | correspondance thème officiel/boutons/typographie/ombres/selection/DPI/launcher, captures visuelles natives |
+| P2-14 | 124 candidats Ganymède et 189 variantes de route `_vN` déjà répertoriés | table d'usage active, versions historiques, manifest/étapes/pages/packaging, parité guide/combat/validation |
+| P2-15 | 36 objectifs principaux dans le backlog sans liens exhaustifs entre commit et preuve | registre objectif→commit→test→mesure→état `TODO/IMPLEMENTED/VERIFIED/BLOCKED`, revues par domaine |
+| P2-16 | Déduplication des caches/providers/effets QSS, copies QImage/QPixmap et sourcemaps | empreintes logiques, taille mémoire, hit rate, cycle de vie, absence de mutation croisée |
+
+## RAM — 50 items et statut exhaustif
+
+D'après `docs/performance/atlas-ram-inventory-v1.json` au HEAD #303 : **16 measured, 4 instrumented, 30 todo**. Un item `measured` ne prouve pas un gain.
+
+**Les 30 TODO non refermés :** RAM-07 allocations Python/natif; RAM-08 tracemalloc; RAM-09 heap C++/Shiboken; RAM-10 références anciennes pages; RAM-11 signaux/timers/callbacks; RAM-12 threads/résultats différés; RAM-13 cartes perso; RAM-14 watcher Unity; RAM-16 sous-nav placeholders; RAM-19 carto/SQLite; RAM-20 virtualisation des fiches; RAM-21 saut étape 134/267; RAM-23 QImage/QPixmap; RAM-27 LRU détail Quêtes; RAM-28 provider Succès; RAM-29 dédup graphe Guide/Quête/Succès; RAM-31 recherche items; RAM-32 sous-onglets différés; RAM-34 effets Unity; RAM-35 chevauchement warmup; RAM-36 EXE Windows vierge; RAM-37 private bytes/GPU; RAM-40 10–20 aller-retours; RAM-41 PC faible/DPI; RAM-42 budget caches; RAM-44 assets doublés; RAM-45 services fond; RAM-47 CPython/GC; RAM-49 QFont; RAM-50 RAM launcher.
+
+**Les 4 instrumentés sans bilan final :** RAM-04 QWidget vivants; RAM-05 propriétaires de widgets; RAM-06 pages lazy/vives; RAM-24 QPixmapCache. Les 16 measured doivent relier preuve→date→SHA et rester ouverts si budgets non atteints.
+
+## Domaines de recette complémentaires (non certifiés par seuls tests Qt offscreen)
+
+- Vérifier cohérence UI Guide Succès et Ganymède : en-tête, progression par personnage, étapes/quête, préparation images et copier, combats et validation, sommaire, retour Home, pas d'ancien parcours actif non voulu.
+- Vérifier les modules Encyclopédie, Bestiaire, Guide, Crafts, Map Monde, Chasse, Ocre, Almanax, Stuffs, macros et caractérisation des placeholders.
+- Vérifier sessions multi-instances, préchargements, lifecycle Qt, asynchrone, Data/JSON/LFS, integrity sha and no duplicate cargo.
+- Vérifier véritable UI native Windows DPI/animations/ombres, launcher V2 en deux phases dans la même fenêtre, dossier d'installation, prerequis, no-op si aucun update, downloader différentiel et anti-stall.
+- Auditer recherche de fichiers `replacement_drafts`, anciennes routes, anciens QSS, `ganymede_*`, variantes `_vN`; ne rien supprimer sans référence et preuves exactes.
+- Séparer tests réels de contrats de simulation, pas de faux `PASS` sur 8 clients DOFUS, FPS natif, installation vierge ou navigation d'un placeholder.
+
+## Audit des commits (obligatoire)
+
+Voir [commit_ledger.md](commit_ledger.md), **387 SHA uniques**. Le script `tools/audit_pr303_commits.py` doit examiner le diff de chacun, sa couverture tests et les risques; il ne déclare pas revue humaine sans une décision explicite. Les deux commits de merge requièrent examen des deux parents, les quatre reverts comparaison avant/après, et les commits `[skip ci]` vérification de leurs tests par cumul. Aucun commit n'est omis du registre. Chaque correction ajoutée à la réparation aura son propre audit avant intégration.
+
+## Provenance des mesures et limitations
+
+- Bench navigation HEAD [41197183460](https://github.com/r9327/Dof-Atlas/actions/runs/41197183460) : 60 parcours (33 fonctions, 27 placeholders), preload 6,794.85ms, pic 207.83Mio, Home 115.73Mio.
+- Guides HEAD [41197183453](https://github.com/r9327/Dof-Atlas/actions/runs/41197183453) : 52/52, p50/p95/p99 103.25/284.54/309.39ms, 0 blocage Qt ≥250ms, pic 247.61Mio, preload 13,897.99ms.
+- [Graphify HEAD 41197183675](https://github.com/r9327/Dof-Atlas/actions/runs/41197183675) : 1198 Python, 16787 nœuds, 48375 arêtes ; exécution PASS mais contenu REVIEW.
+- [FULL HEAD 41197183499](https://github.com/r9327/Dof-Atlas/actions/runs/41197183499) : FAIL sur l'itinéraire Sylvestre, échecs de gates en cascade (non indépendants).
+- Données exhaustives candidates (anciennes) : [Scoped Doctor Draft 613ec84](https://github.com/r9327/Dof-Atlas/commit/613ec84c29537b10f97093de2f57cfdf168d82a5); la campagne actuelle doit refaire syntaxe/liaisons sur SHA exact. Ancien scan ne prouve pas quels candidats restent actifs.
+
+## Critères finaux de clôture
+
+1. Aucune erreur P0 ; build EXE/installer réel, SHA intact et tests Windows du même HEAD.
+2. 387/387 diffs machine parcourus + **revue humaine de tous les changements critiques** et des deux merges, 92/92 fichiers finaux couverts ; nouveaux commits inclus.
+3. Toutes les anomalies candidates sorties en entier avec provenance et verdict par item ou justification honnête `OPEN/REVIEW/NOT_RUN`, jamais effacées faute de place.
+4. Objectif Home <100Mio et pic process-tree ≤250Mio si ces budgets restent le contrat ; benchmark répété sur scénarios comparables.
+5. Aucun `SKIPPED` pris pour `PASS`, aucun artefact d'un SHA précédent réutilisé comme preuve du nouveau, audit UI natif explicite.
+6. Phase Certification, audit Doctor/Graphify/JSON/links et rapports de merge cohérents ; PR #303 et réparation restent non fusionnées sans validation finale.
