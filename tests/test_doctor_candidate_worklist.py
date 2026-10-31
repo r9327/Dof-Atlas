@@ -122,6 +122,20 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
         rows, _, _ = build_worklists(duplicate)
         self.assertEqual(len(rows), len({row["id"] for row in rows}))
 
+    def test_duplicate_asset_candidates_cannot_share_a_review_id(self):
+        report = self.report()
+        names = report["resource_link_audit"]["no_static_consumer_all_candidates"]
+        names.append(names[0])
+        report["resource_link_audit"]["no_static_consumer_total"] += 1
+        with self.assertRaisesRegex(ValueError, "Duplicate asset candidate"):
+            build_worklists(report)
+
+    def test_invalid_asset_path_cannot_enter_review_export(self):
+        report = self.report()
+        report["resource_link_audit"]["no_static_consumer_all_candidates"][0] = None
+        with self.assertRaisesRegex(ValueError, "Invalid asset candidate"):
+            build_worklists(report)
+
     def test_missing_rows_and_stale_worktree_are_rejected(self):
         report = self.report()
         report["resource_link_audit"]["counts"]["unresolved_literals"] += 1
