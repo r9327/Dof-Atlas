@@ -25,6 +25,8 @@ on:
       - 'tests/test_quest_index_prebuilt.py'
       - 'app/quest_index_prebuilt.py'
       - 'app/quest_catalog_details.py'
+      - 'app/quest_source_index.py'
+      - 'app/startup_cache_domain_worker.py'
       - 'app/startup_cache_warmup.py'
       - 'tests/test_startup_warmup_subprocess_flags.py'
       - 'tests/test_shared_guide_combat_global_contract.py'

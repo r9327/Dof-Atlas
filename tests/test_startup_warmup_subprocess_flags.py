@@ -48,6 +48,21 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         self.assertEqual(final["status"], "ready")
         self.assertEqual(final["completed_domains"], order)
 
+    def test_quest_and_guide_source_changes_trigger_windows_focused_proof(self):
+        workflow = (
+            Path(__file__).resolve().parents[1]
+            / ".github" / "workflows" / "guides-focused-proof.yml"
+        ).read_text(encoding="utf-8")
+        for source in (
+            "app/quest_source_index.py",
+            "app/startup_cache_domain_worker.py",
+            "app/startup_cache_warmup.py",
+            "tests/test_quest_source_boundaries.py",
+            "tests/test_startup_warmup_subprocess_flags.py",
+        ):
+            with self.subTest(source=source):
+                self.assertIn("      - '" + source + "'", workflow)
+
     def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:
         enriched = warmup._QUEST_ENRICHED_SOURCE
         self.assertIn(enriched, warmup._source_paths("quest"))
