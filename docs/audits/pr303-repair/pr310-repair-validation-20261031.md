@@ -324,3 +324,9 @@ La campagne sur `3ec29e4` a échoué sur `tests.test_achievement_compact_subproc
 - Un ID booléen était encore coercé en entier dans le secours de lecture des Succès externes. Ce fallback exige maintenant `type(id) is int` et dispose d'un test dédié.
 
 Pas de modification des données utilisateur, ni contournement du Doctor, des règles de certification ou de la vérification d'index. Résultat du nouveau HEAD à vérifier dans la prochaine campagne Windows ciblée ; aucune FULL lancée.
+
+## Succès : identité des lignes compactes et empreinte sur index de noms (31/10/2026)
+
+`catalogue_row_by_id` lisait un offset de sidecar puis retournait les propriétés de son `value` sans vérifier la **nature achievement** ni l'**ID égal à l'ID demandé**. Un index décalé pouvait ainsi afficher le nom/score d'un autre succès. La lecture exige maintenant `kind="achievement"` et `type(id) is int` égal à l'ID demandé, sinon active le fallback déjà présent. Régression avec mauvais ID, mauvaise nature, booléen et bonne ligne.
+
+`compact_name_index` lit le JSONL compact après validation de signature ; un remplacement concurrent au milieu du parcours pouvait produire une table de noms d'une autre génération. Deux `stat(size/mtime_ns/ctime_ns/inode)` bornent maintenant la lecture, avec résultat vide en cas de changement ou d'erreur, et les IDs booléens sont refusés. Test de génération mutante et de rejet des booléens. Pas de scan supplémentaire et pas de gain RAM revendiqué.

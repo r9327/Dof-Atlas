@@ -419,6 +419,78 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", compact):
                 self.assertIsNone(provider._compact_value_by_id(1))
 
+    def test_retained_catalogue_list_row_checks_offset_identity(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+        provider._compact_retained_set = frozenset({10})
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id", return_value=None) as fallback,
+            ):
+                for payload in (
+                    {"kind": "achievement", "value": {"id": 20, "name": "Wrong"}},
+                    {"kind": "category", "value": {"id": 10, "name": "Wrong"}},
+                    {"kind": "achievement", "value": {"id": True, "name": "Wrong"}},
+                    {"kind": "achievement", "value": {
+                        "id": 10, "name": "Correct", "points": 30,
+                    }},
+                ):
+                    with self.subTest(payload=payload):
+                        raw = (json.dumps(payload) + "\n").encode("utf-8")
+                        cache.write_bytes(raw)
+                        provider._compact_external_index = {10: (0, len(raw))}
+                        row = provider.catalogue_row_by_id(10)
+                        if payload["kind"] == "achievement" and type(payload["value"]["id"]) is int and payload["value"]["id"] == 10:
+                            self.assertEqual(row, (10, "Correct", None, 30))
+                        else:
+                            self.assertIsNone(row)
+                self.assertEqual(fallback.call_count, 3)
+
+    def test_name_lookup_rejects_replaced_generation_and_boolean_id(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text("\n".join(json.dumps(row, separators=(",", ":"))
+                                      for row in (
+                                          {"kind": "meta"},
+                                          {"kind": "achievement", "value": {
+                                              "id": True, "name": "Bad",
+                                          }},
+                                          {"kind": "achievement", "value": {
+                                              "id": 17, "name": "Good",
+                                          }},
+                                      )) + "\n", encoding="utf-8")
+            original = Path.stat
+            observed = []
+
+            def changed(path, *args, **kwargs):
+                result = original(path, *args, **kwargs)
+                if path == cache:
+                    observed.append(True)
+                    if len(observed) == 2:
+                        return type("ChangedStamp", (), {
+                            "st_size": result.st_size,
+                            "st_mtime_ns": result.st_mtime_ns,
+                            "st_ctime_ns": result.st_ctime_ns + 1,
+                            "st_ino": result.st_ino,
+                        })()
+                return result
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                self.assertEqual(provider.compact_name_index(), {"good": (17, "Good")})
+                with patch.object(Path, "stat", changed):
+                    self.assertEqual(provider.compact_name_index(), {})
+                self.assertEqual(len(observed), 2)
+
     def test_retained_offset_must_point_to_matching_success(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

@@ -1101,6 +1101,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return {}
         result: dict[str, tuple[int, str]] = {}
         try:
+            before = ACHIEVEMENT_COMPACT_CACHE.stat()
+            generation = (
+                before.st_size, before.st_mtime_ns,
+                before.st_ctime_ns, before.st_ino,
+            )
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
                     line = raw_line.strip()
@@ -1112,11 +1117,15 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     value = row.get("value")
                     if not isinstance(value, dict):
                         continue
-                    achievement_id = safe_int(value.get("id"))
+                    achievement_id = value.get("id")
                     name = str(value.get("name") or "").strip()
                     key = normalize_text(name)
-                    if achievement_id is not None and key and key not in result:
-                        result[key] = (int(achievement_id), name)
+                    if type(achievement_id) is int and key and key not in result:
+                        result[key] = (achievement_id, name)
+            after = ACHIEVEMENT_COMPACT_CACHE.stat()
+            if (after.st_size, after.st_mtime_ns,
+                    after.st_ctime_ns, after.st_ino) != generation:
+                return {}
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return {}
         return result
@@ -1180,7 +1189,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 except (OSError, ValueError, TypeError, json.JSONDecodeError):
                     return None
                 value = payload.get("value") if isinstance(payload, dict) else None
-                if isinstance(value, dict):
+                if (isinstance(payload, dict)
+                        and payload.get("kind") == "achievement"
+                        and isinstance(value, dict)
+                        and type(value.get("id")) is int
+                        and value["id"] == achievement_id):
                     return (
                         achievement_id,
                         str(value.get("name") or ""),
