@@ -33,6 +33,18 @@ class CommitAuditTests(unittest.TestCase):
         report = scan_patch("+except OSError:\n+    pass\n")
         self.assertEqual(report["risk_leads"]["EXCEPTION"], 1)
 
+    def test_typed_exceptions_with_aliases_and_exception_groups_are_not_omitted(self):
+        for source in (
+            "except OSError as error:",
+            "except (ValueError, TypeError) as exc:",
+            "except* ValueError as errors:",
+            "except* (KeyError, OSError) as group:",
+            "except:",
+        ):
+            with self.subTest(source=source):
+                report = scan_patch("+" + source + "\n+    pass\n")
+                self.assertEqual(report["risk_leads"].get("EXCEPTION"), 1)
+
     def test_performance_does_not_match_general_words(self):
         report = scan_patch("+program = 1\n+framework = 2\n+parameter = 3\n")
         self.assertNotIn("PERFORMANCE", report["risk_leads"])
@@ -46,6 +58,17 @@ class CommitAuditTests(unittest.TestCase):
                  "-with pytest.raises(ValueError):\n"
                  "-self.fail('unexpected')\n")
         self.assertEqual(scan_patch(patch)["deleted_assertions"], 4)
+
+    def test_pytest_fail_removed_is_explicit_review_evidence(self):
+        report = scan_patch(
+            "diff --git a/tests/example.py b/tests/example.py\n"
+            "--- a/tests/example.py\n+++ b/tests/example.py\n"
+            "@@ -8 +8 @@\n-pytest.fail('broken')\n+return None\n"
+        )
+        self.assertEqual(report["deleted_assertions"], 1)
+        self.assertEqual(report["deleted_assertion_locations"], [
+            {"file": "tests/example.py", "line": 8},
+        ])
 
     def test_patch_flags_preserve_each_file_and_hunk_line(self):
         diff = (

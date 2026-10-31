@@ -8,7 +8,7 @@ from pathlib import Path
 
 PATTERNS = {
     "CI_BYPASS": r"skip[\s_-]*ci|continue-on-error:\s*true|--no-verify",
-    "EXCEPTION": r"\bexcept(?:\s+(?:[A-Za-z_][\w.]*(?:\s*,\s*[A-Za-z_][\w.]*)*|\([^)]*\)))?\s*:",
+    "EXCEPTION": r"\bexcept\*?(?:\s+(?:[A-Za-z_][\w.]*(?:\s*,\s*[A-Za-z_][\w.]*)*|\([^)]*\))(?:\s+as\s+[A-Za-z_]\w*)?)?\s*:",
     "PROCESS": r"subprocess\.(?:run|Popen)|os\.system|shell\s*=\s*True",
     "CACHE": r"lru_cache|cached_property|QPixmapCache|\.deleteLater\(",
     "SQLITE": r"sqlite3|\.as_uri\(|\.resolve\(",
@@ -29,7 +29,7 @@ def scan_patch(patch: str) -> dict:
     added = [s[1:] for s in lines if s.startswith("+") and not s.startswith("+++")]
     removed = [s[1:] for s in lines if s.startswith("-") and not s.startswith("---")]
     removed_check = re.compile(
-        r"^\s*(?:assert\b|self\.assert\w*\s*\(|self\.fail\s*\(|(?:with\s+)?pytest\.raises\s*\()", re.I
+        r"^\s*(?:assert\b|self\.assert\w*\s*\(|self\.fail\s*\(|pytest\.fail\s*\(|(?:with\s+)?pytest\.raises\s*\()", re.I
     )
     findings = {
         name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)

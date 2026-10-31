@@ -56,3 +56,7 @@ Le cache source-offset Quêtes contenant seulement un schéma SQLite mais **aucu
 ## Audit patch par patch : emplacement exact des assertions retirées
 
 Le scanner `tools/audit_pr303_commits.py` conserve désormais, en plus du nombre et du drapeau `REMOVED_ASSERTIONS_REVIEW`, un champ `deleted_assertion_locations` par parent : fichier du diff et numéro de ligne **dans l'ancien fichier**. Les coordonnées sont réinitialisées à chaque fichier et à chaque hunk ; les lignes ajoutées continuent d'être attribuées au nouveau fichier. Le test cible deux fichiers, plusieurs hunks, et exclut les commentaires. Ce tableau d'alertes reste un **indice de revue de logique**, jamais une preuve de régression ni une approbation humaine. Exécution des tests du nouveau SHA à confirmer.
+
+## Cas d'audit évités : exceptions nommées et suppression de `pytest.fail`
+
+La détection consultative des nouveaux gestionnaires d'exception couvre à présent `except Exception as exc`, les tuples avec alias et `except*` (groupes d'exception Python), que l'ancienne regex omettait. La revue des assertions supprimées inclut les lignes `pytest.fail(...)` et conserve leur localisation d'origine. Tests unitaires dédiés ajoutés ; classification heuristique uniquement, aucune exception supprimée automatiquement et aucune revue humaine revendiquée. La validation doit porter sur l'exact HEAD final.
