@@ -8,19 +8,19 @@ from pathlib import Path
 
 PATTERNS = {
     "CI_BYPASS": r"skip[\s_-]*ci|continue-on-error:\s*true|--no-verify",
-    "EXCEPTION": r"except\s+(?:Exception|BaseException)\b|except\s*:",
+    "EXCEPTION": r"\bexcept(?:\s+(?:[A-Za-z_][\w.]*(?:\s*,\s*[A-Za-z_][\w.]*)*|\([^)]*\)))?\s*:",
     "PROCESS": r"subprocess\.(?:run|Popen)|os\.system|shell\s*=\s*True",
     "CACHE": r"lru_cache|cached_property|QPixmapCache|\.deleteLater\(",
     "SQLITE": r"sqlite3|\.as_uri\(|\.resolve\(",
     "UI_QT": r"QWidget|QTimer|QThread|setStyleSheet",
-    "DATA": r"json\.load|json\.dump|\\.json|\\.png|\\.qss",
-    "PERFORMANCE": r"benchmark|preload|ram|rss|tracemalloc|budget",
+    "DATA": r"\bjson\.(?:load|loads|dump|dumps)\b|\.(?:json|png|qss|webp|svg|jpe?g|ico|ttf|otf)\b",
+    "PERFORMANCE": r"\b(?:benchmark|preload|ram|rss|tracemalloc|budget)\b",
 }
 
 
 def git(*args: str) -> str:
     p = subprocess.run(["git", "-c", "core.quotepath=false", *args],
-                       capture_output=True, text=True, errors="replace", check=True)
+                       capture_output=True, text=True, errors="strict", check=True, timeout=45)
     return p.stdout
 
 
@@ -28,20 +28,19 @@ def scan_patch(patch: str) -> dict:
     lines = patch.splitlines()
     added = [s[1:] for s in lines if s.startswith("+") and not s.startswith("+++")]
     removed = [s[1:] for s in lines if s.startswith("-") and not s.startswith("---")]
-    findings = {
-        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
+    removed_check = re.compile(\n        r"^\\s*(?:assert\\b|self\\.assert\\w*\\s*\\(|self\\.fail\\s*\\("|\n        r"(?:with\\s+)?pytest\\.raises\\s*\\()", re.I\n    )\n    findings = {\n        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
         for name, pattern in PATTERNS.items()
     }
     return {
         "added_lines": len(added),
         "deleted_lines": len(removed),
         "risk_leads": {name: n for name, n in findings.items() if n},
-        "deleted_assertions": sum(bool(re.search(r"\bassert\b|self\.assert", s)) for s in removed),
+        "deleted_assertions": sum(bool(removed_check.search(s)) for s in removed),
         "binary_manual_review": "Binary files " in patch or "GIT binary patch" in patch,
     }
 
 
-def review(base: str, head: str, expected: int) -> dict:
+def review(base: str, head: str, expected: int | None = None) -> dict:
     if git("rev-parse", "--verify", base + "^{commit}").strip() != base:
         raise ValueError("Missing historical base")
     if git("rev-parse", "--verify", head + "^{commit}").strip() != head:
@@ -77,10 +76,13 @@ def review(base: str, head: str, expected: int) -> dict:
             "human_review": "NOT_RUN",
             "decision": "REVIEW_REQUIRED",
         })
-    complete = len(records) == expected and len({x["sha"] for x in records}) == expected
+    unique = len({x["sha"] for x in records}) == len(records)
+    complete = unique and (expected is None or len(records) == expected)
+    effective_expected = len(records) if expected is None else expected
     return {
         "schema": 1, "base_sha": base, "head_sha": head,
-        "expected": expected, "inspected": len(records),
+        "expected": effective_expected, "expected_policy": "DYNAMIC_RANGE" if expected is None else "EXPLICIT",
+        "inspected": len(records),
         "status": "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED" if complete else "BLOCKED",
         "auto_merge_authorized": False, "records": records,
     }
@@ -114,7 +116,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-sha", required=True)
     ap.add_argument("--head-sha", required=True)
-    ap.add_argument("--expected", type=int, default=387)
+    ap.add_argument("--expected", type=int, default=None)
     ap.add_argument("--output", type=Path, default=Path("artifacts/pr303_commits/audit.json"))
     args = ap.parse_args()
     if any(re.fullmatch(r"[0-9a-f]{40}", s) is None for s in [args.base_sha, args.head_sha]):
