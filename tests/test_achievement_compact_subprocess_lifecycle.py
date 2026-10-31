@@ -367,6 +367,43 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             first = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual(first["cache_generation"], sidecar["cache_generation"])
 
+    def test_success_builder_cleans_temporary_pair_if_windows_replace_fails(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+        from app.modules.encyclopedia.models.achievement import AchievementCategory
+
+        provider = Mock()
+        provider._categories = {
+            8: AchievementCategory(id=8, name="Test", parent_id=0),
+        }
+        provider._achievements = [
+            SimpleNamespace(id=10, category_id=8, subcategory_id=None,
+                            linked_quests=()),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            index = mod._achievement_compact_index_path(cache)
+            cache.write_text("previous catalogue", encoding="utf-8")
+            index.write_text("previous index", encoding="utf-8")
+            with (
+                patch.object(mod, "MemoryBoundAchievementProvider", return_value=provider),
+                patch.object(mod, "RETAINED_TOP_CATEGORY_IDS", (8,)),
+                patch.object(mod, "_achievement_compact_source_signature",
+                             return_value=[]),
+                patch.object(mod, "_compact_achievement_dict",
+                             return_value={"id": 10, "linked_quests": []}),
+                patch.object(Path, "replace",
+                             side_effect=OSError("Windows file locked")),
+            ):
+                with self.assertRaisesRegex(OSError, "Windows file locked"):
+                    mod._build_compact_cache_unlocked(cache)
+            self.assertEqual(cache.read_text(encoding="utf-8"), "previous catalogue")
+            self.assertEqual(index.read_text(encoding="utf-8"), "previous index")
+            self.assertEqual(
+                [p for p in cache.parent.iterdir()
+                 if p.name not in (cache.name, index.name)], [],
+            )
+
     def test_success_compact_builder_rejects_changed_sources_without_partial_publication(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod

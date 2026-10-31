@@ -2051,8 +2051,14 @@ def _build_compact_cache_unlocked(path: Path) -> int:
         temp_path.unlink(missing_ok=True)
         temp_index.unlink(missing_ok=True)
         raise RuntimeError("Success sources changed before compact-cache publication")
-    temp_path.replace(path)
-    temp_index.replace(index_path)
+    try:
+        temp_path.replace(path)
+        temp_index.replace(index_path)
+    finally:
+        # Windows file-sharing failures must not leave large stale .tmp files.
+        # A mixed published pair remains fail-closed via cache_generation.
+        temp_path.unlink(missing_ok=True)
+        temp_index.unlink(missing_ok=True)
     print(
         json.dumps(
             {
