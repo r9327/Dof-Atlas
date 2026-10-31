@@ -75,7 +75,7 @@ class PrebuiltGuideRouteTests(unittest.TestCase):
         # The Windows package writes to data/bootstrap/guide_routes, a relative
         # path. Path.as_uri() rejects it even when the SQLite file exists.
         with tempfile.TemporaryDirectory(dir=".") as temp:
-            root = Path(temp)
+            root = Path(temp).relative_to(Path.cwd())
             self.assertFalse(root.is_absolute())
             source = self._source()
             publish_prebuilt_route(source, root, source_sha="d" * 40)

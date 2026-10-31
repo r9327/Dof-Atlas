@@ -14,7 +14,7 @@ from app.modules.encyclopedia.services.guide_catalog_route_store import (
 class RelativeGuideSQLiteTests(unittest.TestCase):
     def test_relative_build_validate_read_and_bad_signature(self):
         with tempfile.TemporaryDirectory(dir=".") as temp:
-            store = Path(temp) / "guide_routes" / "sylvestre.json"
+            store = Path(temp).relative_to(Path.cwd()) / "guide_routes" / "sylvestre.json"
             self.assertFalse(store.is_absolute())
             lines = [{"kind": "action", "text": "La quête continue"}]
             full = SimpleNamespace(
