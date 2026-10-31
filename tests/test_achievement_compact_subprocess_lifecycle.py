@@ -312,6 +312,61 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             provider._load()
             fallback.assert_called_once_with()
 
+    def test_compact_builder_publishes_quest_index_without_duplicate_or_bad_refs(self):
+        from types import SimpleNamespace
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+        from app.modules.encyclopedia.models.achievement import AchievementCategory
+
+        category = AchievementCategory(
+            id=8, name="Retained", parent_id=0, order=0,
+            achievement_ids=(10, 11),
+        )
+        data = [
+            SimpleNamespace(
+                id=10, category_id=8, subcategory_id=None,
+                linked_quests=(
+                    SimpleNamespace(entity_id=42),
+                    SimpleNamespace(entity_id="42"),
+                    SimpleNamespace(entity_id="invalid"),
+                ),
+            ),
+            SimpleNamespace(
+                id=11, category_id=8, subcategory_id=None,
+                linked_quests=(
+                    SimpleNamespace(entity_id=42),
+                    SimpleNamespace(entity_id=99),
+                ),
+            ),
+        ]
+        provider = Mock()
+        provider._achievements = data
+        provider._categories = {8: category}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            with (
+                patch.object(mod, "MemoryBoundAchievementProvider", return_value=provider),
+                patch.object(mod, "RETAINED_TOP_CATEGORY_IDS", (8,)),
+                patch.object(mod, "_achievement_compact_source_signature", return_value=[]),
+                patch.object(mod, "_compact_achievement_dict",
+                             side_effect=lambda a: {
+                                 "id": a.id,
+                                 "linked_quests": [{"entity_id": ref.entity_id}
+                                                   for ref in a.linked_quests],
+                             }),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(mod._build_compact_cache_unlocked(path), 0)
+            sidecar = json.loads(mod._achievement_compact_index_path(path).read_text(
+                encoding="utf-8",
+            ))
+            self.assertEqual(sidecar["by_quest"], {"42": [10, 11], "99": [11]})
+            self.assertEqual(sidecar["by_quest_ref_count"], 3)
+            self.assertEqual(sidecar["retained_count"], 2)
+            first = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(first["cache_generation"], sidecar["cache_generation"])
+
     def test_new_sidecar_quest_relations_skip_jsonl_scan_and_preserve_order(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

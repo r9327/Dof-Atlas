@@ -1952,10 +1952,17 @@ def _build_compact_cache_unlocked(path: Path) -> int:
             by_category_ids[int(achievement.category_id)].append(int(achievement.id))
             if achievement.subcategory_id is not None:
                 by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
-            # Same order and membership as the canonical compact JSONL scan.
-            for quest_id in dict.fromkeys(
-                int(ref.entity_id) for ref in achievement.linked_quests
-            ):
+            # Match the canonical scan: malformed links are ignored, and a
+            # repeated quest reference must not duplicate an achievement.
+            seen_quests: set[int] = set()
+            for ref in achievement.linked_quests:
+                try:
+                    quest_id = int(ref.entity_id)
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                if quest_id in seen_quests:
+                    continue
+                seen_quests.add(quest_id)
                 by_quest_ids[quest_id].append(int(achievement.id))
         for achievement in retained:
             payload = {

@@ -351,3 +351,7 @@ Le nouveau test de remplacement concurrent du `compact_name_index` construit vol
 ## Succès externes : ne plus décoder tous les détails retenus avant le marqueur (31/10/2026)
 
 Le fallback `_compact_value_by_id` avait un coût disproportionné pour les références de Succès non retenus : il faisait un `json.loads` de toutes les lignes de la section retenue (potentiellement des objectifs/progressions longs), alors que seul `external_start` délimite le début des références externes. La voie externe évite désormais le décodage de toutes les lignes sans le marqueur ; elle parse ce marqueur et les lignes externes normalement. La recherche d'un Succès retenu au sidecar endommagé conserve le scan complet de secours. Test 100 grosses entrées retenues + 1 externe, avec assertion sur nombre de décodages au lieu d'un gain chronométrique fragile. Aucun nouveau cache, aucune structure de données retenue supplémentaire.
+
+## Sidecar Succès : contrôle de bout en bout du writer des relations (31/10/2026)
+
+Le constructeur de l'index Quête→Succès ignore désormais explicitement les `entity_id` illisibles, conformément à la recherche historique qui sautait ces références, et déduplique chaque couple Quête/Succès sans changer l'ordre des achievements. Test d'intégration sur le véritable `_build_compact_cache_unlocked` avec deux Succès, référence dupliquée, identifiant malformé, et contrôle de `by_quest`, `by_quest_ref_count`, `retained_count` et jeton de génération identique JSONL/sidecar. Seuls des caches reconstructibles sont modifiés.
