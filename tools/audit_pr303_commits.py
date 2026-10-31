@@ -44,7 +44,7 @@ def scan_patch(patch: str) -> dict:
         if diff_line.startswith("+++ b/"):
             current_file = diff_line[6:]
         elif diff_line.startswith("@@ "):
-            match = re.search(r"\\+(\\d+)", diff_line)
+            match = re.search(r"\+(\d+)", diff_line)
             new_line = int(match.group(1)) if match else None
         elif diff_line.startswith("+") and not diff_line.startswith("+++"):
             for category, pattern in PATTERNS.items():
