@@ -209,6 +209,39 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                 self.assertEqual(provider.get_by_id(42).name, "Dofus fixture")
                 self.assertTrue(old_rows)
 
+    def test_recent_guide_item_is_not_stale_after_atomic_index_replacement(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "items.json"
+
+            def publish(target, label):
+                target.write_text(json.dumps({
+                    "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                    "source_signature": [],
+                    "items": {"42": {"id": 42, "name": label, "type_id": 6}},
+                }), encoding="utf-8")
+
+            publish(cache, "Old")
+            provider = mod.DofusItemProvider()
+            with (
+                patch.object(mod, "GUIDE_ITEMS_INDEX", cache),
+                patch.object(mod, "_guide_item_source_signature", return_value=[]),
+                patch.object(provider, "_load_one", side_effect=AssertionError("source fallback")),
+            ):
+                self.assertEqual(provider.get_by_id(42).name, "Old")
+                self.assertEqual(provider.get_by_id(42).name, "Old")
+                before = cache.stat()
+                replacement = root / "replacement.json"
+                publish(replacement, "New")
+                os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+                self.assertEqual(replacement.stat().st_size, before.st_size)
+                replacement.replace(cache)
+                self.assertEqual(cache.stat().st_mtime_ns, before.st_mtime_ns)
+                self.assertEqual(provider.get_by_id(42).name, "New")
+                self.assertEqual(len(provider._by_id), 1)
+
     def test_provider_refreshes_index_after_preload_or_atomic_replacement(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 

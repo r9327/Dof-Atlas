@@ -289,6 +289,7 @@ class DofusItemProvider:
         self._by_id: dict[int, DofusItem] = {}
         self._guide_index_rows: dict[int, dict[str, Any]] | None = None
         self._guide_index_stamp: tuple[int, int, int, int] | None = None
+        self._recent_item_index_stamp: tuple[int, int, int, int] | None = None
 
     def load_all(self) -> list[DofusItem]:
         self._ensure_loaded()
@@ -300,14 +301,21 @@ class DofusItemProvider:
         if item_id is None:
             return None
         item_id = int(item_id)
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if not self._loaded and current_data_dir == default_data_dir:
+            # A recent decoded item is valid only for the compact generation
+            # it came from. This check also detects late preload publication.
+            current = self._guide_index_generation()
+            if self._recent_item_index_stamp != current:
+                self._by_id.clear()
+                self._recent_item_index_stamp = current
         cached = self._by_id.get(item_id)
         if cached is not None:
             return cached
         if self._loaded:
             return None
 
-        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
-        current_data_dir = Path(self.data_dir).resolve(strict=False)
         if current_data_dir == default_data_dir:
             row = self._guide_index_row(item_id)
             item = self._item_from_compact_row(row) if row is not None else None
@@ -328,15 +336,16 @@ class DofusItemProvider:
             self._by_id.pop(oldest_id, None)
         return item
 
-    def _guide_index_row(self, item_id: int) -> dict[str, Any] | None:
-        def stamp() -> tuple[int, int, int, int] | None:
-            try:
-                stat = GUIDE_ITEMS_INDEX.stat()
-            except OSError:
-                return None
-            return (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+    @staticmethod
+    def _guide_index_generation() -> tuple[int, int, int, int] | None:
+        try:
+            stat = GUIDE_ITEMS_INDEX.stat()
+        except OSError:
+            return None
+        return (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
 
-        current = stamp()
+    def _guide_index_row(self, item_id: int) -> dict[str, Any] | None:
+        current = self._guide_index_generation()
         if (self._guide_index_rows is None
                 or self._guide_index_stamp != current):
             # The first visit may precede preload, or another Atlas instance
@@ -345,7 +354,7 @@ class DofusItemProvider:
                 data_dir=self.data_dir,
                 path=GUIDE_ITEMS_INDEX,
             ) if current is not None else None)
-            after = stamp()
+            after = self._guide_index_generation()
             if after != current:
                 # A concurrent publish means neither generation is trusted.
                 # Retry on next lookup and keep the canonical item fallback.
@@ -432,6 +441,7 @@ class DofusItemProvider:
         # keeps an avoidable second raw item graph alive after load_all().
         self._guide_index_rows = None
         self._guide_index_stamp = None
+        self._recent_item_index_stamp = None
 
     def _load(self) -> None:
         """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""
