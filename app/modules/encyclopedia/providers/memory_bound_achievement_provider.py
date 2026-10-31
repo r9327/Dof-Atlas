@@ -723,9 +723,19 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         ):
             raise RuntimeError("Cache compact Succès absent ou périmé")
 
+        # The JSONL and its offset sidecar are published separately. Detect
+        # concurrent replacement before installing an incoherent catalogue.
+        def fingerprint(path: Path) -> tuple[int, int, int, int]:
+            stat = path.stat()
+            return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino
+
+        source_path = ACHIEVEMENT_COMPACT_CACHE
+        sidecar_path = _achievement_compact_index_path()
+        source_generation = fingerprint(source_path)
+        sidecar_generation = fingerprint(sidecar_path)
         try:
             index_payload = json.loads(
-                _achievement_compact_index_path().read_text(encoding="utf-8")
+                sidecar_path.read_text(encoding="utf-8")
             )
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise RuntimeError("Index compact Succès absent ou invalide") from exc
@@ -796,6 +806,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
+        if (fingerprint(source_path) != source_generation
+                or fingerprint(sidecar_path) != sidecar_generation):
+            raise RuntimeError("Cache compact Succès remplacé pendant le chargement")
 
         self._categories = categories
         self._achievements = []

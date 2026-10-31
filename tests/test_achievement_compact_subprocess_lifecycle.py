@@ -111,6 +111,51 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             replacement.replace(source)
             self.assertFalse(mod._achievement_compact_cache_valid(compact, data_dir=root))
 
+    def test_compact_sidecar_swap_during_read_cannot_install_mixed_catalogue(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            compact = root / "catalog.jsonl"
+            sidecar = mod._achievement_compact_index_path(compact)
+            compact.write_text(
+                "\n".join(json.dumps(row) for row in (
+                    {"kind": "meta"},
+                    {"kind": "category", "value": {"id": 8, "name": "Test"}},
+                    {"kind": "achievement", "value": {"id": 10}},
+                )) + "\n", encoding="utf-8",
+            )
+            sidecar.write_text(json.dumps({
+                "retained_ids": [10], "offsets": {},
+            }), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            initial = tuple(provider._compact_retained_ids)
+            real_stat = Path.stat
+            checks = []
+
+            def concurrent_replace(path, *args, **kwargs):
+                value = real_stat(path, *args, **kwargs)
+                if path == sidecar:
+                    checks.append(True)
+                    if len(checks) == 2:
+                        return type("ChangedStat", (), {
+                            "st_size": value.st_size,
+                            "st_mtime_ns": value.st_mtime_ns,
+                            "st_ctime_ns": value.st_ctime_ns + 1,
+                            "st_ino": value.st_ino,
+                        })()
+                return value
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", compact),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(Path, "stat", concurrent_replace),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "remplacé"):
+                    provider._load_from_compact_cache()
+            self.assertEqual(tuple(provider._compact_retained_ids), initial)
+            self.assertEqual(len(checks), 2)
+
     def test_corrupt_compact_sidecar_falls_back_to_existing_worker(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
