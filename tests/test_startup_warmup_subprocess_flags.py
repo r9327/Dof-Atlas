@@ -326,6 +326,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 {"offsets": {"10": [0, 0], "20": [4, 8]}},
                 {"offsets": {"10": [True, 4], "20": [4, 8]}},
                 {"offsets": {"30": [0, 4], "20": [4, 8]}},
+                {"offsets": {"10": [0, 7], "20": [4, 8]}},
             ):
                 with self.subTest(changes=changes):
                     index.write_text(json.dumps({**valid, **changes}), encoding="utf-8")
@@ -336,19 +337,36 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             jsonl.unlink()
             self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
 
-    def test_header_only_or_truncated_guide_compact_cache_rebuilds(self):
+    def test_header_only_or_incomplete_guide_compact_cache_rebuilds(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "guides.jsonl"
-            meta = json.dumps({"kind": "meta", "schema_version": 1}) + "\n"
-            guide = json.dumps({"kind": "guide", "value": {"id": "route-1"}}) + "\n"
+            meta = json.dumps({"kind": "meta", "schema_version": 2, "guide_count": 2}) + "\n"
+            guide_one = json.dumps({"kind": "guide", "value": {"id": "route-1"}}) + "\n"
+            guide_two = json.dumps({"kind": "guide", "value": {"id": "route-2"}}) + "\n"
+            index = json.dumps({
+                "kind": "entity_index",
+                "value": {"guide_id": "route-1", "entity_keys": [["quest", 42]]},
+            }) + "\n"
             path.write_text(meta, encoding="utf-8")
             self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
-            path.write_text(meta + guide + "{malformed", encoding="utf-8")
+            # A complete, parseable row is not proof that the entire cache survived.
+            path.write_text(meta + guide_one, encoding="utf-8")
             self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
-            path.write_text(meta + guide, encoding="utf-8")
-            self.assertEqual(domain_worker._count_valid_compact_guides(path), 1)
-            path.write_text(meta + '{"kind":"guide","value":null}\n', encoding="utf-8")
+            path.write_text(meta + guide_one + "{malformed", encoding="utf-8")
             self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
+            path.write_text(meta + guide_one + guide_two + index, encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 2)
+            for broken in (
+                meta + guide_one + guide_one,
+                meta + guide_one + '{"kind":"guide","value":null}\n',
+                meta + guide_one + guide_two
+                     + '{"kind":"entity_index","value":{"guide_id":"missing"}}\n',
+                json.dumps({"kind": "meta", "schema_version": 2}) + "\n" + guide_one,
+            ):
+                with self.subTest(broken=broken[-60:]):
+                    path.write_text(broken, encoding="utf-8")
+                    self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
+
 
     def test_domain_builder_discarded_stdout_is_not_buffered(self):
         # Large build logs must not accumulate in a StringIO at the peak.

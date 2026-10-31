@@ -271,6 +271,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         available: set[str] = set()
         indexed: set[str] = set()
         matches: set[str] = set()
+        expected_guides: int | None = None
         try:
             with path.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
@@ -282,6 +283,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     row = json.loads(line)
                     if not isinstance(row, dict):
                         return None
+                    if row.get("kind") == "meta":
+                        if type(row.get("guide_count")) is int:
+                            expected_guides = row["guide_count"]
+                        continue
                     if row.get("kind") not in ("guide", "entity_index"):
                         continue
                     if not isinstance(row.get("value"), dict):
@@ -315,7 +320,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         matches.add(guide_id)
         except (OSError, UnicodeError, ValueError, TypeError):
             return None
-        if not available or not indexed.issubset(available):
+        if (not available or not indexed.issubset(available)
+                or (expected_guides is not None and len(available) != expected_guides)):
             return None
         return tuple(sorted(matches))
 
@@ -835,6 +841,7 @@ def _build_compact_guide_cache(path: Path) -> int:
                         "kind": "meta",
                         "schema_version": _GUIDE_COMPACT_SCHEMA,
                         "source_signature": _guide_compact_source_signature(GUIDES_DIR),
+                        "guide_count": len(provider._guides),
                     }
                 )
             )

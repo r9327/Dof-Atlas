@@ -16,7 +16,7 @@ class CompactGuideRelationTests(unittest.TestCase):
     @staticmethod
     def _write_cache(path: Path, guides_dir: Path, *, corrupt: bool = False) -> None:
         rows = [
-            {"kind": "meta", "schema_version": 2,
+            {"kind": "meta", "schema_version": 2, "guide_count": 2,
              "source_signature": mod._guide_compact_source_signature(guides_dir)},
             {"kind": "guide", "value": {"id": "guide-b"}},
             {"kind": "entity_index", "value": {
@@ -59,6 +59,27 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertEqual(graph.guide_ids(42), ["guide-b"])
                 self.assertEqual(graph.guide_ids(99999), [])
                 provider._ensure_loaded.assert_not_called()
+
+    def test_parseable_but_incomplete_guide_index_does_not_claim_no_relations(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            rows = [json.loads(line) for line in cache.read_text().splitlines()]
+            # Keep valid JSON and a valid header but remove an entire Guide.
+            cache.write_text(
+                "\n".join(json.dumps(row) for row in rows if
+                          row.get("kind") == "meta" or
+                          row.get("value", {}).get("id") != "guide-a" and
+                          row.get("value", {}).get("guide_id") != "guide-a") + "\n",
+                encoding="utf-8",
+            )
+            provider = self._provider(guides)
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
+            provider._ensure_loaded.assert_not_called()
 
     def test_stale_or_malformed_cache_defers_to_existing_provider(self):
         with tempfile.TemporaryDirectory() as temp:

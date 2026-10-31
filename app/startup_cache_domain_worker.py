@@ -28,25 +28,48 @@ def _relative(path: Path) -> str:
 
 
 def _count_valid_compact_guides(path: Path) -> int:
-    """Reject header-only/truncated JSONL rather than permanently reusing it."""
-    count = 0
+    """Refuse valid-looking JSONL with missing guides or orphaned indexes."""
+    guide_ids: set[str] = set()
+    indexed_ids: set[str] = set()
+    expected_count: int | None = None
     try:
         with path.open("r", encoding="utf-8") as stream:
             for line in stream:
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                if not isinstance(row, dict) or row.get("kind") not in {
-                    "meta", "guide", "entity_index",
-                }:
+                if not isinstance(row, dict):
                     return 0
-                if row["kind"] == "guide":
-                    if not isinstance(row.get("value"), dict):
+                kind = row.get("kind")
+                if expected_count is None:
+                    if (kind != "meta" or type(row.get("guide_count")) is not int
+                            or row["guide_count"] <= 0):
                         return 0
-                    count += 1
+                    expected_count = row["guide_count"]
+                    continue
+                if kind == "guide":
+                    value = row.get("value")
+                    guide_id = value.get("id") if isinstance(value, dict) else None
+                    if (not isinstance(guide_id, str) or not guide_id
+                            or guide_id in guide_ids):
+                        return 0
+                    guide_ids.add(guide_id)
+                elif kind == "entity_index":
+                    value = row.get("value")
+                    guide_id = value.get("guide_id") if isinstance(value, dict) else None
+                    if (not isinstance(guide_id, str) or not guide_id
+                            or guide_id in indexed_ids):
+                        return 0
+                    indexed_ids.add(guide_id)
+                else:
+                    return 0
     except (OSError, UnicodeError, TypeError, ValueError):
         return 0
-    return count
+    return (
+        len(guide_ids)
+        if expected_count == len(guide_ids) and indexed_ids.issubset(guide_ids)
+        else 0
+    )
 
 
 def _guide_domain() -> dict[str, object]:
@@ -194,6 +217,7 @@ def _read_compact_success_counts(
         or cache_size <= 0
     ):
         return None
+    spans: list[tuple[int, int]] = []
     for achievement_id in retained_ids:
         span = offsets.get(str(achievement_id))
         # The writer stores [byte_start, byte_length], not [start, end].
@@ -204,6 +228,13 @@ def _read_compact_success_counts(
             or span[0] + span[1] > cache_size
         ):
             return None
+        spans.append((span[0], span[0] + span[1]))
+    # Distinct achievements cannot point to overlapping JSONL records.
+    previous_end = 0
+    for start, end in sorted(spans):
+        if start < previous_end:
+            return None
+        previous_end = end
     return total, retained
 
 
