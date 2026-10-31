@@ -1,7 +1,7 @@
-"""Non-destructive static resource-consumer triage for Doctor full-scope.
+"""Advisory, non-destructive Doctor triage of static JSON/asset consumers.
 
-A literal edge is evidence of a *possible* consumer, not runtime reachability.
-Absence of an edge never authorizes cleanup (Qt, bundles and generated paths).
+Reuse Python AST and JSON payloads already traversed by full-scope where possible.
+Do not claim runtime reachability, bundle completeness, or deletability.
 """
 from __future__ import annotations
 
@@ -16,39 +16,41 @@ _PRODUCTION_PREFIXES = ("app/", "data/", "assets/", "resources/")
 _EXAMPLE_LIMIT = 40
 
 
-def inspect_resource_links(root: Path, tracked: list[str], python_files: list[str],
-                           json_files: list[str], *, offset: int = 0) -> dict[str, Any]:
-    """Inventory all production resources and identify *static* candidate edges.
+class ResourceLinkCollector:
+    """One per Doctor audit; retains only references and filenames, not payloads."""
 
-    Parse tracked app Python and production JSON, including dynamic-path caveats.
-    This scan does not execute Python, open assets, or prove consumer absence.
-    """
-    if offset < 0:
-        raise ValueError("Link candidate page offset must be >= 0")
-    root = root.resolve()
-    tracked_set = set(tracked)
-    resources = sorted(path for path in tracked_set
-                       if path.startswith(_PRODUCTION_PREFIXES)
-                       and PurePosixPath(path).suffix.lower() in _RESOURCE_SUFFIXES)
-    resource_set = set(resources)
-    by_name: dict[str, list[str]] = defaultdict(list)
-    for path in resources:
-        by_name[PurePosixPath(path).name].append(path)
-    definite: set[str] = set()
-    possible: set[str] = set()
-    broken: list[dict[str, Any]] = []
-    ambiguous: list[dict[str, Any]] = []
-    counts = {"python_files_scanned": 0, "json_files_scanned": 0,
-              "literals_checked": 0, "resolved_edges": 0,
-              "possible_edges": 0, "unresolved_literals": 0,
-              "unsafe_literals": 0}
-    errors: list[dict[str, str]] = []
+    def __init__(self, tracked: list[str], *, offset: int = 0):
+        if offset < 0:
+            raise ValueError("Link candidate page offset must be >= 0")
+        self.offset = offset
+        self.resources = sorted(path for path in set(tracked)
+                                if path.startswith(_PRODUCTION_PREFIXES)
+                                and PurePosixPath(path).suffix.lower() in _RESOURCE_SUFFIXES)
+        self.resource_set = set(self.resources)
+        self.by_name: dict[str, list[str]] = defaultdict(list)
+        for path in self.resources:
+            self.by_name[PurePosixPath(path).name].append(path)
+        self.definite: set[str] = set()
+        self.possible: set[str] = set()
+        self.unresolved: list[dict[str, Any]] = []
+        self.ambiguous: list[dict[str, Any]] = []
+        self.errors: list[dict[str, str]] = []
+        self.counts = {
+            "python_files_scanned": 0,
+            "json_files_scanned": 0,
+            "literals_checked": 0,
+            "resolved_edges": 0,
+            "possible_edges": 0,
+            "unresolved_literals": 0,
+            "unsafe_literals": 0,
+        }
 
-    def sample(destination: list[dict[str, Any]], row: dict[str, Any]) -> None:
-        if len(destination) < _EXAMPLE_LIMIT:
-            destination.append(row)
+    @staticmethod
+    def _example(rows: list[dict[str, Any]], entry: dict[str, Any]) -> None:
+        if len(rows) < _EXAMPLE_LIMIT:
+            rows.append(entry)
 
-    def examine(origin: str, value: str, line: int | None = None) -> None:
+    def inspect_literal(self, origin: str, value: str, line: int | None = None) -> None:
         if not (0 < len(value) <= 320):
             return
         literal = value.strip().replace("\\", "/")
@@ -56,34 +58,110 @@ def inspect_resource_links(root: Path, tracked: list[str], python_files: list[st
             return
         if "\n" in literal or "\r" in literal or "://" in literal:
             return
-        counts["literals_checked"] += 1
+        self.counts["literals_checked"] += 1
         parts = PurePosixPath(literal).parts
         row: dict[str, Any] = {"source": origin, "literal": value}
         if line is not None:
             row["line"] = line
         if (literal.startswith("/") or ":" in literal or
                 any(part in {"..", "."} for part in parts)):
-            counts["unsafe_literals"] += 1
-            sample(broken, {**row, "kind": "UNSAFE_RESOURCE_LITERAL_REVIEW"})
+            self.counts["unsafe_literals"] += 1
+            self._example(self.unresolved, {**row, "kind": "UNSAFE_RESOURCE_LITERAL_REVIEW"})
             return
-        direct = literal if literal in resource_set else None
+        direct = literal if literal in self.resource_set else None
         relative = str(PurePosixPath(origin).parent / literal)
-        target = direct or (relative if relative in resource_set else None)
+        target = direct or (relative if relative in self.resource_set else None)
         if target is not None:
-            definite.add(target)
-            counts["resolved_edges"] += 1
+            self.definite.add(target)
+            self.counts["resolved_edges"] += 1
             return
-        matches = by_name.get(PurePosixPath(literal).name, ())
+        matches = self.by_name.get(PurePosixPath(literal).name, ())
         if matches:
-            possible.update(matches)
-            counts["possible_edges"] += 1
-            sample(ambiguous, {**row, "kind": "BASENAME_ONLY_REVIEW",
-                               "candidate_count": len(matches),
-                               "candidates": matches[:5]})
+            self.possible.update(matches)
+            self.counts["possible_edges"] += 1
+            self._example(self.ambiguous, {
+                **row, "kind": "BASENAME_ONLY_REVIEW",
+                "candidate_count": len(matches), "candidates": matches[:5],
+            })
             return
-        counts["unresolved_literals"] += 1
-        sample(broken, {**row, "kind": "UNRESOLVED_RESOURCE_LITERAL_REVIEW"})
+        self.counts["unresolved_literals"] += 1
+        self._example(self.unresolved, {**row, "kind": "UNRESOLVED_RESOURCE_LITERAL_REVIEW"})
 
+    def inspect_python_node(self, name: str, node: ast.AST) -> None:
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            self.inspect_literal(name, node.value, getattr(node, "lineno", None))
+
+    def inspect_python_tree(self, name: str, tree: ast.AST) -> None:
+        self.counts["python_files_scanned"] += 1
+        for node in ast.walk(tree):
+            self.inspect_python_node(name, node)
+
+    def observe_json(self, name: str, payload: Any) -> None:
+        if not name.startswith(_PRODUCTION_PREFIXES):
+            return
+        self.counts["json_files_scanned"] += 1
+        pending = [payload]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, list):
+                pending.extend(value)
+            elif isinstance(value, str):
+                self.inspect_literal(name, value)
+
+    def inspect_json_files(self, root: Path, paths: list[str]) -> None:
+        """Only when --with-json was not requested. Never import the Atlas runtime."""
+        for name in paths:
+            if not name.startswith(_PRODUCTION_PREFIXES):
+                continue
+            file = root / name
+            try:
+                if file.is_symlink() or not file.is_file():
+                    raise OSError("Missing or symlinked JSON")
+                file.resolve().relative_to(root)
+                with file.open(encoding="utf-8-sig") as stream:
+                    payload = json.load(stream)
+                self.observe_json(name, payload)
+                del payload
+            except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+                self.errors.append({"file": name, "error": type(exc).__name__})
+
+    def finish(self) -> dict[str, Any]:
+        absent = [name for name in self.resources
+                  if name not in self.definite and name not in self.possible]
+        next_offset = self.offset + _EXAMPLE_LIMIT
+        return {
+            "status": "BLOCKED" if self.errors else "REVIEW",
+            "kind": "resource_consumer_static_triage",
+            "counts": {**self.counts, "production_resources": len(self.resources),
+                       "static_resolved_resources": len(self.definite),
+                       "basename_possible_resources": len(self.possible - self.definite),
+                       "no_static_consumer_candidates": len(absent)},
+            "unresolved_literal_examples": self.unresolved,
+            "unresolved_literal_examples_limited":
+                self.counts["unresolved_literals"] + self.counts["unsafe_literals"] > _EXAMPLE_LIMIT,
+            "ambiguous_literal_examples": self.ambiguous,
+            "ambiguous_literal_examples_limited": self.counts["possible_edges"] > _EXAMPLE_LIMIT,
+            "no_static_consumer_examples": absent[self.offset:next_offset],
+            "no_static_consumer_examples_limited": len(absent) > _EXAMPLE_LIMIT,
+            "no_static_consumer_total": len(absent),
+            "no_static_consumer_offset": self.offset,
+            "no_static_consumer_next_offset": next_offset if next_offset < len(absent) else None,
+            "scan_errors": self.errors,
+            "semantic_links_verified": False,
+            "runtime_consumers_verified": False,
+            "assets_contents_verified": False,
+            "automatic_deletion_authorized": False,
+            "note": "Only literal paths and basenames: dynamic paths, Qt resources, packagers and external consumers remain unverified.",
+        }
+
+
+def inspect_resource_links(root: Path, tracked: list[str], python_files: list[str],
+                           json_files: list[str], *, offset: int = 0) -> dict[str, Any]:
+    """Standalone compatibility path for fixtures and callers outside full-scope."""
+    root = root.resolve()
+    collector = ResourceLinkCollector(tracked, offset=offset)
     for name in python_files:
         if not name.startswith("app/"):
             continue
@@ -93,58 +171,8 @@ def inspect_resource_links(root: Path, tracked: list[str], python_files: list[st
                 raise OSError("Missing or symlinked source")
             file.resolve().relative_to(root)
             tree = ast.parse(file.read_text(encoding="utf-8-sig"), filename=name)
-            counts["python_files_scanned"] += 1
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                    examine(name, node.value, node.lineno)
+            collector.inspect_python_tree(name, tree)
         except (OSError, UnicodeError, SyntaxError, ValueError) as exc:
-            errors.append({"file": name, "error": type(exc).__name__})
-
-    for name in json_files:
-        if not name.startswith(_PRODUCTION_PREFIXES):
-            continue
-        file = root / name
-        try:
-            if file.is_symlink() or not file.is_file():
-                raise OSError("Missing or symlinked JSON")
-            file.resolve().relative_to(root)
-            with file.open(encoding="utf-8-sig") as stream:
-                data = json.load(stream)
-            counts["json_files_scanned"] += 1
-            pending = [data]
-            while pending:
-                value = pending.pop()
-                if isinstance(value, dict):
-                    pending.extend(value.values())
-                elif isinstance(value, list):
-                    pending.extend(value)
-                elif isinstance(value, str):
-                    examine(name, value)
-            del data
-        except (OSError, UnicodeError, ValueError, RecursionError) as exc:
-            errors.append({"file": name, "error": type(exc).__name__})
-
-    absent = [name for name in resources if name not in definite and name not in possible]
-    return {
-        "status": "BLOCKED" if errors else "REVIEW",
-        "kind": "resource_consumer_static_triage",
-        "counts": {**counts, "production_resources": len(resources),
-                   "static_resolved_resources": len(definite),
-                   "basename_possible_resources": len(possible - definite),
-                   "no_static_consumer_candidates": len(absent)},
-        "unresolved_literal_examples": broken,
-        "unresolved_literal_examples_limited": counts["unresolved_literals"] + counts["unsafe_literals"] > _EXAMPLE_LIMIT,
-        "ambiguous_literal_examples": ambiguous,
-        "ambiguous_literal_examples_limited": counts["possible_edges"] > _EXAMPLE_LIMIT,
-        "no_static_consumer_examples": absent[offset:offset + _EXAMPLE_LIMIT],
-        "no_static_consumer_examples_limited": len(absent) > _EXAMPLE_LIMIT,
-        "no_static_consumer_total": len(absent),
-        "no_static_consumer_offset": offset,
-        "no_static_consumer_next_offset": (offset + _EXAMPLE_LIMIT if offset + _EXAMPLE_LIMIT < len(absent) else None),
-        "scan_errors": errors,
-        "semantic_links_verified": False,
-        "runtime_consumers_verified": False,
-        "assets_contents_verified": False,
-        "automatic_deletion_authorized": False,
-        "note": "Static literal triage only; dynamically built paths, Qt resources, packagers and external consumers are not proven.",
-    }
+            collector.errors.append({"file": name, "error": type(exc).__name__})
+    collector.inspect_json_files(root, json_files)
+    return collector.finish()

@@ -161,6 +161,14 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
         if group == "json":
             json_files.append(name)
 
+    if with_links:
+        from .resource_link_audit import ResourceLinkCollector
+        try:
+            link_collector = ResourceLinkCollector(all_paths, offset=links_offset)
+        except ValueError as exc:
+            return {"status": "BLOCKED", "candidate_sha": sha, "reason": str(exc)}
+    else:
+        link_collector = None
     inspected: list[str] = []
     failed: list[dict[str, str]] = []
     duplicate_bodies: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -183,6 +191,8 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
             continue
 
         inspected.append(relative)
+        if link_collector is not None and relative.startswith("app/"):
+            link_collector.inspect_python_tree(relative, tree)
         missing_imports.extend(_imports_missing(root, relative, tree))
         silent.extend(_silent_exceptions(relative, tree))
         if relative.startswith("app/"):
@@ -224,13 +234,17 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
     graph_failed = with_graph and graph.get("status") in {"FAIL", "BLOCKED"}
     if with_json:
         from .json_semantic_coverage import inspect_tracked_json
-        json_audit = inspect_tracked_json(root, json_files, sha=sha, clean=clean)
+        json_audit = inspect_tracked_json(
+            root, json_files, sha=sha, clean=clean,
+            resource_observer=link_collector.observe_json if link_collector is not None else None,
+        )
     else:
         json_audit = {"status": "NOT_RUN", "syntax_coverage": "NOT_RUN"}
     json_failed = with_json and json_audit.get("status") == "BLOCKED"
-    if with_links:
-        from .resource_link_audit import inspect_resource_links
-        links_audit = inspect_resource_links(root, all_paths, paths, json_files, offset=links_offset)
+    if link_collector is not None:
+        if not with_json:
+            link_collector.inspect_json_files(root, json_files)
+        links_audit = link_collector.finish()
     else:
         links_audit = {"status": "NOT_RUN", "reason": "Use --with-links for advisory resource consumer triage."}
     links_failed = with_links and links_audit.get("status") == "BLOCKED"

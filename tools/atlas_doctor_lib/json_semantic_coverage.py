@@ -268,7 +268,8 @@ def _parse_finite_float(value: str) -> float:
     return number
 
 
-def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool) -> dict[str, Any]:
+def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
+                         resource_observer=None) -> dict[str, Any]:
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
     guide_catalog: Any = None
@@ -322,6 +323,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool)
                     parse_float=_parse_finite_float,
                     object_pairs_hook=record_object_keys,
                 )
+            if resource_observer is not None:
+                resource_observer(relative, payload)
             entry["top_level_type"] = type(payload).__name__
             if relative == _GUIDE_CATALOG:
                 guide_catalog = payload

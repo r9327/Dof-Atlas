@@ -44,6 +44,19 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertEqual(result["counts"]["no_static_consumer_candidates"], 0)
         self.assertEqual(result["ambiguous_literal_examples"][0]["candidate_count"], 2)
 
+    def test_collector_reuses_parsed_ast_and_json_without_duplicate_reads(self):
+        import ast
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        tracked = ["app/view.py", "data/meta.json", "data/icons/a.png"]
+        collector = ResourceLinkCollector(tracked)
+        collector.inspect_python_tree("app/view.py", ast.parse('ICON = "data/icons/a.png"'))
+        collector.observe_json("data/meta.json", {"icon": "data/icons/a.png"})
+        result = collector.finish()
+        self.assertEqual(result["counts"]["python_files_scanned"], 1)
+        self.assertEqual(result["counts"]["json_files_scanned"], 1)
+        self.assertEqual(result["counts"]["static_resolved_resources"], 1)
+        self.assertFalse(result["automatic_deletion_authorized"])
+
     def test_missing_source_fails_closed(self):
         result = self.audit(["app/missing.py", "data/missing.json"])
         self.assertEqual(result["status"], "BLOCKED")
