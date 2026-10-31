@@ -36,6 +36,29 @@ class CompactGuideItemEffectTests(unittest.TestCase):
         self.assertEqual(_selected_effect_instances(packed, set()), {})
         self.assertEqual(_selected_effect_instances(bytearray(), {41}), {})
 
+    def test_spooled_effects_keep_last_rid_across_batches_with_bounded_ram(self):
+        from app.modules.encyclopedia.providers.dofus_item_provider import (
+            _selected_effect_instances,
+        )
+
+        # 4,097 rows cross the 4,096-row decoder boundary. Force a spill to
+        # disk and ensure that the final occurrence wins as with bytearray.
+        with tempfile.SpooledTemporaryFile(max_size=1024, mode="w+b") as stream:
+            for position in range(4097):
+                stream.write(_EFFECT_CANDIDATE_ROW.pack(
+                    42 if position in (0, 4096) else position + 100,
+                    position, 0, -1, position,
+                ))
+            self.assertEqual(
+                _selected_effect_instances(stream, {42, 105}),
+                {
+                    42: {"effectId": 4096, "diceNum": 0, "diceSide": -1, "value": 4096},
+                    105: {"effectId": 5, "diceNum": 0, "diceSide": -1, "value": 5},
+                },
+            )
+            self.assertEqual(_selected_effect_instances(stream, set()), {})
+            self.assertTrue(stream._rolled)
+
     def test_compact_effects_keep_signed_64bit_source_values(self) -> None:
         packed = _EFFECT_CANDIDATE_ROW.pack(456, 123, -(2**40), 2**40, -1)
         self.assertEqual(

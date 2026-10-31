@@ -206,3 +206,9 @@ Ce n'est ni un hash complet des gros fichiers ni une garantie cryptographique : 
 ## Brouillons Guide : ne jamais les masquer par le cache compact publié (31/10/2026)
 
 Le cache Guide normal représente le catalogue publié et ne couvre pas `include_drafts=True`. Le nouveau chemin préférentiel de l'EXE ne doit donc **pas** être appliqué aux requêtes incluant explicitement des brouillons ; la même vérification supprime un ancien écart de ce type en développement. `MemoryBoundGuideProvider._load()` garde `_load_in_process` pour ces requêtes, quel que soit `sys.frozen`. Test de non-contournement du chemin source dans les deux contextes, sans modifier les données ni le schéma JSONL.
+
+## Effets Dofus/Objets Guide : pic transitoire borné dans le worker (31/10/2026)
+
+`DofusItemProvider._load_in_process` retenait un `bytearray` de **toutes** les lignes `effectId` de `items.json` jusqu'à la fin de la découverte des `possibleEffects`. L'extraction continue d'effectuer **un seul parcours des sources** (les RID utiles peuvent être connus après leur définition), mais conserve maintenant les tuples binaires dans un `SpooledTemporaryFile` : maximum **1 Mio en mémoire pour ce tampon**, puis débordement vers un fichier temporaire clos automatiquement. `_selected_effect_instances` accepte ce flux et le lit par lots fixes de 4096 lignes (40 octets par ligne), en maintenant `dernier RID gagnant` et les nombres signés. Les appels existants avec `bytes`/`bytearray` restent supportés.
+
+Régression : 4097 entrées, RID dupliqué à travers la frontière des lots, requête absente et débordement disque forcé. Ce changement borne **ce tampon**, pas la totalité du process-tree ; l'impact sur le pic RSS, le temps et les I/O Windows doit être établi par le benchmark exact-SHA. Aucun format métier, données, seuil ou workflow additionnel.
