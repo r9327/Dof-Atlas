@@ -1,0 +1,46 @@
+name: PR303 Commit Patch Audit
+on:
+  pull_request:
+    branches:
+      - perf/atlas-global-optimization-backlog-20261030
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: pr303-commit-audit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  audit:
+    name: Audit every PR303 commit patch, keep manual review open
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repair branch and complete history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - name: Verify selected repair HEAD
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Test audit scanner
+        run: python -m unittest discover -s tests -p test_pr303_commit_audit.py -v
+      - name: Examine all 387 original commit patches
+        shell: bash
+        run: |
+          python -m tools.audit_pr303_commits \
+            --base-sha 0ee44aeeb09358783dcceca799b743c6fb375299 \
+            --head-sha c04c8134870bd22c52bb414ebc6c530fe6094d12 \
+            --expected 387 --output artifacts/pr303_commits/audit.json
+          echo "387/387 commit patches inspected; HUMAN_REVIEW still required." >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload complete per-commit evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pr303-all-commit-patches-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/pr303_commits/*
+          if-no-files-found: warn
+          retention-days: 30
