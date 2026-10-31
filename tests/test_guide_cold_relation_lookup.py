@@ -82,6 +82,30 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
             provider._ensure_loaded.assert_not_called()
 
+    def test_duplicate_or_late_meta_row_is_not_a_valid_relation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            rows = [json.loads(line) for line in cache.read_text().splitlines()]
+            meta = dict(rows[0])
+            meta.update(guide_count=1, entity_index_count=1)
+            rows = [row for row in rows if not (
+                row.get("kind") == "guide"
+                and row.get("value", {}).get("id") == "guide-a"
+                or row.get("kind") == "entity_index"
+                and row.get("value", {}).get("guide_id") == "guide-a"
+            )]
+            rows.append(meta)
+            cache.write_text("\n".join(json.dumps(row) for row in rows) + "\n",
+                             encoding="utf-8")
+            provider = self._provider(guides)
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                self.assertIsNone(provider.guide_ids_for_quest_fast(99999))
+            provider._ensure_loaded.assert_not_called()
+
     def test_missing_index_row_requires_relation_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -178,6 +202,8 @@ class CompactGuideRelationTests(unittest.TestCase):
                     meta + guide_one + guide_two,
                     meta + guide_one + guide_one + index,
                     meta + guide_one + guide_two + '{bad-json',
+                    meta + guide_one + guide_two
+                        + '{"kind":"entity_index","value":{"guide_id":"a","entity_keys":[["quest",true]]}}\n',
                     json.dumps({
                         "kind": "meta", "schema_version": 2,
                         "source_signature": mod._guide_compact_source_signature(guides),
@@ -188,12 +214,12 @@ class CompactGuideRelationTests(unittest.TestCase):
                         self.assertEqual(
                             mod.ensure_guide_compact_cache(guides_dir=guides, path=cache), 2,
                         )
-                self.assertEqual(build.call_count, 6)
+                self.assertEqual(build.call_count, 7)
                 cache.write_text(meta + guide_one + guide_two + index, encoding="utf-8")
                 self.assertEqual(
                     mod.ensure_guide_compact_cache(guides_dir=guides, path=cache), 2,
                 )
-                self.assertEqual(build.call_count, 6)
+                self.assertEqual(build.call_count, 7)
 
     def test_missing_cache_preserves_graph_fallback(self):
         with tempfile.TemporaryDirectory() as temp:

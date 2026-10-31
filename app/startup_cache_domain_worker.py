@@ -62,8 +62,15 @@ def _count_valid_compact_guides(path: Path) -> int:
                 elif kind == "entity_index":
                     value = row.get("value")
                     guide_id = value.get("guide_id") if isinstance(value, dict) else None
+                    keys = value.get("entity_keys") if isinstance(value, dict) else None
                     if (not isinstance(guide_id, str) or not guide_id
-                            or guide_id in indexed_ids):
+                            or guide_id in indexed_ids or not isinstance(keys, list)
+                            or any(
+                                not isinstance(key, list) or len(key) != 2
+                                or not isinstance(key[0], str) or not key[0]
+                                or type(key[1]) is not int or key[1] <= 0
+                                for key in keys
+                            )):
                         return 0
                     indexed_ids.add(guide_id)
                 else:

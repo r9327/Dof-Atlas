@@ -396,6 +396,10 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 meta + guide_one + '{"kind":"guide","value":null}\n',
                 meta + guide_one + guide_two
                      + '{"kind":"entity_index","value":{"guide_id":"missing"}}\n',
+                meta + guide_one + guide_two
+                     + '{"kind":"entity_index","value":{"guide_id":"route-1","entity_keys":[["quest",true]]}}\n',
+                meta + guide_one + guide_two
+                     + '{"kind":"entity_index","value":{"guide_id":"route-1","entity_keys":[["quest",0]]}}\n',
                 json.dumps({"kind": "meta", "schema_version": 2}) + "\n" + guide_one,
             ):
                 with self.subTest(broken=broken[-60:]):

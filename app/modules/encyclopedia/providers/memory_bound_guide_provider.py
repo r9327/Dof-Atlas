@@ -103,6 +103,15 @@ def ensure_guide_compact_cache(
                     else:
                         guide_id = value.get("guide_id")
                         target = indexed_ids
+                        keys = value.get("entity_keys")
+                        if (not isinstance(keys, list)
+                                or any(
+                                    not isinstance(key, list) or len(key) != 2
+                                    or not isinstance(key[0], str) or not key[0]
+                                    or type(key[1]) is not int or key[1] <= 0
+                                    for key in keys
+                                )):
+                            raise ValueError("Malformed Guide entity relation")
                     if not isinstance(guide_id, str) or not guide_id or guide_id in target:
                         raise ValueError("Missing or duplicate Guide compact cache ID")
                     target.add(guide_id)
@@ -303,6 +312,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         matches: set[str] = set()
         expected_guides: int | None = None
         expected_indexes: int | None = None
+        meta_seen = False
         try:
             with path.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
@@ -315,6 +325,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     if not isinstance(row, dict):
                         return None
                     if row.get("kind") == "meta":
+                        if meta_seen:
+                            return None
+                        meta_seen = True
                         # Old cache headers remain readable until the next warmup,
                         # but new signed counts catch cleanly truncated JSONL.
                         if "guide_count" in row:
@@ -327,8 +340,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                                 return None
                             expected_indexes = row["entity_index_count"]
                         continue
-                    if row.get("kind") not in ("guide", "entity_index"):
-                        continue
+                    if not meta_seen or row.get("kind") not in ("guide", "entity_index"):
+                        return None
                     if not isinstance(row.get("value"), dict):
                         return None
                     value = row["value"]
@@ -360,7 +373,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         matches.add(guide_id)
         except (OSError, UnicodeError, ValueError, TypeError):
             return None
-        if (not available or not indexed.issubset(available)
+        if (not meta_seen or not available or not indexed.issubset(available)
                 or (expected_guides is not None and len(available) != expected_guides)
                 or (expected_indexes is not None and len(indexed) != expected_indexes)):
             return None
