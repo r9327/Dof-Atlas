@@ -331,6 +331,25 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             self.assertEqual(target.cards[0]["_manual_stage_payload"], b"abc")
             self.assertEqual(target._common_quest_ids, (42,))
 
+            # An interrupted large Guide sidecar must not replace the last
+            # usable generation or leave unbounded .tmp files behind.
+            saved_bytes = cache.read_bytes()
+            for failing_method in ("write_text", "replace"):
+                with self.subTest(failing_method=failing_method):
+                    with patch.object(Path, failing_method, side_effect=OSError("cache disk failure")):
+                        with self.assertRaisesRegex(OSError, "cache disk failure"):
+                            guide_ultime_manual_runtime_core.write_manual_runtime_compact_cache(
+                                Service, cache,
+                            )
+                    self.assertEqual(cache.read_bytes(), saved_bytes)
+                    self.assertEqual(list(root.glob(".runtime.json.*.tmp")), [])
+            verify = Service()
+            self.assertTrue(
+                guide_ultime_manual_runtime_core.restore_manual_runtime_compact_cache(
+                    verify, cache,
+                )
+            )
+
             source.write_text('{"changed":true}', encoding="utf-8")
             stale = Service()
             stale.route = {}
