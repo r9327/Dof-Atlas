@@ -56,12 +56,15 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         for source in (
             "app/quest_source_index.py",
             "app/startup_cache_domain_worker.py",
+            "app/modules/encyclopedia/providers/memory_bound_guide_provider.py",
             "app/startup_cache_warmup.py",
             "tests/test_quest_source_boundaries.py",
             "tests/test_startup_warmup_subprocess_flags.py",
+            "tests/test_guide_cold_relation_lookup.py",
         ):
             with self.subTest(source=source):
                 self.assertIn("      - '" + source + "'", workflow)
+        self.assertIn("tests.test_guide_cold_relation_lookup", workflow)
 
     def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:
         enriched = warmup._QUEST_ENRICHED_SOURCE

@@ -27,8 +27,10 @@ on:
       - 'app/quest_catalog_details.py'
       - 'app/quest_source_index.py'
       - 'app/startup_cache_domain_worker.py'
+      - 'app/modules/encyclopedia/providers/memory_bound_guide_provider.py'
       - 'app/startup_cache_warmup.py'
       - 'tests/test_startup_warmup_subprocess_flags.py'
+      - 'tests/test_guide_cold_relation_lookup.py'
       - 'tests/test_shared_guide_combat_global_contract.py'
       - 'scripts/windows/build_quest_index.py'
       - 'app/modules/encyclopedia/views/guides_view.py'
@@ -140,7 +142,7 @@ jobs:
       - name: Nonblocking combat matching and early domain warmup regressions
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags
+          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags tests.test_guide_cold_relation_lookup
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Guide line/waypoint and runtime text parity
         shell: pwsh
