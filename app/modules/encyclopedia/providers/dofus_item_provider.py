@@ -424,6 +424,11 @@ class DofusItemProvider:
             return
         self._load()
         self._loaded = True
+        # The full Dofus catalogue now owns its decoded objects. The Guide
+        # compact rows were needed only for cold per-item lookups: holding both
+        # keeps an avoidable second raw item graph alive after load_all().
+        self._guide_index_rows = None
+        self._guide_index_stamp = None
 
     def _load(self) -> None:
         """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""

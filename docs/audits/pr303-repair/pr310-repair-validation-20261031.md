@@ -244,3 +244,9 @@ Une signature de sources sur un `data_dir` personnalisé extérieur au dépôt �
 ## Cache objets Guide : reprise après preload tardif et remplacement atomique (31/10/2026)
 
 `DofusItemProvider._guide_index_row` mémorisait `{}` à la première consultation d'un index absent/invalide et ne retentait ensuite **jamais** le chemin compact, même lorsque le worker avait terminé le preload. Le fournisseur garde maintenant l'empreinte légère `size/mtime_ns/ctime_ns/inode` de l'index jetable et ne recharge son dictionnaire qu'après une véritable nouvelle génération. Une publication concurrente pendant la lecture provoque un repli prudent et une nouvelle tentative au prochain lookup. Tests : absence initiale, apparition de l'index, remplacement atomique avec taille/mtime identiques, puis résolution d'une nouvelle ID. Cache d'objets récents déjà borné à 32 inchangé, aucune allocation de catalogue supplémentaire au repos.
+
+## Catalogue Dofus : libération des lignes brutes Guide après chargement total (31/10/2026)
+
+Lorsque `DofusItemProvider.get_by_id` était sollicité avant `load_all()`, le provider conservait `_guide_index_rows` (dictionnaire complet d'objets Guide) **même après** avoir créé les objets `DofusItem` du catalogue complet et leur index `_by_id`. Le cache brut n'est plus consulté lorsque `_loaded=True` ; `_ensure_loaded` le libère désormais après `_load` réussi, ainsi que son empreinte. Tests réels sur un index synthétique : consultation item à froid, chargement complet Dofus, libération du graphe brut et restitution d'un objet Dofus identique.
+
+Gain : suppression d'une rétention doublonnée dans ce scénario. La baisse effective du RSS et le coût du catalogue complet restent à mesurer sous Windows.

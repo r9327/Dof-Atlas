@@ -158,6 +158,32 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
             self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["items"], {})
             self.assertFalse(list(cache.parent.glob(".*.tmp")))
 
+    def test_full_dofus_load_drops_compact_guide_row_graph(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "items.json"
+            path.write_text(json.dumps({
+                "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                "source_signature": [],
+                "items": {"42": {
+                    "id": 42, "name": "Dofus fixture",
+                    "type_id": mod.DOFUS_TYPE_ID,
+                }},
+            }), encoding="utf-8")
+            provider = mod.DofusItemProvider()
+            with (
+                patch.object(mod, "GUIDE_ITEMS_INDEX", path),
+                patch.object(mod, "_guide_item_source_signature", return_value=[]),
+            ):
+                self.assertEqual(provider._guide_index_row(42)["id"], 42)
+                old_rows = provider._guide_index_rows
+                self.assertEqual([item.id for item in provider.load_all()], [42])
+                self.assertIsNone(provider._guide_index_rows)
+                self.assertIsNone(provider._guide_index_stamp)
+                self.assertEqual(provider.get_by_id(42).name, "Dofus fixture")
+                self.assertTrue(old_rows)
+
     def test_provider_refreshes_index_after_preload_or_atomic_replacement(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 
