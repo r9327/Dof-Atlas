@@ -128,6 +128,29 @@ class CommitAuditTests(unittest.TestCase):
         ])
         self.assertEqual(result["risk_locations"], [])
 
+    def test_deleted_test_functions_are_reviewed_without_false_auto_verdict(self):
+        patch_text = (
+            "diff --git a/tests/test_a.py b/tests/test_a.py\n"
+            "--- a/tests/test_a.py\n+++ b/tests/test_a.py\n"
+            "@@ -10,2 +10,1 @@\n"
+            "-def test_reject_bad_source():\n+def helper():\n"
+            "-    legacy_call()\n"
+            "diff --git a/tests/test_b.py b/tests/test_b.py\n"
+            "--- a/tests/test_b.py\n+++ b/tests/test_b.py\n"
+            "@@ -30,2 +30 @@\n"
+            "-async def test_refresh():\n+async def refresh():\n"
+            "-    await fetch()\n"
+        )
+        report = scan_patch(patch_text)
+        self.assertEqual(report["deleted_test_definitions"], 2)
+        self.assertEqual(report["deleted_test_locations"], [
+            {"file": "tests/test_a.py", "line": 10,
+             "definition": "def test_reject_bad_source():"},
+            {"file": "tests/test_b.py", "line": 30,
+             "definition": "async def test_refresh():"},
+        ])
+        self.assertEqual(report["deleted_assertions"], 0)
+
     def test_dynamic_expected_commit_count(self):
         from unittest.mock import patch
         from tools.audit_pr303_commits import review
@@ -139,7 +162,11 @@ class CommitAuditTests(unittest.TestCase):
             ("rev-list", "--reverse", a + ".." + b): b,
             ("rev-list", "--parents", "-n", "1", b): b + " " + a,
             ("diff", "--name-status", "--find-renames", a, b): "M\tapp/view.py",
-            ("diff", "--no-ext-diff", "--unified=0", "--find-renames", a, b): "+ram = 1",
+            ("diff", "--no-ext-diff", "--unified=0", "--find-renames", a, b): (
+                "diff --git a/tests/example.py b/tests/example.py\n"
+                "--- a/tests/example.py\n+++ b/tests/example.py\n"
+                "@@ -3 +3 @@\n-def test_old():\n+ram = 1"
+            ),
             ("log", "-1", "--format=%s", b): "fix memory",
         }
         with (
@@ -152,6 +179,8 @@ class CommitAuditTests(unittest.TestCase):
             self.assertEqual(report["inspected"], 1)
             self.assertEqual(report["status"], "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED")
             self.assertEqual(report["records"][0]["human_review"], "NOT_RUN")
+            self.assertIn("REMOVED_TEST_DEFINITIONS_REVIEW", report["records"][0]["flags"])
+            self.assertFalse(report["auto_merge_authorized"])
             run.assert_called_once()
 
 

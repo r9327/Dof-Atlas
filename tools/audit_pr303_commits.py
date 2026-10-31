@@ -31,6 +31,9 @@ def scan_patch(patch: str) -> dict:
     removed_check = re.compile(
         r"^\s*(?:assert\b|self\.assert\w*\s*\(|self\.fail\s*\(|pytest\.fail\s*\(|(?:with\s+)?pytest\.raises\s*\()", re.I
     )
+    removed_test_definition = re.compile(
+        r"^\s*(?:async\s+)?def\s+test_[A-Za-z0-9_]*\s*\(", re.I
+    )
     findings = {
         name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
         for name, pattern in PATTERNS.items()
@@ -39,6 +42,7 @@ def scan_patch(patch: str) -> dict:
     # never pretend a commit-wide regex count identifies a root cause.
     risk_locations: list[dict[str, object]] = []
     deleted_assertion_locations: list[dict[str, object]] = []
+    deleted_test_locations: list[dict[str, object]] = []
     current_file: str | None = None
     new_line: int | None = None
     old_line: int | None = None
@@ -75,6 +79,13 @@ def scan_patch(patch: str) -> dict:
                 deleted_assertion_locations.append({
                     "file": current_file, "line": old_line,
                 })
+            # Entire test cases may be deleted while containing no asserts
+            # (e.g. pytest tests relying on bare raises or snapshots).
+            if removed_test_definition.search(diff_line[1:]):
+                deleted_test_locations.append({
+                    "file": current_file, "line": old_line,
+                    "definition": diff_line[1:].strip(),
+                })
             if old_line is not None:
                 old_line += 1
         elif diff_line.startswith(" "):
@@ -89,6 +100,8 @@ def scan_patch(patch: str) -> dict:
         "risk_locations": risk_locations,
         "deleted_assertions": len(deleted_assertion_locations),
         "deleted_assertion_locations": deleted_assertion_locations,
+        "deleted_test_definitions": len(deleted_test_locations),
+        "deleted_test_locations": deleted_test_locations,
         "binary_manual_review": "Binary files " in patch or "GIT binary patch" in patch,
     }
 
@@ -120,6 +133,8 @@ def review(base: str, head: str, expected: int | None = None) -> dict:
             flags.append("CI_BYPASS_REVIEW")
         if any(p["deleted_assertions"] for p in parents):
             flags.append("REMOVED_ASSERTIONS_REVIEW")
+        if any(p["deleted_test_definitions"] for p in parents):
+            flags.append("REMOVED_TEST_DEFINITIONS_REVIEW")
         if any(p["binary_manual_review"] for p in parents):
             flags.append("BINARY_CONTENT_REVIEW")
         records.append({

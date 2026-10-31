@@ -68,3 +68,7 @@ Le cache `app/startup_cache_warmup.py` exige que chaque fichier d'artefact annon
 ## Correction de la source du cache Quêtes : SQLite disque
 
 Le lecteur canonique `app/quest_source_index.py` refuse désormais aussi les bases `offsets` à schéma valide mais **zéro ligne** et reconstruit les index concernés à partir des sources JSON. Les connexions de contrôle et de lecture utilisent des URI SQLite **`mode=ro`**, empêchant de recréer une base vide si son fichier disparaît entre vérification et lecture. Deux tests dans `tests/test_quest_source_boundaries.py` couvrent reconstruction et course suppression/ouverture ; les connexions d'écriture du constructeur restent inchangées. Ces modifications ne prouvent pas de gain RAM ou p95 : elles corrigent les défaillances de cache sans affaiblir les contrôles.
+
+## Patches historiques : tests entiers supprimés sans assertion explicite
+
+Le registre technique est désormais capable de signaler la suppression d'une définition `def test_...` ou `async def test_...`, même lorsque la différence ne retire aucune ligne `assert`. Le nouveau champ `deleted_test_locations` conserve chaque ancien fichier, numéro de ligne et définition ; le drapeau `REMOVED_TEST_DEFINITIONS_REVIEW` est remonté au niveau du commit, en plus des assertions supprimées. Une suppression ou un renommage reste un **candidat à justifier**, pas une régression automatiquement prouvée. Test multi-fichier et test intégré `review()` ajoutés ; final PASS humain/CI jamais inféré du seul scanner.
