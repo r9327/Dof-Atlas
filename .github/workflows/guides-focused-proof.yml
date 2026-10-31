@@ -63,7 +63,7 @@ concurrency:
 jobs:
   guide-targeted-windows:
     # No repeated Windows setup on Draft pushes; focused local contracts only.
-    if: ${{ github.event.pull_request.draft == false || github.event.pull_request.number == 310 }}
+    if: ${{ github.event.pull_request.draft == false }}
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
     timeout-minutes: 20
