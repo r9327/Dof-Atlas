@@ -282,3 +282,7 @@ Le cache `DofusItemProvider._by_id` plafonné à 32 objets fonctionnait en FIFO 
 ## Lecture du catalogue Guide : intégrité de génération pendant chargement (31/10/2026)
 
 Le lecteur `_load_from_compact_cache` vérifie désormais l'empreinte `size/mtime_ns/ctime_ns/inode` avant et après la lecture des résumés. Un autre worker publiant une nouvelle génération pendant le décodage ne peut plus faire installer des fiches partiellement périmées : `RuntimeError` conserve le repli existant. Régression avec remplacement concurrent simulé et absence d'appel à `_install_summaries`. Deux `stat` supplémentaires par lecture froide, aucun second scan JSONL ; impacts RSS et latence Windows non mesurés.
+
+## Succès : cohérence de la cache des relations de quêtes (31/10/2026)
+
+Le lecteur des relations retenues mémorisait à tort une liste vide en cas de JSONL incomplet ou illisible. Le chemin compact vérifie désormais l'en-tête, les IDs retenus (unicité et cardinalité), la frontière external_start et la stabilité size/mtime_ns/ctime_ns/inode du fichier. Il s'arrête à cette frontière pour ne pas lire les succès externes. Une corruption retourne temporairement une liste vide sans mémoriser le faux négatif ; les appels suivants retentent. Toute nouvelle génération invalide les entrées déjà mémorisées dans la LRU de 24. Tests : troncature puis correction et remplacement atomique taille/date identiques. Aucun gain RAM/temps global n'est déclaré sans mesure Windows.

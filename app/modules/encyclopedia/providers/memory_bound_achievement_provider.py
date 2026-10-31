@@ -486,6 +486,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
+        self._compact_quest_link_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         # One active rich detail + two previous ones. Reopening a Success must
         # not spend another 5s rebuilding a disposable detail worker.
@@ -533,6 +534,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
         self._compact_quest_link_cache.clear()
+        self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
         self._reset_sources()
 
@@ -810,6 +812,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set = frozenset(retained_ids)
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
         self._compact_quest_link_cache.clear()
+        self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
         self._detail_cache_id = None
         self._detail_cache = None
@@ -1150,50 +1153,83 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def _compact_achievement_ids_for_quest(self, quest_id: int) -> tuple[int, ...]:
         quest_id = int(quest_id)
+        # Never reuse a positive or negative result from a replaced JSONL.
+        try:
+            first = ACHIEVEMENT_COMPACT_CACHE.stat()
+            stamp = (first.st_size, first.st_mtime_ns, first.st_ctime_ns, first.st_ino)
+        except OSError:
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = None
+            return ()
+        if self._compact_quest_link_stamp != stamp:
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = stamp
         cached = self._compact_quest_link_cache.get(quest_id)
         if cached is not None:
             self._compact_quest_link_cache.move_to_end(quest_id)
             return cached
 
         matches: list[int] = []
+        seen: set[int] = set()
+        wanted_retained = set(self._compact_retained_ids)
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                for raw_line in stream:
-                    line = raw_line.strip()
+                meta = json.loads(stream.readline())
+                if not isinstance(meta, dict) or meta.get("kind") != "meta":
+                    raise ValueError("Success header missing")
+                boundary = False
+                for raw in stream:
+                    line = raw.strip()
                     if not line:
                         continue
                     row = json.loads(line)
                     if not isinstance(row, dict):
-                        continue
-                    kind = str(row.get("kind") or "")
+                        raise ValueError("Success row invalid")
+                    kind = row.get("kind")
                     if kind == "external_start":
+                        boundary = True
                         break
+                    if kind == "category":
+                        continue
                     if kind != "achievement":
-                        continue
+                        raise ValueError("Unexpected Success row")
                     value = row.get("value")
-                    if not isinstance(value, dict):
-                        continue
+                    if not isinstance(value, dict) or type(value.get("id")) is not int:
+                        raise ValueError("Success ID invalid")
+                    ident = value["id"]
+                    if ident in seen or ident not in wanted_retained:
+                        raise ValueError("Success retained catalogue mismatch")
+                    seen.add(ident)
                     linked = value.get("linked_quests")
                     if not isinstance(linked, list):
                         continue
-                    linked_ids: set[int] = set()
                     for ref in linked:
                         if not isinstance(ref, dict):
                             continue
                         try:
-                            linked_ids.add(int(ref.get("entity_id")))
+                            linked_id = int(ref.get("entity_id"))
                         except (TypeError, ValueError):
                             continue
-                    if quest_id not in linked_ids:
-                        continue
-                    try:
-                        matches.append(int(value.get("id")))
-                    except (TypeError, ValueError):
-                        continue
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            matches = []
+                        if linked_id == quest_id:
+                            matches.append(ident)
+                            break
+                if not boundary or seen != wanted_retained:
+                    raise ValueError("Success retained relation cache truncated")
+            after = ACHIEVEMENT_COMPACT_CACHE.stat()
+            if (after.st_size, after.st_mtime_ns,
+                    after.st_ctime_ns, after.st_ino) != stamp:
+                raise ValueError("Success cache replaced during relation lookup")
+        except (OSError, UnicodeError, ValueError, TypeError) as exc:
+            # A broken cache is NOT evidence that a quest has no Success.
+            # Do not retain the false negative: next lookup can retry.
+            logging.getLogger(__name__).warning(
+                "Success relations unavailable; next lookup will retry: %s", exc,
+            )
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = None
+            return ()
 
-        result = tuple(dict.fromkeys(matches))
+        result = tuple(matches)
         self._compact_quest_link_cache[quest_id] = result
         self._compact_quest_link_cache.move_to_end(quest_id)
         while len(self._compact_quest_link_cache) > 24:

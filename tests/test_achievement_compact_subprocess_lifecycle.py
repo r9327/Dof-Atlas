@@ -125,6 +125,72 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             provider._load()
             fallback.assert_called_once_with()
 
+    def test_quest_link_truncation_is_not_cached_and_repairs_on_next_lookup(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 20)
+            rows = [
+                {"kind": "meta"},
+                {"kind": "achievement", "value": {
+                    "id": 10, "linked_quests": [{"entity_id": 42}],
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 20, "linked_quests": [],
+                }},
+                {"kind": "external_start"},
+            ]
+
+            def publish(records):
+                path.write_text(
+                    "\n".join(json.dumps(row, separators=(",", ":"))
+                              for row in records) + "\n", encoding="utf-8",
+                )
+
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path):
+                publish(rows[:2])
+                self.assertEqual(provider._compact_achievement_ids_for_quest(99), ())
+                self.assertEqual(len(provider._compact_quest_link_cache), 0)
+                publish(rows)
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), (10,))
+                self.assertEqual(provider._compact_achievement_ids_for_quest(99), ())
+                self.assertIn(99, provider._compact_quest_link_cache)
+
+    def test_quest_link_cache_invalidates_atomic_same_mtime_replacement(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "success.jsonl"
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10,)
+
+            def publish(target, quest):
+                target.write_text(
+                    "\n".join(json.dumps(row, separators=(",", ":")) for row in (
+                        {"kind": "meta"},
+                        {"kind": "achievement", "value": {
+                            "id": 10, "linked_quests": [{"entity_id": quest}],
+                        }},
+                        {"kind": "external_start"},
+                    )) + "\n", encoding="utf-8",
+                )
+
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path):
+                publish(path, 42)
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), (10,))
+                previous = path.stat()
+                candidate = root / "candidate.jsonl"
+                publish(candidate, 99)
+                os.utime(candidate, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+                self.assertEqual(candidate.stat().st_size, previous.st_size)
+                candidate.replace(path)
+                self.assertEqual(path.stat().st_mtime_ns, previous.st_mtime_ns)
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), ())
+                self.assertEqual(provider._compact_achievement_ids_for_quest(99), (10,))
+
     def test_retained_offset_must_point_to_matching_success(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
