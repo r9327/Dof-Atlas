@@ -265,6 +265,20 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                     self.assertEqual(list(target.parent.glob(".*.tmp")), [])
 
 
+    def test_header_only_or_truncated_guide_compact_cache_rebuilds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "guides.jsonl"
+            meta = json.dumps({"kind": "meta", "schema_version": 1}) + "\n"
+            guide = json.dumps({"kind": "guide", "value": {"id": "route-1"}}) + "\n"
+            path.write_text(meta, encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
+            path.write_text(meta + guide + "{malformed", encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
+            path.write_text(meta + guide, encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 1)
+            path.write_text(meta + '{"kind":"guide","value":null}\n', encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
+
     def test_domain_builder_discarded_stdout_is_not_buffered(self):
         # Large build logs must not accumulate in a StringIO at the peak.
         class Printed(RuntimeError):

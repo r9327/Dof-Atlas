@@ -27,6 +27,28 @@ def _relative(path: Path) -> str:
         return str(Path(path).resolve()).replace("\\", "/")
 
 
+def _count_valid_compact_guides(path: Path) -> int:
+    """Reject header-only/truncated JSONL rather than permanently reusing it."""
+    count = 0
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            for line in stream:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict) or row.get("kind") not in {
+                    "meta", "guide", "entity_index",
+                }:
+                    return 0
+                if row["kind"] == "guide":
+                    if not isinstance(row.get("value"), dict):
+                        return 0
+                    count += 1
+    except (OSError, UnicodeError, TypeError, ValueError):
+        return 0
+    return count
+
+
 def _guide_domain() -> dict[str, object]:
     from app.modules.encyclopedia.providers import memory_bound_guide_provider as guide_provider
 
@@ -36,16 +58,13 @@ def _guide_domain() -> dict[str, object]:
         MANUAL_RUNTIME_COMPACT_CACHE,
     )
 
+    guide_count = 0
     if guide_provider._guide_compact_cache_valid(
         guide_provider.GUIDE_COMPACT_CACHE,
         guides_dir=guide_provider.GUIDES_DIR,
     ):
-        try:
-            with guide_provider.GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                guide_count = sum(1 for line in stream if '"kind":"guide"' in line)
-        except OSError:
-            guide_count = 0
-    else:
+        guide_count = _count_valid_compact_guides(guide_provider.GUIDE_COMPACT_CACHE)
+    if guide_count <= 0:
         code = int(
             _quiet_call(
                 guide_provider._build_compact_guide_cache,
@@ -55,8 +74,9 @@ def _guide_domain() -> dict[str, object]:
         )
         if code != 0:
             raise RuntimeError(f"Guide compact cache build failed with code {code}")
-        with guide_provider.GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-            guide_count = sum(1 for line in stream if '"kind":"guide"' in line)
+        guide_count = _count_valid_compact_guides(guide_provider.GUIDE_COMPACT_CACHE)
+        if guide_count <= 0:
+            raise RuntimeError("Guide compact cache remains empty or corrupt after build")
 
     timings["catalogue"] = round((perf_counter() - guide_started) * 1000.0, 2)
 

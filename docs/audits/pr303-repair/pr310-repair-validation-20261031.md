@@ -72,3 +72,7 @@ Le lecteur canonique `app/quest_source_index.py` refuse désormais aussi les bas
 ## Patches historiques : tests entiers supprimés sans assertion explicite
 
 Le registre technique est désormais capable de signaler la suppression d'une définition `def test_...` ou `async def test_...`, même lorsque la différence ne retire aucune ligne `assert`. Le nouveau champ `deleted_test_locations` conserve chaque ancien fichier, numéro de ligne et définition ; le drapeau `REMOVED_TEST_DEFINITIONS_REVIEW` est remonté au niveau du commit, en plus des assertions supprimées. Une suppression ou un renommage reste un **candidat à justifier**, pas une régression automatiquement prouvée. Test multi-fichier et test intégré `review()` ajoutés ; final PASS humain/CI jamais inféré du seul scanner.
+
+## Warmup Guide : cache JSONL incomplet auto-réparé
+
+Le worker qui prépare les Guides ne s'appuie plus sur la seule première ligne de métadonnées pour considérer le cache JSONL utilisable : il valide les lignes du fichier, exige au moins un enregistrement `guide` avec valeur structurée et **reconstruit une fois** si le fichier est vide ou corrompu, y compris si sa signature de source correspond encore. Après reconstruction, un fichier toujours incomplet provoque une erreur explicite au lieu d'annoncer le Guide prêt. Régression ciblée : header seul, JSONL tronqué, valeur nulle et cas positif. Le parsing est effectué dans le **worker jetable**, pas sur le thread UI.
