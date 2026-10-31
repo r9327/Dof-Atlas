@@ -138,3 +138,7 @@ Tests ciblés : seconde recherche identique ne reparcourt pas le JSONL (seule la
 `dofus_item_provider._read_guide_items_index` renvoyait une correspondance incomplète en **ignorant silencieusement** les clés invalides et lignes non dictionnaires. Il refuse désormais le cache entièrement vide, une entrée mal formée, un identifiant `id` booléen/non entier, non canonique ou différent de la clé JSON. Les données de source restent inchangées et **la reconstruction existante** est automatiquement utilisée quand ce cache jetable est invalide. Tests positifs et négatifs ajoutés à `test_compact_guide_item_effects.py`, inclus dans le Windows ciblé Guide lors de tout changement de moteur ou test concerné.
 
 Cet effort évite de présenter des objets manquants comme une génération de cache correcte ; il ne prétend pas corriger le contenu Dofus absent à la source ni prouver un gain RAM/latence. La validation exact-SHA et la recette EXE restent distinctes.
+
+## Compatibilité exacte des identifiants d'objets du cache (31/10/2026)
+
+La correction précédente des index objets ne doit pas inventer une restriction métier `id > 0` absente du writer original. Le validateur accepte désormais tout identifiant entier **canonique** effectivement émis par `str(item.id)`, y compris `0` et les entiers signés, tout en refusant les alias `"042"`, les clés malformées, les booléens et les divergences clé/valeur. Test de compatibilité ajouté sans toucher aux données ni au format du cache.

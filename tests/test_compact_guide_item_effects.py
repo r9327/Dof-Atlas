@@ -66,6 +66,11 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                 self.assertEqual(
                     set(_read_guide_items_index(path=path)), {42, 99},
                 )
+                # Preserve all IDs emitted by the original integer-key
+                # builder, including zero and signed compatibility IDs.
+                signed = {**valid, "items": {"0": {"id": 0}, "-1": {"id": -1}}}
+                path.write_text(json.dumps(signed), encoding="utf-8")
+                self.assertEqual(set(_read_guide_items_index(path=path)), {0, -1})
                 for bad in (
                     {"items": {}},
                     {"items": {"42": {"id": 99}}},
@@ -73,7 +78,6 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                     {"items": {"42": "invalid"}},
                     {"items": {"042": {"id": 42}}},
                     {"items": {"false": {"id": 42}}},
-                    {"items": {"0": {"id": 0}}},
                     {"items": {"42": {"id": 42}, "042": {"id": 42}}},
                     {"schema_version": True},
                     {"source_signature": []},

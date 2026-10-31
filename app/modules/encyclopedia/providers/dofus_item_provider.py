@@ -89,11 +89,13 @@ def _read_guide_items_index(
         # The compact builder writes each item under its canonical numeric ID.
         # A partially corrupt index must trigger the existing repair path,
         # never silently drop the missing item from Guide prerequisites.
-        if (not isinstance(raw_id, str) or not raw_id.isdecimal()
-                or not isinstance(row, dict)):
+        if not isinstance(raw_id, str) or not isinstance(row, dict):
             return None
-        item_id = int(raw_id)
-        if (item_id <= 0 or str(item_id) != raw_id
+        try:
+            item_id = int(raw_id)
+        except (TypeError, ValueError):
+            return None
+        if (str(item_id) != raw_id
                 or type(row.get("id")) is not int
                 or row["id"] != item_id or item_id in result):
             return None
