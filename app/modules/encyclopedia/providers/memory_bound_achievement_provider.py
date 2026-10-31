@@ -1884,6 +1884,17 @@ def _unique_cache_temporary_path(target: Path) -> Path:
     return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
 
 
+def _discard_cache_temporary_paths(*paths: Path) -> None:
+    """Best-effort cleanup that preserves the primary build failure."""
+    for path in paths:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            logging.getLogger(__name__).warning(
+                "Success cache temporary file cleanup failed for %s: %s", path, exc,
+            )
+
+
 def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
     """Build once per shared cache path; repair invalid sidecars under the lock."""
     path = Path(path)
@@ -2048,8 +2059,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
     if _achievement_compact_source_signature(RAW_QUEST_DATA_DIR) != source_generation:
         # Do not sign old data as current after a concurrent source update.
         # Neither half of the JSONL/sidecar pair may be published.
-        temp_path.unlink(missing_ok=True)
-        temp_index.unlink(missing_ok=True)
+        _discard_cache_temporary_paths(temp_path, temp_index)
         raise RuntimeError("Success sources changed before compact-cache publication")
     try:
         temp_path.replace(path)
@@ -2057,8 +2067,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
     finally:
         # Windows file-sharing failures must not leave large stale .tmp files.
         # A mixed published pair remains fail-closed via cache_generation.
-        temp_path.unlink(missing_ok=True)
-        temp_index.unlink(missing_ok=True)
+        _discard_cache_temporary_paths(temp_path, temp_index)
     print(
         json.dumps(
             {

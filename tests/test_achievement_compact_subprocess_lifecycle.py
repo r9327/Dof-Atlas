@@ -404,6 +404,36 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                  if p.name not in (cache.name, index.name)], [],
             )
 
+    def test_success_builder_preserves_publication_error_if_cleanup_is_blocked(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = Mock()
+        provider._categories = {}
+        provider._achievements = [
+            SimpleNamespace(id=10, category_id=8, subcategory_id=None,
+                            linked_quests=()),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            with (
+                patch.object(mod, "MemoryBoundAchievementProvider", return_value=provider),
+                patch.object(mod, "RETAINED_TOP_CATEGORY_IDS", (8,)),
+                patch.object(mod, "_achievement_compact_source_signature",
+                             return_value=[]),
+                patch.object(mod, "_compact_achievement_dict",
+                             return_value={"id": 10, "linked_quests": []}),
+                patch.object(Path, "replace",
+                             side_effect=OSError("publication blocked")),
+                patch.object(Path, "unlink",
+                             side_effect=PermissionError("cleanup blocked")),
+            ):
+                with self.assertLogs(mod.__name__, level="WARNING") as logs:
+                    with self.assertRaisesRegex(OSError, "publication blocked"):
+                        mod._build_compact_cache_unlocked(cache)
+            self.assertEqual(len(logs.output), 2)
+            self.assertTrue(all("cleanup blocked" in line for line in logs.output))
+
     def test_success_compact_builder_rejects_changed_sources_without_partial_publication(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
