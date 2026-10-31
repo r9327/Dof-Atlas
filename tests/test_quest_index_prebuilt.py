@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import closing
 import tempfile
@@ -54,6 +55,30 @@ class PortableQuestIndexTests(unittest.TestCase):
                     self.assertEqual(details.ensure_lazy_catalog_cache(
                         details.qc.RAW_QUEST_DATA_DIR, cache_root=root / "runtime",
                     ), 1976)
+
+    def test_relative_release_paths_work_with_read_only_sqlite_on_windows(self):
+        # Regression: Path.as_uri() rejects a relative temp SQLite file.
+        # The release packager calls build_quest_index with a relative output.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                source = Path("source.sqlite3")
+                self._create_source(source)
+                with patch.object(seed, "_source_sizes", return_value={"quests.json": 1234}):
+                    payload = seed.publish_quest_index(
+                        source, Path("data/bootstrap"), source_sha="d" * 40,
+                    )
+                    self.assertEqual(payload["quest_count"], 1976)
+                    self.assertEqual(
+                        seed.verify_quest_index(root=Path("data/bootstrap")), 1976,
+                    )
+                    self.assertEqual(
+                        seed._check_index(Path("data/bootstrap") / seed.FILENAME), 1976,
+                    )
+            finally:
+                os.chdir(previous)
 
     def test_tampering_missing_sources_and_rich_cache_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:

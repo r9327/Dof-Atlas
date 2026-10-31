@@ -49,7 +49,7 @@ def _sha256(path: Path) -> str:
 def _check_index(path: Path, *, minimum: int = MIN_QUESTS) -> int:
     if not 0 < path.stat().st_size <= MAX_BYTES:
         raise ValueError("Portable Quest SQLite outside size budget")
-    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db:
         ready = db.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
         count = db.execute("SELECT COUNT(*) FROM quests").fetchone()[0]
         detailed = db.execute("SELECT COUNT(*) FROM quests WHERE detail IS NOT NULL").fetchone()[0]
@@ -71,7 +71,7 @@ def publish_quest_index(source: Path, output_dir: Path, *, source_sha: str) -> d
     temp = dest.with_name("." + FILENAME + "." + uuid4().hex + ".tmp")
     try:
         # SQLite backup checkpoints any WAL pages without blocking app caches.
-        with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as reader:
+        with closing(sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True)) as reader:
             with closing(sqlite3.connect(temp)) as writer:
                 reader.backup(writer)
         count = _check_index(temp)
