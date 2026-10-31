@@ -88,6 +88,14 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("doduda.exe", source)
         self.assertIn("QuestCatalog.load()", source)
 
+    def test_public_pinned_benchmarks_do_not_require_unused_lfs_binary(self) -> None:
+        for name in ("atlas-exhaustive-benchmark.yml", "atlas-short-full-app.yml"):
+            source = self._workflow(name)
+            with self.subTest(workflow=name):
+                self.assertNotIn("tools/doduda/doduda.exe", source)
+                self.assertIn("python -m scripts.windows.quest_assets --download", source)
+                self.assertIn("python -m scripts.windows.craft_seed --download", source)
+
     def test_python_313_setup_matches_runner_type(self) -> None:
         app = self._workflow("app-ci.yml")
         self.assertRegex(app, r"uses: actions/setup-python@[0-9a-f]{40}")

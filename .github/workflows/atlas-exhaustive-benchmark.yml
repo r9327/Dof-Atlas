@@ -83,15 +83,8 @@ jobs:
 
       - name: Materialize actual Guide data
         run: |
-          $lfsOutput = @(git lfs pull --include="tools/doduda/doduda.exe" --exclude="" 2>&1)
-          $lfsExit = $LASTEXITCODE
-          $lfsOutput | ForEach-Object { Write-Host $_ }
-          if ($lfsExit -ne 0) {
-            if (($lfsOutput -join "`n") -match "exceeded its LFS budget") {
-              Write-Host "::error title=Git LFS quota exhausted::Guide data setup is blocked by the repository LFS quota. Restore LFS access before re-running this Windows benchmark; no guide or RAM evidence was produced."
-            }
-            exit $lfsExit
-          }
+          # This benchmark never executes the legacy Doduda binary. Runtime
+          # inputs come from the public, size- and SHA-256-pinned release lock.
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
