@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from unittest.mock import Mock
 from pathlib import Path
 from unittest.mock import patch
 
@@ -47,6 +50,37 @@ class CompactGuideItemEffectTests(unittest.TestCase):
 
 
 class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
+    def test_index_builder_streams_and_preserves_previous_cache_on_failure(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "guide_items.json"
+            cache.write_text("previous-cache", encoding="utf-8")
+            provider = Mock()
+            provider._items = []
+            provider._load_in_process.return_value = {}
+            with (
+                patch.object(mod, "DofusItemProvider", return_value=provider),
+                patch.object(mod, "_collect_guide_item_ids", return_value=set()),
+                patch.object(mod, "_guide_item_source_signature", return_value=[]),
+                redirect_stdout(StringIO()),
+            ):
+                # Atomic replacement failure cannot destroy the previous
+                # generation or leave an abandoned large *.tmp sidecar.
+                with patch.object(Path, "replace", side_effect=OSError("locked cache")):
+                    with self.assertRaisesRegex(OSError, "locked cache"):
+                        mod._build_guide_items_index(cache)
+                self.assertEqual(cache.read_text(encoding="utf-8"), "previous-cache")
+                self.assertFalse(list(cache.parent.glob(".*.tmp")))
+                with patch.object(mod.json, "dump", side_effect=OSError("disk full")):
+                    with self.assertRaisesRegex(OSError, "disk full"):
+                        mod._build_guide_items_index(cache)
+                self.assertEqual(cache.read_text(encoding="utf-8"), "previous-cache")
+                self.assertFalse(list(cache.parent.glob(".*.tmp")))
+                self.assertEqual(mod._build_guide_items_index(cache), 0)
+            self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["items"], {})
+            self.assertFalse(list(cache.parent.glob(".*.tmp")))
+
     def test_valid_items_and_malformed_rows_are_not_silently_dropped(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 

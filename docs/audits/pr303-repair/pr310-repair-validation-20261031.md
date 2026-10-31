@@ -148,3 +148,9 @@ La correction précédente des index objets ne doit pas inventer une restriction
 `get_guides_for_entity` pouvait lever une exception si l'index JSONL disparaissait entre la vérification de l'en-tête et son ouverture, ou si son contenu devenait illisible. Le bloc de lecture est désormais protégé contre les erreurs I/O et de décodage prévues ; les anomalies sont journalisées et le fournisseur réutilise le **chemin de secours existant** fondé sur les détails Guide, sans mémoriser un résultat partiel. Le cache mémoire reste borné à 64 relations. Régression dédiée et couverture du workflow Windows Guides/Succès existant.
 
 Aucune source métier, progression ou règle de certification modifiée ; preuve Windows et benchmarks restant à vérifier au SHA exact.
+
+## Réduction de l'allocation transitoire : publication de l'index objets Guide (31/10/2026)
+
+`_build_guide_items_index` ne construit plus une chaîne JSON entière via `json.dumps` avant l'écriture : `json.dump` sérialise directement le `payload` existant dans le fichier temporaire, avec le même encodage, séparateurs, schéma, signature et publication atomique. Le `finally` nettoie ce temporaire unique après succès ou erreur `write/replace`, en préservant la génération précédente. Test d'échec d'écriture, de partage Windows simulé et succès ; pas de perte de données métier.
+
+Ce changement **supprime une copie transitoire évitable du JSON en mémoire**, mais le gain RSS/temps exact n'est pas encore mesuré ; les seuils Home/peak et la nécessité du benchmark Windows comparé restent identiques.

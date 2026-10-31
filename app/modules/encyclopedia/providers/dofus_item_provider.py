@@ -719,11 +719,18 @@ def _build_guide_items_index(path: Path) -> int:
     # All Atlas instances can rebuild this shared source cache concurrently.
     # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    try:
+        # Stream the JSON directly into the disposable file. json.dumps()
+        # previously retained a second large UTF-8 representation of the
+        # selected items on top of the already built Python payload.
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+            json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
+            stream.write("\n")
+        temporary.replace(path)
+    finally:
+        # Failed write, permissions and Windows sharing errors must never
+        # leave a growing family of large abandoned temporary indexes.
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {"item_count": len(items), "path": str(path)},
