@@ -85,6 +85,45 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+    def test_ensure_success_preload_rebuilds_invalid_existing_sidecar(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta"}\n', encoding="utf-8")
+            sidecar = mod._achievement_compact_index_path(path)
+            sidecar.write_text('{"achievement_count":100}', encoding="utf-8")
+            completed = subprocess.CompletedProcess(
+                args=[], returncode=0,
+                stdout='{"achievement_count":100}\n', stderr="",
+            )
+            with (
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod.sys, "frozen", False, create=True),
+                patch.object(mod.subprocess, "run", return_value=completed) as worker,
+            ):
+                self.assertEqual(mod.ensure_achievement_compact_cache(path=path), 100)
+                worker.assert_called_once()
+
+    def test_ensure_success_preload_reuses_valid_sidecar_without_worker(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta"}\n', encoding="utf-8")
+            sidecar = mod._achievement_compact_index_path(path)
+            sidecar.write_text(json.dumps({
+                "achievement_count": 3, "retained_count": 2,
+                "retained_ids": [10, 11],
+                "offsets": {"10": [30, 40], "11": [70, 50]},
+            }), encoding="utf-8")
+            with (
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod.subprocess, "run",
+                             side_effect=AssertionError("must reuse cache")),
+            ):
+                self.assertEqual(mod.ensure_achievement_compact_cache(path=path), 3)
+
     def test_success_cache_rejects_replaced_source_with_identical_mtime(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

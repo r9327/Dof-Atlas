@@ -115,9 +115,24 @@ def ensure_achievement_compact_cache(
             index_payload = json.loads(
                 _achievement_compact_index_path(path).read_text(encoding="utf-8")
             )
-            return max(0, int(index_payload.get("achievement_count") or 0))
+            if isinstance(index_payload, dict):
+                count = index_payload.get("achievement_count")
+                retained = index_payload.get("retained_count")
+                retained_ids = index_payload.get("retained_ids")
+                offsets = index_payload.get("offsets")
+                if (type(count) is int and count > 0
+                        and type(retained) is int and 0 < retained <= count
+                        and isinstance(retained_ids, list)
+                        and len(retained_ids) == retained
+                        and all(type(value) is int for value in retained_ids)
+                        and len(set(retained_ids)) == retained
+                        and isinstance(offsets, dict)
+                        and len(offsets) == retained):
+                    return count
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            return 0
+            pass
+        # The JSONL header can be valid while its sidecar is corrupt. A zero
+        # result incorrectly certified an unbuilt cache instead of repairing it.
     if bool(getattr(sys, "frozen", False)):
         return 0
     completed = subprocess.run(
