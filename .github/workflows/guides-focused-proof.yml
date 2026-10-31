@@ -15,6 +15,7 @@ on:
       - 'app/pages/craft_page.py'
       - 'tests/test_craft_minimal_lazy.py'
       - 'tests/test_guide_prebuilt_route.py'
+      - 'tests/test_guide_catalog_route_store_relative.py'
       - 'app/modules/encyclopedia/services/guide_catalog_prebuilt_route.py'
       - 'app/modules/encyclopedia/services/guide_catalog_manual_runtime_service.py'
       - 'scripts/windows/build_guide_routes.py'
@@ -51,7 +52,7 @@ concurrency:
 jobs:
   guide-targeted-windows:
     # No repeated Windows setup on Draft pushes; focused local contracts only.
-    if: ${{ github.event.pull_request.draft == false }}
+    if: ${{ github.event.pull_request.draft == false || github.event.pull_request.number == 310 }}
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
     timeout-minutes: 20
@@ -87,6 +88,9 @@ jobs:
       - name: Portable Sylvestre release-index integrity and fallback
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_route
+      - name: Relative SQLite cache integrity, missing file, compressed corruption
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_catalog_route_store_relative
       - name: Canonical reward precompile / alignment regressions
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
