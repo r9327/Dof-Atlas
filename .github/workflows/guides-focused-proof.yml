@@ -91,6 +91,9 @@ jobs:
       - name: Relative SQLite cache integrity, missing file, compressed corruption
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_catalog_route_store_relative
+      - name: Read-only Windows cartography placeholder fallback
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_cartography_asset_readonly_fallback
       - name: Canonical reward precompile / alignment regressions
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
