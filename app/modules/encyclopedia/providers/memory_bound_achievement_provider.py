@@ -942,7 +942,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 return None
             value = row.get("value") if isinstance(row, dict) else None
-            return value if isinstance(value, dict) else None
+            if (not isinstance(row, dict)
+                    or row.get("kind") != "achievement"
+                    or not isinstance(value, dict)
+                    or type(value.get("id")) is not int
+                    or value["id"] != achievement_id):
+                return None
+            return value
 
         # Non-retained Successes are compatibility/cross-link lookups only.
         # Stream the compact file for those rare requests instead of retaining

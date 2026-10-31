@@ -306,13 +306,17 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             index = Path(directory) / "success.idx.json"
             jsonl = Path(directory) / "success.jsonl"
-            jsonl.write_bytes(b"x" * 100)
+            rows = [
+                (json.dumps({"kind": "achievement", "value": {"id": 10}}) + "\n").encode("utf-8"),
+                (json.dumps({"kind": "achievement", "value": {"id": 20}}) + "\n").encode("utf-8"),
+            ]
+            jsonl.write_bytes(b"".join(rows))
             valid = {
                 "schema_version": 5,
                 "achievement_count": 4,
                 "retained_count": 2,
                 "retained_ids": [10, 20],
-                "offsets": {"10": [0, 4], "20": [4, 8]},
+                "offsets": {"10": [0, len(rows[0])], "20": [len(rows[0]), len(rows[1])]},
             }
             index.write_text(json.dumps(valid), encoding="utf-8")
             self.assertEqual(domain_worker._read_compact_success_counts(index, 5, jsonl), (4, 2))
@@ -323,16 +327,33 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 {"retained_count": 9},
                 {"retained_ids": [10]},
                 {"retained_ids": [10, "20"]},
-                {"offsets": {"10": [0, 4]}},
+                {"offsets": {"10": [0, len(rows[0])]}},
                 {"retained_ids": [10, 10]},
-                {"offsets": {"10": [99, 4], "20": [4, 8]}},
-                {"offsets": {"10": [0, 0], "20": [4, 8]}},
-                {"offsets": {"10": [True, 4], "20": [4, 8]}},
-                {"offsets": {"30": [0, 4], "20": [4, 8]}},
-                {"offsets": {"10": [0, 7], "20": [4, 8]}},
+                {"offsets": {"10": [0, 0], "20": [len(rows[0]), len(rows[1])]}},
+                {"offsets": {"10": [True, len(rows[0])], "20": [len(rows[0]), len(rows[1])]}},
+                {"offsets": {"30": [0, len(rows[0])], "20": [len(rows[0]), len(rows[1])]}},
+                {"offsets": {"10": [0, len(rows[0])], "20": [0, len(rows[0])]}},
+                {"offsets": {"10": [len(rows[0]), len(rows[1])], "20": [0, len(rows[0])] }},
+                {"offsets": {"10": [0, len(rows[0])-1], "20": [len(rows[0]), len(rows[1])]}},
             ):
                 with self.subTest(changes=changes):
                     index.write_text(json.dumps({**valid, **changes}), encoding="utf-8")
+                    self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
+            # Even if sidecar offsets and lengths are internally consistent,
+            # the JSONL contents must match their declared IDs and types.
+            for tampered in (
+                [dict(kind="achievement", value={"id": 20}), dict(kind="achievement", value={"id": 10})],
+                [dict(kind="achievement", value={"id": True}), dict(kind="achievement", value={"id": 20})],
+                [dict(kind="guide", value={"id": 10}), dict(kind="achievement", value={"id": 20})],
+            ):
+                encoded = [(json.dumps(row) + "\n").encode("utf-8") for row in tampered]
+                sidecar = {**valid, "offsets": {
+                    "10": [0, len(encoded[0])],
+                    "20": [len(encoded[0]), len(encoded[1])],
+                }}
+                jsonl.write_bytes(b"".join(encoded))
+                index.write_text(json.dumps(sidecar), encoding="utf-8")
+                with self.subTest(rows=tampered):
                     self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
             index.write_text("{not valid json", encoding="utf-8")
             self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))

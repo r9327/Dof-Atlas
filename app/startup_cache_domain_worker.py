@@ -225,6 +225,7 @@ def _read_compact_success_counts(
     ):
         return None
     spans: list[tuple[int, int]] = []
+    indexed_rows: list[tuple[int, int, int]] = []
     for achievement_id in retained_ids:
         span = offsets.get(str(achievement_id))
         # The writer stores [byte_start, byte_length], not [start, end].
@@ -236,12 +237,31 @@ def _read_compact_success_counts(
         ):
             return None
         spans.append((span[0], span[0] + span[1]))
+        indexed_rows.append((achievement_id, span[0], span[1]))
     # Distinct achievements cannot point to overlapping JSONL records.
     previous_end = 0
     for start, end in sorted(spans):
         if start < previous_end:
             return None
         previous_end = end
+    # A well-formed sidecar can still point at another achievement or at
+    # arbitrary bytes. Verify the actual row identity in the disposable worker.
+    try:
+        with cache_path.open("rb") as stream:
+            for achievement_id, start, length in indexed_rows:
+                stream.seek(start)
+                raw = stream.read(length)
+                if len(raw) != length or not raw.endswith(b"\n"):
+                    return None
+                row = json.loads(raw)
+                value = row.get("value") if isinstance(row, dict) else None
+                if (row.get("kind") != "achievement"
+                        or not isinstance(value, dict)
+                        or type(value.get("id")) is not int
+                        or value["id"] != achievement_id):
+                    return None
+    except (OSError, UnicodeError, ValueError, TypeError):
+        return None
     return total, retained
 
 

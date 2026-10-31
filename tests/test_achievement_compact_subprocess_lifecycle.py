@@ -84,6 +84,32 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         self.assertEqual(child_env["PYTHONUTF8"], "1")
 
 
+class AchievementCompactRowIdentityTests(unittest.TestCase):
+    def test_retained_offset_must_point_to_matching_success(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+            provider._compact_external_index = {10: (0, 0)}
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path):
+                for payload in (
+                    {"kind": "achievement", "value": {"id": 20}},
+                    {"kind": "guide", "value": {"id": 10}},
+                    {"kind": "achievement", "value": {"id": True}},
+                    {"kind": "achievement", "value": {"id": 10}},
+                ):
+                    raw = (json.dumps(payload) + "\n").encode("utf-8")
+                    path.write_bytes(raw)
+                    provider._compact_external_index = {10: (0, len(raw))}
+                    with self.subTest(payload=payload):
+                        value = provider._compact_value_by_id(10)
+                        if payload["kind"] == "achievement" and payload["value"]["id"] == 10 and type(payload["value"]["id"]) is int:
+                            self.assertEqual(value, {"id": 10})
+                        else:
+                            self.assertIsNone(value)
+
+
 class AchievementDetailColdTimingTests(unittest.TestCase):
     def test_cold_subprocess_reports_real_blocking_and_decode_phases(self) -> None:
         from threading import current_thread
