@@ -1228,24 +1228,32 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             span = self._compact_external_index.get(achievement_id)
             if span is not None:
                 start, length = span
-                try:
-                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                        stream.seek(start)
-                        payload = json.loads(stream.read(length))
-                except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                    return None
-                value = payload.get("value") if isinstance(payload, dict) else None
-                if (isinstance(payload, dict)
-                        and payload.get("kind") == "achievement"
-                        and isinstance(value, dict)
-                        and type(value.get("id")) is int
-                        and value["id"] == achievement_id):
-                    return (
-                        achievement_id,
-                        str(value.get("name") or ""),
-                        safe_int(value.get("level")),
-                        int(value.get("points") or 0),
-                    )
+                if start >= 0 and length > 0:
+                    try:
+                        with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                            # A broken offset must never cause read(-1) or a
+                            # multi-megabyte read from the compact catalogue.
+                            stream.seek(0, 2)
+                            total = stream.tell()
+                            if start <= total and length <= total - start:
+                                stream.seek(start)
+                                payload = json.loads(stream.read(length))
+                                value = payload.get("value") if isinstance(payload, dict) else None
+                                if (isinstance(payload, dict)
+                                        and payload.get("kind") == "achievement"
+                                        and isinstance(value, dict)
+                                        and type(value.get("id")) is int
+                                        and value["id"] == achievement_id):
+                                    return (
+                                        achievement_id,
+                                        str(value.get("name") or ""),
+                                        safe_int(value.get("level")),
+                                        int(value.get("points") or 0),
+                                    )
+                    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                        pass
+                # A broken primitive offset is not an absent Success:
+                # delegate to the existing summary fallback below.
 
         summary = self._summary_by_id(achievement_id)
         if summary is None or not self.is_retained(achievement_id):

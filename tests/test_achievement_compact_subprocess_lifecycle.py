@@ -710,6 +710,30 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 # Boundary + external row only. No 100 heavyweight decodes.
                 self.assertLessEqual(decode.call_count, 3)
 
+    def test_retained_list_bad_offset_falls_back_without_unbounded_read(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+        provider._compact_retained_set = frozenset({10})
+        summary = SimpleNamespace(name="Recovered", level=199, points=30)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_bytes(b'{"kind":"achievement","value":{"id":10}}\n')
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id", return_value=summary),
+                patch.object(provider, "is_retained", return_value=True),
+            ):
+                for span in ((0, -1), (-4, 1), (0, 10**9), (10**9, 12)):
+                    with self.subTest(span=span):
+                        provider._compact_external_index = {10: span}
+                        self.assertEqual(
+                            provider.catalogue_row_by_id(10),
+                            (10, "Recovered", 199, 30),
+                        )
+
     def test_retained_catalogue_list_row_checks_offset_identity(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
