@@ -112,6 +112,27 @@ class CompactGuideItemEffectTests(unittest.TestCase):
 
 
 class CompactDofusPayloadTests(unittest.TestCase):
+    def test_existing_worker_full_dump_keeps_asdict_serialization(self):
+        from app.modules.encyclopedia.models.dofus_item import DofusItem
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        item = DofusItem(
+            id=42, original_id=42, name="Dofus", level=200,
+            type_id=23, type_name="Dofus", effects=("Bonus",),
+        )
+        worker = Mock()
+        worker._items = [item]
+        output = StringIO()
+        with (
+            patch.object(mod, "DofusItemProvider", return_value=worker),
+            redirect_stdout(output),
+        ):
+            self.assertEqual(mod._dump_compact_default_items(), 0)
+        worker._load_in_process.assert_called_once_with()
+        self.assertEqual(json.loads(output.getvalue())[0]["id"], 42)
+        self.assertEqual(json.loads(output.getvalue())[0]["effects"], ["Bonus"])
+
+
     def test_compact_payload_matches_old_json_and_does_not_copy_unused_raw(self):
         from dataclasses import asdict
         from app.modules.encyclopedia.models.dofus_item import DofusItem

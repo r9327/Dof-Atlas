@@ -335,3 +335,7 @@ Pas de modification des données utilisateur, ni contournement du Doctor, des r�
 
 `_compact_item_payload` appelait `dataclasses.asdict(DofusItem)`, ce qui reconstruisait **récursivement l'intégralité de `raw`**, notamment les valeurs qui étaient immédiatement supprimées (seuls `id/typeId/nameId/descriptionId/iconId/level` sont persistés). Le payload est maintenant créé avec `dataclasses.fields(DofusItem)` et les valeurs existantes, sans copie profonde, puis `raw` est filtré **avant** toute sérialisation JSON. Aucun changement du schéma ou des valeurs du cache ; les tuples `effects` restent naturellement convertis en tableaux par `json.dump`. Test de parité avec `asdict` et sérialisation JSON, plus objet `raw.unused` interdisant `deepcopy` pour prouver l'absence de copie.
 C'est une réduction d'allocations du worker, pas une mesure du RSS final ni un prétexte à lancer la FULL.
+
+## Contrôle de compatibilité worker objets (31/10/2026)
+
+Le retrait de `asdict` du module entier pendant l'optimisation du payload ciblé casserait `_dump_compact_default_items`, qui l'utilise encore pour exporter la liste complète via CLI. L'import conjoint `asdict, fields` est rétabli ; l'optimisation évite toujours la copie profonde dans `_compact_item_payload`, sans modifier l'autre consommateur. Régression d'exécution du véritable point d'entrée worker avec objet synthétique et JSON/effets attendus. Ce correctif fait partie intégrante de la vérification des effets secondaires avant validation ciblée.

@@ -6,7 +6,7 @@ import struct
 import subprocess
 import sys
 import tempfile
-from dataclasses import fields
+from dataclasses import asdict, fields
 from pathlib import Path
 from uuid import uuid4
 from typing import Any, BinaryIO
