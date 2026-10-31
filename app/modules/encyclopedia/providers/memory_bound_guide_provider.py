@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -452,8 +453,15 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             GUIDE_COMPACT_CACHE,
             guides_dir=self.guides_dir,
         ):
-            self._load_from_compact_cache()
-            return
+            try:
+                self._load_from_compact_cache()
+                return
+            except (OSError, UnicodeError, ValueError, RuntimeError) as exc:
+                # An otherwise valid signature can still refer to a truncated
+                # JSONL body. Reuse the existing disposable source extractor.
+                logging.getLogger(__name__).warning(
+                    "Guide compact cache rejected; rebuilding from sources: %s", exc,
+                )
         self._load_from_compact_subprocess()
 
     def _load_from_compact_cache(self) -> None:
@@ -466,6 +474,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
         with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            meta = json.loads(stream.readline())
+            expected = meta.get("guide_count") if isinstance(meta, dict) else None
+            if type(expected) is not int or expected <= 0:
+                raise RuntimeError("Cache compact Guide sans nombre de guides vérifiable")
             for raw_line in stream:
                 line = raw_line.strip()
                 # Cache schema 2 keeps heavy entity indexes on separate lines.
@@ -487,8 +499,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 summaries.append(guide)
                 self._detail_entries[guide.id] = entry
                 self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(value)
-        if not summaries:
-            raise RuntimeError("Cache compact Guide vide")
+        if (not summaries or len(summaries) != expected
+                or len(self._detail_entries) != expected):
+            raise RuntimeError("Cache compact Guide tronqué ou avec des guides dupliqués")
         self._install_summaries(summaries, {})
 
     def _load_from_compact_subprocess(self) -> None:

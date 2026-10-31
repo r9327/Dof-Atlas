@@ -118,6 +118,40 @@ class CompactGuideRelationTests(unittest.TestCase):
                 provider.include_drafts = True
                 self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
 
+    def test_partial_compact_catalogue_falls_back_to_source_process(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            source = guides / "first.json"
+            source.write_text("{}", encoding="utf-8")
+            cache = root / "compact.jsonl"
+            cache.write_text(
+                json.dumps({"kind": "meta", "guide_count": 2}) + "\n"
+                + json.dumps({"kind": "guide", "value": {
+                    "id": "guide-one", "source_file": "first.json",
+                }}) + "\n",
+                encoding="utf-8",
+            )
+            provider = self._provider(guides)
+            with (
+                patch.object(mod, "GUIDE_COMPACT_CACHE", cache),
+                patch.object(provider, "_guide_entries", return_value=[(source, {})]),
+                patch.object(provider, "_summary_from_compact_row",
+                             return_value=SimpleNamespace(id="guide-one")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "tronqué"):
+                    provider._load_from_compact_cache()
+            with (
+                patch.object(mod, "GUIDES_DIR", guides),
+                patch.object(mod, "_guide_compact_cache_valid", return_value=True),
+                patch.object(provider, "_load_from_compact_cache",
+                             side_effect=RuntimeError("corrupt cache")),
+                patch.object(provider, "_load_from_compact_subprocess") as fallback,
+            ):
+                provider._load()
+                fallback.assert_called_once_with()
+
     def test_missing_cache_preserves_graph_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
