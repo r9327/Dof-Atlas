@@ -152,6 +152,49 @@ class CompactGuideRelationTests(unittest.TestCase):
                 provider._load()
                 fallback.assert_called_once_with()
 
+    def test_ensure_compact_cache_never_reuses_incomplete_guide_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            guides = root / "guides"
+            guides.mkdir()
+            (guides / "sample.json").write_text("{}", encoding="utf-8")
+            cache = root / "compact.jsonl"
+            meta = json.dumps({
+                "kind": "meta", "schema_version": 2,
+                "source_signature": mod._guide_compact_source_signature(guides),
+                "guide_count": 2, "entity_index_count": 1,
+            }) + "\n"
+            guide_one = json.dumps({"kind": "guide", "value": {"id": "a"}}) + "\n"
+            guide_two = json.dumps({"kind": "guide", "value": {"id": "b"}}) + "\n"
+            index = json.dumps({
+                "kind": "entity_index",
+                "value": {"guide_id": "a", "entity_keys": [["quest", 42]]},
+            }) + "\n"
+            with patch.object(mod.subprocess, "run",
+                              return_value=SimpleNamespace(stdout='{"guide_count":2}\n')) as build:
+                for payload in (
+                    meta,
+                    meta + guide_one,
+                    meta + guide_one + guide_two,
+                    meta + guide_one + guide_one + index,
+                    meta + guide_one + guide_two + '{bad-json',
+                    json.dumps({
+                        "kind": "meta", "schema_version": 2,
+                        "source_signature": mod._guide_compact_source_signature(guides),
+                    }) + "\n" + guide_one,
+                ):
+                    with self.subTest(payload=payload[-70:]):
+                        cache.write_text(payload, encoding="utf-8")
+                        self.assertEqual(
+                            mod.ensure_guide_compact_cache(guides_dir=guides, path=cache), 2,
+                        )
+                self.assertEqual(build.call_count, 6)
+                cache.write_text(meta + guide_one + guide_two + index, encoding="utf-8")
+                self.assertEqual(
+                    mod.ensure_guide_compact_cache(guides_dir=guides, path=cache), 2,
+                )
+                self.assertEqual(build.call_count, 6)
+
     def test_missing_cache_preserves_graph_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

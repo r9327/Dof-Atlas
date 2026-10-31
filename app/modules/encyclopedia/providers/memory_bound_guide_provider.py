@@ -74,15 +74,44 @@ def ensure_guide_compact_cache(
     """Build Guide summaries during preload so Guide open only reads compact rows."""
 
     if _guide_compact_cache_valid(path, guides_dir=guides_dir):
-        count = 0
+        # A matching source signature proves only the header is current.
+        # Reuse requires complete, unique Guide rows and their entity indexes.
         try:
             with path.open("r", encoding="utf-8") as stream:
+                meta = json.loads(stream.readline())
+                expected = meta.get("guide_count")
+                expected_indexes = meta.get("entity_index_count")
+                if (type(expected) is not int or expected <= 0
+                        or type(expected_indexes) is not int or expected_indexes < 0):
+                    raise ValueError("Guide compact cache has no verified row counts")
+                guide_ids: set[str] = set()
+                indexed_ids: set[str] = set()
                 for line in stream:
-                    if '"kind":"guide"' in line:
-                        count += 1
-        except OSError:
-            return 0
-        return count
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict) or row.get("kind") not in (
+                        "guide", "entity_index",
+                    ):
+                        raise ValueError("Unexpected Guide compact cache row")
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        raise ValueError("Malformed Guide compact cache value")
+                    if row["kind"] == "guide":
+                        guide_id = value.get("id")
+                        target = guide_ids
+                    else:
+                        guide_id = value.get("guide_id")
+                        target = indexed_ids
+                    if not isinstance(guide_id, str) or not guide_id or guide_id in target:
+                        raise ValueError("Missing or duplicate Guide compact cache ID")
+                    target.add(guide_id)
+                if (len(guide_ids) == expected
+                        and len(indexed_ids) == expected_indexes
+                        and indexed_ids.issubset(guide_ids)):
+                    return len(guide_ids)
+        except (OSError, UnicodeError, ValueError, TypeError):
+            pass  # Disposable cache: fall through to the canonical rebuild.
     if bool(getattr(sys, "frozen", False)):
         return 0
     completed = subprocess.run(

@@ -104,3 +104,9 @@ Le précédent contrôle des offsets retenus garantissait uniquement des bornes 
 Côté Atlas, `MemoryBoundAchievementProvider._compact_value_by_id` refuse une ligne de type ou d'identifiant incorrect au lieu de rendre la mauvaise fiche ; `_load()` retombe sur l'extraction déjà existante si l'index du catalogue compact échoue après validation de l'en-tête. Aucun cache utilisateur persistant n'est modifié par ce lot.
 
 Tests ciblés étendus avec lignes JSONL réelles, offsets intervertis, IDs booléens, lignes de type inattendu et repli de lecture ; le workflow Windows Guides/Succès existant exécute désormais explicitement les tests de ces lecteurs lors d'un changement des modules ou des tests. Aucun workflow parallèle, budget abaissé ni résultat `FULL PASS` présumé. **Validation à réaliser sur le SHA exact publié ; aucune mesure de gain de performance ou RAM déclarée.**
+
+## Guide : réutilisation des caches JSONL incomplets interdite (31/10/2026)
+
+`ensure_guide_compact_cache` comptait auparavant les lignes contenant littéralement `"kind":"guide"` après la seule validation du header : un JSONL tronqué, avec doublons ou sans index de relation pouvait être annoncé disponible et même rendre un catalogue Guide partiel. Le chemin existant exige maintenant les deux cardinalités `guide_count` / `entity_index_count` et vérifie les IDs uniques, les types de lignes et les références index→Guide avant de réutiliser le cache. Sinon, il conserve **la reconstruction existante**, sans nouveau générateur ni suppression de données utilisateur. Les anciens headers incomplets ne sont pas acceptés comme preuve.
+
+Régression `test_guide_cold_relation_lookup.py` : plusieurs corruptions valides et invalides, dupliqués, manque d'index et cas de cache intact sans reconstruction. Cette validation prépare la réduction des faux retours « prêt » ; **aucun gain de latence/RAM n'est encore démontré** et aucune FULL n'est déclenchée manuellement.
