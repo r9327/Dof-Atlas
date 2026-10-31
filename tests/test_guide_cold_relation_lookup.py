@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -60,6 +61,50 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertEqual(graph.guide_ids(42), ["guide-b"])
                 self.assertEqual(graph.guide_ids(99999), [])
                 provider._ensure_loaded.assert_not_called()
+
+    def test_repeat_cold_lookup_skips_full_jsonl_decode_and_bounds_memory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            (guides / "first.json").write_text("{}", encoding="utf-8")
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            provider = self._provider(guides)
+            real_loads = json.loads
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache), patch.object(
+                mod.json, "loads", wraps=real_loads
+            ) as decode:
+                self.assertEqual(provider.guide_ids_for_quest_fast(2464), ("guide-a", "guide-b"))
+                first_decode_count = decode.call_count
+                self.assertGreater(first_decode_count, 1)
+                self.assertEqual(provider.guide_ids_for_quest_fast(2464), ("guide-a", "guide-b"))
+                # One metadata decode is still required for source freshness.
+                self.assertEqual(decode.call_count, first_decode_count + 1)
+                for quest_id in range(1000, 1100):
+                    provider.guide_ids_for_quest_fast(quest_id)
+                self.assertLessEqual(len(provider._fast_quest_relation_cache), 64)
+                self.assertNotIn(2464, provider._fast_quest_relation_cache)
+            provider._ensure_loaded.assert_not_called()
+
+    def test_cold_relation_cache_invalidates_when_index_replaced(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            provider = self._provider(guides)
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                self.assertEqual(provider.guide_ids_for_quest_fast(42), ("guide-b",))
+                content = cache.read_text(encoding="utf-8")
+                cache.write_text(content.replace("[\"quest\",42]", "[\"quest\",99]"),
+                                 encoding="utf-8")
+                stat = cache.stat()
+                os.utime(cache, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+                self.assertEqual(provider.guide_ids_for_quest_fast(42), ())
+                self.assertEqual(provider.guide_ids_for_quest_fast(99), ("guide-b",))
+            provider._ensure_loaded.assert_not_called()
 
     def test_parseable_but_incomplete_guide_index_does_not_claim_no_relations(self):
         with tempfile.TemporaryDirectory() as temp:

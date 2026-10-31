@@ -126,3 +126,9 @@ Aucune suppression, aucune migration de données ni changement d'identité de pr
 ## Compatibilité EXE figé de la commande Guide (31/10/2026)
 
 La mutualisation de `--ensure-compact-cache` conserve expressément le cas `sys.frozen` : lorsque le validateur ne peut pas réutiliser le cache, il reconstruit en processus courant par `_build_compact_guide_cache` puis revérifie avant de déclarer READY. Il n'essaie pas d'exécuter `python -m` depuis un EXE figé. Régression dédiée : chemin gelé, reconstruction unique et seconde vérification. La vraie recette de l'EXE Windows reste `NOT_RUN` tant que le paquet exact-SHA n'est pas testé.
+
+## Lookup à froid Quêtes → Guides : répétition d'index bornée (31/10/2026)
+
+`MemoryBoundGuideProvider.guide_ids_for_quest_fast` relisait et décodait l'ensemble du JSONL à chaque appel, y compris plusieurs fois pour le même ID lors des parcours de Quêtes. Le résultat n'est maintenant conservé que pour **64 requêtes récentes par instance**, sous contrôle inchangé de la signature de source et d'une empreinte `path + taille + mtime_ns` du fichier compact ; une reconstruction concurrente détectée après le scan empêche la mise en cache. `reload` / `release_catalogue` libèrent immédiatement les entrées. Aucun index complet résident, nouvelle dépendance, cache persistant ni mutation de progression.
+
+Tests ciblés : seconde recherche identique ne reparcourt pas le JSONL (seule la lecture du header reste), maximum 64 relations, changement d'index suivi d'invalidation et même réponse métier. Ce test établit une **réduction d'opérations de décodage sur réutilisation** dans la fixture ; il ne mesure ni un gain de temps Windows ni une baisse de RAM globale. Les plafonds Home <100 Mio / pic <=250 Mio restent inchangés.

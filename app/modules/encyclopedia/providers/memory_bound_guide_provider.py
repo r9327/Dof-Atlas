@@ -5,7 +5,7 @@ import logging
 import os
 import subprocess
 import sys
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
 from uuid import uuid4
 from typing import Any, Iterable
@@ -246,6 +246,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._progress_quest_ids_by_guide: dict[str, tuple[int, ...]] = {}
         self._detail_cache_id = ""
         self._detail_cache: Guide | None = None
+        # Bounded recent relations: avoid decoding the entire compact JSONL
+        # when a Quest detail repeatedly asks about the same Guide links.
+        self._fast_quest_relation_stamp: tuple[str, int, int] | None = None
+        self._fast_quest_relation_cache: OrderedDict[int, tuple[str, ...]] = OrderedDict()
 
     def release_detail_cache(self) -> None:
         self._detail_cache_id = ""
@@ -262,10 +266,14 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._by_entity = defaultdict(list)
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
+        self._fast_quest_relation_stamp = None
+        self._fast_quest_relation_cache = OrderedDict()
         self.validation_errors = []
 
     def reload(self) -> list[Guide]:
         self.release_detail_cache()
+        self._fast_quest_relation_stamp = None
+        self._fast_quest_relation_cache = OrderedDict()
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
         return super().reload()
@@ -307,6 +315,21 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if not _guide_compact_cache_valid(path, guides_dir=self.guides_dir):
             return None
         wanted_id = int(quest_id)
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        stamp = (str(path), stat.st_size, stat.st_mtime_ns)
+        cache = getattr(self, "_fast_quest_relation_cache", None)
+        if cache is None:
+            cache = OrderedDict()
+            self._fast_quest_relation_cache = cache
+        if getattr(self, "_fast_quest_relation_stamp", None) != stamp:
+            cache.clear()
+            self._fast_quest_relation_stamp = stamp
+        elif wanted_id in cache:
+            cache.move_to_end(wanted_id)
+            return cache[wanted_id]
         available: set[str] = set()
         indexed: set[str] = set()
         matches: set[str] = set()
@@ -377,7 +400,22 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 or (expected_guides is not None and len(available) != expected_guides)
                 or (expected_indexes is not None and len(indexed) != expected_indexes)):
             return None
-        return tuple(sorted(matches))
+        # Do not retain a result if a concurrent rebuild changed the file
+        # during the scan. The next call must revalidate that generation.
+        try:
+            final_stat = path.stat()
+        except OSError:
+            return None
+        if (final_stat.st_size, final_stat.st_mtime_ns) != stamp[1:]:
+            cache.clear()
+            self._fast_quest_relation_stamp = None
+            return None
+        result = tuple(sorted(matches))
+        cache[wanted_id] = result
+        cache.move_to_end(wanted_id)
+        if len(cache) > 64:
+            cache.popitem(last=False)
+        return result
 
     def get_guides_for_entity(self, entity_type: str, entity_id: int) -> list[Guide]:
         self._ensure_loaded()
