@@ -160,3 +160,9 @@ Ce changement **supprime une copie transitoire évitable du JSON en mémoire**, 
 `achievement_name_index` n'ignore plus silencieusement une fiche Succès dont l'ID est manquant, non entier (y compris booléen) ou déjà présent, ni une ligne `achievement` sans dictionnaire. Il rejette le cache incomplet avec `{}`. Le writer canonique `write_achievement_name_index`, protégé par son verrou et son remplacement atomique, **refuse de publier un index vide** et conserve le dernier fichier valide si la lecture de la source a échoué. Tests ciblés des lignes valides, doublons, anomalies et de la publication conservatrice ; branchement sur le workflow Windows Guide/Succès existant.
 
 Les sources métier et caches utilisateurs ne sont pas modifiés ; aucun gain RAM/perf ni certificat de distribution Windows revendiqué.
+
+## Cohérence des compteurs Succès lors du warmup et réemploi (31/10/2026)
+
+`startup_cache_domain_worker._success_domain` exige maintenant `achievement_name_count == achievement_count` après construction ; le manifeste `startup_cache_warmup._domain_payload_complete` rejette aussi un index partiel **même si ses compteurs sont strictement positifs**, ainsi qu'un `retained_count` supérieur au total. Cette règle s'applique au résultat de nouveau worker **et** aux domaines réutilisés depuis le disque. Test du cas 1411 noms pour 1412 Succès, sans modifier les valeurs Dofus ni la politique de certification.
+
+Aucun gain de RAM présumé. Le HEAD exact doit passer ses contrôles ciblés avant tout autre verdict.

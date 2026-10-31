@@ -472,6 +472,22 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                         warmup._cached_domain_result(domain, manifest, [["source", 1, 2]]),
                         payload,
                     )
+                if domain == "success":
+                    # A positive but incomplete sidecar previously passed the
+                    # READY gate and could be reused across Atlas starts.
+                    mismatched = copy.deepcopy(payload)
+                    mismatched["tasks"]["success_names"]["achievement_name_count"] = 1411
+                    self.assertFalse(warmup._domain_payload_complete(domain, mismatched))
+                    manifest["domains"][domain]["result"] = mismatched
+                    with patch.object(warmup, "_artifact_stamp",
+                                      return_value=[["cache", 99, 1]]):
+                        self.assertIsNone(
+                            warmup._cached_domain_result(domain, manifest, [["source", 1, 2]])
+                        )
+                    manifest["domains"][domain]["result"] = payload
+                    invalid_retained = copy.deepcopy(payload)
+                    invalid_retained["tasks"]["success"]["retained_count"] = 1413
+                    self.assertFalse(warmup._domain_payload_complete(domain, invalid_retained))
                 damaged = copy.deepcopy(payload)
                 if domain == "quest":
                     damaged["quest_count"] = 0

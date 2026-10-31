@@ -318,6 +318,10 @@ def _success_domain() -> dict[str, object]:
 
     names_started = perf_counter()
     name_count = int(achievement_index_warmup.write_achievement_name_index() or 0)
+    if name_count != achievement_count:
+        raise RuntimeError(
+            f"Success names incomplete: {name_count}/{achievement_count} achievements"
+        )
     timings["names"] = round((perf_counter() - names_started) * 1000.0, 2)
     gc.collect()
 

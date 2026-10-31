@@ -383,7 +383,14 @@ def _domain_payload_complete(domain: str, payload: dict[str, object]) -> bool:
                   names.get("achievement_name_count"))
     else:
         return False
-    return all(type(value) is int and value > 0 for value in fields)
+    if not all(type(value) is int and value > 0 for value in fields):
+        return False
+    if domain == "success":
+        # A stale or partly rebuilt names index cannot certify the Success
+        # domain, even if both counters happen to be individually positive.
+        if fields[0] != fields[2] or fields[1] > fields[0]:
+            return False
+    return True
 
 
 def _cached_domain_result(
