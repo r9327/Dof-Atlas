@@ -237,6 +237,43 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
             self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["items"], {})
             self.assertFalse(list(cache.parent.glob(".*.tmp")))
 
+    def test_index_builder_serializes_items_one_by_one_in_canonical_shape(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+        from app.modules.encyclopedia.models.dofus_item import DofusItem
+
+        def item(ident, name):
+            return DofusItem(
+                id=ident, original_id=ident, name=name, level=200,
+                type_id=mod.DOFUS_TYPE_ID, type_name="Dofus",
+                effects=("10 Crit",), raw={"id": ident, "ignored": [1] * 10},
+            )
+
+        provider = Mock()
+        provider._items = [item(20, "Later")]
+        provider._load_in_process.return_value = {10: item(10, "Earlier")}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "compact.json"
+            with (
+                patch.object(mod, "DofusItemProvider", return_value=provider),
+                patch.object(mod, "_collect_guide_item_ids", return_value={10}),
+                patch.object(mod, "_guide_item_source_signature",
+                             return_value=[["items.json", 10, 20, 30, 40]]),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(mod._build_guide_items_index(output), 0)
+            content = output.read_text(encoding="utf-8")
+            payload = json.loads(content)
+            self.assertEqual(list(payload), [
+                "schema_version", "source_signature", "items",
+            ])
+            self.assertEqual(list(payload["items"]), ["10", "20"])
+            self.assertEqual(payload["items"]["10"]["name"], "Earlier")
+            self.assertEqual(payload["items"]["20"]["effects"], ["10 Crit"])
+            self.assertEqual(payload["items"]["10"]["raw"], {"id": 10})
+            self.assertEqual(payload["source_signature"][0][1:], [10, 20, 30, 40])
+            self.assertEqual(content.count('"source_signature"'), 1)
+            self.assertEqual(list(output.parent.glob(".*.tmp")), [])
+
     def test_full_dofus_load_drops_compact_guide_row_graph(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 

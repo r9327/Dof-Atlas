@@ -355,3 +355,7 @@ Le fallback `_compact_value_by_id` avait un coût disproportionné pour les réf
 ## Sidecar Succès : contrôle de bout en bout du writer des relations (31/10/2026)
 
 Le constructeur de l'index Quête→Succès ignore désormais explicitement les `entity_id` illisibles, conformément à la recherche historique qui sautait ces références, et déduplique chaque couple Quête/Succès sans changer l'ordre des achievements. Test d'intégration sur le véritable `_build_compact_cache_unlocked` avec deux Succès, référence dupliquée, identifiant malformé, et contrôle de `by_quest`, `by_quest_ref_count`, `retained_count` et jeton de génération identique JSONL/sidecar. Seuls des caches reconstructibles sont modifiés.
+
+## Worker Guide objets : sérialisation JSON en flux à mémoire transitoire réduite (31/10/2026)
+
+La génération de `guide_items_index` constituait encore le dictionnaire complet `items:{id:_compact_item_payload(item)}` avant `json.dump` : cette deuxième représentation en RAM doublonnait les objets déjà fournis par le worker. Le writer diffuse maintenant `schema_version`, `source_signature` et les lignes individuelles triées directement dans le fichier temporaire atomique, sans construction du grand dictionnaire de lignes. Contrat JSON, ordre déterministe, UTF-8, effets, sélection des champs `raw`, annulation/rollback et nettoyage `.tmp` inchangés. Régression sur deux objets hors ordre, sortie canonique et absence de temporaire ; la baisse du pic worker doit rester quantifiée par benchmark Windows et ne constitue pas encore un PASS RSS.

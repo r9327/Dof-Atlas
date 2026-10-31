@@ -774,26 +774,32 @@ def _build_guide_items_index(path: Path) -> int:
     items: dict[int, DofusItem] = {item.id: item for item in provider._items}
     items.update(extra_items)
 
-    payload = {
-        "schema_version": _GUIDE_ITEMS_INDEX_SCHEMA,
-        "source_signature": _guide_item_source_signature(RAW_QUEST_DATA_DIR),
-        "items": {
-            str(item_id): _compact_item_payload(item)
-            for item_id, item in sorted(items.items())
-        },
-    }
+    source_signature = _guide_item_source_signature(RAW_QUEST_DATA_DIR)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     # All Atlas instances can rebuild this shared source cache concurrently.
     # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     try:
-        # Stream the JSON directly into the disposable file. json.dumps()
-        # previously retained a second large UTF-8 representation of the
-        # selected items on top of the already built Python payload.
+        # Serialize each item only when it is written. The previous nested
+        # dict comprehension kept every compact row alive at once despite
+        # json.dump already supporting streaming output.
         with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-            json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
-            stream.write("\n")
+            stream.write('{"schema_version":')
+            json.dump(_GUIDE_ITEMS_INDEX_SCHEMA, stream)
+            stream.write(',"source_signature":')
+            json.dump(source_signature, stream, ensure_ascii=False, separators=(",", ":"))
+            stream.write(',"items":{')
+            for position, item_id in enumerate(sorted(items)):
+                if position:
+                    stream.write(",")
+                json.dump(str(item_id), stream, ensure_ascii=False)
+                stream.write(":")
+                json.dump(
+                    _compact_item_payload(items[item_id]),
+                    stream, ensure_ascii=False, separators=(",", ":"),
+                )
+            stream.write("}}\n")
         temporary.replace(path)
     finally:
         # Failed write, permissions and Windows sharing errors must never
