@@ -226,9 +226,13 @@ class JsonSourceMapping(Mapping):
         if self._disk_index is None:
             raise RuntimeError("Disk-backed source index is not initialized")
         if self._disk_connection is None:
+            # A reader racing a background cache replacement must never
+            # create a fresh, empty SQLite database at the old file path.
             self._disk_connection = sqlite3.connect(
-                self._disk_index,
+                self._disk_index.resolve().as_uri() + "?mode=ro",
+                uri=True,
                 check_same_thread=False,
+                timeout=1,
             )
         if self._disk_connection_observer is not None:
             self._disk_connection_observer(self)
@@ -268,17 +272,21 @@ class JsonSourceMapping(Mapping):
                 # The preload cache stamp and the source reader must agree:
                 # merely having an "offsets" table does not prove its spans
                 # point inside the current immutable source JSON.
-                with closing(sqlite3.connect(disk_index)) as connection:
+                with closing(sqlite3.connect(
+                    disk_index.resolve().as_uri() + "?mode=ro",
+                    uri=True,
+                    timeout=1,
+                )) as connection:
                     span = connection.execute(
                         "SELECT start, end FROM offsets LIMIT 1"
                     ).fetchone()
-                    if span is not None and not (
+                    if span is None or not (
                         type(span[0]) is int
                         and type(span[1]) is int
                         and 0 <= span[0] < span[1] <= stat.st_size
                     ):
                         raise sqlite3.DatabaseError(
-                            "Disk source index contains an out-of-bounds span"
+                            "Disk source index has no usable in-bounds offset"
                         )
                 self._disk_index = disk_index
                 self._offsets = {}

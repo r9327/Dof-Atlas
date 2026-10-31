@@ -104,6 +104,47 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 fresh.close()
 
+    def test_empty_disk_offsets_rebuild_from_existing_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "vrai", "2": "second"}}),
+                encoding="utf-8",
+            )
+            first = QuestSources(root / "cache", disk_backed=True)
+            rows = first.mapping(source, "entries")
+            self.assertEqual(rows["1"], "vrai")
+            db = rows._disk_index
+            first.close()
+            with closing(sqlite3.connect(db)) as conn, conn:
+                conn.execute("DELETE FROM offsets")
+            fresh = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rebuilt = fresh.mapping(source, "entries")
+                self.assertEqual(rebuilt["1"], "vrai")
+                self.assertEqual(len(rebuilt), 2)
+            finally:
+                fresh.close()
+
+    def test_missing_disk_index_is_not_recreated_by_a_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(json.dumps({"entries": {"1": 42}}), encoding="utf-8")
+            owner = QuestSources(root / "cache", disk_backed=True)
+            try:
+                mapping = owner.mapping(source, "entries")
+                mapping._ensure()
+                db = mapping._disk_index
+                self.assertTrue(db.is_file())
+                db.unlink()
+                with self.assertRaises(sqlite3.OperationalError):
+                    _ = mapping["1"]
+                self.assertFalse(db.exists(), "Read-only SQLite must not recreate an index")
+            finally:
+                owner.close()
+
     def test_disk_backed_connection_pool_is_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

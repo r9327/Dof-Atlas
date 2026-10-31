@@ -64,3 +64,7 @@ La détection consultative des nouveaux gestionnaires d'exception couvre à pré
 ## Intégrité des artefacts multi-domaines à chaud
 
 Le cache `app/startup_cache_warmup.py` exige que chaque fichier d'artefact annoncé par un worker soit un chemin de type chaîne exact (aucun booléen, entier, chemin tronqué ou espace de bord) et que deux artefacts ne résolvent jamais vers le **même fichier physique**. Le scanner refuse toute liste dupliquée en retour `[]` : ni un cache frauduleux ni deux alias d'un même index ne peuvent déclarer Guide/Quêtes/Succès prêts. Test ajouté pour les alias `cache.bin`/`./cache.bin`, les doublons, les valeurs malformées et le cas positif. Preuves d'exécution exact HEAD à consulter ; aucun seuil de performance abaissé.
+
+## Correction de la source du cache Quêtes : SQLite disque
+
+Le lecteur canonique `app/quest_source_index.py` refuse désormais aussi les bases `offsets` à schéma valide mais **zéro ligne** et reconstruit les index concernés à partir des sources JSON. Les connexions de contrôle et de lecture utilisent des URI SQLite **`mode=ro`**, empêchant de recréer une base vide si son fichier disparaît entre vérification et lecture. Deux tests dans `tests/test_quest_source_boundaries.py` couvrent reconstruction et course suppression/ouverture ; les connexions d'écriture du constructeur restent inchangées. Ces modifications ne prouvent pas de gain RAM ou p95 : elles corrigent les défaillances de cache sans affaiblir les contrôles.
