@@ -380,10 +380,17 @@ class DofusItemProvider:
 
     @staticmethod
     def _item_from_compact_row(row: dict[str, Any] | None) -> DofusItem | None:
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or type(row.get("id")) is not int:
             return None
-        item_id = safe_int(row.get("id"))
-        if item_id is None:
+        item_id = int(row["id"])
+        raw = row.get("raw") or {}
+        effects = row.get("effects") or ()
+        # The source-built cache serializes a small object and a list of
+        # strings. A damaged row must fall back to the indexed source reader,
+        # never raise ValueError while Guide renders its prerequisites.
+        if (not isinstance(raw, dict)
+                or not isinstance(effects, (list, tuple))
+                or any(not isinstance(value, str) for value in effects)):
             return None
         return DofusItem(
             id=int(item_id),
@@ -395,9 +402,9 @@ class DofusItemProvider:
             description=str(row.get("description") or ""),
             icon_id=safe_int(row.get("icon_id")),
             image_path=str(row.get("image_path") or ""),
-            effects=tuple(str(value) for value in (row.get("effects") or ())),
+            effects=tuple(effects),
             guide_id=str(row.get("guide_id") or ""),
-            raw=dict(row.get("raw") or {}),
+            raw=dict(raw),
         )
 
     def _load_one(self, item_id: int) -> DofusItem | None:

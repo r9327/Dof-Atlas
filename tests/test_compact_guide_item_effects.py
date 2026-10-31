@@ -300,6 +300,40 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                 self.assertEqual(provider.get_by_id(42).name, "Dofus fixture")
                 self.assertTrue(old_rows)
 
+    def test_invalid_compact_item_raw_and_effects_reuse_source_fallback(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+        from app.modules.encyclopedia.models.dofus_item import DofusItem
+
+        fallback = DofusItem(
+            id=42, original_id=42, name="Source item", level=200,
+            type_id=23, type_name="Dofus",
+        )
+        provider = mod.DofusItemProvider()
+        with (
+            patch.object(provider, "_guide_index_row") as index,
+            patch.object(provider, "_load_one", return_value=fallback) as source,
+        ):
+            for malformed in (
+                {"id": 42, "raw": ["invalid"]},
+                {"id": 42, "effects": "not a list"},
+                {"id": 42, "effects": [42]},
+                {"id": True, "raw": {}},
+            ):
+                with self.subTest(malformed=malformed):
+                    provider._by_id.clear()
+                    index.return_value = malformed
+                    resolved = provider.get_by_id(42)
+                    self.assertIs(resolved, fallback)
+            self.assertEqual(source.call_count, 4)
+
+        self.assertIsNone(provider._item_from_compact_row({"id": 42, "raw": ["bad"]}))
+        self.assertEqual(
+            provider._item_from_compact_row({
+                "id": 42, "effects": ["Bonus"], "raw": {"id": 42},
+            }).effects,
+            ("Bonus",),
+        )
+
     def test_recent_guide_item_cache_evicts_least_recently_used(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 
