@@ -108,9 +108,9 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
 def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bool:
     """Validate the compact manifest before exposing stable card identities."""
     path = indexed_path(legacy_path)
-    if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
-        return False
     try:
+        if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
+            return False
         with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE name='manifest'"
@@ -170,7 +170,7 @@ def load_detail(path: Path, index: int) -> dict[str, Any]:
         raise ValueError(f"Fiche Guide absente ou invalide: {index}")
     decompressor = zlib.decompressobj()
     content = decompressor.decompress(row[0], MAX_DETAIL_BYTES + 1)
-    if not decompressor.eof or len(content) > MAX_DETAIL_BYTES:
+    if not decompressor.eof or decompressor.unused_data or len(content) > MAX_DETAIL_BYTES:
         raise ValueError(f"Fiche Guide trop grande ou altérée: {index}")
     data = json.loads(content)
     if not isinstance(data, dict):
