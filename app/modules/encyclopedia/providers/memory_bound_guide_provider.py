@@ -989,12 +989,15 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
 
 
 def _build_compact_guide_cache(path: Path) -> int:
+    source_generation = _guide_compact_source_signature(GUIDES_DIR)
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
         dofus_item_provider=_CompactGuideNoopItemProvider(),
     )
     provider._building_compact_cache = True
     provider._load_in_process()
+    if _guide_compact_source_signature(GUIDES_DIR) != source_generation:
+        raise RuntimeError("Guide sources changed during compact-cache build")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     # All Atlas instances can rebuild this shared source cache concurrently.
@@ -1022,7 +1025,7 @@ def _build_compact_guide_cache(path: Path) -> int:
                     {
                         "kind": "meta",
                         "schema_version": _GUIDE_COMPACT_SCHEMA,
-                        "source_signature": _guide_compact_source_signature(GUIDES_DIR),
+                        "source_signature": source_generation,
                         "guide_count": len(provider._guides),
                         "entity_index_count": sum(
                             bool(entity_keys_by_guide.get(str(guide.id)))
@@ -1050,6 +1053,8 @@ def _build_compact_guide_cache(path: Path) -> int:
                             }
                         )
                     )
+        if _guide_compact_source_signature(GUIDES_DIR) != source_generation:
+            raise RuntimeError("Guide sources changed before compact-cache publication")
         temporary.replace(path)
     finally:
         # Large Guide JSONL cache writers must not leak partial generations

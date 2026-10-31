@@ -528,6 +528,37 @@ class CompactGuideRelationTests(unittest.TestCase):
             provider._ensure_loaded.assert_not_called()
 
 
+    def test_compact_guide_builder_rejects_source_swap_before_and_after_serialization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "guides.jsonl"
+            cache.write_text("previous generation\n", encoding="utf-8")
+            original = cache.read_bytes()
+            fake_provider = SimpleNamespace(
+                _guides=[SimpleNamespace(id="synthetic-guide")],
+                _by_entity={},
+                _load_in_process=Mock(),
+            )
+            for signatures in (
+                [[], [["changed", 1]]],
+                [[], [], [["changed", 2]]],
+            ):
+                with self.subTest(signatures=signatures):
+                    with (
+                        patch.object(mod, "MemoryBoundGuideProvider",
+                                     return_value=fake_provider),
+                        patch.object(mod, "_CompactGuideNoopItemProvider",
+                                     return_value=object()),
+                        patch.object(mod, "_summary_payload",
+                                     return_value={"id": "synthetic-guide"}),
+                        patch.object(mod, "_guide_compact_source_signature",
+                                     side_effect=signatures),
+                    ):
+                        with self.assertRaisesRegex(RuntimeError, "Guide sources changed"):
+                            mod._build_compact_guide_cache(cache)
+                    self.assertEqual(cache.read_bytes(), original)
+                    self.assertEqual(list(root.glob(".*.tmp")), [])
+
     def test_compact_guide_writer_keeps_previous_generation_after_disk_failure(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
