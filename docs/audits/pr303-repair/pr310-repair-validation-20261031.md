@@ -254,3 +254,7 @@ Gain : suppression d'une rétention doublonnée dans ce scénario. La baisse eff
 ## Guide compact : signature de source cohérente avec le warmup (31/10/2026)
 
 `_guide_compact_source_signature` ne distinguait pas deux fichiers Guide différents ayant la même taille et le même `mtime_ns`, même si le manifeste de preload était désormais invalidé. Les lignes de signature embarquées dans les caches compacts enregistrent maintenant aussi `ctime_ns` et `inode` (et des sentinelles pour les fichiers inaccessibles). Le cache ancien est **reconstructible** et sera invalidé/reconstruit une fois pendant le preload contrôlé ; en EXE figé sans preload, le fallback canonique reste disponible. Régression sur remplacement atomique source de même taille/date ; aucune donnée utilisateur migrée. L'impact du premier démarrage après cette invalidation sera à mesurer séparément.
+
+## Succès compact : signature des sources renforcée contre les remplacements (31/10/2026)
+
+`_achievement_compact_source_signature` inclut maintenant taille, `mtime_ns`, `ctime_ns` et inode, alignée sur les garde-fous du preload et du catalogue Guide. Une installation qui remplace un `achievements.json` par un fichier de même longueur et de même date de modification ne peut plus reprendre un index Success vieux mais toujours signé par l'ancien couple taille/mtime. Régression sur une vraie opération `Path.replace` avec sidecar et en-tête factices. Les caches antérieurs seront reconstruits au prochain warmup contrôlé ; aucune écriture utilisateur ni migration des profils.

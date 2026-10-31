@@ -70,9 +70,12 @@ def _achievement_compact_source_signature(data_dir: Path) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            signature.append([relative, -1, -1])
+            signature.append([relative, -1, -1, -1, -1])
             continue
-        signature.append([relative, int(stat.st_size), int(stat.st_mtime_ns)])
+        signature.append([
+            relative, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return signature
 
 

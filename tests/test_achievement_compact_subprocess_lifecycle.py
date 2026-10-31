@@ -85,6 +85,32 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+    def test_success_cache_rejects_replaced_source_with_identical_mtime(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "achievements.json"
+            source.write_text("{}", encoding="utf-8")
+            compact = root / "success.jsonl"
+            sidecar = mod._achievement_compact_index_path(compact)
+            sidecar.write_text("{}", encoding="utf-8")
+            signature = mod._achievement_compact_source_signature(root)
+            self.assertEqual(len(signature[0]), 5)
+            compact.write_text(json.dumps({
+                "kind": "meta",
+                "schema_version": mod._ACHIEVEMENT_COMPACT_SCHEMA,
+                "source_signature": signature,
+            }) + "\n", encoding="utf-8")
+            self.assertTrue(mod._achievement_compact_cache_valid(compact, data_dir=root))
+            previous = source.stat()
+            replacement = root / "replacement.json"
+            replacement.write_text("[]", encoding="utf-8")
+            os.utime(replacement, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+            self.assertEqual(replacement.stat().st_size, previous.st_size)
+            replacement.replace(source)
+            self.assertFalse(mod._achievement_compact_cache_valid(compact, data_dir=root))
+
     def test_corrupt_compact_sidecar_falls_back_to_existing_worker(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
