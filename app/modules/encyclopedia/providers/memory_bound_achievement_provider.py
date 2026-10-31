@@ -884,7 +884,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             retained_set = set(retained_ids)
             observed = 0
             for raw_quest, raw_achievements in relation_rows.items():
-                if (not isinstance(raw_quest, str) or not raw_quest.isdecimal()
+                if (not isinstance(raw_quest, str)
+                        or not 0 < len(raw_quest) <= 20
+                        or not raw_quest.isascii() or not raw_quest.isdecimal()
                         or str(int(raw_quest)) != raw_quest
                         or not isinstance(raw_achievements, list)
                         or not raw_achievements

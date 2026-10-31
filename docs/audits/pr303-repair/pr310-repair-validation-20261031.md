@@ -359,3 +359,7 @@ Le constructeur de l'index Quête→Succès ignore désormais explicitement les 
 ## Worker Guide objets : sérialisation JSON en flux à mémoire transitoire réduite (31/10/2026)
 
 La génération de `guide_items_index` constituait encore le dictionnaire complet `items:{id:_compact_item_payload(item)}` avant `json.dump` : cette deuxième représentation en RAM doublonnait les objets déjà fournis par le worker. Le writer diffuse maintenant `schema_version`, `source_signature` et les lignes individuelles triées directement dans le fichier temporaire atomique, sans construction du grand dictionnaire de lignes. Contrat JSON, ordre déterministe, UTF-8, effets, sélection des champs `raw`, annulation/rollback et nettoyage `.tmp` inchangés. Régression sur deux objets hors ordre, sortie canonique et absence de temporaire ; la baisse du pic worker doit rester quantifiée par benchmark Windows et ne constitue pas encore un PASS RSS.
+
+## Index Quête→Succès : preuves de compatibilité et de remplacement concurrent (31/10/2026)
+
+Trois tests vérifient le sidecar historique sans `by_quest` (fallback complet), la publication atomique d'un JSONL de même taille/mtime après installation d'un mapping neuf (invalidation du mapping et résolution de la nouvelle relation) et un index corrompu avec clé numérique de 5 000 caractères. La validation des clés bornée à 20 chiffres ASCII avant `int` écarte l'exception Python sur conversion numérique démesurée et impose le fallback sans supprimer les anciens guides/succès. Aucun nouveau cache persistant ni migration.
