@@ -120,7 +120,17 @@ def ensure_achievement_compact_cache(
                 retained = index_payload.get("retained_count")
                 retained_ids = index_payload.get("retained_ids")
                 offsets = index_payload.get("offsets")
-                if (type(count) is int and count > 0
+                with path.open("r", encoding="utf-8") as stream:
+                    source_meta = json.loads(stream.readline())
+                source_marker = source_meta.get("cache_generation")
+                index_marker = index_payload.get("cache_generation")
+                same_generation = (
+                    (source_marker is None and index_marker is None)
+                    or (isinstance(source_marker, str) and bool(source_marker)
+                        and source_marker == index_marker)
+                )
+                if (same_generation
+                        and type(count) is int and count > 0
                         and type(retained) is int and 0 < retained <= count
                         and isinstance(retained_ids, list)
                         and len(retained_ids) == retained
@@ -756,6 +766,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             raise RuntimeError("Index compact Succès absent ou invalide") from exc
 
         categories: dict[int, AchievementCategory] = {}
+        source_marker: object = None
         with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
@@ -765,6 +776,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 if not isinstance(row, dict):
                     continue
                 kind = str(row.get("kind") or "")
+                if kind == "meta":
+                    source_marker = row.get("cache_generation")
+                    continue
                 if kind == "achievement":
                     break
                 value = row.get("value")
@@ -821,6 +835,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
+        index_marker = index_payload.get("cache_generation")
+        # Old schema-5 pairs had no marker and remain readable. A newly
+        # published pair must carry the SAME non-empty generation token.
+        if (source_marker is not None or index_marker is not None) and (
+            not isinstance(source_marker, str) or not source_marker
+            or source_marker != index_marker
+        ):
+            raise RuntimeError("Cache compact Succès et index de générations différentes")
         if (fingerprint(source_path) != source_generation
                 or fingerprint(sidecar_path) != sidecar_generation):
             raise RuntimeError("Cache compact Succès remplacé pendant le chargement")
@@ -1779,7 +1801,17 @@ def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
                 retained = index_payload.get("retained_count")
                 retained_ids = index_payload.get("retained_ids")
                 offsets = index_payload.get("offsets")
-                if (type(count) is int and count > 0
+                with path.open("r", encoding="utf-8") as stream:
+                    source_meta = json.loads(stream.readline())
+                source_marker = source_meta.get("cache_generation")
+                index_marker = index_payload.get("cache_generation")
+                same_generation = (
+                    (source_marker is None and index_marker is None)
+                    or (isinstance(source_marker, str) and bool(source_marker)
+                        and source_marker == index_marker)
+                )
+                if (same_generation
+                        and type(count) is int and count > 0
                         and type(retained) is int and 0 < retained <= count
                         and isinstance(retained_ids, list)
                         and len(retained_ids) == retained
@@ -1806,6 +1838,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = _unique_cache_temporary_path(path)
     temp_index = _unique_cache_temporary_path(index_path)
+    generation = uuid4().hex
     offsets: dict[str, list[int]] = {}
 
     def line_bytes(payload: dict[str, object]) -> bytes:
@@ -1819,6 +1852,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 {
                     "kind": "meta",
                     "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
+                    "cache_generation": generation,
                     "source_signature": _achievement_compact_source_signature(
                         RAW_QUEST_DATA_DIR
                     ),
@@ -1873,6 +1907,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
                 "achievement_count": len(provider._achievements),
                 "retained_count": len(retained),
+                "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
                 "by_category": {
                     str(category_id): list(dict.fromkeys(achievement_ids))

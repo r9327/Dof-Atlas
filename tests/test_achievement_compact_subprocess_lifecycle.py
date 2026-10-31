@@ -186,6 +186,38 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             replacement.replace(source)
             self.assertFalse(mod._achievement_compact_cache_valid(compact, data_dir=root))
 
+    def test_stable_mismatched_compact_generation_is_not_loaded(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "catalog.jsonl"
+            sidecar = mod._achievement_compact_index_path(path)
+            path.write_text(
+                "\n".join(json.dumps(row) for row in (
+                    {"kind": "meta", "cache_generation": "new-catalog"},
+                    {"kind": "category", "value": {"id": 8, "name": "Group"}},
+                    {"kind": "achievement", "value": {"id": 10}},
+                )) + "\n", encoding="utf-8",
+            )
+            sidecar.write_text(json.dumps({
+                "cache_generation": "old-index",
+                "achievement_count": 1, "retained_count": 1,
+                "retained_ids": [10], "offsets": {"10": [5, 6]},
+            }), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "générations différentes"):
+                    provider._load_from_compact_cache()
+                with patch.object(mod.subprocess, "run", return_value=subprocess.CompletedProcess(
+                    args=[], returncode=0,
+                    stdout='{"achievement_count":1}\n', stderr="",
+                )) as rebuild:
+                    self.assertEqual(mod.ensure_achievement_compact_cache(path=path), 1)
+                    rebuild.assert_called_once()
+
     def test_compact_sidecar_swap_during_read_cannot_install_mixed_catalogue(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
