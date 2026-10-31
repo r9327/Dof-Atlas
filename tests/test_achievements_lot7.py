@@ -227,6 +227,17 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
         cls.provider = AchievementProvider()
         cls.provider.load_all()
 
+    def wait_for_detail_state(self, view: AchievementsView, expected: bool) -> None:
+        for _ in range(250):
+            self.app.processEvents()
+            if view._detail_open is expected:
+                return
+            QTest.qWait(20)
+        self.fail(
+            f"Achievement detail did not become {expected}; "
+            f"pending={view._detail_requested!r}"
+        )
+
     def test_alignment_choice_is_persisted_per_character(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "achievement_progress.json"
@@ -329,6 +340,7 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
                 quest_progress_service=QuestProgressService(root / "quest_progress.json"),
             )
             self.assertTrue(view.select_achievement(1213))
+            self.wait_for_detail_state(view, True)
             combo = view.findChild(QComboBox, "AchievementAlignmentOrderCombo")
             self.assertIsNotNone(combo)
             assert combo is not None
@@ -488,17 +500,17 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
             self.assertFalse(view._detail_open)
 
             view.on_achievement_clicked(item)
-            self.app.processEvents()
+            self.wait_for_detail_state(view, True)
             self.assertTrue(view._detail_open)
             self.assertTrue(view.findChildren(AchievementDetailWidget))
 
             view.on_achievement_clicked(item)
-            self.app.processEvents()
+            self.wait_for_detail_state(view, False)
             self.assertFalse(view._detail_open)
             self.assertFalse(view.findChildren(AchievementDetailWidget))
 
             view.on_achievement_clicked(item)
-            self.app.processEvents()
+            self.wait_for_detail_state(view, True)
             self.assertTrue(view._detail_open)
             self.assertEqual(view.splitter.count(), 3)
             view.deleteLater()

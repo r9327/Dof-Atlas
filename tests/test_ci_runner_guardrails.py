@@ -88,10 +88,18 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
         self.assertIn("doduda.exe", source)
         self.assertIn("QuestCatalog.load()", source)
 
-    def test_public_pinned_benchmarks_do_not_require_unused_lfs_binary(self) -> None:
-        for name in ("atlas-exhaustive-benchmark.yml", "atlas-short-full-app.yml"):
+    def test_public_pinned_benchmarks_do_not_require_unused_lfs_inputs(self) -> None:
+        for name in (
+            "atlas-exhaustive-benchmark.yml",
+            "atlas-short-full-app.yml",
+            "doctor-runtime-perf.yml",
+            "doctor-ui.yml",
+            "phase8-memory-benchmark.yml",
+            "phase8-preload-benchmark.yml",
+        ):
             source = self._workflow(name)
             with self.subTest(workflow=name):
+                self.assertNotIn("git lfs pull", source)
                 self.assertNotIn("tools/doduda/doduda.exe", source)
                 self.assertIn("python -m scripts.windows.quest_assets --download", source)
                 self.assertIn("python -m scripts.windows.craft_seed --download", source)
