@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -90,6 +91,30 @@ class PrebuiltGuideRouteTests(unittest.TestCase):
                 load_detail(restored._catalog_detail_store_path, 500)["manual_lines"],
                 source.cards[500]["manual_lines"],
             )
+
+    def test_relative_release_directory_restores_read_only_sqlite(self):
+        # The Windows release builder passes data/bootstrap/guide_routes as
+        # a relative path. SQLite URI reads must resolve it before as_uri().
+        with tempfile.TemporaryDirectory() as tmp:
+            previous = Path.cwd()
+            try:
+                os.chdir(tmp)
+                source = self._source()
+                directory = Path("data/bootstrap/guide_routes")
+                publish_prebuilt_route(source, directory, source_sha="d" * 40)
+                restored = SimpleNamespace(
+                    guide_id=GUIDE_ID,
+                    catalog_guide=source.catalog_guide,
+                    quest_provider=source.quest_provider,
+                )
+                self.assertTrue(restore_prebuilt_route(restored, directory=directory))
+                self.assertEqual(len(restored.cards), 1001)
+                self.assertEqual(
+                    load_detail(restored._catalog_detail_store_path, 500)["manual_lines"],
+                    source.cards[500]["manual_lines"],
+                )
+            finally:
+                os.chdir(previous)
 
     def test_tampered_route_and_source_manifest_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
