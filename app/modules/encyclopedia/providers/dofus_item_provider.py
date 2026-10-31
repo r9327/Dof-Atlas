@@ -775,6 +775,9 @@ def _dump_compact_default_items() -> int:
 
 
 def _build_guide_items_index(path: Path) -> int:
+    # Pin the sources BEFORE loading the large catalogue. A worker must not
+    # sign new sources around objects compiled from an older generation.
+    before = _guide_item_source_signature(RAW_QUEST_DATA_DIR)
     provider = DofusItemProvider(RAW_QUEST_DATA_DIR)
     requested = _collect_guide_item_ids()
     extra_items = provider._load_in_process(extra_item_ids=requested)
@@ -782,6 +785,8 @@ def _build_guide_items_index(path: Path) -> int:
     items.update(extra_items)
 
     source_signature = _guide_item_source_signature(RAW_QUEST_DATA_DIR)
+    if before != source_signature:
+        raise RuntimeError("Guide item sources changed during cache build")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     # All Atlas instances can rebuild this shared source cache concurrently.
@@ -807,6 +812,8 @@ def _build_guide_items_index(path: Path) -> int:
                     stream, ensure_ascii=False, separators=(",", ":"),
                 )
             stream.write("}}\n")
+        if _guide_item_source_signature(RAW_QUEST_DATA_DIR) != before:
+            raise RuntimeError("Guide item sources changed before cache publication")
         temporary.replace(path)
     finally:
         # Failed write, permissions and Windows sharing errors must never

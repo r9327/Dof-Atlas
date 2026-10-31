@@ -274,6 +274,37 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
             self.assertEqual(content.count('"source_signature"'), 1)
             self.assertEqual(list(output.parent.glob(".*.tmp")), [])
 
+    def test_item_cache_builder_keeps_previous_cache_on_source_generation_race(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+        from app.modules.encyclopedia.models.dofus_item import DofusItem
+
+        item = DofusItem(
+            id=42, original_id=42, name="Item", level=200,
+            type_id=23, type_name="Dofus",
+        )
+        provider = Mock()
+        provider._items = [item]
+        provider._load_in_process.return_value = {}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "guide-items.json"
+            output.write_text('{"previous":true}\n', encoding="utf-8")
+            previous = output.read_bytes()
+            for signatures in (
+                [[], [["changed", 1]]],
+                [[], [], [["changed", 2]]],
+            ):
+                with self.subTest(signatures=signatures):
+                    with (
+                        patch.object(mod, "DofusItemProvider", return_value=provider),
+                        patch.object(mod, "_collect_guide_item_ids", return_value={42}),
+                        patch.object(mod, "_guide_item_source_signature",
+                                     side_effect=signatures),
+                    ):
+                        with self.assertRaisesRegex(RuntimeError, "sources changed"):
+                            mod._build_guide_items_index(output)
+                    self.assertEqual(output.read_bytes(), previous)
+                    self.assertEqual(list(output.parent.glob(".*.tmp")), [])
+
     def test_full_dofus_load_drops_compact_guide_row_graph(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 
