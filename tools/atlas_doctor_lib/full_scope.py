@@ -119,7 +119,8 @@ def _current_graph_audit(root: Path, sha: str) -> dict[str, Any]:
 
 
 def audit_full_scope(root: Path, *, expected_sha: str | None = None,
-                     with_graph: bool = False, with_json: bool = False) -> dict[str, Any]:
+                     with_graph: bool = False, with_json: bool = False,
+                     with_links: bool = False) -> dict[str, Any]:
     """Scan *every* tracked Python file, fail closed on missing or unreadable ones.
 
     SOURCE_COVERED does not imply runtime, Graphify, UI or native certification.
@@ -227,11 +228,17 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
     else:
         json_audit = {"status": "NOT_RUN", "syntax_coverage": "NOT_RUN"}
     json_failed = with_json and json_audit.get("status") == "BLOCKED"
+    if with_links:
+        from .resource_link_audit import inspect_resource_links
+        links_audit = inspect_resource_links(root, all_paths, paths, json_files)
+    else:
+        links_audit = {"status": "NOT_RUN", "reason": "Use --with-links for advisory resource consumer triage."}
+    links_failed = with_links and links_audit.get("status") == "BLOCKED"
     return {
         "schema_version": 1, "kind": "doctor_full_scope_audit",
         "candidate_sha": sha, "worktree_clean": clean,
         # NO false global PASS: dynamic callbacks, EXE, UI, user paths NOT RUN.
-        "status": "BLOCKED" if source_status == "BLOCKED" or graph_failed or json_failed else "REVIEW",
+        "status": "BLOCKED" if source_status == "BLOCKED" or graph_failed or json_failed or links_failed else "REVIEW",
         "tracked_file_inventory": {
             "status": "INVENTORIED_NOT_CONTENT_CERTIFIED",
             "tracked_total": len(all_paths),
@@ -283,6 +290,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
         },
         "runtime_scenario_coverage": "NOT_RUN",
         "json_semantic_audit": json_audit,
+        "resource_link_audit": links_audit,
         "graph_architecture_audit": graph,
         "graph_runtime_correlation": "NOT_RUN",
         "tests_executed": False, "benchmark_executed": False,
