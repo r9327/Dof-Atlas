@@ -71,6 +71,26 @@ class PrebuiltGuideRouteTests(unittest.TestCase):
                 self.assertEqual(detail["manual_lines"], source.cards[idx]["manual_lines"])
                 self.assertEqual(detail["manual_sections"], source.cards[idx]["manual_sections"])
 
+    def test_relative_output_matches_windows_portable_build_contract(self):
+        # The Windows package writes to data/bootstrap/guide_routes, a relative
+        # path. Path.as_uri() rejects it even when the SQLite file exists.
+        with tempfile.TemporaryDirectory(dir=".") as temp:
+            root = Path(temp)
+            self.assertFalse(root.is_absolute())
+            source = self._source()
+            publish_prebuilt_route(source, root, source_sha="d" * 40)
+            restored = SimpleNamespace(
+                guide_id=GUIDE_ID,
+                catalog_guide=source.catalog_guide,
+                quest_provider=source.quest_provider,
+            )
+            self.assertTrue(restore_prebuilt_route(restored, directory=root))
+            self.assertEqual(len(restored.cards), 1001)
+            self.assertEqual(
+                load_detail(restored._catalog_detail_store_path, 500)["manual_lines"],
+                source.cards[500]["manual_lines"],
+            )
+
     def test_tampered_route_and_source_manifest_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             src = self._source()
