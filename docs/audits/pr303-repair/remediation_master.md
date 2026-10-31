@@ -97,3 +97,28 @@ Voir [commit_ledger.md](commit_ledger.md), **387 SHA uniques**. Le script `tools
 **Preuves strictement attachées à #310@`ab73c56` (SHA précédant l'ajout de cette note) :** [audit patches](https://github.com/r9327/Dof-Atlas/actions/runs/41200996544) **SUCCESS** pour **387/387** diffs automatisés, mais revue humaine `NOT_RUN` ; [Doctor complet JSON et ressources](https://github.com/r9327/Dof-Atlas/actions/runs/41200996549) **SUCCESS technique**, verdict métier `REVIEW`, **1201/1201 Python**, **420/420 JSON syntaxiquement valides**, **213 groupes AST**, **253 exceptions**, **33411 ressources non reliées statiquement**, **582 unresolved**, **537 unsafe**, **111 correspondances possibles**. La [preuve Windows Guides de ce même SHA](https://github.com/r9327/Dof-Atlas/actions/runs/41200996594) a été **SKIPPED**. La [FULL ancienne](https://github.com/r9327/Dof-Atlas/actions/runs/41197183499), sur `c04c813`, a échoué avant construction de l'EXE réel. Les deux nouveaux commits documentaires doivent être audités à leur tour.
 
 **Contrat final ajouté :** classer chaque anomalie par ID en `KEEP / CONFIRMED_OPEN / FIX_COMMITTED_PROOF_PENDING / VERIFIED / REVIEW / BLOCKED` avec cause, fichier, modification, SHA et test réel. Ne pas déclarer les 213, 253 ou 33411 candidats corrigés, et ne pas déduire un installateur certifié des tests statiques. Rappel des mesures réelles sur `c04c813` : **Home 115,73 Mio >100**, **Guide 247,61 Mio ≤250 mais marge 2,39 Mio**, **préload Guide 13,898 s**, **27 placeholders parmi 60 visites**. La responsabilité du launcher demeure dans **#285**.
+
+
+## Règle de réparation obligatoire : REVIEW = travail ouvert, pas conformité
+
+**Décision du 31 octobre 2026.** Toute entrée `REVIEW`, `NOT_RUN`, `BLOCKED`, `CONFIRMED_OPEN` ou `FIX_COMMITTED_PROOF_PENDING` reste un **travail ouvert et non certifié**. Un scan exhaustif qui signale une hypothèse ne prouve ni une anomalie réelle, ni sa conformité. Le mot `REVIEW` ne peut plus servir de statut terminal ni justifier une fusion.
+
+### Résolution obligatoire de chaque entrée
+1. **Examiner** l'occurrence réelle (fichier/ligne/ID/SHA et consommation statique, dynamique, packaging, données). Recouper Doctor et Graphify sans confondre piste et bug.
+2. **Décider** à partir des preuves :
+   - `FIX_REQUIRED` : défaut confirmé, corriger la cause minimale, conserver le comportement attendu, tester et mesurer ; statut terminal uniquement `FIXED_VERIFIED`.
+   - `KEEP_REQUIRED` : comportement intentionnel ou faux positif ; consigner pourquoi, prouver le ou les consommateurs et exécuter le contrôle adéquat ; statut terminal uniquement `KEEP_VERIFIED`.
+   - `BLOCKED` / `NOT_RUN` / `REVIEW` : manque de preuve ou de contrôle, **reste ouvert**, même si la CI de détection est verte.
+3. **Tracer** pour chaque ID : catégorie, cause, criticité, statut initial et final, fichier/ligne, décision et justification, commit de correction éventuel, test réussi/échoué, run, SHA exact, impacts Windows/Qt/data, risque résiduel et preuve de parité.
+4. **Contre-exemples et faux positifs** : ne pas modifier des interfaces AST identiques volontairement, ne pas supprimer un script PowerShell orphelin seulement dans le graphe Python, ne pas supprimer un PNG référencé par ID, ne pas transformer un fallback d'exception délibéré en crash. La conformité doit être **démontrée**, pas supposée.
+5. **Vérification en lots** : les milliers de ressources peuvent être classées par une règle déterministe (manifeste, SHA, mapping ID, consommateur, distribution) à condition de conserver **une ligne nominative par fichier et sa preuve** ; chaque exception de la règle passe en revue individualisée. Ne pas accepter un simple résultat agrégé `33411 reviewed`.
+6. **Clôture/fusion** : chaque défaut confirmé doit être réparé et testé ; chaque signal non confirmé doit être résolu par une preuve `KEEP_VERIFIED` ou demeurer ouvert, identifié comme bloquant selon sa criticité. Les P0, références actives non résolues, erreurs de packaging, intégrité/progression et budgets mémoire non atteints bloquent la fusion. Aucun faux `PASS` pour un contrôle Windows `SKIPPED`.
+
+### Priorité de réparation (ne pas commencer par des refactors abstraits)
+- **P0 immédiat** : réconcilier les deux commits Sylvestre #303/#310, corriger le packaging Windows réellement bloqué, valider l'EXE/installateur ; réconcilier l'audit des 389 commits, contrôle final exact-SHA ; Home 115,73 Mio contre <100 Mio.
+- **P1 données fonctionnelles** : 582+537+111 références à qualifier, schémas/IDs/liaisons Ganymède et données réelles, erreurs silencieuses confirmées ; conserver les assets validés.
+- **P1 mémoire/performance** : Guide 247,61 Mio (marge insuffisante) et préload 13,898 s à mesurer puis optimiser sur scénarios comparables, cycles Qt, écrans et placeholders.
+- **P2 maintenabilité/style** : 213 groupes AST, 253 exceptions, 33411 assets, 4 cycles, 6 orphelins, 8 imports non reliés, 15 QSS ; classifier précisément, corriger uniquement les défauts confirmés ou la dette réellement risquée.
+- **Certification** : références par ID, tests Windows natifs/Qt, Doctor, Graphify, comparaison RAM/latence, revue finale des commits et du diff exact HEAD, résultat non tronqué.
+
+**Ce registre constitue un engagement de réparation/justification, pas la preuve que ces réparations ont déjà été codées.**
