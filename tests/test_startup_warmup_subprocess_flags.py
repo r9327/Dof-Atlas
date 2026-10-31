@@ -85,6 +85,30 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         self.assertIn(enriched, warmup._source_paths("guide"))
         self.assertNotIn(enriched, warmup._source_paths("success"))
 
+    def test_source_stamp_detects_atomic_replacement_with_equal_size_and_mtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "quests.json"
+            source.write_bytes(b'{"v":1}')
+            with (
+                patch.object(warmup, "ROOT", root),
+                patch.object(warmup, "_source_paths", return_value=[source]),
+            ):
+                first = warmup._source_stamp("quest")
+                self.assertEqual(first[0], ["stamp_version", 2, 0])
+                self.assertEqual(len(first[1]), 5)
+                first_stat = source.stat()
+                replacement = root / "replacement.json"
+                replacement.write_bytes(b'{"v":2}')
+                os.utime(replacement, ns=(
+                    first_stat.st_atime_ns, first_stat.st_mtime_ns,
+                ))
+                replacement.replace(source)
+                after_stat = source.stat()
+                self.assertEqual(after_stat.st_size, first_stat.st_size)
+                self.assertEqual(after_stat.st_mtime_ns, first_stat.st_mtime_ns)
+                self.assertNotEqual(warmup._source_stamp("quest"), first)
+
     def test_quest_cache_reuse_rejects_missing_or_incomplete_detail_indexes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)

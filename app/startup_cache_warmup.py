@@ -18,7 +18,7 @@ RESULT_PATH = CACHE_ROOT / "startup_cache_warmup_v1.json"
 STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
 _MANIFEST_SCHEMA_VERSION = 3
-_DOMAIN_STAMP_VERSION = 1
+_DOMAIN_STAMP_VERSION = 2
 # Quest is the Home dependency; Guide and Success may continue after Home paints.
 _DOMAIN_ORDER = ("quest", "guide", "success")
 
@@ -247,9 +247,15 @@ def _source_stamp(domain: str) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            rows.append([label, -1, -1])
+            rows.append([label, -1, -1, -1, -1])
             continue
-        rows.append([label, int(stat.st_size), int(stat.st_mtime_ns)])
+        # A source JSON replaced atomically can retain its size/mtime.
+        # Match the artefact generation fingerprint so the whole domain
+        # rebuilds instead of reusing a cache signed for previous bytes.
+        rows.append([
+            label, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return rows
 
 

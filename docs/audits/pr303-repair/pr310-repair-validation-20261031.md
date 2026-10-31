@@ -226,3 +226,9 @@ L'amélioration concerne la copie transitoire et la fiabilité, sans démonstrat
 ## Preuve d'intégration du tampon d'effets dans le vrai constructeur Objets (31/10/2026)
 
 En plus du test autonome des 4097 lignes, la régression `CompactGuideItemEffectTests.test_real_item_worker_uses_spool_and_retains_late_effect_override` traverse `DofusItemProvider._load_in_process` avec les références source synthétiques : ligne d'effet RID 77 avant et après l'objet Dofus, valeur finale 9, une seule ouverture de `SpooledTemporaryFile(max_size=1048576)`. Elle couvre le branchement effectif du nouveau tampon dans le worker, sans lire ni modifier les données réelles. Le budget RSS Windows n'est pas encore attesté.
+
+## Empreinte des sources du preload : remplacement atomique détecté (31/10/2026)
+
+`startup_cache_warmup._source_stamp` comparait encore uniquement taille et `mtime_ns` des JSON **source**, laissant une différence avec la protection déjà ajoutée aux artefacts jetables. La signature des sources inclut maintenant `ctime_ns` et `st_ino`, et `_DOMAIN_STAMP_VERSION` passe de 1 à 2 : anciens manifestes automatiquement invalidés une fois, sans migration utilisateur. Une installation/synchronisation qui remplace un JSON par un autre de même taille et `mtime_ns` ne peut plus réutiliser son ancien manifeste sur cette seule empreinte. Test avec réel `Path.replace()` et date restaurée, sur la voie canonicalisée `_source_stamp`.
+
+Pas de lecture complète ou hash des contenus à chaque démarrage : il s'agit d'une empreinte système rapide, avec les mêmes limites de sécurité qu'un stat, pas d'une certification cryptographique.
