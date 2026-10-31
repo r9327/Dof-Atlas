@@ -551,7 +551,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def _load(self) -> None:
         default_guides_dir = Path(GUIDES_DIR).resolve(strict=False)
         current_guides_dir = Path(self.guides_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_guides_dir != default_guides_dir:
+        if current_guides_dir != default_guides_dir:
+            # Custom sources must not use a compact cache built for defaults.
             self._load_in_process()
             return
         if _guide_compact_cache_valid(
@@ -559,14 +560,18 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             guides_dir=self.guides_dir,
         ):
             try:
+                # A packaged EXE benefits from the same lightweight summaries:
+                # do not parse the full Guide source graph just because frozen.
                 self._load_from_compact_cache()
                 return
             except (OSError, UnicodeError, ValueError, RuntimeError) as exc:
-                # An otherwise valid signature can still refer to a truncated
-                # JSONL body. Reuse the existing disposable source extractor.
                 logging.getLogger(__name__).warning(
                     "Guide compact cache rejected; rebuilding from sources: %s", exc,
                 )
+        if bool(getattr(sys, "frozen", False)):
+            # No python -m child is available from a frozen executable.
+            self._load_in_process()
+            return
         self._load_from_compact_subprocess()
 
     def _load_from_compact_cache(self) -> None:

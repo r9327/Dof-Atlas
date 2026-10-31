@@ -184,3 +184,9 @@ Cette validation reste localisée à la navigation par entité, sans double cach
 ## Contrat Guide compact schéma 2 : en-tête signé obligatoire pour les relations à froid
 
 La recherche `guide_ids_for_quest_fast` accepte désormais seulement les caches possédant **les deux compteurs entiers canoniques** `guide_count` et `entity_index_count`, déjà exigés par le worker et le chemin `ensure_guide_compact_cache`. Un ancien en-tête sans cardinalité ne peut plus rendre `()` et masquer une relation avec une quête absente d'un cache tronqué. Il renvoie `None` pour déclencher le fallback canonique. Test ciblé pour absence de chacun des deux compteurs ; aucune migration des données utilisateur, aucun changement de format du writer.
+
+## Runtime Windows figé : priorité au cache Guide réellement préchargé (31/10/2026)
+
+Correction du chemin `MemoryBoundGuideProvider._load()` : l'ancien test `sys.frozen` imposait systématiquement `_load_in_process()` **avant** de consulter le JSONL compact, même si le préchargement avait produit des résumés valides. Les installations Windows packagées perdaient donc le bénéfice mémoire de ce cache et relisaient les gros JSON sources dans le processus UI. Pour les sources canoniques, la lecture compacte validée est maintenant utilisée **également en EXE figé**. Si cache absent ou corrompu : repli `_load_in_process` préexistant, sans tentative d'exécuter `python -m` depuis l'EXE. Les sources personnalisées restent en mode in-process. Tests ciblés des trois branches (cache valide, absent, corrompu) avec `sys.frozen` simulé.
+
+Le chemin compact élimine le chargement lourd **dans ce scénario**, mais le gain RSS/latence réel et le fonctionnement d'un EXE packagé restent à mesurer sur Windows exact-SHA. Aucun contrat de données ou progression modifié.

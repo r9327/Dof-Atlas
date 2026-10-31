@@ -44,6 +44,43 @@ class CompactGuideRelationTests(unittest.TestCase):
         provider._ensure_loaded = Mock(side_effect=AssertionError("Cold lookup loaded catalogue"))
         return provider
 
+    def test_frozen_guide_reuses_compact_cache_before_heavy_source_loading(self):
+        with (
+            patch.object(mod.sys, "frozen", True, create=True),
+            patch.object(mod, "GUIDES_DIR", Path("synthetic-guides")),
+            patch.object(mod, "_guide_compact_cache_valid", return_value=True),
+        ):
+            provider = self._provider(Path("synthetic-guides"))
+            with (
+                patch.object(provider, "_load_from_compact_cache") as compact,
+                patch.object(provider, "_load_in_process") as heavy,
+                patch.object(provider, "_load_from_compact_subprocess") as child,
+            ):
+                provider._load()
+                compact.assert_called_once_with()
+                heavy.assert_not_called()
+                child.assert_not_called()
+
+    def test_frozen_guide_falls_back_in_process_when_cache_is_missing_or_corrupt(self):
+        with (
+            patch.object(mod.sys, "frozen", True, create=True),
+            patch.object(mod, "GUIDES_DIR", Path("synthetic-guides")),
+        ):
+            for valid, corrupt in ((False, False), (True, True)):
+                with self.subTest(valid=valid, corrupt=corrupt):
+                    provider = self._provider(Path("synthetic-guides"))
+                    with (
+                        patch.object(mod, "_guide_compact_cache_valid", return_value=valid),
+                        patch.object(provider, "_load_from_compact_cache",
+                                     side_effect=RuntimeError("corrupt") if corrupt else None) as compact,
+                        patch.object(provider, "_load_in_process") as heavy,
+                        patch.object(provider, "_load_from_compact_subprocess") as child,
+                    ):
+                        provider._load()
+                        heavy.assert_called_once_with()
+                        child.assert_not_called()
+                        self.assertEqual(compact.call_count, int(valid))
+
     def test_valid_cache_avoids_catalogue_loading_and_has_exact_ids(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
