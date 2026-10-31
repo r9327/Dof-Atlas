@@ -139,3 +139,18 @@ Les intégrations futures doivent être réalisées **dans les PR propriétaires
 ## Références de gouvernance
 
 [AGENTS.md](../../AGENTS.md), [AI_ENTRYPOINT.md](../../AI_ENTRYPOINT.md), [DEVELOPMENT_GUARDRAILS.md](../../DEVELOPMENT_GUARDRAILS.md), [PERFORMANCE_GUARDRAILS.md](../../PERFORMANCE_GUARDRAILS.md), [PHASE_CERTIFICATION.md](../../PHASE_CERTIFICATION.md), [ROAD_IA.md](../../ROAD_IA.md), [Graphify](../../GRAPHIFY.md), [Doctor Perf Lab](../doctor_performance_lab.md), [Delivery Guard](../delivery/DELIVERY_GUARD.md), [outillage IA](../../tools/skills/dofus-atlas-tools/SKILL.md).
+
+
+## 7. Compléments de l'audit croisé — cinq candidats supplémentaires
+
+Les **29 projets du tableau principal restent le contrat documentaire de la PR**. La recherche parallèle #314 a identifié **5 références supplémentaires non présentes dans ces 29** (soit **34 projets examinés** au total). Elles ne sont **pas ajoutées d'office aux dépendances**, aux 29 IDs ni au plan de test ; leur sort se décide dans les propriétaires existants et peut être `KEEP_EXISTING` ou `REJECT`. Cette annexe évite une perte de recherche sans déplacer le scope ou réduire les exigences de l'issue #311.
+
+| ID annexe | Projet GitHub | Propriétaire existant / décision provisoire | Preuve exigée avant adoption |
+|---|---|---|---|
+| AT-SUP-01 | [jsonschema](https://github.com/python-jsonschema/jsonschema) | `tools/atlas_json_inventory.py` et `tests/test_critical_json_schema.py` ; **TRIAL** sur schémas non déjà couverts | Fixtures de liens/IDs invalides, compatibilité avec règles de progression Dofus, coût dans Doctor, zéro second validateur de référence |
+| AT-SUP-02 | [PyInstaller](https://github.com/pyinstaller/pyinstaller) | `scripts/windows/package_release.py` et `scripts/windows/certify_public_install.py` ; **ASSESS_EXISTING** | Identifier le packager réel et sa version sur la branche propriétaire #285, puis tester build/EXE/antivirus/QtWebEngine sur Windows sans migration inutile |
+| AT-SUP-03 | [Nuitka](https://github.com/Nuitka/Nuitka) | Packaging Windows ; **REFERENCE_ONLY** | Comparaison isolée contre build actuel, licence/redistribution (GitHub signale AGPL-3.0), taille, mémoire, cold start, coût CI ; pas de remplacement par défaut |
+| AT-SUP-04 | [pip-audit](https://github.com/pypa/pip-audit) | Validation de `requirements-pyside.txt` ; **CHOOSE_ONE** face à OSV-Scanner | Audit exact des versions verrouillées, faux positifs, fraîcheur/conditions offline, pas de deux scanners obligatoires à chaque PR |
+| AT-SUP-05 | [Pydantic](https://github.com/pydantic/pydantic) | Contrats JSON et actions `tools/guide_action_contract.py` ; **DEFER** | Montrer une validation utile absente des dataclasses/contrats natifs ; sinon conserver les règles existantes et zéro import runtime |
+
+**Audit consolidé (Holding #60 et Atlas #312)** : la liaison `holding/atlas_doctor_runner.py` / `holding/atlas_doctor_evidence.py` doit être éprouvée en réel, **pas réimplémentée en MCP**. Les deux PR restent documentaires, leurs lots futurs sont `NOT_IMPLEMENTED`. Le suivi des exigences d'**implémentation effective** est distinct du dossier #311 et se trouve dans l'[issue Atlas #313](https://github.com/r9327/Dof-Atlas/issues/313) ; aucune de ses exigences code n'est déclarée accomplie. Une simple présence dans ce tableau ne vaut pas `TOOL_SPEC`, `READY` ou test d'exécution.
