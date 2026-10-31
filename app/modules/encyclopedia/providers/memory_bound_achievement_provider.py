@@ -1763,8 +1763,18 @@ def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
                 index_payload = json.loads(
                     _achievement_compact_index_path(path).read_text(encoding="utf-8")
                 )
-                count = int(index_payload.get("achievement_count") or 0)
-                if count > 0:
+                count = index_payload.get("achievement_count")
+                retained = index_payload.get("retained_count")
+                retained_ids = index_payload.get("retained_ids")
+                offsets = index_payload.get("offsets")
+                if (type(count) is int and count > 0
+                        and type(retained) is int and 0 < retained <= count
+                        and isinstance(retained_ids, list)
+                        and len(retained_ids) == retained
+                        and all(type(value) is int for value in retained_ids)
+                        and len(set(retained_ids)) == retained
+                        and isinstance(offsets, dict)
+                        and len(offsets) == retained):
                     print(json.dumps(
                         {"achievement_count": count, "path": str(path)},
                         ensure_ascii=False, separators=(",", ":"),

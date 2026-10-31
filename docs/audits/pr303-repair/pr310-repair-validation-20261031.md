@@ -294,3 +294,7 @@ Le catalogue compact Succès se compose d'un JSONL et d'un index compagnon publi
 ## Préchargement Succès : reconstruire un index compagnon corrompu (31/10/2026)
 
 `ensure_achievement_compact_cache` renvoyait directement zéro lorsque le JSONL avait un header courant mais l'index de positionnements compagnon était illisible, incomplet ou dépourvu de compteurs cohérents ; cela empêchait le preload de lancer la reconstruction. Le garde-fou exige désormais compteur de succès positif, compteur retenu positif et inférieur au total, IDs retenus uniques/cohérents et offsets présents pour la même cardinalité ; en cas de défaut, le worker existant est appelé au lieu de retourner un faux zéro. Le mode EXE figé conserve sa limitation : aucune invocation de `python -m`. Deux tests vérifient la reconstruction demandée et la réutilisation du compagnon valide, sans créer de nouveau pipeline.
+
+## Builder Succès : réparation des compagnons valides en surface seulement (31/10/2026)
+
+La réparation demandée par `ensure_achievement_compact_cache` passait au builder sous verrou qui se contentait encore de `achievement_count > 0` pour réutiliser le compagnon abîmé. `_build_compact_cache` vérifie désormais aussi le compteur retenu, les IDs retenus uniques et la cardinalité de la table d'offsets avant de retourner sans rebuild. Tests : faux compteur positif avec offsets absents doit appeler la reconstruction, compagnon complet doit rester réutilisable et ne déclenche aucun travail de source. Le verrou existant et les sorties machine restent conservés.

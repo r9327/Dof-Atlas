@@ -85,6 +85,42 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+    def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta"}\n', encoding="utf-8")
+            mod._achievement_compact_index_path(path).write_text(
+                '{"achievement_count":99}', encoding="utf-8",
+            )
+            with (
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod, "_build_compact_cache_unlocked", return_value=0) as rebuild,
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(mod._build_compact_cache(path), 0)
+                rebuild.assert_called_once_with(path)
+
+    def test_locked_builder_reuses_complete_valid_offset_sidecar(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta"}\n', encoding="utf-8")
+            mod._achievement_compact_index_path(path).write_text(json.dumps({
+                "achievement_count": 3, "retained_count": 2,
+                "retained_ids": [10, 11],
+                "offsets": {"10": [30, 40], "11": [70, 50]},
+            }), encoding="utf-8")
+            with (
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod, "_build_compact_cache_unlocked",
+                             side_effect=AssertionError("complete cache must be reused")),
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(mod._build_compact_cache(path), 0)
+
     def test_ensure_success_preload_rebuilds_invalid_existing_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
