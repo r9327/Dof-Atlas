@@ -523,6 +523,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         # None preserves the validated JSONL scan for historical caches.
         self._compact_quest_ids_by_quest: dict[int, tuple[int, ...]] | None = None
         self._compact_quest_map_stamp: tuple[int, int, int, int] | None = None
+        self._compact_quest_sidecar_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         # One active rich detail + two previous ones. Reopening a Success must
         # not spend another 5s rebuilding a disposable detail worker.
@@ -573,6 +574,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_link_stamp = None
         self._compact_quest_ids_by_quest = None
         self._compact_quest_map_stamp = None
+        self._compact_quest_sidecar_stamp = None
         self._compact_summary_cache.clear()
         self._reset_sources()
 
@@ -699,6 +701,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._by_quest = defaultdict(list, by_quest)
         self._compact_quest_ids_by_quest = None
         self._compact_quest_map_stamp = None
+        self._compact_quest_sidecar_stamp = None
         self._progress_objectives = progress_objectives
         # Compatibility subprocess may replace the whole catalogue in the
         # same provider. Never retain rich detail objects from older sources.
@@ -901,6 +904,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     relation_map = candidate
         self._compact_quest_ids_by_quest = relation_map
         self._compact_quest_map_stamp = source_generation if relation_map is not None else None
+        self._compact_quest_sidecar_stamp = (
+            sidecar_generation if relation_map is not None else None
+        )
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
@@ -1282,17 +1288,34 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         except OSError:
             self._compact_quest_link_cache.clear()
             self._compact_quest_link_stamp = None
+            self._compact_quest_ids_by_quest = None
+            self._compact_quest_map_stamp = None
+            self._compact_quest_sidecar_stamp = None
             return ()
         if self._compact_quest_link_stamp != stamp:
             self._compact_quest_link_cache.clear()
             self._compact_quest_link_stamp = stamp
         if self._compact_quest_ids_by_quest is not None:
-            if getattr(self, "_compact_quest_map_stamp", None) == stamp:
-                # The sidecar was checked with the JSONL on catalogue load.
-                # No per-quest scan and no additional rich Achievement objects.
+            try:
+                sidecar = _achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE)
+                current = sidecar.stat()
+                sidecar_stamp = (
+                    current.st_size, current.st_mtime_ns,
+                    current.st_ctime_ns, current.st_ino,
+                )
+            except OSError:
+                sidecar_stamp = None
+            if (
+                getattr(self, "_compact_quest_map_stamp", None) == stamp
+                and getattr(self, "_compact_quest_sidecar_stamp", None) == sidecar_stamp
+                and sidecar_stamp is not None
+            ):
+                # Both files still belong to the generation validated on load.
+                # No JSONL scan and no rich Achievement materialization.
                 return self._compact_quest_ids_by_quest.get(quest_id, ())
             self._compact_quest_ids_by_quest = None
             self._compact_quest_map_stamp = None
+            self._compact_quest_sidecar_stamp = None
         cached = self._compact_quest_link_cache.get(quest_id)
         if cached is not None:
             self._compact_quest_link_cache.move_to_end(quest_id)

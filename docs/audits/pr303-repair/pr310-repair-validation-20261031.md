@@ -363,3 +363,7 @@ La génération de `guide_items_index` constituait encore le dictionnaire comple
 ## Index Quête→Succès : preuves de compatibilité et de remplacement concurrent (31/10/2026)
 
 Trois tests vérifient le sidecar historique sans `by_quest` (fallback complet), la publication atomique d'un JSONL de même taille/mtime après installation d'un mapping neuf (invalidation du mapping et résolution de la nouvelle relation) et un index corrompu avec clé numérique de 5 000 caractères. La validation des clés bornée à 20 chiffres ASCII avant `int` écarte l'exception Python sur conversion numérique démesurée et impose le fallback sans supprimer les anciens guides/succès. Aucun nouveau cache persistant ni migration.
+
+## Succès : invalider aussi la carte de quêtes quand le sidecar change (31/10/2026)
+
+Après chargement, le mapping facultatif `by_quest` ne vérifiait que l'empreinte du JSONL. Un autre worker pouvait remplacer le sidecar seul, laisser le JSONL inchangé et maintenir un mapping chargé depuis un index différent. Le lookup rapide vérifie désormais **les deux générations** `size/mtime_ns/ctime_ns/inode` à chaque accès ; au moindre changement ou sidecar manquant, il abandonne la table sans inventer de nouveaux liens et utilise le lecteur canonique. La disparition du JSONL efface également la table mémorisée. Régression sur remplacement atomique du sidecar de même taille et `mtime`, avec vérification que la relation récupérée provient bien du JSONL et pas du mauvais index. L'invariant n'ajoute aucun JSON `loads` sur le chemin chaud.

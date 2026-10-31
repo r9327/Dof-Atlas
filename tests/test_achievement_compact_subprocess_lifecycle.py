@@ -467,6 +467,53 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 self.assertIsNone(provider._compact_quest_ids_by_quest)
                 self.assertEqual(provider._compact_achievement_ids_for_quest(99), (10,))
 
+    def test_new_relation_map_invalidates_after_sidecar_swap_same_size_and_mtime(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "success.jsonl"
+            sidecar = mod._achievement_compact_index_path(cache)
+            cache.write_text("\n".join(json.dumps(row, separators=(",", ":"))
+                                      for row in (
+                                          {"kind": "meta"},
+                                          {"kind": "category", "value": {
+                                              "id": 8, "name": "Test",
+                                          }},
+                                          {"kind": "achievement", "value": {
+                                              "id": 10, "linked_quests": [
+                                                  {"entity_id": 42},
+                                              ],
+                                          }},
+                                          {"kind": "external_start"},
+                                      )) + "\n", encoding="utf-8")
+
+            def publish(path, quest):
+                path.write_text(json.dumps({
+                    "retained_ids": [10],
+                    "by_quest": {str(quest): [10]},
+                    "by_quest_ref_count": 1,
+                }), encoding="utf-8")
+
+            publish(sidecar, 42)
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), (10,))
+                previous = sidecar.stat()
+                candidate = root / "new.idx.json"
+                publish(candidate, 99)
+                os.utime(candidate, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+                self.assertEqual(previous.st_size, candidate.stat().st_size)
+                candidate.replace(sidecar)
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), (10,))
+                self.assertIsNone(provider._compact_quest_ids_by_quest)
+                # Canonical JSONL still describes quest 42, not sidecar 99.
+                self.assertEqual(provider._compact_achievement_ids_for_quest(99), ())
+
     def test_overlong_numeric_quest_key_uses_fallback_instead_of_crashing(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
