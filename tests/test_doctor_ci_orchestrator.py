@@ -563,7 +563,21 @@ class DoctorCiOrchestratorTests(unittest.TestCase):
             source = (ROOT / f'.github/workflows/{name}.yml').read_text(encoding='utf-8')
             trigger = source.split('permissions:', 1)[0]
             self.assertIn('  workflow_call:', trigger, name)
-            self.assertNotIn('  pull_request:', trigger, name)
+            if name == 'atlas-windows-distribution':
+                # Deliberate exception: an unpublished, allowlisted Windows
+                # candidate is built once when a reviewed PR leaves Draft.
+                # Only Doctor Phase owns automatic application certification.
+                self.assertIn(
+                    '  pull_request:\n    types: [ready_for_review]\n'
+                    '    branches: [main]\n',
+                    trigger, name,
+                )
+                self.assertEqual(trigger.count('  pull_request:'), 1)
+                self.assertIn("github.event.action == 'ready_for_review'", source)
+                self.assertIn("github.head_ref == 'perf/atlas-global-optimization-backlog-20261030'", source)
+                self.assertIn('github.event_name == \'workflow_dispatch\'', source)
+            else:
+                self.assertNotIn('  pull_request:', trigger, name)
             self.assertNotIn('  push:', trigger, name)
         central = (ROOT / '.github/workflows/phase-certification.yml').read_text(encoding='utf-8')
         self.assertIn('name: Public PR / Safe Validation', central)
