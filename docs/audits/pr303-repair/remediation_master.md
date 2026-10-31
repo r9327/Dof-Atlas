@@ -122,3 +122,12 @@ Voir [commit_ledger.md](commit_ledger.md), **387 SHA uniques**. Le script `tools
 - **Certification** : références par ID, tests Windows natifs/Qt, Doctor, Graphify, comparaison RAM/latence, revue finale des commits et du diff exact HEAD, résultat non tronqué.
 
 **Ce registre constitue un engagement de réparation/justification, pas la preuve que ces réparations ont déjà été codées.**
+
+
+## Audit détaillé de la PR #310 — 8 commits, 11 fichiers, 34 écarts (HEAD 687c9c78)
+
+**Rapport officiel versionné :** [pr310-full-audit-20261031.md](pr310-full-audit-20261031.md). Audit direct de **8/8 commits**, **11/11 fichiers** de la PR #310 au HEAD `687c9c78d41b1880d53bd6fa6e256da256c66719`, **34 écarts A-01..A-34**, preuves CI, comparatif de branches et manque de validations. Toute entrée à traiter selon la politique `FIXED_VERIFIED / KEEP_VERIFIED` ; aucune clôture par simple `REVIEW`.
+
+**P0 nouveaux constatés :** fusion impossible `mergeable_state=dirty` ; aucune CI au HEAD audité ; index `.ai/context_index.json` désynchronisé sur `docs` ; scan Doctor `--links-all` **n'exporte pas les 582 références non résolues, les 537 unsafe ni les 111 liaisons possibles dans leur intégralité** (seules 33 411 ressources sans consommateur statique sont réellement exportées intégralement). Le scanner de patches a aussi un **défaut vérifié** de reconnaissance des suffixes `.json/.png/.qss`. Le README historique reste à 387 commits alors que la #303 compte 389 commits. **Ces nouveaux défauts sont formellement ouverts dans le rapport.**
+
+**Preuves précédentes correctement qualifiées :** Doctor Linux [#41200996549](https://github.com/r9327/Dof-Atlas/actions/runs/41200996549) `SUCCESS technique / REVIEW métier`, revue patch [#41200996544](https://github.com/r9327/Dof-Atlas/actions/runs/41200996544) 387/387 automatique seulement, Windows [#41200996594](https://github.com/r9327/Dof-Atlas/actions/runs/41200996594) `SKIPPED`, vieille FULL [#41197183499](https://github.com/r9327/Dof-Atlas/actions/runs/41197183499) `FAIL`. Les commits publiant cette nouvelle annexe ne sont pas attestés par ces anciens runs.
