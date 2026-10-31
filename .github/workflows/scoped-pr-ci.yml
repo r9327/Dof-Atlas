@@ -62,7 +62,7 @@ jobs:
           # PR #303 requests a complete source JSON syntax pass once its
           # implementation is integrated; other PRs keep the cheap Python AST.
           json_args=()
-          if [ "$PR_NUMBER" = "303" ]; then json_args=(--with-json --with-links); fi
+          if [ "$PR_NUMBER" = "303" ]; then json_args=(--with-json --with-links --links-all); fi
           python -X faulthandler -m tools.atlas_doctor full-scope \
             --expected-sha "$CANDIDATE_SHA" "${json_args[@]}" \
             --output artifacts/doctor_full_scope/report.json --json \
@@ -99,6 +99,17 @@ jobs:
               assert json_audit["syntax_coverage"] == "PASS"
               assert json_audit["truncated"] is False
               assert json_audit["semantic_links_verified"] is False
+              links = proof["resource_link_audit"]
+              assert links["status"] == "REVIEW" and links["automatic_deletion_authorized"] is False
+              assert links["semantic_links_verified"] is False
+              assert links["runtime_consumers_verified"] is False
+              assert links["assets_contents_verified"] is False
+              assert links["all_candidates_exported"] is True
+              assert links["no_static_consumer_total"] == len(links["no_static_consumer_all_candidates"])
+              assert links["counts"]["no_static_consumer_candidates"] == links["no_static_consumer_total"]
+              assert len(set(links["no_static_consumer_all_candidates"])) == links["no_static_consumer_total"]
+              print(f"Doctor static resource links: {links['counts']['literals_checked']} references; "
+                    f"{links['no_static_consumer_total']} possible unlinked; no deletion allowed")
               print(f"Doctor JSON syntax coverage: {counts['valid_syntax']}/{counts['tracked']} "
                     f"tracked JSON, {counts['duplicate_id_review_files']} ID-collision review leads")
           print(f"Doctor source coverage: {coverage['inspected']}/{coverage['total']} Python files, "
