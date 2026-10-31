@@ -45,7 +45,13 @@ def _guide_item_source_signature(data_dir: Path) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            signature.append([str(path.relative_to(ROOT_DIR)), -1, -1])
+            # Missing sources outside the checkout are valid custom-data
+            # inputs. Do not let relative_to(ROOT_DIR) mask that absence.
+            try:
+                label = str(path.relative_to(ROOT_DIR))
+            except ValueError:
+                label = str(path)
+            signature.append([label.replace(chr(92), "/"), -1, -1])
             continue
         try:
             label = str(path.relative_to(ROOT_DIR))

@@ -111,6 +111,21 @@ class CompactGuideItemEffectTests(unittest.TestCase):
 
 
 class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
+    def test_signature_handles_missing_external_custom_sources(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(mod, "DATA_DIR", root):
+                rows = mod._guide_item_source_signature(root)
+                self.assertEqual(len(rows), 4)
+                self.assertEqual([row[1:] for row in rows], [[-1, -1]] * 4)
+                self.assertTrue(all(root.as_posix() in row[0] for row in rows))
+                (root / "items.json").write_text("{}", encoding="utf-8")
+                refreshed = mod._guide_item_source_signature(root)
+                self.assertEqual(refreshed[0][1], 2)
+                self.assertEqual(refreshed[1:], rows[1:])
+
     def test_index_builder_streams_and_preserves_previous_cache_on_failure(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 

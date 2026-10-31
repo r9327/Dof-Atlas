@@ -236,3 +236,7 @@ Pas de lecture complète ou hash des contenus à chaque démarrage : il s'agit d
 ## Navigation par entité : relecture de génération avant mise en cache (31/10/2026)
 
 `get_guides_for_entity` ne validait pas une seconde fois l'empreinte du JSONL après le parcours des `entity_index`. Un autre processus pouvait publier un nouveau cache entre contrôle de signature et calcul de la relation, laissant une réponse potentiellement périmée dans la LRU de navigation. Le lecteur contrôle désormais `size/mtime_ns/ctime_ns/inode` avant et après lecture, et conserve le fallback sur les fiches sources si ces valeurs changent. Test injectant un changement de génération après lecture d'un cache valide et vérifiant la relation positive en secours. Pas de fichier supplémentaire, pas de changement des données ni de travail de parsing sur les chemins de cache-hit déjà mémorisés.
+
+## Guide objets : sources manquantes hors dépôt gérées sans exception (31/10/2026)
+
+Une signature de sources sur un `data_dir` personnalisé extérieur au dépôt échouait en `ValueError` dans le chemin `except OSError` lorsqu'un fichier était encore absent, avant de pouvoir servir de signal de cache périmé. Le chemin manquant est maintenant normalisé comme les chemins existants, avec repli sur le chemin absolu et séparateurs canoniques. Test dossier temporaire externe, fichiers manquants puis apparition de `items.json`. Aucune modification des données utilisateur ni du format des signatures des sources canoniques.
