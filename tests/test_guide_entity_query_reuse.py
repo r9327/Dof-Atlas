@@ -33,6 +33,24 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
             self.assertEqual(provider.get_guides_for_entity("quest", 99), [])
             self.assertEqual(provider.get_by_id.call_count, 2)
 
+    def test_disappearing_compact_index_falls_back_to_source_lookup(self):
+        provider = self.provider()
+        with (
+            patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",
+                  return_value=True),
+            patch("app.modules.encyclopedia.providers.memory_bound_guide_provider.GUIDE_COMPACT_CACHE",
+                  Path("nonexistent_guide_cache_repair_test.jsonl")),
+        ):
+            self.assertEqual(
+                [guide.id for guide in provider.get_guides_for_entity("quest", 42)],
+                ["one"],
+            )
+            self.assertEqual(
+                [guide.id for guide in provider.get_guides_for_entity("quest", 42)],
+                ["one"],
+            )
+            provider.get_by_id.assert_called_once()
+
     def test_catalogue_release_invalidates_the_same_existing_relation_owner(self):
         provider = self.provider()
         with patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",

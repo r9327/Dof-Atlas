@@ -142,3 +142,9 @@ Cet effort évite de présenter des objets manquants comme une génération de c
 ## Compatibilité exacte des identifiants d'objets du cache (31/10/2026)
 
 La correction précédente des index objets ne doit pas inventer une restriction métier `id > 0` absente du writer original. Le validateur accepte désormais tout identifiant entier **canonique** effectivement émis par `str(item.id)`, y compris `0` et les entiers signés, tout en refusant les alias `"042"`, les clés malformées, les booléens et les divergences clé/valeur. Test de compatibilité ajouté sans toucher aux données ni au format du cache.
+
+## Navigation Guide : repli source après disparition du cache compact (31/10/2026)
+
+`get_guides_for_entity` pouvait lever une exception si l'index JSONL disparaissait entre la vérification de l'en-tête et son ouverture, ou si son contenu devenait illisible. Le bloc de lecture est désormais protégé contre les erreurs I/O et de décodage prévues ; les anomalies sont journalisées et le fournisseur réutilise le **chemin de secours existant** fondé sur les détails Guide, sans mémoriser un résultat partiel. Le cache mémoire reste borné à 64 relations. Régression dédiée et couverture du workflow Windows Guides/Succès existant.
+
+Aucune source métier, progression ou règle de certification modifiée ; preuve Windows et benchmarks restant à vérifier au SHA exact.

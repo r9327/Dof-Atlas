@@ -63,12 +63,14 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             "tests/test_quest_source_boundaries.py",
             "tests/test_startup_warmup_subprocess_flags.py",
             "tests/test_guide_cold_relation_lookup.py",
+            "tests/test_guide_entity_query_reuse.py",
             "tests/test_compact_guide_item_effects.py",
             "tests/test_achievement_compact_subprocess_lifecycle.py",
         ):
             with self.subTest(source=source):
                 self.assertIn("      - '" + source + "'", workflow)
         self.assertIn("tests.test_guide_cold_relation_lookup", workflow)
+        self.assertIn("tests.test_guide_entity_query_reuse", workflow)
         self.assertIn("tests.test_compact_guide_item_effects", workflow)
         self.assertIn("tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests", workflow)
 

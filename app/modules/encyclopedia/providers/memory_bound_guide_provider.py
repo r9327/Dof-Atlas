@@ -429,41 +429,48 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             GUIDE_COMPACT_CACHE,
             guides_dir=self.guides_dir,
         ):
-            matches: list[Guide] = []
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                for raw_line in stream:
-                    line = raw_line.strip()
-                    # Entity rows can be much richer than the Guide home rows.
-                    # Do not even json-decode them until an entity navigation asks.
-                    if not line or '"kind":"entity_index"' not in line:
-                        continue
-                    row = json.loads(line)
-                    if not isinstance(row, dict) or row.get("kind") != "entity_index":
-                        continue
-                    value = row.get("value")
-                    if not isinstance(value, dict):
-                        continue
-                    raw_keys = value.get("entity_keys")
-                    if not isinstance(raw_keys, list):
-                        continue
-                    if not any(
-                        isinstance(raw_key, list)
-                        and len(raw_key) == 2
-                        and str(raw_key[0] or "") == wanted_type
-                        and safe_int(raw_key[1]) == wanted_id
-                        for raw_key in raw_keys
-                    ):
-                        continue
-                    guide = self._by_id.get(str(value.get("guide_id") or ""))
-                    if guide is not None:
-                        matches.append(guide)
-            matches = sorted(
-                matches,
-                key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
-            )
-            self._remember_entity_query(key, matches)
-            return matches
-
+            try:
+                matches: list[Guide] = []
+                with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                    for raw_line in stream:
+                        line = raw_line.strip()
+                        # Entity rows can be much richer than the Guide home rows.
+                        # Do not even json-decode them until an entity navigation asks.
+                        if not line or '"kind":"entity_index"' not in line:
+                            continue
+                        row = json.loads(line)
+                        if not isinstance(row, dict) or row.get("kind") != "entity_index":
+                            continue
+                        value = row.get("value")
+                        if not isinstance(value, dict):
+                            continue
+                        raw_keys = value.get("entity_keys")
+                        if not isinstance(raw_keys, list):
+                            continue
+                        if not any(
+                            isinstance(raw_key, list)
+                            and len(raw_key) == 2
+                            and str(raw_key[0] or "") == wanted_type
+                            and safe_int(raw_key[1]) == wanted_id
+                            for raw_key in raw_keys
+                        ):
+                            continue
+                        guide = self._by_id.get(str(value.get("guide_id") or ""))
+                        if guide is not None:
+                            matches.append(guide)
+                matches = sorted(
+                    matches,
+                    key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
+                )
+                self._remember_entity_query(key, matches)
+                return matches
+    
+            except (OSError, UnicodeError, ValueError, TypeError) as exc:
+                # An atomic cache replacement may race this reader. Do not
+                # retain a partial result; use the existing source fallback.
+                logging.getLogger(__name__).warning(
+                    "Guide compact entity index unreadable; source fallback: %s", exc,
+                )
         matches: list[Guide] = []
         for guide_id in tuple(self._by_id):
             detail = self.get_by_id(guide_id)
