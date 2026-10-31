@@ -122,7 +122,13 @@ def build_worklists(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
             "evidence": "",
         })
     asset_rows: list[dict[str, Any]] = []
+    seen_assets: set[str] = set()
     for name in names:
+        if not isinstance(name, str) or not name:
+            raise ValueError("Invalid asset candidate path")
+        if name in seen_assets:
+            raise ValueError("Duplicate asset candidate path; review IDs would collide")
+        seen_assets.add(name)
         selected = selected_runtime_path(name)
         asset_rows.append({
             "id": "A-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:16],
