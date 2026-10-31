@@ -98,6 +98,9 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_ganymede_cutover tests.test_ganymede_source_cutovers tests.test_ganymede_trusted_cutovers
+      - name: Real 20 Ganymede trusted cutovers and catalog readiness audit
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_ganymede_live_cutover_inventory
       - name: Canonical reward precompile / alignment regressions
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
