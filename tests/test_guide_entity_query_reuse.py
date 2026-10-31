@@ -153,6 +153,53 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
             )
             source.assert_called_once_with("one")
 
+    def test_cached_entity_relation_is_invalidated_on_same_mtime_atomic_replace(self):
+        from app.modules.encyclopedia.providers import memory_bound_guide_provider as mod
+        import json
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "compact.jsonl"
+
+            def write_cache(path, wanted):
+                rows = [
+                    {"kind": "meta", "entity_index_count": 1},
+                    {"kind": "entity_index", "value": {
+                        "guide_id": "one", "entity_keys": [["quest", wanted]],
+                    }},
+                ]
+                path.write_text(
+                    "\n".join(json.dumps(row, separators=(",", ":"))
+                              for row in rows) + "\n", encoding="utf-8",
+                )
+
+            write_cache(cache, 42)
+            provider = self.provider()
+            with (
+                patch.object(mod, "GUIDE_COMPACT_CACHE", cache),
+                patch.object(mod, "_guide_compact_cache_valid", return_value=True),
+            ):
+                self.assertEqual(
+                    [guide.id for guide in provider.get_guides_for_entity("quest", 42)],
+                    ["one"],
+                )
+                # Cached result can be returned without rescanning the JSONL.
+                self.assertEqual(provider.get_guides_for_entity("quest", 42)[0].id, "one")
+                initial = cache.stat()
+                candidate = root / "replacement.jsonl"
+                write_cache(candidate, 99)
+                os.utime(candidate, ns=(initial.st_atime_ns, initial.st_mtime_ns))
+                self.assertEqual(candidate.stat().st_size, initial.st_size)
+                candidate.replace(cache)
+                self.assertEqual(cache.stat().st_mtime_ns, initial.st_mtime_ns)
+                self.assertEqual(provider.get_guides_for_entity("quest", 42), [])
+                self.assertEqual(
+                    [guide.id for guide in provider.get_guides_for_entity("quest", 99)],
+                    ["one"],
+                )
+
     def test_catalogue_release_invalidates_the_same_existing_relation_owner(self):
         provider = self.provider()
         with patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",

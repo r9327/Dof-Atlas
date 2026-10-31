@@ -253,6 +253,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         # when a Quest detail repeatedly asks about the same Guide links.
         self._fast_quest_relation_stamp: tuple[str, int, int, int, int] | None = None
         self._fast_quest_relation_cache: OrderedDict[int, tuple[str, ...]] = OrderedDict()
+        self._entity_query_cache_stamp: tuple[int, int, int, int] | None = None
 
     def release_detail_cache(self) -> None:
         self._detail_cache_id = ""
@@ -271,6 +272,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._progress_quest_ids_by_guide = {}
         self._fast_quest_relation_stamp = None
         self._fast_quest_relation_cache = OrderedDict()
+        self._entity_query_cache_stamp = None
         self.validation_errors = []
 
     def reload(self) -> list[Guide]:
@@ -279,6 +281,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._fast_quest_relation_cache = OrderedDict()
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
+        self._entity_query_cache_stamp = None
         return super().reload()
 
     def get_by_id(self, guide_id: str) -> Guide | None:
@@ -425,6 +428,22 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         wanted_type = str(entity_type)
         wanted_id = int(entity_id)
         key = (wanted_type, wanted_id)
+        if (not bool(getattr(self, "include_drafts", False))
+                and not bool(getattr(self, "_building_compact_cache", False))):
+            # A memoized negative (or positive) relation must never survive a
+            # different compact generation. Cache hits do no JSON decoding;
+            # a single stat is enough to notice an atomic writer replacement.
+            try:
+                generation_stat = GUIDE_COMPACT_CACHE.stat()
+                generation = (
+                    generation_stat.st_size, generation_stat.st_mtime_ns,
+                    generation_stat.st_ctime_ns, generation_stat.st_ino,
+                )
+            except OSError:
+                generation = None
+            if getattr(self, "_entity_query_cache_stamp", None) != generation:
+                self._by_entity.clear()
+                self._entity_query_cache_stamp = generation
         if key in self._by_entity:
             return list(self._by_entity[key])
 
