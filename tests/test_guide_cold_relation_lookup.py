@@ -221,6 +221,26 @@ class CompactGuideRelationTests(unittest.TestCase):
                 )
                 self.assertEqual(build.call_count, 7)
 
+    def test_ensure_cli_uses_verified_compact_cache_result(self):
+        with (
+            patch.object(mod, "ensure_guide_compact_cache", return_value=2) as ensure,
+            patch.object(mod, "_build_manual_runtime_compact_cache_in_worker",
+                         return_value=7),
+            patch("builtins.print") as output,
+        ):
+            self.assertEqual(mod._ensure_compact_guide_cache_cli(), 0)
+            ensure.assert_called_once_with()
+            status = json.loads(output.call_args.args[0])
+            self.assertEqual(status["guide_count"], 2)
+            self.assertEqual(status["manual_card_count"], 7)
+        with (
+            patch.object(mod, "ensure_guide_compact_cache", return_value=0),
+            patch.object(mod, "_build_manual_runtime_compact_cache_in_worker") as manual,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unavailable"):
+                mod._ensure_compact_guide_cache_cli()
+            manual.assert_not_called()
+
     def test_missing_cache_preserves_graph_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

@@ -1002,22 +1002,12 @@ def _build_manual_runtime_compact_cache_in_worker() -> int:
 
 
 def _ensure_compact_guide_cache_cli() -> int:
-    count = 0
-    if _guide_compact_cache_valid(GUIDE_COMPACT_CACHE, guides_dir=GUIDES_DIR):
-        try:
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                count = sum(1 for line in stream if '"kind":"guide"' in line)
-        except OSError:
-            count = 0
-    else:
-        build_code = _build_compact_guide_cache(GUIDE_COMPACT_CACHE)
-        if int(build_code) != 0:
-            return int(build_code)
-        try:
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                count = sum(1 for line in stream if '"kind":"guide"' in line)
-        except OSError:
-            count = 0
+    # Use the same validated source signature, row cardinality and entity
+    # relation checks as regular preload. A syntactically plausible partial
+    # JSONL cache must not become "ready" through this CLI entry point.
+    count = ensure_guide_compact_cache()
+    if count <= 0:
+        raise RuntimeError("Guide compact cache unavailable after ensure")
 
     manual_count = _build_manual_runtime_compact_cache_in_worker()
     print(
@@ -1032,7 +1022,6 @@ def _ensure_compact_guide_cache_cli() -> int:
         )
     )
     return 0
-
 
 if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
     raise SystemExit(_ensure_compact_guide_cache_cli())

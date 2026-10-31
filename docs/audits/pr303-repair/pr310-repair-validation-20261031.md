@@ -116,3 +116,9 @@ Régression `test_guide_cold_relation_lookup.py` : plusieurs corruptions valides
 Les références `entity_index.entity_keys` sont maintenant contrôlées dans le worker jetable et dans le chemin `ensure_guide_compact_cache` (paire `[type, id]`, nom non vide, ID entier positif et non booléen). Les lignes `meta` tardives/dupliquées et les types inconnus sont rejetés par la recherche rapide de relations au lieu de requalifier arbitrairement un cache incomplet en index valide. Tests ciblés ajoutés : ID booléen, relation incomplète, en-tête forgé en fin de fichier et reconstruction du cache. Un cache non vérifié reste éligible au **fallback canonique**, jamais à un succès silencieux.
 
 Cette modification est limitée aux caches jetables : progression, sources Ganymède, formats de routes et UI restent inchangés. La preuve Windows exacte, la mémoire, la vraie interface et l'EXE restent des validations distinctes non présumées.
+
+## Unification des points d'entrée de validation Guide (31/10/2026)
+
+La commande existante `--ensure-compact-cache` acceptait encore un JSONL incomplet en ne comptant que les sous-chaînes `"kind":"guide"`, contrairement au chemin `ensure_guide_compact_cache` corrigé. Elle réutilise maintenant **ce contrôle existant** avant de préparer les cartes manuelles ; si aucun guide validé n'est disponible, elle remonte une erreur claire plutôt que de déclarer un faux cache prêt. Régression par mocks du point d'entrée : résultat positif et échec avec absence de lancement du préchargement manuel. Un sous-processus de reconstruction supplémentaire n'apparaît que lors de la réparation d'un cache déjà invalide, pas en fonctionnement normal.
+
+Aucune suppression, aucune migration de données ni changement d'identité de progression. Tests Windows et performances exact-SHA encore à vérifier.
