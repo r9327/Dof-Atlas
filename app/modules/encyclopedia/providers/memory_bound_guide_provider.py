@@ -351,17 +351,16 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         if meta_seen:
                             return None
                         meta_seen = True
-                        # Old cache headers remain readable until the next warmup,
-                        # but new signed counts catch cleanly truncated JSONL.
-                        if "guide_count" in row:
-                            if type(row["guide_count"]) is not int or row["guide_count"] <= 0:
-                                return None
-                            expected_guides = row["guide_count"]
-                        if "entity_index_count" in row:
-                            if (type(row["entity_index_count"]) is not int
-                                    or row["entity_index_count"] < 0):
-                                return None
-                            expected_indexes = row["entity_index_count"]
+                        # Schema-2 header signatures alone cannot prove that
+                        # the body survived a cleanly truncated cache write.
+                        # Never turn an incomplete index into an empty relation.
+                        count = row.get("guide_count")
+                        index_count = row.get("entity_index_count")
+                        if (type(count) is not int or count <= 0
+                                or type(index_count) is not int or index_count < 0):
+                            return None
+                        expected_guides = count
+                        expected_indexes = index_count
                         continue
                     if not meta_seen or row.get("kind") not in ("guide", "entity_index"):
                         return None

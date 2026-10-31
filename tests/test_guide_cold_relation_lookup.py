@@ -178,6 +178,27 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertIsNone(provider.guide_ids_for_quest_fast(99999))
             provider._ensure_loaded.assert_not_called()
 
+    def test_legacy_metadata_without_cardinality_must_fall_back(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            provider = self._provider(guides)
+            for missing in ("guide_count", "entity_index_count"):
+                self._write_cache(cache, guides)
+                rows = [json.loads(line) for line in cache.read_text().splitlines()]
+                rows[0].pop(missing)
+                cache.write_text(
+                    "\n".join(json.dumps(row, separators=(",", ":")) for row in rows)
+                    + "\n",
+                    encoding="utf-8",
+                )
+                with self.subTest(missing=missing), patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                    self.assertIsNone(provider.guide_ids_for_quest_fast(2464))
+                    self.assertIsNone(provider.guide_ids_for_quest_fast(99999))
+            provider._ensure_loaded.assert_not_called()
+
     def test_missing_index_row_requires_relation_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

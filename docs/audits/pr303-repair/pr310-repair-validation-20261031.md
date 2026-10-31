@@ -180,3 +180,7 @@ L'empreinte d'invalidation du cache LRU de 64 relations ne repose plus seulement
 Le chemin `MemoryBoundGuideProvider.get_guides_for_entity` ne vérifiait ni la cardinalité finale des `entity_index`, ni l'unicité des IDs Guide, et pouvait publier un faux résultat négatif après une troncature JSONL pourtant parsable. La lecture limitée aux lignes d'index contrôlées exige désormais `entity_index_count` du header, des IDs présents et uniques et des couples `entity_keys` valides avant de mémoriser les relations. Sinon le **fallback source existant** est utilisé. Test : en-tête annonçant 2 index mais un seul présent (fallback) puis index complet (lookup direct).
 
 Cette validation reste localisée à la navigation par entité, sans double cache, source métier modifiée ou preuve RAM/Windows inventée.
+
+## Contrat Guide compact schéma 2 : en-tête signé obligatoire pour les relations à froid
+
+La recherche `guide_ids_for_quest_fast` accepte désormais seulement les caches possédant **les deux compteurs entiers canoniques** `guide_count` et `entity_index_count`, déjà exigés par le worker et le chemin `ensure_guide_compact_cache`. Un ancien en-tête sans cardinalité ne peut plus rendre `()` et masquer une relation avec une quête absente d'un cache tronqué. Il renvoie `None` pour déclencher le fallback canonique. Test ciblé pour absence de chacun des deux compteurs ; aucune migration des données utilisateur, aucun changement de format du writer.
