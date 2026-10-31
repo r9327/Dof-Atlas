@@ -44,6 +44,15 @@ def latest_attempt_report(
         if number.isdecimal() and 1 <= int(number) <= int(attempt):
             candidates.append((int(number), item))
     if not candidates:
+        # download-artifact v8 flattens a single wildcard match into the
+        # requested directory, instead of creating an artifact-name folder.
+        # The caller's exact-run pattern scopes the download; the evidence hub
+        # separately verifies SHA and status. Never accept mixed layouts.
+        direct = directory / report_name
+        if direct.is_file() and not direct.is_symlink():
+            if any(item.is_dir() or item.is_symlink() for item in directory.iterdir()):
+                raise ValueError("Ambiguous flattened Doctor artifact layout")
+            return direct
         return None
 
     selected_attempt, selected_dir = max(candidates, key=lambda row: row[0])
