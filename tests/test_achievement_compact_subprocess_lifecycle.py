@@ -454,6 +454,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
         provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+        provider.data_dir = mod.RAW_QUEST_DATA_DIR
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / "success.jsonl"
             cache.write_text("\n".join(json.dumps(row, separators=(",", ":"))

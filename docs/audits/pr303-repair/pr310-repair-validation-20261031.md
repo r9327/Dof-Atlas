@@ -339,3 +339,7 @@ C'est une réduction d'allocations du worker, pas une mesure du RSS final ni un 
 ## Contrôle de compatibilité worker objets (31/10/2026)
 
 Le retrait de `asdict` du module entier pendant l'optimisation du payload ciblé casserait `_dump_compact_default_items`, qui l'utilise encore pour exporter la liste complète via CLI. L'import conjoint `asdict, fields` est rétabli ; l'optimisation évite toujours la copie profonde dans `_compact_item_payload`, sans modifier l'autre consommateur. Régression d'exécution du véritable point d'entrée worker avec objet synthétique et JSON/effets attendus. Ce correctif fait partie intégrante de la vérification des effets secondaires avant validation ciblée.
+
+## Correctif de fixture Succès compact (31/10/2026)
+
+Le nouveau test de remplacement concurrent du `compact_name_index` construit volontairement le fournisseur avec `__new__`, sans exécuter d'initialisation de sources. Or cette méthode consulte `self.data_dir` avant le parcours du cache. La fixture définit explicitement le `RAW_QUEST_DATA_DIR` canonique, tandis que `_achievement_compact_cache_valid` reste simulée. C'est une correction de test et non un contournement des contrôles sur un provider normalement initialisé.
