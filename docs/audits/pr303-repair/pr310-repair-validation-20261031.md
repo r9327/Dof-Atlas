@@ -250,3 +250,7 @@ Une signature de sources sur un `data_dir` personnalisé extérieur au dépôt �
 Lorsque `DofusItemProvider.get_by_id` était sollicité avant `load_all()`, le provider conservait `_guide_index_rows` (dictionnaire complet d'objets Guide) **même après** avoir créé les objets `DofusItem` du catalogue complet et leur index `_by_id`. Le cache brut n'est plus consulté lorsque `_loaded=True` ; `_ensure_loaded` le libère désormais après `_load` réussi, ainsi que son empreinte. Tests réels sur un index synthétique : consultation item à froid, chargement complet Dofus, libération du graphe brut et restitution d'un objet Dofus identique.
 
 Gain : suppression d'une rétention doublonnée dans ce scénario. La baisse effective du RSS et le coût du catalogue complet restent à mesurer sous Windows.
+
+## Guide compact : signature de source cohérente avec le warmup (31/10/2026)
+
+`_guide_compact_source_signature` ne distinguait pas deux fichiers Guide différents ayant la même taille et le même `mtime_ns`, même si le manifeste de preload était désormais invalidé. Les lignes de signature embarquées dans les caches compacts enregistrent maintenant aussi `ctime_ns` et `inode` (et des sentinelles pour les fichiers inaccessibles). Le cache ancien est **reconstructible** et sera invalidé/reconstruit une fois pendant le preload contrôlé ; en EXE figé sans preload, le fallback canonique reste disponible. Régression sur remplacement atomique source de même taille/date ; aucune donnée utilisateur migrée. L'impact du premier démarrage après cette invalidation sera à mesurer séparément.

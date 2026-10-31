@@ -102,6 +102,30 @@ class CompactGuideRelationTests(unittest.TestCase):
                         child.assert_not_called()
                         self.assertEqual(compact.call_count, int(valid))
 
+    def test_guide_source_replacement_with_same_size_mtime_invalidates_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            guides = root / "guides"
+            guides.mkdir()
+            source = guides / "chapter.json"
+            source.write_text("{}", encoding="utf-8")
+            cache = root / "guides.jsonl"
+            stamp = mod._guide_compact_source_signature(guides)
+            self.assertEqual(len(stamp[0]), 5)
+            cache.write_text(json.dumps({
+                "kind": "meta", "schema_version": mod._GUIDE_COMPACT_SCHEMA,
+                "source_signature": stamp, "guide_count": 1,
+                "entity_index_count": 0,
+            }) + "\n", encoding="utf-8")
+            self.assertTrue(mod._guide_compact_cache_valid(cache, guides_dir=guides))
+            previous = source.stat()
+            replacement = root / "new.json"
+            replacement.write_text("[]", encoding="utf-8")
+            os.utime(replacement, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+            self.assertEqual(replacement.stat().st_size, previous.st_size)
+            replacement.replace(source)
+            self.assertFalse(mod._guide_compact_cache_valid(cache, guides_dir=guides))
+
     def test_valid_cache_avoids_catalogue_loading_and_has_exact_ids(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

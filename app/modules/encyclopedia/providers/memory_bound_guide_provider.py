@@ -41,9 +41,12 @@ def _guide_compact_source_signature(guides_dir: Path = GUIDES_DIR) -> list[list[
         try:
             stat = path.stat()
         except OSError:
-            signature.append([path.name, -1, -1])
+            signature.append([path.name, -1, -1, -1, -1])
             continue
-        signature.append([path.name, int(stat.st_size), int(stat.st_mtime_ns)])
+        signature.append([
+            path.name, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return signature
 
 
