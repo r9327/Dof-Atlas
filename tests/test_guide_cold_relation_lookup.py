@@ -241,6 +241,19 @@ class CompactGuideRelationTests(unittest.TestCase):
                 mod._ensure_compact_guide_cache_cli()
             manual.assert_not_called()
 
+    def test_frozen_ensure_cli_keeps_in_process_repair(self):
+        with (
+            patch.object(mod.sys, "frozen", True, create=True),
+            patch.object(mod, "ensure_guide_compact_cache", side_effect=[0, 2]) as ensure,
+            patch.object(mod, "_build_compact_guide_cache", return_value=0) as rebuild,
+            patch.object(mod, "_build_manual_runtime_compact_cache_in_worker",
+                         return_value=7),
+            patch("builtins.print"),
+        ):
+            self.assertEqual(mod._ensure_compact_guide_cache_cli(), 0)
+            rebuild.assert_called_once_with(mod.GUIDE_COMPACT_CACHE)
+            self.assertEqual(ensure.call_count, 2)
+
     def test_missing_cache_preserves_graph_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

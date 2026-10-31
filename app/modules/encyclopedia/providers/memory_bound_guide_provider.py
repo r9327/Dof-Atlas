@@ -1006,6 +1006,13 @@ def _ensure_compact_guide_cache_cli() -> int:
     # relation checks as regular preload. A syntactically plausible partial
     # JSONL cache must not become "ready" through this CLI entry point.
     count = ensure_guide_compact_cache()
+    if count <= 0 and bool(getattr(sys, "frozen", False)):
+        # Preserve the old in-process recovery when Python -m cannot launch
+        # from a frozen executable. Never attempt a nested Python child.
+        code = int(_build_compact_guide_cache(GUIDE_COMPACT_CACHE) or 0)
+        if code != 0:
+            return code
+        count = ensure_guide_compact_cache()
     if count <= 0:
         raise RuntimeError("Guide compact cache unavailable after ensure")
 
