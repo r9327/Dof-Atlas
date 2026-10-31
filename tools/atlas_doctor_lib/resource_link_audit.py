@@ -34,6 +34,8 @@ class ResourceLinkCollector:
         self.possible: set[str] = set()
         self.unresolved: list[dict[str, Any]] = []
         self.ambiguous: list[dict[str, Any]] = []
+        self.unresolved_all: list[dict[str, Any]] = []
+        self.ambiguous_all: list[dict[str, Any]] = []
         self.errors: list[dict[str, str]] = []
         self.counts = {
             "python_files_scanned": 0,
@@ -43,6 +45,9 @@ class ResourceLinkCollector:
             "possible_edges": 0,
             "unresolved_literals": 0,
             "unsafe_literals": 0,
+            "skipped_overlength_literals": 0,
+            "skipped_uri_literals": 0,
+            "skipped_multiline_literals": 0,
         }
 
     @staticmethod
@@ -50,23 +55,41 @@ class ResourceLinkCollector:
         if len(rows) < _EXAMPLE_LIMIT:
             rows.append(entry)
 
-    def inspect_literal(self, origin: str, value: str, line: int | None = None) -> None:
-        if not (0 < len(value) <= 320):
+    @staticmethod
+    def _pointer_part(value: object) -> str:
+        return str(value).replace("~", "~0").replace("/", "~1")
+
+    def inspect_literal(self, origin: str, value: str, line: int | None = None,
+                        *, json_pointer: str | None = None,
+                        json_role: str | None = None) -> None:
+        if not value:
+            return
+        if len(value) > 320:
+            self.counts["skipped_overlength_literals"] += 1
             return
         literal = value.strip().replace("\\", "/")
-        if PurePosixPath(literal).suffix.lower() not in _RESOURCE_SUFFIXES:
+        if "\n" in literal or "\r" in literal:
+            self.counts["skipped_multiline_literals"] += 1
             return
-        if "\n" in literal or "\r" in literal or "://" in literal:
+        if "://" in literal:
+            self.counts["skipped_uri_literals"] += 1
+            return
+        if PurePosixPath(literal).suffix.lower() not in _RESOURCE_SUFFIXES:
             return
         self.counts["literals_checked"] += 1
         parts = PurePosixPath(literal).parts
         row: dict[str, Any] = {"source": origin, "literal": value}
         if line is not None:
             row["line"] = line
+        if json_pointer is not None:
+            row["json_pointer"] = json_pointer
+            row["json_role"] = json_role or "value"
         if (literal.startswith("/") or ":" in literal or
                 any(part in {"..", "."} for part in parts)):
             self.counts["unsafe_literals"] += 1
-            self._example(self.unresolved, {**row, "kind": "UNSAFE_RESOURCE_LITERAL_REVIEW"})
+            entry = {**row, "kind": "UNSAFE_RESOURCE_LITERAL_REVIEW"}
+            self.unresolved_all.append(entry)
+            self._example(self.unresolved, entry)
             return
         direct = literal if literal in self.resource_set else None
         relative = str(PurePosixPath(origin).parent / literal)
@@ -79,13 +102,15 @@ class ResourceLinkCollector:
         if matches:
             self.possible.update(matches)
             self.counts["possible_edges"] += 1
-            self._example(self.ambiguous, {
-                **row, "kind": "BASENAME_ONLY_REVIEW",
-                "candidate_count": len(matches), "candidates": matches[:5],
-            })
+            entry = {**row, "kind": "BASENAME_ONLY_REVIEW",
+                     "candidate_count": len(matches), "candidates": list(matches)}
+            self.ambiguous_all.append(entry)
+            self._example(self.ambiguous, {**entry, "candidates": list(matches[:5])})
             return
         self.counts["unresolved_literals"] += 1
-        self._example(self.unresolved, {**row, "kind": "UNRESOLVED_RESOURCE_LITERAL_REVIEW"})
+        entry = {**row, "kind": "UNRESOLVED_RESOURCE_LITERAL_REVIEW"}
+        self.unresolved_all.append(entry)
+        self._example(self.unresolved, entry)
 
     def inspect_python_node(self, name: str, node: ast.AST) -> None:
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -100,15 +125,26 @@ class ResourceLinkCollector:
         if not name.startswith(_PRODUCTION_PREFIXES):
             return
         self.counts["json_files_scanned"] += 1
-        pending = [payload]
-        while pending:
-            value = pending.pop()
+        # Iterator frames keep the traversal bounded by JSON nesting depth,
+        # rather than storing pointers for every large Quest JSON sibling.
+        stack: list[tuple[Any, str]] = [(iter([(None, payload)]), "")]
+        while stack:
+            iterator, parent = stack[-1]
+            try:
+                segment, value = next(iterator)
+            except StopIteration:
+                stack.pop()
+                continue
+            pointer = parent if segment is None else parent + "/" + self._pointer_part(segment)
             if isinstance(value, dict):
-                pending.extend(value.values())
+                for key in value:
+                    self.inspect_literal(name, key, json_pointer=pointer + "/" + self._pointer_part(key),
+                                         json_role="key")
+                stack.append((iter(value.items()), pointer))
             elif isinstance(value, list):
-                pending.extend(value)
+                stack.append((enumerate(value), pointer))
             elif isinstance(value, str):
-                self.inspect_literal(name, value)
+                self.inspect_literal(name, value, json_pointer=pointer, json_role="value")
 
     def inspect_json_files(self, root: Path, paths: list[str]) -> None:
         """Only when --with-json was not requested. Never import the Atlas runtime."""
@@ -157,7 +193,14 @@ class ResourceLinkCollector:
         }
         if include_all:
             report["no_static_consumer_all_candidates"] = absent
+            report["unresolved_literal_all_candidates"] = self.unresolved_all
+            report["ambiguous_literal_all_candidates"] = self.ambiguous_all
             report["all_candidates_exported"] = True
+            report["all_link_candidates_exported"] = (
+                len(self.unresolved_all) == self.counts["unresolved_literals"] + self.counts["unsafe_literals"]
+                and len(self.ambiguous_all) == self.counts["possible_edges"]
+                and all(len(item["candidates"]) == item["candidate_count"] for item in self.ambiguous_all)
+            )
         return report
 
 
@@ -167,7 +210,7 @@ def inspect_resource_links(root: Path, tracked: list[str], python_files: list[st
     root = root.resolve()
     collector = ResourceLinkCollector(tracked, offset=offset)
     for name in python_files:
-        if not name.startswith("app/"):
+        if not name.startswith(("app/", "scripts/windows/", "tools/")):
             continue
         file = root / name
         try:
