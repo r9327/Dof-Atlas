@@ -63,7 +63,8 @@ class CompactGuideRelationTests(unittest.TestCase):
 
     def test_guide_with_drafts_never_reuses_published_only_cache(self):
         for frozen in (False, True):
-            with self.subTest(frozen=frozen), (
+            with (
+                self.subTest(frozen=frozen),
                 patch.object(mod.sys, "frozen", frozen, create=True),
                 patch.object(mod, "GUIDES_DIR", Path("synthetic-guides")),
             ):
