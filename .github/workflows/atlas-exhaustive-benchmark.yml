@@ -83,8 +83,8 @@ jobs:
 
       - name: Materialize actual Guide data
         run: |
-          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # This benchmark never executes the legacy Doduda binary. Runtime
+          # inputs come from the public, size- and SHA-256-pinned release lock.
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force

@@ -5,10 +5,11 @@ import os
 import struct
 import subprocess
 import sys
-from dataclasses import asdict
+import tempfile
+from dataclasses import asdict, fields
 from pathlib import Path
 from uuid import uuid4
-from typing import Any
+from typing import Any, BinaryIO
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.models import DofusItem
@@ -44,19 +45,36 @@ def _guide_item_source_signature(data_dir: Path) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            signature.append([str(path.relative_to(ROOT_DIR)), -1, -1])
+            # Missing sources outside the checkout are valid custom-data
+            # inputs. Do not let relative_to(ROOT_DIR) mask that absence.
+            try:
+                label = str(path.relative_to(ROOT_DIR))
+            except ValueError:
+                label = str(path)
+            signature.append([label.replace(chr(92), "/"), -1, -1, -1, -1])
             continue
         try:
             label = str(path.relative_to(ROOT_DIR))
         except ValueError:
             label = str(path)
-        signature.append([label.replace("\\", "/"), int(stat.st_size), int(stat.st_mtime_ns)])
+        signature.append([
+            label.replace(chr(92), "/"), int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return signature
 
 
 def _compact_item_payload(item: DofusItem) -> dict[str, object]:
-    payload = asdict(item)
-    raw = payload.get("raw")
+    # asdict() deep-copies the entire raw Doduda row before we discard nearly
+    # all of it. Keep simple dataclass fields directly and filter raw first;
+    # JSON serialization already supports our tuple-of-string effects.
+    payload: dict[str, object] = {
+        field.name: getattr(item, field.name)
+        for field in fields(DofusItem)
+        if field.name != "raw"
+    }
+    raw = item.raw
+    payload["raw"] = raw
     if isinstance(raw, dict):
         payload["raw"] = {
             key: raw[key]
@@ -82,16 +100,24 @@ def _read_guide_items_index(
     if payload.get("source_signature") != _guide_item_source_signature(data_dir):
         return None
     rows = payload.get("items")
-    if not isinstance(rows, dict):
+    if not isinstance(rows, dict) or not rows:
         return None
     result: dict[int, dict[str, Any]] = {}
     for raw_id, row in rows.items():
+        # The compact builder writes each item under its canonical numeric ID.
+        # A partially corrupt index must trigger the existing repair path,
+        # never silently drop the missing item from Guide prerequisites.
+        if not isinstance(raw_id, str) or not isinstance(row, dict):
+            return None
         try:
             item_id = int(raw_id)
         except (TypeError, ValueError):
-            continue
-        if isinstance(row, dict):
-            result[item_id] = row
+            return None
+        if (str(item_id) != raw_id
+                or type(row.get("id")) is not int
+                or row["id"] != item_id or item_id in result):
+            return None
+        result[item_id] = row
     return result
 
 
@@ -160,7 +186,7 @@ def _collect_guide_item_ids() -> set[int]:
     return result
 
 def _selected_effect_instances(
-    packed_candidates: bytes | bytearray,
+    packed_candidates: bytes | bytearray | BinaryIO,
     requested_rids: set[int],
 ) -> dict[int, dict[str, int]]:
     """Materialize only referenced effects from a compact source-order buffer.
@@ -171,16 +197,26 @@ def _selected_effect_instances(
     selected: dict[int, dict[str, int]] = {}
     if not requested_rids:
         return selected
-    for rid, effect_id, dice_num, dice_side, value in _EFFECT_CANDIDATE_ROW.iter_unpack(
-        packed_candidates
-    ):
-        if rid in requested_rids:
-            selected[rid] = {
-                "effectId": effect_id,
-                "diceNum": dice_num,
-                "diceSide": dice_side,
-                "value": value,
-            }
+    if hasattr(packed_candidates, "read"):
+        # The source stream can contain far more effect candidates than Guide
+        # actually needs. Decode fixed-size batches, not a monolithic buffer.
+        packed_candidates.seek(0)
+        batches = iter(
+            lambda: packed_candidates.read(_EFFECT_CANDIDATE_ROW.size * 4096),
+            b"",
+        )
+    else:
+        batches = (packed_candidates,)
+    for batch in batches:
+        for rid, effect_id, dice_num, dice_side, value in _EFFECT_CANDIDATE_ROW.iter_unpack(batch):
+            if rid in requested_rids:
+                # Later duplicate RIDs overwrite earlier rows, even across batches.
+                selected[rid] = {
+                    "effectId": effect_id,
+                    "diceNum": dice_num,
+                    "diceSide": dice_side,
+                    "value": value,
+                }
     return selected
 
 
@@ -260,6 +296,8 @@ class DofusItemProvider:
         self._items: list[DofusItem] = []
         self._by_id: dict[int, DofusItem] = {}
         self._guide_index_rows: dict[int, dict[str, Any]] | None = None
+        self._guide_index_stamp: tuple[int, int, int, int] | None = None
+        self._recent_item_index_stamp: tuple[int, int, int, int] | None = None
 
     def load_all(self) -> list[DofusItem]:
         self._ensure_loaded()
@@ -271,14 +309,26 @@ class DofusItemProvider:
         if item_id is None:
             return None
         item_id = int(item_id)
+        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
+        current_data_dir = Path(self.data_dir).resolve(strict=False)
+        if not self._loaded and current_data_dir == default_data_dir:
+            # A recent decoded item is valid only for the compact generation
+            # it came from. This check also detects late preload publication.
+            current = self._guide_index_generation()
+            if self._recent_item_index_stamp != current:
+                self._by_id.clear()
+                self._recent_item_index_stamp = current
         cached = self._by_id.get(item_id)
         if cached is not None:
+            if not self._loaded:
+                # The bounded per-Guide cache should evict the least recently
+                # accessed item, not the oldest loaded hot prerequisite.
+                self._by_id.pop(item_id)
+                self._by_id[item_id] = cached
             return cached
         if self._loaded:
             return None
 
-        default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
-        current_data_dir = Path(self.data_dir).resolve(strict=False)
         if current_data_dir == default_data_dir:
             row = self._guide_index_row(item_id)
             item = self._item_from_compact_row(row) if row is not None else None
@@ -299,20 +349,48 @@ class DofusItemProvider:
             self._by_id.pop(oldest_id, None)
         return item
 
+    @staticmethod
+    def _guide_index_generation() -> tuple[int, int, int, int] | None:
+        try:
+            stat = GUIDE_ITEMS_INDEX.stat()
+        except OSError:
+            return None
+        return (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+
     def _guide_index_row(self, item_id: int) -> dict[str, Any] | None:
-        if self._guide_index_rows is None:
-            self._guide_index_rows = _read_guide_items_index(
+        current = self._guide_index_generation()
+        if (self._guide_index_rows is None
+                or self._guide_index_stamp != current):
+            # The first visit may precede preload, or another Atlas instance
+            # may replace the disposable index while this provider is alive.
+            rows = (_read_guide_items_index(
                 data_dir=self.data_dir,
                 path=GUIDE_ITEMS_INDEX,
-            ) or {}
+            ) if current is not None else None)
+            after = self._guide_index_generation()
+            if after != current:
+                # A concurrent publish means neither generation is trusted.
+                # Retry on next lookup and keep the canonical item fallback.
+                self._guide_index_rows = {}
+                self._guide_index_stamp = None
+            else:
+                self._guide_index_rows = rows or {}
+                self._guide_index_stamp = current
         return self._guide_index_rows.get(int(item_id))
 
     @staticmethod
     def _item_from_compact_row(row: dict[str, Any] | None) -> DofusItem | None:
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or type(row.get("id")) is not int:
             return None
-        item_id = safe_int(row.get("id"))
-        if item_id is None:
+        item_id = int(row["id"])
+        raw = row.get("raw") or {}
+        effects = row.get("effects") or ()
+        # The source-built cache serializes a small object and a list of
+        # strings. A damaged row must fall back to the indexed source reader,
+        # never raise ValueError while Guide renders its prerequisites.
+        if (not isinstance(raw, dict)
+                or not isinstance(effects, (list, tuple))
+                or any(not isinstance(value, str) for value in effects)):
             return None
         return DofusItem(
             id=int(item_id),
@@ -324,9 +402,9 @@ class DofusItemProvider:
             description=str(row.get("description") or ""),
             icon_id=safe_int(row.get("icon_id")),
             image_path=str(row.get("image_path") or ""),
-            effects=tuple(str(value) for value in (row.get("effects") or ())),
+            effects=tuple(effects),
             guide_id=str(row.get("guide_id") or ""),
-            raw=dict(row.get("raw") or {}),
+            raw=dict(raw),
         )
 
     def _load_one(self, item_id: int) -> DofusItem | None:
@@ -378,6 +456,12 @@ class DofusItemProvider:
             return
         self._load()
         self._loaded = True
+        # The full Dofus catalogue now owns its decoded objects. The Guide
+        # compact rows were needed only for cold per-item lookups: holding both
+        # keeps an avoidable second raw item graph alive after load_all().
+        self._guide_index_rows = None
+        self._guide_index_stamp = None
+        self._recent_item_index_stamp = None
 
     def _load(self) -> None:
         """Keep monolithic Dofus JSON parsing outside Atlas' long-lived heap."""
@@ -477,48 +561,47 @@ class DofusItemProvider:
         extra_rows: dict[int, dict[str, Any]] = {}
         dofus_rows: dict[int, dict[str, Any]] = {}
         effect_rids: set[int] = set()
-        # Effect instances live in the same RefIds stream as items. Keep only
-        # four scalar fields per candidate so one bounded pass can serve both
-        # item discovery and later Dofus effect rendering.
-        effect_candidates = bytearray()
-        for ref in _iter_doduda_refs(items_path):
-            data = ref.get("data")
-            if not isinstance(data, dict):
-                continue
-
-            rid = safe_int(ref.get("rid"))
-            effect_id = safe_int(data.get("effectId"))
-            if rid is not None and effect_id is not None:
-                effect_candidates.extend(
-                    _EFFECT_CANDIDATE_ROW.pack(
-                        int(rid),
-                        int(effect_id),
-                        safe_int(data.get("diceNum"), 0) or 0,
-                        safe_int(data.get("diceSide"), 0) or 0,
-                        safe_int(data.get("value"), 0) or 0,
-                    )
-                )
-
-            item_id = safe_int(data.get("id"))
-            if item_id is None:
-                continue
-            item_id = int(item_id)
-            if item_id in extra_ids:
-                extra_rows[item_id] = dict(data)
-            if safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
-                continue
-            if item_id in EXCLUDED_DOFUS_ITEM_IDS:
-                continue
-            dofus_rows[item_id] = dict(data)
-            for effect_ref in array_value(data.get("possibleEffects")):
-                if not isinstance(effect_ref, dict):
+        # The compact effect stream can be large even though only a few
+        # Dofus effects are ultimately referenced. Bound in-memory storage to
+        # 1 MiB and spill the rest to a disposable file in this worker.
+        with tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b") as effect_candidates:
+            for ref in _iter_doduda_refs(items_path):
+                data = ref.get("data")
+                if not isinstance(data, dict):
                     continue
-                effect_rid = safe_int(effect_ref.get("rid"))
-                if effect_rid is not None:
-                    effect_rids.add(int(effect_rid))
 
-        effect_instances = _selected_effect_instances(effect_candidates, effect_rids)
-        del effect_candidates
+                rid = safe_int(ref.get("rid"))
+                effect_id = safe_int(data.get("effectId"))
+                if rid is not None and effect_id is not None:
+                    effect_candidates.write(
+                        _EFFECT_CANDIDATE_ROW.pack(
+                            int(rid),
+                            int(effect_id),
+                            safe_int(data.get("diceNum"), 0) or 0,
+                            safe_int(data.get("diceSide"), 0) or 0,
+                            safe_int(data.get("value"), 0) or 0,
+                        )
+                    )
+
+                item_id = safe_int(data.get("id"))
+                if item_id is None:
+                    continue
+                item_id = int(item_id)
+                if item_id in extra_ids:
+                    extra_rows[item_id] = dict(data)
+                if safe_int(data.get("typeId")) != DOFUS_TYPE_ID:
+                    continue
+                if item_id in EXCLUDED_DOFUS_ITEM_IDS:
+                    continue
+                dofus_rows[item_id] = dict(data)
+                for effect_ref in array_value(data.get("possibleEffects")):
+                    if not isinstance(effect_ref, dict):
+                        continue
+                    effect_rid = safe_int(effect_ref.get("rid"))
+                    if effect_rid is not None:
+                        effect_rids.add(int(effect_rid))
+
+            effect_instances = _selected_effect_instances(effect_candidates, effect_rids)
 
         needed_type_ids = {DOFUS_TYPE_ID}
         needed_type_ids.update(
@@ -692,30 +775,50 @@ def _dump_compact_default_items() -> int:
 
 
 def _build_guide_items_index(path: Path) -> int:
+    # Pin the sources BEFORE loading the large catalogue. A worker must not
+    # sign new sources around objects compiled from an older generation.
+    before = _guide_item_source_signature(RAW_QUEST_DATA_DIR)
     provider = DofusItemProvider(RAW_QUEST_DATA_DIR)
     requested = _collect_guide_item_ids()
     extra_items = provider._load_in_process(extra_item_ids=requested)
     items: dict[int, DofusItem] = {item.id: item for item in provider._items}
     items.update(extra_items)
 
-    payload = {
-        "schema_version": _GUIDE_ITEMS_INDEX_SCHEMA,
-        "source_signature": _guide_item_source_signature(RAW_QUEST_DATA_DIR),
-        "items": {
-            str(item_id): _compact_item_payload(item)
-            for item_id, item in sorted(items.items())
-        },
-    }
+    source_signature = _guide_item_source_signature(RAW_QUEST_DATA_DIR)
+    if before != source_signature:
+        raise RuntimeError("Guide item sources changed during cache build")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     # All Atlas instances can rebuild this shared source cache concurrently.
     # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    try:
+        # Serialize each item only when it is written. The previous nested
+        # dict comprehension kept every compact row alive at once despite
+        # json.dump already supporting streaming output.
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write('{"schema_version":')
+            json.dump(_GUIDE_ITEMS_INDEX_SCHEMA, stream)
+            stream.write(',"source_signature":')
+            json.dump(source_signature, stream, ensure_ascii=False, separators=(",", ":"))
+            stream.write(',"items":{')
+            for position, item_id in enumerate(sorted(items)):
+                if position:
+                    stream.write(",")
+                json.dump(str(item_id), stream, ensure_ascii=False)
+                stream.write(":")
+                json.dump(
+                    _compact_item_payload(items[item_id]),
+                    stream, ensure_ascii=False, separators=(",", ":"),
+                )
+            stream.write("}}\n")
+        if _guide_item_source_signature(RAW_QUEST_DATA_DIR) != before:
+            raise RuntimeError("Guide item sources changed before cache publication")
+        temporary.replace(path)
+    finally:
+        # Failed write, permissions and Windows sharing errors must never
+        # leave a growing family of large abandoned temporary indexes.
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {"item_count": len(items), "path": str(path)},

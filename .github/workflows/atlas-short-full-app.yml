@@ -121,8 +121,8 @@ jobs:
 
       - name: Materialize real Quest and Craft data
         run: |
-          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # No LFS payload is consumed by this job. The public Doduda release
+          # inputs below are independently pinned by size and SHA-256.
           python -m scripts.windows.quest_assets --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download

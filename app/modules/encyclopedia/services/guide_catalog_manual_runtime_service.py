@@ -214,10 +214,10 @@ def _write_catalog_route_cache(
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        temporary.write_bytes(gzip.compress(
-            json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
-            compresslevel=1,
-        ))
+        # Stream straight into gzip instead of keeping both the full JSON
+        # string and its encoded bytes alive alongside the large Guide route.
+        with gzip.open(temporary, "wt", encoding="utf-8", compresslevel=1) as stream:
+            json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
         temporary.replace(path)
     finally:
         temporary.unlink(missing_ok=True)

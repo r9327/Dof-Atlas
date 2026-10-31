@@ -22,6 +22,41 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         provider.data_dir = data_dir
         return provider
 
+    def test_frozen_success_catalogue_prefers_prebuilt_compact_rows(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = self._provider(Path(RAW_QUEST_DATA_DIR))
+        with (
+            patch.object(sys, "frozen", True, create=True),
+            patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            patch.object(provider, "_load_from_compact_cache") as compact,
+            patch.object(provider, "_load_in_process") as heavy,
+            patch.object(provider, "_load_from_compact_subprocess") as child,
+        ):
+            provider._load()
+            compact.assert_called_once_with()
+            heavy.assert_not_called()
+            child.assert_not_called()
+
+    def test_frozen_success_missing_or_bad_compact_uses_inprocess_fallback(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with patch.object(sys, "frozen", True, create=True):
+            for valid, broken in ((False, False), (True, True)):
+                with self.subTest(valid=valid, broken=broken):
+                    provider = self._provider(Path(RAW_QUEST_DATA_DIR))
+                    with (
+                        patch.object(mod, "_achievement_compact_cache_valid", return_value=valid),
+                        patch.object(provider, "_load_from_compact_cache",
+                                     side_effect=RuntimeError("bad index") if broken else None) as compact,
+                        patch.object(provider, "_load_in_process") as heavy,
+                        patch.object(provider, "_load_from_compact_subprocess") as child,
+                    ):
+                        provider._load()
+                        heavy.assert_called_once_with()
+                        child.assert_not_called()
+                        self.assertEqual(compact.call_count, int(valid))
+
     def test_windows_exe_prepares_success_details_during_runtime_warmup(self) -> None:
         provider = self._provider(Path(RAW_QUEST_DATA_DIR))
         with (

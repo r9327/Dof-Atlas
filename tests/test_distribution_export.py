@@ -72,6 +72,20 @@ class ExportTests(unittest.TestCase):
             metadata = json.loads((destination / "SOURCE_PROVENANCE.json").read_text())
             self.assertEqual(metadata["source_sha"], "a" * 40)
 
+    def test_do_not_remove_runtime_ganymede_cutovers_while_triaging_assets(self):
+        # The runtime selector resolves replacement_drafts/cutovers/<guide_id>.json
+        # using a dynamic guide_id, so AST literal-path scans cannot prove unused.
+        for name in (
+            "data/encyclopedia/guides/replacement_drafts/cutovers/dofus_cawotte.json",
+            "data/encyclopedia/guides/replacement_drafts/dofus_cawotte.json",
+            "data/images/classes/pandawa.png",
+        ):
+            self.assertTrue(selected_runtime_path(name), name)
+        # Intermediate evidence is currently allowed too. Its removal requires
+        # separate source/bundle tests, not an automatic Doctor orphan decision.
+        self.assertTrue(selected_runtime_path(
+            "data/encyclopedia/guides/ganymede_2203_action_candidates.json"))
+
     def test_reject_unmaterialized_lfs_icon(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

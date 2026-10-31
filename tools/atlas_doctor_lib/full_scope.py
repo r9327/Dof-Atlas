@@ -194,7 +194,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
             continue
 
         inspected.append(relative)
-        if link_collector is not None and relative.startswith("app/"):
+        if link_collector is not None and relative.startswith(("app/", "scripts/windows/", "tools/")):
             link_collector.inspect_python_tree(relative, tree)
         missing_imports.extend(_imports_missing(root, relative, tree))
         silent.extend(_silent_exceptions(relative, tree))
@@ -240,6 +240,7 @@ def audit_full_scope(root: Path, *, expected_sha: str | None = None,
         json_audit = inspect_tracked_json(
             root, json_files, sha=sha, clean=clean,
             resource_observer=link_collector.observe_json if link_collector is not None else None,
+            tracked_files=set(all_paths),
         )
     else:
         json_audit = {"status": "NOT_RUN", "syntax_coverage": "NOT_RUN"}

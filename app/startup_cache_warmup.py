@@ -17,8 +17,8 @@ CACHE_ROOT = ROOT / ".cache" / "dofus_atlas"
 RESULT_PATH = CACHE_ROOT / "startup_cache_warmup_v1.json"
 STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
-_MANIFEST_SCHEMA_VERSION = 2
-_DOMAIN_STAMP_VERSION = 1
+_MANIFEST_SCHEMA_VERSION = 3
+_DOMAIN_STAMP_VERSION = 2
 # Quest is the Home dependency; Guide and Success may continue after Home paints.
 _DOMAIN_ORDER = ("quest", "guide", "success")
 
@@ -152,11 +152,16 @@ def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # Independent Atlas processes can warm the same shared cache concurrently.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    try:
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(path)
+    finally:
+        # The previous manifest/result remains authoritative if publication
+        # fails (read-only disk, antivirus lock, interrupted replacement).
+        temporary.unlink(missing_ok=True)
 
 
 def _write_result(payload: dict[str, object]) -> None:
@@ -242,16 +247,24 @@ def _source_stamp(domain: str) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            rows.append([label, -1, -1])
+            rows.append([label, -1, -1, -1, -1])
             continue
-        rows.append([label, int(stat.st_size), int(stat.st_mtime_ns)])
+        # A source JSON replaced atomically can retain its size/mtime.
+        # Match the artefact generation fingerprint so the whole domain
+        # rebuilds instead of reusing a cache signed for previous bytes.
+        rows.append([
+            label, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return rows
 
 
 def _safe_artifact_path(raw_path: object) -> Path | None:
-    value = str(raw_path or "").strip()
-    if not value:
+    # Domain workers publish relative/absolute strings, not arbitrary objects.
+    # Trimming a different spelling would silently trust the wrong artifact.
+    if not isinstance(raw_path, str) or not raw_path or raw_path != raw_path.strip():
         return None
+    value = raw_path
     path = Path(value)
     if not path.is_absolute():
         path = ROOT / path
@@ -268,18 +281,22 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
     try:
         if not path.is_file() or path.stat().st_size <= 0:
             return [label, -1, 0]
-        connection = sqlite3.connect(path, timeout=1)
-        try:
+        # Never create a fresh empty database when an existing cache is
+        # removed between stat() and connect(). SQLite is strictly read-only.
+        with closing(sqlite3.connect(
+            path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1,
+        )) as connection:
             ready = connection.execute(
                 "SELECT value FROM metadata WHERE key='ready'"
             ).fetchone()
             count_row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
-        finally:
-            connection.close()
-    except (OSError, sqlite3.Error):
+            count = max(0, int(count_row[0] if count_row else 0))
+    except (OSError, sqlite3.Error, TypeError, ValueError):
         return [label, -1, 0]
-    count = max(0, int(count_row[0] if count_row else 0))
-    return [label, count, 1 if ready is not None else 0]
+    # The builder writes precisely '1'. A different marker is not ready.
+    if ready != ("1",):
+        return [label, -1, 0]
+    return [label, count, 1]
 
 
 def _quest_offset_artifact_stamp(path: Path) -> list[object]:
@@ -296,11 +313,13 @@ def _quest_offset_artifact_stamp(path: Path) -> list[object]:
             return [label, -1, -1]
         # mode=ro prevents a missing SQLite file from being created during
         # a cache-hit check (including with multiple Atlas processes).
-        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
             row = connection.execute(
                 "SELECT start, end FROM offsets LIMIT 1"
             ).fetchone()
-        if row is not None and not (
+        # A database with only a table schema is not a populated offset index.
+        # A cold first detail must rebuild rather than silently reuse it.
+        if row is None or not (
             type(row[0]) is int and type(row[1]) is int and 0 <= row[0] < row[1]
         ):
             return [label, -1, -1]
@@ -313,10 +332,14 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
     if not isinstance(cache_files, list) or not cache_files:
         return []
     rows: list[list[object]] = []
+    seen_paths: set[Path] = set()
     for index, raw_path in enumerate(cache_files):
         path = _safe_artifact_path(raw_path)
-        if path is None:
+        # Two declared artifacts resolving to the same file must never
+        # masquerade as two independently prepared domain indexes.
+        if path is None or path in seen_paths:
             return []
+        seen_paths.add(path)
         if domain == "quest" and index == 0:
             rows.append(_quest_artifact_stamp(path))
             continue
@@ -327,10 +350,59 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            rows.append([label, -1, -1])
+            rows.append([label, -1, -1, -1, -1])
             continue
-        rows.append([label, int(stat.st_size), int(stat.st_mtime_ns)])
+        # Size/mtime alone can match a replaced JSONL sidecar. A cache
+        # generation must change when another Atlas instance publishes a
+        # different inode, even if size and mtime have been preserved.
+        rows.append([
+            label, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return rows
+
+
+def _domain_payload_complete(domain: str, payload: dict[str, object]) -> bool:
+    """Do not publish an empty or partially generated domain as READY.
+
+    Non-empty files alone do not prove that the Guide/Success content exists.
+    Keep this contract shared between new worker results and reuse of older
+    manifests; an incomplete cache is rebuilt, never silently marked ready.
+    """
+    tasks = payload.get("tasks")
+    if domain == "quest":
+        fields = (payload.get("quest_count"),
+                  payload.get("detail_source_index_count"),
+                  payload.get("detail_index_artifact_count"))
+    elif domain == "guide":
+        if not isinstance(tasks, dict):
+            return False
+        guide = tasks.get("guide")
+        items = tasks.get("guide_items")
+        if not isinstance(guide, dict) or not isinstance(items, dict):
+            return False
+        fields = (guide.get("guide_count"), guide.get("manual_card_count"),
+                  items.get("item_count"))
+    elif domain == "success":
+        if not isinstance(tasks, dict):
+            return False
+        success = tasks.get("success")
+        names = tasks.get("success_names")
+        if not isinstance(success, dict) or not isinstance(names, dict):
+            return False
+        fields = (success.get("achievement_count"),
+                  success.get("retained_count"),
+                  names.get("achievement_name_count"))
+    else:
+        return False
+    if not all(type(value) is int and value > 0 for value in fields):
+        return False
+    if domain == "success":
+        # A stale or partly rebuilt names index cannot certify the Success
+        # domain, even if both counters happen to be individually positive.
+        if fields[0] != fields[2] or fields[1] > fields[0]:
+            return False
+    return True
 
 
 def _cached_domain_result(
@@ -347,6 +419,8 @@ def _cached_domain_result(
     result = entry.get("result")
     expected_artifacts = entry.get("artifact_stamp")
     if not isinstance(result, dict) or result.get("domain") != domain:
+        return None
+    if not _domain_payload_complete(domain, result):
         return None
     if entry.get("source_stamp") != source_stamp:
         return None
@@ -381,6 +455,8 @@ def _run_domain(domain: str) -> dict[str, object]:
     )
     if not payload or str(payload.get("domain") or "") != domain:
         raise RuntimeError(f"startup cache domain worker returned invalid payload: {domain}")
+    if not _domain_payload_complete(domain, payload):
+        raise RuntimeError(f"startup cache domain worker returned incomplete counts: {domain}")
     cache_files = payload.get("cache_files")
     if not isinstance(cache_files, list) or not cache_files:
         raise RuntimeError(f"startup cache domain worker returned no artifacts: {domain}")

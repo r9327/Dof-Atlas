@@ -86,6 +86,9 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
             connection.execute(
                 "INSERT INTO metadata VALUES (?, ?)", ("manifest", manifest_data)
             )
+            # Avoid retaining every compressed walkthrough at once (Sylvestre
+            # contains more than a thousand cards). Keep the same SQLite rows,
+            # order, and atomic publication while bounding temporary memory.
             rows = []
             for idx, card in enumerate(cards):
                 detail = {
@@ -98,7 +101,11 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
                 if len(serialized) > MAX_DETAIL_BYTES:
                     raise ValueError(f"Fiche Guide {idx} supérieure au budget")
                 rows.append((idx, zlib.compress(serialized, level=1)))
-            connection.executemany("INSERT INTO details VALUES (?, ?)", rows)
+                if len(rows) == 32:
+                    connection.executemany("INSERT INTO details VALUES (?, ?)", rows)
+                    rows.clear()
+            if rows:
+                connection.executemany("INSERT INTO details VALUES (?, ?)", rows)
         tmp.replace(path)
     finally:
         tmp.unlink(missing_ok=True)
@@ -108,9 +115,9 @@ def write_indexed_route(service: Any, legacy_path: Path, signature: str) -> Path
 def restore_indexed_route(service: Any, legacy_path: Path, signature: str) -> bool:
     """Validate the compact manifest before exposing stable card identities."""
     path = indexed_path(legacy_path)
-    if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
-        return False
     try:
+        if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
+            return False
         with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE name='manifest'"
@@ -166,11 +173,20 @@ def load_detail(path: Path, index: int) -> dict[str, Any]:
         row = connection.execute(
             "SELECT data FROM details WHERE idx=?", (int(index),)
         ).fetchone()
-    if row is None or len(row[0]) > MAX_DETAIL_BYTES:
+    if (row is None or not isinstance(row[0], bytes)
+            or len(row[0]) > MAX_DETAIL_BYTES):
+        # A malformed/replaced SQLite BLOB can be a TEXT value. Do not let
+        # zlib's TypeError escape the rebuildable-cache error boundary.
         raise ValueError(f"Fiche Guide absente ou invalide: {index}")
-    decompressor = zlib.decompressobj()
-    content = decompressor.decompress(row[0], MAX_DETAIL_BYTES + 1)
-    if not decompressor.eof or len(content) > MAX_DETAIL_BYTES:
+    try:
+        decompressor = zlib.decompressobj()
+        content = decompressor.decompress(row[0], MAX_DETAIL_BYTES + 1)
+    except zlib.error as exc:
+        # The UI prefetch path handles ValueError, not arbitrary zlib errors.
+        # A damaged rebuildable cache must fail closed without crashing Qt.
+        raise ValueError(f"Fiche Guide compressée altérée: {index}") from exc
+    if (not decompressor.eof or decompressor.unused_data
+            or decompressor.unconsumed_tail or len(content) > MAX_DETAIL_BYTES):
         raise ValueError(f"Fiche Guide trop grande ou altérée: {index}")
     data = json.loads(content)
     if not isinstance(data, dict):

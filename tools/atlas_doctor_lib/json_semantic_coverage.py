@@ -268,8 +268,45 @@ def _parse_finite_float(value: str) -> float:
     return number
 
 
+_MAP_VIEWS_MANIFEST = "data/cartography/map_views.json"
+
+
+def _cartography_asset_candidates(
+    payload: Any, tracked_files: set[str] | None,
+) -> tuple[list[dict[str, Any]], int]:
+    """Check declared active map assets against Git paths, not retired provenance.
+
+    Missing tracked files can be generated at runtime: preserve REVIEW and never
+    mistake this for an image-decoding test or asset deletion permission.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get("views"), list):
+        return [], 0
+    findings: list[dict[str, Any]] = []
+    inspected = 0
+    for index, view in enumerate(payload["views"]):
+        if not isinstance(view, dict):
+            continue
+        path = view.get("asset_path")
+        inspected += 1
+        context = {"view_index": index, "view_key": view.get("view_key"),
+                   "asset_path": path}
+        if not isinstance(path, str) or not path.strip():
+            findings.append({**context, "kind": "MAP_VIEW_ASSET_NOT_DECLARED_REVIEW"})
+            continue
+        normalized = path.replace("\\", "/")
+        parts = normalized.split("/")
+        if (not normalized.startswith("data/cartography/assets/")
+                or normalized.startswith("/")
+                or any(part in ("", ".", "..") for part in parts)
+                or ":" in normalized or any(ord(char) < 32 for char in normalized)):
+            findings.append({**context, "kind": "MAP_VIEW_ASSET_UNSAFE_REVIEW"})
+        elif tracked_files is not None and normalized not in tracked_files:
+            findings.append({**context, "kind": "MAP_VIEW_ASSET_NOT_TRACKED_REVIEW"})
+    return findings, inspected
+
+
 def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
-                         resource_observer=None) -> dict[str, Any]:
+                         resource_observer=None, tracked_files: set[str] | None = None) -> dict[str, Any]:
     """Inspect every tracked JSON; a skipped/broken file blocks completeness."""
     files: list[dict[str, Any]] = []
     guide_catalog: Any = None
@@ -284,6 +321,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
         "manifest_refs_inspected": 0,
         "manifest_reference_review_files": 0, "manual_base_refs_inspected": 0,
         "manual_base_reference_review_files": 0, "bytes_parsed": 0,
+        "map_view_assets_inspected": 0, "map_view_asset_review_files": 0,
+        "map_view_asset_reference_candidates": 0,
     }
     tracked_json = set(paths)
     manual_base_edges: dict[str, str] = {}
@@ -377,6 +416,17 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
                 entry["manual_base_reference_candidates"] = base_findings
                 if base_findings:
                     counts["manual_base_reference_review_files"] += 1
+            map_asset_findings: list[dict[str, Any]] = []
+            if relative == _MAP_VIEWS_MANIFEST:
+                map_asset_findings, map_asset_count = _cartography_asset_candidates(
+                    payload, tracked_files,
+                )
+                entry["map_view_asset_candidates"] = map_asset_findings
+                entry["map_view_asset_references_inspected"] = map_asset_count
+                counts["map_view_assets_inspected"] += map_asset_count
+                counts["map_view_asset_reference_candidates"] += len(map_asset_findings)
+                if map_asset_findings:
+                    counts["map_view_asset_review_files"] += 1
             # A duplicate member name can silently change the interpreted
             # source even if JSON syntax and list-level IDs are otherwise OK.
             # The decoder hook has no parent path: never invent one.
@@ -387,7 +437,8 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
             ]
             entry["duplicate_member_candidates"] = sorted(duplicate_keys)
             entry["status"] = (
-                "VALID_SYNTAX_REVIEW" if collisions or duplicate_keys or manifest_findings or base_findings
+                "VALID_SYNTAX_REVIEW" if (collisions or duplicate_keys or manifest_findings
+                                          or base_findings or map_asset_findings)
                 else "VALID_SYNTAX"
             )
             counts["valid_syntax"] += 1
@@ -468,5 +519,6 @@ def inspect_tracked_json(root: Path, paths: list[str], *, sha: str, clean: bool,
             "Guide Ultime manifest check covers declared chapter, branch and registry filenames only",
             "Guide catalog static links cover only names, IDs, categories and tracked filenames",
             "Git-tracked inventory excludes generated and user-local files",
+            "Cartography view asset paths are checked against Git paths only; generated assets and image contents remain unproven",
         ],
     }
