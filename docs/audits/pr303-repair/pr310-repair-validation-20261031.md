@@ -278,3 +278,7 @@ Le cache `DofusItemProvider._by_id` plafonné à 32 objets fonctionnait en FIFO 
 ## Navigation Guide : LRU de 64 relations réellement basée sur l'usage (31/10/2026)
 
 `_by_entity` limitait déjà la taille à 64 entrées, mais la restitution des requêtes existantes ne rafraîchissait jamais leur position ; les relations souvent consultées étaient expulsées comme en FIFO. Les hits de navigation (positifs ou négatifs) déplacent désormais l'entrée en fin de dictionnaire avant le retour d'une copie, sans changer le contrat de `_building_compact_cache` ni la limite. Test 64 entrées, réutilisation d'une relation négative, 65e insertion : conservation de l'entrée chaude et éviction de la plus ancienne non réutilisée. Aucun gain de temps prétendu sans bench.
+
+## Lecture du catalogue Guide : intégrité de génération pendant chargement (31/10/2026)
+
+Le lecteur `_load_from_compact_cache` vérifie désormais l'empreinte `size/mtime_ns/ctime_ns/inode` avant et après la lecture des résumés. Un autre worker publiant une nouvelle génération pendant le décodage ne peut plus faire installer des fiches partiellement périmées : `RuntimeError` conserve le repli existant. Régression avec remplacement concurrent simulé et absence d'appel à `_install_summaries`. Deux `stat` supplémentaires par lecture froide, aucun second scan JSONL ; impacts RSS et latence Windows non mesurés.

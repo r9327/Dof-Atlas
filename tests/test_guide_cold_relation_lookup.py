@@ -44,6 +44,48 @@ class CompactGuideRelationTests(unittest.TestCase):
         provider._ensure_loaded = Mock(side_effect=AssertionError("Cold lookup loaded catalogue"))
         return provider
 
+    def test_summary_loader_refuses_cache_replacement_during_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "guide.jsonl"
+            guide_file = root / "one.json"
+            guide_file.write_text("{}", encoding="utf-8")
+            payloads = (
+                {"kind": "meta", "guide_count": 1},
+                {"kind": "guide", "value": {"id": "one", "source_file": "one.json"}},
+            )
+            path.write_text(
+                "\n".join(json.dumps(row, separators=(",", ":"))
+                          for row in payloads) + "\n", encoding="utf-8",
+            )
+            provider = self._provider(root)
+            real_stat = Path.stat
+            calls = []
+
+            def replaced(current, *args, **kwargs):
+                stat = real_stat(current, *args, **kwargs)
+                if current == path:
+                    calls.append(True)
+                    if len(calls) == 2:
+                        return SimpleNamespace(
+                            st_size=stat.st_size, st_mtime_ns=stat.st_mtime_ns,
+                            st_ctime_ns=stat.st_ctime_ns + 1, st_ino=stat.st_ino,
+                        )
+                return stat
+
+            with (
+                patch.object(mod, "GUIDE_COMPACT_CACHE", path),
+                patch.object(provider, "_guide_entries", return_value=[(guide_file, {})]),
+                patch.object(provider, "_summary_from_compact_row",
+                             return_value=SimpleNamespace(id="one")),
+                patch.object(provider, "_install_summaries") as install,
+                patch.object(Path, "stat", replaced),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "remplacé"):
+                    provider._load_from_compact_cache()
+            install.assert_not_called()
+            self.assertEqual(len(calls), 2)
+
     def test_frozen_guide_reuses_compact_cache_before_heavy_source_loading(self):
         with (
             patch.object(mod.sys, "frozen", True, create=True),

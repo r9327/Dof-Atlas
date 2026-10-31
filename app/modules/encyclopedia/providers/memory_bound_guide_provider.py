@@ -617,6 +617,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._load_from_compact_subprocess()
 
     def _load_from_compact_cache(self) -> None:
+        # Detect an atomic cache replacement between validation and install.
+        first = GUIDE_COMPACT_CACHE.stat()
+        generation = (first.st_size, first.st_mtime_ns, first.st_ctime_ns, first.st_ino)
         entries = self._guide_entries()
         entry_by_file = {
             path.name: (path, order, dict(catalog_entry))
@@ -654,6 +657,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if (not summaries or len(summaries) != expected
                 or len(self._detail_entries) != expected):
             raise RuntimeError("Cache compact Guide tronqué ou avec des guides dupliqués")
+        final = GUIDE_COMPACT_CACHE.stat()
+        if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != generation:
+            raise RuntimeError("Cache compact Guide remplacé pendant le chargement")
         self._install_summaries(summaries, {})
 
     def _load_from_compact_subprocess(self) -> None:
