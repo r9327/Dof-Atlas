@@ -6,7 +6,7 @@ import struct
 import subprocess
 import sys
 import tempfile
-from dataclasses import asdict
+from dataclasses import fields
 from pathlib import Path
 from uuid import uuid4
 from typing import Any, BinaryIO
@@ -65,8 +65,16 @@ def _guide_item_source_signature(data_dir: Path) -> list[list[object]]:
 
 
 def _compact_item_payload(item: DofusItem) -> dict[str, object]:
-    payload = asdict(item)
-    raw = payload.get("raw")
+    # asdict() deep-copies the entire raw Doduda row before we discard nearly
+    # all of it. Keep simple dataclass fields directly and filter raw first;
+    # JSON serialization already supports our tuple-of-string effects.
+    payload: dict[str, object] = {
+        field.name: getattr(item, field.name)
+        for field in fields(DofusItem)
+        if field.name != "raw"
+    }
+    raw = item.raw
+    payload["raw"] = raw
     if isinstance(raw, dict):
         payload["raw"] = {
             key: raw[key]

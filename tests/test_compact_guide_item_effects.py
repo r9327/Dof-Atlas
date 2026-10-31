@@ -111,6 +111,39 @@ class CompactGuideItemEffectTests(unittest.TestCase):
         )
 
 
+class CompactDofusPayloadTests(unittest.TestCase):
+    def test_compact_payload_matches_old_json_and_does_not_copy_unused_raw(self):
+        from dataclasses import asdict
+        from app.modules.encyclopedia.models.dofus_item import DofusItem
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        item = DofusItem(
+            id=42, original_id=42, name="Test", level=200,
+            type_id=23, type_name="Dofus", effects=("Bonus",),
+            raw={"id": 42, "typeId": 23, "level": 200, "unused": {"deep": [1, 2]}},
+        )
+        expected = asdict(item)
+        expected["raw"] = {"id": 42, "typeId": 23, "level": 200}
+        result = mod._compact_item_payload(item)
+        self.assertEqual(result, expected)
+        self.assertEqual(
+            json.dumps(result, ensure_ascii=False),
+            json.dumps(expected, ensure_ascii=False),
+        )
+        self.assertEqual(item.raw["unused"], {"deep": [1, 2]})
+
+        class ProhibitDeepCopy:
+            def __deepcopy__(self, memo):
+                raise AssertionError("Unused raw data must never be copied")
+
+        protected = DofusItem(
+            id=7, original_id=7, name="Protected", level=1,
+            type_id=1, type_name="Other",
+            raw={"id": 7, "unused": ProhibitDeepCopy()},
+        )
+        self.assertEqual(mod._compact_item_payload(protected)["raw"], {"id": 7})
+
+
 class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
     def test_items_index_source_replacement_invalidates_same_mtime_cache(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
