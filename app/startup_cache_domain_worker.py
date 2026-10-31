@@ -168,6 +168,30 @@ def _quest_domain() -> dict[str, object]:
     }
 
 
+def _read_compact_success_counts(index_path: Path, schema: int) -> tuple[int, int] | None:
+    """A sidecar with a valid filename but broken contents is not reusable."""
+    try:
+        payload = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
+        return None
+    total = payload.get("achievement_count")
+    retained = payload.get("retained_count")
+    retained_ids = payload.get("retained_ids")
+    offsets = payload.get("offsets")
+    if (
+        payload["schema_version"] != schema
+        or type(total) is not int or type(retained) is not int
+        or not (0 < retained <= total)
+        or not isinstance(retained_ids, list) or len(retained_ids) != retained
+        or not all(type(item) is int for item in retained_ids)
+        or not isinstance(offsets, dict) or len(offsets) != retained
+    ):
+        return None
+    return total, retained
+
+
 def _success_domain() -> dict[str, object]:
     from app.modules.encyclopedia.providers import (
         memory_bound_achievement_provider as achievement_provider,
@@ -179,10 +203,15 @@ def _success_domain() -> dict[str, object]:
     cache_path = achievement_provider.ACHIEVEMENT_COMPACT_CACHE
     index_path = achievement_provider._achievement_compact_index_path(cache_path)
 
-    if not achievement_provider._achievement_compact_cache_valid(
+    index_counts = None
+    if achievement_provider._achievement_compact_cache_valid(
         cache_path,
         data_dir=achievement_provider.RAW_QUEST_DATA_DIR,
     ):
+        index_counts = _read_compact_success_counts(
+            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA,
+        )
+    if index_counts is None:
         code = int(
             _quiet_call(
                 achievement_provider._build_compact_cache,
@@ -192,14 +221,13 @@ def _success_domain() -> dict[str, object]:
         )
         if code != 0:
             raise RuntimeError(f"Success compact cache build failed with code {code}")
+        index_counts = _read_compact_success_counts(
+            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA,
+        )
+        if index_counts is None:
+            raise RuntimeError("Success compact index missing or invalid after build")
 
-    try:
-        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
-    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Success compact index unavailable after build") from exc
-
-    achievement_count = max(0, int(index_payload.get("achievement_count") or 0))
-    retained_count = max(0, int(index_payload.get("retained_count") or 0))
+    achievement_count, retained_count = index_counts
     timings["catalogue"] = round((perf_counter() - compact_started) * 1000.0, 2)
 
     names_started = perf_counter()

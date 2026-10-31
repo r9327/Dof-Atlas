@@ -84,3 +84,7 @@ Le worker qui prépare les Guides ne s'appuie plus sur la seule première ligne 
 ## Détection des tests mis de côté dans les patches
 
 Sans modifier le verdict de certification ni autoriser de nouveau skip, l'audit commit-par-commit signale désormais les **ajouts de décorateurs `unittest.skip{If,Unless}` / `pytest.mark.skip{,if}` / `xfail`** et les appels `pytest.skip`, `pytest.xfail`, `self.skipTest` dans `TEST_SKIP` avec position fichier/ligne. Le niveau commit remonte `ADDED_TEST_SKIP_REVIEW`. Les marqueurs sont des **indices de revue**, car un skip peut avoir une raison légitime : pas de suppression automatique, pas de rejet arbitraire et aucun `NOT_RUN` converti en `PASS`. Tests paramétrés des signatures et test `review()` inclus.
+
+## Success : index compact corrompu et comptages trompeurs
+
+Le worker Succès ne considère plus comme READY un fichier `*.idx.json` présent mais malformé : il vérifie le `schema_version` exact, les comptes entiers (pas booléens ni chaînes), `0 < retained_count <= achievement_count`, la taille et les types de `retained_ids` ainsi que la présence et la cardinalité de `offsets`. Toute incohérence impose **une reconstruction du cache canonique**, puis une seconde vérification avec erreur explicite si la réparation échoue, au lieu d'un échec persistant sans tentative de réparation. Les fichiers de données et la validation native ne sont pas modifiés ; test de contrat multicas ajouté au worker de démarrage.
