@@ -93,11 +93,17 @@ def build_worklists(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[
         raise ValueError("Candidate cardinality mismatch; refuse a partial list")
 
     link_rows: list[dict[str, Any]] = []
-    for number, row in enumerate([*unresolved, *ambiguous], start=1):
+    # Stable review IDs: an unrelated new finding must not invalidate all
+    # existing decisions, as a global row-number-based ID would.
+    occurrences: Counter[tuple[str, str, str, str]] = Counter()
+    for row in [*unresolved, *ambiguous]:
         if len(row.get("candidates", [])) != row.get("candidate_count", len(row.get("candidates", []))):
             raise ValueError("Ambiguous target list truncated")
         locator = str(row.get("json_pointer") or row.get("line") or "")
-        key = "\\x1f".join([row["source"], locator, row["literal"], str(number)])
+        signature = (row["source"], locator, row["literal"], row["kind"])
+        ordinal = occurrences[signature]
+        occurrences[signature] += 1
+        key = "\\x1f".join([*signature, str(ordinal)])
         link_rows.append({
             "id": "L-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:16],
             "candidate_sha": sha,
