@@ -218,6 +218,27 @@ class DoctorResourceLinkTests(unittest.TestCase):
         self.assertFalse(report["automatic_deletion_authorized"])
 
 
+    def test_active_map_asset_is_separate_from_historic_tile_sources(self):
+        from tools.atlas_doctor_lib.resource_link_audit import ResourceLinkCollector
+        collector = ResourceLinkCollector(["data/cartography/map_views.json"])
+        collector.observe_json("data/cartography/map_views.json", {
+            "views": [{
+                "source_tiles": {
+                    "promoted_source": "data/reports/maps/source.png",
+                    "previous_asset_backup": "data/reports/maps/backup.png",
+                },
+                "asset_path": "data/cartography/assets/caves/mine_astrub_1.png",
+            }],
+        })
+        result = collector.finish(include_all=True)
+        self.assertEqual(result["link_triage_buckets"], {
+            "MAP_PROVENANCE_SOURCE_REVIEW": 2,
+            "UNCLASSIFIED_REFERENCE_REVIEW": 1,
+        })
+        self.assertTrue(result["triage_counts_complete"])
+        self.assertFalse(result["triage_verified"])
+
+
 
 if __name__ == "__main__":
     unittest.main()
