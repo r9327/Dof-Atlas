@@ -31,7 +31,8 @@ def scan_patch(patch: str) -> dict:
     removed_check = re.compile(
         r"^\s*(?:assert\b|self\.assert\w*\s*\(|self\.fail\s*\(|(?:with\s+)?pytest\.raises\s*\()", re.I
     )
-    findings = {\n        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
+    findings = {
+        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
         for name, pattern in PATTERNS.items()
     }
     return {
