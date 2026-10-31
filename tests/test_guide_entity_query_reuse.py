@@ -87,6 +87,50 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
                 )
                 provider.get_by_id.assert_not_called()
 
+    def test_entity_lookup_rechecks_generation_before_caching(self):
+        from app.modules.encyclopedia.providers import memory_bound_guide_provider as mod
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "guide.jsonl"
+            cache.write_text(
+                "\n".join(json.dumps(row, separators=(",", ":")) for row in (
+                    {"kind": "meta", "entity_index_count": 1},
+                    {"kind": "entity_index", "value": {
+                        "guide_id": "one", "entity_keys": [["quest", 999]],
+                    }},
+                )) + "\n",
+                encoding="utf-8",
+            )
+            provider = self.provider()
+            original_stat = Path.stat
+            checks = []
+
+            def changed_stat(path, *args, **kwargs):
+                stat = original_stat(path, *args, **kwargs)
+                if path == cache:
+                    checks.append(True)
+                    if len(checks) == 2:
+                        return SimpleNamespace(
+                            st_size=stat.st_size,
+                            st_mtime_ns=stat.st_mtime_ns,
+                            st_ctime_ns=stat.st_ctime_ns + 1,
+                            st_ino=stat.st_ino,
+                        )
+                return stat
+
+            with (
+                patch.object(mod, "GUIDE_COMPACT_CACHE", cache),
+                patch.object(mod, "_guide_compact_cache_valid", return_value=True),
+                patch.object(Path, "stat", changed_stat),
+            ):
+                found = provider.get_guides_for_entity("quest", 42)
+            # Source details must win over any partial/stale compact lookup.
+            self.assertEqual([g.id for g in found], ["one"])
+            self.assertEqual(provider.get_by_id.call_count, 1)
+            self.assertGreaterEqual(len(checks), 2)
+
     def test_draft_catalogue_entity_lookup_never_uses_published_only_index(self):
         provider = self.provider()
         provider.include_drafts = True

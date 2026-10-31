@@ -431,6 +431,14 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     guides_dir=self.guides_dir,
                 )):
             try:
+                # The signature check precedes the reader. Pin its current
+                # generation so another Atlas worker cannot silently replace
+                # the JSONL while we build and memoize one relation.
+                before = GUIDE_COMPACT_CACHE.stat()
+                generation = (
+                    before.st_size, before.st_mtime_ns,
+                    before.st_ctime_ns, before.st_ino,
+                )
                 matches: list[Guide] = []
                 indexed_ids: set[str] = set()
                 expected_indexes: int | None = None
@@ -478,6 +486,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                             matches.append(self._by_id[guide_id])
                 if expected_indexes is None or expected_indexes != len(indexed_ids):
                     raise ValueError("Guide entity index truncated")
+                after = GUIDE_COMPACT_CACHE.stat()
+                if (after.st_size, after.st_mtime_ns,
+                        after.st_ctime_ns, after.st_ino) != generation:
+                    raise ValueError("Guide entity index changed during lookup")
                 matches = sorted(
                     matches,
                     key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
