@@ -96,3 +96,11 @@ Le contrôle du worker Succès pouvait détecter un index `*.idx.json` invalide,
 ## Sidecar Succès : correspondance offsets ↔ octets JSONL
 
 Au-delà des compteurs, le worker valide maintenant tous les IDs retenus uniques et présents dans `offsets`, les spans au format canonique **[début, longueur]**, et `0 <= début < début + longueur <= taille du JSONL`. Les types booléens, longueurs nulles, offsets hors fichier et références à un autre ID imposent reconstruction. Le contrôle est borné au sidecar sans charger les fiches JSONL dans la RAM de l'App. Tests des cas positifs, corruptions, doublons et fichier JSONL disparu ajoutés ; preuves exact HEAD à vérifier.
+
+## Lot ciblé — intégrité des enregistrements Succès et repli applicatif (31/10/2026)
+
+Le précédent contrôle des offsets retenus garantissait uniquement des bornes et des IDs présents dans le sidecar. Le fichier JSONL pouvait contenir une autre fiche à l'offset exact, tout en ayant des longueurs cohérentes. Le **worker jetable** ouvre maintenant le JSONL en binaire et vérifie chaque ligne retenue à la position déclarée (fin de ligne, type `achievement`, ID entier strict et égal à la clé de l'index). Les corruptions, objets JSON non dictionnaires et décalages sont refusés avant l'annonce de disponibilité ; la voie `force_rebuild` existante reste propriétaire de la reconstruction atomique sous verrou.
+
+Côté Atlas, `MemoryBoundAchievementProvider._compact_value_by_id` refuse une ligne de type ou d'identifiant incorrect au lieu de rendre la mauvaise fiche ; `_load()` retombe sur l'extraction déjà existante si l'index du catalogue compact échoue après validation de l'en-tête. Aucun cache utilisateur persistant n'est modifié par ce lot.
+
+Tests ciblés étendus avec lignes JSONL réelles, offsets intervertis, IDs booléens, lignes de type inattendu et repli de lecture ; le workflow Windows Guides/Succès existant exécute désormais explicitement les tests de ces lecteurs lors d'un changement des modules ou des tests. Aucun workflow parallèle, budget abaissé ni résultat `FULL PASS` présumé. **Validation à réaliser sur le SHA exact publié ; aucune mesure de gain de performance ou RAM déclarée.**

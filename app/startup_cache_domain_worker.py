@@ -255,7 +255,8 @@ def _read_compact_success_counts(
                     return None
                 row = json.loads(raw)
                 value = row.get("value") if isinstance(row, dict) else None
-                if (row.get("kind") != "achievement"
+                if (not isinstance(row, dict)
+                        or row.get("kind") != "achievement"
                         or not isinstance(value, dict)
                         or type(value.get("id")) is not int
                         or value["id"] != achievement_id):

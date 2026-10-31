@@ -85,6 +85,20 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+    def test_corrupt_compact_sidecar_falls_back_to_existing_worker(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+        provider.data_dir = mod.RAW_QUEST_DATA_DIR
+        with (
+            patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            patch.object(provider, "_load_from_compact_cache",
+                         side_effect=RuntimeError("invalid offsets")),
+            patch.object(provider, "_load_from_compact_subprocess") as fallback,
+        ):
+            provider._load()
+            fallback.assert_called_once_with()
+
     def test_retained_offset_must_point_to_matching_success(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

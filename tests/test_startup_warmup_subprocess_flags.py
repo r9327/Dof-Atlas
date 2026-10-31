@@ -57,14 +57,17 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             "app/quest_source_index.py",
             "app/startup_cache_domain_worker.py",
             "app/modules/encyclopedia/providers/memory_bound_guide_provider.py",
+            "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
             "app/startup_cache_warmup.py",
             "tests/test_quest_source_boundaries.py",
             "tests/test_startup_warmup_subprocess_flags.py",
             "tests/test_guide_cold_relation_lookup.py",
+            "tests/test_achievement_compact_subprocess_lifecycle.py",
         ):
             with self.subTest(source=source):
                 self.assertIn("      - '" + source + "'", workflow)
         self.assertIn("tests.test_guide_cold_relation_lookup", workflow)
+        self.assertIn("tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests", workflow)
 
     def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:
         enriched = warmup._QUEST_ENRICHED_SOURCE
@@ -345,6 +348,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 [dict(kind="achievement", value={"id": 20}), dict(kind="achievement", value={"id": 10})],
                 [dict(kind="achievement", value={"id": True}), dict(kind="achievement", value={"id": 20})],
                 [dict(kind="guide", value={"id": 10}), dict(kind="achievement", value={"id": 20})],
+                [["unexpected", "array"], dict(kind="achievement", value={"id": 20})],
             ):
                 encoded = [(json.dumps(row) + "\n").encode("utf-8") for row in tampered]
                 sidecar = {**valid, "offsets": {

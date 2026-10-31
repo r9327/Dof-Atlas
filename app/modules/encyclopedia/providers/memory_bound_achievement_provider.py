@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import subprocess
@@ -906,8 +907,15 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             ACHIEVEMENT_COMPACT_CACHE,
             data_dir=self.data_dir,
         ):
-            self._load_from_compact_cache()
-            return
+            try:
+                self._load_from_compact_cache()
+                return
+            except (OSError, UnicodeError, ValueError, TypeError, KeyError, RuntimeError) as exc:
+                # The header can still be valid while its offsets sidecar is
+                # missing or corrupt. Preserve the existing disposable fallback.
+                logging.getLogger(__name__).warning(
+                    "Success compact cache rejected; rebuilding from sources: %s", exc,
+                )
         self._load_from_compact_subprocess()
 
     def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
