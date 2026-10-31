@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import os
 from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 from time import perf_counter
 
@@ -13,10 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _quiet_call(function, *args):
-    stream = StringIO()
-    with redirect_stdout(stream):
-        result = function(*args)
-    return result
+    # These builders can print an unbounded number of lines while handling
+    # tens of thousands of Dofus records. Capturing discarded output in
+    # StringIO retains that entire text during the largest RAM peak.
+    with open(os.devnull, "w", encoding="utf-8") as sink, redirect_stdout(sink):
+        return function(*args)
 
 
 def _relative(path: Path) -> str:

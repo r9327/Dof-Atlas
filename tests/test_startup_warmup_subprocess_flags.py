@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app import startup_cache_warmup as warmup
+from app import startup_cache_domain_worker as domain_worker
 
 
 class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
@@ -212,6 +213,29 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                             warmup._write_json_atomic(target, {"status": "new"})
                     self.assertEqual(target.read_text(encoding="utf-8"), previous)
                     self.assertEqual(list(target.parent.glob(".*.tmp")), [])
+
+
+    def test_domain_builder_discarded_stdout_is_not_buffered(self):
+        # Large build logs must not accumulate in a StringIO at the peak.
+        class Printed(RuntimeError):
+            pass
+
+        def builder(label):
+            for _ in range(50):
+                print("verbose source record " * 200)
+            return f"done:{label}"
+
+        with patch("builtins.open", wraps=open) as opened:
+            self.assertEqual(domain_worker._quiet_call(builder, "quest"), "done:quest")
+        self.assertEqual(opened.call_count, 1)
+        self.assertEqual(opened.call_args.args[0], domain_worker.os.devnull)
+
+        def failing_builder():
+            print("discarded error output")
+            raise Printed("source corrupt")
+
+        with self.assertRaisesRegex(Printed, "source corrupt"):
+            domain_worker._quiet_call(failing_builder)
 
 
 if __name__ == "__main__":
