@@ -152,11 +152,16 @@ def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # Independent Atlas processes can warm the same shared cache concurrently.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    temporary.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    try:
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(path)
+    finally:
+        # The previous manifest/result remains authoritative if publication
+        # fails (read-only disk, antivirus lock, interrupted replacement).
+        temporary.unlink(missing_ok=True)
 
 
 def _write_result(payload: dict[str, object]) -> None:
@@ -268,14 +273,15 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
     try:
         if not path.is_file() or path.stat().st_size <= 0:
             return [label, -1, 0]
-        connection = sqlite3.connect(path, timeout=1)
-        try:
+        # Never create a fresh empty database when an existing cache is
+        # removed between stat() and connect(). SQLite is strictly read-only.
+        with closing(sqlite3.connect(
+            path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1,
+        )) as connection:
             ready = connection.execute(
                 "SELECT value FROM metadata WHERE key='ready'"
             ).fetchone()
             count_row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
-        finally:
-            connection.close()
     except (OSError, sqlite3.Error):
         return [label, -1, 0]
     count = max(0, int(count_row[0] if count_row else 0))
@@ -296,7 +302,7 @@ def _quest_offset_artifact_stamp(path: Path) -> list[object]:
             return [label, -1, -1]
         # mode=ro prevents a missing SQLite file from being created during
         # a cache-hit check (including with multiple Atlas processes).
-        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
             row = connection.execute(
                 "SELECT start, end FROM offsets LIMIT 1"
             ).fetchone()

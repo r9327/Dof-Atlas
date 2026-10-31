@@ -171,5 +171,48 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         self.assertNotIn("creationflags", run.call_args.kwargs)
 
 
+    def test_relative_special_character_sqlite_stamps_are_read_only(self):
+        # The bundle may use relative paths and Qt/Windows paths can include
+        # spaces, accented letters and #. File URIs must encode them correctly.
+        with tempfile.TemporaryDirectory(dir=".") as temporary:
+            directory = Path(temporary).relative_to(Path.cwd())
+            quest = directory / "cache été #1.sqlite3"
+            offset = directory / "offset été #2.sqlite3"
+            with closing(sqlite3.connect(quest)) as connection, connection:
+                connection.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute("INSERT INTO metadata VALUES ('ready', '1')")
+                connection.execute("CREATE TABLE quests (id INTEGER PRIMARY KEY)")
+                connection.execute("INSERT INTO quests VALUES (42)")
+            with closing(sqlite3.connect(offset)) as connection, connection:
+                connection.execute("CREATE TABLE offsets (key TEXT PRIMARY KEY, start INTEGER, end INTEGER)")
+                connection.execute("INSERT INTO offsets VALUES ('42', 10, 20)")
+            self.assertFalse(quest.is_absolute())
+            with patch.object(warmup.sqlite3, "connect", wraps=sqlite3.connect) as connect:
+                quest_stamp = warmup._quest_artifact_stamp(quest)
+                offset_stamp = warmup._quest_offset_artifact_stamp(offset)
+            self.assertEqual(quest_stamp[1:], [1, 1])
+            self.assertGreater(offset_stamp[1], 0)
+            self.assertEqual(offset_stamp[0], warmup._path_label(offset))
+            self.assertEqual(connect.call_count, 2)
+            for call in connect.call_args_list:
+                self.assertTrue(call.kwargs["uri"])
+                self.assertEqual(call.kwargs["timeout"], 1)
+                self.assertIn("mode=ro", call.args[0])
+                self.assertIn("%23", call.args[0])
+
+    def test_atomic_warmup_publication_preserves_old_result_on_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "manifest.json"
+            previous = '{"schema_version": 2, "status": "ready"}'
+            target.write_text(previous, encoding="utf-8")
+            for method in ("write_text", "replace"):
+                with self.subTest(failing_method=method):
+                    with patch.object(Path, method, side_effect=OSError("disk failure")):
+                        with self.assertRaisesRegex(OSError, "disk failure"):
+                            warmup._write_json_atomic(target, {"status": "new"})
+                    self.assertEqual(target.read_text(encoding="utf-8"), previous)
+                    self.assertEqual(list(target.parent.glob(".*.tmp")), [])
+
+
 if __name__ == "__main__":
     unittest.main()

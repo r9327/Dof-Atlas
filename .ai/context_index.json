@@ -57,7 +57,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "b6d358548c5623b82afc8ea2a3372135bb53bbc6",
+      "sha": "526149847a29940f381809ef66a482c3ffe55287",
       "type": "tree"
     },
     "CLAUDE.md": {
@@ -157,7 +157,7 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "dd5b77a173d35a3194d040cddb20e168ec60b5f6",
+      "sha": "57d9be62664c43fb4efee8c0b864113f164f1eef",
       "type": "tree"
     },
     "tools": {
