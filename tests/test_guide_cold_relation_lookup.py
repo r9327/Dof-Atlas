@@ -106,6 +106,33 @@ class CompactGuideRelationTests(unittest.TestCase):
                 self.assertEqual(provider.guide_ids_for_quest_fast(99), ("guide-b",))
             provider._ensure_loaded.assert_not_called()
 
+    def test_replaced_jsonl_same_size_and_mtime_invalidates_recent_relation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            guides = root / "guides"
+            guides.mkdir()
+            cache = root / "compact.jsonl"
+            self._write_cache(cache, guides)
+            provider = self._provider(guides)
+            with patch.object(mod, "GUIDE_COMPACT_CACHE", cache):
+                self.assertEqual(provider.guide_ids_for_quest_fast(42), ("guide-b",))
+                before = cache.stat()
+                # A cross-process atomic writer can restore timestamps for an
+                # otherwise changed cache; its inode/creation time differs.
+                replacement = root / "replacement.jsonl"
+                content = cache.read_text(encoding="utf-8")
+                self.assertIn("42", content)
+                replacement.write_text(content.replace("42", "99"), encoding="utf-8")
+                os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+                self.assertEqual(replacement.stat().st_size, before.st_size)
+                replacement.replace(cache)
+                after = cache.stat()
+                self.assertEqual(after.st_size, before.st_size)
+                self.assertEqual(after.st_mtime_ns, before.st_mtime_ns)
+                self.assertEqual(provider.guide_ids_for_quest_fast(42), ())
+                self.assertEqual(provider.guide_ids_for_quest_fast(99), ("guide-b",))
+            provider._ensure_loaded.assert_not_called()
+
     def test_parseable_but_incomplete_guide_index_does_not_claim_no_relations(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

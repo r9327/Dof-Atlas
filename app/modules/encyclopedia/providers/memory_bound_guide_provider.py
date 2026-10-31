@@ -248,7 +248,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._detail_cache: Guide | None = None
         # Bounded recent relations: avoid decoding the entire compact JSONL
         # when a Quest detail repeatedly asks about the same Guide links.
-        self._fast_quest_relation_stamp: tuple[str, int, int] | None = None
+        self._fast_quest_relation_stamp: tuple[str, int, int, int, int] | None = None
         self._fast_quest_relation_cache: OrderedDict[int, tuple[str, ...]] = OrderedDict()
 
     def release_detail_cache(self) -> None:
@@ -319,7 +319,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             stat = path.stat()
         except OSError:
             return None
-        stamp = (str(path), stat.st_size, stat.st_mtime_ns)
+        stamp = (str(path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
         cache = getattr(self, "_fast_quest_relation_cache", None)
         if cache is None:
             cache = OrderedDict()
@@ -406,7 +406,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
             final_stat = path.stat()
         except OSError:
             return None
-        if (final_stat.st_size, final_stat.st_mtime_ns) != stamp[1:]:
+        if (final_stat.st_size, final_stat.st_mtime_ns,
+                final_stat.st_ctime_ns, final_stat.st_ino) != stamp[1:]:
             cache.clear()
             self._fast_quest_relation_stamp = None
             return None

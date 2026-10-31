@@ -170,3 +170,7 @@ Aucun gain de RAM présumé. Le HEAD exact doit passer ses contrôles ciblés av
 ## Warm start Succès : éviter les écritures disque inutiles (31/10/2026)
 
 Sous le **verrou interprocessus existant**, `write_achievement_name_index` compare le cache de noms courant au résultat canonicalisé déjà calculé et retourne directement si contenu identique : aucune nouvelle écriture temporaire, `replace`, retry Win32 ni invalidation d'horodatage sur les démarrages sans changement. Cache manquant, corrompu ou différent : la publication atomique originale reste strictement préservée. Test vérifiant qu'un cache valide bloque une tentative artificielle de `replace` et conserve son mtime. Le bénéfice est une suppression d'I/O redondante sur la voie chaude, **sans chiffre de gain Windows/RSS prétendu**.
+
+## Cache Quêtes → Guides : invalidation après remplacement atomique horodaté (31/10/2026)
+
+L'empreinte d'invalidation du cache LRU de 64 relations ne repose plus seulement sur `path/size/mtime_ns` : elle prend aussi `ctime_ns` et `st_ino`. Une autre instance peut remplacer un fichier par un contenu de **même taille et de même mtime** sans que l'ancien résultat de relation ne soit valable. Le contrôle avant/à la fin du scan utilise la même empreinte. Test avec remplacement atomique et horodatage restauré ; aucun changement de format disque ni ajout d'index résiduel.
