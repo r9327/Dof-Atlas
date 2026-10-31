@@ -312,6 +312,64 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             provider._load()
             fallback.assert_called_once_with()
 
+    def test_new_sidecar_quest_relations_skip_jsonl_scan_and_preserve_order(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "success.jsonl"
+            sidecar = mod._achievement_compact_index_path(cache)
+            cache.write_text("\n".join(json.dumps(row) for row in (
+                {"kind": "meta"},
+                {"kind": "category", "value": {"id": 8, "name": "Test"}},
+                {"kind": "external_start"},
+            )) + "\n", encoding="utf-8")
+            sidecar.write_text(json.dumps({
+                "retained_ids": [10, 20],
+                "by_quest": {"42": [20, 10], "99": [10]},
+                "by_quest_ref_count": 3,
+            }), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                provider._load_from_compact_cache()
+                with patch.object(Path, "open",
+                                  side_effect=AssertionError("unexpected JSONL scan")):
+                    self.assertEqual(provider._compact_achievement_ids_for_quest(42), (20, 10))
+                    self.assertEqual(provider._compact_achievement_ids_for_quest(99), (10,))
+                    self.assertEqual(provider._compact_achievement_ids_for_quest(100), ())
+
+    def test_invalid_sidecar_quest_map_falls_back_to_canonical_scan(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "success.jsonl"
+            sidecar = mod._achievement_compact_index_path(cache)
+            cache.write_text("\n".join(json.dumps(row) for row in (
+                {"kind": "meta"},
+                {"kind": "category", "value": {"id": 8, "name": "Test"}},
+                {"kind": "achievement", "value": {
+                    "id": 10, "linked_quests": [{"entity_id": 42}],
+                }},
+                {"kind": "external_start"},
+            )) + "\n", encoding="utf-8")
+            sidecar.write_text(json.dumps({
+                "retained_ids": [10],
+                "by_quest": {"42": [10]},
+                "by_quest_ref_count": 2,
+            }), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                provider._load_from_compact_cache()
+                self.assertIsNone(provider._compact_quest_ids_by_quest)
+                self.assertEqual(provider._compact_achievement_ids_for_quest(42), (10,))
+
     def test_quest_link_truncation_is_not_cached_and_repairs_on_next_lookup(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

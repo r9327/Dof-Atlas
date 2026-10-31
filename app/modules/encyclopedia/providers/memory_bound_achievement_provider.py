@@ -519,6 +519,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_quest_link_stamp: tuple[int, int, int, int] | None = None
+        # Optional precomputed relations in newer disposable sidecars.
+        # None preserves the validated JSONL scan for historical caches.
+        self._compact_quest_ids_by_quest: dict[int, tuple[int, ...]] | None = None
+        self._compact_quest_map_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
         # One active rich detail + two previous ones. Reopening a Success must
         # not spend another 5s rebuilding a disposable detail worker.
@@ -567,6 +571,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_category_ids = {}
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
+        self._compact_quest_ids_by_quest = None
+        self._compact_quest_map_stamp = None
         self._compact_summary_cache.clear()
         self._reset_sources()
 
@@ -691,6 +697,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     continue
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
+        self._compact_quest_ids_by_quest = None
+        self._compact_quest_map_stamp = None
         self._progress_objectives = progress_objectives
         # Compatibility subprocess may replace the whole catalogue in the
         # same provider. Never retain rich detail objects from older sources.
@@ -868,6 +876,29 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = retained_ids
         self._compact_retained_set = frozenset(retained_ids)
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        relation_rows = index_payload.get("by_quest")
+        relation_count = index_payload.get("by_quest_ref_count")
+        relation_map: dict[int, tuple[int, ...]] | None = None
+        if isinstance(relation_rows, dict) and type(relation_count) is int:
+            candidate: dict[int, tuple[int, ...]] = {}
+            retained_set = set(retained_ids)
+            observed = 0
+            for raw_quest, raw_achievements in relation_rows.items():
+                if (not isinstance(raw_quest, str) or not raw_quest.isdecimal()
+                        or str(int(raw_quest)) != raw_quest
+                        or not isinstance(raw_achievements, list)
+                        or not raw_achievements
+                        or any(type(ident) is not int or ident not in retained_set
+                               for ident in raw_achievements)
+                        or len(set(raw_achievements)) != len(raw_achievements)):
+                    break
+                candidate[int(raw_quest)] = tuple(raw_achievements)
+                observed += len(raw_achievements)
+            else:
+                if observed == relation_count:
+                    relation_map = candidate
+        self._compact_quest_ids_by_quest = relation_map
+        self._compact_quest_map_stamp = source_generation if relation_map is not None else None
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
@@ -1246,6 +1277,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._compact_quest_link_stamp != stamp:
             self._compact_quest_link_cache.clear()
             self._compact_quest_link_stamp = stamp
+        if self._compact_quest_ids_by_quest is not None:
+            if getattr(self, "_compact_quest_map_stamp", None) == stamp:
+                # The sidecar was checked with the JSONL on catalogue load.
+                # No per-quest scan and no additional rich Achievement objects.
+                return self._compact_quest_ids_by_quest.get(quest_id, ())
+            self._compact_quest_ids_by_quest = None
+            self._compact_quest_map_stamp = None
         cached = self._compact_quest_link_cache.get(quest_id)
         if cached is not None:
             self._compact_quest_link_cache.move_to_end(quest_id)
@@ -1902,10 +1940,16 @@ def _build_compact_cache_unlocked(path: Path) -> int:
             if int(achievement.category_id) not in retained_ids
         ]
         by_category_ids: dict[int, list[int]] = defaultdict(list)
+        by_quest_ids: dict[int, list[int]] = defaultdict(list)
         for achievement in retained:
             by_category_ids[int(achievement.category_id)].append(int(achievement.id))
             if achievement.subcategory_id is not None:
                 by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
+            # Same order and membership as the canonical compact JSONL scan.
+            for quest_id in dict.fromkeys(
+                int(ref.entity_id) for ref in achievement.linked_quests
+            ):
+                by_quest_ids[quest_id].append(int(achievement.id))
         for achievement in retained:
             payload = {
                 "kind": "achievement",
@@ -1941,6 +1985,11 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                     for category_id, achievement_ids in sorted(by_category_ids.items())
                 },
                 "offsets": offsets,
+                "by_quest": {
+                    str(quest_id): ids
+                    for quest_id, ids in sorted(by_quest_ids.items())
+                },
+                "by_quest_ref_count": sum(len(ids) for ids in by_quest_ids.values()),
             },
             ensure_ascii=False,
             separators=(",", ":"),
