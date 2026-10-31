@@ -71,6 +71,58 @@ class RelativeGuideSQLiteTests(unittest.TestCase):
                 load_detail(sqlite_path, 0)
 
 
+    def test_streamed_large_route_roundtrip_preserves_order_and_details(self):
+        # 70 sheets cross two full 32-row insertion batches plus a remainder.
+        with tempfile.TemporaryDirectory() as temp:
+            store = Path(temp) / "cached route épreuve #1.json"
+            cards = [
+                {"manual_stage_id": f"sylvestre:{index}",
+                 "index": index + 1,
+                 "manual_lines": [{"kind": "action", "text": f"Action {index} — étapé"}],
+                 "manual_sections": {"now": [f"Étape {index}"],
+                                     "prepare": [f"Objet {index}"]}}
+                for index in range(70)
+            ]
+            full = SimpleNamespace(
+                guide_id="dofus_sylvestre",
+                route={"id": "catalog_manual_dofus_sylvestre", "steps": cards},
+                cards=cards, manual_audit_data={"card_count": len(cards)},
+                _common_quest_ids=(42, 86),
+            )
+            saved = write_indexed_route(full, store, "a" * 40)
+            restored = SimpleNamespace(guide_id="dofus_sylvestre")
+            self.assertTrue(restore_indexed_route(restored, store, "a" * 40))
+            self.assertEqual(len(restored.cards), 70)
+            with closing(sqlite3.connect(saved)) as connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM details").fetchone()[0], 70)
+            for index in (0, 31, 32, 63, 64, 69):
+                with self.subTest(index=index):
+                    self.assertEqual(restored.cards[index]["manual_stage_id"],
+                                     f"sylvestre:{index}")
+                    detail = load_detail(saved, index)
+                    self.assertEqual(detail["manual_lines"], cards[index]["manual_lines"])
+                    self.assertEqual(detail["manual_sections"], cards[index]["manual_sections"])
+
+    def test_invalid_zlib_stream_is_a_recoverable_value_error(self):
+        with tempfile.TemporaryDirectory() as temp:
+            store = Path(temp) / "sylvestre.json"
+            original = SimpleNamespace(
+                guide_id="dofus_sylvestre",
+                route={"id": "catalog_manual_dofus_sylvestre",
+                       "steps": [{"manual_stage_id": "sylvestre:1"}]},
+                cards=[{"manual_stage_id": "sylvestre:1", "manual_lines": [],
+                        "manual_sections": {"now": []}}],
+                manual_audit_data={"card_count": 1},
+                _common_quest_ids=(),
+            )
+            sqlite_path = write_indexed_route(original, store, "d" * 40)
+            with closing(sqlite3.connect(sqlite_path)) as connection, connection:
+                connection.execute("UPDATE details SET data=? WHERE idx=0",
+                                   (b"not a zlib stream",))
+            with self.assertRaisesRegex(ValueError, "compressée altérée"):
+                load_detail(sqlite_path, 0)
+
+
 
 if __name__ == "__main__":
     unittest.main()
