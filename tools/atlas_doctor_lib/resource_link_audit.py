@@ -34,6 +34,12 @@ def _link_triage_bucket(source: str, literal: str, json_pointer: str | None) -> 
             "preview", "promoted_source", "previous_asset_backup",
         }:
             return "MAP_PROVENANCE_SOURCE_REVIEW"
+    if source == "data/cartography/map_views.json" and json_pointer is not None:
+        if ("/source_tiles/" in json_pointer and
+                json_pointer.rsplit("/", 1)[-1] in {
+                    "promoted_source", "previous_asset_backup",
+                }):
+            return "MAP_PROVENANCE_SOURCE_REVIEW"
     return "UNCLASSIFIED_REFERENCE_REVIEW"
 
 
