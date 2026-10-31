@@ -383,6 +383,22 @@ class AchievementNameIndexIntegrityTests(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), '{"17":"Succès"}')
             self.assertFalse(list(target.parent.glob("*.tmp")))
 
+    def test_name_index_writer_keeps_previous_version_on_failed_serialization(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "achievement_names.json"
+            target.write_text('{"17":"Old"}', encoding="utf-8")
+            with (
+                patch.object(warm, "_ACHIEVEMENT_NAMES_FILE", target),
+                patch.object(warm, "achievement_name_index", return_value={17: "New"}),
+                patch.object(warm.json, "dump", side_effect=OSError("disk full")),
+            ):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    warm.write_achievement_name_index()
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"17":"Old"}')
+            self.assertFalse(list(target.parent.glob(".*.tmp")))
+
     def test_invalid_names_do_not_overwrite_previous_atomic_index(self):
         from app.modules.encyclopedia.services import achievement_index_warmup as warm
 

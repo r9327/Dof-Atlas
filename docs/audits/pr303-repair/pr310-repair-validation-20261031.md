@@ -216,3 +216,9 @@ Régression : 4097 entrées, RID dupliqué à travers la frontière des lots, re
 ## Guides brouillons : parité des relations Quêtes → Guides (31/10/2026)
 
 Le repli correct `_load_in_process` pour `include_drafts=True` ne suffisait pas : `MemoryBoundGuideProvider.get_guides_for_entity` redemandait ensuite l'index compact **du catalogue publié**, ce qui pouvait cacher silencieusement des relations de guides brouillons, puis mémoriser un faux résultat. La recherche par entité ignore désormais cet index dans ce mode et utilise les détails canoniques déjà existants. Test avec accès interdit à l'index compact, résultat positif issu du brouillon et second accès via cache de résultat borné. Sources de progression et statut des guides inchangés.
+
+## Écriture noms Succès : sérialisation directe et rollback sur disque plein (31/10/2026)
+
+`write_achievement_name_index` encode désormais directement le dictionnaire de noms avec `json.dump` dans le temporaire atomique, sans garder sa représentation complète `json.dumps` en mémoire. Le nettoyage du temporaire englobe **aussi les erreurs d'écriture/sérialisation**, qui auparavant précédaient le `try/finally` et laissaient un `.tmp` inachevé. Le verrou interprocessus, la détection de contenu inchangé et le remplacement Win32 inchangés. Régression vérifiant un disque plein simulé : génération précédente intacte et zéro temporaire résiduel.
+
+L'amélioration concerne la copie transitoire et la fiabilité, sans démonstration d'un gain RSS sur une installation réelle.

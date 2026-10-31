@@ -94,13 +94,14 @@ def write_achievement_name_index() -> int:
         temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
             f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
         )
-        temporary.write_text(
-            json.dumps(names, ensure_ascii=False, separators=(",", ":")),
-            encoding="utf-8",
-        )
         try:
+            # Avoid another complete encoded string on top of the in-memory
+            # names table; the previous index remains until atomic replace.
+            with temporary.open("w", encoding="utf-8", newline="") as stream:
+                json.dump(names, stream, ensure_ascii=False, separators=(",", ":"))
             _replace_name_index_with_windows_retry(temporary, _ACHIEVEMENT_NAMES_FILE)
         finally:
+            # Also clean up on a partial write, not only replace failures.
             temporary.unlink(missing_ok=True)
     return len(names)
 
