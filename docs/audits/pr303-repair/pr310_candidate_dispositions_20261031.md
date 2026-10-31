@@ -41,3 +41,12 @@ Le générateur `tools/doctor_candidate_worklist.py` conserve un identifiant sta
 Les preuves doivent toujours être contrôlées à l'exact SHA de la source ; la stabilité d'un ID ne suffit pas à conserver un statut « validé » après changement de code. Les candidats sans preuves restent `OPEN_REQUIRES_RUNTIME_OR_CONSUMER_EVIDENCE` ou `OPEN_REQUIRES_RUNTIME_OR_PACKAGING_EVIDENCE`.
 
 **Point à ne pas perdre :** le commit #303 `661890a7` ajouté pendant le développement est inclus dans la branche #310 par un merge commit `8e58028a`. Toute nouvelle avance de #303 impose une nouvelle réconciliation et de nouveaux checks sur l'HEAD réellement fusionnable. La revue sémantique, les mesures RAM, Graphify et l'EXE complet restent des travaux ouverts.
+
+
+## Blocage métier confirmé : bascule Ganymède manuelle non activée
+
+La vérification du code réellement livré révèle **20** déclarations `TRUSTED_SOURCE_STEPS` et `enabled: true` dans `data/encyclopedia/guides/replacement_drafts/cutovers/cutover_manifest.json`. Le catalogue principal `data/encyclopedia/guides/catalog.json` contient **26** guides mais **aucun des 20 guides Dofus correspondants** ne déclare `ganymede_manual_ui_ready: true`. Dans `app/modules/encyclopedia/providers/guide_provider.py`, l'appel au sélecteur Ganymède reçoit donc `allow_source_manual=False` : cette route de bascule ne peut pas s'activer malgré le manifest. Le sélecteur dans `guide_ganymede_cutover.py` impose explicitement cette barrière afin de ne pas casser l'UI et le suivi historique des quêtes.
+
+**Décision :** ne pas ajouter aveuglément `ganymede_manual_ui_ready: true`. Ce serait masquer un contrat non implémenté. Vérifier d'abord que le suivi manuel, la navigation étape par étape, la validation par personnage, la restauration d'état et l'interface Guides savent afficher les routes `TRUSTED_SOURCE_STEPS`, puis activer avec tests et preuve Qt. La base source de 95 guides affichée en métadonnées ne doit pas être confondue avec 95 parcours jouables.
+
+Le test réel `tests/test_ganymede_live_cutover_inventory.py` valide les **20 fichiers de route signés** par `select_verified_replacement_path(..., allow_source_manual=True)` et expose le nombre d'autorisations UI réellement présentes. Il s'exécute sur le runner Windows avec PySide6. **Validation de contenu ≠ activation UI** ; cette dernière demeure ouverte tant que sa preuve native manque.
