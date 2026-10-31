@@ -78,6 +78,29 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncated"):
             build_worklists(report)
 
+    def test_dynamic_ganymede_cutover_never_becomes_disposable(self):
+        report = self.report()
+        names = [
+            "data/encyclopedia/guides/replacement_drafts/cutovers/dofus_cawotte.json",
+            "data/encyclopedia/guides/replacement_drafts/dofus_cawotte.json",
+            "data/encyclopedia/guides/ganymede_2203_action_candidates.json",
+            "data/images/classes/pandawa.png",
+        ]
+        report["resource_link_audit"]["no_static_consumer_all_candidates"] = names
+        report["resource_link_audit"]["no_static_consumer_total"] = len(names)
+        _, assets, summary = build_worklists(report)
+        self.assertEqual(assets[0]["triage_family"],
+                         "GANYMEDE_TRUSTED_CUTOVER_ROUTE_DYNAMIC_CONSUMER_REVIEW")
+        self.assertEqual(assets[1]["triage_family"],
+                         "GANYMEDE_REPLACEMENT_ROUTE_DYNAMIC_CONSUMER_REVIEW")
+        self.assertEqual(assets[2]["triage_family"],
+                         "GANYMEDE_DIAGNOSTIC_INPUT_REVIEW")
+        self.assertEqual(assets[3]["triage_family"], "CLASS_PORTRAIT_BUNDLE_REVIEW")
+        for asset in assets[:2]:
+            self.assertIn("select_verified_replacement_path", asset["known_dynamic_loader"])
+        self.assertTrue(all(asset["review_status"].startswith("OPEN_") for asset in assets))
+        self.assertEqual(summary["closed_without_proof"], 0)
+
     def test_missing_rows_and_stale_worktree_are_rejected(self):
         report = self.report()
         report["resource_link_audit"]["counts"]["unresolved_literals"] += 1
