@@ -1067,12 +1067,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         # A retained Success with an invalid offset also needs the fallback.
         # Stream the compact file on this exceptional path without retaining
         # an extra global table.
+        retained_target = achievement_id in getattr(
+            self, "_compact_retained_set", frozenset()
+        )
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 external = False
                 for raw_line in stream:
                     line = raw_line.strip()
                     if not line:
+                        continue
+                    # External compatibility lookups used to decode every
+                    # heavyweight retained summary just to reach the boundary.
+                    # Keep the canonical marker parsed, but skip the rest.
+                    if (not external and not retained_target
+                            and '"external_start"' not in line):
                         continue
                     row = json.loads(line)
                     if not isinstance(row, dict):
@@ -1083,9 +1092,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                         continue
                     # The retained section is relevant only if the retained
                     # offset was missing or corrupt; otherwise skip it.
-                    if (not external and achievement_id not in getattr(
-                        self, "_compact_retained_set", frozenset()
-                    )):
+                    if not external and not retained_target:
                         continue
                     if kind != "achievement":
                         continue

@@ -477,6 +477,38 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", compact):
                 self.assertIsNone(provider._compact_value_by_id(1))
 
+    def test_external_compat_avoids_decoding_unrelated_retained_details(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            rows = [{"kind": "meta"}]
+            rows.extend({
+                "kind": "achievement", "value": {
+                    "id": item_id, "name": "Retained",
+                    "progress_objectives": [["large"] * 200],
+                },
+            } for item_id in range(1, 101))
+            rows.extend((
+                {"kind": "external_start"},
+                {"kind": "achievement", "value": {"id": 999, "name": "External"}},
+            ))
+            cache.write_text(
+                "\n".join(json.dumps(row, separators=(",", ":")) for row in rows)
+                + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+            provider._compact_external_index = {}
+            provider._compact_retained_set = frozenset(range(1, 101))
+            loader = json.loads
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod.json, "loads", wraps=loader) as decode,
+            ):
+                self.assertEqual(provider._compact_value_by_id(999)["name"], "External")
+                # Boundary + external row only. No 100 heavyweight decodes.
+                self.assertLessEqual(decode.call_count, 3)
+
     def test_retained_catalogue_list_row_checks_offset_identity(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
