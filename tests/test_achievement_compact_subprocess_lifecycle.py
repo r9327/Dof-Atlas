@@ -667,6 +667,48 @@ class AchievementNameIndexIntegrityTests(unittest.TestCase):
                         )
                         self.assertEqual(warm.achievement_name_index(), {})
 
+    def test_names_builder_rejects_mid_scan_replaced_catalogue(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalogue = root / "success.jsonl"
+            destination = root / "names.json"
+            catalogue.write_text(
+                "\n".join(json.dumps(row) for row in (
+                    {"kind": "meta"},
+                    {"kind": "achievement", "value": {"id": 10, "name": "New"}},
+                )) + "\n", encoding="utf-8",
+            )
+            destination.write_text('{"10":"Previous"}', encoding="utf-8")
+            real_stat = Path.stat
+            hits = []
+
+            def changed_generation(path, *args, **kwargs):
+                value = real_stat(path, *args, **kwargs)
+                if path == catalogue:
+                    hits.append(True)
+                    if len(hits) == 2:
+                        return type("NewStat", (), {
+                            "st_size": value.st_size,
+                            "st_mtime_ns": value.st_mtime_ns,
+                            "st_ctime_ns": value.st_ctime_ns + 1,
+                            "st_ino": value.st_ino,
+                        })()
+                return value
+
+            with (
+                patch.object(warm, "_ACHIEVEMENT_COMPACT_CACHE", catalogue),
+                patch.object(warm, "_ACHIEVEMENT_NAMES_FILE", destination),
+                patch.object(Path, "stat", changed_generation),
+            ):
+                self.assertEqual(warm.achievement_name_index(), {})
+                with self.assertRaisesRegex(RuntimeError, "empty or corrupt"):
+                    warm.write_achievement_name_index()
+            self.assertEqual(destination.read_text(encoding="utf-8"), '{"10":"Previous"}')
+            self.assertEqual(len(hits), 4)
+            self.assertFalse(list(root.glob(".*.tmp")))
+
     def test_identical_names_reuse_existing_cache_without_republication(self):
         from app.modules.encyclopedia.services import achievement_index_warmup as warm
 

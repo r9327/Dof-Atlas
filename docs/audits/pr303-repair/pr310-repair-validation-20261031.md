@@ -310,3 +310,7 @@ Les deux artefacts Succès sont publiés via deux `replace` atomiques successifs
 ## Succès : comptage des offsets ne suffit pas, vérifier leur intégrité (31/10/2026)
 
 Les deux gardes de réutilisation du cache Succès contrôlaient uniquement le **nombre** d'offsets : une table de cardinalité correcte mais contenant des IDs différents de `retained_ids`, des longueurs négatives, des départs négatifs ou des booléens pouvait être acceptée. Les chemins de warmup et du builder sous verrou exigent désormais exactement la même liste d'IDs et des couples `[offset >= 0, longueur > 0]` strictement entiers. Test de quatre cas de corruption à cardinalité identique, avec preuve du passage effectif par reconstruction plutôt que réutilisation. Pas de second scan du catalogue JSONL et pas de changement de taille du cache mémoire résident.
+
+## Noms Succès : jamais publier un dictionnaire extrait d'une génération remplacée (31/10/2026)
+
+`achievement_name_index` collectait les couples ID/nom depuis le JSONL alors qu'un worker pouvait remplacer atomiquement le fichier pendant ce scan. Le lecteur vérifie désormais les empreintes taille/mtime_ns/ctime_ns/inode avant et après lecture ; un changement fait échouer la préparation du nouveau dictionnaire. L'écriture atomique laisse alors l'ancien fichier des noms en place. Test de changement de génération simulé (deux appels par lecture, deux lectures), reconstruction refusée et génération précédente conservée. Ce contrôle n'ajoute aucune table en RAM, seulement deux `stat` par extraction.

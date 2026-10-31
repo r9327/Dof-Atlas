@@ -27,6 +27,9 @@ def achievement_name_index() -> dict[int, str]:
 
     names: dict[int, str] = {}
     try:
+        before = _ACHIEVEMENT_COMPACT_CACHE.stat()
+        signature = (before.st_size, before.st_mtime_ns,
+                     before.st_ctime_ns, before.st_ino)
         with _ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
@@ -47,6 +50,12 @@ def achievement_name_index() -> dict[int, str]:
                 names[achievement_id] = str(
                     value.get("name") or f"Succès {achievement_id}"
                 )
+        after = _ACHIEVEMENT_COMPACT_CACHE.stat()
+        if (after.st_size, after.st_mtime_ns,
+                after.st_ctime_ns, after.st_ino) != signature:
+            # A concurrently published JSONL is not an authoritative source
+            # for an atomic names index; the old destination stays intact.
+            return {}
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return {}
     return names
