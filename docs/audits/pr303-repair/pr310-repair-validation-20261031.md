@@ -258,3 +258,7 @@ Gain : suppression d'une rétention doublonnée dans ce scénario. La baisse eff
 ## Succès compact : signature des sources renforcée contre les remplacements (31/10/2026)
 
 `_achievement_compact_source_signature` inclut maintenant taille, `mtime_ns`, `ctime_ns` et inode, alignée sur les garde-fous du preload et du catalogue Guide. Une installation qui remplace un `achievements.json` par un fichier de même longueur et de même date de modification ne peut plus reprendre un index Success vieux mais toujours signé par l'ancien couple taille/mtime. Régression sur une vraie opération `Path.replace` avec sidecar et en-tête factices. Les caches antérieurs seront reconstruits au prochain warmup contrôlé ; aucune écriture utilisateur ni migration des profils.
+
+## Objets Guide : cache invalidé après remplacement source à mtime constant (31/10/2026)
+
+`_guide_item_source_signature` utilise désormais la même empreinte `size/mtime_ns/ctime_ns/inode` pour `items.json`, `item_types.json`, `effects.json`, traductions et fichiers Guide ; les sources manquantes utilisent quatre sentinelles homogènes. Le writer et le reader partagent déjà cette fonction : un ancien index v1 reconstruit automatiquement au preload ne peut plus survivre à une mise à jour remplaçant le JSON source à taille/mtime identiques. Test de la signature avec dossier externe, index réel synthétique et remplacement atomique du fichier source. Le changement ne modifie pas la structure des items, uniquement la signature reconstructible ; premier démarrage post-migration à mesurer.

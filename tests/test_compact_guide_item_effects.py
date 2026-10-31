@@ -112,6 +112,31 @@ class CompactGuideItemEffectTests(unittest.TestCase):
 
 
 class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
+    def test_items_index_source_replacement_invalidates_same_mtime_cache(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "items.json"
+            source.write_text("{}", encoding="utf-8")
+            cache = root / "guide_items.json"
+            with patch.object(mod, "DATA_DIR", root):
+                signature = mod._guide_item_source_signature(root)
+                self.assertEqual(len(signature[0]), 5)
+                cache.write_text(json.dumps({
+                    "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                    "source_signature": signature,
+                    "items": {"42": {"id": 42}},
+                }), encoding="utf-8")
+                self.assertIsNotNone(mod._read_guide_items_index(data_dir=root, path=cache))
+                before = source.stat()
+                replacement = root / "new.json"
+                replacement.write_text("[]", encoding="utf-8")
+                os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+                self.assertEqual(replacement.stat().st_size, before.st_size)
+                replacement.replace(source)
+                self.assertIsNone(mod._read_guide_items_index(data_dir=root, path=cache))
+
     def test_signature_handles_missing_external_custom_sources(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
 
