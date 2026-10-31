@@ -32,3 +32,12 @@
 2. Toute donnée de production consommée dynamiquement est conservée. Les références générées/externes restent traçables, même si l'audit ne prouve pas leur présence dans le dépôt.
 3. Le rapport doit correspondre à l'**exact SHA** testé ; les nouveaux commits invalident les conclusions de certification antérieures.
 4. Aucun export de listes candidates n'est une autorisation de suppression. La PR #310 reste en Draft jusqu'à preuve Windows/bench/Graphify finale.
+
+
+## Durabilité des vérifications individuelles
+
+Le générateur `tools/doctor_candidate_worklist.py` conserve un identifiant stable pour une même occurrence `(source, ligne/pointeur JSON, texte, type, occurrence locale)`. Une nouvelle alerte insérée dans un autre fichier **ne doit pas renuméroter tous les constats existants**. Les doublons réellement distincts conservent des identifiants différents. Deux tests de non-régression couvrent ces cas.
+
+Les preuves doivent toujours être contrôlées à l'exact SHA de la source ; la stabilité d'un ID ne suffit pas à conserver un statut « validé » après changement de code. Les candidats sans preuves restent `OPEN_REQUIRES_RUNTIME_OR_CONSUMER_EVIDENCE` ou `OPEN_REQUIRES_RUNTIME_OR_PACKAGING_EVIDENCE`.
+
+**Point à ne pas perdre :** le commit #303 `661890a7` ajouté pendant le développement est inclus dans la branche #310 par un merge commit `8e58028a`. Toute nouvelle avance de #303 impose une nouvelle réconciliation et de nouveaux checks sur l'HEAD réellement fusionnable. La revue sémantique, les mesures RAM, Graphify et l'EXE complet restent des travaux ouverts.
