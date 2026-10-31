@@ -1667,11 +1667,13 @@ def _unique_cache_temporary_path(target: Path) -> Path:
     return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
 
 
-def _build_compact_cache(path: Path) -> int:
-    """Build once per shared cache path and reuse a completed peer result."""
+def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
+    """Build once per shared cache path; repair invalid sidecars under the lock."""
     path = Path(path)
     with _achievement_compact_write_lock(path):
-        if _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
+        # A valid JSONL header and positive count do not prove the companion
+        # offsets index is usable. The preload can require a repair explicitly.
+        if not force_rebuild and _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
             try:
                 index_payload = json.loads(
                     _achievement_compact_index_path(path).read_text(encoding="utf-8")

@@ -204,18 +204,23 @@ def _success_domain() -> dict[str, object]:
     index_path = achievement_provider._achievement_compact_index_path(cache_path)
 
     index_counts = None
-    if achievement_provider._achievement_compact_cache_valid(
+    metadata_valid = achievement_provider._achievement_compact_cache_valid(
         cache_path,
         data_dir=achievement_provider.RAW_QUEST_DATA_DIR,
-    ):
+    )
+    if metadata_valid:
         index_counts = _read_compact_success_counts(
             index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA,
         )
     if index_counts is None:
+        # Bypass the constructor's metadata-only early return if the JSONL
+        # header is fine but the offsets sidecar is broken. The canonical
+        # writer still owns the lock, rebuild and atomic publications.
+        build_args = (cache_path, True) if metadata_valid else (cache_path,)
         code = int(
             _quiet_call(
                 achievement_provider._build_compact_cache,
-                cache_path,
+                *build_args,
             )
             or 0
         )

@@ -280,6 +280,25 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                     self.assertEqual(list(target.parent.glob(".*.tmp")), [])
 
 
+    def test_success_builder_forces_real_repair_when_sidecar_is_invalid(self):
+        from contextlib import nullcontext
+        from app.modules.encyclopedia.providers import (
+            memory_bound_achievement_provider as provider,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            index = provider._achievement_compact_index_path(path)
+            index.write_text('{"achievement_count":4}', encoding="utf-8")
+            with (
+                patch.object(provider, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(provider, "_achievement_compact_write_lock", side_effect=lambda _: nullcontext()),
+                patch.object(provider, "_build_compact_cache_unlocked", return_value=0) as rebuild,
+            ):
+                self.assertEqual(provider._build_compact_cache(path), 0)
+                rebuild.assert_not_called()
+                self.assertEqual(provider._build_compact_cache(path, True), 0)
+                rebuild.assert_called_once_with(path)
+
     def test_corrupt_success_index_counts_are_never_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             index = Path(directory) / "success.idx.json"
