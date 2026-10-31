@@ -1,7 +1,10 @@
 """One worklist row for every Doctor resource candidate; no automatic approvals."""
+import csv
+import tempfile
 import unittest
+from pathlib import Path
 from scripts.windows.export_app_repository import selected_runtime_path
-from tools.doctor_candidate_worklist import build_worklists
+from tools.doctor_candidate_worklist import _write_csv, build_worklists
 
 
 class DoctorCandidateWorklistTests(unittest.TestCase):
@@ -135,6 +138,17 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
         report["resource_link_audit"]["no_static_consumer_all_candidates"][0] = None
         with self.assertRaisesRegex(ValueError, "Invalid asset candidate"):
             build_worklists(report)
+
+    def test_csv_export_neutralizes_formula_literals_without_losing_data(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "review.csv"
+            _write_csv(path, [{"literal": "=HYPERLINK(1)", "source": " app.py",
+                               "other": "normal"}], ["literal", "source", "other"])
+            with path.open(encoding="utf-8", newline="") as stream:
+                row = next(csv.DictReader(stream))
+            self.assertEqual(row["literal"], "\u0027=HYPERLINK(1)")
+            self.assertEqual(row["source"], " app.py")
+            self.assertEqual(row["other"], "normal")
 
     def test_missing_rows_and_stale_worktree_are_rejected(self):
         report = self.report()
