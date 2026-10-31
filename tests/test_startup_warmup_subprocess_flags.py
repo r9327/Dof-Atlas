@@ -340,7 +340,10 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
     def test_header_only_or_incomplete_guide_compact_cache_rebuilds(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "guides.jsonl"
-            meta = json.dumps({"kind": "meta", "schema_version": 2, "guide_count": 2}) + "\n"
+            meta = json.dumps({
+                "kind": "meta", "schema_version": 2,
+                "guide_count": 2, "entity_index_count": 1,
+            }) + "\n"
             guide_one = json.dumps({"kind": "guide", "value": {"id": "route-1"}}) + "\n"
             guide_two = json.dumps({"kind": "guide", "value": {"id": "route-2"}}) + "\n"
             index = json.dumps({
@@ -356,6 +359,10 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
             path.write_text(meta + guide_one + guide_two + index, encoding="utf-8")
             self.assertEqual(domain_worker._count_valid_compact_guides(path), 2)
+            # Losing only the final index must not turn linked quests into a
+            # falsely valid cache with zero relations.
+            path.write_text(meta + guide_one + guide_two, encoding="utf-8")
+            self.assertEqual(domain_worker._count_valid_compact_guides(path), 0)
             for broken in (
                 meta + guide_one + guide_one,
                 meta + guide_one + '{"kind":"guide","value":null}\n',

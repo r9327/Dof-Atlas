@@ -272,6 +272,7 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         indexed: set[str] = set()
         matches: set[str] = set()
         expected_guides: int | None = None
+        expected_indexes: int | None = None
         try:
             with path.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
@@ -284,8 +285,17 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     if not isinstance(row, dict):
                         return None
                     if row.get("kind") == "meta":
-                        if type(row.get("guide_count")) is int:
+                        # Old cache headers remain readable until the next warmup,
+                        # but new signed counts catch cleanly truncated JSONL.
+                        if "guide_count" in row:
+                            if type(row["guide_count"]) is not int or row["guide_count"] <= 0:
+                                return None
                             expected_guides = row["guide_count"]
+                        if "entity_index_count" in row:
+                            if (type(row["entity_index_count"]) is not int
+                                    or row["entity_index_count"] < 0):
+                                return None
+                            expected_indexes = row["entity_index_count"]
                         continue
                     if row.get("kind") not in ("guide", "entity_index"):
                         continue
@@ -321,7 +331,8 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         except (OSError, UnicodeError, ValueError, TypeError):
             return None
         if (not available or not indexed.issubset(available)
-                or (expected_guides is not None and len(available) != expected_guides)):
+                or (expected_guides is not None and len(available) != expected_guides)
+                or (expected_indexes is not None and len(indexed) != expected_indexes)):
             return None
         return tuple(sorted(matches))
 
@@ -842,6 +853,10 @@ def _build_compact_guide_cache(path: Path) -> int:
                         "schema_version": _GUIDE_COMPACT_SCHEMA,
                         "source_signature": _guide_compact_source_signature(GUIDES_DIR),
                         "guide_count": len(provider._guides),
+                        "entity_index_count": sum(
+                            bool(entity_keys_by_guide.get(str(guide.id)))
+                            for guide in provider._guides
+                        ),
                     }
                 )
             )

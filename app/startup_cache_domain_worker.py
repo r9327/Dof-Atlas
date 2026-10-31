@@ -32,6 +32,7 @@ def _count_valid_compact_guides(path: Path) -> int:
     guide_ids: set[str] = set()
     indexed_ids: set[str] = set()
     expected_count: int | None = None
+    expected_indexes: int | None = None
     try:
         with path.open("r", encoding="utf-8") as stream:
             for line in stream:
@@ -45,7 +46,11 @@ def _count_valid_compact_guides(path: Path) -> int:
                     if (kind != "meta" or type(row.get("guide_count")) is not int
                             or row["guide_count"] <= 0):
                         return 0
+                    index_count = row.get("entity_index_count")
+                    if type(index_count) is not int or index_count < 0:
+                        return 0
                     expected_count = row["guide_count"]
+                    expected_indexes = index_count
                     continue
                 if kind == "guide":
                     value = row.get("value")
@@ -67,7 +72,9 @@ def _count_valid_compact_guides(path: Path) -> int:
         return 0
     return (
         len(guide_ids)
-        if expected_count == len(guide_ids) and indexed_ids.issubset(guide_ids)
+        if (expected_count == len(guide_ids)
+            and expected_indexes == len(indexed_ids)
+            and indexed_ids.issubset(guide_ids))
         else 0
     )
 
