@@ -240,3 +240,7 @@ Pas de lecture complète ou hash des contenus à chaque démarrage : il s'agit d
 ## Guide objets : sources manquantes hors dépôt gérées sans exception (31/10/2026)
 
 Une signature de sources sur un `data_dir` personnalisé extérieur au dépôt échouait en `ValueError` dans le chemin `except OSError` lorsqu'un fichier était encore absent, avant de pouvoir servir de signal de cache périmé. Le chemin manquant est maintenant normalisé comme les chemins existants, avec repli sur le chemin absolu et séparateurs canoniques. Test dossier temporaire externe, fichiers manquants puis apparition de `items.json`. Aucune modification des données utilisateur ni du format des signatures des sources canoniques.
+
+## Cache objets Guide : reprise après preload tardif et remplacement atomique (31/10/2026)
+
+`DofusItemProvider._guide_index_row` mémorisait `{}` à la première consultation d'un index absent/invalide et ne retentait ensuite **jamais** le chemin compact, même lorsque le worker avait terminé le preload. Le fournisseur garde maintenant l'empreinte légère `size/mtime_ns/ctime_ns/inode` de l'index jetable et ne recharge son dictionnaire qu'après une véritable nouvelle génération. Une publication concurrente pendant la lecture provoque un repli prudent et une nouvelle tentative au prochain lookup. Tests : absence initiale, apparition de l'index, remplacement atomique avec taille/mtime identiques, puis résolution d'une nouvelle ID. Cache d'objets récents déjà borné à 32 inchangé, aucune allocation de catalogue supplémentaire au repos.

@@ -285,6 +285,7 @@ class DofusItemProvider:
         self._items: list[DofusItem] = []
         self._by_id: dict[int, DofusItem] = {}
         self._guide_index_rows: dict[int, dict[str, Any]] | None = None
+        self._guide_index_stamp: tuple[int, int, int, int] | None = None
 
     def load_all(self) -> list[DofusItem]:
         self._ensure_loaded()
@@ -325,11 +326,31 @@ class DofusItemProvider:
         return item
 
     def _guide_index_row(self, item_id: int) -> dict[str, Any] | None:
-        if self._guide_index_rows is None:
-            self._guide_index_rows = _read_guide_items_index(
+        def stamp() -> tuple[int, int, int, int] | None:
+            try:
+                stat = GUIDE_ITEMS_INDEX.stat()
+            except OSError:
+                return None
+            return (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+
+        current = stamp()
+        if (self._guide_index_rows is None
+                or self._guide_index_stamp != current):
+            # The first visit may precede preload, or another Atlas instance
+            # may replace the disposable index while this provider is alive.
+            rows = (_read_guide_items_index(
                 data_dir=self.data_dir,
                 path=GUIDE_ITEMS_INDEX,
-            ) or {}
+            ) if current is not None else None)
+            after = stamp()
+            if after != current:
+                # A concurrent publish means neither generation is trusted.
+                # Retry on next lookup and keep the canonical item fallback.
+                self._guide_index_rows = {}
+                self._guide_index_stamp = None
+            else:
+                self._guide_index_rows = rows or {}
+                self._guide_index_stamp = current
         return self._guide_index_rows.get(int(item_id))
 
     @staticmethod

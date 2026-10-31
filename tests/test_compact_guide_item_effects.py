@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -156,6 +157,37 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
                 self.assertEqual(mod._build_guide_items_index(cache), 0)
             self.assertEqual(json.loads(cache.read_text(encoding="utf-8"))["items"], {})
             self.assertFalse(list(cache.parent.glob(".*.tmp")))
+
+    def test_provider_refreshes_index_after_preload_or_atomic_replacement(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "items.json"
+            provider = mod.DofusItemProvider()
+            with (
+                patch.object(mod, "GUIDE_ITEMS_INDEX", cache),
+                patch.object(mod, "_guide_item_source_signature", return_value=[]),
+            ):
+                # A failed early lookup is not a permanent negative cache.
+                self.assertIsNone(provider._guide_index_row(42))
+                def publish(ident, path):
+                    path.write_text(json.dumps({
+                        "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                        "source_signature": [],
+                        "items": {str(ident): {"id": ident}},
+                    }), encoding="utf-8")
+
+                publish(42, cache)
+                self.assertEqual(provider._guide_index_row(42)["id"], 42)
+                previous = cache.stat()
+                replacement = root / "replacement.json"
+                publish(43, replacement)
+                os.utime(replacement, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+                self.assertEqual(replacement.stat().st_size, previous.st_size)
+                replacement.replace(cache)
+                self.assertIsNone(provider._guide_index_row(42))
+                self.assertEqual(provider._guide_index_row(43)["id"], 43)
 
     def test_valid_items_and_malformed_rows_are_not_silently_dropped(self):
         from app.modules.encyclopedia.providers import dofus_item_provider as mod
