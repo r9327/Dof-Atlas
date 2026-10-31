@@ -311,6 +311,30 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 self.assertEqual(provider._compact_achievement_ids_for_quest(42), ())
                 self.assertEqual(provider._compact_achievement_ids_for_quest(99), (10,))
 
+    def test_bad_compact_offsets_never_read_entire_file_and_recover_retained_id(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                "\n".join(json.dumps(row) for row in (
+                    {"kind": "meta"},
+                    {"kind": "achievement", "value": {"id": 10, "name": "Retained"}},
+                    {"kind": "external_start"},
+                )) + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10})
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache):
+                for span in ((0, -1), (-2, 3), (0, 999999)):
+                    with self.subTest(span=span):
+                        provider._compact_external_index = {10: span}
+                        self.assertEqual(
+                            provider._compact_value_by_id(10)["name"], "Retained",
+                        )
+                # A genuinely external ID still uses the external section.
+                self.assertIsNone(provider._compact_value_by_id(99))
+
     def test_retained_offset_must_point_to_matching_success(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

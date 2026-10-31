@@ -981,24 +981,32 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         span = self._compact_external_index.get(achievement_id)
         if span is not None:
             start, length = span
-            try:
-                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                    stream.seek(start)
-                    row = json.loads(stream.read(length))
-            except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                return None
-            value = row.get("value") if isinstance(row, dict) else None
-            if (not isinstance(row, dict)
-                    or row.get("kind") != "achievement"
-                    or not isinstance(value, dict)
-                    or type(value.get("id")) is not int
-                    or value["id"] != achievement_id):
-                return None
-            return value
+            if start >= 0 and length > 0:
+                try:
+                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                        # Corrupt offsets must never trigger a negative seek
+                        # or read(-1), which reads the *entire* compact file.
+                        stream.seek(0, 2)
+                        total = stream.tell()
+                        if start <= total and length <= total - start:
+                            stream.seek(start)
+                            row = json.loads(stream.read(length))
+                            value = row.get("value") if isinstance(row, dict) else None
+                            if (isinstance(row, dict)
+                                    and row.get("kind") == "achievement"
+                                    and isinstance(value, dict)
+                                    and type(value.get("id")) is int
+                                    and value["id"] == achievement_id):
+                                return value
+                except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                    pass
+            # A malformed sidecar span may be repaired asynchronously. Keep
+            # a bounded-stream fallback rather than hiding a real achievement.
 
         # Non-retained Successes are compatibility/cross-link lookups only.
-        # Stream the compact file for those rare requests instead of retaining
-        # a second global offset table for the whole corpus.
+        # A retained Success with an invalid offset also needs the fallback.
+        # Stream the compact file on this exceptional path without retaining
+        # an extra global table.
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 external = False
@@ -1013,7 +1021,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     if kind == "external_start":
                         external = True
                         continue
-                    if not external or kind != "achievement":
+                    # The retained section is relevant only if the retained
+                    # offset was missing or corrupt; otherwise skip it.
+                    if (not external and achievement_id not in self._compact_retained_set):
+                        continue
+                    if kind != "achievement":
                         continue
                     value = row.get("value")
                     if not isinstance(value, dict):
