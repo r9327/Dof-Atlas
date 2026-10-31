@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import json
 import subprocess
 import sqlite3
 from contextlib import closing
@@ -236,6 +238,59 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
 
         with self.assertRaisesRegex(Printed, "source corrupt"):
             domain_worker._quiet_call(failing_builder)
+
+
+    def test_warmup_rejects_empty_domain_counts_in_new_and_reused_caches(self):
+        payloads = {
+            "quest": {
+                "domain": "quest", "quest_count": 1976,
+                "detail_source_index_count": 1, "detail_index_artifact_count": 1,
+                "cache_files": ["catalog.sqlite3", "offset.sqlite3"],
+            },
+            "guide": {
+                "domain": "guide", "cache_files": ["guide.jsonl"],
+                "tasks": {
+                    "guide": {"guide_count": 26, "manual_card_count": 267},
+                    "guide_items": {"item_count": 120},
+                },
+            },
+            "success": {
+                "domain": "success", "cache_files": ["success.jsonl"],
+                "tasks": {
+                    "success": {"achievement_count": 1412, "retained_count": 1412},
+                    "success_names": {"achievement_name_count": 1412},
+                },
+            },
+        }
+        for domain, payload in payloads.items():
+            with self.subTest(domain=domain):
+                self.assertTrue(warmup._domain_payload_complete(domain, payload))
+                manifest = {"domains": {domain: {
+                    "source_stamp": [["source", 1, 2]],
+                    "artifact_stamp": [["cache", 99, 1]],
+                    "result": payload,
+                }}}
+                with patch.object(warmup, "_artifact_stamp", return_value=[["cache", 99, 1]]):
+                    self.assertEqual(
+                        warmup._cached_domain_result(domain, manifest, [["source", 1, 2]]),
+                        payload,
+                    )
+                damaged = copy.deepcopy(payload)
+                if domain == "quest":
+                    damaged["quest_count"] = 0
+                elif domain == "guide":
+                    damaged["tasks"]["guide"]["manual_card_count"] = 0
+                else:
+                    damaged["tasks"]["success_names"]["achievement_name_count"] = False
+                self.assertFalse(warmup._domain_payload_complete(domain, damaged))
+                manifest["domains"][domain]["result"] = damaged
+                with patch.object(warmup, "_artifact_stamp", return_value=[["cache", 99, 1]]):
+                    self.assertIsNone(
+                        warmup._cached_domain_result(domain, manifest, [["source", 1, 2]])
+                    )
+                with patch.object(warmup, "_run_module", return_value=json.dumps(damaged)):
+                    with self.assertRaisesRegex(RuntimeError, "incomplete counts"):
+                        warmup._run_domain(domain)
 
 
 if __name__ == "__main__":

@@ -339,6 +339,42 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
     return rows
 
 
+def _domain_payload_complete(domain: str, payload: dict[str, object]) -> bool:
+    """Do not publish an empty or partially generated domain as READY.
+
+    Non-empty files alone do not prove that the Guide/Success content exists.
+    Keep this contract shared between new worker results and reuse of older
+    manifests; an incomplete cache is rebuilt, never silently marked ready.
+    """
+    tasks = payload.get("tasks")
+    if domain == "quest":
+        fields = (payload.get("quest_count"),
+                  payload.get("detail_source_index_count"),
+                  payload.get("detail_index_artifact_count"))
+    elif domain == "guide":
+        if not isinstance(tasks, dict):
+            return False
+        guide = tasks.get("guide")
+        items = tasks.get("guide_items")
+        if not isinstance(guide, dict) or not isinstance(items, dict):
+            return False
+        fields = (guide.get("guide_count"), guide.get("manual_card_count"),
+                  items.get("item_count"))
+    elif domain == "success":
+        if not isinstance(tasks, dict):
+            return False
+        success = tasks.get("success")
+        names = tasks.get("success_names")
+        if not isinstance(success, dict) or not isinstance(names, dict):
+            return False
+        fields = (success.get("achievement_count"),
+                  success.get("retained_count"),
+                  names.get("achievement_name_count"))
+    else:
+        return False
+    return all(type(value) is int and value > 0 for value in fields)
+
+
 def _cached_domain_result(
     domain: str,
     manifest: dict[str, object],
@@ -353,6 +389,8 @@ def _cached_domain_result(
     result = entry.get("result")
     expected_artifacts = entry.get("artifact_stamp")
     if not isinstance(result, dict) or result.get("domain") != domain:
+        return None
+    if not _domain_payload_complete(domain, result):
         return None
     if entry.get("source_stamp") != source_stamp:
         return None
@@ -387,6 +425,8 @@ def _run_domain(domain: str) -> dict[str, object]:
     )
     if not payload or str(payload.get("domain") or "") != domain:
         raise RuntimeError(f"startup cache domain worker returned invalid payload: {domain}")
+    if not _domain_payload_complete(domain, payload):
+        raise RuntimeError(f"startup cache domain worker returned incomplete counts: {domain}")
     cache_files = payload.get("cache_files")
     if not isinstance(cache_files, list) or not cache_files:
         raise RuntimeError(f"startup cache domain worker returned no artifacts: {domain}")
