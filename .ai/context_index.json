@@ -2,173 +2,173 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6"
+      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
+      "type": "tree"
     },
     ".codex": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f"
+      "sha": "9d1a91cf04dbd57611db7d0c710671e502b3984f",
+      "type": "tree"
     },
     ".cursor": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "45ea194fa76ce6aedad186f024467966b7c1c9fd"
+      "sha": "45ea194fa76ce6aedad186f024467966b7c1c9fd",
+      "type": "tree"
     },
     ".gitattributes": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "b6e33ec00935afc2113f6565c3934b2b68854b82"
+      "sha": "b6e33ec00935afc2113f6565c3934b2b68854b82",
+      "type": "blob"
     },
     ".githooks": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268"
+      "sha": "767c1467ef461f7eebfe1e1696cbcb5511166268",
+      "type": "tree"
     },
     ".github": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "aaf9fe5a54b2643cd6f94305aae5c807a4054686"
+      "sha": "aaf9fe5a54b2643cd6f94305aae5c807a4054686",
+      "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21"
+      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
+      "type": "blob"
     },
     ".graphifyignore": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4"
+      "sha": "2d5b414b9533c228bd93a109cc47507a49a6fbe4",
+      "type": "blob"
     },
     "AGENTS.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314"
+      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
+      "type": "blob"
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "21797f68af70490bb9459d2029678c8e273e64ff"
+      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "type": "blob"
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8"
+      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
+      "type": "blob"
     },
     "CLAUDE.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96"
+      "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96",
+      "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f"
+      "sha": "39c4bdfaee0d29728e2abfc1069a0426a42ff73f",
+      "type": "blob"
     },
     "DOCTOR_ADAPTIVE_CERTIFICATION.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "9fc53200db9c59d5aa0e1f1a57d03b7d78910bda"
+      "sha": "9fc53200db9c59d5aa0e1f1a57d03b7d78910bda",
+      "type": "blob"
     },
     "DOFUS.bat": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "64f3d36375e3ec77c95146cce135a4a263c04132"
+      "sha": "64f3d36375e3ec77c95146cce135a4a263c04132",
+      "type": "blob"
     },
     "GITHUB_PROTECTION.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d"
+      "sha": "1d4b12864859a9f518d599fe9fe9f6ad16deed1d",
+      "type": "blob"
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "9d7864b60257ee12d353706b563253a331e7ec47"
+      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
+      "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f"
+      "sha": "9ad2c1c5f039c7a34c31621ac59dc405590de13f",
+      "type": "blob"
     },
     "PERFORMANCE_GUARDRAILS.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f"
+      "sha": "dc57372db669fa795a18a610d4f0e7e15876194f",
+      "type": "blob"
     },
     "PHASE_CERTIFICATION.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6"
+      "sha": "c8030523b660dbfae6104704a6f89965afc3f6e6",
+      "type": "blob"
     },
     "README.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "4fe91f8598397d350a1b184e2f91beb551351b40"
+      "sha": "4fe91f8598397d350a1b184e2f91beb551351b40",
+      "type": "blob"
     },
     "ROAD_IA.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71"
+      "sha": "7bec21d161e3680967f120d3a17313ed4f7d5a71",
+      "type": "blob"
     },
     "ZERO_TRUST_RULES.md": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a"
+      "sha": "7aeaae0b77453a9e0ec60acaa66fdc13ee9ef48a",
+      "type": "blob"
     },
     "app": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "d4e14297ea86b173a7b6951f761f1f692efd2318"
+      "sha": "d4e14297ea86b173a7b6951f761f1f692efd2318",
+      "type": "tree"
     },
     "data": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "67917844b4e99c31421042db794d722901338d20"
+      "sha": "67917844b4e99c31421042db794d722901338d20",
+      "type": "tree"
     },
     "docs": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "3d216af20ad628e8356aa77700ce910fa9d448cb"
+      "sha": "3d216af20ad628e8356aa77700ce910fa9d448cb",
+      "type": "tree"
     },
     "launch.py": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "8959b440f0453313ced73d362a3acaf6d45ef1f6"
+      "sha": "8959b440f0453313ced73d362a3acaf6d45ef1f6",
+      "type": "blob"
     },
     "local_dofus_data": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "1b60e20ed4f46bc567d369f16d5c2fa9a7474be7"
+      "sha": "1b60e20ed4f46bc567d369f16d5c2fa9a7474be7",
+      "type": "tree"
     },
     "main.py": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "20ad53159bae086b92ce7a8442e74301d655d387"
+      "sha": "20ad53159bae086b92ce7a8442e74301d655d387",
+      "type": "blob"
     },
     "requirements-pyside.txt": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "5d055f05655f91277177ca99a87a3827d3cb280d"
+      "sha": "5d055f05655f91277177ca99a87a3827d3cb280d",
+      "type": "blob"
     },
     "scripts": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "16b7a2d99b355a3dcc0e985b79f507867a704edc"
+      "sha": "16b7a2d99b355a3dcc0e985b79f507867a704edc",
+      "type": "tree"
     },
     "sitecustomize.py": {
       "mode": "100644",
-      "type": "blob",
-      "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115"
+      "sha": "70246841cad0d4e2e850a9e4627f8b89ec0d7115",
+      "type": "blob"
     },
     "tests": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "e5aef1a3a3b58259e00379595a728ef6ed7f79d9"
+      "sha": "e5aef1a3a3b58259e00379595a728ef6ed7f79d9",
+      "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "type": "tree",
-      "sha": "c4e651aaa41429b6c97d6e838d5d585aa8b9bcc6"
+      "sha": "c4e651aaa41429b6c97d6e838d5d585aa8b9bcc6",
+      "type": "tree"
     }
   },
   "excluded_top_level": [
