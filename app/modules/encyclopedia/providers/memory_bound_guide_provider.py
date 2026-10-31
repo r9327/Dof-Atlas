@@ -425,10 +425,11 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if key in self._by_entity:
             return list(self._by_entity[key])
 
-        if _guide_compact_cache_valid(
-            GUIDE_COMPACT_CACHE,
-            guides_dir=self.guides_dir,
-        ):
+        if (not bool(getattr(self, "include_drafts", False))
+                and _guide_compact_cache_valid(
+                    GUIDE_COMPACT_CACHE,
+                    guides_dir=self.guides_dir,
+                )):
             try:
                 matches: list[Guide] = []
                 indexed_ids: set[str] = set()

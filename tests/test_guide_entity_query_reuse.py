@@ -87,6 +87,28 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
                 )
                 provider.get_by_id.assert_not_called()
 
+    def test_draft_catalogue_entity_lookup_never_uses_published_only_index(self):
+        provider = self.provider()
+        provider.include_drafts = True
+        with (
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",
+                side_effect=AssertionError("draft relations cannot use compact index"),
+            ),
+            patch.object(provider, "get_by_id", return_value=SimpleNamespace(
+                linked_entities=[EntityRef("quest", 42, "Quête")]
+            )) as source,
+        ):
+            self.assertEqual(
+                [guide.id for guide in provider.get_guides_for_entity("quest", 42)],
+                ["one"],
+            )
+            self.assertEqual(
+                [guide.id for guide in provider.get_guides_for_entity("quest", 42)],
+                ["one"],
+            )
+            source.assert_called_once_with("one")
+
     def test_catalogue_release_invalidates_the_same_existing_relation_owner(self):
         provider = self.provider()
         with patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",
