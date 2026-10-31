@@ -376,10 +376,14 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 patch.object(provider, "_achievement_compact_write_lock", side_effect=lambda _: nullcontext()),
                 patch.object(provider, "_build_compact_cache_unlocked", return_value=0) as rebuild,
             ):
+                # Sidecar with only achievement_count is not a valid compact
+                # catalogue. Both ordinary preload and force-rebuild must
+                # invoke the actual repair worker, not fake a cache hit.
                 self.assertEqual(provider._build_compact_cache(path), 0)
-                rebuild.assert_not_called()
-                self.assertEqual(provider._build_compact_cache(path, True), 0)
                 rebuild.assert_called_once_with(path)
+                self.assertEqual(provider._build_compact_cache(path, True), 0)
+                self.assertEqual(rebuild.call_count, 2)
+                self.assertEqual(rebuild.call_args.args, (path,))
 
     def test_corrupt_success_index_counts_are_never_reused(self):
         with tempfile.TemporaryDirectory() as directory:

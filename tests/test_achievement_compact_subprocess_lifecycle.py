@@ -402,6 +402,23 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 # A genuinely external ID still uses the external section.
                 self.assertIsNone(provider._compact_value_by_id(99))
 
+    def test_external_compat_lookup_rejects_boolean_achievement_id(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            compact = Path(directory) / "success.jsonl"
+            compact.write_text(
+                '\n'.join(json.dumps(row, separators=(",", ":")) for row in (
+                    {"kind": "meta"},
+                    {"kind": "external_start"},
+                    {"kind": "achievement", "value": {"id": True, "name": "Invalid"}},
+                )) + '\n', encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
+            provider._compact_external_index = {}
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", compact):
+                self.assertIsNone(provider._compact_value_by_id(1))
+
     def test_retained_offset_must_point_to_matching_success(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

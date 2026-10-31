@@ -762,7 +762,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino
 
         source_path = ACHIEVEMENT_COMPACT_CACHE
-        sidecar_path = _achievement_compact_index_path()
+        sidecar_path = _achievement_compact_index_path(source_path)
         source_generation = fingerprint(source_path)
         sidecar_generation = fingerprint(sidecar_path)
         try:
@@ -990,7 +990,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._compact_external_index is None:
             try:
                 payload = json.loads(
-                    _achievement_compact_index_path().read_text(encoding="utf-8")
+                    _achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE).read_text(encoding="utf-8")
                 )
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 self._compact_external_index = {}
@@ -1052,18 +1052,18 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                         continue
                     # The retained section is relevant only if the retained
                     # offset was missing or corrupt; otherwise skip it.
-                    if (not external and achievement_id not in self._compact_retained_set):
+                    if (not external and achievement_id not in getattr(
+                        self, "_compact_retained_set", frozenset()
+                    )):
                         continue
                     if kind != "achievement":
                         continue
                     value = row.get("value")
                     if not isinstance(value, dict):
                         continue
-                    try:
-                        row_id = int(value.get("id"))
-                    except (TypeError, ValueError):
+                    if type(value.get("id")) is not int:
                         continue
-                    if row_id == achievement_id:
+                    if value["id"] == achievement_id:
                         return value
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return None

@@ -314,3 +314,13 @@ Les deux gardes de réutilisation du cache Succès contrôlaient uniquement le *
 ## Noms Succès : jamais publier un dictionnaire extrait d'une génération remplacée (31/10/2026)
 
 `achievement_name_index` collectait les couples ID/nom depuis le JSONL alors qu'un worker pouvait remplacer atomiquement le fichier pendant ce scan. Le lecteur vérifie désormais les empreintes taille/mtime_ns/ctime_ns/inode avant et après lecture ; un changement fait échouer la préparation du nouveau dictionnaire. L'écriture atomique laisse alors l'ancien fichier des noms en place. Test de changement de génération simulé (deux appels par lecture, deux lectures), reconstruction refusée et génération précédente conservée. Ce contrôle n'ajoute aucune table en RAM, seulement deux `stat` par extraction.
+
+## CI Windows ciblée #41236168698 : correction de 5 erreurs + 1 assertion (31/10/2026)
+
+La campagne sur `3ec29e4` a échoué sur `tests.test_achievement_compact_subprocess_lifecycle` et `tests.test_startup_warmup_subprocess_flags` (86 tests, 5 ERROR, 1 FAIL). Diagnostic à partir des **logs réels** :
+- `_load_from_compact_cache` invoquait `_achievement_compact_index_path()` sans passer `source_path`. Le paramètre par défaut, lié au module lors de la définition de fonction, ignorait le chemin JSONL personnalisé, ce qui rendait deux tests de génération inopérants et causait `FileNotFoundError` sur le sidecar du dépôt. Passage explicite de `source_path` sans toucher aux métadonnées signées.
+- `_compact_value_by_id` introduisait une lecture de `self._compact_retained_set` même pour des fournisseurs créés explicitement avec `__new__` par le test d'intégrité des offsets. Utilisation de `getattr(..., frozenset())` limitée au **fallback exceptionnel** ; l'instance réelle créée par `__init__` conserve toujours son champ.
+- Le test `test_success_builder_forces_real_repair_when_sidecar_is_invalid` vérifiait à tort un cache-hit avec un sidecar contenant uniquement `achievement_count`. Le nouveau contrat exige `retained_count`, `retained_ids`, `offsets` et l'alignement de générations. L'assertion est maintenant corrigée pour **attendre la reconstruction** avant et après l'option force, sans affaiblir la validation.
+- Un ID booléen était encore coercé en entier dans le secours de lecture des Succès externes. Ce fallback exige maintenant `type(id) is int` et dispose d'un test dédié.
+
+Pas de modification des données utilisateur, ni contournement du Doctor, des règles de certification ou de la vérification d'index. Résultat du nouveau HEAD à vérifier dans la prochaine campagne Windows ciblée ; aucune FULL lancée.
