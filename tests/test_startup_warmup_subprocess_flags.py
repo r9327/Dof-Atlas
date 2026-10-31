@@ -66,6 +66,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             "tests/test_guide_entity_query_reuse.py",
             "tests/test_compact_guide_item_effects.py",
             "tests/test_achievement_compact_subprocess_lifecycle.py",
+            "app/modules/encyclopedia/services/achievement_index_warmup.py",
         ):
             with self.subTest(source=source):
                 self.assertIn("      - '" + source + "'", workflow)
@@ -73,6 +74,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
         self.assertIn("tests.test_guide_entity_query_reuse", workflow)
         self.assertIn("tests.test_compact_guide_item_effects", workflow)
         self.assertIn("tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests", workflow)
+        self.assertIn("tests.test_achievement_compact_subprocess_lifecycle.AchievementNameIndexIntegrityTests", workflow)
 
     def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:
         enriched = warmup._QUEST_ENRICHED_SOURCE

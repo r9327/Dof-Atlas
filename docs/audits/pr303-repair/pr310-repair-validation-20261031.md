@@ -154,3 +154,9 @@ Aucune source métier, progression ou règle de certification modifiée ; preuve
 `_build_guide_items_index` ne construit plus une chaîne JSON entière via `json.dumps` avant l'écriture : `json.dump` sérialise directement le `payload` existant dans le fichier temporaire, avec le même encodage, séparateurs, schéma, signature et publication atomique. Le `finally` nettoie ce temporaire unique après succès ou erreur `write/replace`, en préservant la génération précédente. Test d'échec d'écriture, de partage Windows simulé et succès ; pas de perte de données métier.
 
 Ce changement **supprime une copie transitoire évitable du JSON en mémoire**, mais le gain RSS/temps exact n'est pas encore mesuré ; les seuils Home/peak et la nécessité du benchmark Windows comparé restent identiques.
+
+## Intégrité du cache de noms Succès : refus des doublons et IDs malformés (31/10/2026)
+
+`achievement_name_index` n'ignore plus silencieusement une fiche Succès dont l'ID est manquant, non entier (y compris booléen) ou déjà présent, ni une ligne `achievement` sans dictionnaire. Il rejette le cache incomplet avec `{}`. Le writer canonique `write_achievement_name_index`, protégé par son verrou et son remplacement atomique, **refuse de publier un index vide** et conserve le dernier fichier valide si la lecture de la source a échoué. Tests ciblés des lignes valides, doublons, anomalies et de la publication conservatrice ; branchement sur le workflow Windows Guide/Succès existant.
+
+Les sources métier et caches utilisateurs ne sont pas modifiés ; aucun gain RAM/perf ni certificat de distribution Windows revendiqué.

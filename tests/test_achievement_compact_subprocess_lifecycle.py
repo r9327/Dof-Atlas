@@ -333,6 +333,53 @@ class AchievementDetailWorkerFastPathTests(unittest.TestCase):
         self.assertEqual(output.getvalue(), "")
 
 
+class AchievementNameIndexIntegrityTests(unittest.TestCase):
+    def test_name_index_rejects_bad_rows_and_duplicate_success_ids(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "success.jsonl"
+            valid = [
+                {"kind": "meta", "schema_version": 5},
+                {"kind": "achievement", "value": {"id": 10, "name": "Un"}},
+                {"kind": "external_start"},
+                {"kind": "achievement", "value": {"id": 20, "name": "Deux"}},
+            ]
+            with patch.object(warm, "_ACHIEVEMENT_COMPACT_CACHE", source):
+                source.write_text(
+                    "\n".join(json.dumps(row) for row in valid) + "\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(warm.achievement_name_index(), {10: "Un", 20: "Deux"})
+                for broken in (
+                    {"kind": "achievement", "value": {"id": 10, "name": "Duplicate"}},
+                    {"kind": "achievement", "value": {"id": True}},
+                    {"kind": "achievement", "value": {"id": "30"}},
+                    {"kind": "achievement", "value": None},
+                ):
+                    with self.subTest(broken=broken):
+                        source.write_text(
+                            "\n".join(json.dumps(row) for row in [*valid, broken]) + "\n",
+                            encoding="utf-8",
+                        )
+                        self.assertEqual(warm.achievement_name_index(), {})
+
+    def test_invalid_names_do_not_overwrite_previous_atomic_index(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "names.json"
+            target.write_text('{"10":"previous"}', encoding="utf-8")
+            with (
+                patch.object(warm, "_ACHIEVEMENT_NAMES_FILE", target),
+                patch.object(warm, "achievement_name_index", return_value={}),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "empty or corrupt"):
+                    warm.write_achievement_name_index()
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"10":"previous"}')
+            self.assertFalse(list(target.parent.glob("*.tmp")))
+
+
 class AchievementParallelCacheBuilderTests(unittest.TestCase):
     def test_temporary_file_names_are_unique_for_a_shared_cache(self):
         dest = Path("cache") / "achievement_catalogue_v1.jsonl"

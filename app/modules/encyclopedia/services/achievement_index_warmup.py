@@ -37,11 +37,13 @@ def achievement_name_index() -> dict[int, str]:
                     continue
                 value = row.get("value")
                 if not isinstance(value, dict):
-                    continue
-                try:
-                    achievement_id = int(value.get("id"))
-                except (TypeError, ValueError):
-                    continue
+                    return {}
+                raw_id = value.get("id")
+                # Do not silently turn an incomplete/corrupt Success index
+                # into a usable name mapping (bool also passes isinstance int).
+                if type(raw_id) is not int or raw_id in names:
+                    return {}
+                achievement_id = raw_id
                 names[achievement_id] = str(
                     value.get("name") or f"Succès {achievement_id}"
                 )
@@ -76,6 +78,8 @@ def write_achievement_name_index() -> int:
     # Do not classify WinError 5 as transient: a real ACL denial must still fail.
     with exclusive_cache_write_lock(_ACHIEVEMENT_NAMES_FILE):
         names = achievement_name_index()
+        if not names:
+            raise RuntimeError("Success name cache source empty or corrupt")
         temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
             f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
         )
