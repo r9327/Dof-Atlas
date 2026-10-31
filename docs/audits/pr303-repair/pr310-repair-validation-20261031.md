@@ -166,3 +166,7 @@ Les sources métier et caches utilisateurs ne sont pas modifiés ; aucun gain RA
 `startup_cache_domain_worker._success_domain` exige maintenant `achievement_name_count == achievement_count` après construction ; le manifeste `startup_cache_warmup._domain_payload_complete` rejette aussi un index partiel **même si ses compteurs sont strictement positifs**, ainsi qu'un `retained_count` supérieur au total. Cette règle s'applique au résultat de nouveau worker **et** aux domaines réutilisés depuis le disque. Test du cas 1411 noms pour 1412 Succès, sans modifier les valeurs Dofus ni la politique de certification.
 
 Aucun gain de RAM présumé. Le HEAD exact doit passer ses contrôles ciblés avant tout autre verdict.
+
+## Warm start Succès : éviter les écritures disque inutiles (31/10/2026)
+
+Sous le **verrou interprocessus existant**, `write_achievement_name_index` compare le cache de noms courant au résultat canonicalisé déjà calculé et retourne directement si contenu identique : aucune nouvelle écriture temporaire, `replace`, retry Win32 ni invalidation d'horodatage sur les démarrages sans changement. Cache manquant, corrompu ou différent : la publication atomique originale reste strictement préservée. Test vérifiant qu'un cache valide bloque une tentative artificielle de `replace` et conserve son mtime. Le bénéfice est une suppression d'I/O redondante sur la voie chaude, **sans chiffre de gain Windows/RSS prétendu**.

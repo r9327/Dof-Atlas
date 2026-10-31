@@ -80,6 +80,17 @@ def write_achievement_name_index() -> int:
         names = achievement_name_index()
         if not names:
             raise RuntimeError("Success name cache source empty or corrupt")
+        # The same Atlas installations may prewarm the same immutable data
+        # on every start. Keep an identical signed-by-content name cache
+        # without another atomic rewrite and Windows sharing retry.
+        try:
+            previous = json.loads(_ACHIEVEMENT_NAMES_FILE.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError, TypeError):
+            previous = None
+        if (isinstance(previous, dict) and len(previous) == len(names)
+                and all(previous.get(str(item_id)) == name
+                        for item_id, name in names.items())):
+            return len(names)
         temporary = _ACHIEVEMENT_NAMES_FILE.with_name(
             f".{_ACHIEVEMENT_NAMES_FILE.name}.{os.getpid()}.{uuid4().hex}.tmp"
         )

@@ -364,6 +364,25 @@ class AchievementNameIndexIntegrityTests(unittest.TestCase):
                         )
                         self.assertEqual(warm.achievement_name_index(), {})
 
+    def test_identical_names_reuse_existing_cache_without_republication(self):
+        from app.modules.encyclopedia.services import achievement_index_warmup as warm
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "achievement_names.json"
+            target.write_text('{"17":"Succès"}', encoding="utf-8")
+            before = target.stat().st_mtime_ns
+            with (
+                patch.object(warm, "_ACHIEVEMENT_NAMES_FILE", target),
+                patch.object(warm, "achievement_name_index",
+                             return_value={17: "Succès"}),
+                patch.object(Path, "replace",
+                             side_effect=AssertionError("same cache must not replace")),
+            ):
+                self.assertEqual(warm.write_achievement_name_index(), 1)
+            self.assertEqual(target.stat().st_mtime_ns, before)
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"17":"Succès"}')
+            self.assertFalse(list(target.parent.glob("*.tmp")))
+
     def test_invalid_names_do_not_overwrite_previous_atomic_index(self):
         from app.modules.encyclopedia.services import achievement_index_warmup as warm
 
