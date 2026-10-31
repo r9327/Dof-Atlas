@@ -82,16 +82,22 @@ def _read_guide_items_index(
     if payload.get("source_signature") != _guide_item_source_signature(data_dir):
         return None
     rows = payload.get("items")
-    if not isinstance(rows, dict):
+    if not isinstance(rows, dict) or not rows:
         return None
     result: dict[int, dict[str, Any]] = {}
     for raw_id, row in rows.items():
-        try:
-            item_id = int(raw_id)
-        except (TypeError, ValueError):
-            continue
-        if isinstance(row, dict):
-            result[item_id] = row
+        # The compact builder writes each item under its canonical numeric ID.
+        # A partially corrupt index must trigger the existing repair path,
+        # never silently drop the missing item from Guide prerequisites.
+        if (not isinstance(raw_id, str) or not raw_id.isdecimal()
+                or not isinstance(row, dict)):
+            return None
+        item_id = int(raw_id)
+        if (item_id <= 0 or str(item_id) != raw_id
+                or type(row.get("id")) is not int
+                or row["id"] != item_id or item_id in result):
+            return None
+        result[item_id] = row
     return result
 
 

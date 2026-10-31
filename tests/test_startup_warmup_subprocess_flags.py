@@ -57,16 +57,19 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             "app/quest_source_index.py",
             "app/startup_cache_domain_worker.py",
             "app/modules/encyclopedia/providers/memory_bound_guide_provider.py",
+            "app/modules/encyclopedia/providers/dofus_item_provider.py",
             "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
             "app/startup_cache_warmup.py",
             "tests/test_quest_source_boundaries.py",
             "tests/test_startup_warmup_subprocess_flags.py",
             "tests/test_guide_cold_relation_lookup.py",
+            "tests/test_compact_guide_item_effects.py",
             "tests/test_achievement_compact_subprocess_lifecycle.py",
         ):
             with self.subTest(source=source):
                 self.assertIn("      - '" + source + "'", workflow)
         self.assertIn("tests.test_guide_cold_relation_lookup", workflow)
+        self.assertIn("tests.test_compact_guide_item_effects", workflow)
         self.assertIn("tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests", workflow)
 
     def test_source_stamp_includes_enrichment_for_quest_and_guide(self) -> None:

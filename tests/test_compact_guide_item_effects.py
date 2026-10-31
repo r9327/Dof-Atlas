@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from app.modules.encyclopedia.providers.dofus_item_provider import (
     _EFFECT_CANDIDATE_ROW,
     _selected_effect_instances,
+    _read_guide_items_index,
 )
 
 
@@ -39,6 +44,45 @@ class CompactGuideItemEffectTests(unittest.TestCase):
                 "value": -1,
             },
         )
+
+
+class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
+    def test_valid_items_and_malformed_rows_are_not_silently_dropped(self):
+        from app.modules.encyclopedia.providers import dofus_item_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "guide_items.json"
+            valid = {
+                "schema_version": mod._GUIDE_ITEMS_INDEX_SCHEMA,
+                "source_signature": [["items.json", 23, 45]],
+                "items": {
+                    "42": {"id": 42, "name": "Item"},
+                    "99": {"id": 99, "name": "Second"},
+                },
+            }
+            with patch.object(mod, "_guide_item_source_signature",
+                              return_value=valid["source_signature"]):
+                path.write_text(json.dumps(valid), encoding="utf-8")
+                self.assertEqual(
+                    set(_read_guide_items_index(path=path)), {42, 99},
+                )
+                for bad in (
+                    {"items": {}},
+                    {"items": {"42": {"id": 99}}},
+                    {"items": {"42": {"id": True}}},
+                    {"items": {"42": "invalid"}},
+                    {"items": {"042": {"id": 42}}},
+                    {"items": {"false": {"id": 42}}},
+                    {"items": {"0": {"id": 0}}},
+                    {"items": {"42": {"id": 42}, "042": {"id": 42}}},
+                    {"schema_version": True},
+                    {"source_signature": []},
+                ):
+                    with self.subTest(bad=bad):
+                        path.write_text(json.dumps({**valid, **bad}), encoding="utf-8")
+                        self.assertIsNone(_read_guide_items_index(path=path))
+                path.write_text("{broken", encoding="utf-8")
+                self.assertIsNone(_read_guide_items_index(path=path))
 
 
 if __name__ == "__main__":
