@@ -168,10 +168,13 @@ def _quest_domain() -> dict[str, object]:
     }
 
 
-def _read_compact_success_counts(index_path: Path, schema: int) -> tuple[int, int] | None:
-    """A sidecar with a valid filename but broken contents is not reusable."""
+def _read_compact_success_counts(
+    index_path: Path, schema: int, cache_path: Path,
+) -> tuple[int, int] | None:
+    """Validate compact offsets against actual JSONL bytes, not just counts."""
     try:
         payload = json.loads(index_path.read_text(encoding="utf-8"))
+        cache_size = cache_path.stat().st_size
     except (OSError, UnicodeError, TypeError, ValueError):
         return None
     if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
@@ -186,9 +189,21 @@ def _read_compact_success_counts(index_path: Path, schema: int) -> tuple[int, in
         or not (0 < retained <= total)
         or not isinstance(retained_ids, list) or len(retained_ids) != retained
         or not all(type(item) is int for item in retained_ids)
+        or len(set(retained_ids)) != retained
         or not isinstance(offsets, dict) or len(offsets) != retained
+        or cache_size <= 0
     ):
         return None
+    for achievement_id in retained_ids:
+        span = offsets.get(str(achievement_id))
+        # The writer stores [byte_start, byte_length], not [start, end].
+        if (
+            not isinstance(span, list) or len(span) != 2
+            or type(span[0]) is not int or type(span[1]) is not int
+            or span[0] < 0 or span[1] <= 0
+            or span[0] + span[1] > cache_size
+        ):
+            return None
     return total, retained
 
 
@@ -210,7 +225,7 @@ def _success_domain() -> dict[str, object]:
     )
     if metadata_valid:
         index_counts = _read_compact_success_counts(
-            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA,
+            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA, cache_path,
         )
     if index_counts is None:
         # Bypass the constructor's metadata-only early return if the JSONL
@@ -227,7 +242,7 @@ def _success_domain() -> dict[str, object]:
         if code != 0:
             raise RuntimeError(f"Success compact cache build failed with code {code}")
         index_counts = _read_compact_success_counts(
-            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA,
+            index_path, achievement_provider._ACHIEVEMENT_COMPACT_SCHEMA, cache_path,
         )
         if index_counts is None:
             raise RuntimeError("Success compact index missing or invalid after build")

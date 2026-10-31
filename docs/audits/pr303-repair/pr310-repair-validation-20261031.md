@@ -92,3 +92,7 @@ Le worker Succès ne considère plus comme READY un fichier `*.idx.json` présen
 ## Bug racine corrigé : constructeur Succès réutilisant un sidecar invalide
 
 Le contrôle du worker Succès pouvait détecter un index `*.idx.json` invalide, mais `memory_bound_achievement_provider._build_compact_cache` revenait prématurément si l'en-tête JSONL était intact et `achievement_count` positif, **sans reconstruire le sidecar**. Ajout d'un paramètre compatible `force_rebuild=False` au constructeur canonique ; le worker ne le passe à `True` **que** lorsque la métadonnée du cache est encore valide mais que le sidecar a échoué à la validation. Construction, verrou inter-processus, écriture atomique et formats existants sont conservés. Test d'intégration ciblé pour montrer qu'un appel normal réutilise le cache et que la réparation forcée franchit vraiment la garde de réutilisation. Aucune validation Windows/FULL anticipée.
+
+## Sidecar Succès : correspondance offsets ↔ octets JSONL
+
+Au-delà des compteurs, le worker valide maintenant tous les IDs retenus uniques et présents dans `offsets`, les spans au format canonique **[début, longueur]**, et `0 <= début < début + longueur <= taille du JSONL`. Les types booléens, longueurs nulles, offsets hors fichier et références à un autre ID imposent reconstruction. Le contrôle est borné au sidecar sans charger les fiches JSONL dans la RAM de l'App. Tests des cas positifs, corruptions, doublons et fichier JSONL disparu ajoutés ; preuves exact HEAD à vérifier.

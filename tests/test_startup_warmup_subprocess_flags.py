@@ -302,6 +302,8 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
     def test_corrupt_success_index_counts_are_never_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             index = Path(directory) / "success.idx.json"
+            jsonl = Path(directory) / "success.jsonl"
+            jsonl.write_bytes(b"x" * 100)
             valid = {
                 "schema_version": 5,
                 "achievement_count": 4,
@@ -310,7 +312,7 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 "offsets": {"10": [0, 4], "20": [4, 8]},
             }
             index.write_text(json.dumps(valid), encoding="utf-8")
-            self.assertEqual(domain_worker._read_compact_success_counts(index, 5), (4, 2))
+            self.assertEqual(domain_worker._read_compact_success_counts(index, 5, jsonl), (4, 2))
             for changes in (
                 {"schema_version": 4},
                 {"achievement_count": "4"},
@@ -319,12 +321,20 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                 {"retained_ids": [10]},
                 {"retained_ids": [10, "20"]},
                 {"offsets": {"10": [0, 4]}},
+                {"retained_ids": [10, 10]},
+                {"offsets": {"10": [99, 4], "20": [4, 8]}},
+                {"offsets": {"10": [0, 0], "20": [4, 8]}},
+                {"offsets": {"10": [True, 4], "20": [4, 8]}},
+                {"offsets": {"30": [0, 4], "20": [4, 8]}},
             ):
                 with self.subTest(changes=changes):
                     index.write_text(json.dumps({**valid, **changes}), encoding="utf-8")
-                    self.assertIsNone(domain_worker._read_compact_success_counts(index, 5))
+                    self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
             index.write_text("{not valid json", encoding="utf-8")
-            self.assertIsNone(domain_worker._read_compact_success_counts(index, 5))
+            self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
+            index.write_text(json.dumps(valid), encoding="utf-8")
+            jsonl.unlink()
+            self.assertIsNone(domain_worker._read_compact_success_counts(index, 5, jsonl))
 
     def test_header_only_or_truncated_guide_compact_cache_rebuilds(self):
         with tempfile.TemporaryDirectory() as directory:
