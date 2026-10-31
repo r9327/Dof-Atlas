@@ -334,7 +334,7 @@ class GuideManualRouteCacheTests(unittest.TestCase):
             # An interrupted large Guide sidecar must not replace the last
             # usable generation or leave unbounded .tmp files behind.
             saved_bytes = cache.read_bytes()
-            for failing_method in ("write_text", "replace"):
+            for failing_method in ("open", "replace"):
                 with self.subTest(failing_method=failing_method):
                     with patch.object(Path, failing_method, side_effect=OSError("cache disk failure")):
                         with self.assertRaisesRegex(OSError, "cache disk failure"):
@@ -361,6 +361,46 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 )
             )
 
+
+    def test_streamed_gzip_catalog_fallback_preserves_all_sheets(self) -> None:
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            _write_catalog_route_cache, _restore_catalog_route_cache,
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "route été #1.json.gz"
+            cards = [
+                {
+                    "index": index + 1,
+                    "manual_stage_id": f"sylvestre:{index + 1}",
+                    "manual_lines": [{"text": f"Étape {index} " + "Action. " * 100}],
+                    "manual_sections": {"now": [f"Parler au PNJ {index}"]},
+                }
+                for index in range(96)
+            ]
+            service = SimpleNamespace(
+                guide_id="dofus_sylvestre",
+                route={"id": "catalog_manual_dofus_sylvestre", "steps": cards},
+                cards=cards,
+                manual_audit_data={"card_count": len(cards)},
+                _common_quest_ids=(42, 43),
+            )
+            _write_catalog_route_cache(service, path, "a" * 40)
+            restored = SimpleNamespace(guide_id="dofus_sylvestre")
+            self.assertTrue(_restore_catalog_route_cache(restored, path, "a" * 40))
+            self.assertEqual(restored.cards, cards)
+            self.assertEqual(restored._common_quest_ids, (42, 43))
+            self.assertFalse(
+                _restore_catalog_route_cache(
+                    SimpleNamespace(guide_id="dofus_sylvestre"), path, "b" * 40
+                )
+            )
+            before = path.read_bytes()
+            with patch.object(Path, "replace", side_effect=OSError("cache locked")):
+                with self.assertRaisesRegex(OSError, "cache locked"):
+                    _write_catalog_route_cache(service, path, "a" * 40)
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(list(path.parent.glob(".*.tmp")), [])
 
     def test_short_quest_text_normalization_cache_is_bounded(self) -> None:
         from app.modules.encyclopedia.services.guide_quest_view_model import (

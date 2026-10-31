@@ -217,15 +217,15 @@ def write_manual_runtime_compact_cache(
     # Never reuse a fixed .tmp path: keep publish atomic and writers isolated.
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
     try:
-        temporary.write_text(
-            json.dumps(
-                payload,
+        # Encode directly to the temporary file: json.dumps + write_text
+        # used to retain a second complete copy of 267 manual cards in RAM.
+        with temporary.open("w", encoding="utf-8", newline="") as stream:
+            json.dump(
+                payload, stream,
                 ensure_ascii=False,
                 separators=(",", ":"),
                 default=_manual_runtime_json_default,
-            ),
-            encoding="utf-8",
-        )
+            )
         temporary.replace(path)
     finally:
         # Keep the last complete generation after a failed write, and avoid
