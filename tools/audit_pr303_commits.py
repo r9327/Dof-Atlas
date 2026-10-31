@@ -35,10 +35,32 @@ def scan_patch(patch: str) -> dict:
         name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
         for name, pattern in PATTERNS.items()
     }
+    # Associate every heuristic flag with its actual diff file and added line,
+    # never pretend a commit-wide regex count identifies a root cause.
+    risk_locations: list[dict[str, object]] = []
+    current_file: str | None = None
+    new_line: int | None = None
+    for diff_line in lines:
+        if diff_line.startswith("+++ b/"):
+            current_file = diff_line[6:]
+        elif diff_line.startswith("@@ "):
+            match = re.search(r"\\+(\\d+)", diff_line)
+            new_line = int(match.group(1)) if match else None
+        elif diff_line.startswith("+") and not diff_line.startswith("+++"):
+            for category, pattern in PATTERNS.items():
+                if re.search(pattern, diff_line[1:], flags=re.I):
+                    risk_locations.append({
+                        "file": current_file, "line": new_line, "category": category,
+                    })
+            if new_line is not None:
+                new_line += 1
+        elif diff_line.startswith(" ") and new_line is not None:
+            new_line += 1
     return {
         "added_lines": len(added),
         "deleted_lines": len(removed),
         "risk_leads": {name: n for name, n in findings.items() if n},
+        "risk_locations": risk_locations,
         "deleted_assertions": sum(bool(removed_check.search(s)) for s in removed),
         "binary_manual_review": "Binary files " in patch or "GIT binary patch" in patch,
     }
