@@ -145,7 +145,7 @@ class CompactGuideItemIndexIntegrityTests(unittest.TestCase):
             with patch.object(mod, "DATA_DIR", root):
                 rows = mod._guide_item_source_signature(root)
                 self.assertEqual(len(rows), 4)
-                self.assertEqual([row[1:] for row in rows], [[-1, -1]] * 4)
+                self.assertEqual([row[1:] for row in rows], [[-1, -1, -1, -1]] * 4)
                 self.assertTrue(all(root.as_posix() in row[0] for row in rows))
                 (root / "items.json").write_text("{}", encoding="utf-8")
                 refreshed = mod._guide_item_source_signature(root)
