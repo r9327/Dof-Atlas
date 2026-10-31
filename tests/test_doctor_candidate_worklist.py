@@ -101,6 +101,27 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
         self.assertTrue(all(asset["review_status"].startswith("OPEN_") for asset in assets))
         self.assertEqual(summary["closed_without_proof"], 0)
 
+    def test_existing_link_review_ids_survive_unrelated_findings(self):
+        baseline = self.report()
+        first, _, _ = build_worklists(baseline)
+        newer = self.report()
+        candidate = {"source": "tools/extra.py", "literal": "new-data.json",
+                     "line": 9, "kind": "UNRESOLVED_RESOURCE_LITERAL_REVIEW"}
+        newer["resource_link_audit"]["unresolved_literal_all_candidates"].insert(0, candidate)
+        newer["resource_link_audit"]["counts"]["unresolved_literals"] += 1
+        second, _, _ = build_worklists(newer)
+        self.assertEqual({item["id"] for item in first},
+                         {item["id"] for item in second[1:]})
+        self.assertNotIn(second[0]["id"], {item["id"] for item in first})
+
+    def test_same_source_and_literal_at_same_line_still_get_unique_ids(self):
+        duplicate = self.report()
+        entry = duplicate["resource_link_audit"]["unresolved_literal_all_candidates"][0]
+        duplicate["resource_link_audit"]["unresolved_literal_all_candidates"].append(dict(entry))
+        duplicate["resource_link_audit"]["counts"]["unresolved_literals"] += 1
+        rows, _, _ = build_worklists(duplicate)
+        self.assertEqual(len(rows), len({row["id"] for row in rows}))
+
     def test_missing_rows_and_stale_worktree_are_rejected(self):
         report = self.report()
         report["resource_link_audit"]["counts"]["unresolved_literals"] += 1
