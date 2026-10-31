@@ -1,0 +1,129 @@
+"""Inspect all historical PR303 Git patches, without claiming human approval."""
+from __future__ import annotations
+import argparse
+import json
+import re
+import subprocess
+from pathlib import Path
+
+PATTERNS = {
+    "CI_BYPASS": r"skip[\s_-]*ci|continue-on-error:\s*true|--no-verify",
+    "EXCEPTION": r"except\s+(?:Exception|BaseException)\b|except\s*:",
+    "PROCESS": r"subprocess\.(?:run|Popen)|os\.system|shell\s*=\s*True",
+    "CACHE": r"lru_cache|cached_property|QPixmapCache|\.deleteLater\(",
+    "SQLITE": r"sqlite3|\.as_uri\(|\.resolve\(",
+    "UI_QT": r"QWidget|QTimer|QThread|setStyleSheet",
+    "DATA": r"json\.load|json\.dump|\\.json|\\.png|\\.qss",
+    "PERFORMANCE": r"benchmark|preload|ram|rss|tracemalloc|budget",
+}
+
+
+def git(*args: str) -> str:
+    p = subprocess.run(["git", "-c", "core.quotepath=false", *args],
+                       capture_output=True, text=True, errors="replace", check=True)
+    return p.stdout
+
+
+def scan_patch(patch: str) -> dict:
+    lines = patch.splitlines()
+    added = [s[1:] for s in lines if s.startswith("+") and not s.startswith("+++")]
+    removed = [s[1:] for s in lines if s.startswith("-") and not s.startswith("---")]
+    findings = {
+        name: sum(bool(re.search(pattern, line, flags=re.I)) for line in added)
+        for name, pattern in PATTERNS.items()
+    }
+    return {
+        "added_lines": len(added),
+        "deleted_lines": len(removed),
+        "risk_leads": {name: n for name, n in findings.items() if n},
+        "deleted_assertions": sum(bool(re.search(r"\bassert\b|self\.assert", s)) for s in removed),
+        "binary_manual_review": "Binary files " in patch or "GIT binary patch" in patch,
+    }
+
+
+def review(base: str, head: str, expected: int) -> dict:
+    if git("rev-parse", "--verify", base + "^{commit}").strip() != base:
+        raise ValueError("Missing historical base")
+    if git("rev-parse", "--verify", head + "^{commit}").strip() != head:
+        raise ValueError("Missing original PR head")
+    subprocess.run(["git", "merge-base", "--is-ancestor", base, head], check=True)
+    commits = git("rev-list", "--reverse", base + ".." + head).splitlines()
+    records = []
+    for pos, sha in enumerate(commits, 1):
+        parent_shas = git("rev-list", "--parents", "-n", "1", sha).split()[1:]
+        if not parent_shas:
+            raise ValueError("No parent for commit " + sha)
+        parents = []
+        for parent in parent_shas:
+            paths = git("diff", "--name-status", "--find-renames", parent, sha).splitlines()
+            diff = git("diff", "--no-ext-diff", "--unified=0", "--find-renames", parent, sha)
+            parents.append({"sha": parent, "paths": paths, **scan_patch(diff)})
+        title = git("log", "-1", "--format=%s", sha).strip()
+        flags = []
+        if len(parents) > 1:
+            flags.append("MERGE_BOTH_PARENTS_REVIEW")
+        if "revert" in title.lower():
+            flags.append("REVERT_FINAL_STATE_REVIEW")
+        if re.search(r"skip[\s_-]*ci", title, flags=re.I):
+            flags.append("CI_BYPASS_REVIEW")
+        if any(p["deleted_assertions"] for p in parents):
+            flags.append("REMOVED_ASSERTIONS_REVIEW")
+        if any(p["binary_manual_review"] for p in parents):
+            flags.append("BINARY_CONTENT_REVIEW")
+        records.append({
+            "position": pos, "sha": sha, "title": title,
+            "parents": parents, "flags": flags,
+            "patch_status": "INSPECTED",
+            "human_review": "NOT_RUN",
+            "decision": "REVIEW_REQUIRED",
+        })
+    complete = len(records) == expected and len({x["sha"] for x in records}) == expected
+    return {
+        "schema": 1, "base_sha": base, "head_sha": head,
+        "expected": expected, "inspected": len(records),
+        "status": "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED" if complete else "BLOCKED",
+        "auto_merge_authorized": False, "records": records,
+    }
+
+
+def save(out: Path, report: dict) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    md = [
+        "# PR303 - Audit des patches de tous les commits",
+        "",
+        "Etat: " + report["status"],
+        "Inspected: " + str(report["inspected"]) + "/" + str(report["expected"]),
+        "Audit machine des patchs, pas revue humaine ni validation de l'application.",
+        "",
+        "| # | SHA | Sujet | Parents | Alertes | Validation |",
+        "|---:|---|---|---:|---|---|",
+    ]
+    for x in report["records"]:
+        leads = sorted(set(x["flags"] + [k for p in x["parents"] for k in p["risk_leads"]]))
+        title = x["title"].replace("|", "\\|")
+        url = "https://github.com/r9327/Dof-Atlas/commit/" + x["sha"]
+        md.append("| {pos} | [{sha}]({url}) | {title} | {parents} | {leads} | {status} |".format(
+            pos=x["position"], sha=x["sha"][:12], url=url, title=title,
+            parents=len(x["parents"]), leads=", ".join(leads) or "-",
+            status=x["decision"]))
+    out.with_suffix(".md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base-sha", required=True)
+    ap.add_argument("--head-sha", required=True)
+    ap.add_argument("--expected", type=int, default=387)
+    ap.add_argument("--output", type=Path, default=Path("artifacts/pr303_commits/audit.json"))
+    args = ap.parse_args()
+    if any(re.fullmatch(r"[0-9a-f]{40}", s) is None for s in [args.base_sha, args.head_sha]):
+        ap.error("Expected exact lowercase 40-hex SHA")
+    report = review(args.base_sha, args.head_sha, args.expected)
+    save(args.output, report)
+    print(report["status"] + ": " + str(report["inspected"]) + "/" + str(report["expected"]))
+    return 0 if report["status"] == "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
