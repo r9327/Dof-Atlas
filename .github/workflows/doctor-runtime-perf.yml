@@ -52,8 +52,15 @@ jobs:
       - name: Materialize canonical benchmark data
         shell: pwsh
         run: |
-          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $lfsOutput = @(git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**" --exclude="" 2>&1)
+          $lfsExit = $LASTEXITCODE
+          $lfsOutput | ForEach-Object { Write-Host $_ }
+          if ($lfsExit -ne 0) {
+            if (($lfsOutput -join "`n") -match "exceeded its LFS budget") {
+              Write-Host "::error title=Git LFS quota exhausted::Runtime benchmark setup is blocked by repository LFS quota; no runtime performance evidence was produced."
+            }
+            exit $lfsExit
+          }
 
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) {
