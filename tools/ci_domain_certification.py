@@ -57,6 +57,12 @@ INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",
     ".gitattributes", ".gitignore",
 })
+# Exact, non-executable PR #303 Doctor audit registries. Their changes require
+# CI/domain review; unrelated JSON files remain unknown and fail closed.
+PR303_AUDIT_JSON_PATHS = frozenset({
+    "docs/performance/pr303-audit-candidats-20261031.json",
+    "docs/performance/pr303-audit-commits-20261031.json",
+})
 CI_FILES = frozenset({
     "tools/atlas_integrity.py", "tools/atlas_integrity_policy.json",
     "tools/atlas_meta_integrity.py", "tools/phase_certification_verdict.py",
@@ -104,7 +110,7 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci"})
     if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
-    if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
+    if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
     if path in {"tools/install_rtk.ps1", "tests/test_install_rtk.py"}:
         # Manual developer/Codex bootstrap tooling. Keep the pair exact so an

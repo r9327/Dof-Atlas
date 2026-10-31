@@ -29,6 +29,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "scripts/windows/build_guide_routes.py": {"ci", "startup", "guides", "data"},
             "scripts/windows/build_quest_index.py": {"ci", "startup", "quests", "data"},
             "docs/performance/atlas-ram-inventory-v1.json": {"ci"},
+            "docs/performance/pr303-audit-candidats-20261031.json": {"ci"},
+            "docs/performance/pr303-audit-commits-20261031.json": {"ci"},
             "tests/test_organizer_layout.py": {"ui", "identity"},
             "tests/test_world_scan_async_loading.py": {"ui"},
             "tests/test_startup_preload_window_visibility.py": {"startup", "ui"},
@@ -43,6 +45,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         for path in (
             "scripts/windows/build_unreviewed_cache.py",
             "docs/performance/new-ram-registry.json",
+            "docs/performance/pr303-audit-unreviewed.json",
             "tests/test_unknown_layout.py",
         ):
             self.assertFalse(owners_for(path), path)
