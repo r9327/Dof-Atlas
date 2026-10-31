@@ -41,8 +41,16 @@ def scan_patch(patch: str) -> dict:
     current_file: str | None = None
     new_line: int | None = None
     for diff_line in lines:
-        if diff_line.startswith("+++ b/"):
+        if diff_line.startswith("diff --git "):
+            # Never carry a previous file's line number to the next patch.
+            current_file = None
+            new_line = None
+        elif diff_line.startswith("+++ b/"):
             current_file = diff_line[6:]
+            new_line = None
+        elif diff_line.startswith("+++ /dev/null"):
+            current_file = None
+            new_line = None
         elif diff_line.startswith("@@ "):
             match = re.search(r"\+(\d+)", diff_line)
             new_line = int(match.group(1)) if match else None

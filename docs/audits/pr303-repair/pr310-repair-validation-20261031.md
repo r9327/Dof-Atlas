@@ -42,3 +42,9 @@ Les 845+540+197 = **1582 références candidates** sont intégralement présente
 - **Revue sémantique commit par commit** : les 390 et 421 patches ont été inventoriés automatiquement, pas individuellement validés comme corrects. L'audit nouveau contient des commits de diagnostic ; toute nouvelle modification exige une preuve propre.
 
 **Règle** : le tableau ci-dessus distingue les défauts de l'outil désormais corrigés de l'ensemble des anomalies produit encore à traiter. Pas de faux certificat FULL, aucune baisse des budgets.
+
+## Lot ciblé — intégrité du cache et des preuves Doctor
+
+Correctifs de code avec tests associés : valeur `ready=1` strictement exigée pour réutiliser le cache SQLite Quêtes (valeurs corrompues refusées sans crash), type booléen exact exigé pour `worktree_clean` dans les listes Doctor, et coordonnées de fichier/ligne réinitialisées dans l'audit des patches. Ces protections évitent respectivement un faux cache prêt, un faux état Git propre et une attribution erronée du risque. Tests : `test_startup_warmup_subprocess_flags.py`, `test_doctor_candidate_worklist.py`, `test_pr303_commit_audit.py`.
+
+**Validation :** code et tests versionnés ; exécution locale Python/Windows et CI du nouveau SHA **NOT_RUN** au moment du commit. Pas de gain RAM revendiqué, aucun seuil abaissé, aucune suppression de données, aucune FULL déclenchée intentionnellement.

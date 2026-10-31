@@ -282,10 +282,13 @@ def _quest_artifact_stamp(path: Path) -> list[object]:
                 "SELECT value FROM metadata WHERE key='ready'"
             ).fetchone()
             count_row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
-    except (OSError, sqlite3.Error):
+            count = max(0, int(count_row[0] if count_row else 0))
+    except (OSError, sqlite3.Error, TypeError, ValueError):
         return [label, -1, 0]
-    count = max(0, int(count_row[0] if count_row else 0))
-    return [label, count, 1 if ready is not None else 0]
+    # The builder writes precisely '1'. A different marker is not ready.
+    if ready != ("1",):
+        return [label, -1, 0]
+    return [label, count, 1]
 
 
 def _quest_offset_artifact_stamp(path: Path) -> list[object]:

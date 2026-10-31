@@ -64,6 +64,27 @@ class CommitAuditTests(unittest.TestCase):
         self.assertIn({"file": "app/second.py", "line": 25,
                        "category": "EXCEPTION"}, rows)
 
+    def test_new_file_resets_prior_hunk_line_coordinates(self):
+        patch = (
+            "diff --git a/app/one.py b/app/one.py\n"
+            "--- a/app/one.py\n+++ b/app/one.py\n"
+            "@@ -1 +40 @@\n+ram = 1\n"
+            "diff --git a/app/two.py b/app/two.py\n"
+            "--- a/app/two.py\n+++ b/app/two.py\n"
+            "@@ -1 +7 @@\n+json.loads(payload)\n"
+        )
+        self.assertEqual(scan_patch(patch)["risk_locations"], [
+            {"file": "app/one.py", "line": 40, "category": "PERFORMANCE"},
+            {"file": "app/two.py", "line": 7, "category": "DATA"},
+        ])
+        no_hunk = (
+            "diff --git a/app/one.py b/app/one.py\n"
+            "+++ b/app/one.py\n@@ -1 +40 @@\n+ram = 1\n"
+            "diff --git a/app/two.py b/app/two.py\n"
+            "+++ b/app/two.py\n+ram = 2\n"
+        )
+        self.assertIsNone(scan_patch(no_hunk)["risk_locations"][-1]["line"])
+
     def test_dynamic_expected_commit_count(self):
         from unittest.mock import patch
         from tools.audit_pr303_commits import review

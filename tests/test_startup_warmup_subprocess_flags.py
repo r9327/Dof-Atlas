@@ -139,6 +139,22 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
             self.assertGreater(valid[2], 0)
             self.assertEqual(valid[0], warmup._path_label(path))
 
+    def test_quest_catalogue_ready_marker_must_be_exactly_one(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quest.sqlite3"
+            with closing(sqlite3.connect(path)) as connection, connection:
+                connection.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute("CREATE TABLE quests (id INTEGER PRIMARY KEY)")
+                connection.execute("INSERT INTO quests VALUES (42)")
+                connection.execute("INSERT INTO metadata VALUES ('ready', '0')")
+            self.assertEqual(warmup._quest_artifact_stamp(path)[1:], [-1, 0])
+            with closing(sqlite3.connect(path)) as connection, connection:
+                connection.execute("UPDATE metadata SET value = 'true' WHERE key = 'ready'")
+            self.assertEqual(warmup._quest_artifact_stamp(path)[1:], [-1, 0])
+            with closing(sqlite3.connect(path)) as connection, connection:
+                connection.execute("UPDATE metadata SET value = '1' WHERE key = 'ready'")
+            self.assertEqual(warmup._quest_artifact_stamp(path)[1:], [1, 1])
+
     def test_cold_warmup_wait_requires_real_sampler_signal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             go_file = Path(temp_dir) / "memory-sampler.ready"

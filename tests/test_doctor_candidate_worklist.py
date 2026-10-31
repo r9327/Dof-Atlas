@@ -150,6 +150,14 @@ class DoctorCandidateWorklistTests(unittest.TestCase):
             self.assertEqual(row["source"], " app.py")
             self.assertEqual(row["other"], "normal")
 
+    def test_untrusted_worktree_clean_string_is_not_accepted_as_proof(self):
+        report = self.report()
+        for invalid in ("false", "true", 1, [], None):
+            with self.subTest(value=invalid):
+                report["worktree_clean"] = invalid
+                with self.assertRaisesRegex(ValueError, "incomplete"):
+                    build_worklists(report)
+
     def test_missing_rows_and_stale_worktree_are_rejected(self):
         report = self.report()
         report["resource_link_audit"]["counts"]["unresolved_literals"] += 1
