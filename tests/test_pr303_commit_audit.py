@@ -47,6 +47,23 @@ class CommitAuditTests(unittest.TestCase):
                  "-self.fail('unexpected')\n")
         self.assertEqual(scan_patch(patch)["deleted_assertions"], 4)
 
+    def test_patch_flags_preserve_each_file_and_hunk_line(self):
+        diff = (
+            "diff --git a/app/first.py b/app/first.py\n"
+            "--- a/app/first.py\n+++ b/app/first.py\n"
+            "@@ -0,0 +12,2 @@\n+ram = 1\n+json.loads(source)\n"
+            "diff --git a/app/second.py b/app/second.py\n"
+            "--- a/app/second.py\n+++ b/app/second.py\n"
+            "@@ -0,0 +25,1 @@\n+except OSError:\n"
+        )
+        rows = scan_patch(diff)["risk_locations"]
+        self.assertIn({"file": "app/first.py", "line": 12,
+                       "category": "PERFORMANCE"}, rows)
+        self.assertIn({"file": "app/first.py", "line": 13,
+                       "category": "DATA"}, rows)
+        self.assertIn({"file": "app/second.py", "line": 25,
+                       "category": "EXCEPTION"}, rows)
+
     def test_dynamic_expected_commit_count(self):
         from unittest.mock import patch
         from tools.audit_pr303_commits import review
