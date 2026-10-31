@@ -61,6 +61,26 @@ class CompactGuideRelationTests(unittest.TestCase):
                 heavy.assert_not_called()
                 child.assert_not_called()
 
+    def test_guide_with_drafts_never_reuses_published_only_cache(self):
+        for frozen in (False, True):
+            with self.subTest(frozen=frozen), (
+                patch.object(mod.sys, "frozen", frozen, create=True),
+                patch.object(mod, "GUIDES_DIR", Path("synthetic-guides")),
+            ):
+                provider = self._provider(Path("synthetic-guides"))
+                provider.include_drafts = True
+                with (
+                    patch.object(mod, "_guide_compact_cache_valid") as validated,
+                    patch.object(provider, "_load_from_compact_cache") as compact,
+                    patch.object(provider, "_load_in_process") as source,
+                    patch.object(provider, "_load_from_compact_subprocess") as child,
+                ):
+                    provider._load()
+                    source.assert_called_once_with()
+                    validated.assert_not_called()
+                    compact.assert_not_called()
+                    child.assert_not_called()
+
     def test_frozen_guide_falls_back_in_process_when_cache_is_missing_or_corrupt(self):
         with (
             patch.object(mod.sys, "frozen", True, create=True),

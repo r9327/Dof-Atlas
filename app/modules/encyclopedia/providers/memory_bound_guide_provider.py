@@ -551,8 +551,9 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def _load(self) -> None:
         default_guides_dir = Path(GUIDES_DIR).resolve(strict=False)
         current_guides_dir = Path(self.guides_dir).resolve(strict=False)
-        if current_guides_dir != default_guides_dir:
-            # Custom sources must not use a compact cache built for defaults.
+        if current_guides_dir != default_guides_dir or self.include_drafts:
+            # A compact cache signed for the default published catalogue
+            # excludes draft guides. Never hide drafts requested by a caller.
             self._load_in_process()
             return
         if _guide_compact_cache_valid(

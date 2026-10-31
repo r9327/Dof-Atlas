@@ -202,3 +202,7 @@ Les contrats de progression et de détails riches ne sont pas modifiés. Les gai
 Le manifeste de `startup_cache_warmup` comparait uniquement `st_size` et `st_mtime_ns` des artefacts Guide/Succès. Deux fichiers différents avec même taille et horodatage restauré pouvaient alors être réutilisés à tort après un remplacement atomique. L'empreinte compare maintenant aussi `st_ctime_ns` et `st_ino`; le schéma interne du **manifeste jetable** passe de 2 à 3 pour forcer une reconstruction contrôlée une seule fois des manifestes anciens. Le traitement spécial des SQLite Quêtes, avec vérification de leur propre structure, reste inchangé. Régression sur vrai `Path.replace()`, même taille et même `mtime_ns`.
 
 Ce n'est ni un hash complet des gros fichiers ni une garantie cryptographique : Doctor garde la responsabilité de la validation approfondie. L'utilisateur ne perd aucune progression et le cache métier ne change pas de format.
+
+## Brouillons Guide : ne jamais les masquer par le cache compact publié (31/10/2026)
+
+Le cache Guide normal représente le catalogue publié et ne couvre pas `include_drafts=True`. Le nouveau chemin préférentiel de l'EXE ne doit donc **pas** être appliqué aux requêtes incluant explicitement des brouillons ; la même vérification supprime un ancien écart de ce type en développement. `MemoryBoundGuideProvider._load()` garde `_load_in_process` pour ces requêtes, quel que soit `sys.frozen`. Test de non-contournement du chemin source dans les deux contextes, sans modifier les données ni le schéma JSONL.
