@@ -17,7 +17,7 @@ CACHE_ROOT = ROOT / ".cache" / "dofus_atlas"
 RESULT_PATH = CACHE_ROOT / "startup_cache_warmup_v1.json"
 STARTUP_CACHE_MANIFEST = CACHE_ROOT / "startup_cache_manifest_v1.json"
 SCHEMA_VERSION = 1
-_MANIFEST_SCHEMA_VERSION = 2
+_MANIFEST_SCHEMA_VERSION = 3
 _DOMAIN_STAMP_VERSION = 1
 # Quest is the Home dependency; Guide and Success may continue after Home paints.
 _DOMAIN_ORDER = ("quest", "guide", "success")
@@ -344,9 +344,15 @@ def _artifact_stamp(domain: str, cache_files: object) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            rows.append([label, -1, -1])
+            rows.append([label, -1, -1, -1, -1])
             continue
-        rows.append([label, int(stat.st_size), int(stat.st_mtime_ns)])
+        # Size/mtime alone can match a replaced JSONL sidecar. A cache
+        # generation must change when another Atlas instance publishes a
+        # different inode, even if size and mtime have been preserved.
+        rows.append([
+            label, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return rows
 
 

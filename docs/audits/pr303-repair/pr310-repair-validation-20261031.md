@@ -196,3 +196,9 @@ Le chemin compact élimine le chargement lourd **dans ce scénario**, mais le ga
 `MemoryBoundAchievementProvider._load()` contournait lui aussi le cache compact dès que `sys.frozen` était vrai : le runtime Windows lisait alors les sources complètes dans la mémoire UI malgré un cache de catalogue valide. La lecture compacte devient prioritaire pour les sources canoniques, y compris dans un EXE. Si elle échoue ou que le cache n'existe pas, le chemin in-process d'origine reste le repli sans lancer de subprocess Python depuis l'EXE. Les sources personnalisées conservent leur comportement. Deux tests de la priorité cache et du repli, ajoutés à la campagne Windows ciblée existante.
 
 Les contrats de progression et de détails riches ne sont pas modifiés. Les gains RAM/latence et la recette EXE exigent toujours une mesure Windows sur le SHA exact.
+
+## Cache global warmup : génération disque reconnue au-delà du mtime (31/10/2026)
+
+Le manifeste de `startup_cache_warmup` comparait uniquement `st_size` et `st_mtime_ns` des artefacts Guide/Succès. Deux fichiers différents avec même taille et horodatage restauré pouvaient alors être réutilisés à tort après un remplacement atomique. L'empreinte compare maintenant aussi `st_ctime_ns` et `st_ino`; le schéma interne du **manifeste jetable** passe de 2 à 3 pour forcer une reconstruction contrôlée une seule fois des manifestes anciens. Le traitement spécial des SQLite Quêtes, avec vérification de leur propre structure, reste inchangé. Régression sur vrai `Path.replace()`, même taille et même `mtime_ns`.
+
+Ce n'est ni un hash complet des gros fichiers ni une garantie cryptographique : Doctor garde la responsabilité de la validation approfondie. L'utilisateur ne perd aucune progression et le cache métier ne change pas de format.

@@ -201,6 +201,48 @@ class StartupWorkerSubprocessFlagsTests(unittest.TestCase):
                     warmup._artifact_stamp("guide", ["cache.bin"])[0][1], 0,
                 )
 
+    def test_guide_warmup_manifest_invalidates_atomic_same_mtime_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact = root / "guide.jsonl"
+            artifact.write_text("first-data", encoding="utf-8")
+            payload = {
+                "domain": "guide",
+                "tasks": {
+                    "guide": {"guide_count": 1, "manual_card_count": 1},
+                    "guide_items": {"item_count": 1},
+                },
+                "cache_files": ["guide.jsonl"],
+            }
+            source_stamp = [["source", 1, 2]]
+            with patch.object(warmup, "ROOT", root):
+                stamp = warmup._artifact_stamp("guide", payload["cache_files"])
+                self.assertEqual(len(stamp[0]), 5)
+                manifest = {"domains": {"guide": {
+                    "source_stamp": source_stamp,
+                    "artifact_stamp": stamp,
+                    "result": payload,
+                }}}
+                self.assertEqual(
+                    warmup._cached_domain_result("guide", manifest, source_stamp), payload
+                )
+                original = artifact.stat()
+                replacement = root / "replacement.jsonl"
+                replacement.write_text("other-data", encoding="utf-8")
+                os.utime(
+                    replacement, ns=(original.st_atime_ns, original.st_mtime_ns),
+                )
+                replacement.replace(artifact)
+                current = artifact.stat()
+                self.assertEqual(current.st_size, original.st_size)
+                self.assertEqual(current.st_mtime_ns, original.st_mtime_ns)
+                self.assertNotEqual(
+                    warmup._artifact_stamp("guide", payload["cache_files"]), stamp
+                )
+                self.assertIsNone(
+                    warmup._cached_domain_result("guide", manifest, source_stamp)
+                )
+
     def test_quest_catalogue_ready_marker_must_be_exactly_one(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "quest.sqlite3"
