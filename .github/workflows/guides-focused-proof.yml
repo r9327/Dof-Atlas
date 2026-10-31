@@ -94,6 +94,10 @@ jobs:
       - name: Read-only Windows cartography placeholder fallback
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_cartography_asset_readonly_fallback
+      - name: Ganymede dynamic cutover and trusted source contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_ganymede_cutover tests.test_ganymede_source_cutovers tests.test_ganymede_trusted_cutovers
       - name: Canonical reward precompile / alignment regressions
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
