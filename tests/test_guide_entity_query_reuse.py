@@ -51,6 +51,42 @@ class GuideEntityQueryReuseTests(unittest.TestCase):
             )
             provider.get_by_id.assert_called_once()
 
+    def test_truncated_entity_index_uses_canonical_detail_fallback(self):
+        from app.modules.encyclopedia.providers import memory_bound_guide_provider as mod
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "compact.jsonl"
+            cache.write_text(
+                "\n".join(json.dumps(row, separators=(",", ":")) for row in (
+                    {"kind": "meta", "entity_index_count": 2},
+                    {"kind": "guide", "value": {"id": "one"}},
+                    {"kind": "entity_index", "value": {
+                        "guide_id": "one", "entity_keys": [["quest", 42]],
+                    }},
+                )) + "\n", encoding="utf-8",
+            )
+            provider = self.provider()
+            with (
+                patch.object(mod, "GUIDE_COMPACT_CACHE", cache),
+                patch.object(mod, "_guide_compact_cache_valid", return_value=True),
+            ):
+                self.assertEqual(
+                    [g.id for g in provider.get_guides_for_entity("quest", 99)], [],
+                )
+                self.assertEqual(provider.get_by_id.call_count, 1)
+                # A complete index is allowed to resolve a positive relation
+                # without reconstructing a heavyweight Guide detail.
+                provider = self.provider()
+                cache.write_text(cache.read_text().replace(
+                    '"entity_index_count":2', '"entity_index_count":1'
+                ), encoding="utf-8")
+                self.assertEqual(
+                    [g.id for g in provider.get_guides_for_entity("quest", 42)], ["one"],
+                )
+                provider.get_by_id.assert_not_called()
+
     def test_catalogue_release_invalidates_the_same_existing_relation_owner(self):
         provider = self.provider()
         with patch("app.modules.encyclopedia.providers.memory_bound_guide_provider._guide_compact_cache_valid",

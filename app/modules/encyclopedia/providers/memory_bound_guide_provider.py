@@ -432,33 +432,52 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         ):
             try:
                 matches: list[Guide] = []
+                indexed_ids: set[str] = set()
+                expected_indexes: int | None = None
                 with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                     for raw_line in stream:
                         line = raw_line.strip()
-                        # Entity rows can be much richer than the Guide home rows.
-                        # Do not even json-decode them until an entity navigation asks.
-                        if not line or '"kind":"entity_index"' not in line:
+                        if not line:
+                            continue
+                        if '"kind":"meta"' in line:
+                            meta = json.loads(line)
+                            count = meta.get("entity_index_count") if isinstance(meta, dict) else None
+                            if (expected_indexes is not None or type(count) is not int
+                                    or count < 0):
+                                raise ValueError("Guide entity index metadata malformed")
+                            expected_indexes = count
+                            continue
+                        # Entity rows are much richer than Guide home rows.
+                        # Avoid decoding unrelated summaries on navigation.
+                        if '"kind":"entity_index"' not in line:
                             continue
                         row = json.loads(line)
                         if not isinstance(row, dict) or row.get("kind") != "entity_index":
-                            continue
+                            raise ValueError("Guide entity index row malformed")
                         value = row.get("value")
                         if not isinstance(value, dict):
-                            continue
+                            raise ValueError("Guide entity index value malformed")
+                        guide_id = value.get("guide_id")
                         raw_keys = value.get("entity_keys")
-                        if not isinstance(raw_keys, list):
-                            continue
-                        if not any(
-                            isinstance(raw_key, list)
-                            and len(raw_key) == 2
-                            and str(raw_key[0] or "") == wanted_type
-                            and safe_int(raw_key[1]) == wanted_id
+                        if (not isinstance(guide_id, str) or not guide_id
+                                or guide_id not in self._by_id or guide_id in indexed_ids
+                                or not isinstance(raw_keys, list)):
+                            raise ValueError("Guide entity index incomplete or duplicated")
+                        indexed_ids.add(guide_id)
+                        if any(
+                            not isinstance(raw_key, list) or len(raw_key) != 2
+                            or not isinstance(raw_key[0], str) or not raw_key[0]
+                            or type(raw_key[1]) is not int or raw_key[1] <= 0
                             for raw_key in raw_keys
                         ):
-                            continue
-                        guide = self._by_id.get(str(value.get("guide_id") or ""))
-                        if guide is not None:
-                            matches.append(guide)
+                            raise ValueError("Guide entity keys malformed")
+                        if any(
+                            raw_key[0] == wanted_type and raw_key[1] == wanted_id
+                            for raw_key in raw_keys
+                        ):
+                            matches.append(self._by_id[guide_id])
+                if expected_indexes is None or expected_indexes != len(indexed_ids):
+                    raise ValueError("Guide entity index truncated")
                 matches = sorted(
                     matches,
                     key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),

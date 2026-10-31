@@ -174,3 +174,9 @@ Sous le **verrou interprocessus existant**, `write_achievement_name_index` compa
 ## Cache Quêtes → Guides : invalidation après remplacement atomique horodaté (31/10/2026)
 
 L'empreinte d'invalidation du cache LRU de 64 relations ne repose plus seulement sur `path/size/mtime_ns` : elle prend aussi `ctime_ns` et `st_ino`. Une autre instance peut remplacer un fichier par un contenu de **même taille et de même mtime** sans que l'ancien résultat de relation ne soit valable. Le contrôle avant/à la fin du scan utilise la même empreinte. Test avec remplacement atomique et horodatage restauré ; aucun changement de format disque ni ajout d'index résiduel.
+
+## Requêtes Guide par entité : index incomplet non mémorisé (31/10/2026)
+
+Le chemin `MemoryBoundGuideProvider.get_guides_for_entity` ne vérifiait ni la cardinalité finale des `entity_index`, ni l'unicité des IDs Guide, et pouvait publier un faux résultat négatif après une troncature JSONL pourtant parsable. La lecture limitée aux lignes d'index contrôlées exige désormais `entity_index_count` du header, des IDs présents et uniques et des couples `entity_keys` valides avant de mémoriser les relations. Sinon le **fallback source existant** est utilisé. Test : en-tête annonçant 2 index mais un seul présent (fallback) puis index complet (lookup direct).
+
+Cette validation reste localisée à la navigation par entité, sans double cache, source métier modifiée ou preuve RAM/Windows inventée.
