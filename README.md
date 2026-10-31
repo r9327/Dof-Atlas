@@ -89,6 +89,7 @@ sans intégration au démarrage ni à la validation automatique.
 - [`PERFORMANCE_GUARDRAILS.md`](PERFORMANCE_GUARDRAILS.md) — budgets et règles de performance ;
 - [`ZERO_TRUST_RULES.md`](ZERO_TRUST_RULES.md) — règles de preuve et de sécurité ;
 - [`docs/distribution/SETUP.md`](docs/distribution/SETUP.md) — distribution Windows.
+- [`docs/roadmap/GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md`](docs/roadmap/GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md) — étude de 23 projets GitHub, rattachement aux propriétaires existants, plan d'intégration et audit croisé Holding (#60). **Aucune installation ou certification implicite.**
 
 ## Licence et marques
 
