@@ -122,6 +122,23 @@ def choose_runtime_before_setup() -> None:
         window.destroy()
 
 
+def _same_payload(source: Path, target: Path) -> bool:
+    """Skip only exact byte-for-byte matches, never a same-size corruption."""
+    if target.is_symlink() or not target.is_file():
+        return False
+    if source.stat().st_size != target.stat().st_size:
+        return False
+
+    def digest(path: Path) -> bytes:
+        value = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                value.update(block)
+        return value.digest()
+
+    return digest(source) == digest(target)
+
+
 def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     """Copy launcher atomically and create exactly one Desktop shortcut.
 
@@ -136,21 +153,10 @@ def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     root = install_root or user_programs_directory()
     root.mkdir(parents=True, exist_ok=True)
     target = root / _LAUNCHER_NAME
-    # Re-running Setup must not rewrite an unchanged EXE: it is expensive on
-    # Windows and may fail when the installed launcher is currently in use.
-    # Hash both binaries rather than trusting a version name or file size.
-    if target.is_file() and not target.is_symlink():
-        if source.stat().st_size == target.stat().st_size:
-            def digest(path: Path) -> str:
-                result = hashlib.sha256()
-                with path.open("rb") as stream:
-                    for block in iter(lambda: stream.read(1024 * 1024), b""):
-                        result.update(block)
-                return result.hexdigest()
-
-            if digest(source) == digest(target):
-                _create_shortcut(target)
-                return target
+    # An unchanged EXE may be in use, and need not be rewritten on each Setup.
+    if _same_payload(source, target):
+        _create_shortcut(target)
+        return target
     fd, tmp_name = tempfile.mkstemp(prefix=".atlas-launcher-", suffix=".tmp", dir=root)
     try:
         with os.fdopen(fd, "wb") as dest, source.open("rb") as current:
@@ -174,6 +180,10 @@ def install_maintenance_helper(source: Path, root: Path) -> Path:
     if not source.is_file() or source.is_symlink():
         raise ValueError("Invalid maintenance executable")
     target = root / _MAINTENANCE_NAME
+    # The standalone maintenance helper can be large as well; preserve it if
+    # it already matches this Setup instead of writing it again on every run.
+    if _same_payload(source, target):
+        return target
     fd, name = tempfile.mkstemp(prefix=".atlas-maintenance-", dir=root)
     try:
         with os.fdopen(fd, "wb") as output, source.open("rb") as stream:
