@@ -64,8 +64,31 @@ def runtime_root() -> Path:
         raise UpdateError("Emplacement Atlas enregistre invalide; corrigez installation.json") from exc
 
 
+def _preflight_runtime_permissions(location: Path) -> None:
+    """Test the nearest existing directory without creating the runtime.
+
+    Windows ACLs and removable drives can reject a selected path even when
+    it is syntactically valid. An ephemeral write test avoids replacing the
+    last working installation.json with an unusable location.
+    """
+    ancestor = location
+    while not ancestor.exists():
+        if ancestor == ancestor.parent:
+            raise UpdateError("Le disque d'installation selectionne est inaccessible")
+        ancestor = ancestor.parent
+    if not ancestor.is_dir():
+        raise UpdateError("Le dossier d'installation choisi est inaccessible")
+    try:
+        with tempfile.TemporaryFile(prefix=".atlas-probe-", dir=ancestor) as probe:
+            probe.write(b"Atlas")
+            probe.flush()
+    except OSError as exc:
+        raise UpdateError("Le dossier d'installation choisi n'est pas accessible en ecriture") from exc
+
+
 def set_runtime_root(root: Path) -> Path:
     location = _valid_root(root)
+    _preflight_runtime_permissions(location)
     APP_DATA.mkdir(parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix=".atlas-location-", dir=APP_DATA)
     try:
