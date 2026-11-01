@@ -4,6 +4,7 @@ import math
 import unittest
 
 from app.pages.organizer.radial_selection import (
+    constrained_popup_center,
     confirmed_radial_target,
     selected_slice,
     sector_layout,
@@ -86,6 +87,30 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
                     self.assertAlmostEqual(math.hypot(x, y), 100)
                     self.assertEqual(selected_slice(x, y, count), index)
         self.assertEqual(sector_layout(0), [])
+
+    def test_popup_is_clamped_inside_standard_and_negative_screens(self) -> None:
+        self.assertEqual(
+            constrained_popup_center(10, 20, (0, 0, 1920, 1080), 150),
+            (150, 150),
+        )
+        self.assertEqual(
+            constrained_popup_center(1880, 1010, (0, 0, 1920, 1080), 150),
+            (1770, 930),
+        )
+        self.assertEqual(
+            constrained_popup_center(-1590, 50, (-1600, 0, 1600, 900), 100),
+            (-1500, 100),
+        )
+
+    def test_tiny_screen_falls_back_to_screen_center(self) -> None:
+        self.assertEqual(
+            constrained_popup_center(10, 15, (0, 0, 200, 180), 150),
+            (100, 90),
+        )
+        self.assertEqual(
+            constrained_popup_center(1, 2, (0, 0, 0, 0), 150),
+            (1, 2),
+        )
 
     def test_center_and_empty_selection_cancel(self) -> None:
         self.assertIsNone(selected_slice(0, 0, 8))
