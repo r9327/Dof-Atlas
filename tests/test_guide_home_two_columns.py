@@ -132,6 +132,19 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
                 self.assertEqual(decode.call_count, 2)
 
+    def test_grid_balances_five_dofus_instead_of_leaving_one_orphan(self) -> None:
+        columns = GuideCatalogView._balanced_grid_columns
+        self.assertEqual(columns(1024, 5), 3)  # 3 + 2, not 4 + 1
+        self.assertEqual(columns(1024, 6), 3)  # Two full rows
+        self.assertEqual(columns(1024, 7), 4)  # 4 + 3
+        self.assertEqual(columns(1024, 9), 3)  # Three full rows
+        self.assertEqual(columns(1024, 11), 4)  # 4 + 4 + 3
+        self.assertEqual(columns(1024, 22), 2)  # No orphan if exact fit exists
+        self.assertEqual(columns(610, 5), 2)   # Never squeeze 3 narrow cards
+        self.assertEqual(columns(180, 5), 1)
+        self.assertEqual(columns(1024, 1), 1)
+        self.assertEqual(columns(1024, 0), 1)
+
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.
         self.assertEqual(GuideCatalogView._grid_cell_width(0), 0)
