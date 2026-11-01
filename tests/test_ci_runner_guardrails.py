@@ -104,6 +104,18 @@ class CiRunnerGuardrailsTests(unittest.TestCase):
                 self.assertIn("python -m scripts.windows.quest_assets --download", source)
                 self.assertIn("python -m scripts.windows.craft_seed --download", source)
 
+    def test_distribution_and_phase_have_hash_verified_lfs_quota_fallbacks(self) -> None:
+        distribution = self._workflow("atlas-windows-distribution.yml")
+        self.assertIn("python -m scripts.windows.runtime_visual_assets --download", distribution)
+        self.assertIn("python -m scripts.windows.release_lfs_assets", distribution)
+        self.assertIn('if ! git lfs pull --include="data/**"', distribution)
+
+        phase = self._workflow("phase-certification.yml")
+        self.assertIn("python -m scripts.windows.release_lfs_assets", phase)
+        self.assertIn('git lfs pull --include="data/**"', phase)
+        self.assertIn("data/encyclopedia/images/quests/691/step_01.webp", phase)
+        self.assertIn("data/encyclopedia/images/quests/2464/step_04.webp", phase)
+
     def test_python_313_setup_matches_runner_type(self) -> None:
         app = self._workflow("app-ci.yml")
         self.assertRegex(app, r"uses: actions/setup-python@[0-9a-f]{40}")

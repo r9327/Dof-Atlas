@@ -421,15 +421,19 @@ jobs:
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/01_lfs.log"
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/encyclopedia/images/quests/26/**,data/encyclopedia/images/quests/29/**,data/encyclopedia/images/quests/55/**,data/encyclopedia/images/quests/72/**,data/encyclopedia/images/quests/260/**,data/encyclopedia/images/quests/691/**,data/encyclopedia/images/quests/1653/**,data/encyclopedia/images/quests/1760/**,data/encyclopedia/images/quests/1851/**,data/encyclopedia/images/quests/2464/**,tools/doduda/doduda.exe" --exclude="" 2>&1 | Tee-Object -FilePath $log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git lfs pull --include="data/**" --exclude="" 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            python -m scripts.windows.release_lfs_assets --work-dir "$env:RUNNER_TEMP" 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
           @'
           from pathlib import Path
 
           required = [
               Path("data/images/misc/dofus_atlas_logo.png"),
-              Path("tools/doduda/doduda.exe"),
+              Path("data/encyclopedia/images/quests/691/step_01.webp"),
+              Path("data/encyclopedia/images/quests/2464/step_04.webp"),
           ]
           pointer = b"version https://git-lfs.github.com/spec/v1"
           errors = []

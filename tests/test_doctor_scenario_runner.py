@@ -275,9 +275,13 @@ class UserJourneyCertificationTests(unittest.TestCase):
                     ".github/workflows/doctor-certification.yml").read_text(
                         encoding="utf-8")
         self.assertIn("quest_categories.json", workflow)
-        self.assertIn("tools/doduda/doduda.exe", workflow)
-        self.assertIn("data/encyclopedia/images/quests/2464", workflow)
-        self.assertIn("data/encyclopedia/images/quests/691", workflow)
+        materialize = workflow.split(
+            "name: Materialize canonical quest data for real Guide/Quest navigation", 1
+        )[1].split("\n      - name:", 1)[0]
+        self.assertNotIn("git lfs pull", materialize)
+        self.assertNotIn("tools/doduda/doduda.exe", materialize)
+        self.assertIn("scripts.windows.quest_assets --download", materialize)
+        self.assertIn("scripts.windows.craft_seed --download", materialize)
         self.assertIn("Independent Doctor journey catalog", workflow)
         self.assertLess(workflow.index("Materialize canonical quest data"),
                         workflow.index("Exercise independent user journey contracts"))

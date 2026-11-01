@@ -597,9 +597,12 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
 
 
 def _guide_evidence_index(
-    data_dir: Path, *, objective_step_ids: dict[int, list[int]] | None = None
+    data_dir: Path,
+    *,
+    objective_step_ids: dict[int, list[int]] | None = None,
+    enrichment_path: Path | None = None,
 ) -> dict[int, dict[str, object]]:
-    """Build tiny Guide item/combat evidence from raw Quest objectives."""
+    """Build tiny Guide item/combat evidence without hydrating rich Quests."""
 
     required = (
         data_dir / "quests.json",
@@ -618,6 +621,15 @@ def _guide_evidence_index(
         items = sources.rows(data_dir / "items.json")
         monsters = sources.rows(data_dir / "monsters.json")
         objective_path = data_dir / "quest_objectives.json"
+        if enrichment_path is None and qc._is_default_quest_data_dir(data_dir):
+            enrichment_path = (
+                qc.DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"
+            )
+        enrichment = (
+            sources.mapping(enrichment_path, "quests", required=False)
+            if enrichment_path is not None
+            else None
+        )
         result: dict[int, dict[str, object]] = {}
 
         for quest_id, quest in quests.items():
@@ -686,6 +698,15 @@ def _guide_evidence_index(
                         }
                     )
 
+            # Documentary walkthroughs can contain an explicit tactical combat
+            # while Doduda exposes no raw combat objective for that Quest.
+            # Keep those authored rows in the signed compact index instead of
+            # hydrating the rich Quest source on Qt's render thread.
+            if not combat_rows and enrichment is not None:
+                combat_rows.extend(
+                    _solution_combat_rows(enrichment.get(str(quest_id), {}))
+                )
+
             if item_rows or combat_rows:
                 result[int(quest_id)] = {"items": item_rows, "combats": combat_rows}
         if objective_step_ids is not None and sources._objectives_by_step is not None:
@@ -699,6 +720,40 @@ def _guide_evidence_index(
         return result
     finally:
         sources.close()
+
+
+def _solution_combat_rows(row: object) -> list[dict[str, object]]:
+    """Project authored solution combats into the bounded Guide evidence shape."""
+
+    if not isinstance(row, dict):
+        return []
+    result: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for step_index, step in enumerate(qc.array_value(row.get("solution_steps")), 1):
+        if not isinstance(step, dict):
+            continue
+        for objective_index, objective in enumerate(
+            qc.array_value(step.get("objectives")), 1
+        ):
+            if not isinstance(objective, dict) or not bool(objective.get("combat")):
+                continue
+            text = " ".join(str(objective.get("text") or "").split()).strip()
+            key = qc.normalize_text(text)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            result.append(
+                {
+                    # Stable positive reserved range: progress keys cannot
+                    # collide with real Doduda objective IDs.
+                    "objective_id": 1_500_000_000 + step_index * 1_000 + objective_index,
+                    "monster": text[:160].rstrip(),
+                    "quantity": max(1, int(qc.safe_int(objective.get("quantity")) or 1)),
+                }
+            )
+            if len(result) >= 48:
+                return result
+    return result
 
 
 def _source_index(data_dir):

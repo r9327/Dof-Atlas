@@ -43,9 +43,9 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
       - name: Certify real runtime export without publishing
         run: |
-          # Materialize only the tracked runtime visuals selected by the App
-          # export allowlist. Never transfer Git LFS pointer files as icons.
-          git lfs pull --include="data/images/misc/dofus_atlas_logo.png,data/images/classes/**,data/images/breeds/**,data/images/misc/classes/**" --exclude=""
+          # The immutable public App mirror contains the same reviewed bytes as
+          # these 20 LFS objects. Every byte is locked by size and SHA-256.
+          python -m scripts.windows.runtime_visual_assets --download
           source_sha="$(git rev-parse HEAD)"
           if test "${{ github.event_name }}" = "pull_request"; then
             test "$source_sha" = "${{ github.event.pull_request.head.sha }}"
@@ -217,10 +217,13 @@ jobs:
           current="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$current" = "$SOURCE_SHA"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
       - name: Fetch only startup images for optional diagnostic build
         if: github.event_name == 'workflow_dispatch'
         run: |
-          git lfs pull --include="data/images/misc/**,data/images/classes/**" --exclude=""
+          python -m scripts.windows.runtime_visual_assets --download
       - name: Materialize complete application assets for candidate certification or release
         if: >-
           github.event_name == 'workflow_run' ||
@@ -228,10 +231,12 @@ jobs:
           (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         run: |
           # A ready-for-review build is a full, *unpublished* production candidate.
-          git lfs pull --include="data/**" --exclude=""
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: "3.13"
+          # Prefer LFS when available. If its account quota is exhausted, use
+          # the pinned certified public release only when every candidate
+          # pointer has the exact same size and SHA-256 in its manifest.
+          if ! git lfs pull --include="data/**" --exclude=""; then
+            python -m scripts.windows.release_lfs_assets --work-dir "$RUNNER_TEMP"
+          fi
       - name: Focused Windows tests
         run: python -m unittest discover -s tests -p 'test_distribution_*.py' -v
       - name: Acquire SHA-256 pinned, otherwise ignored Doduda quest sources

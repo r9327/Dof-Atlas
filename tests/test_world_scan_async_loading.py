@@ -152,11 +152,16 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 panel._initial_load_pending = False
                 panel.show()
                 first = set(panel.world_buttons)
+                first_buttons = tuple(panel.world_buttons.values())
                 self.assertTrue(first)
                 panel.current_world_name = next(iter(first))
                 panel.history = ["world-previous"]
                 panel.hide()
-                QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                # Flush only the widgets this assertion just retired. A global
+                # DeferredDelete drain can destroy unrelated Qt fixtures owned
+                # by earlier diff-target tests in the monolithic FAST process.
+                for button in first_buttons:
+                    QCoreApplication.sendPostedEvents(button, QEvent.DeferredDelete)
                 self.assertEqual(panel.world_buttons, {})
                 self.assertTrue(panel._world_menu_suspended)
                 self.assertEqual(panel.history, ["world-previous"])

@@ -411,3 +411,22 @@ Le FAST avec catalogue public complet a révélé deux assertions de `test_achie
 ## Certification Windows : retirer l'exception Draft temporaire de la PR #310 (31/10/2026)
 
 Le workflow focused contenait une exception nominative `pull_request.number == 310` ajoutée pour obtenir des preuves ciblées pendant la réparation. Après passage de #310 en Ready, cette exception contredisait le garde-fou global imposant que les spécialistes Windows coûteux attendent la fin du Draft et bloquait le plan Phase Certification. Le job retrouve la condition canonique `draft == false` ; il continue donc de s'exécuter sur #310 Ready et sur les futurs candidats Ready, sans traitement spécial par numéro de PR.
+
+## Quota LFS : repli public certifié sans retrait de scénarios (01/11/2026)
+
+Après fusion de #310 dans #303, la campagne exacte `41252393132` a exécuté avec succès FAST, Graphify, RAM Phase 8, preload, UI Doctor réelle, huit instances, CPU mono-cœur et tous les Guides, mais trois routes de distribution/parcours ont été interrompues avant scénario par le quota Git LFS du dépôt. Le correctif ne transforme pas cette panne en PASS et ne supprime aucun budget. Les 20 visuels nécessaires à l'export runtime sont acquis depuis le commit immuable `1f3305bd6bc571aa51a98f0c9f94ccf8c866b510` du miroir public `Dof-Atlas-App`, avec taille et SHA-256 verrouillés individuellement. Pour le bundle complet, le manifeste et les deux parties de la release publique certifiée `sha-0ee44aeeb093` sont verrouillés par taille et SHA-256 ; le repli n'est autorisé que si chacun des **73 041** pointeurs LFS `data/` du candidat correspond exactement au chemin, à la taille et au SHA-256 du manifeste. L'archive réassemblée puis chaque fichier extrait sont contrôlés avant remplacement atomique. Toute donnée nouvelle ou différente échoue avant le téléchargement lourd : il ne s'agit ni d'une réutilisation de preuve d'un autre SHA, ni d'une tolérance aux assets manquants.
+
+Le parcours Doctor Guide/Quête conserve les véritables catalogues publics Doduda/Craft verrouillés et ses scénarios Qt, mais ne télécharge plus le binaire `doduda.exe` ni des captures de quêtes qu'il n'exécute ou ne décode pas. La certification de phase garde son étape LFS et ses fixtures visuelles ; elle utilise le même repli complet uniquement après échec réel de LFS. Les nouveaux tests couvrent verrou strict, téléchargement atomique, refus d'octets divergents, reconstruction multipart et correspondance avec l'identité LFS du candidat. Les résultats exact-HEAD GitHub restent obligatoires après commit.
+
+## Audit local matérialisé : réparations révélées par Doctor FAST (01/11/2026)
+
+Le repli release complet a été exécuté localement, pas seulement simulé : archive réassemblée de **2 713 105 574 octets**, SHA-256 `9650f62db8ed768ec00c200ddef2dbc0d6df5f56ba53b66497fe98c6c8159cc2`, puis vérification et matérialisation des **73 041** pointeurs du candidat. La reprise multipart a été durcie par cache `.download`, requêtes Range strictes (`206` et `Content-Range` exact), cinq tentatives bornées, lecture par blocs et hash streaming. Le résultat terminal du script est `VERIFIED: 73041 candidate data LFS assets from certified release sha-0ee44aeeb093`.
+
+Avec les vrais assets disponibles, Doctor FAST a révélé puis permis de corriger quatre écarts qui étaient masqués par l'échec LFS :
+
+- la fiche Succès froide est désormais attendue par le test via une boucle Qt bornée à cinq secondes, sans rendre le produit synchrone ;
+- les combats documentaires absents des objectifs Doduda bruts sont projetés dans l'index Quêtes compact signé avec des identifiants positifs stables, sans recharger la source riche d'environ 69 MiB sur le thread Qt ; les deux sources de Guide retrouvent leurs cases de combat inline ;
+- les fixtures légères Succès initialisent les champs de génération asynchrone et les catégories réellement exigés par le nouveau contrat ;
+- les tests Qt ne vident plus globalement tous les `DeferredDelete` du processus et le contrôle de navigation clavier offscreen repose sur le contrat déterministe de focus, en plus de visibilité, activation et géométrie.
+
+La matrice exacte des **52 modules modifiés** a ensuite exécuté **707 tests** en 144,717 s : `OK`. Les groupes FAST précédemment exécutés étaient tous `PASS` hors DIFF_TARGETS ; le nouveau passage exact de DIFF_TARGETS est terminalement vert. Cette preuve locale porte sur l'arbre de travail avant commit : elle ne remplace ni la CI du SHA final, ni la FULL de phase, ni la certification séparée du SHA de fusion.

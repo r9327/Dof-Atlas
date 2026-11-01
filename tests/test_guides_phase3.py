@@ -483,10 +483,23 @@ class GuidePhase3Tests(unittest.TestCase):
             achievements_view = page.ensure_achievements_view()
             self.assertTrue(achievements_view.select_achievement(TURQUOISE_ACHIEVEMENT_ID))
 
-            linked_quest = next(
-                row
-                for row in achievements_view.findChildren(AchievementEntityRow)
-                if row.entity.entity_type == "quest" and int(row.entity.entity_id) == 1653
+            linked_quest = None
+            for _attempt in range(500):
+                linked_quest = next(
+                    (
+                        row
+                        for row in achievements_view.findChildren(AchievementEntityRow)
+                        if row.entity.entity_type == "quest"
+                        and int(row.entity.entity_id) == 1653
+                    ),
+                    None,
+                )
+                if linked_quest is not None:
+                    break
+                QTest.qWait(10)
+            self.assertIsNotNone(
+                linked_quest,
+                "le détail asynchrone du succès n'a pas été rendu",
             )
             QTest.mouseClick(linked_quest, Qt.LeftButton)
             self.app.processEvents()

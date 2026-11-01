@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_repo": "r9327/Dof-Atlas-App",
+  "source_commit": "1f3305bd6bc571aa51a98f0c9f94ccf8c866b510",
+  "assets": {
+    "data/images/classes/cra.png": {"size": 15119, "sha256": "0e48c2841412b23232aa8536e2ef9c6380f75ef19df1cd456e68220f4944b460"},
+    "data/images/classes/ecaflip.png": {"size": 13241, "sha256": "d8395fbdac4393abf37a18247c602ca9ace8154ae86e04b8dee1e9b73c6f0ee1"},
+    "data/images/classes/eliotrope.png": {"size": 26623, "sha256": "6b7c650525952c5dd6b29ab0b935c9b86c7f463feb0bc4db51cf96d58de52371"},
+    "data/images/classes/eniripsa.png": {"size": 18496, "sha256": "43339081347249bfa55d3d5eed5ae53892145caed1f5b4f81521658d313e0784"},
+    "data/images/classes/enutrof.png": {"size": 21568, "sha256": "0376937d3dac3c0463dbbf10b589f47ae367fca5fdf9d696e57fb214d2f00d7f"},
+    "data/images/classes/feca.png": {"size": 17875, "sha256": "9a2031a8977f847cfe0cd6bf035a29296bcef288344946b8dd814f82aafdfca7"},
+    "data/images/classes/forgelance.png": {"size": 12999, "sha256": "d7d011afd67782c3acdc677d9be595f996d2b672f81a99d9ed1c71ab27bde70f"},
+    "data/images/classes/huppermage.png": {"size": 22649, "sha256": "32998d7fff4310666978ccf2c14d516bbf1641c4e7cf8f056c22b72490676d26"},
+    "data/images/classes/iop.png": {"size": 13364, "sha256": "74c2c5bac3ddfad58e98de370922dca56f586d1f4983b9167162189a19d12c37"},
+    "data/images/classes/osamodas.png": {"size": 19439, "sha256": "09ee64ed25f2f8079ed658740b4cde54694a05e2fb2cd696e8b65ff3e8f59e31"},
+    "data/images/classes/ouginak.png": {"size": 20222, "sha256": "808c2c2d7dc590f97789d414b649b8353a062e16ef1c3f3696125a6d7675bb87"},
+    "data/images/classes/pandawa.png": {"size": 16863, "sha256": "a0575f8d7064712b0b1fd28aef0ae795a4386e4b89d19ff80ca9088d1b3aefdc"},
+    "data/images/classes/roublard.png": {"size": 17947, "sha256": "5efbc159e9114c2e6beae44c22814284b16b2c2167f7218f548e354513a48685"},
+    "data/images/classes/sacrieur.png": {"size": 19281, "sha256": "134857aae86bb81b2e8bf5ce072fefee48b9f147658004de427655767a0e8390"},
+    "data/images/classes/sadida.png": {"size": 20987, "sha256": "dcda436aa364025139ca632c9cf396ef9f03b0d76c4d0a44ecc5872a57c34f5b"},
+    "data/images/classes/sram.png": {"size": 19692, "sha256": "4956e8aca1472f755302c393da798a1fe98a53b25b3d6269cbcc2a4a00053322"},
+    "data/images/classes/steamer.png": {"size": 22243, "sha256": "ad163426ab6f18985aab74a2fc1e006974b6d47b1fba3f546b87623e73d6e94d"},
+    "data/images/classes/xelor.png": {"size": 17121, "sha256": "d2b7fa48f4cc1965b4e21959d64791c812bbd26fbfee5b9465c621a56148fa30"},
+    "data/images/classes/zobal.png": {"size": 21250, "sha256": "4d7b0eeb3eb875f26cfab6bbaf7ea039c304aa1a08dbc0d4ed4313c4dfb6a598"},
+    "data/images/misc/dofus_atlas_logo.png": {"size": 2039765, "sha256": "619379b073430d3585f0740de69f2dd501d042829632e23e0cf9fda224c0eb79"}
+  }
+}

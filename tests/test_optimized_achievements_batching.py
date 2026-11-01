@@ -78,6 +78,9 @@ class _LightAchievementsView(AchievementsView):
         self._achievement_rendering_batch = False
         self._achievement_initializing = False
         self._detail_open = False
+        self._detail_generation = 0
+        self._detail_requested = None
+        self._detail_worker_running = False
 
         self._achievement_batch_timer = QTimer(self)
         self._achievement_batch_timer.setSingleShot(True)
@@ -97,6 +100,8 @@ def _achievement(ident: int, name: str):
         name=name,
         level=ident % 200,
         points=5,
+        category_id=1,
+        subcategory_id=None,
         search_text=name.casefold().replace(" ", "_"),
     )
 

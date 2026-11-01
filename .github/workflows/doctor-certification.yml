@@ -230,9 +230,9 @@ jobs:
       - name: Materialize canonical quest data for real Guide/Quest navigation
         shell: pwsh
         run: |
-          # Navigation contracts use real Quest 2464 and 691; no mocked graph.
-          git lfs pull --include="tools/doduda/doduda.exe,data/encyclopedia/images/quests/2464/**,data/encyclopedia/images/quests/691/**" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Navigation contracts use the real pinned Quest catalogue and no
+          # mocked graph. These scenarios do not decode quest screenshots or
+          # execute the legacy Doduda binary.
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force
