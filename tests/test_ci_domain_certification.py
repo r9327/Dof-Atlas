@@ -51,6 +51,36 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(path), path)
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
+    def test_pr303_release_fallback_and_final_audit_paths_have_exact_owners(self):
+        release_owners = {"ci", "craft", "quests", "guides", "ui", "startup", "data"}
+        exact = {
+            "app/cartography/map_asset_loader.py": {"ui", "data"},
+            "tests/test_cartography_asset_readonly_fallback.py": {"ui", "data"},
+            "scripts/windows/release_lfs_assets.py": release_owners,
+            "scripts/windows/release_lfs_assets_lock.json": release_owners,
+            "scripts/windows/runtime_visual_assets.py": release_owners,
+            "scripts/windows/runtime_visual_assets_lock.json": release_owners,
+            "tests/test_distribution_runtime_assets.py": release_owners,
+            "tests/test_ganymede_live_cutover_inventory.py": {"guides", "data"},
+            "tests/test_pr303_commit_audit.py": {"ci"},
+            "tools/audit_pr303_commits.py": {"ci"},
+            "tools/doctor_candidate_worklist.py": {"ci"},
+        }
+        for path, expected in exact.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+        plan = self.route(list(exact))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        for path in (
+            "scripts/windows/unreviewed_release_assets.py",
+            "app/cartography/unreviewed_loader.py",
+            "tools/doctor_unreviewed_worklist.py",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(owners_for(path))
+                self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_expensive_windows_specialists_wait_for_ready_not_draft(self):
         from pathlib import Path
         workflows = Path(__file__).resolve().parents[1] / ".github/workflows"

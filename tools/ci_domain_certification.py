@@ -87,6 +87,9 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tests/test_atlas_doctor_full_scope.py",
     "tools/doctor_scenario_runner.py",
     "tools/tool_catalog.py",
+    "tools/doctor_candidate_worklist.py",
+    "tools/audit_pr303_commits.py",
+    "tests/test_pr303_commit_audit.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -138,6 +141,23 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "startup", "data"})
     if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
         return frozenset({"startup", "ui"})
+    if path in {
+        "scripts/windows/release_lfs_assets.py",
+        "scripts/windows/release_lfs_assets_lock.json",
+        "scripts/windows/runtime_visual_assets.py",
+        "scripts/windows/runtime_visual_assets_lock.json",
+        "tests/test_distribution_runtime_assets.py",
+    }:
+        # Candidate-verified release hydration supplies the complete packaged
+        # data and visual tree.  Enumerate every consumer explicitly; future
+        # Windows helpers and lock files must still acquire their own review.
+        return frozenset({"ci", "craft", "quests", "guides", "ui", "startup", "data"})
+    if path in {
+        "app/cartography/map_asset_loader.py",
+        "tests/test_cartography_asset_readonly_fallback.py",
+    }:
+        # The map loader renders bundled cartography data through Qt.
+        return frozenset({"ui", "data"})
     if path == "app/ui/preload_popup.py":
         return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
@@ -237,6 +257,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"startup", "quests", "guides", "ui"})
     if path == "tests/test_success_async_detail_runtime.py":
         return frozenset({"quests", "guides", "ui"})
+    if path == "tests/test_ganymede_live_cutover_inventory.py":
+        return frozenset({"guides", "data"})
     if path == "tests/test_organizer_layout.py":
         return frozenset({"ui", "identity"})
     if path == "tests/test_world_scan_async_loading.py":
