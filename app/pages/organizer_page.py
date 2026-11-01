@@ -17,6 +17,8 @@ from app.constants import (
     KEY_SCRIPT_SPEED,
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -52,6 +54,8 @@ from app.pages.organizer.common import (
 from app.pages.organizer.organizer_drag_drop import OrganizerDragDropMixin
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 from app.pages.organizer.organizer_ui import OrganizerUiMixin
+from app.pages.organizer.radial_overlay import OrganizerRadialHoldController, OrganizerRadialOverlay
+from app.pages.organizer.radial_selection import radial_roster_key, visible_characters
 
 
 def dofus_class_key_for_character_name(value: Any) -> str | None:
@@ -183,6 +187,22 @@ class OrganizerPage(
         self.update_global_buttons()
         self.update_script_speed_buttons()
         self.update_debug_button()
+        self._radial_overlay = OrganizerRadialOverlay()
+        self._radial_controller = OrganizerRadialHoldController(
+            self._radial_overlay,
+            self._radial_participants,
+            self._activate_radial_handle,
+            parent=self,
+            can_open=self._radial_can_open,
+        )
+        binding = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        if binding and KEY_RADIAL_PARTICIPANTS not in self.profiles:
+            # One-time migration for profiles created before the participant
+            # selector existed. Do not enroll new scans after this snapshot.
+            self.ensure_radial_participants()
+            self.save_profiles(self.profiles)
+        self._radial_controller.set_shortcut(binding)
+        self.destroyed.connect(self._radial_controller.cancel)
         self.export_client_index()
         self.request_sessions_render()
         self._start_session_runtime()
@@ -230,6 +250,9 @@ class OrganizerPage(
         self.stop_script_button.clicked.connect(self.stop_script)
         self.stop_script_hotkey_button.clicked.connect(lambda: self.begin_capture("stop_script"))
         self.stop_script_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_STOP_SCRIPT_HOTKEY))
+        self.radial_select_button.clicked.connect(lambda: self.begin_capture("radial"))
+        self.radial_hotkey_button.clicked.connect(lambda: self.begin_capture("radial"))
+        self.radial_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_RADIAL_HOTKEY))
         self.reload_runtime_button.clicked.connect(self.reload_runtime)
         self.debug_button.clicked.connect(self.toggle_debug_mode)
         self.sessions_refresh_button.clicked.connect(self.scan_sessions)
@@ -240,6 +263,84 @@ class OrganizerPage(
         self.switch_fake.clicked.connect(self.launch_auto_group)
         self.script_speed_normal.clicked.connect(lambda: self.set_script_speed("normal"))
         self.script_speed_fast.clicked.connect(lambda: self.set_script_speed("rapide"))
+
+    def ensure_radial_participants(self) -> None:
+        # Snapshot the current Organizer roster when the shortcut is first
+        # configured. Later-discovered windows are NOT silently enrolled.
+        if KEY_RADIAL_PARTICIPANTS in self.profiles:
+            return
+        keys = [radial_roster_key(row) for row in self.sessions
+                if session_is_detected(row)]
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = list(dict.fromkeys(
+            key for key in keys if key
+        ))
+
+    def radial_session_is_selected(self, session: dict[str, Any]) -> bool:
+        # Before initial configuration, show the current roster as a preview.
+        if KEY_RADIAL_PARTICIPANTS not in self.profiles:
+            return session_is_detected(session)
+        selected = self.profiles.get(KEY_RADIAL_PARTICIPANTS)
+        return (isinstance(selected, list)
+                and radial_roster_key(session) in selected)
+
+    def toggle_radial_session(self, session: dict[str, Any]) -> None:
+        self.ensure_radial_participants()
+        key = radial_roster_key(session)
+        if not key:
+            return
+        selected = [str(item) for item in self.profiles.get(
+            KEY_RADIAL_PARTICIPANTS, []
+        ) if isinstance(item, str)]
+        if key in selected:
+            selected.remove(key)
+        else:
+            selected.append(key)
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        self.save_profiles(self.profiles)
+        self.request_sessions_render()
+
+    def _radial_participants(self) -> list[dict[str, Any]]:
+        # A discovered Dofus window alone is not enough: it must remain in the
+        # Organizer roster AND in the explicit inclusion snapshot.
+        sessions = getattr(self, "sessions", [])
+        included = self.profiles.get(KEY_RADIAL_PARTICIPANTS, [])
+        if not isinstance(included, list):
+            return []
+        selected = set(str(item) for item in included if isinstance(item, str))
+        handles = [session_hwnd(row) for row in sessions if
+                   session_is_detected(row) and radial_roster_key(row) in selected]
+        return visible_characters(sessions, handles)
+
+    def _radial_can_open(self) -> bool:
+        if self.capture_target is not None:
+            return False
+        from app.windows.unity_windows import foreground_window, is_unity_window
+        hwnd = foreground_window()
+        # A foreign/untracked Dofus window is not an Organizer session and
+        # must not trigger a focus-changing radial picker.
+        return bool(
+            is_unity_window(hwnd)
+            and any(
+                session_is_detected(row) and session_hwnd(row) == hwnd
+                for row in getattr(self, "sessions", [])
+            )
+        )
+
+    def _activate_radial_handle(self, handle: int) -> None:
+        if not any(session_hwnd(row) == handle and session_is_detected(row)
+                   for row in getattr(self, "sessions", [])):
+            return
+        from app.windows.unity_windows import is_unity_window
+        if not is_unity_window(handle):
+            return
+        from app.core.logger import get_runtime_logger
+        from app.windows.focus import activate_window
+        result = activate_window(
+            handle, 0, 2, 60, get_runtime_logger(),
+            "Sélection personnage",
+        )
+        if not result:
+            self.status_callback("Sélection personnage : fenêtre indisponible.")
 
     def _start_session_runtime(self) -> None:
         self.window_event_refresh_timer = QTimer(self)
@@ -260,8 +361,8 @@ class OrganizerPage(
         self.startup_scan_timer = QTimer(self)
         self.startup_scan_timer.setSingleShot(True)
         self.startup_scan_timer.timeout.connect(self.auto_scan_sessions_on_startup)
-        # A QWidget created by offscreen UI tests must never start native
-        # scanning just because the test spins the Qt event loop.
+        # Reuse the offscreen safety guard from merged PR #328: Qt tests
+        # must never scan real Dofus windows merely by spinning the event loop.
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self.startup_scan_timer.start(0)
 

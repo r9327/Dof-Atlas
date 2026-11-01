@@ -21,6 +21,7 @@ from app.constants import (
     KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
+    KEY_RADIAL_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -193,11 +194,13 @@ class OrganizerUiMixin:
         self.switch_double_click = AtlasButton("")
         self.switch_movement = AtlasButton("")
         self.switch_fake = AtlasButton("Auto-groupe")
-        self.fake_button_2 = AtlasButton("Slot libre")
+        self.radial_select_button = AtlasButton("Sélection\npersonnage")
+        self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = AtlasButton("")
         self.double_click_button = AtlasButton("")
         self.double_click_clear = AtlasButton("x")
-        self.fake_shortcut_2 = AtlasButton("F2")
+        self.radial_hotkey_button = AtlasButton("")
+        self.radial_clear = AtlasButton("x")
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
         self.script_speed_title = QLabel("Vitesse script")
@@ -222,7 +225,7 @@ class OrganizerUiMixin:
             self.switch_double_click,
             self.switch_movement,
             self.switch_fake,
-            self.fake_button_2,
+            self.radial_select_button,
             self.reload_runtime_button,
             self.debug_button,
         ):
@@ -232,16 +235,20 @@ class OrganizerUiMixin:
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        for button in (self.click_button, self.double_click_button, self.fake_shortcut_2):
+        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button):
             button.setObjectName("keyBadge")
             button.setFixedSize(shortcut_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.stop_script_hotkey_button.setObjectName("iconButton")
         self.stop_script_hotkey_button.setFixedSize(stop_hotkey_size)
         self.stop_script_hotkey_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        for button in (self.fake_button_2, self.fake_shortcut_2):
-            button.setFocusPolicy(Qt.NoFocus)
-            button.setToolTip("Bouton reserve")
+        self.radial_select_button.setToolTip(
+            "Maintenir le raccourci : camembert au centre de l'écran. "
+            "Relâcher : fermer, avec ou sans sélection."
+        )
+        self.radial_hotkey_button.setToolTip("Configurer la touche maintenue pour sélectionner un personnage")
+        self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
+        self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
         self.script_speed_title.setObjectName("MutedLabel")
         self.script_speed_title.setFixedSize(stop_size.width(), 0)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -258,7 +265,7 @@ class OrganizerUiMixin:
         self.script_speed_normal.setToolTip("Vitesse script normale")
         self.script_speed_fast.setToolTip("Vitesse script rapide")
         self.stop_script_button.setToolTip("Arreter immediatement les macros Python")
-        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear):
+        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear, self.radial_clear):
             button.setObjectName("iconButtonDanger")
             button.setFixedSize(14, 14)
             button.setToolTip("Supprimer le raccourci")
@@ -317,7 +324,7 @@ class OrganizerUiMixin:
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
         controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
         controls_grid.addWidget(macro_cell(self.switch_fake), 2, 0)
-        controls_grid.addWidget(macro_cell(self.fake_button_2, self.fake_shortcut_2), 2, 1)
+        controls_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 2, 1)
         for column in range(2):
             controls_grid.setColumnMinimumWidth(column, control_size.width())
             controls_grid.setColumnStretch(column, 0)
@@ -443,6 +450,7 @@ class OrganizerUiMixin:
         click = self.hotkey_label(KEY_CLICK_HOTKEY)
         double_click = self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY)
         stop_script = self.hotkey_label(KEY_STOP_SCRIPT_HOTKEY)
+        radial_hotkey = self.hotkey_label(KEY_RADIAL_HOTKEY)
         self.click_button.setText(short_label(click, 9) if click else "...")
         self.click_button.setToolTip(f"Switch Clique: {click}" if click else "Raccourci Switch Clique")
         self.click_clear.setVisible(bool(click))
@@ -452,6 +460,12 @@ class OrganizerUiMixin:
         self.stop_script_hotkey_button.setText(short_label(stop_script, 9) if stop_script else "...")
         self.stop_script_hotkey_button.setToolTip(f"Stop script: {stop_script}" if stop_script else "Raccourci Stop script")
         self.stop_script_clear.setVisible(bool(stop_script))
+        self.radial_hotkey_button.setText(short_label(radial_hotkey, 9) if radial_hotkey else "...")
+        self.radial_hotkey_button.setToolTip(
+            f"Sélection personnage : {radial_hotkey}" if radial_hotkey
+            else "Définir la touche maintenue pour le camembert"
+        )
+        self.radial_clear.setVisible(bool(radial_hotkey))
 
     def update_script_speed_buttons(self) -> None:
         speed = self.script_speed()
@@ -574,6 +588,22 @@ class OrganizerUiMixin:
                 # A favorite is an action, not a drag handle: swallowing its
                 # mouse release during a tiny drag loses the click/selection.
             layout.addWidget(star)
+            radial_enabled = self.radial_session_is_selected(session)
+            radial_toggle = AtlasButton("◉" if radial_enabled else "○")
+            radial_toggle.setObjectName(
+                "FavoriteButtonActive" if radial_enabled else "FavoriteButton"
+            )
+            radial_toggle.setFixedSize(22, 24)
+            radial_toggle.setAccessibleName(
+                f"{'Retirer' if radial_enabled else 'Ajouter'} {name} du camembert"
+            )
+            radial_toggle.setToolTip(
+                f"{'Retirer' if radial_enabled else 'Ajouter'} ce personnage au camembert"
+            )
+            radial_toggle.clicked.connect(
+                lambda _checked=False, target=dict(session): self.toggle_radial_session(target)
+            )
+            layout.addWidget(radial_toggle)
             icon = QLabel()
             icon.setFixedSize(24, 24)
             icon.setAlignment(Qt.AlignCenter)
