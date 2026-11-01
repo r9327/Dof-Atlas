@@ -50,13 +50,19 @@ LOG_DIR = APP_DIR / "logs"
 
 
 def _logger() -> logging.Logger:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger("dofus_atlas_updater")
     logger.setLevel(logging.INFO)
     if not logger.handlers:
-        handler = RotatingFileHandler(LOG_DIR / "updater.log", maxBytes=1_000_000,
-                                      backupCount=2, encoding="utf-8")
-        logger.addHandler(handler)
+        try:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            handler = RotatingFileHandler(LOG_DIR / "updater.log", maxBytes=1_000_000,
+                                          backupCount=2, encoding="utf-8")
+        except OSError:
+            # A full disk or denied logs directory must never block Atlas.
+            # The window reports failures independently of this diagnostic.
+            logger.addHandler(logging.NullHandler())
+        else:
+            logger.addHandler(handler)
     return logger
 
 
