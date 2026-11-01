@@ -106,6 +106,29 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertFalse((app_data / "user").exists())
                 self.assertEqual(loc.runtime_root(), external.resolve())
 
+    def test_unusable_or_readonly_target_does_not_replace_saved_location(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app_data = Path(temp) / "Profile" / "AppData" / "Atlas"
+            working = Path(temp) / "Games" / "runtime"
+            blocked = Path(temp) / "ExternalDisk" / "runtime"
+            file_parent = Path(temp) / "NotAFolder"
+            file_parent.write_bytes(b"existing")
+            with (patch.object(loc, "APP_DATA", app_data),
+                  patch.object(loc, "_SETTINGS", app_data / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", app_data / "runtime")):
+                self.assertEqual(loc.set_runtime_root(working), working.resolve())
+                saved = (app_data / "installation.json").read_bytes()
+                with self.assertRaisesRegex(UpdateError, "inaccessible"):
+                    loc.set_runtime_root(file_parent / "runtime")
+                with patch.object(loc.tempfile, "TemporaryFile",
+                                  side_effect=PermissionError("read-only disk")):
+                    with self.assertRaisesRegex(UpdateError, "ecriture"):
+                        loc.set_runtime_root(blocked)
+                self.assertEqual((app_data / "installation.json").read_bytes(), saved)
+                self.assertEqual(loc.runtime_root(), working.resolve())
+                self.assertFalse(blocked.exists(),
+                                 "A preflight must not create the candidate runtime")
+
     def test_symlink_destination_is_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / "target"
