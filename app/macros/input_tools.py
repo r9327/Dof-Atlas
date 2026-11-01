@@ -112,7 +112,18 @@ def press_key(key_name: str, hold_ms: int = 0) -> None:
         if hold_ms > 0:
             time.sleep(hold_ms / 1000.0)
     finally:
-        key_up(vk_code)
+        original_error = sys.exc_info()[1]
+        try:
+            key_up(vk_code)
+        except Exception:
+            if original_error is None:
+                raise
+            # Preserve the initial failure; an unsuccessful release must still
+            # be visible to diagnostics and the emergency-stop mechanism.
+            import logging
+            logging.getLogger(__name__).exception(
+                "Relachement touche impossible apres une erreur d'entree"
+            )
 
 
 def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
