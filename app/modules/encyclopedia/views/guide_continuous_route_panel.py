@@ -479,13 +479,29 @@ class ContinuousGuideRoutePanel(QWidget):
             # Open participant selection; never validate an implicit identity.
             self.participants_button.setChecked(True)
             return
-        all_done = all(
-            self.navigation.progress.is_manual_step_completed(
+        # Capture the exact per-character flags that produced this button
+        # decision. The persistence service rechecks them under its lock
+        # before writing: concurrent Organizer/Guide updates cannot be lost.
+        expected = {
+            key: self.navigation.progress.is_manual_step_completed(
                 key, self.navigation.guide_id, step_id,
             ) for key in self.navigation.selected_character_keys
-        )
+        }
+        all_done = all(expected.values())
         was_actual = self.navigation.position().actual_step_id == step_id
-        changed = self.navigation.mark_manual_step(step_id, not all_done)
+        try:
+            changed = self.navigation.mark_manual_step(
+                step_id, not all_done, expected_completed=expected,
+            )
+        except RuntimeError as exc:
+            if str(exc) != "Guide progress changed since selection; reload before validating":
+                raise
+            self._verified_travel_plans.clear()
+            self.refresh()
+            self.progress_label.setText(
+                "Progression modifiée ailleurs. Vérifiez les personnages, puis réessayez."
+            )
+            return
         if changed:
             # A manual completion or undo changes the planner's progress
             # snapshot. Never revive an old travel command after an undo.
