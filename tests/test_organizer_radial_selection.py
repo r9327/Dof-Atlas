@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import math
-
-import pytest
+import unittest
 
 from app.pages.organizer.radial_selection import (
     selected_slice,
@@ -11,48 +10,56 @@ from app.pages.organizer.radial_selection import (
 )
 
 
-@pytest.mark.parametrize("count", [2, 3, 4, 6, 8])
-def test_radial_slices_match_exact_number_of_included_characters(count: int) -> None:
-    sessions = [{"nom": f"Perso {i}", "hwnd": i} for i in range(1, 9)]
-    chosen = set(range(1, count + 1))
-    result = visible_characters(sessions, chosen)
-    assert len(result) == count
-    assert slice_count(result) == count
-    assert [row["hwnd"] for row in result] == list(range(1, count + 1))
+class OrganizerRadialSelectionTests(unittest.TestCase):
+    def test_slice_count_matches_explicit_inclusions(self) -> None:
+        sessions = [{"nom": f"Perso {i}", "hwnd": i} for i in range(1, 9)]
+        for count in (2, 3, 4, 6, 8):
+            with self.subTest(count=count):
+                visible = visible_characters(sessions, set(range(1, count + 1)))
+                self.assertEqual(slice_count(visible), count)
+                self.assertEqual(
+                    [row["hwnd"] for row in visible], list(range(1, count + 1))
+                )
+
+    def test_detected_or_invalid_windows_never_create_extra_slices(self) -> None:
+        sessions = [
+            {"nom": "Alpha", "hwnd": 11},
+            {"nom": "Beta", "hwnd": 22},
+            {"nom": "", "hwnd": 33},
+            {"nom": "Gamma", "hwnd": 44, "_empty_slot": True},
+            {"nom": "Alpha copy", "hwnd": 11},
+            {"nom": "Disabled", "hwnd": 55, "enabled": False},
+        ]
+        self.assertEqual(
+            [row["hwnd"] for row in visible_characters(
+                sessions, {11, 22, 33, 44, 55, 999}
+            )],
+            [11, 22],
+        )
+        self.assertEqual(visible_characters(sessions, set()), [])
+
+    def test_clockwise_vectors_select_each_equal_sector(self) -> None:
+        for count in (2, 3, 4, 6, 8):
+            for index in range(count):
+                with self.subTest(count=count, index=index):
+                    angle = index * math.tau / count
+                    dx, dy = 100 * math.sin(angle), -100 * math.cos(angle)
+                    self.assertEqual(selected_slice(dx, dy, count), index)
+
+    def test_center_and_empty_selection_cancel(self) -> None:
+        self.assertIsNone(selected_slice(0, 0, 8))
+        self.assertIsNone(selected_slice(15, 15, 4))
+        self.assertIsNone(selected_slice(100, 0, 0))
+
+    def test_order_is_the_organizer_order(self) -> None:
+        visible = visible_characters(
+            [{"nom": "Beta", "hwnd": 2}, {"nom": "Alpha", "hwnd": 1}],
+            {1, 2},
+        )
+        self.assertEqual([row["nom"] for row in visible], ["Beta", "Alpha"])
+        self.assertEqual(visible[selected_slice(0, -100, 2)]["nom"], "Beta")
+        self.assertEqual(visible[selected_slice(0, 100, 2)]["nom"], "Alpha")
 
 
-def test_untracked_windows_never_create_empty_or_extra_slices() -> None:
-    sessions = [
-        {"nom": "Alpha", "hwnd": 11},
-        {"nom": "Beta", "hwnd": 22},
-        {"nom": "", "hwnd": 33},
-        {"nom": "Gamma", "hwnd": 44, "_empty_slot": True},
-        {"nom": "Alpha copie", "hwnd": 11},
-        {"nom": "Disabled", "hwnd": 55, "enabled": False},
-    ]
-    assert [row["hwnd"] for row in visible_characters(sessions, {11, 22, 33, 44, 55, 999})] == [11, 22]
-    assert visible_characters(sessions, set()) == []
-
-
-@pytest.mark.parametrize("count", [2, 3, 4, 6, 8])
-def test_mouse_vector_selects_all_sectors_from_top_clockwise(count: int) -> None:
-    for index in range(count):
-        theta = index * math.tau / count
-        dx, dy = 100 * math.sin(theta), -100 * math.cos(theta)
-        assert selected_slice(dx, dy, count) == index
-
-
-def test_releasing_at_center_or_without_any_character_cancels() -> None:
-    assert selected_slice(0, 0, 8) is None
-    assert selected_slice(15, 15, 4) is None
-    assert selected_slice(100, 0, 0) is None
-
-
-def test_direction_changes_target_without_changing_character_order() -> None:
-    ordered = visible_characters(
-        [{"nom": "Beta", "hwnd": 2}, {"nom": "Alpha", "hwnd": 1}],
-        {1, 2},
-    )
-    assert [row["nom"] for row in ordered] == ["Beta", "Alpha"]
-    assert ordered[selected_slice(0, -100, 2)]["nom"] == "Beta"
-    assert ordered[selected_slice(0, 100, 2)]["nom"] == "Alpha"
+if __name__ == "__main__":
+    unittest.main()
