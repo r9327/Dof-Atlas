@@ -24,6 +24,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
             "app/core/runtime_state.py": {"organizer", "ui", "startup", "identity"},
+            "app/pages/organizer_page.py": {"organizer", "ui", "startup", "identity"},
+            "app/pages/organizer/character_sessions.py": {"organizer", "ui", "identity", "data"},
             "app/windows/clicks.py": {"organizer", "ui", "startup", "identity"},
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
