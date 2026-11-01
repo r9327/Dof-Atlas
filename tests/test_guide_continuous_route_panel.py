@@ -198,6 +198,47 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
 
+    def test_concurrent_progress_change_aborts_qt_validation_and_shows_feedback(self):
+        from unittest.mock import patch
+
+        first = "ganymede_2205_step_0001"
+        external = GuideProgressService(self.store.path)
+        original = self.store.set_manual_steps_for_characters
+        injected = False
+
+        def concurrent_update(*args, **kwargs):
+            nonlocal injected
+            if not injected:
+                injected = True
+                external.set_manual_step_completed(
+                    "character:2", "dofus_cawotte", first, True,
+                )
+            return original(*args, **kwargs)
+
+        with patch.object(
+            self.store, "set_manual_steps_for_characters",
+            side_effect=concurrent_update,
+        ):
+            self.panel.validate_button.click()
+
+        self.assertTrue(injected)
+        self.assertFalse(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", first,
+        ))
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:2", "dofus_cawotte", first,
+        ))
+        self.assertEqual(self.panel.navigation.position().viewed_step_id, first)
+        self.assertIn("Progression modifiée ailleurs", self.panel.progress_label.text())
+        self.panel.validate_button.click()  # Fresh flags: safe atomic retry.
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", first,
+        ))
+        self.assertEqual(
+            self.panel.navigation.position().actual_step_id,
+            "ganymede_2205_step_0002",
+        )
+
     def test_reviewing_future_step_does_not_replace_actual_route_position(self):
         future = "ganymede_2205_step_0003"
         self.panel.show_step(future)
