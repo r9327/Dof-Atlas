@@ -18,7 +18,14 @@ def visible_characters(
     Detection alone must not create a slice; windows that are not in the
     Organizer's current session list are never displayed.
     """
-    selected = {int(hwnd) for hwnd in included_handles if int(hwnd) > 0}
+    selected: set[int] = set()
+    for value in included_handles:
+        try:
+            handle = int(value)
+        except (TypeError, ValueError):
+            continue
+        if handle > 0:
+            selected.add(handle)
     found: list[dict[str, Any]] = []
     seen: set[int] = set()
     for session in sessions:
