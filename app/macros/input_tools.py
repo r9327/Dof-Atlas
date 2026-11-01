@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes
 import os
+import sys
 import time
 from contextlib import contextmanager
 from logging import Logger
@@ -119,6 +120,7 @@ def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
         if hold_ms > 0:
             time.sleep(hold_ms / 1000.0)
     finally:
+        original_error = sys.exc_info()[1]
         errors: list[Exception] = []
         for code in reversed(held):
             try:
@@ -126,7 +128,16 @@ def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
             except Exception as exc:
                 errors.append(exc)
         if errors:
-            raise errors[0]
+            if original_error is not None:
+                # Preserve the original SendInput/key-down failure. The
+                # release problem is still recorded for troubleshooting.
+                import logging
+                logging.getLogger(__name__).error(
+                    "Relachement clavier incomplet apres erreur: %s",
+                    errors[0],
+                )
+            else:
+                raise errors[0]
 
 
 def release_common_inputs() -> None:
