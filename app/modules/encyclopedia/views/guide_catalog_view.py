@@ -455,21 +455,27 @@ class GuideCatalogView(QWidget):
         if width <= 0:
             return
         count = self.home_dofus_model.rowCount()
-        # Cards remain readable at roughly 205px, freeing space for 3–4
-        # Dofus per row on a normal desktop instead of oversized empty cells.
-        max_columns = min(4, max(1, width // 205))
-        # Keep the last row complete when feasible. With 20 Dofus a
-        # 3-column grid strands 2 at the bottom, whereas 2 is balanced.
-        columns = max_columns
-        if count > 1 and count % columns:
-            for candidate in range(columns - 1, 1, -1):
-                if count % candidate == 0:
-                    columns = candidate
-                    break
-        cell_width = min(320, max(1, width // max(1, columns)))
+        columns = self._balanced_grid_columns(width, count)
+        cell_width = min(320, max(1, width // columns))
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
+
+    @staticmethod
+    def _balanced_grid_columns(viewport_width: int, count: int) -> int:
+        """Avoid a lone last-row Dofus when a balanced row is possible."""
+        columns = min(4, max(1, viewport_width // 205), max(1, count))
+        if count <= 1 or count % columns == 0:
+            return columns
+        # First prefer fully occupied rows without sacrificing card width.
+        for candidate in range(columns - 1, 1, -1):
+            if count % candidate == 0:
+                return candidate
+        # Five cards in four columns would strand one; three columns give 3+2.
+        for candidate in range(columns - 1, 1, -1):
+            if count % candidate >= 2:
+                return candidate
+        return columns
 
     @staticmethod
     def _grid_cell_width(viewport_width: int) -> int:
