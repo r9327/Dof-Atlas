@@ -56,6 +56,26 @@ def slice_count(characters: Collection[object]) -> int:
     return min(len(characters), 8)
 
 
+def sector_layout(count: int, label_radius: float = 96.0) -> list[tuple[float, float, float, float]]:
+    """Equal slice start/end angles and label offsets in screen coordinates.
+
+    Radians increase clockwise from the screen's positive X direction.
+    Sector zero is centered at 12 o'clock, matching selected_slice.
+    """
+    if count <= 0:
+        return []
+    if count > 8:
+        raise ValueError("At most eight Organizer characters can be displayed")
+    span = 2.0 * math.pi / count
+    radius = max(0.0, float(label_radius))
+    layout: list[tuple[float, float, float, float]] = []
+    for index in range(count):
+        center = -math.pi / 2.0 + index * span
+        start, end = center - span / 2.0, center + span / 2.0
+        layout.append((start, end, radius * math.cos(center), radius * math.sin(center)))
+    return layout
+
+
 def selected_slice(dx: float, dy: float, count: int, dead_zone: float = 32.0) -> int | None:
     """Clockwise slots starting at 12 o'clock; None cancels at the centre."""
     if count <= 0:
