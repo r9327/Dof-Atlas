@@ -15,7 +15,7 @@ import subprocess
 from typing import Any
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
-DOMAINS = ("ci", "craft", "quests", "guides", "ui", "startup", "identity", "data")
+DOMAINS = ("ci", "craft", "quests", "guides", "ui", "startup", "identity", "data", "organizer")
 # Historical critical groups are the independent BASELINE minimum. A domain
 # owns every shared consumer test, not just modules matching filename globs.
 # The candidate cannot remove tests from these baseline groups.
@@ -28,6 +28,8 @@ BASELINE_GROUPS = {
     "startup": ("STARTUP", "LAZY_LOADING", "RESOURCE_BUDGETS"),
     "identity": ("IDENTITY", "PERSISTENCE"),
     "data": ("PERSISTENCE", "GOLDEN_FLOWS"),
+    # Native hooks, character identity, Qt lifecycle all remain mandatory.
+    "organizer": ("ASYNC_LIFECYCLE", "IDENTITY", "GOLDEN_FLOWS"),
 }
 
 # Explicitly reviewed AI entrypoints and certification policy documentation
@@ -92,6 +94,45 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tests/test_pr303_commit_audit.py",
 })
 
+# Reviewed Organizer ownership, restricted to concrete paths. Unknown input
+# backends or other application modules must continue to block certification.
+ORGANIZER_MACRO_PATHS = frozenset({
+    "app/macros/auto_group.py", "app/macros/direction.py",
+    "app/macros/input_tools.py", "app/macros/switch_character.py",
+    "app/macros/switch_click.py", "app/macros/travel.py",
+    "app/macros/zaap.py", "app/macros/mirror_plan.py",
+})
+ORGANIZER_UI_PATHS = frozenset({
+    "app/pages/organizer_page.py", "app/pages/organizer/__init__.py",
+    "app/pages/organizer/common.py", "app/pages/organizer/character_sessions.py",
+    "app/pages/organizer/organizer_drag_drop.py",
+    "app/pages/organizer/organizer_hotkeys.py",
+    "app/pages/organizer/organizer_ui.py",
+    "app/pages/organizer/radial_selection.py",
+    "app/pages/organizer/radial_overlay.py",
+})
+ORGANIZER_RUNTIME_PATHS = frozenset({
+    "app/core/runtime_state.py", "app/core/macro_lock.py",
+    "app/input/input_state.py", "app/input/managed_hooks.py",
+    "app/input/hotkeys.py", "app/windows/clicks.py",
+})
+ORGANIZER_TEST_PATHS = frozenset({
+    "tests/test_organizer_character_order.py",
+    "tests/test_organizer_character_icon_refresh.py",
+    "tests/test_organizer_icon_cache.py",
+    "tests/test_organizer_shutdown_guard.py",
+    "tests/test_organizer_macro_reliability.py",
+    "tests/test_organizer_radial_selection.py",
+    "tests/test_organizer_radial_overlay.py",
+    "tests/test_organizer_mirror_plan.py",
+    "tests/test_organizer_sendinput.py",
+    "tests/test_organizer_hotkey_capture.py",
+    "tests/test_runtime_lazy_macros.py",
+    "tests/test_runtime_hook_lifecycle.py",
+    "tests/test_direction_macro.py",
+    "tests/test_zaap_shortcut_import_boundary.py",
+})
+
 CRAFT_PATHS = frozenset({
     "app/local_data_cache.py", "app/craft_preload.py",
     "app/pages/craft_page.py", "tools/benchmark_phase8_memory.py",
@@ -106,6 +147,13 @@ def owners_for(path: str) -> frozenset[str]:
         raise ValueError("Unsafe changed path")
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
+    # Only the reviewed Organizer feature contracts are owned documentation.
+    # Generic docs remain excluded rather than inheriting a broad wildcard.
+    if path in {
+        "docs/organizer/radial-selector.md",
+        "docs/organizer/mirror-feasibility.md",
+    }:
+        return frozenset({"organizer", "ui", "identity"})
     if path in INFRA_PATHS or (path.startswith("docs/") and path.endswith(".md")):
         return frozenset()
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
@@ -175,6 +223,16 @@ def owners_for(path: str) -> frozenset[str]:
         # The same persisted cache is consumed by startup, Quests and Guides.
         # Exact path only: new app/core helpers must still fail closed.
         return frozenset({"startup", "quests", "guides", "data"})
+    if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
+        # OrganizerPage creates the native watcher, Qt timers and startup scan.
+        return frozenset({"organizer", "startup", "ui", "identity"})
+    if path == "app/pages/organizer/character_sessions.py":
+        # Session refresh is also a persistent JSON/INI and identity writer.
+        return frozenset({"organizer", "ui", "identity", "data"})
+    if path in ORGANIZER_MACRO_PATHS or path in ORGANIZER_UI_PATHS:
+        return frozenset({"organizer", "ui", "identity"})
+    if path in ORGANIZER_TEST_PATHS:
+        return frozenset({"organizer", "ui", "identity"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
@@ -459,6 +517,11 @@ def _module_sources(root: Path, domain: str) -> list[str]:
     elif domain == "data":
         patterns = ("test_local_data*.py", "test_data*.py",
                     "test_json*.py", "test_quest_catalog*.py")
+    elif domain == "organizer":
+        # All existing Organizer/native hook tests plus changed tests below.
+        patterns = ("test_organizer*.py", "test_runtime_lazy_macros.py",
+                    "test_runtime_hook_lifecycle.py", "test_direction_macro.py",
+                    "test_zaap_shortcut_import_boundary.py")
     else:
         raise ValueError("Unrecognized certification domain: " + domain)
     found = {p for pattern in patterns for p in tests.glob(pattern) if p.is_file()}
