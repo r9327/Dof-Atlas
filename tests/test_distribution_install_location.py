@@ -150,8 +150,22 @@ class RuntimeLocationTests(unittest.TestCase):
             executable.parent.mkdir(parents=True)
             binary = b"MZ!"
             executable.write_bytes(binary)
+            # Copy both active and rollback releases, not the disposable caches.
+            rollback = source / "versions" / "v0" / "AtlasApp" / "old.dat"
+            rollback.parent.mkdir(parents=True)
+            rollback.write_bytes(b"previous release")
+            cache = source / "downloads" / ("a" * 20 + ".zip")
+            cache.parent.mkdir()
+            cache.write_bytes(b"re-downloadable archive" * 1024)
+            quarantined = source / "quarantine" / "damaged" / "old.bin"
+            quarantined.parent.mkdir(parents=True)
+            quarantined.write_bytes(b"damaged-slot" * 1024)
+            health = source / ".health" / "old.ready"
+            health.parent.mkdir()
+            health.write_text("stale PID", encoding="ascii")
+            (source / ".launcher.lock").write_bytes(b"0")
             (source / "state.json").write_text(json.dumps({
-                "active": "v1", "previous": None, "pending": False,
+                "active": "v1", "previous": "v0", "pending": False,
                 "entrypoint": "AtlasApp/AtlasApp.exe",
                 "entrypoint_size": len(binary),
                 "entrypoint_sha256": hashlib.sha256(binary).hexdigest(),
@@ -167,6 +181,13 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertEqual(loc.runtime_root(), target.resolve())
                 self.assertEqual((target / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe").read_bytes(), binary)
                 self.assertTrue(executable.exists(), "Previous working version must remain available")
+                self.assertEqual((target / "versions" / "v0" / "AtlasApp" / "old.dat").read_bytes(),
+                                 b"previous release")
+                self.assertEqual((target / "state.json").read_bytes(),
+                                 (source / "state.json").read_bytes())
+                for skipped in ("downloads", "quarantine", ".health", ".launcher.lock"):
+                    self.assertFalse((target / skipped).exists(), skipped)
+                    self.assertTrue((source / skipped).exists(), "Old runtime is retained")
                 self.assertTrue(updates)
 
     def test_interrupted_migration_preserves_previous_installation(self):
