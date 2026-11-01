@@ -139,6 +139,55 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             result = launcher.main()
         return result, window
 
+    def test_corrupt_location_settings_do_not_break_module_bootstrap(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app_data = Path(temp) / "DofusAtlas"
+            with (
+                patch.object(launcher, "APP_DIR", app_data),
+                patch.object(launcher, "runtime_root",
+                             side_effect=UpdateError("Bad installation.json")),
+            ):
+                location, error = launcher._initial_runtime_location()
+            self.assertEqual(location, app_data / "runtime")
+            self.assertEqual(error, "Bad installation.json")
+            self.assertFalse(location.exists(), "Fallback never creates a runtime")
+
+    def test_corrupt_location_settings_block_updater_before_lock_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "intact-install"
+            with (
+                patch.object(launcher, "_LOCATION_ERROR", "Bad installation.json"),
+                patch.object(launcher, "ROOT", root),
+            ):
+                with self.assertRaisesRegex(UpdateError, "Emplacement Atlas invalide"):
+                    launcher._run_lock()
+            self.assertFalse(root.exists(), "Never create a second installation")
+
+    def test_corrupt_location_settings_are_shown_in_tk_without_state_probe(self):
+        fake_tk = MagicMock()
+        fake_ttk = MagicMock()
+        fake_tk.IntVar.side_effect = _Variable
+        fake_tk.StringVar.side_effect = _Variable
+        window = fake_tk.Tk.return_value
+        window.after.side_effect = lambda _delay, callback: callback()
+        with (
+            patch.dict(sys.modules, {"tkinter": fake_tk, "tkinter.ttk": fake_ttk}),
+            patch.object(sys, "argv", ["DofusAtlas.exe", "--atlas-configure"]),
+            patch.object(launcher, "_LOCATION_ERROR", "Bad installation.json"),
+            patch.object(launcher, "read_state",
+                         side_effect=AssertionError("no state read")) as state,
+            patch.object(launcher, "run_update") as update,
+            patch.object(launcher, "_relocate_runtime_safely") as migrate,
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher.threading, "Thread", _ImmediateThread),
+        ):
+            self.assertEqual(launcher.main(), 1)
+        state.assert_not_called()
+        update.assert_not_called()
+        migrate.assert_not_called()
+        window.deiconify.assert_called_once()
+        window.withdraw.assert_called_once()
+
     def test_corrupted_install_state_stays_in_single_error_window(self):
         """Never offer a fresh installation or mutate a corrupted runtime."""
         for argv in (["DofusAtlas.exe"], ["DofusAtlas.exe", "--atlas-configure"]):
