@@ -67,3 +67,43 @@ def selected_slice(dx: float, dy: float, count: int, dead_zone: float = 32.0) ->
     angle = math.atan2(dx, -dy) % (2 * math.pi)
     sector = 2 * math.pi / count
     return int((angle + sector / 2) % (2 * math.pi) / sector)
+
+
+def confirmed_radial_target(
+    snapshot: list[Mapping[str, Any]],
+    current: list[Mapping[str, Any]],
+    selected_index: int | None,
+) -> int | None:
+    """Fail closed if a radial sector's window vanished or changed identity.
+
+    A slice chosen while the key is held is an identity snapshot, not a
+    mutable index into a freshly sorted roster at key-release time.
+    Call with `current` already filtered through visible_characters().
+    """
+    if selected_index is None or not 0 <= selected_index < len(snapshot):
+        return None
+    original = snapshot[selected_index]
+    try:
+        handle = int(original.get("hwnd") or 0)
+    except (TypeError, ValueError):
+        return None
+    if handle <= 0:
+        return None
+    identity = str(original.get("character_key") or "").strip()
+    name = str(original.get("nom") or "").strip()
+    pid = original.get("pid")
+    for item in current:
+        if not isinstance(item, Mapping):
+            continue
+        try:
+            candidate = int(item.get("hwnd") or 0)
+        except (TypeError, ValueError):
+            continue
+        if candidate != handle or str(item.get("nom") or "").strip() != name:
+            continue
+        if identity and str(item.get("character_key") or "").strip() != identity:
+            continue
+        if pid is not None and item.get("pid") != pid:
+            continue
+        return handle
+    return None
