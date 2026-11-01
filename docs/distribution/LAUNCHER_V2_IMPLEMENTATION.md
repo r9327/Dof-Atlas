@@ -88,6 +88,16 @@ disque ; les tests Windows de jonctions et de verrouillage restent nécessaires.
 L'usage réel avec chemins Unicode, DPI et antivirus doit encore être validé
 dans #287.
 
+En cas de `installation.json` invalide, le launcher peut toujours créer sa
+fenêtre d'erreur, mais **n'installe pas** dans le runtime par défaut, ne
+commute pas le dossier et ne vérifie aucune Release : le disque précédemment
+sélectionné peut encore contenir la seule copie récupérable. Un `state.json`
+endommagé est traité de la même manière, sans proposer de fausse première
+installation. Le test interne `--atlas-self-test` vérifie seulement que
+l'exécutable du launcher démarre ; il ne valide ni les chemins ni les données
+personnelles. Après correction du fichier de configuration, relancer le
+launcher ; ne pas interpréter son code de sortie comme une réparation.
+
 ## Vérification, cache et installation transactionnelle
 
 `app/distribution/launcher.py` prend un verrou de mise à jour et vérifie
