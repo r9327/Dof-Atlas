@@ -151,6 +151,16 @@ jobs:
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Materialize canonical data required by selected scoped tests
+        shell: pwsh
+        run: |
+          # The scoped planner may select a complete unittest module.  Guide
+          # modules initialize their real Success/Quest providers in
+          # setUpClass, so their pinned Doduda inputs must exist before test
+          # discovery even when the changed method itself is data-light.
+          python -m scripts.windows.quest_assets --download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Execute canonical scoped tests and produce passport
         shell: pwsh
         run: |
