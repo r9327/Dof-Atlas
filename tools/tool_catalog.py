@@ -622,11 +622,13 @@ def local_candidate_preflight(
     if len(requested) > _MAX_LOCAL_PROBES:
         raise ValueError(f"preflight accepts at most {_MAX_LOCAL_PROBES} names")
 
+    # Reject all malformed input before even inspecting a local candidate.
+    if any(not isinstance(name, str) or _PROBE_NAME.fullmatch(name) is None
+           for _kind, name in requested):
+        raise ValueError("candidate name must contain only letters, digits, '.', '_' or '-'")
     rows: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     for kind, name in requested:
-        if not isinstance(name, str) or _PROBE_NAME.fullmatch(name) is None:
-            raise ValueError("candidate name must contain only letters, digits, '.', '_' or '-'")
         key = (kind, name.casefold())
         if key in seen:
             continue
@@ -652,12 +654,14 @@ def local_candidate_preflight(
                 row["version"] = str(installed.version)[:128]
                 # Publisher-supplied metadata is evidence to review, not a
                 # verified SPDX licence or successful Windows/3.13 import.
+                requires_python = installed.metadata.get("Requires-Python")
+                license_claim = (installed.metadata.get("License-Expression")
+                                 or installed.metadata.get("License"))
                 row["requires_python_claim"] = (
-                    installed.metadata.get("Requires-Python") or None
+                    str(requires_python)[:256] if requires_python else None
                 )
                 row["license_claim"] = (
-                    installed.metadata.get("License-Expression")
-                    or installed.metadata.get("License") or None
+                    str(license_claim)[:256] if license_claim else None
                 )
         else:
             # which() checks PATH; it never starts the executable.
