@@ -650,6 +650,46 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(emitted, [])
 
+    def test_manual_check_and_undo_invalidate_stale_runtime_travel_plan(self):
+        """A route projection cannot be reused after progress has changed."""
+        route = _source_route()
+        first = "ganymede_2205_step_0001"
+        plan = {
+            "mode": "direct",
+            "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": first,
+            "source_payload_sha256": certified_payload_sha256(route),
+            "evidence": "canonical:verified-route",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            verified_travel_plans={first: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda *args: emitted.append(args))
+
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.validate_button.click()
+        self.assertEqual(panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0002")
+        self.assertEqual(panel._verified_travel_plans, {})
+        panel.show_step(first)
+        self.assertFalse(panel.travel_button.isEnabled())
+
+        panel.validate_button.click()  # Undo the completed first step.
+        self.assertEqual(panel.navigation.position().actual_step_id, first)
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
+
+        # A newly verified projection for the current progress may be used.
+        panel.set_verified_travel_plans({first: plan})
+        self.assertTrue(panel.travel_button.isEnabled())
+
     def test_runtime_plan_rejects_foreign_guide_or_source_step(self):
         from copy import deepcopy
 
