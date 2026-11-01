@@ -37,6 +37,18 @@ def _valid_root(value: str | Path) -> Path:
     path = path.resolve()
     if path == Path(path.anchor) or (path.exists() and not path.is_dir()):
         raise UpdateError("Dossier d'installation invalide")
+    # The replaceable runtime must never be installed over the permanent
+    # profile, logs or personal theme. The default APP_DATA/runtime is valid,
+    # but choosing APP_DATA itself or its ancestors would mix file ownership
+    # and make cleanup/rollback potentially destructive.
+    app_data = APP_DATA.resolve()
+    if path == app_data or path in app_data.parents:
+        raise UpdateError("Choisissez un dossier distinct des donnees personnelles Atlas")
+    protected = (app_data / "user", app_data / "logs",
+                 app_data / "themes", app_data / "runtime")
+    if any(path == root or root in path.parents for root in protected
+           if path != app_data / "runtime"):
+        raise UpdateError("Ce dossier est reserve aux donnees personnelles Atlas")
     return path
 
 
