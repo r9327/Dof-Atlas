@@ -172,6 +172,23 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
                 logger.addHandler.call_args.args[0], logging.NullHandler,
             )
 
+    def test_logger_handles_denied_log_directory_without_opening_file(self):
+        logger = MagicMock()
+        logger.handlers = []
+        unavailable = MagicMock()
+        unavailable.mkdir.side_effect = PermissionError("folder denied")
+        with (
+            patch.object(launcher, "LOG_DIR", unavailable),
+            patch.object(launcher.logging, "getLogger", return_value=logger),
+            patch.object(launcher, "RotatingFileHandler") as file_handler,
+        ):
+            self.assertIs(launcher._logger(), logger)
+        file_handler.assert_not_called()
+        logger.addHandler.assert_called_once()
+        self.assertIsInstance(
+            logger.addHandler.call_args.args[0], logging.NullHandler,
+        )
+
     def test_missing_tk_refuses_first_install_without_network_or_writes(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "empty-runtime"
