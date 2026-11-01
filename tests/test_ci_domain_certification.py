@@ -16,6 +16,32 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_reviewed_organizer_files_get_strict_cross_domain_ownership(self):
+        # Neither an unrelated macro nor a future native hook gets a free pass.
+        cases = {
+            "app/macros/zaap.py": {"organizer", "ui", "identity"},
+            "app/macros/direction.py": {"organizer", "ui", "identity"},
+            "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
+            "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
+            "app/core/runtime_state.py": {"organizer", "ui", "startup", "identity"},
+            "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+                planned = self.route([path])
+                self.assertEqual(planned["status"], "READY_TO_EXECUTE")
+                self.assertEqual(planned["unknown_paths"], [])
+                self.assertIn("organizer", planned["domains"])
+                self.assertFalse(planned["phase_certified"])
+        for unknown in ("app/macros/unreviewed.py",
+                        "app/core/unreviewed_runtime.py",
+                        "tests/test_organizer_unreviewed_backend.py"):
+            with self.subTest(unknown=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
                      ".github/pull_request_template.md", "AGENTS.md",
