@@ -260,7 +260,10 @@ class OrganizerPage(
         self.startup_scan_timer = QTimer(self)
         self.startup_scan_timer.setSingleShot(True)
         self.startup_scan_timer.timeout.connect(self.auto_scan_sessions_on_startup)
-        self.startup_scan_timer.start(0)
+        # A QWidget created by offscreen UI tests must never start native
+        # scanning just because the test spins the Qt event loop.
+        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
+            self.startup_scan_timer.start(0)
 
 
 __all__ = [
