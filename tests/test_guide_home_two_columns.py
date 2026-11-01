@@ -188,6 +188,20 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                     physical_columns = viewport_width // cell_width
                     self.assertEqual(physical_columns, 4)
                     self.assertEqual(22 % physical_columns, 2)
+                    # The original arithmetic-only test passed while the
+                    # actual Doctor screenshot showed only three Qt columns.
+                    # Assert real QListView layout coordinates after Qt paint.
+                    self.app.processEvents()
+                    list_view = view.home_dofus_list
+                    rects = [
+                        list_view.visualRect(view.home_dofus_model.index(i, 0))
+                        for i in range(22)
+                    ]
+                    self.assertTrue(all(rect.isValid() for rect in rects))
+                    self.assertEqual(len({rect.y() for rect in rects[:4]}), 1)
+                    self.assertEqual(len({rect.x() for rect in rects[:4]}), 4)
+                    self.assertEqual(rects[20].y(), rects[21].y())
+                    self.assertGreater(rects[20].y(), rects[19].y())
                 finally:
                     view.close()
                     view.deleteLater()

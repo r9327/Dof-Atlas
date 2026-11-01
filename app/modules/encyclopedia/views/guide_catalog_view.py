@@ -456,7 +456,10 @@ class GuideCatalogView(QWidget):
             return
         count = self.home_dofus_model.rowCount()
         columns = self._balanced_grid_columns(width, count)
-        cell_width = min(320, max(1, width // columns))
+        # Leave a small safety gutter: Qt's style/frame/scroll viewport can
+        # consume pixels after the column decision. Without it, 4 nominal
+        # columns became 3 rendered columns and stranded the 22nd Dofus.
+        cell_width = min(320, max(1, width // columns - 8))
         wanted = QSize(cell_width, 96)
         if self.home_dofus_list.gridSize() != wanted:
             self.home_dofus_list.setGridSize(wanted)
@@ -474,7 +477,7 @@ class GuideCatalogView(QWidget):
             return 1
         choices: list[tuple[int, bool, bool, int, int]] = []
         for candidate in range(1, limit + 1):
-            cell_width = min(320, max(1, viewport_width // candidate))
+            cell_width = min(320, max(1, viewport_width // candidate - 8))
             if max(1, viewport_width // cell_width) != candidate:
                 continue  # Qt would pack more cards than requested.
             rows = (count + candidate - 1) // candidate
