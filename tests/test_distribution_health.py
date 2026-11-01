@@ -212,12 +212,12 @@ class WindowHealthTests(unittest.TestCase):
 
         def copy_checked(target, *, progress=None):
             self.assertEqual(target, root)
-            self.assertIs(progress, expected_progress)
+            self.assertIsNotNone(progress)
+            progress(256, 1024)
             launcher_lock.close.assert_not_called()
             instance.release.assert_not_called()
             return target
 
-        expected_progress = progress
         with (
             patch.object(launcher, "_run_lock", return_value=launcher_lock),
             patch.object(launcher, "SingleInstanceGuard", return_value=instance),
@@ -231,6 +231,8 @@ class WindowHealthTests(unittest.TestCase):
             [call.args[0] for call in trace.call_args_list],
             ["install_relocation_begin", "install_relocation_committed"],
         )
+        progress.assert_called_once_with(256, 1024)
+        self.assertEqual(trace.call_args.kwargs, {"copied_bytes": 256})
         copy.assert_called_once()
         instance.acquire.assert_called_once()
         instance.release.assert_called_once()
