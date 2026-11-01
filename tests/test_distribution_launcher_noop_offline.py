@@ -214,6 +214,63 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertNotIn("DOFUS_ATLAS_LAUNCHER_HANDOFF", __import__("os").environ)
 
+    def test_folder_picker_guards_migration_before_launch_and_handoff(self):
+        """The visible path selection must call the locked migration, not raw copy."""
+        fake_tk = MagicMock()
+        fake_ttk = MagicMock()
+        fake_tk.IntVar.side_effect = _Variable
+        fake_tk.StringVar.side_effect = _Variable
+        window = fake_tk.Tk.return_value
+        scheduled = []
+        window.after.side_effect = lambda _delay, callback: scheduled.append(callback)
+        source = Path("OldDisk") / "Atlas" / "runtime"
+        parent = Path("NewDisk") / "Games"
+        destination = parent / "DofusAtlas" / "runtime"
+        fake_tk.filedialog.askdirectory.return_value = str(parent)
+        order = []
+
+        def relocate(target, *, progress=None):
+            self.assertEqual(target, destination)
+            self.assertEqual(launcher.ROOT, source)
+            self.assertIsNotNone(progress)
+            order.append("guarded_migration")
+            return target
+
+        def run_after_move(report, *, verify_installation=False):
+            self.assertEqual(launcher.ROOT, destination)
+            order.append("launch")
+            report("Dofus Atlas est pret", 100)
+
+        def drive_mainloop():
+            buttons = fake_tk.Button.call_args_list
+            self.assertGreaterEqual(len(buttons), 2)
+            buttons[0].kwargs["command"]()  # select the external folder
+            buttons[-1].kwargs["command"]()  # install and start
+            for _ in range(5):
+                if not scheduled:
+                    break
+                scheduled.pop(0)()
+
+        window.mainloop.side_effect = drive_mainloop
+        with (
+            patch.dict(sys.modules, {"tkinter": fake_tk,
+                                     "tkinter.ttk": fake_ttk}),
+            patch.object(sys, "argv", ["DofusAtlas.exe", "--atlas-configure"]),
+            patch.object(launcher, "ROOT", source),
+            patch.object(launcher, "read_state", return_value={"active": "v1"}),
+            patch.object(launcher, "has_saved_location", return_value=True),
+            patch.object(launcher, "_relocate_runtime_safely",
+                         side_effect=relocate) as guarded,
+            patch.object(launcher, "relocate_runtime",
+                         side_effect=AssertionError("unlocked migration")) as raw_copy,
+            patch.object(launcher, "run_update", side_effect=run_after_move),
+            patch.object(launcher.threading, "Thread", _ImmediateThread),
+        ):
+            self.assertEqual(launcher.main(), 0)
+        self.assertEqual(order, ["guarded_migration", "launch"])
+        guarded.assert_called_once()
+        raw_copy.assert_not_called()
+
     def test_real_delta_shows_progress_only_once(self):
         result, window = self._drive([
             ("Verification des mises a jour...", 5),
