@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import io
+import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from importlib import metadata
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
-from tools.tool_catalog import catalog, select_tools
+from tools.tool_catalog import catalog, local_candidate_preflight, main, select_tools
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +22,80 @@ class ToolCatalogTests(unittest.TestCase):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+    def test_local_candidate_preflight_reports_hints_not_certifications(self) -> None:
+        fake_dist = SimpleNamespace(
+            version="1.2.3",
+            metadata={
+                "Requires-Python": ">=3.10",
+                "License-Expression": "MIT",
+            },
+        )
+        with (patch("tools.tool_catalog.metadata.distribution", return_value=fake_dist) as distribution,
+              patch("tools.tool_catalog.shutil.which", return_value="C:/Tools/py-spy.exe") as which,
+              patch("subprocess.run", side_effect=AssertionError("no external process")),
+              patch("importlib.import_module", side_effect=AssertionError("no candidate import"))):
+            report = local_candidate_preflight(
+                ["msgspec", "MSGSPEC"], ["py-spy", "PY-SPY"],
+            )
+        distribution.assert_called_once_with("msgspec")
+        which.assert_called_once_with("py-spy")
+        self.assertTrue(report["read_only"])
+        self.assertFalse(report["network_used"])
+        self.assertFalse(report["runtime_dependency_added"])
+        self.assertEqual(len(report["results"]), 2)
+        package, binary = report["results"]
+        self.assertEqual(package["version"], "1.2.3")
+        self.assertEqual(package["requires_python_claim"], ">=3.10")
+        self.assertEqual(package["license_claim"], "MIT")
+        self.assertTrue(package["available"])
+        self.assertTrue(binary["available"])
+        self.assertIsNone(binary["version"])
+        # PATH discovery must not leak the install path or imply support.
+        self.assertNotIn("C:/Tools", json.dumps(report))
+        for item in report["results"]:
+            self.assertFalse(item["license_verified"])
+            self.assertFalse(item["platform_verified"])
+            self.assertFalse(item["automation_ready"])
+
+    def test_local_candidate_preflight_missing_and_invalid_names_fail_closed(self) -> None:
+        with (patch("tools.tool_catalog.metadata.distribution",
+                    side_effect=metadata.PackageNotFoundError("msgspec")),
+              patch("tools.tool_catalog.shutil.which", return_value=None)):
+            report = local_candidate_preflight(["msgspec"], ["py-spy"])
+        self.assertEqual(
+            [row["available"] for row in report["results"]], [False, False],
+        )
+        self.assertTrue(all(row["version"] is None for row in report["results"]))
+        with (patch("tools.tool_catalog.metadata.distribution") as distribution,
+              patch("tools.tool_catalog.shutil.which") as which):
+            for name in ("../secret", "foo;echo", "C:\\app", "", "bad name"):
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    local_candidate_preflight([name])
+            with self.assertRaises(ValueError):
+                local_candidate_preflight(["msgspec"] * 65)
+            distribution.assert_not_called()
+            which.assert_not_called()
+
+    def test_preflight_cli_is_fast_read_only_json_and_incompatible_with_filters(self) -> None:
+        output = io.StringIO()
+        with (patch("tools.tool_catalog.catalog",
+                    side_effect=AssertionError("no repository scan in preflight")),
+              patch("tools.tool_catalog.metadata.distribution",
+                    side_effect=metadata.PackageNotFoundError("msgspec")),
+              patch("tools.tool_catalog.shutil.which", return_value=None),
+              redirect_stdout(output)):
+            self.assertEqual(main([
+                "--probe-package", "msgspec", "--probe-binary", "py-spy", "--json",
+            ]), 0)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["source"], "tools.tool_catalog.local_candidate_preflight")
+        self.assertEqual(
+            [row["name"] for row in payload["results"]], ["msgspec", "py-spy"],
+        )
+        with self.assertRaises(SystemExit) as rejected:
+            main(["--probe-package", "msgspec", "--ready-only"])
+        self.assertEqual(rejected.exception.code, 2)
 
     def test_specialist_capabilities_are_discoverable_without_execution(self) -> None:
         from tools.tool_catalog import _capabilities
