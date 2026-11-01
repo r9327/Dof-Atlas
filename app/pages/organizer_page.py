@@ -195,7 +195,13 @@ class OrganizerPage(
             parent=self,
             can_open=self._radial_can_open,
         )
-        self._radial_controller.set_shortcut(self.hotkey_label(KEY_RADIAL_HOTKEY))
+        binding = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        if binding and KEY_RADIAL_PARTICIPANTS not in self.profiles:
+            # One-time migration for profiles created before the participant
+            # selector existed. Do not enroll new scans after this snapshot.
+            self.ensure_radial_participants()
+            self.save_profiles(self.profiles)
+        self._radial_controller.set_shortcut(binding)
         self.destroyed.connect(self._radial_controller.cancel)
         self.export_client_index()
         self.request_sessions_render()
