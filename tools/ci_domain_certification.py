@@ -124,6 +124,7 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_mirror_plan.py",
     "tests/test_organizer_sendinput.py",
+    "tests/test_organizer_hotkey_capture.py",
     "tests/test_runtime_lazy_macros.py",
     "tests/test_runtime_hook_lifecycle.py",
     "tests/test_direction_macro.py",
