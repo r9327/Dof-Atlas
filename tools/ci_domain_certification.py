@@ -45,6 +45,10 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    # Independently reviewed working-set ownership for Organizer Mirror.
+    ".ai/scopes/organizer.yaml",
+    ".ai/scopes/macro_runtime.yaml",
+    ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
@@ -125,6 +129,7 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_radial_overlay.py",
     "tests/test_organizer_mirror_plan.py",
+    "tests/test_organizer_mirror_ui.py",
     "tests/test_organizer_sendinput.py",
     "tests/test_organizer_hotkey_capture.py",
     "tests/test_runtime_lazy_macros.py",
@@ -229,6 +234,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/constants.py":
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
+    # Shared Organizer runtime settings read the UI profile and live session
+    # index, so startup, identity and persistence consumers remain covered.
+    if path == "app/core/settings.py":
+        return frozenset({"organizer", "ui", "startup", "identity", "data"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":

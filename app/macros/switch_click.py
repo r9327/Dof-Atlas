@@ -45,6 +45,8 @@ class SwitchClickMacro:
         screen_y: int,
         click_count: int,
         action_label: str,
+        *,
+        exact_source_handle: int | None = None,
     ) -> bool:
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
@@ -81,6 +83,16 @@ class SwitchClickMacro:
             screen_y,
             action_label,
         )
+        if exact_source_handle is not None and (
+            context is None
+            or context.source_hwnd != exact_source_handle
+            or context.reason != "cursor"
+        ):
+            self.runtime.logger.warning(
+                "%s ignore: clic hors du favori explicite hwnd=%s",
+                action_label, exact_source_handle,
+            )
+            return False
         if context is None:
             self.runtime.logger.info(
                 "%s ignore: aucune fenêtre Unity source ou favorite.",

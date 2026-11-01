@@ -184,6 +184,7 @@ class OrganizerPage(
         self.build_organizer_ui(status_callback, launch_zaap_callback)
         self._connect_actions()
         self.update_switch_buttons()
+        self.update_macro_mode_buttons()
         self.update_global_buttons()
         self.update_script_speed_buttons()
         self.update_debug_button()
@@ -243,6 +244,8 @@ class OrganizerPage(
         self._profiles_baseline = dict(current)
 
     def _connect_actions(self) -> None:
+        self.macro_mode_button.clicked.connect(lambda: self.set_macro_mode("macro"))
+        self.mirror_mode_button.clicked.connect(lambda: self.set_macro_mode("mirror"))
         self.click_button.clicked.connect(lambda: self.begin_capture("click"))
         self.click_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_CLICK_HOTKEY))
         self.double_click_button.clicked.connect(lambda: self.begin_capture("double_click"))

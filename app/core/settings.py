@@ -7,6 +7,7 @@ from typing import Any
 from app.constants import (
     CLIENT_INDEX_JSON,
     KEY_CLICK_HOTKEY,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
@@ -101,6 +102,7 @@ class AtlasSettings:
     zaap_click_ratios: tuple[float, float] | None
     timings: MacroTimings
     zaap_timings: ZaapTimings
+    macro_mode: str = "macro"
 
     def client_by_handle(self, hwnd: int) -> AtlasClient | None:
         for client in self.clients:
@@ -284,6 +286,7 @@ def load_settings() -> AtlasSettings:
         zaap_click_ratios=read_zaap_button_ratios(),
         timings=timings_for_speed(speed),
         zaap_timings=ZaapTimings(),
+        macro_mode="mirror" if profile.get(KEY_ORGANIZER_MACRO_MODE) == "mirror" else "macro",
     )
 
 

@@ -24,6 +24,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
                                  "startup", "identity", "data", "organizer"},
             "app/core/profile_settings.py": {"organizer", "ui",
                                              "startup", "identity", "data"},
+            "app/core/settings.py": {"organizer", "ui",
+                                    "startup", "identity", "data"},
             "app/macros/zaap.py": {"organizer", "ui", "identity"},
             "app/macros/direction.py": {"organizer", "ui", "identity"},
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
@@ -36,6 +38,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_mirror_ui.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_radial_overlay.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_hotkey_capture.py": {"organizer", "ui", "identity"},
             "docs/organizer/radial-selector.md": {"organizer", "ui", "identity"},
@@ -61,6 +64,20 @@ class ModularDomainRoutingTests(unittest.TestCase):
         generic_doc = "docs/organizer/unreviewed-contract.md"
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
+
+    def test_new_organizer_ai_scope_manifests_have_exact_ci_owner(self):
+        manifests = (
+            ".ai/scopes/organizer.yaml",
+            ".ai/scopes/macro_runtime.yaml",
+            ".ai/scopes/persistence_identity.yaml",
+        )
+        for path in manifests:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route(list(manifests))["domains"], ["ci"])
+        self.assertFalse(owners_for(".ai/scopes/mirror_unreviewed.yaml"))
+        self.assertEqual(self.route([".ai/scopes/mirror_unreviewed.yaml"])["status"], "BLOCKED")
 
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",

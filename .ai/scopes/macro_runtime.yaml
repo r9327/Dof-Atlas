@@ -7,6 +7,10 @@ working_set:
   - app/macros/switch_click.py
   - app/macros/direction.py
   - app/macros/auto_group.py
+  - app/macros/mirror_plan.py
+  - app/core/runtime_state.py
+  - app/core/settings.py
+  - app/constants.py
 shared_dependencies:
   - input_hotkeys
   - windows_qt_runtime

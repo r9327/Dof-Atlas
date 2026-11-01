@@ -6,6 +6,7 @@ from typing import Any
 
 from app.constants import (
     KEY_DEBUG_MODE,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_SCRIPT_SPEED,
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
@@ -38,6 +39,7 @@ def default_profiles() -> dict[str, Any]:
         KEY_ZAAP_CLICK_LOCKED: True,
         KEY_SESSION_ORDER: [],
         KEY_TOPMOST: False,
+        KEY_ORGANIZER_MACRO_MODE: "macro",
         KEY_SCRIPT_SPEED: "normal",
         KEY_DEBUG_MODE: False,
     }

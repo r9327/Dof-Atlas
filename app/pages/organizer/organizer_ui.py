@@ -19,6 +19,7 @@ from app.constants import (
     ICON_PATH,
     KEY_CLICK_HOTKEY,
     KEY_DEBUG_MODE,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
     KEY_RADIAL_HOTKEY,
@@ -177,9 +178,11 @@ class OrganizerUiMixin:
         header.addWidget(title, 1)
         root.addLayout(header)
 
-        controls_title = QLabel("Macro")
-        controls_title.setObjectName("cardTitle")
-        controls_title.setFixedHeight(20)
+        self.macro_mode_button = AtlasButton("Macro")
+        self.mirror_mode_button = AtlasButton("Miroir")
+        for button in (self.macro_mode_button, self.mirror_mode_button):
+            button.setFixedSize(66, 24)
+            button.setToolTip("Choisir le mode des macros")
         self.quick_actions_title = QLabel("Action rapide")
         self.quick_actions_title.setObjectName("cardTitle")
         self.quick_actions_title.setFixedHeight(20)
@@ -211,7 +214,7 @@ class OrganizerUiMixin:
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
 
-        control_size = QSize(154, BUTTON_HEIGHT)
+        control_size = QSize(138, BUTTON_HEIGHT)
         controls_panel_height = 164
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
@@ -319,16 +322,15 @@ class OrganizerUiMixin:
         controls_grid.setContentsMargins(0, 0, 0, 0)
         controls_grid.setHorizontalSpacing(8)
         controls_grid.setVerticalSpacing(8)
+        self.macro_grid_host = controls_grid_host
         controls_grid.addWidget(macro_cell(self.switch_character), 0, 0)
         controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
         controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
-        controls_grid.addWidget(macro_cell(self.switch_fake), 2, 0)
-        controls_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 2, 1)
         for column in range(2):
             controls_grid.setColumnMinimumWidth(column, control_size.width())
             controls_grid.setColumnStretch(column, 0)
-        for row in range(3):
+        for row in range(2):
             controls_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
 
         self.macro_panel = QFrame()
@@ -339,7 +341,17 @@ class OrganizerUiMixin:
         macro_layout = QVBoxLayout(self.macro_panel)
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         macro_layout.setSpacing(CARD_SPACING)
-        macro_layout.addLayout(make_card_header(controls_title, after_title=self.runtime_status_dot))
+        macro_title_row = QHBoxLayout()
+        macro_title_row.setSpacing(5)
+        macro_accent = QFrame()
+        macro_accent.setObjectName("CardTitleAccent")
+        macro_accent.setFixedSize(3, 16)
+        macro_title_row.addWidget(macro_accent)
+        macro_title_row.addWidget(self.macro_mode_button)
+        macro_title_row.addWidget(self.mirror_mode_button)
+        macro_title_row.addStretch(1)
+        macro_title_row.addWidget(self.runtime_status_dot)
+        macro_layout.addLayout(macro_title_row)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
@@ -358,8 +370,8 @@ class OrganizerUiMixin:
         quick_grid.setContentsMargins(0, 0, 0, 0)
         quick_grid.setHorizontalSpacing(8)
         quick_grid.setVerticalSpacing(8)
-        quick_grid.addWidget(self.reload_runtime_button, 0, 0)
-        quick_grid.addWidget(self.debug_button, 0, 1)
+        quick_grid.addWidget(self.switch_fake, 0, 0)
+        quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 0, 1)
         quick_grid.addWidget(self.script_speed_normal, 1, 0)
         quick_grid.addWidget(self.script_speed_fast, 1, 1)
         stop_row = QWidget()
@@ -370,20 +382,44 @@ class OrganizerUiMixin:
         stop_row_layout.setSpacing(8)
         stop_row_layout.addWidget(self.stop_script_button)
         stop_row_layout.addWidget(macro_cell(self.stop_script_hotkey_button, None, self.stop_script_clear, stop_hotkey_size))
-        quick_grid.addWidget(stop_row, 2, 0, 1, 2)
         for column in range(2):
             quick_grid.setColumnMinimumWidth(column, control_size.width())
             quick_grid.setColumnStretch(column, 0)
         quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
         quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(2, STOP_BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
+
+        self.controls_panel = QFrame()
+        self.controls_panel.setObjectName("card")
+        self.controls_panel.setFixedSize(panel_width, controls_panel_height)
+        self.controls_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.apply_card_shadow(self.controls_panel)
+        control_layout = QVBoxLayout(self.controls_panel)
+        control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
+        control_layout.setSpacing(CARD_SPACING)
+        controls_title = QLabel("Contrôles")
+        controls_title.setObjectName("cardTitle")
+        controls_title.setFixedHeight(20)
+        control_layout.addLayout(make_card_header(controls_title))
+        controls_host = QWidget()
+        controls_host.setFixedWidth(panel_inner_width)
+        control_grid = QGridLayout(controls_host)
+        control_grid.setContentsMargins(0, 0, 0, 0)
+        control_grid.setHorizontalSpacing(8)
+        control_grid.setVerticalSpacing(8)
+        control_grid.addWidget(self.reload_runtime_button, 0, 0)
+        control_grid.addWidget(self.debug_button, 0, 1)
+        control_grid.addWidget(stop_row, 1, 0, 1, 2)
+        for column in range(2):
+            control_grid.setColumnMinimumWidth(column, control_size.width())
+        control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
 
         controls_panels_row = QHBoxLayout()
         controls_panels_row.setContentsMargins(0, 0, 0, 0)
         controls_panels_row.setSpacing(8)
         controls_panels_row.addWidget(self.macro_panel)
         controls_panels_row.addWidget(self.quick_actions_panel)
+        controls_panels_row.addWidget(self.controls_panel)
         controls_panels_row.addStretch(1)
         root.addLayout(controls_panels_row)
 
@@ -439,6 +475,19 @@ class OrganizerUiMixin:
         button.setToolTip(f"{label} actif" if enabled else f"{label} inactif")
         button.setObjectName("primaryButton" if enabled else "secondaryButton")
         self.restyle_button(button)
+
+    def update_macro_mode_buttons(self) -> None:
+        mirror = self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
+        for button, selected in (
+            (self.macro_mode_button, not mirror),
+            (self.mirror_mode_button, mirror),
+        ):
+            button.setObjectName("segmentedButtonActive" if selected else "segmentedButton")
+            self.restyle_button(button)
+        self.macro_grid_host.setEnabled(not mirror)
+        self.mirror_mode_button.setToolTip(
+            "Miroir : source = favori étoilé, cibles = autres sessions détectées."
+        )
 
     def update_switch_buttons(self) -> None:
         self.set_toggle_button(self.switch_character, "Switch Personnage", profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True))
