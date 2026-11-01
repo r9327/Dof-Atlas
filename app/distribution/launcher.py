@@ -458,9 +458,19 @@ def main() -> int:
     window.title("Dofus Atlas — Lanceur")
     # Existing installations made before the picker was introduced get one
     # opportunity to select a drive; normal subsequent launches stay automatic.
-    installed = bool(read_state(ROOT).get("active"))
-    choosing_install = ("--atlas-auto-install" not in sys.argv and (
-        "--atlas-configure" in sys.argv or not installed or not has_saved_location()))
+    # A damaged state.json must be reported from the existing launcher window.
+    # Never mistake it for a fresh install: that could invite a replacement
+    # runtime and obscure the last recoverable version.
+    try:
+        installed = bool(read_state(ROOT).get("active"))
+        startup_error = None
+    except (UpdateError, OSError) as exc:
+        installed = True
+        startup_error = str(exc)
+    choosing_install = (startup_error is None
+                        and "--atlas-auto-install" not in sys.argv
+                        and ("--atlas-configure" in sys.argv
+                             or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
     window.geometry("520x425" if choosing_install else "470x252")
     window.resizable(False, False)
@@ -522,6 +532,10 @@ def main() -> int:
     def worker():
         global ROOT
         try:
+            if startup_error is not None:
+                raise UpdateError(
+                    "Etat d'installation invalide : " + startup_error
+                )
             verify = "--atlas-verify-install" in sys.argv
 
             def launch(guard: SingleInstanceGuard | None = None):
