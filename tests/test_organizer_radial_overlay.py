@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -123,6 +123,24 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             controller.cancel()
             controller.poll()
             self.assertFalse(overlay.visible)
+            self.assertEqual(len(overlay.opens), 1)
+            pressed[0] = False
+            controller.poll()
+            self.assertEqual(launched, [])
+        finally:
+            parent.deleteLater()
+
+    def test_escape_closes_and_releasing_does_not_activate(self):
+        overlay = _Overlay(selection=101)
+        pressed = [True]
+        parent, controller, launched = self._controller(overlay, pressed)
+        try:
+            controller.poll()
+            self.assertTrue(overlay.visible)
+            with patch("app.pages.organizer.radial_overlay.escape_pressed", return_value=True):
+                controller.poll()
+            self.assertFalse(overlay.visible)
+            controller.poll()  # Still holding the shortcut: must not reopen.
             self.assertEqual(len(overlay.opens), 1)
             pressed[0] = False
             controller.poll()
