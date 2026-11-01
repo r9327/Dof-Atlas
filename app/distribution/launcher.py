@@ -68,13 +68,15 @@ def _run_lock():
     return handle
 
 
-def _relocate_runtime_safely(target: Path, progress=None) -> Path:
+def _relocate_runtime_safely(target: Path, progress=None, *, after_relocation=None) -> Path:
     """Hold the existing installer lock and GUI mutex through the whole copy.
 
     The folder picker previously migrated before run_update() acquired either
     guard, so an active Atlas process or another launcher could mutate files
     while copytree was reading them. Keep the same canonical locks, then let
     run_update take its own lock for the selected new runtime location.
+    An optional continuation runs under both source locks, overlapping the
+    destination lock acquisition so no second launcher can enter the gap.
     """
     handle = _run_lock()
     try:
@@ -89,6 +91,8 @@ def _relocate_runtime_safely(target: Path, progress=None) -> Path:
                 record_startup_event("install_relocation_aborted")
                 raise
             record_startup_event("install_relocation_committed")
+            if after_relocation is not None:
+                after_relocation(location, instance)
             return location
         finally:
             instance.release()
@@ -213,7 +217,8 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
         capable.unlink(missing_ok=True)
 
 
-def run_update(report, *, verify_installation: bool = False) -> None:
+def run_update(report, *, verify_installation: bool = False,
+               preacquired_instance: SingleInstanceGuard | None = None) -> None:
     record_startup_event("launcher_update_begin")
     log = _logger()
     _run_handle = _run_lock()
@@ -221,7 +226,10 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         # Reuse the same Windows mutex already held by main.py. If the GUI
         # owns it, do not recover/rollback a pending slot or launch another
         # Atlas; neither task is safe while that process is using user data.
-        instance_probe = SingleInstanceGuard()
+        # During migration the caller may already own this exact GUI guard.
+        # Reusing it overlaps the old-runtime and new-runtime updater locks;
+        # creating a second named mutex would reject our own live process.
+        instance_probe = preacquired_instance or SingleInstanceGuard()
         if not instance_probe.acquire():
             report("Dofus Atlas est deja ouvert", 100)
             return
