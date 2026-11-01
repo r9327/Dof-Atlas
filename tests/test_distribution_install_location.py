@@ -177,7 +177,9 @@ class RuntimeLocationTests(unittest.TestCase):
                   patch.object(loc, "DEFAULT_RUNTIME", source)):
                 self.assertEqual(loc.set_runtime_root(source), source.resolve())
                 updates = []
-                self.assertEqual(loc.relocate_runtime(target, lambda done, total: updates.append(done)), target.resolve())
+                self.assertEqual(loc.relocate_runtime(
+                    target, lambda done, total: updates.append((done, total))
+                ), target.resolve())
                 self.assertEqual(loc.runtime_root(), target.resolve())
                 self.assertEqual((target / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe").read_bytes(), binary)
                 self.assertTrue(executable.exists(), "Previous working version must remain available")
@@ -189,6 +191,11 @@ class RuntimeLocationTests(unittest.TestCase):
                     self.assertFalse((target / skipped).exists(), skipped)
                     self.assertTrue((source / skipped).exists(), "Old runtime is retained")
                 self.assertTrue(updates)
+                # Cached ZIPs and quarantined files do not inflate the
+                # disk preflight estimate or progress denominator.
+                expected = (len(binary) + len(b"previous release")
+                            + (source / "state.json").stat().st_size)
+                self.assertEqual(updates[-1], (expected, expected))
 
     def test_interrupted_migration_preserves_previous_installation(self):
         with tempfile.TemporaryDirectory() as temp:
