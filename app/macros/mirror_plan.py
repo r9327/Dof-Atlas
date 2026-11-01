@@ -63,3 +63,35 @@ def mirror_targets(
         handle for handle in configured
         if handle != source[0] and handle in selected
     )
+
+
+
+def mirror_delivery_targets(
+    configured_handles: Iterable[int],
+    explicitly_selected_handles: Collection[int],
+    source_handle: int,
+    *,
+    source_was_consumed: bool,
+) -> tuple[int, ...]:
+    """Plan a gesture exactly once without guessing how the native hook behaved.
+
+    When a native mouse hook *consumed* the physical gesture, Organizer must
+    also deliver that gesture to the source once. Otherwise the original
+    gesture already reached the source, so resending it would double-click.
+
+    This is a pure planner, not a runtime sender. No background input is
+    enabled by this helper. Only the native hook may supply the consumption
+    fact; callers must never infer it from a window title or focus alone.
+    """
+    if not isinstance(source_was_consumed, bool):
+        return ()
+    configured = _valid_handles(configured_handles)
+    source = _valid_handles((source_handle,))
+    if len(configured) > 8 or len(source) != 1 or source[0] not in configured:
+        return ()
+    other_targets = set(
+        mirror_targets(configured, explicitly_selected_handles, source[0])
+    )
+    if source_was_consumed:
+        other_targets.add(source[0])
+    return tuple(handle for handle in configured if handle in other_targets)
