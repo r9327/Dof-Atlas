@@ -10,6 +10,17 @@ Le vrai Organizer utilise `app/macros/switch_click.py`,
 L'actuelle diffusion de clics repose sur des changements de focus et des
 entrées Windows. Il faut conserver ces chemins en état de marche.
 
+## Sécurité du prototype actuel
+
+- `delivery_mode` renvoie **toujours `sequential`** à ce stade :
+  deux drapeaux booléens n'attestent pas d'un test Windows/Dofus réel.
+  Aucun adaptateur de diffusion ciblée n'est raccordé.
+- Les handles de clients sont filtrés (invalides, doublons, fermés par
+  rapport à la liste configurée) et le meneur n'est jamais inclus une
+  deuxième fois. Une liste de plus de huit clients bloque le prototype.
+- Le mode séquentiel est une **décision de repli**, pas une nouvelle fonction
+  Miroir visible : le runtime actuel reste inchangé.
+
 ## Conditions de faisabilité
 - Tester sur Windows si Dofus Unity accepte réellement les messages de souris
   et clavier ciblés lorsqu'il ne possède pas le focus.
