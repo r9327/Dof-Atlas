@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     select_verified_replacement_path, certified_payload_sha256,
     reconstruct_trusted_manual_route,
+    active_manual_catalog_sources, manual_source_completed_count,
 )
 
 
@@ -20,6 +21,53 @@ GUIDES = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides
 
 
 class GanymedeCatalogActivationTests(unittest.TestCase):
+    def test_home_counts_only_the_twenty_actually_selected_source_routes(self) -> None:
+        manifest = json.loads((
+            GUIDES / "replacement_drafts" / "cutovers" / "cutover_manifest.json"
+        ).read_text(encoding="utf-8"))["guides"]
+        trusted = GUIDES / "replacement_drafts" / "cutovers"
+        guides = [
+            SimpleNamespace(id=guide_id, category="dofus", raw={})
+            for guide_id in manifest
+        ]
+        provider = SimpleNamespace(
+            guides_dir=GUIDES,
+            _detail_entries={
+                guide_id: (trusted / f"{guide_id}.json", index, {})
+                for index, guide_id in enumerate(manifest)
+            },
+        )
+        counts = active_manual_catalog_sources(provider, guides)
+        self.assertEqual(set(counts), set(manifest))
+        self.assertEqual(sum(total for _source, total in counts.values()), 1694)
+        self.assertEqual(counts["dofus_cawotte"], (2205, 64))
+        # An integrity fallback can still have an old quest guide in the
+        # catalogue, but must never acquire a fake Ganymède progress counter.
+        provider._detail_entries["dofus_cawotte"] = (
+            GUIDES / "dofus_cawotte.json", 0, {},
+        )
+        self.assertNotIn(
+            "dofus_cawotte", active_manual_catalog_sources(provider, guides),
+        )
+
+    def test_home_progress_counts_exact_step_keys_not_quests_or_foreign_route(self) -> None:
+        checked = {
+            "ganymede_2205_step_0001", "ganymede_2205_step_0002",
+            "ganymede_2205_step_0999", "ganymede_9999_step_0003",
+            "quest:123",
+        }
+        progress = SimpleNamespace(manual_steps=lambda key, guide: checked)
+        self.assertEqual(
+            manual_source_completed_count(
+                progress, "character:123", "dofus_cawotte", 2205, 64,
+            ), 2,
+        )
+        self.assertEqual(
+            manual_source_completed_count(
+                progress, "slot:1", "dofus_cawotte", 2205, 64,
+            ), 0,
+        )
+
     def test_twenty_source_trusted_dofus_routes_are_integrity_gated(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
         manifest = json.loads(
