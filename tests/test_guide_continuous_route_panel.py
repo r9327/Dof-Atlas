@@ -376,6 +376,33 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.panel.validate_button.isEnabled())
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
 
+    def test_preparation_source_scan_is_cached_across_progress_refreshes(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services.guide_continuous_preparation import (
+            visible_object_references,
+        )
+
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            wraps=visible_object_references,
+        ) as scan:
+            panel = ContinuousGuideRoutePanel(
+                _source_route(), self.store, ("character:1",),
+            )
+            self.addCleanup(panel.deleteLater)
+            self.assertEqual(scan.call_count, 1)
+            for _ in range(5):
+                panel.refresh()
+            self.assertEqual(scan.call_count, 1)
+            panel.next_step()
+            self.assertEqual(scan.call_count, 2)
+            panel.previous_step()
+            self.assertEqual(scan.call_count, 2)
+            # Manual progress affects selection and labels, never immutable
+            # source preparation references for a previously visited step.
+            panel.toggle_manual_current()
+            self.assertEqual(scan.call_count, 2)
+
     def test_preparation_is_compact_read_only_and_due_step_scoped(self):
         from copy import deepcopy
 
