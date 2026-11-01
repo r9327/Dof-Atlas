@@ -603,8 +603,13 @@ def main() -> int:
                 launch()
             events.put(("done", 0))
         except Exception as exc:
-            _logger().exception("Updater failed")
+            # Deliver the actual failure to Tk even if logging itself fails
+            # (disk full, antivirus lock, revoked log directory permissions).
             events.put(("error", str(exc)))
+            try:
+                _logger().exception("Updater failed")
+            except OSError:
+                pass
 
     def poll():
         nonlocal finished, succeeded, updater_visible
