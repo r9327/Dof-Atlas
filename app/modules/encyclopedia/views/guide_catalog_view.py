@@ -18,6 +18,12 @@ from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+from app.modules.encyclopedia.services.guide_progress_service import (
+    GUIDE_PROGRESS_FILE, GuideProgressService,
+)
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    active_manual_catalog_sources, manual_source_completed_count,
+)
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
     GuideCardDelegate,
@@ -305,12 +311,28 @@ class GuideCatalogView(QWidget):
         completed_ids = QuestProgressService(
             self.quest_progress_path
         ).completed_quest_ids(self.current_character_key)
+        manual_routes = active_manual_catalog_sources(self.provider, self.visible_guides)
+        manual_progress = GuideProgressService(GUIDE_PROGRESS_FILE) if manual_routes else None
         compact_ids = getattr(self.provider, "progress_quest_ids_for", None)
         result: dict[str, tuple[int, int, str]] = {}
         for guide in self.visible_guides:
             guide_id = str(getattr(guide, "id", ""))
             if guide_id == GUIDE_SUCCESS_CATALOG_ID:
                 result[guide_id] = (0, 0, "")
+                continue
+            if guide_id in manual_routes and manual_progress is not None:
+                source_id, total = manual_routes[guide_id]
+                done = manual_source_completed_count(
+                    manual_progress, self.current_character_key,
+                    guide_id, source_id, total,
+                )
+                state = (
+                    "Choisir un personnage"
+                    if not self.current_character_key
+                    else "Terminé" if done == total
+                    else "En cours" if done else "Non commencé"
+                )
+                result[guide_id] = (done, total, state)
                 continue
             raw_ids = (
                 compact_ids(guide_id)
