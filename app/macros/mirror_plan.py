@@ -17,10 +17,29 @@ class MirrorCapability:
 
 
 def delivery_mode(capability: MirrorCapability) -> str:
-    """Background mode cannot silently turn on based on a presumed API feature."""
-    if capability.targeted_win32_tested and capability.dofus_unity_confirmed:
-        return "targeted"
+    """Experimental package has no verified targeted input backend.
+
+    Even two boolean observations are not an exact-SHA Windows/Unity
+    attestation, so do not expose an activatable background mode yet.
+    """
+    del capability
     return "sequential"
+
+
+def _valid_handles(values: Iterable[int]) -> tuple[int, ...]:
+    clean: list[int] = []
+    seen: set[int] = set()
+    for raw in values:
+        if isinstance(raw, bool):
+            continue
+        try:
+            hwnd = int(raw)
+        except (ValueError, TypeError, OverflowError):
+            continue
+        if 0 < hwnd <= (2**64 - 1) and hwnd not in seen:
+            seen.add(hwnd)
+            clean.append(hwnd)
+    return tuple(clean)
 
 
 def mirror_targets(
@@ -33,16 +52,14 @@ def mirror_targets(
     The original gesture already reaches the source client. Including it again
     would double the click. Unknown or stale handles are not eligible.
     """
-    configured = tuple(int(h) for h in configured_handles if int(h) > 0)
-    registered = set(configured)
-    if int(source_handle) not in registered:
+    configured = _valid_handles(configured_handles)
+    source = _valid_handles((source_handle,))
+    # The supported Organizer roster is 1–8 clients. An oversized or invalid
+    # roster fails closed rather than broadcasting to an unreviewed window.
+    if len(configured) > 8 or len(source) != 1 or source[0] not in configured:
         return ()
-    selected = {int(h) for h in explicitly_selected_handles if int(h) > 0}
-    seen: set[int] = set()
-    targets = []
-    for handle in configured:
-        if handle == source_handle or handle not in selected or handle in seen:
-            continue
-        seen.add(handle)
-        targets.append(handle)
-    return tuple(targets)
+    selected = set(_valid_handles(explicitly_selected_handles))
+    return tuple(
+        handle for handle in configured
+        if handle != source[0] and handle in selected
+    )
