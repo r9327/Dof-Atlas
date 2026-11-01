@@ -89,3 +89,14 @@ def test_direction_does_not_restore_on_stop() -> None:
     ):
         DirectionMacro(runtime)._run("HOME")
     runtime.switch_character.restore_preferred_client.assert_not_called()
+
+
+def test_zaap_partial_delivery_is_not_reported_as_complete() -> None:
+    runtime = _runtime()
+    with (
+        patch("app.macros.zaap.is_unity_window", return_value=True),
+        patch("app.macros.zaap.activate_window", return_value=True),
+        patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
+    ):
+        ZaapMacro(runtime)._run("/zaap 1,2")
+    runtime.logger.info.assert_any_call("Auto zaap %s: envoyes=%s/%s", "partiel", 1, 2)
