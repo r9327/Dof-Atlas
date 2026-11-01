@@ -75,6 +75,37 @@ class RuntimeLocationTests(unittest.TestCase):
                 with self.assertRaises(UpdateError):
                     loc.runtime_root()
 
+    def test_runtime_cannot_overlap_profile_logs_or_personal_theme(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app_data = Path(temp) / "Profile" / "AppData" / "Atlas"
+            default = app_data / "runtime"
+            external = Path(temp) / "Games" / "Atlas" / "runtime"
+            with (patch.object(loc, "APP_DATA", app_data),
+                  patch.object(loc, "_SETTINGS", app_data / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", default)):
+                # The existing installation and a separate disk remain valid.
+                self.assertEqual(loc.set_runtime_root(default), default.resolve())
+                self.assertEqual(loc.set_runtime_root(external), external.resolve())
+                saved = (app_data / "installation.json").read_bytes()
+                forbidden = (
+                    app_data, app_data.parent, app_data.parent.parent,
+                    app_data / "user", app_data / "user" / "characters",
+                    app_data / "logs", app_data / "logs" / "archive",
+                    app_data / "themes", app_data / "themes" / "dofus_unity",
+                    default / "nested",
+                )
+                for candidate in forbidden:
+                    with self.subTest(candidate=str(candidate)):
+                        with self.assertRaisesRegex(UpdateError, "donnees personnelles"):
+                            loc.set_runtime_root(candidate)
+                        self.assertEqual((app_data / "installation.json").read_bytes(), saved)
+                        self.assertEqual(loc.runtime_root(), external.resolve())
+                # A migration attempt must likewise fail before touching user data.
+                with self.assertRaisesRegex(UpdateError, "donnees personnelles"):
+                    loc.relocate_runtime(app_data / "user" / "runtime")
+                self.assertFalse((app_data / "user").exists())
+                self.assertEqual(loc.runtime_root(), external.resolve())
+
     def test_symlink_destination_is_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / "target"
