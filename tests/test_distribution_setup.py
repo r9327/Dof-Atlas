@@ -64,6 +64,7 @@ class SetupTests(unittest.TestCase):
                              return_value=True),
                 patch.object(atlas_setup, "embedded_launcher",
                              return_value=Path(directory) / "Embedded.exe"),
+                patch.object(atlas_setup.Path, "cwd", return_value=Path(directory)),
                 patch.object(atlas_setup, "install_launcher",
                              return_value=target),
                 patch.object(atlas_setup, "install_maintenance_helper"),
