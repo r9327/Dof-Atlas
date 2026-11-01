@@ -18,6 +18,7 @@ from app.constants import (
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -54,7 +55,7 @@ from app.pages.organizer.organizer_drag_drop import OrganizerDragDropMixin
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 from app.pages.organizer.organizer_ui import OrganizerUiMixin
 from app.pages.organizer.radial_overlay import OrganizerRadialHoldController, OrganizerRadialOverlay
-from app.pages.organizer.radial_selection import visible_characters
+from app.pages.organizer.radial_selection import radial_roster_key, visible_characters
 
 
 def dofus_class_key_for_character_name(value: Any) -> str | None:
@@ -257,11 +258,51 @@ class OrganizerPage(
         self.script_speed_normal.clicked.connect(lambda: self.set_script_speed("normal"))
         self.script_speed_fast.clicked.connect(lambda: self.set_script_speed("rapide"))
 
+    def ensure_radial_participants(self) -> None:
+        # Snapshot the current Organizer roster when the shortcut is first
+        # configured. Later-discovered windows are NOT silently enrolled.
+        if KEY_RADIAL_PARTICIPANTS in self.profiles:
+            return
+        keys = [radial_roster_key(row) for row in self.sessions
+                if session_is_detected(row)]
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = list(dict.fromkeys(
+            key for key in keys if key
+        ))
+
+    def radial_session_is_selected(self, session: dict[str, Any]) -> bool:
+        # Before initial configuration, show the current roster as a preview.
+        if KEY_RADIAL_PARTICIPANTS not in self.profiles:
+            return session_is_detected(session)
+        selected = self.profiles.get(KEY_RADIAL_PARTICIPANTS)
+        return (isinstance(selected, list)
+                and radial_roster_key(session) in selected)
+
+    def toggle_radial_session(self, session: dict[str, Any]) -> None:
+        self.ensure_radial_participants()
+        key = radial_roster_key(session)
+        if not key:
+            return
+        selected = [str(item) for item in self.profiles.get(
+            KEY_RADIAL_PARTICIPANTS, []
+        ) if isinstance(item, str)]
+        if key in selected:
+            selected.remove(key)
+        else:
+            selected.append(key)
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        self.save_profiles(self.profiles)
+        self.request_sessions_render()
+
     def _radial_participants(self) -> list[dict[str, Any]]:
-        # Only real session rows currently in Organizer. Empty slots and
-        # untracked HWNDs can never become slices.
+        # A discovered Dofus window alone is not enough: it must remain in the
+        # Organizer roster AND in the explicit inclusion snapshot.
         sessions = getattr(self, "sessions", [])
-        handles = [session_hwnd(row) for row in sessions if session_is_detected(row)]
+        included = self.profiles.get(KEY_RADIAL_PARTICIPANTS, [])
+        if not isinstance(included, list):
+            return []
+        selected = set(str(item) for item in included if isinstance(item, str))
+        handles = [session_hwnd(row) for row in sessions if
+                   session_is_detected(row) and radial_roster_key(row) in selected]
         return visible_characters(sessions, handles)
 
     def _radial_can_open(self) -> bool:
