@@ -236,6 +236,57 @@ class WindowHealthTests(unittest.TestCase):
         instance.release.assert_called_once()
         launcher_lock.close.assert_called_once()
 
+    def test_migration_continuation_holds_old_lock_and_gui_guard(self):
+        old_lock = MagicMock()
+        gui_guard = MagicMock()
+        gui_guard.acquire.return_value = True
+        destination = Path("new-runtime")
+        observed = []
+
+        def after_relocation(location, guard):
+            self.assertEqual(location, destination)
+            self.assertIs(guard, gui_guard)
+            old_lock.close.assert_not_called()
+            gui_guard.release.assert_not_called()
+            observed.append("handoff")
+
+        with (
+            patch.object(launcher, "_run_lock", return_value=old_lock),
+            patch.object(launcher, "SingleInstanceGuard", return_value=gui_guard),
+            patch.object(launcher, "relocate_runtime", return_value=destination),
+            patch.object(launcher, "record_startup_event"),
+        ):
+            self.assertEqual(launcher._relocate_runtime_safely(
+                destination, after_relocation=after_relocation
+            ), destination)
+        self.assertEqual(observed, ["handoff"])
+        gui_guard.release.assert_called_once()
+        old_lock.close.assert_called_once()
+
+    def test_update_reuses_preacquired_guard_until_new_runtime_is_locked(self):
+        new_lock = MagicMock()
+        gui_guard = MagicMock()
+        gui_guard.acquire.return_value = True
+        gui_guard.release.side_effect = lambda: new_lock.close.assert_not_called()
+        state = {"active": "v1", "pending": False, "previous": None,
+                 "source_sha": "a" * 40}
+        with (
+            patch.object(launcher, "_run_lock", return_value=new_lock),
+            patch.object(launcher, "SingleInstanceGuard") as fresh,
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher, "recover_data_packs_on_launch"),
+            patch.object(launcher, "read_state", return_value=state),
+            patch.object(launcher, "latest_release", return_value=None),
+            patch.object(launcher, "active_executable", return_value=Path("app.exe")),
+            patch.object(launcher, "_launch_with_health", return_value=True),
+            patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+        ):
+            launcher.run_update(lambda *_: None, preacquired_instance=gui_guard)
+        fresh.assert_not_called()
+        gui_guard.acquire.assert_called_once()
+        gui_guard.release.assert_called_once()
+        new_lock.close.assert_called_once()
+
     def test_runtime_migration_refuses_live_gui_without_copying(self):
         lock = MagicMock()
         instance = MagicMock()
