@@ -13,6 +13,7 @@ from app.distribution.launcher import _is_application_handoff
 
 from app.distribution.launcher import _launch_with_health
 from app.distribution import launcher
+from app.distribution.release_client import UpdateError
 
 
 class WindowHealthTests(unittest.TestCase):
