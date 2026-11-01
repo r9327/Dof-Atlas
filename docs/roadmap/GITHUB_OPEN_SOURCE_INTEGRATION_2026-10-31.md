@@ -94,8 +94,8 @@ DOFUS ATLAS est un runtime **Windows x64 / CPython 3.13 / PySide6 6.12**, avec l
 ## 4. Audit croisé anti-oubli — Atlas + Holding, et conflits PR
 
 - **Holding [#60](https://github.com/r9327/Atlas-Holding/pull/60)** : 21 candidats, 8 lots documentés ; aucune des nouvelles dépendances activée par #60. **Audit du code : le pont direct existe déjà** dans `holding/atlas_doctor_runner.py` et `holding/atlas_doctor_evidence.py` : CLI JSON Doctor, contrôle SHA/worktree et protocole `atlas-doctor-agent/v1`. Il faut tester ce pont sur Windows, pas le recréer. Le SDK MCP/Inspector concerne d'autres outils sans pont existant, avec `holding/mcp_policy.py` comme politique.
-- **Atlas [#303](https://github.com/r9327/Dof-Atlas/pull/303)** : 36 optimisations, JSON, process-tree, préload, Qt et Doctor **déjà prévus** ; ne pas commencer une nouvelle branche `perf` concurrente. Ajouter un profiler au mauvais endroit (UI runtime) violerait le budget RAM.
-- **Atlas [#310](https://github.com/r9327/Dof-Atlas/pull/310)** : réparation imbriquée dans #303, registre de problèmes exhaustif et audit 387/390+ commits à finir. Ne pas changer sa BASE en main ni écraser les HEAD ; aucun cas `REVIEW` ou `NOT_RUN` n'est implicitement corrigé par un nouvel outil.
+- **Atlas [#303](https://github.com/r9327/Dof-Atlas/pull/303)** : **fusionnée le 1er novembre 2026**. Les optimisations et instruments effectivement présents dans `main` sont la référence à auditer (aucun objectif RAM n'est présumé atteint). Ne pas ouvrir de branche `perf` concurrente ; ajouter un profiler au runtime UI violerait le budget sans preuve.
+- **Atlas [#310](https://github.com/r9327/Dof-Atlas/pull/310)** : **fusionnée le 1er novembre 2026**, avant #303. Son registre d'audit et ses correctifs Doctor/CI sont à examiner dans le `main` actuel ; les cas `REVIEW` et `NOT_RUN` historiques ne deviennent pas automatiquement PASS du seul fait de la fusion ou d'un nouvel outil.
 - **Atlas [#285](https://github.com/r9327/Dof-Atlas/pull/285)** : launcher/packaging/delta et fenêtres au propriétaire unique. Tester vrais binaires avec pywinauto ; ne pas redévelopper update/rollback.
 - **Atlas [#306](https://github.com/r9327/Dof-Atlas/pull/306)** : continuité Ganymède ; les outils de rapprochement restent de l'aide à l'audit, non l'autorité Dofus.
 - **Atlas [#304](https://github.com/r9327/Dof-Atlas/pull/304)** : écran Guides Unity ; n'importer aucun thème tiers concurrent.
@@ -110,6 +110,8 @@ DOFUS ATLAS est un runtime **Windows x64 / CPython 3.13 / PySide6 6.12**, avec l
 5. **À vérifier en développement** : compatibilité, licences par version et redistribution des wheels/binaries ; métadonnées GitHub générales insuffisantes.
 6. **À vérifier en développement** : scripts/tool calls et vrais consommateurs, impact import/résident, sécurité, limites de température et RAM sur un PC faible ; aucune donnée du benchmark ci-dessus n'est un résultat neuf.
 7. **Vérifié sur Holding** : l'adaptateur Doctor/CLI est déjà implémenté avec vérification stricte des identités ; son exécution réelle end-to-end sur Windows reste à prouver, ce qui est distinct d'un manque d'intégration Python.
+
+**Actualisation du 1er novembre 2026 :** #285, #304 et #306 sont toujours des PR propriétaires Draft ; leurs changements et tests sont à vérifier sur les HEAD respectifs avant tout essai d'outil. La PR documentaire #312 n'implémente aucun lot de code AT-L01..L09 et ne doit pas être utilisée pour masquer les contrôles manquants de ces PR. Le contrat original est conservé sans réécrire rétrospectivement son étude du 31 octobre.
 
 ## 5. Acceptation et métriques obligatoires (AT-AC01…AT-AC14)
 
