@@ -503,8 +503,16 @@ class AtlasRuntime:
 
         thread = threading.Thread(target=runner, name=f"DofusAtlas-{label}", daemon=True)
         self._threads = [thread for thread in self._threads if thread.is_alive()]
+        try:
+            thread.start()
+        except Exception:
+            # try_begin() reserved the single macro lease; a failed thread
+            # start must release it so every subsequent hotkey is not blocked.
+            self.macro_lock.end(label)
+            self.logger.exception("%s impossible de demarrer le thread macro.", label)
+            self._emit_status(f"{label}: lancement impossible.")
+            return False
         self._threads.append(thread)
-        thread.start()
         return True
 
     def _handle_hotkey(self, action_id: str, payload: dict[str, object]) -> None:
