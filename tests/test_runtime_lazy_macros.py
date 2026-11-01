@@ -164,3 +164,24 @@ def test_emergency_stop_resets_only_materialized_macros(monkeypatch) -> None:
     runtime.emergency_stop("test")
 
     assert resets == ["click", "direction"]
+
+
+def test_failed_macro_thread_start_releases_exclusive_lease(monkeypatch) -> None:
+    import logging
+    from unittest.mock import Mock
+
+    runtime = _bare_runtime()
+    runtime.logger = logging.getLogger("test-organizer-thread-start")
+    runtime._threads = []
+    runtime.macro_lock = Mock()
+    runtime.macro_lock.try_begin.return_value = True
+    runtime._emit_status = Mock()
+
+    fake_thread = Mock()
+    fake_thread.start.side_effect = RuntimeError("thread unavailable")
+    monkeypatch.setattr(runtime_module.threading, "Thread", lambda **_kwargs: fake_thread)
+
+    assert runtime._spawn_macro("Auto zaap", lambda: None) is False
+    runtime.macro_lock.end.assert_called_once_with("Auto zaap")
+    runtime._emit_status.assert_called_once_with("Auto zaap: lancement impossible.")
+    assert runtime._threads == []
