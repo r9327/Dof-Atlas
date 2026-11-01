@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QDialog, QFrame, QLabel, QListView, QListWidget, QPushButton,
-    QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QDialog, QFrame, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
+    QListWidgetItem, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
+from app.core.character_identity import is_character_key
 from app.ui.theme import PALETTE
 from app.ui.unity_skin import unity_enabled
 from app.modules.encyclopedia.views.guide_featured_home import (
@@ -482,7 +483,7 @@ class GuideCatalogView(QWidget):
         self._sync_grid_columns()
 
     def _open_ganymede_source_item(self, item: QListWidgetItem) -> None:
-        """Display the original public guide on demand, without copying its text."""
+        """Open public source steps in Atlas; store only user-approved step IDs."""
         source_id = item.data(Qt.UserRole)
         entry = next(
             (row for row in self.ganymede_listings if row.source_id == source_id),
@@ -490,7 +491,7 @@ class GuideCatalogView(QWidget):
         )
         if entry is None:
             return
-        # The Ganymède index loader validates the exact HTTPS URL for each ID.
+        # The source inventory rejects forged paths and URL hosts up front.
         source_url = QUrl(entry.source_url)
         if (source_url.scheme() != "https"
                 or source_url.host() != "ganymede-app.com"
@@ -506,31 +507,137 @@ class GuideCatalogView(QWidget):
         dialog.setMinimumSize(560, 400)
         layout = QVBoxLayout(dialog)
         notice = QLabel(
-            "Parcours original Ganymède (connexion requise). "
-            "Cette lecture n'enregistre pas les étapes dans Atlas.",
+            "Étapes officielles en ligne : contenu fourni par Ganymède. "
+            "Le suivi manuel des étapes est enregistré uniquement dans Atlas "
+            "pour le personnage actuellement sélectionné.",
             dialog,
         )
         notice.setWordWrap(True)
         layout.addWidget(notice)
-        open_browser = QPushButton("Ouvrir aussi dans le navigateur", dialog)
-        open_browser.clicked.connect(
-            lambda checked=False, url=source_url: QDesktopServices.openUrl(url)
-        )
-        layout.addWidget(open_browser)
+
+        browser = None
         try:
             from PySide6.QtWebEngineWidgets import QWebEngineView
         except ImportError:
             fallback = QLabel(
-                "Le lecteur web intégré n'est pas disponible. "
-                "Utilise le bouton ci-dessus pour lire le guide.",
+                "Lecteur web intégré indisponible. "
+                "Le bouton « Navigateur » ouvre l'étape courante.",
                 dialog,
             )
             fallback.setWordWrap(True)
-            layout.addWidget(fallback, 1)
         else:
             browser = QWebEngineView(dialog)
             browser.setObjectName("GanymedeSourceWebView")
+
+        count = entry.step_count if type(entry.step_count) is int and entry.step_count > 0 else 0
+        selected = str(self.current_character_key or "")
+        can_record = is_character_key(selected)
+        progress_id = f"ganymede_source_{entry.source_id}"
+        progress_service = GuideProgressService(GUIDE_PROGRESS_FILE) if can_record and count else None
+        checked = (
+            progress_service.manual_steps(selected, progress_id)
+            if progress_service is not None else set()
+        )
+        source_step_id = lambda n: f"ganymede_{entry.source_id}_step_{n:04d}"
+        current_page = [1]
+
+        def step_url(n: int) -> QUrl:
+            url = QUrl(source_url)
+            query = QUrlQuery()
+            query.addQueryItem("page", str(n))
+            query.addQueryItem("stepsPerPage", "1")
+            url.setQuery(query)
+            return url
+
+        def open_external() -> None:
+            QDesktopServices.openUrl(step_url(current_page[0]))
+
+        if count:
+            controls = QHBoxLayout()
+            previous_button = QPushButton("Précédent", dialog)
+            current_button = QPushButton("Actuelle", dialog)
+            number = QSpinBox(dialog)
+            number.setObjectName("GanymedeSourceStepNumber")
+            number.setRange(1, count)
+            number.setSuffix(f" / {count}")
+            next_button = QPushButton("Suivant", dialog)
+            validate_button = QPushButton("Valider l'étape", dialog)
+            validate_button.setObjectName("GanymedeSourceValidateStep")
+            validate_button.setEnabled(can_record)
+            for widget in (previous_button, current_button, number, next_button, validate_button):
+                controls.addWidget(widget)
+            layout.addLayout(controls)
+            progress_label = QLabel(dialog)
+            progress_label.setObjectName("GanymedeSourceProgress")
+            layout.addWidget(progress_label)
+
+            def first_unchecked() -> int:
+                return next(
+                    (n for n in range(1, count + 1) if source_step_id(n) not in checked),
+                    count,
+                )
+
+            def select_page(page: int) -> None:
+                page = max(1, min(count, page))
+                current_page[0] = page
+                previous_button.setEnabled(page > 1)
+                next_button.setEnabled(page < count)
+                if browser is not None:
+                    browser.setUrl(step_url(page))
+                done = sum(
+                    1 for n in range(1, count + 1)
+                    if source_step_id(n) in checked
+                )
+                is_done = source_step_id(page) in checked
+                validate_button.setText(
+                    "Annuler la validation" if is_done else "Valider l'étape"
+                )
+                progress_label.setText(
+                    f"{done} / {count} étapes validées"
+                    if can_record else
+                    "Choisir un personnage Atlas pour enregistrer la progression."
+                )
+
+            def toggle_step() -> None:
+                if progress_service is None:
+                    return
+                step_id = source_step_id(current_page[0])
+                completed = step_id not in checked
+                try:
+                    progress_service.set_manual_step_completed(
+                        selected, progress_id, step_id, completed,
+                    )
+                except (OSError, ValueError, RuntimeError) as exc:
+                    self.status_callback(f"Progression Ganymède non enregistrée : {exc}")
+                    return
+                if completed:
+                    checked.add(step_id)
+                else:
+                    checked.discard(step_id)
+                select_page(current_page[0])
+
+            number.valueChanged.connect(select_page)
+            previous_button.clicked.connect(
+                lambda: number.setValue(max(1, number.value() - 1))
+            )
+            next_button.clicked.connect(
+                lambda: number.setValue(min(count, number.value() + 1))
+            )
+            current_button.clicked.connect(lambda: number.setValue(first_unchecked()))
+            validate_button.clicked.connect(toggle_step)
+            start = first_unchecked()
+            number.setValue(start)
+            select_page(start)
+        elif browser is not None:
             browser.setUrl(source_url)
+
+        open_browser = QPushButton("Navigateur", dialog)
+        open_browser.setObjectName("GanymedeSourceExternalButton")
+        open_browser.clicked.connect(open_external)
+        layout.addWidget(open_browser)
+        if browser is None:
+            layout.addWidget(fallback, 1)
+        else:
             layout.addWidget(browser, 1)
         self._ganymede_source_dialog = dialog
         dialog.finished.connect(
