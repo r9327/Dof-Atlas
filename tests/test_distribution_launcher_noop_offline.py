@@ -109,7 +109,7 @@ class _ImmediateThread:
 
 
 class HiddenUpdaterWindowTests(unittest.TestCase):
-    def _drive(self, status, *, fail=False):
+    def _drive(self, status, *, fail=False, log_unwritable=False):
         fake_tk = MagicMock()
         fake_ttk = MagicMock()
         fake_tk.IntVar.side_effect = _Variable
@@ -133,6 +133,7 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             launcher, "run_update", side_effect=update,
         ), patch.object(
             launcher, "_logger", return_value=MagicMock(),
+            side_effect=OSError("logs unavailable") if log_unwritable else None,
         ), patch.object(
             launcher.threading, "Thread", _ImmediateThread,
         ):
@@ -415,6 +416,14 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             self.assertEqual(marks[-1], len(payload))
             self.assertEqual(marks, sorted(marks))
             self.assertEqual(destination.read_bytes(), payload)
+
+    def test_worker_displays_failure_even_when_logging_it_raises(self):
+        result, window = self._drive(
+            [("Atlas est a jour", 96)], fail=True, log_unwritable=True,
+        )
+        self.assertEqual(result, 1)
+        window.deiconify.assert_called_once()
+        window.destroy.assert_not_called()
 
     def test_failure_reveals_error_even_when_initially_hidden(self):
         result, window = self._drive([("Atlas est a jour", 96)], fail=True)
