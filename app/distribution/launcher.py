@@ -24,28 +24,52 @@ from .install_location import runtime_root, set_runtime_root, relocate_runtime, 
 from .manifest import verify_file
 from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
+from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style)
+from app.windows.single_instance import SingleInstanceGuard
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
-ROOT = runtime_root()
+
+
+def _initial_runtime_location() -> tuple[Path, str | None]:
+    """Do not crash at module import on a broken install-location setting.
+
+    A recovery-only fallback permits a useful Tk error. It must never
+    authorize an update or a fresh install at the default directory.
+    """
+    try:
+        return runtime_root(), None
+    except (UpdateError, OSError) as exc:
+        return APP_DIR / "runtime", str(exc)
+
+
+ROOT, _LOCATION_ERROR = _initial_runtime_location()
 USER_DIR = APP_DIR / "user"
 LOG_DIR = APP_DIR / "logs"
 
 
 def _logger() -> logging.Logger:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger("dofus_atlas_updater")
     logger.setLevel(logging.INFO)
     if not logger.handlers:
-        handler = RotatingFileHandler(LOG_DIR / "updater.log", maxBytes=1_000_000,
-                                      backupCount=2, encoding="utf-8")
-        logger.addHandler(handler)
+        try:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            handler = RotatingFileHandler(LOG_DIR / "updater.log", maxBytes=1_000_000,
+                                          backupCount=2, encoding="utf-8")
+        except OSError:
+            # A full disk or denied logs directory must never block Atlas.
+            # The window reports failures independently of this diagnostic.
+            logger.addHandler(logging.NullHandler())
+        else:
+            logger.addHandler(handler)
     return logger
 
 
 def _run_lock():
     """Prevent concurrent install state changes from multiple launchers."""
+    if _LOCATION_ERROR is not None:
+        raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
     ROOT.mkdir(parents=True, exist_ok=True)
     handle = (ROOT / ".launcher.lock").open("a+b")
     handle.seek(0, os.SEEK_END)
@@ -66,6 +90,59 @@ def _run_lock():
     return handle
 
 
+def _relocate_runtime_safely(target: Path, progress=None, *, after_relocation=None) -> Path:
+    """Hold the existing installer lock and GUI mutex through the whole copy.
+
+    The folder picker previously migrated before run_update() acquired either
+    guard, so an active Atlas process or another launcher could mutate files
+    while copytree was reading them. Keep the same canonical locks, then let
+    run_update take its own lock for the selected new runtime location.
+    An optional continuation runs under both source locks, overlapping the
+    destination lock acquisition so no second launcher can enter the gap.
+    """
+    handle = _run_lock()
+    try:
+        instance = SingleInstanceGuard()
+        if not instance.acquire():
+            raise UpdateError("Fermez Dofus Atlas avant de deplacer son installation")
+        try:
+            copied_bytes = 0
+
+            def measured_progress(done: int, total: int) -> None:
+                nonlocal copied_bytes
+                copied_bytes = done
+                if progress is not None:
+                    progress(done, total)
+
+            record_startup_event("install_relocation_begin")
+            try:
+                location = relocate_runtime(target, progress=measured_progress)
+            except Exception:
+                record_startup_event("install_relocation_aborted")
+                raise
+            record_startup_event("install_relocation_committed",
+                                 copied_bytes=copied_bytes)
+            if after_relocation is not None:
+                after_relocation(location, instance)
+            return location
+        finally:
+            instance.release()
+    finally:
+        handle.close()
+
+
+def _marker_matches_process(marker: Path, process: subprocess.Popen) -> bool:
+    """Require the complete PID written by the exact spawned Atlas process.
+
+    Legacy releases already write their PID to .ready. Reading instead of
+    testing existence ignores empty, partial and foreign marker files.
+    """
+    try:
+        return marker.read_text(encoding="ascii").strip() == str(process.pid)
+    except (OSError, UnicodeError):
+        return False
+
+
 def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) -> bool:
     USER_DIR.mkdir(parents=True, exist_ok=True)
     install_state = read_state(ROOT)
@@ -78,19 +155,72 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
     health_dir = ROOT / ".health"
     health_dir.mkdir(parents=True, exist_ok=True)
     ready = health_dir / (uuid.uuid4().hex + ".ready")
+    home = ready.with_suffix(".home")
+    capable = ready.with_suffix(".capable")
     env = os.environ.copy()
     env["DOFUS_ATLAS_HEALTH_FILE"] = str(ready)
+    env["DOFUS_ATLAS_HOME_HEALTH_FILE"] = str(home)
     env["DOFUS_ATLAS_USER_ROOT"] = str(USER_DIR)
+    # Only the visible Tk entrypoint requests a single-window handoff.
+    # The headless maintenance fallback and direct Atlas starts keep Qt preload.
+    if os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") == "1":
+        env["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
     # Read-only, acknowledged data packs; the live QuestProvider loads on demand.
     env["DOFUS_ATLAS_PACK_ROOT"] = str(ROOT)
     report("Lancement de Dofus Atlas...", 98)
     try:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        record_startup_event("app_spawn_begin")
         proc = subprocess.Popen([str(executable)], cwd=str(executable.parent),
                                 env=env, creationflags=flags)
+        record_startup_event("app_spawn_done")
         for _ in range(500):  # 50 seconds maximum, checked without blocking Tk
-            if ready.is_file():
+            if _marker_matches_process(ready, proc):
+                record_startup_event("app_health_ack")
                 ready.unlink(missing_ok=True)
+                supports_home_ack = capable.is_file()
+                if supports_home_ack:
+                    if not _marker_matches_process(capable, proc):
+                        # Never interpret malformed V2 capability as a legacy
+                        # ready-only handshake while the candidate is alive.
+                        if proc.poll() is not None:
+                            return False
+                        raise UpdateError("Confirmation de lancement Atlas invalide")
+                # Qt has actually entered its event loop now. Keep Tk visible
+                # while the child imports/starts; hide it only at this point,
+                # when the Qt preload dialog can take over the visible UI.
+                # Legacy Atlas shows its own Qt preload; release Tk at .ready.
+                # The new client keeps its Qt popup silent, so Tk stays visible
+                # until the independent painted-Home acknowledgement.
+                report("Preparation de Home..." if supports_home_ack else "Prechargement Qt actif", 98)
+                if supports_home_ack:
+                    # New Qt clients advertise support before their legacy ACK.
+                    # Legacy installed apps retain their existing fast handoff.
+                    # A Home paint + event-loop turn, not the preload dialog,
+                    # controls the new launcher's successful handoff.
+                    deadline = time.monotonic() + 130.0
+                    waiting_polls = 0
+                    while time.monotonic() < deadline:
+                        if _marker_matches_process(home, proc):
+                            record_startup_event("app_home_ack")
+                            break
+                        if proc.poll() is not None:
+                            return False
+                        waiting_polls += 1
+                        # A Home import/preload can last tens of seconds. Keep
+                        # the single Tk window informative instead of leaving
+                        # a motionless 98% label that looks like a hang.
+                        # The timeout and rollback safety stay unchanged.
+                        if waiting_polls % 25 == 0:
+                            report(f"Attente de Home ({waiting_polls // 5} s)", 98)
+                        time.sleep(0.2)
+                    else:
+                        if proc.poll() is not None:
+                            return False
+                        # Do NOT start an old version while the timed-out
+                        # process is still alive: that would run two apps and
+                        # potentially corrupt active user state.
+                        raise UpdateError("Home n'a pas confirme son affichage; fermez Atlas avant de relancer")
                 if settle_seconds > 0:
                     # A window that appears and crashes immediately must not
                     # certify an update. Wait only on a new, pending version.
@@ -103,26 +233,51 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
             if proc.poll() is not None:
                 return False
             time.sleep(0.1)
+        # A process without an ACK is not necessarily dead. Rolling back and
+        # starting a second version while it owns the GUI risks concurrent
+        # writes to user data. Surface the failure without launching another.
+        if proc.poll() is None:
+            raise UpdateError(
+                "Atlas n'a pas confirme son demarrage et reste en cours; "
+                "fermez Atlas avant de relancer"
+            )
         return False
     finally:
         ready.unlink(missing_ok=True)
+        home.unlink(missing_ok=True)
+        capable.unlink(missing_ok=True)
 
 
-def run_update(report, *, verify_installation: bool = False) -> None:
+def run_update(report, *, verify_installation: bool = False,
+               preacquired_instance: SingleInstanceGuard | None = None) -> None:
+    record_startup_event("launcher_update_begin")
     log = _logger()
     _run_handle = _run_lock()
     try:
-        # Recover only an existing, unacknowledged data pack. Normal boots do
-        # no pack scans or hashes and never import the game data stack.
+        # Reuse the same Windows mutex already held by main.py. If the GUI
+        # owns it, do not recover/rollback a pending slot or launch another
+        # Atlas; neither task is safe while that process is using user data.
+        # During migration the caller may already own this exact GUI guard.
+        # Reusing it overlaps the old-runtime and new-runtime updater locks;
+        # creating a second named mutex would reject our own live process.
+        instance_probe = preacquired_instance or SingleInstanceGuard()
+        if not instance_probe.acquire():
+            report("Dofus Atlas est deja ouvert", 100)
+            return
+        # The GUI must not start while a pending data pack or release slot is
+        # recovered. Hold the *existing* named mutex for this short critical
+        # region; do not hold it when spawning Qt, which must acquire it.
         try:
-            recover_data_packs_on_launch(ROOT, report)
-        except (InvalidDataPack, OSError) as exc:
-            log.error("Pending Atlas data-pack recovery refused: %s", exc)
-            raise UpdateError("Recuperation des donnees non validees impossible") from exc
-        # An interrupted first boot should never strand the user on the new version.
-        if read_state(ROOT).get("pending"):
-            rollback_pending(ROOT)
-            report("Version precedente restauree", 3)
+            try:
+                recover_data_packs_on_launch(ROOT, report)
+            except (InvalidDataPack, OSError) as exc:
+                log.error("Pending Atlas data-pack recovery refused: %s", exc)
+                raise UpdateError("Recuperation des donnees non validees impossible") from exc
+            if read_state(ROOT).get("pending"):
+                rollback_pending(ROOT)
+                report("Version precedente restauree", 3)
+        finally:
+            instance_probe.release()
         prior = read_state(ROOT)
         remote = None
         update_failure: UpdateError | OSError | None = None
@@ -140,7 +295,9 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 if current_exe is not None and not verify_installation and not prior.get("pending")
                 else None
             )
+            record_startup_event("update_check_begin")
             remote = latest_release(installed_source_sha=installed_sha)
+            record_startup_event("update_check_end")
             if (remote is not None and verify_installation and current_exe is not None
                     and prior.get("source_sha") == remote.manifest.source_sha):
                 report("Verification complete de l'installation...", 7)
@@ -168,6 +325,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                     archive = None
                     try:
                         ensure_delta_space(remote.manifest, ROOT)
+                        record_startup_event("delta_download_begin")
                         archive = download_archive(
                             remote, ROOT / "downloads",
                             lambda done, total: report(
@@ -176,6 +334,7 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                             ),
                             differential=True,
                         )
+                        record_startup_event("delta_download_done")
                         report("Verification des fichiers existants...", 76)
                         delta_installed = install_release(
                             ROOT, archive, remote.manifest,
@@ -192,13 +351,23 @@ def run_update(report, *, verify_installation: bool = False) -> None:
                 if not delta_installed:
                     ensure_space(remote.manifest, ROOT, archive_size=remote.archive_size)
                     report("Telechargement complet de la nouvelle version...", 10)
+                    record_startup_event("full_download_begin")
                     archive = download_archive(
                         remote, ROOT / "downloads",
                         lambda done, total: report(
-                            f"Telechargement : {int(done * 100 / total)} %",
-                            10 + int(done * 65 / total),
+                            f"Telechargement : {int(done * 100 / max(total, 1))} %",
+                            10 + int(done * 55 / max(total, 1)),
+                        ),
+                        # Transfer completion is not full ZIP readiness: a 2.7GB
+                        # multipart release must still be assembled and verified.
+                        # Expose the real disk-work phase instead of appearing
+                        # permanently frozen near 75% on slower Windows disks.
+                        assemble_progress=lambda done, total: report(
+                            f"Assemblage et SHA-256 : {int(done * 100 / max(total, 1))} %",
+                            65 + int(done * 10 / max(total, 1)),
                         ),
                     )
+                    record_startup_event("full_download_done")
                     report("Verification et installation...", 76)
                     try:
                         install_release(
@@ -229,12 +398,23 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         was_pending = read_state(ROOT)["pending"]
         if not _launch_with_health(executable, report,
                                    settle_seconds=2.0 if was_pending else 0):
-            if was_pending and rollback_pending(ROOT):
-                report("Demarrage echoue — restauration precedente", 95)
-                previous = active_executable(ROOT)
-                if previous is not None and _launch_with_health(previous, report):
-                    report("Version precedente demarree", 100)
-                    return
+            if was_pending:
+                # A separately started Atlas may have acquired the mutex
+                # while this candidate was booting. Never roll back its live
+                # installation metadata under that process.
+                rollback_probe = SingleInstanceGuard()
+                if not rollback_probe.acquire():
+                    raise UpdateError("Atlas est deja ouvert; rollback reporte")
+                try:
+                    restored = rollback_pending(ROOT)
+                finally:
+                    rollback_probe.release()
+                if restored:
+                    report("Demarrage echoue — restauration precedente", 95)
+                    previous = active_executable(ROOT)
+                    if previous is not None and _launch_with_health(previous, report):
+                        report("Version precedente demarree", 100)
+                        return
             raise UpdateError("Atlas n'a pas confirme son demarrage")
         if was_pending:
             mark_healthy(ROOT)
@@ -254,17 +434,23 @@ def run_update(report, *, verify_installation: bool = False) -> None:
         except (OSError, UpdateError) as exc:
             log.info("Best-effort cache cleanup skipped: %s", exc)
         report("Dofus Atlas est pret", 100)
+        record_startup_event("launcher_update_end")
     finally:
         _run_handle.close()
+
+
+def _is_application_handoff(message: str) -> bool:
+    """Hide Tk only once the actual Home has taken over the visible window."""
+    return message in {"Prechargement Qt actif", "Dofus Atlas est pret"}
 
 
 def _requires_updater_window(message: str) -> bool:
     """A checked no-op/offline launch shows Atlas preload, never an updater popup."""
     return message.startswith((
-        "Telechargement", "Differentiel", "Installation",
+        "Lancement de Dofus Atlas", "Telechargement", "Differentiel", "Installation",
         "Verification complete", "Verification et installation",
         "Copie vers", "Version precedente restauree",
-        "Paquets de donnees precedents restaures",
+        "Demarrage echoue", "Paquets de donnees precedents restaures",
     ))
 
 
@@ -273,6 +459,7 @@ def main() -> int:
     # Do not open Tk, contact GitHub or launch AtlasApp during this health check.
     if sys.argv[1:2] == ["--atlas-self-test"]:
         return 0
+    record_startup_event("launcher_entry")
     events: queue.Queue[tuple[str, int | str]] = queue.Queue()
     try:
         import tkinter as tk
@@ -282,8 +469,16 @@ def main() -> int:
         # misleading updater popup on a no-op startup.
         window.withdraw()
     except Exception:
-        # A broken/missing Tk UI must not prevent access to an already installed Atlas.
+        # A missing Tk UI may launch an existing local Atlas, but must never
+        # silently download the multi-gigabyte first installation into AppData
+        # without the requested drive-selection window.
         try:
+            if _LOCATION_ERROR is not None:
+                raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
+            if not read_state(ROOT).get("active"):
+                raise UpdateError(
+                    "Premiere installation impossible sans le selecteur de dossier Atlas"
+                )
             run_update(lambda label, percentage: print(f"{percentage}% {label}", flush=True))
             return 0
         except (UpdateError, OSError) as exc:
@@ -293,9 +488,21 @@ def main() -> int:
     window.title("Dofus Atlas — Lanceur")
     # Existing installations made before the picker was introduced get one
     # opportunity to select a drive; normal subsequent launches stay automatic.
-    installed = bool(read_state(ROOT).get("active"))
-    choosing_install = ("--atlas-auto-install" not in sys.argv and (
-        "--atlas-configure" in sys.argv or not installed or not has_saved_location()))
+    # A damaged state.json must be reported from the existing launcher window.
+    # Never mistake it for a fresh install: that could invite a replacement
+    # runtime and obscure the last recoverable version.
+    try:
+        if _LOCATION_ERROR is not None:
+            raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
+        installed = bool(read_state(ROOT).get("active"))
+        startup_error = None
+    except (UpdateError, OSError) as exc:
+        installed = True
+        startup_error = str(exc)
+    choosing_install = (startup_error is None
+                        and "--atlas-auto-install" not in sys.argv
+                        and ("--atlas-configure" in sys.argv
+                             or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
     window.geometry("520x425" if choosing_install else "470x252")
     window.resizable(False, False)
@@ -357,6 +564,25 @@ def main() -> int:
     def worker():
         global ROOT
         try:
+            if startup_error is not None:
+                raise UpdateError(
+                    "Etat d'installation invalide : " + startup_error
+                )
+            verify = "--atlas-verify-install" in sys.argv
+
+            def launch(guard: SingleInstanceGuard | None = None):
+                # Scoped to the Tk worker, never the headless maintenance path.
+                os.environ["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
+                try:
+                    if guard is None:
+                        run_update(report, verify_installation=verify)
+                    else:
+                        run_update(report, verify_installation=verify,
+                                   preacquired_instance=guard)
+                finally:
+                    os.environ.pop("DOFUS_ATLAS_LAUNCHER_HANDOFF", None)
+
+            migrated = False
             if choosing_install:
                 target = chosen_root["path"]
                 if target != ROOT:
@@ -366,14 +592,32 @@ def main() -> int:
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)
-                    ROOT = relocate_runtime(target, progress=moved)
+
+                    def continue_on_new_root(location: Path, guard: SingleInstanceGuard):
+                        global ROOT
+                        ROOT = location
+                        # Still hold the old root lock and GUI mutex until
+                        # run_update has acquired the new runtime lock.
+                        launch(guard)
+
+                    _relocate_runtime_safely(
+                        target, progress=moved,
+                        after_relocation=continue_on_new_root,
+                    )
+                    migrated = True
                 else:
                     set_runtime_root(ROOT)
-            run_update(report, verify_installation="--atlas-verify-install" in sys.argv)
+            if not migrated:
+                launch()
             events.put(("done", 0))
         except Exception as exc:
-            _logger().exception("Updater failed")
+            # Deliver the actual failure to Tk even if logging itself fails
+            # (disk full, antivirus lock, revoked log directory permissions).
             events.put(("error", str(exc)))
+            try:
+                _logger().exception("Updater failed")
+            except OSError:
+                pass
 
     def poll():
         nonlocal finished, succeeded, updater_visible
@@ -385,7 +629,11 @@ def main() -> int:
                     status.set(display_message(message))
                     percent.set(max(0, min(100, value)))
                     numeric.set(f"{percent.get()} %")
-                    if not updater_visible and _requires_updater_window(message):
+                    if _is_application_handoff(message):
+                        if updater_visible:
+                            window.withdraw()
+                            updater_visible = False
+                    elif not updater_visible and _requires_updater_window(message):
                         updater_visible = True
                         window.deiconify()
                 elif kind == "done":
@@ -396,7 +644,7 @@ def main() -> int:
                     finished = True
                     succeeded = False
                     status.set("Echec : " + str(payload))
-                    numeric.set("Journal : DofusAtlas/logs/updater.log")
+                    numeric.set("Journal si disponible : DofusAtlas/logs/updater.log")
                     if not updater_visible:
                         updater_visible = True
                         window.deiconify()

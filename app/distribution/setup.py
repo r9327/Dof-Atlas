@@ -70,11 +70,16 @@ def _create_shortcut(target: Path) -> None:
         )
 
 
-def choose_runtime_before_setup() -> None:
-    """Let the user select the large AtlasApp drive before installing anything."""
+def choose_runtime_before_setup() -> bool:
+    """Choose initial location, or defer an existing migration to locked launcher.
+
+    Returns True when the already-installed runtime must be configured by the
+    launcher, which owns the updater lock and Windows single-instance mutex.
+    """
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
     from .install_location import runtime_root, relocate_runtime
+    from .install import read_state
 
     window = tk.Tk()
     window.withdraw()
@@ -88,16 +93,21 @@ def choose_runtime_before_setup() -> None:
             "Choisir un autre disque ou dossier ?",
             parent=window,
         ):
-            return
+            return False
+        # Setup is a separate process with no updater lock. Never copy an
+        # installed, potentially running Atlas runtime from this entrypoint.
+        # The existing launcher already offers a locked --atlas-configure flow.
+        if read_state(current).get("active"):
+            return True
         folder = filedialog.askdirectory(
             parent=window, title="Choisir le disque ou dossier des fichiers Atlas",
             initialdir=str(current.parent if current.parent.exists() else Path.home()),
         )
         if not folder:
-            return
+            return False
         target = Path(folder) / "DofusAtlas" / "runtime"
         if target == current:
-            return
+            return False
         progress_window = tk.Toplevel(window)
         progress_window.title("Deplacement Dofus Atlas")
         progress_window.geometry("460x140")
@@ -118,8 +128,26 @@ def choose_runtime_before_setup() -> None:
             relocate_runtime(target, progress=update_progress)
         finally:
             progress_window.destroy()
+        return False
     finally:
         window.destroy()
+
+
+def _same_payload(source: Path, target: Path) -> bool:
+    """Skip only exact byte-for-byte matches, never a same-size corruption."""
+    if target.is_symlink() or not target.is_file():
+        return False
+    if source.stat().st_size != target.stat().st_size:
+        return False
+
+    def digest(path: Path) -> bytes:
+        value = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                value.update(block)
+        return value.digest()
+
+    return digest(source) == digest(target)
 
 
 def install_launcher(source: Path, install_root: Path | None = None) -> Path:
@@ -136,6 +164,10 @@ def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     root = install_root or user_programs_directory()
     root.mkdir(parents=True, exist_ok=True)
     target = root / _LAUNCHER_NAME
+    # An unchanged EXE may be in use, and need not be rewritten on each Setup.
+    if _same_payload(source, target):
+        _create_shortcut(target)
+        return target
     fd, tmp_name = tempfile.mkstemp(prefix=".atlas-launcher-", suffix=".tmp", dir=root)
     try:
         with os.fdopen(fd, "wb") as dest, source.open("rb") as current:
@@ -159,6 +191,10 @@ def install_maintenance_helper(source: Path, root: Path) -> Path:
     if not source.is_file() or source.is_symlink():
         raise ValueError("Invalid maintenance executable")
     target = root / _MAINTENANCE_NAME
+    # The standalone maintenance helper can be large as well; preserve it if
+    # it already matches this Setup instead of writing it again on every run.
+    if _same_payload(source, target):
+        return target
     fd, name = tempfile.mkstemp(prefix=".atlas-maintenance-", dir=root)
     try:
         with os.fdopen(fd, "wb") as output, source.open("rb") as stream:
@@ -290,8 +326,9 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("Incomplete maintenance request")
             finish_launcher_upgrade(args.candidate, args.sha256, args.parent_pid)
             return 0
+        configure_existing_runtime = False
         if not args.no_launch:
-            choose_runtime_before_setup()
+            configure_existing_runtime = choose_runtime_before_setup()
         launcher = install_launcher(embedded_launcher())
         install_maintenance_helper(Path(sys.executable), launcher.parent)
         legacy = args.legacy_root
@@ -305,7 +342,10 @@ def main(argv: list[str] | None = None) -> int:
             prepare_user_data(launcher, local / "DofusAtlas" / "user",
                               legacy_root=legacy.resolve())
         if not args.no_launch:
-            subprocess.Popen([str(launcher)], cwd=str(launcher.parent),
+            command = [str(launcher)]
+            if configure_existing_runtime:
+                command.append("--atlas-configure")
+            subprocess.Popen(command, cwd=str(launcher.parent),
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return 0
     except (OSError, ValueError, RuntimeError) as exc:

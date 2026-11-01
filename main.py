@@ -59,6 +59,7 @@ from app.validation_log import record_validation
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
+from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
@@ -749,6 +750,36 @@ class CloseActionDialog(AtlasDialog):
 
 
 class AtlasWindow(QMainWindow):
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        # A real QWidget Paint event is stronger evidence than show() or a
+        # zero-delay timer; it still does not certify user interactivity.
+        if watched is getattr(self, "home_page", None) and self.isVisible():
+            if event.type() == QEvent.Paint:
+                if not getattr(self, "_home_first_paint_recorded", False):
+                    self._home_first_paint_recorded = True
+                    record_startup_event("home_first_paint")
+                if not getattr(self, "_home_ready_acknowledged", False):
+                    QTimer.singleShot(0, self._ack_home_after_first_paint)
+            elif (event.type() == QEvent.Show and self._home_first_paint_recorded
+                  and not self._home_ready_acknowledged):
+                # A hidden or switched page may have invalidated the first
+                # callback. Re-check when the already-painted Home reappears.
+                QTimer.singleShot(0, self._ack_home_after_first_paint)
+        return super().eventFilter(watched, event)
+
+    def _ack_home_after_first_paint(self) -> None:
+        # A paint alone isn't an interactive Home. Require a subsequent Qt
+        # event-loop turn and the real, visible Home widget before handoff.
+        if self._home_ready_acknowledged:
+            return
+        if (not self.isVisible() or not self.home_page.isVisible()
+                or self.stack.currentWidget() is not self.home_page):
+            return
+        self._home_ready_acknowledged = True
+        record_startup_event("home_event_loop")
+        from app.distribution.health import announce_home_ready
+        announce_home_ready()
+
     def __init__(self, initial_preload: dict[str, Any] | None = None):
         super().__init__()
         self.setWindowTitle(APP_NAME)
@@ -830,7 +861,10 @@ class AtlasWindow(QMainWindow):
             self.stack.setObjectName("AtlasUnityStack")
         self.pages: list[tuple[str, QWidget]] = []
 
+        self._home_first_paint_recorded = False
+        self._home_ready_acknowledged = False
         self.home_page = HomePage()
+        self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
         self.home_page.network_bridge.characterActivated.connect(
@@ -2211,6 +2245,7 @@ class AtlasWindow(QMainWindow):
             return
         self._home_revealed = True
         self.show()
+        record_startup_event("home_visible")
         app = QApplication.instance()
         if app is not None:
             app.setQuitOnLastWindowClosed(True)
@@ -2228,6 +2263,7 @@ class AtlasWindow(QMainWindow):
         if self._post_preload_services_started:
             return
         self._post_preload_services_started = True
+        record_startup_event("preload_complete")
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
@@ -2776,6 +2812,7 @@ class AtlasWindow(QMainWindow):
 
 
 def main() -> int:
+    record_startup_event("app_main_begin")
     guard = SingleInstanceGuard()
     if not guard.acquire():
         LOGGER.warning("[main] another Dofus Atlas instance is already running")
@@ -2787,6 +2824,7 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        record_startup_event("qt_application_created")
         register_unity_fonts()
         # The only visible window during preload is a transient QDialog;
         # hiding it must never quit Qt before revealing AtlasWindow.
@@ -2795,7 +2833,9 @@ def main() -> int:
         app.setWindowIcon(atlas_application_icon())
         splash = None
         splash_started_at = None
-        if LOGO_PATH.exists():
+        # When launched from the visible standalone updater, do not open a
+        # second splash or Qt progress window; Tk stays visible until Home.
+        if LOGO_PATH.exists() and os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") != "1":
             pixmap = splash_logo_pixmap()
             splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
             splash.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -2818,15 +2858,19 @@ def main() -> int:
         initial_preload: dict[str, Any] = {}
         LOGGER.info("[preload] main window stays hidden until functional preload finishes")
         LOGGER.info("[main] creating AtlasWindow")
+        record_startup_event("atlas_window_create_begin")
         window = AtlasWindow(initial_preload=initial_preload)
+        record_startup_event("atlas_window_created")
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
-        # Show only the standalone loading dialog. The normal Qt event loop
-        # continues to process workers and progress without displaying Home.
+        # Direct Atlas launch shows Qt preload. Under the Tk handoff, the
+        # popup runs silently, but its completion still reveals Home.
         window.preload_popup.begin(dict(window.preload_states))
+        record_startup_event("preload_dialog_active")
         from app.distribution.health import announce_ready
         # The responsive preload dialog proves Qt is alive to the launcher.
         # Waiting for all cache builders here would exceed its health timeout.
         QTimer.singleShot(0, announce_ready)
+        QTimer.singleShot(0, lambda: record_startup_event("qt_event_loop"))
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
             splash.close()

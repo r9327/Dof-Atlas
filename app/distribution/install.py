@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from .manifest import ManifestError, ReleaseFile, ReleaseManifest, verify_file, valid_path, valid_sha
+from .startup_trace import record_startup_event
 from .release_client import UpdateError
 from .file_clone import clone_unchanged_cow
 
@@ -251,12 +252,14 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     if same_active:
         current = slot_path(root, slot)
         if current.is_dir() and all(verify_file(current / item.path, item) for item in manifest.files):
+            record_startup_event("install_noop_verified", verified_files=len(manifest.files))
             return False
         # A missing or corrupt active slot is rebuilt in a fresh stage below.
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
+    record_startup_event("install_stage_begin", delta=int(delta))
     previous_file_index = (
         _read_local_file_index(slot_path(root, state["active"]), state.get("source_sha"))
         if not delta and not same_active and state.get("active") else {}
@@ -267,6 +270,10 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                                         set(manifest.delta.paths) if delta else None)
             total = sum(f.size for f in manifest.files)
             done = 0
+            reused_bytes = 0
+            reused_files = 0
+            extracted_bytes = 0
+            extracted_files = 0
             last_percent = -1
 
             def report_copied(complete: int) -> None:
@@ -288,6 +295,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                         lambda copied: report_copied(done + copied),
                     )
                     done += entry.size
+                    reused_bytes += entry.size
+                    reused_files += 1
                     report_copied(done)
                     continue
                 # A full ZIP may still contain files identical to the previous
@@ -306,6 +315,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                             destination.unlink(missing_ok=True)
                         else:
                             done += entry.size
+                            reused_bytes += entry.size
+                            reused_files += 1
                             report_copied(done)
                             continue
                 digest = hashlib.sha256()
@@ -324,9 +335,16 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                         report_copied(done)
                 if count != entry.size or digest.hexdigest() != entry.sha256:
                     raise UpdateError("Release file SHA-256 validation failed")
+                extracted_bytes += count
+                extracted_files += 1
         if not (stage / manifest.entrypoint).is_file():
             raise UpdateError("Missing packaged application")
         _write_local_file_index(stage, manifest)
+        record_startup_event(
+            "install_stage_verified", reused_bytes=reused_bytes,
+            reused_files=reused_files, decompressed_bytes=extracted_bytes,
+            extracted_files=extracted_files, staged_bytes=reused_bytes + extracted_bytes,
+        )
         if target.exists():
             if same_active:
                 quarantine = root / "quarantine"
@@ -361,6 +379,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
             "entrypoint_sha256": next(e.sha256 for e in manifest.files if e.path == manifest.entrypoint),
             "previous_metadata": old_meta or {},
         })
+        record_startup_event("install_activation_committed")
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
         if isinstance(exc, UpdateError):
             raise

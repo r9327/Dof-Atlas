@@ -134,13 +134,26 @@ def owners_for(path: str) -> frozenset[str]:
         "app/distribution/file_clone.py",
         "app/distribution/cleanup.py",
         "app/distribution/install_location.py",
+        "app/distribution/setup.py",
+        "app/distribution/archive_parts.py",
+        "tests/test_distribution_multipart.py",
         "tests/test_distribution_disk_space.py",
+        "tests/test_distribution_install_location.py",
+        "tests/test_distribution_setup.py",
         "tests/test_distribution_smart_update.py",
         "tests/test_distribution_packaging.py",
     }:
         return frozenset({"ci", "startup", "data"})
-    if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
+    if path in {
+        "app/distribution/launcher.py", "app/distribution/launcher_ui.py",
+        "app/distribution/health.py", "tests/test_distribution_health.py",
+    }:
+        # Launcher's health is part of both the UI and startup contract.
         return frozenset({"startup", "ui"})
+    if path == "app/distribution/startup_trace.py":
+        return frozenset({"startup", "ui"})
+    if path in {"tools/startup_trace_report.py", "tools/analyze_startup.py"}:
+        return frozenset({"ci", "startup"})
     if path in {
         "scripts/windows/release_lfs_assets.py",
         "scripts/windows/release_lfs_assets_lock.json",
