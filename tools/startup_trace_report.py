@@ -54,6 +54,7 @@ def percentile(values: list[float], percentage: int) -> float:
 
 
 COUNTER_EVENTS = {
+    "install_relocation_committed": ("copied_bytes",),
     "download_archive_ready": ("network_bytes",),
     "multipart_archive_ready": ("network_bytes", "cached_bytes"),
     "install_stage_verified": ("reused_bytes", "decompressed_bytes",
