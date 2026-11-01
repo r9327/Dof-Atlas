@@ -13,7 +13,7 @@ from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
+    ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -269,6 +269,20 @@ class GuideCatalogView(QWidget):
             return False
         if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
             return False
+        # Bonta/Brâkmar must open their actual Ganymède route instead of
+        # displaying the old Atlas quest checklist. Keep the historic JSON
+        # untouched until those routes have a verified offline replacement.
+        if guide_id in {"alignement_bonta", "alignement_brakmar"}:
+            source = next(
+                (entry for entry in self.ganymede_listings
+                 if ATLAS_EQUIVALENTS.get(entry.source_id) == guide_id),
+                None,
+            )
+            if source is not None:
+                target = QListWidgetItem(source.title)
+                target.setData(Qt.UserRole, source.source_id)
+                self._open_ganymede_source_item(target)
+                return True
         self.current_guide_id = guide_id
         self.guideRequested.emit(guide_id)
         return True
@@ -456,8 +470,13 @@ class GuideCatalogView(QWidget):
         # plus Sylvestre Opti, which must remain unchanged. Legacy quest-only
         # guides do not hide their actual source route from the library.
         native = set(active_manual_catalog_sources(self.provider, self.guides))
+        linked_alignment_ids = {
+            guide_id for guide_id in ("alignement_bonta", "alignement_brakmar")
+            if guide_id in catalog_by_id
+        }
         entries = displayable_listings(
-            self.ganymede_listings, native | {"dofus_sylvestre"},
+            self.ganymede_listings,
+            native | {"dofus_sylvestre"} | linked_alignment_ids,
             category, self.search_text,
         )
         self.home_metadata_list.clear()
