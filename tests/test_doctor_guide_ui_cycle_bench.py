@@ -50,6 +50,18 @@ class DoctorGuideUiCycleBenchmarkTests(unittest.TestCase):
             self.assertNotEqual(captured.exception.code, 0)
             self.assertFalse(output.exists())
 
+    def test_windows_preflight_avoids_qt_package_import_before_install(self) -> None:
+        workflow = (
+            Path(__file__).resolve().parents[1]
+            / ".github" / "workflows" / "guides-focused-proof.yml"
+        ).read_text(encoding="utf-8")
+        preflight = workflow.split("name: Pure-stdlib Doctor Guide benchmark contracts", 1)[1]
+        preflight = preflight.split("name: Install pinned runtime for focused Qt tests", 1)[0]
+        self.assertIn("unittest discover -s tests -p test_doctor_guide_ui_cycle_bench.py", preflight)
+        self.assertIn("unittest discover -s tests -p test_doctor_ui.py", preflight)
+        self.assertNotIn("tests.test_doctor_ui", preflight)
+        self.assertNotIn("tests.test_doctor_guide_ui_cycle_bench", preflight)
+
     def test_native_rss_has_explicit_unavailable_state(self) -> None:
         with patch.object(benchmark.os, "name", "other"), \
              patch.object(benchmark.platform, "system", return_value="Other"):
