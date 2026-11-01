@@ -551,7 +551,13 @@ class GuideCatalogView(QWidget):
         count = entry.step_count if type(entry.step_count) is int and entry.step_count > 0 else 0
         selected = str(self.current_character_key or "")
         can_record = is_character_key(selected)
-        progress_id = f"ganymede_source_{entry.source_id}"
+        # Share the eventual native guide's stable identity where known.
+        # Never reuse an Atlas optimized guide's unrelated manual progress.
+        mapped_id = ATLAS_EQUIVALENTS.get(entry.source_id)
+        progress_id = (
+            mapped_id if mapped_id and mapped_id not in dict(FEATURED)
+            else f"ganymede_source_{entry.source_id}"
+        )
         progress_service = GuideProgressService(GUIDE_PROGRESS_FILE) if can_record and count else None
         checked = (
             progress_service.manual_steps(selected, progress_id)
