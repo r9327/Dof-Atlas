@@ -466,9 +466,9 @@ class GuideCatalogView(QWidget):
         self.library_results_title.setText(dict(CATEGORIES).get(category, "Guides").upper())
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        # Hide only routes that already have a source-backed native reader,
-        # plus Sylvestre Opti, which must remain unchanged. Legacy quest-only
-        # guides do not hide their actual source route from the library.
+        # Hide only routes already opened from an Atlas native/source reader.
+        # Ganymède's 2-step Sylvan Dofus is distinct from the large preserved
+        # Atlas Sylvestre Opti: expose both, not a missing source or fake twin.
         native = set(active_manual_catalog_sources(self.provider, self.guides))
         linked_alignment_ids = {
             guide_id for guide_id in ("alignement_bonta", "alignement_brakmar")
@@ -476,7 +476,7 @@ class GuideCatalogView(QWidget):
         }
         entries = displayable_listings(
             self.ganymede_listings,
-            native | {"dofus_sylvestre"} | linked_alignment_ids,
+            native | linked_alignment_ids,
             category, self.search_text,
         )
         self.home_metadata_list.clear()
