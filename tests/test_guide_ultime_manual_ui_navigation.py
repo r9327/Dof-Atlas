@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QToolButton,
 )
@@ -653,7 +654,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             labels = [
                 label.text()
                 for label in view.preparation_panel.findChildren(
-                    QLabel, "GuidePreparationRowLabel"
+                    QPushButton, "GuidePreparationItemCopy"
                 )
             ]
             self.assertTrue(any("Pierre d'âme moyenne" in label for label in labels))
@@ -675,7 +676,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 displayed = [
                     label.text()
                     for widget in selected_rows if widget is not None
-                    for label in widget.findChildren(QLabel, "GuidePreparationRowLabel")
+                    for label in widget.findChildren(QPushButton, "GuidePreparationItemCopy")
                 ]
                 self.assertTrue(
                     any(expected in label for label in displayed),
