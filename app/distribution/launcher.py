@@ -469,8 +469,16 @@ def main() -> int:
         # misleading updater popup on a no-op startup.
         window.withdraw()
     except Exception:
-        # A broken/missing Tk UI must not prevent access to an already installed Atlas.
+        # A missing Tk UI may launch an existing local Atlas, but must never
+        # silently download the multi-gigabyte first installation into AppData
+        # without the requested drive-selection window.
         try:
+            if _LOCATION_ERROR is not None:
+                raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
+            if not read_state(ROOT).get("active"):
+                raise UpdateError(
+                    "Premiere installation impossible sans le selecteur de dossier Atlas"
+                )
             run_update(lambda label, percentage: print(f"{percentage}% {label}", flush=True))
             return 0
         except (UpdateError, OSError) as exc:
