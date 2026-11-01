@@ -109,6 +109,7 @@ ORGANIZER_UI_PATHS = frozenset({
     "app/pages/organizer/organizer_hotkeys.py",
     "app/pages/organizer/organizer_ui.py",
     "app/pages/organizer/radial_selection.py",
+    "app/pages/organizer/radial_overlay.py",
 })
 ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/core/runtime_state.py", "app/core/macro_lock.py",
@@ -122,6 +123,7 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_shutdown_guard.py",
     "tests/test_organizer_macro_reliability.py",
     "tests/test_organizer_radial_selection.py",
+    "tests/test_organizer_radial_overlay.py",
     "tests/test_organizer_mirror_plan.py",
     "tests/test_organizer_sendinput.py",
     "tests/test_organizer_hotkey_capture.py",
