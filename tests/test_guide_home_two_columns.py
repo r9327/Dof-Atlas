@@ -166,6 +166,7 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_columns.layout().direction(),
                         QBoxLayout.LeftToRight,
                     )
+                    self.assertGreater(view.home_columns._left.maximumHeight(), 1000)
                     self.assertEqual(
                         view.home_dofus_list.viewMode(), QListView.IconMode
                     )
@@ -216,6 +217,10 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_columns.layout().direction(),
                         QBoxLayout.TopToBottom,
                     )
+                    self.assertEqual(view.home_columns._left.maximumHeight(), 220)
+                    view.resize(1200, 750)
+                    self.app.processEvents()
+                    self.assertGreater(view.home_columns._left.maximumHeight(), 1000)
                 finally:
                     view.close()
                     view.deleteLater()
