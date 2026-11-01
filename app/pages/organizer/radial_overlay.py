@@ -79,8 +79,12 @@ class OrganizerRadialOverlay(QWidget):
         self.move(centre.x() - self.width() // 2, centre.y() - self.height() // 2)
         self._icons = []
         for row in self._characters:
+            portrait = str(row.get("portrait_path") or "").strip()
             icon = class_icon_path_for_window_name(str(row.get("nom", "")))
-            self._icons.append(QPixmap(str(icon)) if icon else QPixmap())
+            image = QPixmap(portrait) if portrait else QPixmap()
+            if image.isNull() and icon is not None:
+                image = QPixmap(str(icon))
+            self._icons.append(image)
         self.show()
         self.update()
         return True
@@ -207,9 +211,15 @@ class OrganizerRadialHoldController:
             self._cancel_until_release = False
             if self._down:
                 self._down = False
-                handle = self.overlay.finish(
-                    self.participants(), cancel=cancelled
-                ) if self.overlay.isVisible() else None
+                if self.overlay.isVisible():
+                    self.overlay.track_cursor()
+                    # Close before any session resolution or Windows focus work.
+                    self.overlay.hide()
+                    handle = self.overlay.finish(
+                        self.participants(), cancel=cancelled
+                    )
+                else:
+                    handle = None
                 if handle is not None:
                     self.activate(handle)
             return
