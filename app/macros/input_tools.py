@@ -26,6 +26,10 @@ EXTENDED_VKS = {
     0x2D,  # Insert
     0x2E,  # Delete
     0x5B,  # Left Windows key
+    0x5C,  # Right Windows key
+    0x6F,  # Numpad divide
+    0xA3,  # Right Ctrl
+    0xA5,  # Right Alt
 }
 
 
