@@ -64,6 +64,20 @@ class ContinuousGuideNavigationTests(unittest.TestCase):
         )
         self.assertEqual(known_guide_participants(("character:1",), ()), ())
 
+    def test_restored_duplicate_participants_open_once_without_mutating_progress(self):
+        characters = (
+            SimpleNamespace(key="character:1", connected=True),
+            SimpleNamespace(key="character:2", connected=False),
+        )
+        saved = ("character:2", "character:1", "character:2", "character:1")
+        selected = known_guide_participants(iter(saved), characters)
+        self.assertEqual(selected, ("character:2", "character:1"))
+        nav = self._navigator(*selected)
+        self.assertEqual(nav.position().selected_character_keys, selected)
+        self.assertFalse(self.path.exists())
+        with self.assertRaisesRegex(ValueError, "duplicate selected character"):
+            self._navigator(*saved)  # Explicit API stays fail-closed.
+
     def test_no_selected_character_means_no_imaginary_actual_step(self):
         nav = self._navigator()
         self.assertEqual(nav.position().status, "NO_SELECTED_CHARACTER")
