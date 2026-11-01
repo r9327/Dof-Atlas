@@ -89,7 +89,7 @@ def summarize(lines: list[str]) -> dict[str, object]:
         values = durations_ms(sessions, start, end)
         segments[f"{start}_to_{end}"] = (
             {"n": len(values), "p50_ms": round(median(values), 3),
-             "p95_ms": percentile(values, 95),
+             "p95_ms": percentile(values, 95), "p99_ms": percentile(values, 99),
              "min_ms": min(values), "max_ms": max(values)}
             if values else None
         )
@@ -98,7 +98,8 @@ def summarize(lines: list[str]) -> dict[str, object]:
         values = [counts[key] for counts in counters.values() if key in counts]
         measured[key] = {
             "n": len(values), "p50": median(values),
-            "p95": percentile(values, 95), "min": min(values), "max": max(values),
+            "p95": percentile(values, 95), "p99": percentile(values, 99),
+            "min": min(values), "max": max(values),
         }
     return {"schema_version": 1, "sessions": len(sessions),
             "segments": segments, "completed_operation_counters": measured}
@@ -121,13 +122,20 @@ def compare_traces(baseline: list[str], candidate: list[str],
         if len(old) >= min_samples and len(new) >= min_samples:
             old_p50, new_p50 = median(old), median(new)
             old_p95, new_p95 = percentile(old, 95), percentile(new, 95)
+            old_p99, new_p99 = percentile(old, 99), percentile(new, 99)
             if old_p50 > 0 and old_p95 > 0:
                 p50_pct = round((new_p50 - old_p50) * 100 / old_p50, 2)
                 p95_pct = round((new_p95 - old_p95) * 100 / old_p95, 2)
+                # P99 is diagnostic only for small samples. The existing 5%
+                # regression alert remains based on P50/P95, not a noisy max.
+                p99_pct = (round((new_p99 - old_p99) * 100 / old_p99, 2)
+                           if old_p99 > 0 else None)
                 result.update(
                     baseline_p50_ms=old_p50, candidate_p50_ms=new_p50,
                     baseline_p95_ms=old_p95, candidate_p95_ms=new_p95,
+                    baseline_p99_ms=old_p99, candidate_p99_ms=new_p99,
                     p50_change_percent=p50_pct, p95_change_percent=p95_pct,
+                    p99_change_percent=p99_pct,
                     status=("INVESTIGATE_OVER_5_PERCENT"
                             if max(p50_pct, p95_pct) > 5 else "NO_5_PERCENT_ALERT"),
                 )
@@ -162,14 +170,14 @@ def main(argv: list[str] | None = None) -> int:
         if summary is None:
             print(f"{label}: NOT RUN / no matching checkpoints")
         else:
-            print(f"{label}: n={summary['n']} p50={summary['p50_ms']:.1f}ms p95={summary['p95_ms']:.1f}ms")
+            print(f"{label}: n={summary['n']} p50={summary['p50_ms']:.1f}ms p95={summary['p95_ms']:.1f}ms p99={summary['p99_ms']:.1f}ms")
     if "comparison" in data:
         print("Baseline comparison (advisory, same PC/scenario required):")
         for name, value in data["comparison"]["segments"].items():
             print(f"  {name}: {value['status']} (n={value['baseline_n']}/{value['candidate_n']})")
     print("Counters from completed operations only (not process-tree totals):")
     for name, summary in data["completed_operation_counters"].items():
-        print(f"  {name}: n={summary['n']} p50={summary['p50']} p95={summary['p95']}")
+        print(f"  {name}: n={summary['n']} p50={summary['p50']} p95={summary['p95']} p99={summary['p99']}")
     return 0
 
 
