@@ -4,11 +4,14 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from dataclasses import replace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
 
 from app.modules.encyclopedia.models.guide import Guide
@@ -83,6 +86,127 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         self.assertEqual(right.row_for_guide("dofus_sylvestre"), -1)
         self.assertEqual(right.rowCount(), 2)
 
+    def test_identical_guide_refresh_keeps_model_and_progress_idle(self) -> None:
+        provider = _CatalogProvider()
+        model = GuideListModel()
+        resets = QSignalSpy(model.modelReset)
+        changes = QSignalSpy(model.dataChanged)
+        model.set_home_column(provider.guides, "right")
+        self.assertEqual(resets.count(), 1)
+        before_ids = self._ids(model)
+        model.set_home_column(list(provider.guides), "right")
+        self.assertEqual(resets.count(), 1)
+        self.assertEqual(self._ids(model), before_ids)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (1, 3, "En cours")})
+        self.assertEqual(changes.count(), 1)
+        model.set_progress({"dofus_turquoise": (2, 3, "En cours")})
+        self.assertEqual(changes.count(), 2)
+        # Only a genuine replacement of the underlying Guide must reset Qt.
+        model.set_home_column([_guide("dofus_turquoise", "dofus", "Turquoise")], "right")
+        self.assertEqual(resets.count(), 2)
+        self.assertEqual(self._ids(model), ["dofus_turquoise"])
+
+    def test_icons_decode_only_once_until_guide_replacement(self) -> None:
+        model = GuideListModel()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "turquoise.png"
+            path.write_bytes(b"image-file-fixture")
+            guide = replace(_guide("dofus_turquoise", "dofus", "Turquoise"),
+                            image_path=str(path))
+            model.set_home_column([guide], "right")
+            with patch(
+                "app.modules.encyclopedia.widgets.guide_card.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                return_value=QPixmap(16, 16),
+            ) as decode:
+                index = model.index(0, 0)
+                for _ in range(12):
+                    self.assertIsNotNone(model.data(index, Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                model.set_home_column([guide], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 1)
+                # Replaced metadata needs a fresh icon decision.
+                model.set_home_column([replace(guide, title="Turquoise +")], "right")
+                self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 2)
+
+    def test_grid_balances_five_dofus_instead_of_leaving_one_orphan(self) -> None:
+        columns = GuideCatalogView._balanced_grid_columns
+        self.assertEqual(columns(1024, 5), 3)  # 3 + 2, not 4 + 1
+        self.assertEqual(columns(1024, 6), 3)  # Two full rows
+        self.assertEqual(columns(1024, 7), 4)  # 4 + 3
+        self.assertEqual(columns(1024, 9), 3)  # Three full rows
+        self.assertEqual(columns(1024, 11), 4)  # 4 + 4 + 3
+        self.assertEqual(columns(1024, 22), 4)  # 4 x 5 + 2, not 3 x 7 + 1
+        self.assertEqual(columns(1120, 22), 4)  # Qt 320px cap must be considered
+        for width, count in ((1024, 5), (1024, 6), (1024, 7),
+                             (1024, 9), (1024, 11), (1024, 22), (1120, 22)):
+            selected = columns(width, count)
+            cell_width = min(320, max(1, width // selected))
+            physical_columns = width // cell_width
+            self.assertEqual(physical_columns, selected)
+            self.assertNotEqual(count % physical_columns, 1)
+        self.assertEqual(columns(610, 5), 2)   # Never squeeze 3 narrow cards
+        self.assertEqual(columns(180, 5), 1)
+        self.assertEqual(columns(1024, 1), 1)
+        self.assertEqual(columns(1024, 0), 1)
+
+    def test_twenty_two_dofus_do_not_leave_a_lone_card_in_real_qt_grid(self) -> None:
+        provider = _CatalogProvider()
+        provider.guides.extend(
+            _guide(f"dofus_test_{i}", "dofus", f"Dofus {i}")
+            for i in range(22)
+        )
+        # Replace the two fixture Dofus so this is exactly 22 cards.
+        provider.guides = [guide for guide in provider.guides
+                           if guide.id not in {"dofus_turquoise", "dofus_cawotte"}]
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.catalog_route_map_count_hint",
+                return_value=0,
+            ):
+                view = GuideCatalogView(
+                    lambda _text: None,
+                    provider=provider,
+                    quest_progress_path=Path(directory) / "progress.json",
+                    defer_runtime=True,
+                )
+                view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
+                view.resize(1450, 900)
+                view.show()
+                self.app.processEvents()
+                try:
+                    view._sync_grid_columns()
+                    viewport_width = view.home_dofus_list.viewport().width()
+                    cell_width = view.home_dofus_list.gridSize().width()
+                    self.assertGreaterEqual(viewport_width, 930)
+                    self.assertEqual(view.home_dofus_model.rowCount(), 22)
+                    self.assertGreater(cell_width, 0)
+                    physical_columns = viewport_width // cell_width
+                    self.assertEqual(physical_columns, 4)
+                    self.assertEqual(22 % physical_columns, 2)
+                    # The original arithmetic-only test passed while the
+                    # actual Doctor screenshot showed only three Qt columns.
+                    # Assert real QListView layout coordinates after Qt paint.
+                    self.app.processEvents()
+                    list_view = view.home_dofus_list
+                    rects = [
+                        list_view.visualRect(view.home_dofus_model.index(i, 0))
+                        for i in range(22)
+                    ]
+                    self.assertTrue(all(rect.isValid() for rect in rects))
+                    self.assertEqual(len({rect.y() for rect in rects[:4]}), 1)
+                    self.assertEqual(len({rect.x() for rect in rects[:4]}), 4)
+                    self.assertEqual(rects[20].y(), rects[21].y())
+                    self.assertGreater(rects[20].y(), rects[19].y())
+                finally:
+                    view.close()
+                    view.deleteLater()
+                    self.app.processEvents()
+
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.
         self.assertEqual(GuideCatalogView._grid_cell_width(0), 0)
@@ -117,6 +241,7 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_columns.layout().direction(),
                         QBoxLayout.LeftToRight,
                     )
+                    self.assertGreater(view.home_columns._left.maximumHeight(), 1000)
                     self.assertEqual(
                         view.home_dofus_list.viewMode(), QListView.IconMode
                     )
@@ -133,24 +258,44 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements are available without featured-card duplication.
-                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
+                    # Alignements have real nested entries in the left menu;
+                    # changing the menu does NOT overwrite the right Dofus grid.
+                    alignments = view._category_nodes["alignements"]
+                    self.assertEqual(
+                        sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
+                            for i in range(alignments.childCount())),
+                        2,
+                    )
+                    view.library_categories.setCurrentItem(alignments)
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["alignement_bonta", "alignement_brakmar"],
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
+                    view.library_categories.setCurrentItem(alignments.child(0))
+                    self.assertEqual(requested[-1], "alignement_bonta")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
-                    self.assertEqual(view.home_dofus_model.rowCount(), 1)
-                    view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+                    self.assertEqual(self._ids(view.home_dofus_model), [])
                     self.assertFalse(view.home_dofus_list.isVisible())
+                    view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["dofus_turquoise", "dofus_cawotte"],
+                    )
                     view.resize(610, 750)
                     self.app.processEvents()
                     self.assertEqual(
                         view.home_columns.layout().direction(),
                         QBoxLayout.TopToBottom,
                     )
+                    self.assertEqual(view.home_columns._left.maximumHeight(), 220)
+                    view.resize(1200, 750)
+                    self.app.processEvents()
+                    self.assertGreater(view.home_columns._left.maximumHeight(), 1000)
                 finally:
                     view.close()
                     view.deleteLater()

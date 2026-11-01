@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QToolButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -143,7 +143,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         initial_keys = set(card)
         view = self._view()
         self.assertIn(
-            ("Pierres d'âme", "Pierre d'âme parfaite", 3),
+            ("Pierres d'âme", "Pierre d'âme parfaite", 3, None),
             view._preparation_preview,
         )
         self.assertEqual(set(card), initial_keys)
@@ -164,11 +164,14 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         )
         prereq_filter.click()
         QApplication.processEvents()
-        text = " ".join(
-            row.text() for row in view.preparation_panel.findChildren(QLabel)
-        )
-        self.assertIn("Être niveau 100", text)
-        self.assertNotIn("? × Être niveau 100", text)
+        # Prerequisites are copyable buttons, not QLabel text. Inspect the
+        # actual visible control without changing its no-quantity contract.
+        items = view.preparation_panel.findChildren(QPushButton, "GuidePreparationItemCopy")
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].text(), "Être niveau 100")
+        items[0].click()
+        self.assertEqual(QApplication.clipboard().text(), "Être niveau 100")
+        self.assertNotIn("? ×", items[0].text())
 
     def test_readonly_without_selected_character(self):
         self.participants.save_selected_keys(())
