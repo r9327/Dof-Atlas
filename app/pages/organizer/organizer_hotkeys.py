@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QPushButton
 
 from app.constants import (
@@ -111,6 +111,24 @@ class OrganizerHotkeysMixin:
         self.reload_runtime_callback()
         self.status_callback("Raccourci supprimé.")
 
+    def cancel_capture(self, message: str = "Capture de raccourci annulée.") -> None:
+        if not self.capture_target:
+            return
+        self.capture_target = None
+        timer = getattr(self, "_capture_timer", None)
+        if timer is not None:
+            timer.stop()
+        self.update_global_buttons()
+        self.render_sessions()
+        self.status_callback(message)
+
+    def focusOutEvent(self, event) -> None:
+        # A click away, Alt+Tab or a hidden window must never leave the
+        # next arbitrary keystroke waiting to be persisted as a shortcut.
+        if self.capture_target:
+            self.cancel_capture("Capture annulée : Organizer a perdu le focus.")
+        super().focusOutEvent(event)
+
     def begin_capture(
         self,
         kind: str,
@@ -119,6 +137,15 @@ class OrganizerHotkeysMixin:
         button: QPushButton | None = None,
     ) -> None:
         self.capture_target = {"kind": kind, "name": name, "slot": slot, "button": button}
+        timer = getattr(self, "_capture_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(
+                lambda: self.cancel_capture("Capture annulée : délai de saisie dépassé.")
+            )
+            self._capture_timer = timer
+        timer.start(12_000)
         if button is not None:
             button.setText("...")
         elif kind == "click":
@@ -134,9 +161,16 @@ class OrganizerHotkeysMixin:
         if not self.capture_target:
             super().keyPressEvent(event)
             return
+        if event.key() == Qt.Key_Escape:
+            self.cancel_capture()
+            event.accept()
+            return
         hotkey = key_sequence_to_hotkey(event.key(), event.modifiers())
         target = self.capture_target
         self.capture_target = None
+        timer = getattr(self, "_capture_timer", None)
+        if timer is not None:
+            timer.stop()
         if not hotkey:
             self.status_callback("Touche ignorée.")
             self.update_global_buttons()
