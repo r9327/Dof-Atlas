@@ -10,7 +10,10 @@ imported or executed during discovery.
 
 import argparse
 import ast
+from importlib import metadata
 import json
+import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +21,8 @@ from tools.tool_audit import ROOT, audit as tooling_audit
 
 
 _SCHEMA_VERSION = 1
+_PROBE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$")
+_MAX_LOCAL_PROBES = 64
 _TOOL_SPEC_SCHEMA_VERSION = 1
 _TOOL_SPEC_SIDE_EFFECTS = {
     "read_only",
@@ -603,6 +608,71 @@ def _print_selection(selection: dict[str, Any]) -> None:
         )
 
 
+def local_candidate_preflight(
+    packages: list[str] | tuple[str, ...] = (),
+    binaries: list[str] | tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Inspect explicit local candidates without importing, running or installing them.
+
+    These are discovery hints, *not* readiness, licence, OS or Python support
+    certificates. Never expose filesystem paths or execute PATH candidates.
+    """
+    requested = [("python_distribution", name) for name in packages]
+    requested += [("path_executable", name) for name in binaries]
+    if len(requested) > _MAX_LOCAL_PROBES:
+        raise ValueError(f"preflight accepts at most {_MAX_LOCAL_PROBES} names")
+
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for kind, name in requested:
+        if not isinstance(name, str) or _PROBE_NAME.fullmatch(name) is None:
+            raise ValueError("candidate name must contain only letters, digits, '.', '_' or '-'")
+        key = (kind, name.casefold())
+        if key in seen:
+            continue
+        seen.add(key)
+        row: dict[str, Any] = {
+            "name": name,
+            "kind": kind,
+            "available": False,
+            "version": None,
+            "requires_python_claim": None,
+            "license_claim": None,
+            "license_verified": False,
+            "platform_verified": False,
+            "automation_ready": False,
+        }
+        if kind == "python_distribution":
+            try:
+                installed = metadata.distribution(name)
+            except metadata.PackageNotFoundError:
+                pass
+            else:
+                row["available"] = True
+                row["version"] = str(installed.version)[:128]
+                # Publisher-supplied metadata is evidence to review, not a
+                # verified SPDX licence or successful Windows/3.13 import.
+                row["requires_python_claim"] = (
+                    installed.metadata.get("Requires-Python") or None
+                )
+                row["license_claim"] = (
+                    installed.metadata.get("License-Expression")
+                    or installed.metadata.get("License") or None
+                )
+        else:
+            # which() checks PATH; it never starts the executable.
+            row["available"] = shutil.which(name) is not None
+        rows.append(row)
+    return {
+        "schema_version": _SCHEMA_VERSION,
+        "source": "tools.tool_catalog.local_candidate_preflight",
+        "read_only": True,
+        "network_used": False,
+        "runtime_dependency_added": False,
+        "results": rows,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Read-only AI catalog of Dofus Atlas repository tools."
@@ -615,7 +685,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ready-only", action="store_true", help="Return only automation-ready entry points.")
     parser.add_argument("--preferred-only", action="store_true", help="Return canonical agent entry points only.")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--probe-package", action="append", default=[],
+        help="Read local distribution metadata; no import, install or network access.",
+    )
+    parser.add_argument(
+        "--probe-binary", action="append", default=[],
+        help="Check a local PATH executable exists; never execute it.",
+    )
     args = parser.parse_args(argv)
+
+    if args.probe_package or args.probe_binary:
+        if any((args.tool, args.capability, args.max_cost, args.safe_only,
+                args.ready_only, args.preferred_only, args.limit is not None)):
+            parser.error("local preflight cannot be combined with catalog filters")
+        try:
+            result = local_candidate_preflight(args.probe_package, args.probe_binary)
+        except ValueError as exc:
+            parser.error(str(exc))
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            for row in result["results"]:
+                print(f"{row['kind']} {row['name']}: "
+                      f"{'detected' if row['available'] else 'not detected'} "
+                      "(unverified; no execution)")
+        return 0
 
     report = catalog(ROOT)
     selection_requested = any(
