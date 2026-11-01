@@ -28,7 +28,7 @@ jobs:
           ref: 8eebcc6a1c4c858a33b74ae7fe627e5e9aec09cd
           path: atlas-runtime-source
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Export actual Documentalist batches then preview with actual Atlas adapter

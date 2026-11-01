@@ -22,7 +22,7 @@ jobs:
           ref: bf93d30c4335c5aba19274caecad7507baa5b7bb
           path: holding-source
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Real loopback download, Atlas staged SHA gate and tamper rejection
