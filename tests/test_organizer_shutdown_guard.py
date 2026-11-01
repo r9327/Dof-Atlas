@@ -67,7 +67,9 @@ class OrganizerShutdownGuardTests(unittest.TestCase):
                 page = OrganizerPage(lambda _text: None, lambda: None)
                 try:
                     self.assertFalse(page.startup_scan_timer.isActive())
-                    QApplication.instance().processEvents()
+                    # Do not drain the global Qt queue here: other tests
+                    # may have pending callbacks for real Windows sessions.
+                    # An inactive timer has no future timeout to dispatch.
                 finally:
                     page.stop_session_event_watcher()
                     page.deleteLater()
