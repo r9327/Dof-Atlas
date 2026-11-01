@@ -5,6 +5,7 @@ Only the multi-gigabyte, versioned, replaceable payload is user-selectable.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -126,9 +127,21 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     def copy_checked(src, dst):
         nonlocal copied
         shutil.copy2(src, dst)
-        size = Path(src).stat().st_size
-        if Path(dst).stat().st_size != size:
+        source, copied_file = Path(src), Path(dst)
+        size = source.stat().st_size
+        if copied_file.stat().st_size != size:
             raise UpdateError("Copie Atlas incomplete; ancien disque preserve")
+        # A same-length damaged file would pass the old size-only check.
+        # Verify each copied file before switching the persistent location.
+        def digest(path: Path) -> bytes:
+            value = hashlib.sha256()
+            with path.open("rb") as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    value.update(block)
+            return value.digest()
+
+        if digest(source) != digest(copied_file):
+            raise UpdateError("Copie Atlas corrompue; ancien disque preserve")
         copied += size
         if progress:
             progress(copied, max(total, 1))
