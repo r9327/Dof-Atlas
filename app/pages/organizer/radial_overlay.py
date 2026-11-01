@@ -154,14 +154,17 @@ class OrganizerRadialHoldController:
         *,
         parent: QWidget,
         key_reader: Callable[[frozenset[int]], bool] = physical_key_held,
+        can_open: Callable[[], bool] | None = None,
         interval_ms: int = 25,
     ) -> None:
         self.overlay = overlay
         self.participants = participants
         self.activate = activate
         self.key_reader = key_reader
+        self.can_open = can_open or (lambda: True)
         self.keys: frozenset[int] = frozenset()
         self._down = False
+        self._cancel_until_release = False
         self._timer = QTimer(parent)
         self._timer.setInterval(interval_ms)
         self._timer.timeout.connect(self.poll)
@@ -181,20 +184,29 @@ class OrganizerRadialHoldController:
 
     def cancel(self) -> None:
         self._down = False
+        self._cancel_until_release = True
         if self.overlay.isVisible():
             self.overlay.finish([], cancel=True)
 
     def poll(self) -> None:
         held = bool(self.keys) and self.key_reader(self.keys)
         if not held:
+            cancelled = self._cancel_until_release
+            self._cancel_until_release = False
             if self._down:
                 self._down = False
-                handle = self.overlay.finish(self.participants())
+                handle = self.overlay.finish(
+                    self.participants(), cancel=cancelled
+                ) if self.overlay.isVisible() else None
                 if handle is not None:
                     self.activate(handle)
             return
-        if not self._down:
-            self._down = True
+        if self._cancel_until_release:
+            return
+        if self._down:
+            if self.overlay.isVisible():
+                self.overlay.track_cursor()
+            return
+        self._down = True
+        if self.can_open():
             self.overlay.open_for(self.participants())
-        elif self.overlay.isVisible():
-            self.overlay.track_cursor()
