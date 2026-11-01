@@ -79,8 +79,14 @@ cette copie lui-même : il lance `DofusAtlas.exe --atlas-configure` pour
 utiliser les verrous canoniques du launcher pendant le déplacement et sa
 mise à jour. La première sélection sans installation active reste disponible
 dans le Setup. Les liens symboliques/junctions, dossiers imbriqués et
-emplacements réseau non sûrs sont rejetés. L'usage réel avec chemins Unicode,
-DPI et antivirus doit encore être validé dans #287.
+emplacements réseau non sûrs sont rejetés. Le contrôle des points de
+réanalyse est répété lors du parcours de copie et dans le staging avant
+l'activation, afin qu'un lien apparu après le scan initial ne puisse être
+installé silencieusement. Cette vérification de répertoires n'est pas un
+mécanisme anti-course absolu contre un acteur modifiant simultanément le
+disque ; les tests Windows de jonctions et de verrouillage restent nécessaires.
+L'usage réel avec chemins Unicode, DPI et antivirus doit encore être validé
+dans #287.
 
 ## Vérification, cache et installation transactionnelle
 
