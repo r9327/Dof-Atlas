@@ -58,6 +58,21 @@ class OrganizerSendInputTests(unittest.TestCase):
             with self.assertRaisesRegex(OSError, "SendInput refused"):
                 input_tools.key_down(0x41)
 
+    def test_failed_sendinput_includes_immediate_win32_diagnostic(self) -> None:
+        user32 = Mock()
+        user32.MapVirtualKeyW.return_value = 0x1E
+        user32.SendInput.return_value = 0
+        kernel32 = Mock()
+        kernel32.GetLastError.return_value = 5
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.object(input_tools.ctypes, "windll",
+                         SimpleNamespace(user32=user32, kernel32=kernel32), create=True),
+        ):
+            with self.assertRaisesRegex(OSError, "win32_error=5"):
+                input_tools.key_down(0x41)
+        kernel32.GetLastError.assert_called_once_with()
+
     def test_non_windows_path_never_sends_synthetic_input(self) -> None:
         with patch.object(input_tools.os, "name", "posix"):
             with patch.object(input_tools, "_configure_keyboard_api", side_effect=AssertionError("wrong OS")):
