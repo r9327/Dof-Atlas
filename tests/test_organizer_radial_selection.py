@@ -43,6 +43,8 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
             {"nom": "Alpha", "hwnd": 12},
             {"nom": "Bad handle", "hwnd": "unknown"},
             {"nom": "Stale", "hwnd": 0},
+            None,  # corrupted legacy cache entry
+            "invalid session",
         ]
         selected = visible_characters(sessions, {12, "unknown", None, 0})
         self.assertEqual([row["hwnd"] for row in selected], [12])
