@@ -315,7 +315,16 @@ class OrganizerPage(
         if self.capture_target is not None:
             return False
         from app.windows.unity_windows import foreground_window, is_unity_window
-        return is_unity_window(foreground_window())
+        hwnd = foreground_window()
+        # A foreign/untracked Dofus window is not an Organizer session and
+        # must not trigger a focus-changing radial picker.
+        return bool(
+            is_unity_window(hwnd)
+            and any(
+                session_is_detected(row) and session_hwnd(row) == hwnd
+                for row in getattr(self, "sessions", [])
+            )
+        )
 
     def _activate_radial_handle(self, handle: int) -> None:
         if not any(session_hwnd(row) == handle and session_is_detected(row)
