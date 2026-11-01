@@ -66,7 +66,7 @@ class OrganizerRadialOverlay(QWidget):
         if screen is None:
             return False
         # The user requested the centre of the selected screen, not cursor.
-        centre = screen.availableGeometry().center()
+        centre = screen.geometry().center()
         self.move(centre.x() - self.width() // 2, centre.y() - self.height() // 2)
         self._icons = []
         for row in self._characters:
