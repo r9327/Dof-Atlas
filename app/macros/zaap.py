@@ -54,35 +54,48 @@ class ZaapMacro:
             command,
         )
         sent = 0
-        for client in clients:
-            if self.runtime.macro_lock.should_stop():
-                return
-            if not is_unity_window(client.handle):
-                self.runtime.logger.info("Auto zaap fenetre introuvable/non Unity: hwnd=%s", client.handle)
-                continue
-            if not activate_window(
-                client.handle,
-                timings.travel_focus_settle_ms,
-                timings.activate_attempts,
-                timings.activate_retry_ms,
-                self.runtime.logger,
-                "Auto zaap",
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
-                self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
-                continue
-            if not send_chat_command(
-                command,
-                self.runtime.logger,
-                submit_twice=True,
-                chat_open_ms=timings.auto_group_chat_open_ms,
-                key_step_ms=timings.auto_group_key_step_ms,
-                paste_settle_ms=timings.auto_group_paste_settle_ms,
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
+        try:
+            for client in clients:
                 if self.runtime.macro_lock.should_stop():
                     return
-                continue
-            sent += 1
-        self.runtime.switch_character.restore_preferred_client("Auto zaap")
-        self.runtime.logger.info("Auto zaap termine: envoyes=%s/%s", sent, len(clients))
+                if not is_unity_window(client.handle):
+                    self.runtime.logger.info("Auto zaap fenetre introuvable/non Unity: hwnd=%s", client.handle)
+                    continue
+                if not activate_window(
+                    client.handle,
+                    timings.travel_focus_settle_ms,
+                    timings.activate_attempts,
+                    timings.activate_retry_ms,
+                    self.runtime.logger,
+                    "Auto zaap",
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
+                    continue
+                if not send_chat_command(
+                    command,
+                    self.runtime.logger,
+                    submit_twice=True,
+                    chat_open_ms=timings.auto_group_chat_open_ms,
+                    key_step_ms=timings.auto_group_key_step_ms,
+                    paste_settle_ms=timings.auto_group_paste_settle_ms,
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    if self.runtime.macro_lock.should_stop():
+                        return
+                    continue
+                sent += 1
+        finally:
+            # Restituer le favori même si un client ou le chat échoue, mais ne
+            # jamais réactiver une fenêtre après un stop d'urgence.
+            if not self.runtime.macro_lock.should_stop():
+                try:
+                    self.runtime.switch_character.restore_preferred_client("Auto zaap")
+                except Exception:
+                    self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
+            self.runtime.logger.info(
+                "Auto zaap %s: envoyes=%s/%s",
+                "interrompu" if self.runtime.macro_lock.should_stop() else "termine",
+                sent,
+                len(clients),
+            )
