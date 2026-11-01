@@ -44,11 +44,16 @@ class ModularDomainRoutingTests(unittest.TestCase):
                 self.assertFalse(planned["phase_certified"])
         for unknown in ("app/macros/unreviewed.py",
                         "app/core/unreviewed_runtime.py",
-                        "tests/test_organizer_unreviewed_backend.py",
-                        "docs/organizer/unreviewed-contract.md"):
+                        "tests/test_organizer_unreviewed_backend.py"):
             with self.subTest(unknown=unknown):
                 self.assertFalse(owners_for(unknown))
                 self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+        # Generic Markdown is classified as advisory metadata by the existing
+        # planner, not an executable unknown owner. Preserve that contract:
+        # it must not silently acquire the Organizer domain.
+        generic_doc = "docs/organizer/unreviewed-contract.md"
+        self.assertFalse(owners_for(generic_doc))
+        self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
