@@ -93,9 +93,14 @@ class ZaapMacro:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
+            state = (
+                "interrompu" if self.runtime.macro_lock.should_stop()
+                else "termine" if sent == len(clients)
+                else "partiel"
+            )
             self.runtime.logger.info(
                 "Auto zaap %s: envoyes=%s/%s",
-                "interrompu" if self.runtime.macro_lock.should_stop() else "termine",
+                state,
                 sent,
                 len(clients),
             )
