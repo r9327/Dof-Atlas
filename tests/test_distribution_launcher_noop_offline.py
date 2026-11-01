@@ -163,6 +163,18 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
                     launcher._run_lock()
             self.assertFalse(root.exists(), "Never create a second installation")
 
+    def test_frozen_self_test_ignores_corrupt_user_location(self):
+        # Maintenance verifies executable bootability, not personal settings.
+        with (
+            patch.object(sys, "argv", ["DofusAtlas.exe", "--atlas-self-test"]),
+            patch.object(launcher, "_LOCATION_ERROR", "Bad installation.json"),
+            patch.object(launcher, "read_state") as read,
+            patch.object(launcher, "run_update") as update,
+        ):
+            self.assertEqual(launcher.main(), 0)
+        read.assert_not_called()
+        update.assert_not_called()
+
     def test_corrupt_location_settings_are_shown_in_tk_without_state_probe(self):
         fake_tk = MagicMock()
         fake_ttk = MagicMock()
