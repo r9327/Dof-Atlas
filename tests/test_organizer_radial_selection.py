@@ -6,6 +6,7 @@ import unittest
 from app.pages.organizer.radial_selection import (
     confirmed_radial_target,
     selected_slice,
+    sector_layout,
     slice_count,
     visible_characters,
 )
@@ -72,6 +73,19 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
             {"hwnd": 12, "nom": "Alpha", "pid": 999, "character_key": "character:1"}
         ], 0))
         self.assertIsNone(confirmed_radial_target(snapshot, [], None))
+
+    def test_sector_layout_matches_hit_testing_and_covers_full_circle(self) -> None:
+        for count in (2, 3, 4, 6, 8):
+            with self.subTest(count=count):
+                sectors = sector_layout(count, label_radius=100)
+                self.assertEqual(len(sectors), count)
+                span = math.tau / count
+                self.assertAlmostEqual(sum(end - start for start, end, _, _ in sectors), math.tau)
+                for index, (start, end, x, y) in enumerate(sectors):
+                    self.assertAlmostEqual(end - start, span)
+                    self.assertAlmostEqual(math.hypot(x, y), 100)
+                    self.assertEqual(selected_slice(x, y, count), index)
+        self.assertEqual(sector_layout(0), [])
 
     def test_center_and_empty_selection_cancel(self) -> None:
         self.assertIsNone(selected_slice(0, 0, 8))
