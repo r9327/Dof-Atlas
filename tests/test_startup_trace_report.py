@@ -92,8 +92,39 @@ class StartupTraceReportTests(unittest.TestCase):
         self.assertEqual(segment["status"], "NO_5_PERCENT_ALERT")
         self.assertEqual(segment["p50_change_percent"], -20.0)
 
+    def test_p99_is_reported_without_overriding_p50_p95_gate(self) -> None:
+        def sample(durations: list[int]) -> list[str]:
+            return [
+                json.dumps({"session": str(i), "event": event, "t_ns": value})
+                for i, ns in enumerate(durations)
+                for event, value in (
+                    ("launcher_entry", 0), ("home_first_paint", ns * 1_000_000),
+                )
+            ]
+
+        baseline = sample([100, 100, 100, 100, 100])
+        candidate = sample([100, 100, 100, 100, 140])
+        summary = summarize(candidate)["segments"]["launcher_entry_to_home_first_paint"]
+        self.assertEqual(summary["p50_ms"], 100)
+        self.assertEqual(summary["p95_ms"], 140)
+        self.assertEqual(summary["p99_ms"], 140)
+        comparison = compare_traces(baseline, candidate)
+        result = comparison["segments"]["launcher_entry_to_home_first_paint"]
+        self.assertEqual(result["candidate_p99_ms"], 140)
+        self.assertEqual(result["p99_change_percent"], 40.0)
+        self.assertEqual(result["status"], "INVESTIGATE_OVER_5_PERCENT")
+
+        # P99 can exaggerate a single outlier; it must be a displayed metric,
+        # not a new source of automatic certification or a changed CI gate.
+        counters = summarize([json.dumps({
+            "session": str(i), "event": "download_archive_ready",
+            "network_bytes": n,
+        }) for i, n in enumerate((0, 1, 2, 3, 4))])
+        self.assertEqual(counters["completed_operation_counters"]["network_bytes"]["p99"], 4)
+
     def test_nearest_rank_p95(self) -> None:
         self.assertEqual(percentile([10, 20, 30, 40, 50], 95), 50)
+        self.assertEqual(percentile([10, 20, 30, 40, 50], 99), 50)
 
 
 if __name__ == "__main__":
