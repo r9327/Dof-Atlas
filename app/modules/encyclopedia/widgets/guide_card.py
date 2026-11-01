@@ -44,8 +44,11 @@ class GuideHomeColumns(QWidget):
         direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
         if self._columns_layout.direction() != direction:
             self._columns_layout.setDirection(direction)
-        # The maximum must be relaxed when panes stack on narrow screens.
+        # The maximum width is relaxed when the panes stack. Bound only the
+        # stacked navigation height: otherwise its stretch consumes a quarter
+        # of a short screen and pushes the Dofus cards below the fold.
         self._left.setMaximumWidth(295 if direction == QBoxLayout.LeftToRight else 16777215)
+        self._left.setMaximumHeight(220 if direction == QBoxLayout.TopToBottom else 16777215)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
