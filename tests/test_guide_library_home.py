@@ -229,9 +229,85 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertIsNotNone(web)
                     self.assertEqual(
                         web.visited_url.toString(),
-                        f"https://ganymede-app.com/guides/{source_id}",
+                        f"https://ganymede-app.com/guides/{source_id}?page=1&stepsPerPage=1",
                     )
                     self.assertEqual(dialog.objectName(), "GanymedeSourceReader")
+                    dialog.close()
+                    self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_source_online_reader_step_navigation_and_character_progress(self):
+        import sys
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+        from PySide6.QtWidgets import QSpinBox, QPushButton
+
+        class OfflineWeb(QLabel):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.visited_url = None
+
+            def setUrl(self, url):
+                self.visited_url = url
+
+        with tempfile.TemporaryDirectory() as directory:
+            progress_path = Path(directory) / "guide_progress.json"
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:7", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "dofus"
+                view.refresh_home()
+                item = view.home_metadata_list.item(0)
+                source = next(
+                    row for row in view.ganymede_listings
+                    if row.source_id == item.data(Qt.UserRole)
+                )
+                self.assertGreater(source.step_count, 2)
+                with patch.dict(sys.modules, {
+                    "PySide6.QtWebEngineWidgets": SimpleNamespace(
+                        QWebEngineView=OfflineWeb,
+                    ),
+                }), patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
+                    progress_path,
+                ):
+                    view._open_ganymede_source_item(item)
+                    dialog = view._ganymede_source_dialog
+                    web = dialog.findChild(OfflineWeb, "GanymedeSourceWebView")
+                    spinner = dialog.findChild(QSpinBox, "GanymedeSourceStepNumber")
+                    validate = dialog.findChild(
+                        QPushButton, "GanymedeSourceValidateStep"
+                    )
+                    self.assertEqual(spinner.value(), 1)
+                    self.assertTrue(validate.isEnabled())
+                    validate.click()
+                    progress = GuideProgressService(progress_path)
+                    step_id = f"ganymede_{source.source_id}_step_0001"
+                    self.assertTrue(progress.is_manual_step_completed(
+                        "character:7", f"ganymede_source_{source.source_id}", step_id,
+                    ))
+                    spinner.setValue(2)
+                    self.assertEqual(
+                        web.visited_url.toString(),
+                        f"https://ganymede-app.com/guides/{source.source_id}?page=2&stepsPerPage=1",
+                    )
+                    spinner.setValue(1)
+                    self.assertEqual(validate.text(), "Annuler la validation")
+                    validate.click()
+                    self.assertFalse(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7",
+                            f"ganymede_source_{source.source_id}",
+                            step_id,
+                        )
+                    )
                     dialog.close()
                     self.app.processEvents()
             finally:
