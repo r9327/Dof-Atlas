@@ -29,6 +29,9 @@ def visible_characters(
     found: list[dict[str, Any]] = []
     seen: set[int] = set()
     for session in sessions:
+        if not isinstance(session, Mapping):
+            # A malformed legacy/session cache must not crash the picker.
+            continue
         try:
             handle = int(session.get("hwnd", 0))
         except (TypeError, ValueError):
