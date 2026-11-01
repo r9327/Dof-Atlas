@@ -137,6 +137,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
         guides = [
             _guide("guide_complet", "aventure"),
             _guide("dofus_sylvestre", "aventure"),
+            _guide("alignement_bonta", "alignements"),
+            _guide("alignement_brakmar", "alignements"),
             *(_guide(guide_id, "dofus") for guide_id in manifest),
         ]
         provider = _Provider()
@@ -183,9 +185,14 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     source for source, atlas in ATLAS_EQUIVALENTS.items()
                     if atlas == "dofus_sylvestre"
                 )
-                self.assertEqual(len(ids_visible_as_links), 74)
+                self.assertEqual(len(ids_visible_as_links), 72)
+                # Alignments have their own Ganymède entrypoints in the left
+                # tree; the web-only metadata is correctly deduplicated.
+                alignment_sources = {2249, 2263}
                 self.assertEqual(
-                    ids_visible_as_links | native_ids | {sylvestre}, source_ids,
+                    ids_visible_as_links | native_ids
+                    | {sylvestre} | alignment_sources,
+                    source_ids,
                 )
                 self.assertTrue(ids_visible_as_links.isdisjoint(native_ids))
             finally:
@@ -412,8 +419,13 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(requested, ["guide_complet"])
                     alignments = view._category_nodes["alignements"]
                     requested.clear()
-                    view.library_categories.setCurrentItem(alignments.child(0))
-                    self.assertEqual(requested, ["alignement_bonta"])
+                    with patch.object(view, "_open_ganymede_source_item") as open_source:
+                        view.library_categories.setCurrentItem(alignments.child(0))
+                        self.assertEqual(requested, [])
+                        self.assertEqual(
+                            open_source.call_args.args[0].data(Qt.UserRole),
+                            2249,
+                        )
                     view.library_categories.setCurrentItem(view._category_nodes["dimensions"])
                     self.assertEqual(view.library_category, "dimensions")
                     self.assertGreater(view.home_metadata_list.count(), 0)
