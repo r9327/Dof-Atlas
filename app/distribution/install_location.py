@@ -134,10 +134,15 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         raise UpdateError("Installation existante incomplete; reparation necessaire")
 
     total = 0
+    # Only versioned runtime files belong on the new disk. Keep verified
+    # active/rollback slots and state, but do not recopy expendable archive
+    # downloads or quarantine of damaged slots (potentially many gigabytes).
+    # The entire original folder remains intact for recovery/resumable caches.
+    excluded = {".health", ".launcher.lock", "downloads", "quarantine"}
     for base, directories, names in os.walk(source, followlinks=False):
         where = Path(base)
-        directories[:] = [name for name in directories
-                          if not (where == source and name == ".health")]
+        if where == source:
+            directories[:] = [name for name in directories if name not in excluded]
         if any(_linked(where / name) for name in directories):
             raise UpdateError("Impossible de deplacer une installation contenant des liens")
         for name in names:
@@ -156,7 +161,7 @@ def relocate_runtime(target: Path, progress=None) -> Path:
 
     def ignore(directory, names):
         if Path(directory) == source:
-            return {name for name in names if name in (".health", ".launcher.lock")}
+            return set(names) & excluded
         return set()
 
     def copy_checked(src, dst):
