@@ -302,6 +302,98 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertFalse(target.exists())
                 self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
 
+    def test_link_inserted_between_scan_and_copy_is_rejected(self):
+        import shutil
+
+        for linked_directory in (False, True):
+            with self.subTest(linked_directory=linked_directory):
+                with tempfile.TemporaryDirectory() as temp:
+                    user = Path(temp) / "Data"
+                    source = user / "runtime"
+                    executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+                    executable.parent.mkdir(parents=True)
+                    payload = b"MZ!valid"
+                    executable.write_bytes(payload)
+                    (source / "state.json").write_text(json.dumps({
+                        "active": "v1", "previous": None, "pending": False,
+                        "entrypoint": "AtlasApp/AtlasApp.exe",
+                        "entrypoint_size": len(payload),
+                        "entrypoint_sha256": hashlib.sha256(payload).hexdigest(),
+                        "source_sha": "a" * 40,
+                    }), encoding="utf-8")
+                    late = source / ("late-folder" if linked_directory else "late-file")
+                    referent = executable.parent if linked_directory else executable
+                    try:
+                        late.symlink_to(referent, target_is_directory=linked_directory)
+                    except (OSError, NotImplementedError):
+                        self.skipTest("File/directory symlinks unavailable on host")
+                    late.unlink()  # First preflight sees no links.
+                    original = shutil.copytree
+                    called = []
+
+                    def inject_after_scan(src, dst, *args, **kwargs):
+                        if Path(src) == source:
+                            late.symlink_to(referent, target_is_directory=linked_directory)
+                            called.append(True)
+                        return original(src, dst, *args, **kwargs)
+
+                    target = Path(temp) / "OtherDisk" / "runtime"
+                    with (patch.object(loc, "APP_DATA", user),
+                          patch.object(loc, "_SETTINGS", user / "installation.json"),
+                          patch.object(loc, "DEFAULT_RUNTIME", source)):
+                        loc.set_runtime_root(source)
+                        with patch("shutil.copytree", side_effect=inject_after_scan):
+                            with self.assertRaisesRegex(UpdateError, "liens"):
+                                loc.relocate_runtime(target)
+                        self.assertTrue(called)
+                        self.assertEqual(loc.runtime_root(), source.resolve())
+                        self.assertEqual(executable.read_bytes(), payload)
+                        self.assertFalse(target.exists())
+                        self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
+
+    def test_link_appearing_after_copytree_preflight_cannot_be_activated(self):
+        import shutil
+
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp) / "Data"
+            source = user / "runtime"
+            executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+            executable.parent.mkdir(parents=True)
+            payload = b"MZ!valid"
+            executable.write_bytes(payload)
+            (source / "state.json").write_text(json.dumps({
+                "active": "v1", "previous": None, "pending": False,
+                "entrypoint": "AtlasApp/AtlasApp.exe",
+                "entrypoint_size": len(payload),
+                "entrypoint_sha256": hashlib.sha256(payload).hexdigest(),
+                "source_sha": "a" * 40,
+            }), encoding="utf-8")
+            # The source is valid throughout both scans. Emulate a new link
+            # discovered only in the private staging directory after copy.
+            original = shutil.copytree
+
+            def inject_staged_link(src, dst, *args, **kwargs):
+                result = original(src, dst, *args, **kwargs)
+                link = Path(dst) / "unsafe-late-link"
+                try:
+                    link.symlink_to(Path(dst) / "state.json")
+                except (OSError, NotImplementedError):
+                    self.skipTest("Symlinks unavailable on host")
+                return result
+
+            target = Path(temp) / "OtherDisk" / "runtime"
+            with (patch.object(loc, "APP_DATA", user),
+                  patch.object(loc, "_SETTINGS", user / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", source)):
+                loc.set_runtime_root(source)
+                with patch("shutil.copytree", side_effect=inject_staged_link):
+                    with self.assertRaisesRegex(UpdateError, "lien non autorise"):
+                        loc.relocate_runtime(target)
+                self.assertEqual(loc.runtime_root(), source.resolve())
+                self.assertEqual(executable.read_bytes(), payload)
+                self.assertFalse(target.exists())
+                self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
+
     def test_destination_collision_does_not_discard_current_installation(self):
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "current" / "runtime"
