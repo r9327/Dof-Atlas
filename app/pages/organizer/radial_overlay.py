@@ -40,6 +40,15 @@ def physical_key_held(keys: frozenset[int]) -> bool:
         return False
 
 
+def escape_pressed() -> bool:
+    if os.name != "nt" or os.environ.get("QT_QPA_PLATFORM", "").casefold() == "offscreen":
+        return False
+    try:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(0x1B) & 0x8000)
+    except (AttributeError, OSError, ValueError):
+        return False
+
+
 class OrganizerRadialOverlay(QWidget):
     def __init__(self) -> None:
         super().__init__(
@@ -205,6 +214,9 @@ class OrganizerRadialHoldController:
                     self.activate(handle)
             return
         if self._cancel_until_release:
+            return
+        if escape_pressed():
+            self.cancel()
             return
         if self._down:
             if self.overlay.isVisible():
