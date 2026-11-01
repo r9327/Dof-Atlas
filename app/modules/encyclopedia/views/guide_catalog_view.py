@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QListWidget,
-    QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QDialog, QFrame, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
+    QListWidgetItem, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
+from app.core.character_identity import is_character_key
 from app.ui.theme import PALETTE
 from app.ui.unity_skin import unity_enabled
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
+    ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -77,6 +79,7 @@ class GuideCatalogView(QWidget):
         self.guides = []
         self.visible_guides = []
         self.ganymede_listings = ()
+        self._ganymede_source_dialog = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -162,14 +165,16 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Autres guides répertoriés")
+        self.metadata_title = QLabel("Parcours Ganymède en ligne")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
         self.home_metadata_list.setObjectName("GuideLibraryUnavailableList")
-        # Metadata-only guides are informational, never clickable.
+        # Public source guides are readable on Ganymède, but their manual
+        # steps are not imported and must never affect Atlas progress.
         # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
         self.home_metadata_list.setAlternatingRowColors(False)
+        self.home_metadata_list.itemClicked.connect(self._open_ganymede_source_item)
         self.home_metadata_list.setMaximumHeight(148)
         # Keep the disabled metadata legible; unlike the default opaque Atlas
         # panel, the optional Unity skin leaves some of the sky visible.
@@ -264,6 +269,20 @@ class GuideCatalogView(QWidget):
             return False
         if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
             return False
+        # Bonta/Brâkmar must open their actual Ganymède route instead of
+        # displaying the old Atlas quest checklist. Keep the historic JSON
+        # untouched until those routes have a verified offline replacement.
+        if guide_id in {"alignement_bonta", "alignement_brakmar"}:
+            source = next(
+                (entry for entry in self.ganymede_listings
+                 if ATLAS_EQUIVALENTS.get(entry.source_id) == guide_id),
+                None,
+            )
+            if source is not None:
+                target = QListWidgetItem(source.title)
+                target.setData(Qt.UserRole, source.source_id)
+                self._open_ganymede_source_item(target)
+                return True
         self.current_guide_id = guide_id
         self.guideRequested.emit(guide_id)
         return True
@@ -447,15 +466,27 @@ class GuideCatalogView(QWidget):
         self.library_results_title.setText(dict(CATEGORIES).get(category, "Guides").upper())
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        # Source-only Ganymède entries remain informative and non-interactive.
+        # Hide only routes already opened from an Atlas native/source reader.
+        # Ganymède's 2-step Sylvan Dofus is distinct from the large preserved
+        # Atlas Sylvestre Opti: expose both, not a missing source or fake twin.
+        native = set(active_manual_catalog_sources(self.provider, self.guides))
+        linked_alignment_ids = {
+            guide_id for guide_id in ("alignement_bonta", "alignement_brakmar")
+            if guide_id in catalog_by_id
+        }
         entries = displayable_listings(
-            self.ganymede_listings, set(catalog_by_id), category, self.search_text,
+            self.ganymede_listings,
+            native | linked_alignment_ids,
+            category, self.search_text,
         )
         self.home_metadata_list.clear()
         for entry in entries:
-            item = QListWidgetItem(f"{entry.title} · non disponible")
-            item.setFlags(Qt.NoItemFlags)
-            item.setToolTip("Parcours non disponible actuellement.")
+            count = f" · {entry.step_count} étapes" if entry.step_count is not None else ""
+            item = QListWidgetItem(f"{entry.title}{count} · lire")
+            item.setToolTip(
+                "Ouvrir les étapes originales sur Ganymède dans Atlas. "
+                "La progression n'est pas synchronisée avec Atlas."
+            )
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
 
@@ -469,6 +500,179 @@ class GuideCatalogView(QWidget):
             self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
             self.home_empty.setVisible(not shown_guides and not has_metadata)
         self._sync_grid_columns()
+
+    def _open_ganymede_source_item(self, item: QListWidgetItem) -> None:
+        """Open public source steps in Atlas; store only user-approved step IDs."""
+        source_id = item.data(Qt.UserRole)
+        entry = next(
+            (row for row in self.ganymede_listings if row.source_id == source_id),
+            None,
+        )
+        if entry is None:
+            return
+        # The source inventory rejects forged paths and URL hosts up front.
+        source_url = QUrl(entry.source_url)
+        if (source_url.scheme() != "https"
+                or source_url.host() != "ganymede-app.com"
+                or source_url.path() != f"/guides/{entry.source_id}"):
+            return
+        if self._ganymede_source_dialog is not None:
+            self._ganymede_source_dialog.close()
+        dialog = QDialog(self)
+        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.setObjectName("GanymedeSourceReader")
+        dialog.setWindowTitle(f"Ganymède — {entry.title}")
+        dialog.resize(950, 700)
+        dialog.setMinimumSize(560, 400)
+        layout = QVBoxLayout(dialog)
+        notice = QLabel(
+            "Étapes officielles en ligne : contenu fourni par Ganymède. "
+            "Le suivi manuel des étapes est enregistré uniquement dans Atlas "
+            "pour le personnage actuellement sélectionné.",
+            dialog,
+        )
+        notice.setWordWrap(True)
+        layout.addWidget(notice)
+
+        browser = None
+        try:
+            from PySide6.QtWebEngineWidgets import QWebEngineView
+        except ImportError:
+            fallback = QLabel(
+                "Lecteur web intégré indisponible. "
+                "Le bouton « Navigateur » ouvre l'étape courante.",
+                dialog,
+            )
+            fallback.setWordWrap(True)
+        else:
+            browser = QWebEngineView(dialog)
+            browser.setObjectName("GanymedeSourceWebView")
+
+        count = entry.step_count if type(entry.step_count) is int and entry.step_count > 0 else 0
+        selected = str(self.current_character_key or "")
+        can_record = is_character_key(selected)
+        # Share the eventual native guide's stable identity where known.
+        # Never reuse an Atlas optimized guide's unrelated manual progress.
+        mapped_id = ATLAS_EQUIVALENTS.get(entry.source_id)
+        progress_id = (
+            mapped_id if mapped_id and mapped_id not in dict(FEATURED)
+            else f"ganymede_source_{entry.source_id}"
+        )
+        progress_service = GuideProgressService(GUIDE_PROGRESS_FILE) if can_record and count else None
+        checked = (
+            progress_service.manual_steps(selected, progress_id)
+            if progress_service is not None else set()
+        )
+        source_step_id = lambda n: f"ganymede_{entry.source_id}_step_{n:04d}"
+        current_page = [1]
+
+        def step_url(n: int) -> QUrl:
+            url = QUrl(source_url)
+            query = QUrlQuery()
+            query.addQueryItem("page", str(n))
+            query.addQueryItem("stepsPerPage", "1")
+            url.setQuery(query)
+            return url
+
+        def open_external() -> None:
+            QDesktopServices.openUrl(step_url(current_page[0]))
+
+        if count:
+            controls = QHBoxLayout()
+            previous_button = QPushButton("Précédent", dialog)
+            current_button = QPushButton("Actuelle", dialog)
+            number = QSpinBox(dialog)
+            number.setObjectName("GanymedeSourceStepNumber")
+            number.setRange(1, count)
+            number.setSuffix(f" / {count}")
+            next_button = QPushButton("Suivant", dialog)
+            validate_button = QPushButton("Valider l'étape", dialog)
+            validate_button.setObjectName("GanymedeSourceValidateStep")
+            validate_button.setEnabled(can_record)
+            for widget in (previous_button, current_button, number, next_button, validate_button):
+                controls.addWidget(widget)
+            layout.addLayout(controls)
+            progress_label = QLabel(dialog)
+            progress_label.setObjectName("GanymedeSourceProgress")
+            layout.addWidget(progress_label)
+
+            def first_unchecked() -> int:
+                return next(
+                    (n for n in range(1, count + 1) if source_step_id(n) not in checked),
+                    count,
+                )
+
+            def select_page(page: int) -> None:
+                page = max(1, min(count, page))
+                current_page[0] = page
+                previous_button.setEnabled(page > 1)
+                next_button.setEnabled(page < count)
+                if browser is not None:
+                    browser.setUrl(step_url(page))
+                done = sum(
+                    1 for n in range(1, count + 1)
+                    if source_step_id(n) in checked
+                )
+                is_done = source_step_id(page) in checked
+                validate_button.setText(
+                    "Annuler la validation" if is_done else "Valider l'étape"
+                )
+                progress_label.setText(
+                    f"{done} / {count} étapes validées"
+                    if can_record else
+                    "Choisir un personnage Atlas pour enregistrer la progression."
+                )
+
+            def toggle_step() -> None:
+                if progress_service is None:
+                    return
+                step_id = source_step_id(current_page[0])
+                completed = step_id not in checked
+                try:
+                    progress_service.set_manual_step_completed(
+                        selected, progress_id, step_id, completed,
+                    )
+                except (OSError, ValueError, RuntimeError) as exc:
+                    self.status_callback(f"Progression Ganymède non enregistrée : {exc}")
+                    return
+                if completed:
+                    checked.add(step_id)
+                else:
+                    checked.discard(step_id)
+                select_page(current_page[0])
+
+            number.valueChanged.connect(select_page)
+            previous_button.clicked.connect(
+                lambda: number.setValue(max(1, number.value() - 1))
+            )
+            next_button.clicked.connect(
+                lambda: number.setValue(min(count, number.value() + 1))
+            )
+            current_button.clicked.connect(lambda: number.setValue(first_unchecked()))
+            validate_button.clicked.connect(toggle_step)
+            start = first_unchecked()
+            number.setValue(start)
+            select_page(start)
+        elif browser is not None:
+            browser.setUrl(source_url)
+
+        open_browser = QPushButton("Navigateur", dialog)
+        open_browser.setObjectName("GanymedeSourceExternalButton")
+        open_browser.clicked.connect(open_external)
+        layout.addWidget(open_browser)
+        if browser is None:
+            layout.addWidget(fallback, 1)
+        else:
+            layout.addWidget(browser, 1)
+        self._ganymede_source_dialog = dialog
+        dialog.finished.connect(
+            lambda _result, source_dialog=dialog: self._clear_ganymede_source_dialog(source_dialog)
+        )
+        dialog.show()
+
+    def _clear_ganymede_source_dialog(self, dialog: QDialog) -> None:
+        if self._ganymede_source_dialog is dialog:
+            self._ganymede_source_dialog = None
 
     def _sync_grid_columns(self) -> None:
         """Fit whole cells to the real viewport, with no empty heading cell."""

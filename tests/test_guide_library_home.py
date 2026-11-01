@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QLabel, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -123,6 +123,232 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 # The two optimized routes retain their previous progress contract.
                 self.assertEqual(progress["guide_complet"], (0, 0, ""))
 
+    def test_source_library_exposes_all_95_without_replacing_optimized_guides(self):
+        from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+            active_manual_catalog_sources,
+        )
+        import json
+
+        base = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        manifest = json.loads((
+            base / "replacement_drafts" / "cutovers" / "cutover_manifest.json"
+        ).read_text(encoding="utf-8"))["guides"]
+        guides = [
+            _guide("guide_complet", "aventure"),
+            _guide("dofus_sylvestre", "aventure"),
+            _guide("alignement_bonta", "alignements"),
+            _guide("alignement_brakmar", "alignements"),
+            *(_guide(guide_id, "dofus") for guide_id in manifest),
+        ]
+        provider = _Provider()
+        provider.guides = guides
+        provider.guides_dir = base
+        provider._detail_entries = {
+            guide_id: (
+                base / "replacement_drafts" / "cutovers" / f"{guide_id}.json",
+                i, {},
+            )
+            for i, guide_id in enumerate(manifest)
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=provider,
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                self.assertEqual(set(view.featured_cards), {
+                    "guide_complet", "dofus_sylvestre",
+                })
+                self.assertEqual(
+                    len(active_manual_catalog_sources(provider, guides)), 20,
+                )
+                ids_visible_as_links = set()
+                for key, _label in CATEGORIES:
+                    view.library_category = key
+                    view.refresh_home()
+                    for i in range(view.home_metadata_list.count()):
+                        item = view.home_metadata_list.item(i)
+                        self.assertTrue(item.flags() & Qt.ItemIsEnabled)
+                        ids_visible_as_links.add(item.data(Qt.UserRole))
+
+                source_ids = {entry.source_id for entry in view.ganymede_listings}
+                native_ids = {
+                    row["source_guide_id"] for row in manifest.values()
+                }
+                # The short Ganymède Sylvan Dofus remains accessible
+                # independently from the large preserved Atlas Sylvestre Opti.
+                self.assertIn(2290, ids_visible_as_links)
+                self.assertEqual(len(ids_visible_as_links), 73)
+                # Alignments open through their existing left-tree entries.
+                alignment_sources = {2249, 2263}
+                self.assertEqual(
+                    ids_visible_as_links | native_ids | alignment_sources,
+                    source_ids,
+                )
+                self.assertTrue(ids_visible_as_links.isdisjoint(native_ids))
+            finally:
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_source_guide_click_opens_embedded_reader_without_network_during_test(self):
+        import sys
+
+        class FakeWebView(QLabel):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.visited_url = None
+
+            def setUrl(self, url):
+                self.visited_url = url
+
+        provider = _Provider()
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=provider,
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "dimensions"
+                view.refresh_home()
+                self.assertGreater(view.home_metadata_list.count(), 0)
+                item = view.home_metadata_list.item(0)
+                source_id = item.data(Qt.UserRole)
+                fake_module = SimpleNamespace(QWebEngineView=FakeWebView)
+                with patch.dict(sys.modules, {
+                    "PySide6.QtWebEngineWidgets": fake_module,
+                }):
+                    view._open_ganymede_source_item(item)
+                    dialog = view._ganymede_source_dialog
+                    self.assertIsNotNone(dialog)
+                    web = dialog.findChild(FakeWebView, "GanymedeSourceWebView")
+                    self.assertIsNotNone(web)
+                    self.assertEqual(
+                        web.visited_url.toString(),
+                        f"https://ganymede-app.com/guides/{source_id}?page=1&stepsPerPage=1",
+                    )
+                    self.assertEqual(dialog.objectName(), "GanymedeSourceReader")
+                    dialog.close()
+                    self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_source_online_reader_step_navigation_and_character_progress(self):
+        import sys
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+        from PySide6.QtWidgets import QSpinBox, QPushButton
+
+        class OfflineWeb(QLabel):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.visited_url = None
+
+            def setUrl(self, url):
+                self.visited_url = url
+
+        with tempfile.TemporaryDirectory() as directory:
+            progress_path = Path(directory) / "guide_progress.json"
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:7", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "dofus"
+                view.refresh_home()
+                item = view.home_metadata_list.item(0)
+                source = next(
+                    row for row in view.ganymede_listings
+                    if row.source_id == item.data(Qt.UserRole)
+                )
+                self.assertGreater(source.step_count, 2)
+                with patch.dict(sys.modules, {
+                    "PySide6.QtWebEngineWidgets": SimpleNamespace(
+                        QWebEngineView=OfflineWeb,
+                    ),
+                }), patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
+                    progress_path,
+                ):
+                    view._open_ganymede_source_item(item)
+                    dialog = view._ganymede_source_dialog
+                    web = dialog.findChild(OfflineWeb, "GanymedeSourceWebView")
+                    spinner = dialog.findChild(QSpinBox, "GanymedeSourceStepNumber")
+                    validate = dialog.findChild(
+                        QPushButton, "GanymedeSourceValidateStep"
+                    )
+                    self.assertEqual(spinner.value(), 1)
+                    self.assertTrue(validate.isEnabled())
+                    validate.click()
+                    progress = GuideProgressService(progress_path)
+                    step_id = f"ganymede_{source.source_id}_step_0001"
+                    mapped_id = ATLAS_EQUIVALENTS.get(source.source_id)
+                    progress_id = (
+                        mapped_id if mapped_id and mapped_id != "dofus_sylvestre"
+                        else f"ganymede_source_{source.source_id}"
+                    )
+                    self.assertTrue(progress.is_manual_step_completed(
+                        "character:7", progress_id, step_id,
+                    ))
+                    spinner.setValue(2)
+                    self.assertEqual(
+                        web.visited_url.toString(),
+                        f"https://ganymede-app.com/guides/{source.source_id}?page=2&stepsPerPage=1",
+                    )
+                    spinner.setValue(1)
+                    self.assertEqual(validate.text(), "Annuler la validation")
+                    validate.click()
+                    self.assertFalse(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7",
+                            progress_id,
+                            step_id,
+                        )
+                    )
+                    dialog.close()
+                    self.app.processEvents()
+                    # Ganymède Sylvan Dofus is a 2-step source, not the
+                    # separate large Atlas Sylvestre Opti progress namespace.
+                    source_row = next(
+                        i for i in range(view.home_metadata_list.count())
+                        if view.home_metadata_list.item(i).data(Qt.UserRole) == 2290
+                    )
+                    view._open_ganymede_source_item(
+                        view.home_metadata_list.item(source_row),
+                    )
+                    sylvan = view._ganymede_source_dialog
+                    sylvan_validate = sylvan.findChild(
+                        QPushButton, "GanymedeSourceValidateStep",
+                    )
+                    sylvan_validate.click()
+                    self.assertTrue(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", "ganymede_source_2290",
+                            "ganymede_2290_step_0001",
+                        )
+                    )
+                    self.assertFalse(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", "dofus_sylvestre",
+                            "ganymede_2290_step_0001",
+                        )
+                    )
+                    sylvan.close()
+                    self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_unity_catalog_inner_roots_and_featured_card_alpha(self):
         from unittest.mock import patch
 
@@ -220,13 +446,18 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(requested, ["guide_complet"])
                     alignments = view._category_nodes["alignements"]
                     requested.clear()
-                    view.library_categories.setCurrentItem(alignments.child(0))
-                    self.assertEqual(requested, ["alignement_bonta"])
+                    with patch.object(view, "_open_ganymede_source_item") as open_source:
+                        view.library_categories.setCurrentItem(alignments.child(0))
+                        self.assertEqual(requested, [])
+                        self.assertEqual(
+                            open_source.call_args.args[0].data(Qt.UserRole),
+                            2249,
+                        )
                     view.library_categories.setCurrentItem(view._category_nodes["dimensions"])
                     self.assertEqual(view.library_category, "dimensions")
                     self.assertGreater(view.home_metadata_list.count(), 0)
                     self.assertTrue(all(
-                        not (view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
+                        bool(view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
                         for i in range(view.home_metadata_list.count())
                     ))
                     alignments.setExpanded(False)
