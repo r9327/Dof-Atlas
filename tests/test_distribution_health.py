@@ -202,6 +202,77 @@ class WindowHealthTests(unittest.TestCase):
                 self.launch_with_process(root, process, [])
             self.assertFalse(list(health.iterdir()))
 
+    def test_runtime_migration_holds_both_existing_locks_until_copy_finishes(self):
+        root = Path("DofusAtlas-new-runtime")
+        launcher_lock = MagicMock()
+        instance = MagicMock()
+        instance.acquire.return_value = True
+        progress = MagicMock()
+
+        def copy_checked(target, *, progress=None):
+            self.assertEqual(target, root)
+            self.assertIs(progress, expected_progress)
+            launcher_lock.close.assert_not_called()
+            instance.release.assert_not_called()
+            return target
+
+        expected_progress = progress
+        with (
+            patch.object(launcher, "_run_lock", return_value=launcher_lock),
+            patch.object(launcher, "SingleInstanceGuard", return_value=instance),
+            patch.object(launcher, "relocate_runtime", side_effect=copy_checked) as copy,
+        ):
+            self.assertEqual(
+                launcher._relocate_runtime_safely(root, progress), root
+            )
+        copy.assert_called_once()
+        instance.acquire.assert_called_once()
+        instance.release.assert_called_once()
+        launcher_lock.close.assert_called_once()
+
+    def test_runtime_migration_refuses_live_gui_without_copying(self):
+        lock = MagicMock()
+        instance = MagicMock()
+        instance.acquire.return_value = False
+        with (
+            patch.object(launcher, "_run_lock", return_value=lock),
+            patch.object(launcher, "SingleInstanceGuard", return_value=instance),
+            patch.object(launcher, "relocate_runtime") as copy,
+        ):
+            with self.assertRaisesRegex(UpdateError, "Fermez Dofus Atlas"):
+                launcher._relocate_runtime_safely(Path("other"))
+        copy.assert_not_called()
+        instance.release.assert_not_called()
+        lock.close.assert_called_once()
+
+    def test_runtime_migration_releases_both_locks_on_interrupted_copy(self):
+        lock = MagicMock()
+        instance = MagicMock()
+        instance.acquire.return_value = True
+        with (
+            patch.object(launcher, "_run_lock", return_value=lock),
+            patch.object(launcher, "SingleInstanceGuard", return_value=instance),
+            patch.object(launcher, "relocate_runtime",
+                         side_effect=OSError("Interrupted drive")) as copy,
+        ):
+            with self.assertRaisesRegex(OSError, "Interrupted drive"):
+                launcher._relocate_runtime_safely(Path("unavailable"))
+        copy.assert_called_once()
+        instance.release.assert_called_once()
+        lock.close.assert_called_once()
+
+    def test_runtime_migration_refuses_busy_updater_before_gui_probe(self):
+        with (
+            patch.object(launcher, "_run_lock",
+                         side_effect=UpdateError("Dofus Atlas est deja en cours")),
+            patch.object(launcher, "SingleInstanceGuard") as instance,
+            patch.object(launcher, "relocate_runtime") as copy,
+        ):
+            with self.assertRaisesRegex(UpdateError, "deja en cours"):
+                launcher._relocate_runtime_safely(Path("another"))
+        instance.assert_not_called()
+        copy.assert_not_called()
+
     def test_live_atlas_refuses_rollback_download_or_second_launch(self):
         with tempfile.TemporaryDirectory() as location:
             guard = MagicMock()
