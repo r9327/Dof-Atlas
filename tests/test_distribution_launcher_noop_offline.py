@@ -1,6 +1,7 @@
 """Launcher no-op/offline behavior without a full CI or Windows GUI."""
 from __future__ import annotations
 
+import logging
 import socket
 import sys
 import tempfile
@@ -139,6 +140,37 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         ):
             result = launcher.main()
         return result, window
+
+    def test_logger_prefers_rotating_file_when_writable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            logger = MagicMock()
+            logger.handlers = []
+            file_handler = MagicMock()
+            with (
+                patch.object(launcher, "LOG_DIR", Path(temp) / "logs"),
+                patch.object(launcher.logging, "getLogger", return_value=logger),
+                patch.object(launcher, "RotatingFileHandler",
+                             return_value=file_handler) as create,
+            ):
+                self.assertIs(launcher._logger(), logger)
+            create.assert_called_once()
+            logger.addHandler.assert_called_once_with(file_handler)
+
+    def test_logger_does_not_block_startup_when_file_is_unwritable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            logger = MagicMock()
+            logger.handlers = []
+            with (
+                patch.object(launcher, "LOG_DIR", Path(temp) / "logs"),
+                patch.object(launcher.logging, "getLogger", return_value=logger),
+                patch.object(launcher, "RotatingFileHandler",
+                             side_effect=PermissionError("logs denied")),
+            ):
+                self.assertIs(launcher._logger(), logger)
+            logger.addHandler.assert_called_once()
+            self.assertIsInstance(
+                logger.addHandler.call_args.args[0], logging.NullHandler,
+            )
 
     def test_corrupt_location_settings_do_not_break_module_bootstrap(self):
         with tempfile.TemporaryDirectory() as temp:
