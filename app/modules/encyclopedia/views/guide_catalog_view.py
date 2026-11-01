@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QListWidget,
+    QDialog, QFrame, QLabel, QListView, QListWidget, QPushButton,
     QListWidgetItem, QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
@@ -77,6 +78,7 @@ class GuideCatalogView(QWidget):
         self.guides = []
         self.visible_guides = []
         self.ganymede_listings = ()
+        self._ganymede_source_dialog = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -162,14 +164,16 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Autres guides répertoriés")
+        self.metadata_title = QLabel("Parcours Ganymède en ligne")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
         self.home_metadata_list.setObjectName("GuideLibraryUnavailableList")
-        # Metadata-only guides are informational, never clickable.
+        # Public source guides are readable on Ganymède, but their manual
+        # steps are not imported and must never affect Atlas progress.
         # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
         self.home_metadata_list.setAlternatingRowColors(False)
+        self.home_metadata_list.itemClicked.connect(self._open_ganymede_source_item)
         self.home_metadata_list.setMaximumHeight(148)
         # Keep the disabled metadata legible; unlike the default opaque Atlas
         # panel, the optional Unity skin leaves some of the sky visible.
@@ -447,15 +451,22 @@ class GuideCatalogView(QWidget):
         self.library_results_title.setText(dict(CATEGORIES).get(category, "Guides").upper())
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        # Source-only Ganymède entries remain informative and non-interactive.
+        # Hide only routes that already have a source-backed native reader,
+        # plus Sylvestre Opti, which must remain unchanged. Legacy quest-only
+        # guides do not hide their actual source route from the library.
+        native = set(active_manual_catalog_sources(self.provider, self.guides))
         entries = displayable_listings(
-            self.ganymede_listings, set(catalog_by_id), category, self.search_text,
+            self.ganymede_listings, native | {"dofus_sylvestre"},
+            category, self.search_text,
         )
         self.home_metadata_list.clear()
         for entry in entries:
-            item = QListWidgetItem(f"{entry.title} · non disponible")
-            item.setFlags(Qt.NoItemFlags)
-            item.setToolTip("Parcours non disponible actuellement.")
+            count = f" · {entry.step_count} étapes" if entry.step_count is not None else ""
+            item = QListWidgetItem(f"{entry.title}{count} · lire")
+            item.setToolTip(
+                "Ouvrir les étapes originales sur Ganymède dans Atlas. "
+                "La progression n'est pas synchronisée avec Atlas."
+            )
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
 
@@ -469,6 +480,67 @@ class GuideCatalogView(QWidget):
             self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
             self.home_empty.setVisible(not shown_guides and not has_metadata)
         self._sync_grid_columns()
+
+    def _open_ganymede_source_item(self, item: QListWidgetItem) -> None:
+        """Display the original public guide on demand, without copying its text."""
+        source_id = item.data(Qt.UserRole)
+        entry = next(
+            (row for row in self.ganymede_listings if row.source_id == source_id),
+            None,
+        )
+        if entry is None:
+            return
+        # The Ganymède index loader validates the exact HTTPS URL for each ID.
+        source_url = QUrl(entry.source_url)
+        if (source_url.scheme() != "https"
+                or source_url.host() != "ganymede-app.com"
+                or source_url.path() != f"/guides/{entry.source_id}"):
+            return
+        if self._ganymede_source_dialog is not None:
+            self._ganymede_source_dialog.close()
+        dialog = QDialog(self)
+        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.setObjectName("GanymedeSourceReader")
+        dialog.setWindowTitle(f"Ganymède — {entry.title}")
+        dialog.resize(950, 700)
+        dialog.setMinimumSize(560, 400)
+        layout = QVBoxLayout(dialog)
+        notice = QLabel(
+            "Parcours original Ganymède (connexion requise). "
+            "Cette lecture n'enregistre pas les étapes dans Atlas.",
+            dialog,
+        )
+        notice.setWordWrap(True)
+        layout.addWidget(notice)
+        open_browser = QPushButton("Ouvrir aussi dans le navigateur", dialog)
+        open_browser.clicked.connect(
+            lambda checked=False, url=source_url: QDesktopServices.openUrl(url)
+        )
+        layout.addWidget(open_browser)
+        try:
+            from PySide6.QtWebEngineWidgets import QWebEngineView
+        except ImportError:
+            fallback = QLabel(
+                "Le lecteur web intégré n'est pas disponible. "
+                "Utilise le bouton ci-dessus pour lire le guide.",
+                dialog,
+            )
+            fallback.setWordWrap(True)
+            layout.addWidget(fallback, 1)
+        else:
+            browser = QWebEngineView(dialog)
+            browser.setObjectName("GanymedeSourceWebView")
+            browser.setUrl(source_url)
+            layout.addWidget(browser, 1)
+        self._ganymede_source_dialog = dialog
+        dialog.finished.connect(
+            lambda _result, source_dialog=dialog: self._clear_ganymede_source_dialog(source_dialog)
+        )
+        dialog.show()
+
+    def _clear_ganymede_source_dialog(self, dialog: QDialog) -> None:
+        if self._ganymede_source_dialog is dialog:
+            self._ganymede_source_dialog = None
 
     def _sync_grid_columns(self) -> None:
         """Fit whole cells to the real viewport, with no empty heading cell."""
