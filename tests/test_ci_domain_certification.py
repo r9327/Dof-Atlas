@@ -484,6 +484,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/distribution/file_clone.py",
             "app/distribution/cleanup.py",
             "app/distribution/install_location.py",
+            "app/distribution/setup.py",
+            "tests/test_distribution_setup.py",
             "tests/test_distribution_disk_space.py",
             "tests/test_distribution_smart_update.py",
             "tests/test_distribution_packaging.py",
@@ -499,6 +501,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         # Deliberately refuse not-yet-reviewed updater modules and tests.
         self.assertFalse(owners_for("app/distribution/unchecked_helper.py"))
         self.assertFalse(owners_for("tests/test_distribution_new_unchecked.py"))
+        self.assertFalse(owners_for("app/distribution/setup_unreviewed.py"))
         self.assertEqual(
             self.route(["app/distribution/unchecked_helper.py"])["status"],
             "BLOCKED",
