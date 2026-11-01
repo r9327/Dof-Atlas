@@ -175,6 +175,20 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         read.assert_not_called()
         update.assert_not_called()
 
+    def test_corrupt_location_direct_update_refuses_all_release_work(self):
+        with (
+            patch.object(launcher, "_LOCATION_ERROR", "Bad installation.json"),
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher, "latest_release") as fetch,
+            patch.object(launcher, "recover_data_packs_on_launch") as recover,
+            patch.object(launcher, "install_release") as install,
+        ):
+            with self.assertRaisesRegex(UpdateError, "Emplacement Atlas invalide"):
+                launcher.run_update(lambda *_: None)
+        fetch.assert_not_called()
+        recover.assert_not_called()
+        install.assert_not_called()
+
     def test_corrupt_location_settings_are_shown_in_tk_without_state_probe(self):
         fake_tk = MagicMock()
         fake_ttk = MagicMock()
