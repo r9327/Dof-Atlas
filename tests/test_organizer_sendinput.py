@@ -90,6 +90,20 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(down.call_args_list, [call(0x11), call(0x41)])
         up.assert_called_once_with(0x11)
 
+    def test_single_key_preserves_hold_exception_if_release_refused(self) -> None:
+        with (
+            patch.object(input_tools, "_vk", return_value=0x41),
+            patch.object(input_tools, "key_down") as down,
+            patch.object(input_tools.time, "sleep",
+                         side_effect=RuntimeError("hold interrupted")),
+            patch.object(input_tools, "key_up",
+                         side_effect=OSError("release refused")) as release,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "hold interrupted"):
+                input_tools.press_key("A", hold_ms=100)
+        down.assert_called_once_with(0x41)
+        release.assert_called_once_with(0x41)
+
     def test_original_sendinput_error_survives_release_error(self) -> None:
         with (
             patch.object(input_tools, "_vk", side_effect=[0x11, 0x41]),
