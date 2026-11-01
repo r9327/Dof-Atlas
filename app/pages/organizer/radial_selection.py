@@ -76,6 +76,32 @@ def sector_layout(count: int, label_radius: float = 96.0) -> list[tuple[float, f
     return layout
 
 
+def constrained_popup_center(
+    cursor_x: float,
+    cursor_y: float,
+    bounds: tuple[float, float, float, float],
+    radius: float,
+) -> tuple[float, float]:
+    """Keep the circular popup inside the selected screen's usable bounds.
+
+    The UI supplies the screen containing the cursor, its availableGeometry,
+    and a device-independent Qt radius. Negative multi-screen origins are valid.
+    """
+    left, top, width, height = (float(value) for value in bounds)
+    if width <= 0 or height <= 0:
+        return float(cursor_x), float(cursor_y)
+    edge = max(0.0, float(radius))
+    if width < edge * 2:
+        center_x = left + width / 2
+    else:
+        center_x = min(max(float(cursor_x), left + edge), left + width - edge)
+    if height < edge * 2:
+        center_y = top + height / 2
+    else:
+        center_y = min(max(float(cursor_y), top + edge), top + height - edge)
+    return center_x, center_y
+
+
 def selected_slice(dx: float, dy: float, count: int, dead_zone: float = 32.0) -> int | None:
     """Clockwise slots starting at 12 o'clock; None cancels at the centre."""
     if count <= 0:
