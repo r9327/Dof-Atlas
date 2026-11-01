@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import unittest
 
-from app.macros.mirror_plan import MirrorCapability, delivery_mode, mirror_targets
+from app.macros.mirror_plan import (
+    MirrorCapability, delivery_mode, mirror_delivery_targets, mirror_targets,
+)
 
 
 class OrganizerMirrorPlanTests(unittest.TestCase):
@@ -34,6 +36,28 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
         self.assertEqual(mirror_targets([101, 202], {202}, True), ())
         self.assertEqual(mirror_targets([101, 202], {202}, 999), ())
         self.assertEqual(mirror_targets([101, 202], {202}, -1), ())
+
+    def test_mirror_source_is_excluded_when_physical_click_passed_through(self) -> None:
+        targets = mirror_delivery_targets(
+            [101, 202, 303], {101, 202, 303}, 101,
+            source_was_consumed=False,
+        )
+        self.assertEqual(targets, (202, 303))
+
+    def test_mirror_includes_source_once_when_hook_suppressed_original(self) -> None:
+        targets = mirror_delivery_targets(
+            [101, 101, 202, 303], {202, 303}, 101,
+            source_was_consumed=True,
+        )
+        self.assertEqual(targets, (101, 202, 303))
+
+    def test_mirror_refuses_ambiguous_consumption_and_unregistered_source(self) -> None:
+        self.assertEqual(mirror_delivery_targets(
+            [101, 202], {202}, 101, source_was_consumed=None,
+        ), ())
+        self.assertEqual(mirror_delivery_targets(
+            [101, 202], {202}, 999, source_was_consumed=True,
+        ), ())
 
     def test_mirror_refuses_unreviewed_more_than_eight_clients(self) -> None:
         self.assertEqual(mirror_targets(range(1, 10), set(range(2, 10)), 1), ())
