@@ -513,6 +513,21 @@ def main() -> int:
     def worker():
         global ROOT
         try:
+            verify = "--atlas-verify-install" in sys.argv
+
+            def launch(guard: SingleInstanceGuard | None = None):
+                # Scoped to the Tk worker, never the headless maintenance path.
+                os.environ["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
+                try:
+                    if guard is None:
+                        run_update(report, verify_installation=verify)
+                    else:
+                        run_update(report, verify_installation=verify,
+                                   preacquired_instance=guard)
+                finally:
+                    os.environ.pop("DOFUS_ATLAS_LAUNCHER_HANDOFF", None)
+
+            migrated = False
             if choosing_install:
                 target = chosen_root["path"]
                 if target != ROOT:
@@ -522,15 +537,23 @@ def main() -> int:
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)
-                    ROOT = _relocate_runtime_safely(target, progress=moved)
+
+                    def continue_on_new_root(location: Path, guard: SingleInstanceGuard):
+                        global ROOT
+                        ROOT = location
+                        # Still hold the old root lock and GUI mutex until
+                        # run_update has acquired the new runtime lock.
+                        launch(guard)
+
+                    _relocate_runtime_safely(
+                        target, progress=moved,
+                        after_relocation=continue_on_new_root,
+                    )
+                    migrated = True
                 else:
                     set_runtime_root(ROOT)
-            # Scoped to the Tk worker, never the headless maintenance path.
-            os.environ["DOFUS_ATLAS_LAUNCHER_HANDOFF"] = "1"
-            try:
-                run_update(report, verify_installation="--atlas-verify-install" in sys.argv)
-            finally:
-                os.environ.pop("DOFUS_ATLAS_LAUNCHER_HANDOFF", None)
+            if not migrated:
+                launch()
             events.put(("done", 0))
         except Exception as exc:
             _logger().exception("Updater failed")
