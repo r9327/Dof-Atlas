@@ -644,7 +644,7 @@ def main() -> int:
                     finished = True
                     succeeded = False
                     status.set("Echec : " + str(payload))
-                    numeric.set("Journal : DofusAtlas/logs/updater.log")
+                    numeric.set("Journal si disponible : DofusAtlas/logs/updater.log")
                     if not updater_visible:
                         updater_visible = True
                         window.deiconify()
