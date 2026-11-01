@@ -156,3 +156,24 @@ Les **29 projets du tableau principal restent le contrat documentaire de la PR**
 | AT-SUP-05 | [Pydantic](https://github.com/pydantic/pydantic) | Contrats JSON et actions `tools/guide_action_contract.py` ; **DEFER** | Montrer une validation utile absente des dataclasses/contrats natifs ; sinon conserver les règles existantes et zéro import runtime |
 
 **Audit consolidé (Holding #60 et Atlas #312)** : la liaison `holding/atlas_doctor_runner.py` / `holding/atlas_doctor_evidence.py` doit être éprouvée en réel, **pas réimplémentée en MCP**. Les deux PR restent documentaires, leurs lots futurs sont `NOT_IMPLEMENTED`. Le suivi des exigences d'**implémentation effective** est distinct du dossier #311 et se trouve dans l'[issue Atlas #313](https://github.com/r9327/Dof-Atlas/issues/313) ; aucune de ses exigences code n'est déclarée accomplie. Une simple présence dans ce tableau ne vaut pas `TOOL_SPEC`, `READY` ou test d'exécution.
+
+## 8. Premier lot d'implémentation indépendant — 1er novembre 2026
+
+Le suivi d'intégration effective reste porté par **#313**, distinct de la présente
+PR documentaire. Le premier contrat limité est l'[issue #317](https://github.com/r9327/Dof-Atlas/issues/317)
+et son implémentation est la [PR #318](https://github.com/r9327/Dof-Atlas/pull/318)
+(Draft) : précontrôle local de candidats dans **`tools.tool_catalog`**.
+
+- Modes opt-in `--probe-package` et `--probe-binary`, résultat JSON, aucune
+  installation, exécution de binaire, import candidat ni connexion réseau.
+- Les versions et déclarations de licence provenant de métadonnées locales
+  restent **non vérifiées**. Un paquet détecté n'est pas approuvé, compatible,
+  ni automatiquement exploitable par Doctor.
+- Tests de sécurité et de compatibilité ajoutés dans cette PR de code, mais
+  exécution exacte-SHA, Doctor et certification **NOT_RUN** dans la session
+  de développement qui l'a créée.
+- **AT-L02 à AT-L09 et les outils tiers non encore éprouvés ne sont pas
+  implémentés** ; leur adoption dépend toujours de benchmarks et des PR
+  propriétaires. Aucun nouveau registre ou second benchmark n'a été créé.
+
+Ce lien de suivi ne change pas la portée documentaire de la PR #312.
