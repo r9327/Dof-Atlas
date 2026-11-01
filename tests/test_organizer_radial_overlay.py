@@ -236,6 +236,21 @@ class OrganizerRadialRosterTests(unittest.TestCase):
             [101, 102],
         )
 
+    def test_untracked_dofus_window_cannot_open_radial_picker(self):
+        page = Mock()
+        page.capture_target = None
+        page.sessions = [{"nom": "Panda", "hwnd": 101, "pid": 1001}]
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.windows.unity_windows.foreground_window", return_value=999),
+        ):
+            self.assertFalse(OrganizerPage._radial_can_open(page))
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+        ):
+            self.assertTrue(OrganizerPage._radial_can_open(page))
+
     def test_character_can_be_removed_from_radial_and_reenabled(self):
         page = Mock()
         page.profiles = {}
