@@ -19,7 +19,12 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_reviewed_organizer_files_get_strict_cross_domain_ownership(self):
         # Neither an unrelated macro nor a future native hook gets a free pass.
         cases = {
-            # Shared module: all existing consumers must stay in the plan.\n            "app/constants.py": {"craft", "quests", "guides", "ui",\n                                 "startup", "identity", "data", "organizer"},\n            "app/core/profile_settings.py": {"organizer", "ui",\n                                             "startup", "identity", "data"},\n            "app/macros/zaap.py": {"organizer", "ui", "identity"},
+            # Shared module: all existing consumers must stay in the plan.
+            "app/constants.py": {"craft", "quests", "guides", "ui",
+                                 "startup", "identity", "data", "organizer"},
+            "app/core/profile_settings.py": {"organizer", "ui",
+                                             "startup", "identity", "data"},
+            "app/macros/zaap.py": {"organizer", "ui", "identity"},
             "app/macros/direction.py": {"organizer", "ui", "identity"},
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
