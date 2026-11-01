@@ -26,9 +26,12 @@ def known_guide_participants(
         key for row in available_characters
         if is_character_key(key := getattr(row, "key", ""))
     }
-    return tuple(
+    # Saved selections can repeat a stable character after legacy UI merges.
+    # Normalize only this untrusted selection boundary; explicit navigation
+    # APIs still reject duplicate keys instead of silently rewriting input.
+    return tuple(dict.fromkeys(
         key for key in selected_keys if is_character_key(key) and key in available
-    )
+    ))
 
 
 @dataclass(frozen=True, slots=True)
