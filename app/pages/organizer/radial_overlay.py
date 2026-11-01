@@ -181,11 +181,12 @@ class OrganizerRadialHoldController:
         self._timer = QTimer(parent)
         self._timer.setInterval(interval_ms)
         self._timer.timeout.connect(self.poll)
-        self._timer.start()
+        # No polling cost at all until the user assigns a shortcut.
 
     def set_shortcut(self, text: str) -> bool:
         self.cancel()
         self.keys = frozenset()
+        self._timer.stop()
         # Rebinding is not a cancelled hold: the next deliberate press
         # should work immediately after the old shortcut is released.
         self._cancel_until_release = False
@@ -196,6 +197,8 @@ class OrganizerRadialHoldController:
         if spec is None or error:
             return False
         self.keys = spec.keys
+        if self.keys:
+            self._timer.start()
         return True
 
     def cancel(self) -> None:
