@@ -287,6 +287,34 @@ class WindowHealthTests(unittest.TestCase):
         gui_guard.release.assert_called_once()
         new_lock.close.assert_called_once()
 
+    def test_migration_handoff_error_releases_source_locks(self):
+        old_lock = MagicMock()
+        guard = MagicMock()
+        guard.acquire.return_value = True
+
+        def failed_continuation(location, held_guard):
+            self.assertEqual(location, Path("new-runtime"))
+            self.assertIs(held_guard, guard)
+            old_lock.close.assert_not_called()
+            raise UpdateError("Destination updater unavailable")
+
+        with (
+            patch.object(launcher, "_run_lock", return_value=old_lock),
+            patch.object(launcher, "SingleInstanceGuard", return_value=guard),
+            patch.object(launcher, "relocate_runtime", return_value=Path("new-runtime")),
+            patch.object(launcher, "record_startup_event") as trace,
+        ):
+            with self.assertRaisesRegex(UpdateError, "Destination updater unavailable"):
+                launcher._relocate_runtime_safely(
+                    Path("new-runtime"), after_relocation=failed_continuation
+                )
+        self.assertEqual(
+            [entry.args[0] for entry in trace.call_args_list],
+            ["install_relocation_begin", "install_relocation_committed"],
+        )
+        guard.release.assert_called_once()
+        old_lock.close.assert_called_once()
+
     def test_runtime_migration_refuses_live_gui_without_copying(self):
         lock = MagicMock()
         instance = MagicMock()
