@@ -12,6 +12,7 @@ from app.constants import (
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
+    KEY_SWITCH_MOVEMENT,
 )
 from app.storage import invoke_compatible_callback, key_sequence_to_hotkey, profile_bool
 from .common import SESSION_SLOT_COUNT, client_slot_hotkey_key
@@ -22,6 +23,14 @@ class OrganizerHotkeysMixin:
         self.set_profile_bool(key, not profile_bool(self.profiles, key, False))
 
     def set_profile_bool(self, key: str, value: bool) -> None:
+        radial_key = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        if key == KEY_SWITCH_MOVEMENT and value and radial_key in {
+            "HOME", "DELETE", "END", "PAGEDOWN"
+        }:
+            self.status_callback(
+                "Switch Déplacement incompatible avec la touche du camembert."
+            )
+            return
         self.profiles[key] = bool(value)
         self.save_profiles(self.profiles)
         self.export_client_index()
@@ -200,6 +209,13 @@ class OrganizerHotkeysMixin:
                 return
             self.profiles[client_slot_hotkey_key(slot_index)] = hotkey
         elif kind == "radial":
+            if hotkey in {"HOME", "DELETE", "END", "PAGEDOWN"} and profile_bool(
+                self.profiles, KEY_SWITCH_MOVEMENT, False
+            ):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Touche déjà utilisée par Switch Déplacement.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             existing_global = self.global_hotkey_owner(hotkey)
             if existing_global and existing_global != "Sélection personnage":
