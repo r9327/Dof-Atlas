@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QLabel, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -189,6 +189,53 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 )
                 self.assertTrue(ids_visible_as_links.isdisjoint(native_ids))
             finally:
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_source_guide_click_opens_embedded_reader_without_network_during_test(self):
+        import sys
+
+        class FakeWebView(QLabel):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                self.visited_url = None
+
+            def setUrl(self, url):
+                self.visited_url = url
+
+        provider = _Provider()
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=provider,
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "dimensions"
+                view.refresh_home()
+                self.assertGreater(view.home_metadata_list.count(), 0)
+                item = view.home_metadata_list.item(0)
+                source_id = item.data(Qt.UserRole)
+                fake_module = SimpleNamespace(QWebEngineView=FakeWebView)
+                with patch.dict(sys.modules, {
+                    "PySide6.QtWebEngineWidgets": fake_module,
+                }):
+                    view._open_ganymede_source_item(item)
+                    dialog = view._ganymede_source_dialog
+                    self.assertIsNotNone(dialog)
+                    web = dialog.findChild(FakeWebView, "GanymedeSourceWebView")
+                    self.assertIsNotNone(web)
+                    self.assertEqual(
+                        web.visited_url.toString(),
+                        f"https://ganymede-app.com/guides/{source_id}",
+                    )
+                    self.assertEqual(dialog.objectName(), "GanymedeSourceReader")
+                    dialog.close()
+                    self.app.processEvents()
+            finally:
+                view.close()
                 view.deleteLater()
                 self.app.processEvents()
 
