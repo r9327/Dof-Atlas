@@ -9,6 +9,27 @@ import math
 from typing import Collection, Mapping, Any
 
 
+def radial_roster_key(session: Mapping[str, Any]) -> str:
+    """A verified character ID when known, otherwise a process-local identity.
+
+    The fallback includes PID to avoid selecting a different client after a
+    window handle is recycled. It intentionally requires re-selection after
+    reopening an unverified game client.
+    """
+    verified = str(session.get("character_key") or "").strip()
+    if verified.startswith("character:") and len(verified) > len("character:"):
+        return verified
+    name = " ".join(str(session.get("nom") or "").strip().casefold().split())
+    try:
+        pid = int(session.get("pid") or 0)
+        hwnd = int(session.get("hwnd") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if not name or hwnd <= 0:
+        return ""
+    return f"unverified:{name}:{pid if pid > 0 else hwnd}"
+
+
 def visible_characters(
     sessions: Collection[Mapping[str, Any]],
     included_handles: Collection[int],
