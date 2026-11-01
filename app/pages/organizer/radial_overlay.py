@@ -173,6 +173,9 @@ class OrganizerRadialHoldController:
     def set_shortcut(self, text: str) -> bool:
         self.cancel()
         self.keys = frozenset()
+        # Rebinding is not a cancelled hold: the next deliberate press
+        # should work immediately after the old shortcut is released.
+        self._cancel_until_release = False
         if not text:
             return True
         from app.input.hotkeys import parse_hotkey
