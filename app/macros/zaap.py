@@ -35,6 +35,9 @@ class ZaapMacro:
     def run_async(self, text: str, click_position=None, click_ratios=None) -> bool:
         del click_position, click_ratios  # Legacy callback compatibility only.
         command = str(text or "").replace("\r", " ").replace("\n", " ").strip()
+        if parse_zaap_command(command) is None:
+            self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
+            return False
         return self.runtime._spawn_macro("Auto zaap", lambda: self._run(command))
 
     def _run(self, command: str) -> None:
