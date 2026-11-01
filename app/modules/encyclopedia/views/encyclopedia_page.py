@@ -25,6 +25,9 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
     build_related_encyclopedia_data,
 )
+from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+    active_manual_catalog_sources, manual_source_completed_count,
+)
 from app.modules.encyclopedia.services.lazy_progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     GUIDE_PROGRESS_FILE,
@@ -681,13 +684,33 @@ class EncyclopediaPage(QWidget):
         ).completed_quest_ids(character_key)
         result: dict[str, tuple[int, int, str]] = {}
         compact_quest_ids = getattr(guide_provider, "progress_quest_ids_for", None)
+        guides = list(guide_provider.load_all())
+        manual_routes = active_manual_catalog_sources(guide_provider, guides)
+        if manual_routes:
+            from app.modules.encyclopedia.services.guide_progress_service import (
+                GuideProgressService,
+            )
+            manual_progress = GuideProgressService(GUIDE_PROGRESS_FILE)
+        else:
+            manual_progress = None
 
-        for guide in guide_provider.load_all():
+        for guide in guides:
             if guide.id == GUIDE_SUCCESS_CATALOG_ID:
                 # Building the manual route costs more than the Guide catalogue.
                 # Its exact sheet progress is filled on the first explicit open,
                 # never while the player is only waiting for the Guide home.
                 result[guide.id] = (0, 0, "")
+                continue
+            if guide.id in manual_routes and manual_progress is not None:
+                source_id, total = manual_routes[guide.id]
+                done = manual_source_completed_count(
+                    manual_progress, character_key, guide.id, source_id, total,
+                )
+                state = (
+                    "Choisir un personnage" if not character_key
+                    else cls._guide_progress_state(done, total)
+                )
+                result[guide.id] = (done, total, state)
                 continue
 
             raw_ids = (
