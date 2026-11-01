@@ -139,6 +139,36 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             result = launcher.main()
         return result, window
 
+    def test_corrupted_install_state_stays_in_single_error_window(self):
+        """Never offer a fresh installation or mutate a corrupted runtime."""
+        for argv in (["DofusAtlas.exe"], ["DofusAtlas.exe", "--atlas-configure"]):
+            with self.subTest(argv=argv):
+                fake_tk = MagicMock()
+                fake_ttk = MagicMock()
+                fake_tk.IntVar.side_effect = _Variable
+                fake_tk.StringVar.side_effect = _Variable
+                window = fake_tk.Tk.return_value
+                window.after.side_effect = lambda _delay, callback: callback()
+                with (
+                    patch.dict(sys.modules, {"tkinter": fake_tk, "tkinter.ttk": fake_ttk}),
+                    patch.object(sys, "argv", argv),
+                    patch.object(launcher, "read_state",
+                                 side_effect=UpdateError("Broken installation state")),
+                    patch.object(launcher, "_relocate_runtime_safely") as migrate,
+                    patch.object(launcher, "set_runtime_root") as select,
+                    patch.object(launcher, "run_update") as update,
+                    patch.object(launcher, "_logger", return_value=MagicMock()) as log,
+                    patch.object(launcher.threading, "Thread", _ImmediateThread),
+                ):
+                    self.assertEqual(launcher.main(), 1)
+                migrate.assert_not_called()
+                select.assert_not_called()
+                update.assert_not_called()
+                fake_tk.filedialog.askdirectory.assert_not_called()
+                log.return_value.exception.assert_called_once()
+                window.deiconify.assert_called_once()
+                window.withdraw.assert_called_once()
+
     def test_same_release_uses_one_launcher_window_until_home(self):
         status = [
             ("Verification des mises a jour...", 5),
