@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
 from uuid import uuid4
 from typing import Any, Iterable
@@ -40,9 +41,12 @@ def _guide_compact_source_signature(guides_dir: Path = GUIDES_DIR) -> list[list[
         try:
             stat = path.stat()
         except OSError:
-            signature.append([path.name, -1, -1])
+            signature.append([path.name, -1, -1, -1, -1])
             continue
-        signature.append([path.name, int(stat.st_size), int(stat.st_mtime_ns)])
+        signature.append([
+            path.name, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return signature
 
 
@@ -73,15 +77,53 @@ def ensure_guide_compact_cache(
     """Build Guide summaries during preload so Guide open only reads compact rows."""
 
     if _guide_compact_cache_valid(path, guides_dir=guides_dir):
-        count = 0
+        # A matching source signature proves only the header is current.
+        # Reuse requires complete, unique Guide rows and their entity indexes.
         try:
             with path.open("r", encoding="utf-8") as stream:
+                meta = json.loads(stream.readline())
+                expected = meta.get("guide_count")
+                expected_indexes = meta.get("entity_index_count")
+                if (type(expected) is not int or expected <= 0
+                        or type(expected_indexes) is not int or expected_indexes < 0):
+                    raise ValueError("Guide compact cache has no verified row counts")
+                guide_ids: set[str] = set()
+                indexed_ids: set[str] = set()
                 for line in stream:
-                    if '"kind":"guide"' in line:
-                        count += 1
-        except OSError:
-            return 0
-        return count
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    if not isinstance(row, dict) or row.get("kind") not in (
+                        "guide", "entity_index",
+                    ):
+                        raise ValueError("Unexpected Guide compact cache row")
+                    value = row.get("value")
+                    if not isinstance(value, dict):
+                        raise ValueError("Malformed Guide compact cache value")
+                    if row["kind"] == "guide":
+                        guide_id = value.get("id")
+                        target = guide_ids
+                    else:
+                        guide_id = value.get("guide_id")
+                        target = indexed_ids
+                        keys = value.get("entity_keys")
+                        if (not isinstance(keys, list)
+                                or any(
+                                    not isinstance(key, list) or len(key) != 2
+                                    or not isinstance(key[0], str) or not key[0]
+                                    or type(key[1]) is not int or key[1] <= 0
+                                    for key in keys
+                                )):
+                            raise ValueError("Malformed Guide entity relation")
+                    if not isinstance(guide_id, str) or not guide_id or guide_id in target:
+                        raise ValueError("Missing or duplicate Guide compact cache ID")
+                    target.add(guide_id)
+                if (len(guide_ids) == expected
+                        and len(indexed_ids) == expected_indexes
+                        and indexed_ids.issubset(guide_ids)):
+                    return len(guide_ids)
+        except (OSError, UnicodeError, ValueError, TypeError):
+            pass  # Disposable cache: fall through to the canonical rebuild.
     if bool(getattr(sys, "frozen", False)):
         return 0
     completed = subprocess.run(
@@ -207,6 +249,11 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._progress_quest_ids_by_guide: dict[str, tuple[int, ...]] = {}
         self._detail_cache_id = ""
         self._detail_cache: Guide | None = None
+        # Bounded recent relations: avoid decoding the entire compact JSONL
+        # when a Quest detail repeatedly asks about the same Guide links.
+        self._fast_quest_relation_stamp: tuple[str, int, int, int, int] | None = None
+        self._fast_quest_relation_cache: OrderedDict[int, tuple[str, ...]] = OrderedDict()
+        self._entity_query_cache_stamp: tuple[int, int, int, int] | None = None
 
     def release_detail_cache(self) -> None:
         self._detail_cache_id = ""
@@ -223,12 +270,18 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._by_entity = defaultdict(list)
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
+        self._fast_quest_relation_stamp = None
+        self._fast_quest_relation_cache = OrderedDict()
+        self._entity_query_cache_stamp = None
         self.validation_errors = []
 
     def reload(self) -> list[Guide]:
         self.release_detail_cache()
+        self._fast_quest_relation_stamp = None
+        self._fast_quest_relation_cache = OrderedDict()
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
+        self._entity_query_cache_stamp = None
         return super().reload()
 
     def get_by_id(self, guide_id: str) -> Guide | None:
@@ -268,9 +321,27 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         if not _guide_compact_cache_valid(path, guides_dir=self.guides_dir):
             return None
         wanted_id = int(quest_id)
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        stamp = (str(path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+        cache = getattr(self, "_fast_quest_relation_cache", None)
+        if cache is None:
+            cache = OrderedDict()
+            self._fast_quest_relation_cache = cache
+        if getattr(self, "_fast_quest_relation_stamp", None) != stamp:
+            cache.clear()
+            self._fast_quest_relation_stamp = stamp
+        elif wanted_id in cache:
+            cache.move_to_end(wanted_id)
+            return cache[wanted_id]
         available: set[str] = set()
         indexed: set[str] = set()
         matches: set[str] = set()
+        expected_guides: int | None = None
+        expected_indexes: int | None = None
+        meta_seen = False
         try:
             with path.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
@@ -282,8 +353,23 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                     row = json.loads(line)
                     if not isinstance(row, dict):
                         return None
-                    if row.get("kind") not in ("guide", "entity_index"):
+                    if row.get("kind") == "meta":
+                        if meta_seen:
+                            return None
+                        meta_seen = True
+                        # Schema-2 header signatures alone cannot prove that
+                        # the body survived a cleanly truncated cache write.
+                        # Never turn an incomplete index into an empty relation.
+                        count = row.get("guide_count")
+                        index_count = row.get("entity_index_count")
+                        if (type(count) is not int or count <= 0
+                                or type(index_count) is not int or index_count < 0):
+                            return None
+                        expected_guides = count
+                        expected_indexes = index_count
                         continue
+                    if not meta_seen or row.get("kind") not in ("guide", "entity_index"):
+                        return None
                     if not isinstance(row.get("value"), dict):
                         return None
                     value = row["value"]
@@ -315,57 +401,135 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                         matches.add(guide_id)
         except (OSError, UnicodeError, ValueError, TypeError):
             return None
-        if not available or not indexed.issubset(available):
+        if (not meta_seen or not available or not indexed.issubset(available)
+                or (expected_guides is not None and len(available) != expected_guides)
+                or (expected_indexes is not None and len(indexed) != expected_indexes)):
             return None
-        return tuple(sorted(matches))
+        # Do not retain a result if a concurrent rebuild changed the file
+        # during the scan. The next call must revalidate that generation.
+        try:
+            final_stat = path.stat()
+        except OSError:
+            return None
+        if (final_stat.st_size, final_stat.st_mtime_ns,
+                final_stat.st_ctime_ns, final_stat.st_ino) != stamp[1:]:
+            cache.clear()
+            self._fast_quest_relation_stamp = None
+            return None
+        result = tuple(sorted(matches))
+        cache[wanted_id] = result
+        cache.move_to_end(wanted_id)
+        if len(cache) > 64:
+            cache.popitem(last=False)
+        return result
 
     def get_guides_for_entity(self, entity_type: str, entity_id: int) -> list[Guide]:
         self._ensure_loaded()
         wanted_type = str(entity_type)
         wanted_id = int(entity_id)
         key = (wanted_type, wanted_id)
+        if (not bool(getattr(self, "include_drafts", False))
+                and not bool(getattr(self, "_building_compact_cache", False))):
+            # A memoized negative (or positive) relation must never survive a
+            # different compact generation. Cache hits do no JSON decoding;
+            # a single stat is enough to notice an atomic writer replacement.
+            try:
+                generation_stat = GUIDE_COMPACT_CACHE.stat()
+                generation = (
+                    generation_stat.st_size, generation_stat.st_mtime_ns,
+                    generation_stat.st_ctime_ns, generation_stat.st_ino,
+                )
+            except OSError:
+                generation = None
+            if getattr(self, "_entity_query_cache_stamp", None) != generation:
+                self._by_entity.clear()
+                self._entity_query_cache_stamp = generation
         if key in self._by_entity:
-            return list(self._by_entity[key])
+            matches = self._by_entity[key]
+            if not bool(getattr(self, "_building_compact_cache", False)):
+                # Insertion-order eviction is FIFO unless cache hits refresh
+                # recency. Keep frequently opened entity links in the 64 cap.
+                self._by_entity.pop(key)
+                self._by_entity[key] = matches
+            return list(matches)
 
-        if _guide_compact_cache_valid(
-            GUIDE_COMPACT_CACHE,
-            guides_dir=self.guides_dir,
-        ):
-            matches: list[Guide] = []
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                for raw_line in stream:
-                    line = raw_line.strip()
-                    # Entity rows can be much richer than the Guide home rows.
-                    # Do not even json-decode them until an entity navigation asks.
-                    if not line or '"kind":"entity_index"' not in line:
-                        continue
-                    row = json.loads(line)
-                    if not isinstance(row, dict) or row.get("kind") != "entity_index":
-                        continue
-                    value = row.get("value")
-                    if not isinstance(value, dict):
-                        continue
-                    raw_keys = value.get("entity_keys")
-                    if not isinstance(raw_keys, list):
-                        continue
-                    if not any(
-                        isinstance(raw_key, list)
-                        and len(raw_key) == 2
-                        and str(raw_key[0] or "") == wanted_type
-                        and safe_int(raw_key[1]) == wanted_id
-                        for raw_key in raw_keys
-                    ):
-                        continue
-                    guide = self._by_id.get(str(value.get("guide_id") or ""))
-                    if guide is not None:
-                        matches.append(guide)
-            matches = sorted(
-                matches,
-                key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
-            )
-            self._remember_entity_query(key, matches)
-            return matches
-
+        if (not bool(getattr(self, "include_drafts", False))
+                and _guide_compact_cache_valid(
+                    GUIDE_COMPACT_CACHE,
+                    guides_dir=self.guides_dir,
+                )):
+            try:
+                # The signature check precedes the reader. Pin its current
+                # generation so another Atlas worker cannot silently replace
+                # the JSONL while we build and memoize one relation.
+                before = GUIDE_COMPACT_CACHE.stat()
+                generation = (
+                    before.st_size, before.st_mtime_ns,
+                    before.st_ctime_ns, before.st_ino,
+                )
+                matches: list[Guide] = []
+                indexed_ids: set[str] = set()
+                expected_indexes: int | None = None
+                with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+                    for raw_line in stream:
+                        line = raw_line.strip()
+                        if not line:
+                            continue
+                        if '"kind":"meta"' in line:
+                            meta = json.loads(line)
+                            count = meta.get("entity_index_count") if isinstance(meta, dict) else None
+                            if (expected_indexes is not None or type(count) is not int
+                                    or count < 0):
+                                raise ValueError("Guide entity index metadata malformed")
+                            expected_indexes = count
+                            continue
+                        # Entity rows are much richer than Guide home rows.
+                        # Avoid decoding unrelated summaries on navigation.
+                        if '"kind":"entity_index"' not in line:
+                            continue
+                        row = json.loads(line)
+                        if not isinstance(row, dict) or row.get("kind") != "entity_index":
+                            raise ValueError("Guide entity index row malformed")
+                        value = row.get("value")
+                        if not isinstance(value, dict):
+                            raise ValueError("Guide entity index value malformed")
+                        guide_id = value.get("guide_id")
+                        raw_keys = value.get("entity_keys")
+                        if (not isinstance(guide_id, str) or not guide_id
+                                or guide_id not in self._by_id or guide_id in indexed_ids
+                                or not isinstance(raw_keys, list)):
+                            raise ValueError("Guide entity index incomplete or duplicated")
+                        indexed_ids.add(guide_id)
+                        if any(
+                            not isinstance(raw_key, list) or len(raw_key) != 2
+                            or not isinstance(raw_key[0], str) or not raw_key[0]
+                            or type(raw_key[1]) is not int or raw_key[1] <= 0
+                            for raw_key in raw_keys
+                        ):
+                            raise ValueError("Guide entity keys malformed")
+                        if any(
+                            raw_key[0] == wanted_type and raw_key[1] == wanted_id
+                            for raw_key in raw_keys
+                        ):
+                            matches.append(self._by_id[guide_id])
+                if expected_indexes is None or expected_indexes != len(indexed_ids):
+                    raise ValueError("Guide entity index truncated")
+                after = GUIDE_COMPACT_CACHE.stat()
+                if (after.st_size, after.st_mtime_ns,
+                        after.st_ctime_ns, after.st_ino) != generation:
+                    raise ValueError("Guide entity index changed during lookup")
+                matches = sorted(
+                    matches,
+                    key=lambda guide: (guide.order, normalize_text(guide.title), guide.id),
+                )
+                self._remember_entity_query(key, matches)
+                return matches
+            except (OSError, UnicodeError, ValueError, TypeError) as exc:
+                # An atomic cache replacement may race this reader. Do not
+                # retain a partial result; use the existing source fallback.
+                logging.getLogger(__name__).warning(
+                    "Guide compact entity index unreadable; source fallback: %s", exc,
+                )
         matches: list[Guide] = []
         for guide_id in tuple(self._by_id):
             detail = self.get_by_id(guide_id)
@@ -428,18 +592,34 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
     def _load(self) -> None:
         default_guides_dir = Path(GUIDES_DIR).resolve(strict=False)
         current_guides_dir = Path(self.guides_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_guides_dir != default_guides_dir:
+        if current_guides_dir != default_guides_dir or self.include_drafts:
+            # A compact cache signed for the default published catalogue
+            # excludes draft guides. Never hide drafts requested by a caller.
             self._load_in_process()
             return
         if _guide_compact_cache_valid(
             GUIDE_COMPACT_CACHE,
             guides_dir=self.guides_dir,
         ):
-            self._load_from_compact_cache()
+            try:
+                # A packaged EXE benefits from the same lightweight summaries:
+                # do not parse the full Guide source graph just because frozen.
+                self._load_from_compact_cache()
+                return
+            except (OSError, UnicodeError, ValueError, RuntimeError) as exc:
+                logging.getLogger(__name__).warning(
+                    "Guide compact cache rejected; rebuilding from sources: %s", exc,
+                )
+        if bool(getattr(sys, "frozen", False)):
+            # No python -m child is available from a frozen executable.
+            self._load_in_process()
             return
         self._load_from_compact_subprocess()
 
     def _load_from_compact_cache(self) -> None:
+        # Detect an atomic cache replacement between validation and install.
+        first = GUIDE_COMPACT_CACHE.stat()
+        generation = (first.st_size, first.st_mtime_ns, first.st_ctime_ns, first.st_ino)
         entries = self._guide_entries()
         entry_by_file = {
             path.name: (path, order, dict(catalog_entry))
@@ -449,6 +629,10 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
         self._detail_entries = {}
         self._progress_quest_ids_by_guide = {}
         with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            meta = json.loads(stream.readline())
+            expected = meta.get("guide_count") if isinstance(meta, dict) else None
+            if type(expected) is not int or expected <= 0:
+                raise RuntimeError("Cache compact Guide sans nombre de guides vérifiable")
             for raw_line in stream:
                 line = raw_line.strip()
                 # Cache schema 2 keeps heavy entity indexes on separate lines.
@@ -470,8 +654,12 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
                 summaries.append(guide)
                 self._detail_entries[guide.id] = entry
                 self._progress_quest_ids_by_guide[guide.id] = self._progress_quest_ids_from_row(value)
-        if not summaries:
-            raise RuntimeError("Cache compact Guide vide")
+        if (not summaries or len(summaries) != expected
+                or len(self._detail_entries) != expected):
+            raise RuntimeError("Cache compact Guide tronqué ou avec des guides dupliqués")
+        final = GUIDE_COMPACT_CACHE.stat()
+        if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != generation:
+            raise RuntimeError("Cache compact Guide remplacé pendant le chargement")
         self._install_summaries(summaries, {})
 
     def _load_from_compact_subprocess(self) -> None:
@@ -801,12 +989,15 @@ class MemoryBoundGuideProvider(IndexedGuideProvider):
 
 
 def _build_compact_guide_cache(path: Path) -> int:
+    source_generation = _guide_compact_source_signature(GUIDES_DIR)
     provider = MemoryBoundGuideProvider(
         guides_dir=GUIDES_DIR,
         dofus_item_provider=_CompactGuideNoopItemProvider(),
     )
     provider._building_compact_cache = True
     provider._load_in_process()
+    if _guide_compact_source_signature(GUIDES_DIR) != source_generation:
+        raise RuntimeError("Guide sources changed during compact-cache build")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     # All Atlas instances can rebuild this shared source cache concurrently.
@@ -827,36 +1018,48 @@ def _build_compact_guide_cache(path: Path) -> int:
         for linked_guide in linked_guides:
             entity_keys_by_guide[str(linked_guide.id)].add(entity_key)
 
-    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-        stream.write(
-            line(
-                {
-                    "kind": "meta",
-                    "schema_version": _GUIDE_COMPACT_SCHEMA,
-                    "source_signature": _guide_compact_source_signature(GUIDES_DIR),
-                }
-            )
-        )
-        for guide in provider._guides:
-            entity_keys = entity_keys_by_guide.get(str(guide.id), set())
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
             stream.write(
                 line(
                     {
-                        "kind": "guide",
-                        "value": _summary_payload(guide),
+                        "kind": "meta",
+                        "schema_version": _GUIDE_COMPACT_SCHEMA,
+                        "source_signature": source_generation,
+                        "guide_count": len(provider._guides),
+                        "entity_index_count": sum(
+                            bool(entity_keys_by_guide.get(str(guide.id)))
+                            for guide in provider._guides
+                        ),
                     }
                 )
             )
-            if entity_keys:
+            for guide in provider._guides:
+                entity_keys = entity_keys_by_guide.get(str(guide.id), set())
                 stream.write(
                     line(
                         {
-                            "kind": "entity_index",
-                            "value": _entity_index_payload(guide.id, entity_keys),
+                            "kind": "guide",
+                            "value": _summary_payload(guide),
                         }
                     )
                 )
-    temporary.replace(path)
+                if entity_keys:
+                    stream.write(
+                        line(
+                            {
+                                "kind": "entity_index",
+                                "value": _entity_index_payload(guide.id, entity_keys),
+                            }
+                        )
+                    )
+        if _guide_compact_source_signature(GUIDES_DIR) != source_generation:
+            raise RuntimeError("Guide sources changed before compact-cache publication")
+        temporary.replace(path)
+    finally:
+        # Large Guide JSONL cache writers must not leak partial generations
+        # after a disk error; the previous complete cache stays readable.
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {"guide_count": len(provider._guides), "path": str(path)},
@@ -920,22 +1123,19 @@ def _build_manual_runtime_compact_cache_in_worker() -> int:
 
 
 def _ensure_compact_guide_cache_cli() -> int:
-    count = 0
-    if _guide_compact_cache_valid(GUIDE_COMPACT_CACHE, guides_dir=GUIDES_DIR):
-        try:
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                count = sum(1 for line in stream if '"kind":"guide"' in line)
-        except OSError:
-            count = 0
-    else:
-        build_code = _build_compact_guide_cache(GUIDE_COMPACT_CACHE)
-        if int(build_code) != 0:
-            return int(build_code)
-        try:
-            with GUIDE_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                count = sum(1 for line in stream if '"kind":"guide"' in line)
-        except OSError:
-            count = 0
+    # Use the same validated source signature, row cardinality and entity
+    # relation checks as regular preload. A syntactically plausible partial
+    # JSONL cache must not become "ready" through this CLI entry point.
+    count = ensure_guide_compact_cache()
+    if count <= 0 and bool(getattr(sys, "frozen", False)):
+        # Preserve the old in-process recovery when Python -m cannot launch
+        # from a frozen executable. Never attempt a nested Python child.
+        code = int(_build_compact_guide_cache(GUIDE_COMPACT_CACHE) or 0)
+        if code != 0:
+            return code
+        count = ensure_guide_compact_cache()
+    if count <= 0:
+        raise RuntimeError("Guide compact cache unavailable after ensure")
 
     manual_count = _build_manual_runtime_compact_cache_in_worker()
     print(
@@ -950,7 +1150,6 @@ def _ensure_compact_guide_cache_cli() -> int:
         )
     )
     return 0
-
 
 if __name__ == "__main__" and _ENSURE_COMPACT_CACHE_FLAG in sys.argv:
     raise SystemExit(_ensure_compact_guide_cache_cli())

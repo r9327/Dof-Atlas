@@ -33,6 +33,10 @@ from benchmark_phase8_preload import (
 )
 from benchmark_phase8_memory import PeakTreeSampler, memory_snapshot
 from benchmark_atlas_exhaustive import CpuRssSampler, EventLoopLag
+from tools.atlas_doctor_lib.ram_inventory import (
+    ROUTE_CHECKPOINTS, ram_ownership_snapshot, ram_checkpoints_summary,
+    ram_scope_status,
+)
 
 # Inventory is intentionally explicit: a new menu entry must receive a review
 # instead of disappearing silently from the benchmark.
@@ -42,10 +46,10 @@ ROUTES: tuple[tuple[str, str, str, str, bool], ...] = (
     ("guide", "encyclopedia", "GUIDES", "Quetes", False),
     ("quests", "encyclopedia", "QUESTS", "Quetes", False),
     ("achievements", "encyclopedia", "ACHIEVEMENTS", "Quetes", False),
-    ("dungeons", "encyclopedia", "DONJONS", "Quetes", False),
-    ("monsters", "encyclopedia", "MONSTRES", "Quetes", False),
-    ("archmonsters", "encyclopedia", "ARCHIMONSTRES", "Quetes", False),
-    ("wanted", "encyclopedia", "AVIS DE RECHERCHE", "Quetes", False),
+    ("dungeons", "encyclopedia", "DONJONS", "Quetes", True),
+    ("monsters", "encyclopedia", "MONSTRES", "Quetes", True),
+    ("archmonsters", "encyclopedia", "ARCHIMONSTRES", "Quetes", True),
+    ("wanted", "encyclopedia", "AVIS DE RECHERCHE", "Quetes", True),
     ("crafts", "tools", "Crafts", "Craft", False),
     ("world_map", "tools", "Map monde", "Scan Monde", False),
     ("treasure_hunt", "tools", "Chasse au trésor", "Placeholder::Chasse au trésor", True),
@@ -58,6 +62,46 @@ ROUTES: tuple[tuple[str, str, str, str, bool], ...] = (
     ("tutorials", "placeholder", "Tutoriels", "Placeholder::Tutoriels", True),
     ("dofus_noob", "placeholder", "Dofus Noob", "Placeholder::Dofus Noob", True),
 )
+
+def startup_domain_breakdown(payload: object) -> dict[str, object]:
+    """Attribute the exact launcher warmup to source domain workers.
+
+    This is not reconstructed from a generic .cache timestamp: the calling
+    window already validates the session token, so stale/foreign measurements
+    never masquerade as evidence for this launch.
+    """
+    if not isinstance(payload, dict) or payload.get("status") != "ready":
+        return {"status": "UNAVAILABLE", "domains": {}}
+    raw = payload.get("domains")
+    if not isinstance(raw, dict):
+        return {"status": "UNAVAILABLE", "domains": {}}
+    domains: dict[str, object] = {}
+    for domain in ("guide", "quest", "success"):
+        info = raw.get(domain)
+        if not isinstance(info, dict):
+            continue
+        elapsed = info.get("elapsed_ms")
+        if type(elapsed) not in (int, float) or elapsed < 0:
+            continue
+        domains[domain] = {
+            "mode": str(info.get("mode") or "unknown"),
+            "elapsed_ms": float(elapsed),
+            "worker_elapsed_ms": float(info.get("worker_elapsed_ms") or 0),
+            "timings_ms": {
+                str(name): float(value)
+                for name, value in (
+                    info.get("timings_ms") if isinstance(info.get("timings_ms"), dict)
+                    else {}
+                ).items()
+                if isinstance(name, str) and type(value) in (int, float) and value >= 0
+            },
+        }
+    return {
+        "status": "OBSERVED" if len(domains) == 3 else "PARTIAL",
+        "warmup_elapsed_ms": float(payload.get("elapsed_ms") or 0),
+        "domains": domains,
+    }
+
 
 def assert_inventory(routes: tuple[tuple[str, str, str, str, bool], ...] = ROUTES) -> None:
     ids = [row[0] for row in routes]
@@ -98,8 +142,29 @@ def open_route(app: QApplication, window: Any, entry: tuple[str, str, str, str, 
     if widget is None:
         raise RuntimeError(f"{key}: missing real Qt page")
     is_placeholder = widget.objectName() == "PlaceholderPage"
+    if group == "encyclopedia" and label in {
+        "DONJONS", "MONSTRES", "ARCHIMONSTRES", "AVIS DE RECHERCHE",
+    }:
+        # Bestiary has a real Encyclopedia shell but a placeholder inner tab.
+        # A navigation-only census must not call it a functional module.
+        tabs = getattr(widget, "tabs", None)
+        inner = tabs.currentWidget() if tabs is not None else None
+        is_placeholder = (
+            inner is not None
+            and inner.objectName() == "EncyclopediaUnavailableBestiary"
+        )
     if is_placeholder != placeholder:
         raise RuntimeError(f"{key}: placeholder classification mismatch")
+
+def home_handoff_ready(window: Any) -> bool:
+    """Observe the actual Quest→Home gate, not a benchmark-forced show()."""
+    states = getattr(window, "preload_states", {})
+    return bool(
+        isinstance(states, dict)
+        and states.get("quests") in {"READY", "FAILED"}
+        and getattr(window, "_home_revealed", False)
+    )
+
 
 def summarize_revisits(rows: list[dict[str, Any]], cycles: int) -> dict[str, Any]:
     """Describe cold/warm timings and observed Home drift, without calling it a leak."""
@@ -159,7 +224,7 @@ def pin_single_cpu_core() -> dict[str, int]:
 
 def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         cycles: int = 3, idle_seconds: float = 0.0,
-        one_core: bool = False) -> dict[str, Any]:
+        one_core: bool = False, ram_forensics: bool = False) -> dict[str, Any]:
     assert_inventory()
     if (not 5 <= timeout <= 45 or not 120 <= max_seconds <= 1800
             or cycles not in (1, 2, 3, 5, 10) or not 0 <= idle_seconds <= 120):
@@ -174,26 +239,36 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     sampler = PeakTreeSampler()
     cpu = CpuRssSampler()
     app = QApplication.instance() or QApplication([])
+    profiler = None
+    if ram_forensics:
+        from tools.atlas_doctor_lib.ram_forensics import RamForensics
+        profiler = RamForensics(ROOT)
     report: dict[str, Any] = {
         "schema": 2, "kind": "atlas_quick_full_app_navigation",
         "git_head": git_head(), "qt_platform": os.environ["QT_QPA_PLATFORM"],
         "cycles": cycles, "planned_samples": len(ROUTES) * cycles,
         "home_stabilization_wait_ms": 750, "idle_seconds_requested": idle_seconds,
         "is_certification": False, "one_core_requested": one_core,
+        "ram_forensics_enabled": ram_forensics,
+        "timing_comparable": not ram_forensics,
         "expected_routes": [x[0] for x in ROUTES],
-        "routes": [], "preload_states": {}, "measurement_limits": [
+        "routes": [], "preload_states": {}, "ram_ownership_checkpoints": [],
+        "measurement_limits": [
             "Qt offscreen is not a GPU/FPS/real desktop validation",
             "Visible placeholder pages are checked as navigation, not working features",
             "One character and one Atlas process; not 8 Dofus clients",
             "Each screen is checked for real navigation/ready state, not all internal functions",
             "Runner is not a constrained low-end PC",
             "Short post-Home idle observations do not prove a native Qt memory leak",
+            "Home handoff is a Qt readiness gate; benchmark-forced show() does not prove a real first desktop paint",
         ]
     }
     window = None
     try:
         if one_core:
             report["cpu_affinity"] = pin_single_cpu_core()
+        if profiler is not None:
+            profiler.start()
         sampler.set_phase("startup")
         sampler.start()
         cpu.start()
@@ -212,12 +287,29 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         preload_cpu_started = time.process_time()
         preload_lag = EventLoopLag()
         preload_lag.start()
+        report["home_handoff_ms_from_constructor"] = None
+
+        def observe_preload() -> bool:
+            if report["home_handoff_ms_from_constructor"] is None and home_handoff_ready(window):
+                report["home_handoff_ms_from_constructor"] = round(
+                    (time.perf_counter() - born) * 1000, 2,
+                )
+            return preload_terminal(window)
+
         try:
-            wait_until(app, lambda: preload_terminal(window), timeout=min(90.0, max_seconds / 3),
+            wait_until(app, observe_preload, timeout=min(90.0, max_seconds / 3),
                        label="functional preload", poll_seconds=0.025)
+            observe_preload()
         finally:
             report["preload_qt"] = preload_lag.stop()
+        report["home_handoff_status"] = (
+            "OBSERVED_GATE_ONLY" if report["home_handoff_ms_from_constructor"] is not None
+            else "NOT_OBSERVED"
+        )
         report["preload_ms"] = round((time.perf_counter() - preload_start) * 1000, 2)
+        report["preload_domain_breakdown"] = startup_domain_breakdown(
+            app_main._startup_cache_warmup_payload()
+        )
         report["preload_cpu_ms"] = round((time.process_time() - preload_cpu_started) * 1000, 2)
         report["preload_cpu_rss"] = cpu.get("preload")
         report["preload_states"] = {str(k): str(v) for k, v in window.preload_states.items()}
@@ -239,6 +331,12 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                                     and all(v == "READY" for v in report["preload_states"].values())
                                     else "FAIL")
         report["after_preload"] = memory_snapshot("quick_after_preload")
+        if profiler is not None:
+            profiler.capture("initial_home")
+        report["ram_ownership_checkpoints"].append({
+            "label": "initial_home", "memory": report["after_preload"],
+            "ownership": ram_ownership_snapshot(window, "initial_home"),
+        })
 
         for cycle in range(1, cycles + 1):
             for entry in ROUTES:
@@ -271,6 +369,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                     row["qt"] = lag.stop()
                     row["cpu_rss"] = cpu.get(phase)
                     row["active"] = memory_snapshot("quick_active")
+                    if profiler is not None and cycle == 1 and route_id in ROUTE_CHECKPOINTS:
+                        profiler.capture(f"{route_id}_active")
                     home_at = time.perf_counter()
                     home_cpu_at = time.process_time()
                     try:
@@ -285,6 +385,17 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         row["home_stabilized"] = memory_snapshot("quick_home_stabilized")
                         if window.active_page_name() != "Home":
                             raise RuntimeError("Home not active after settling")
+                        if cycle == 1 and route_id in ROUTE_CHECKPOINTS:
+                            if profiler is not None:
+                                profiler.capture(f"{route_id}_after_home")
+                            # RSS is captured *before* enumerating Qt widgets.
+                            report["ram_ownership_checkpoints"].append({
+                                "label": f"{route_id}_home_after_first",
+                                "memory": row["home_stabilized"],
+                                "ownership": ram_ownership_snapshot(
+                                    window, f"{route_id}_home_after_first"
+                                ),
+                            })
                     except Exception as exc:
                         row["status"] = "FAIL"
                         row["home_error"] = f"{type(exc).__name__}: {exc}"[:350]
@@ -293,6 +404,20 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
                         row["return_home_cpu_ms"] = round((time.process_time() - home_cpu_at) * 1000, 2)
                     report["routes"].append(row)
         report["revisit_comparison"] = summarize_revisits(report["routes"], cycles)
+        final_home_memory = next(
+            (row["home_stabilized"] for row in reversed(report["routes"])
+             if "home_stabilized" in row), None,
+        )
+        if isinstance(final_home_memory, dict):
+            if profiler is not None:
+                profiler.capture("last_home")
+            report["ram_ownership_checkpoints"].append({
+                "label": "last_home", "memory": final_home_memory,
+                "ownership": ram_ownership_snapshot(window, "last_home"),
+            })
+        report["ram_ownership_summary"] = ram_checkpoints_summary(
+            report["ram_ownership_checkpoints"]
+        )
         # A longer idle observation is separate from the fast 750ms post-route
         # snapshot, and never presented as evidence of a native-memory leak.
         if idle_seconds:
@@ -320,6 +445,8 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
     except Exception as exc:
         report["fatal"] = f"{type(exc).__name__}: {exc}"[:600]
     finally:
+        if profiler is not None:
+            report["ram_forensics"] = profiler.finish()
         cpu.close()
         sampler.stop()
         if window is not None:
@@ -345,6 +472,10 @@ def run(*, output: Path, timeout: float = 18.0, max_seconds: float = 540.0,
         report["placeholder_pass"] = sum(r["status"] == "PLACEHOLDER" for r in report["routes"])
         report["failed_routes"] = [f"{r['id']}:cycle{r.get('cycle', '?')}" for r in report["routes"] if r["status"] == "FAIL"]
         report.setdefault("revisit_comparison", summarize_revisits(report["routes"], cycles))
+        report["ram_scope"] = ram_scope_status()
+        # Functional benchmark PASS never implies all 50 forensic RAM audits
+        # (or real GUI/Windows heap attribution) have been completed.
+        report["ram_audit_complete"] = False
         report["last_home_stabilized"] = next(
             (r["home_stabilized"] for r in reversed(report["routes"])
              if "home_stabilized" in r), None,
@@ -366,10 +497,12 @@ def main() -> int:
     parser.add_argument("--cycles", type=int, choices=(1, 2, 3, 5, 10), default=3)
     parser.add_argument("--idle-seconds", type=float, default=0.0)
     parser.add_argument("--one-core", action="store_true")
+    parser.add_argument("--ram-forensics", action="store_true",
+                        help="Profilage Python tracemalloc en session isolee; timings non comparables.")
     args = parser.parse_args()
     report = run(output=args.output, timeout=args.timeout, max_seconds=args.max_seconds,
                  cycles=args.cycles, idle_seconds=args.idle_seconds,
-                 one_core=args.one_core)
+                 one_core=args.one_core, ram_forensics=args.ram_forensics)
     print(json.dumps({k: report.get(k) for k in (
         "status", "git_head", "cycles", "preload_ms", "preload_states", "functional_pass",
         "placeholder_pass", "failed_routes", "fatal", "peak_process_tree_rss_mib",

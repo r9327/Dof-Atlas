@@ -21,7 +21,12 @@ def resolve_asset_path(asset_path: str | None) -> Path | None:
 
 
 def ensure_placeholder_asset() -> Path:
-    PLACEHOLDER_PATH.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        PLACEHOLDER_PATH.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Read-only installs must still render a safe in-memory Qt fallback.
+        # load_map_pixmap already handles an unreadable/missing file path.
+        return PLACEHOLDER_PATH
     if PLACEHOLDER_PATH.exists():
         return PLACEHOLDER_PATH
 

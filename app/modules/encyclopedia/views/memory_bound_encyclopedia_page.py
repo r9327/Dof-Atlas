@@ -176,7 +176,19 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             if callable(clear):
                 clear()
 
+    def _prune_finished_runtime_threads(self) -> None:
+        """Drop finished worker references as soon as Encyclopedia goes Home.
+
+        A Home exit may be the final runtime transition in the session, so
+        pruning only on the next worker launch retained completed handles
+        unnecessarily. Never discard live workers: shell close still joins.
+        """
+        threads = getattr(self, "_runtime_threads", None)
+        if isinstance(threads, list):
+            threads[:] = [thread for thread in threads if thread.is_alive()]
+
     def _release_runtime_providers(self) -> bool:
+        self._prune_finished_runtime_threads()
         if bool(getattr(self, "_achievement_load_started", False)) or bool(
             getattr(self, "_related_preload_started", False)
         ):

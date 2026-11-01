@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import AchievementProgressService, GuideProgressService
 from app.modules.encyclopedia.views.deferred_achievement_guides_view import DeferredAchievementGuidesView
+from app.modules.encyclopedia.views.guides_view import atlas_icon
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualCard,
     SharedGuideManualView,
@@ -43,6 +44,22 @@ class _VerifiedSoloParticipant:
     def save_selected_keys(self, values):
         return tuple(values)
 
+
+class GuideFallbackIconCacheTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # This test validates a 20px icon, not the full Doduda Success tree.
+        # A focused CI runner intentionally has no source achievement JSON.
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_guide_reward_fallback_icon_is_shared_and_bounded(self) -> None:
+        first = atlas_icon("item")
+        second = atlas_icon("item")
+        self.assertIs(first, second)
+        self.assertFalse(first.isNull())
+        for value in ("quest", "dungeon", "combat", "step", "solo", "group", "tactical", "drop"):
+            self.assertFalse(atlas_icon(value).isNull())
+        self.assertLessEqual(atlas_icon.cache_info().currsize, 16)
 
 class LanyelSharedManualUiTests(unittest.TestCase):
     @classmethod

@@ -83,8 +83,6 @@ jobs:
           Copy-Item -LiteralPath "tools/benchmark_phase8_preload.py" -Destination $runner -Force
           Write-Host "Benchmark runner copied to $runner"
 
-          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $catalog = "data/cache/dofus_maps/raw/doduda_cli"
           if (Test-Path -LiteralPath $catalog) {
             Remove-Item -LiteralPath $catalog -Recurse -Force

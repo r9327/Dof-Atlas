@@ -78,6 +78,9 @@ class _LightAchievementsView(AchievementsView):
         self._achievement_rendering_batch = False
         self._achievement_initializing = False
         self._detail_open = False
+        self._detail_generation = 0
+        self._detail_requested = None
+        self._detail_worker_running = False
 
         self._achievement_batch_timer = QTimer(self)
         self._achievement_batch_timer.setSingleShot(True)
@@ -97,6 +100,8 @@ def _achievement(ident: int, name: str):
         name=name,
         level=ident % 200,
         points=5,
+        category_id=1,
+        subcategory_id=None,
         search_text=name.casefold().replace(" ", "_"),
     )
 
@@ -150,6 +155,33 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertTrue(view._achievement_rows_dirty)
             self.assertTrue(bool(view.list_widget.item(1).data(COMPLETED_ROLE)))
             self.assertFalse(bool(view.list_widget.item(0).data(COMPLETED_ROLE)))
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_repeated_refresh_preserves_deferred_success_batches(self) -> None:
+        view = self._view(150)
+        try:
+            view.refresh()
+            snapshot_generation = view._achievement_render_generation
+            pending = tuple(view._achievement_pending_rows)
+            view.refresh()  # Re-entrant update before the first visible frame.
+            self.assertEqual(view._achievement_render_generation, snapshot_generation)
+            self.assertEqual(tuple(view._achievement_pending_rows), pending)
+
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            visible = view.list_widget.count()
+            self.assertGreater(visible, 0)
+            self.assertTrue(view._achievement_pending_rows)
+            view.refresh()  # Activation without any filter/category change.
+            self.assertEqual(view._achievement_render_generation, snapshot_generation)
+            self.assertEqual(view.list_widget.count(), visible)
+            self.assertGreater(len(view._achievement_pending_rows), 0)
         finally:
             view.close()
             view.deleteLater()
@@ -217,6 +249,39 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
                 if int(view.list_widget.item(row).data(Qt.UserRole)) == 61
             )
             self.assertTrue(bool(item_61.data(COMPLETED_ROLE)))
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_deep_link_does_not_materialize_offscreen_success_rows(self) -> None:
+        from unittest.mock import Mock
+
+        view = self._view(150)
+        try:
+            view._tree_items = {}
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            before = view.list_widget.count()
+            self.assertLess(before, 150)
+
+            detail = Mock()
+            view.show_achievement = detail
+            self.assertTrue(view.select_achievement(150))
+            detail.assert_called_once_with(150)
+            self.assertEqual(view._achievement_pending_selected_id, 150)
+            self.assertEqual(view.list_widget.count(), before)
+            self.assertTrue(view._achievement_pending_rows)
+
+            # A later normal list batch can still restore selection without
+            # re-opening the already shown detail.
+            while view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 150)
+            detail.assert_called_once_with(150)
         finally:
             view.close()
             view.deleteLater()

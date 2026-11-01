@@ -21,6 +21,9 @@ on:
       skip_preflight_unit_tests:
         type: boolean
         default: false
+      ram_forensics:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       cycles:
@@ -33,7 +36,12 @@ on:
         type: choice
         default: "0"
         options: ["0", "60"]
+      ram_forensics:
+        description: "Profilage Python séparé (comparaison temps désactivée)"
+        type: boolean
+        default: false
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - ".github/workflows/atlas-short-full-app.yml"
       - "tools/doctor_quick_app_probe.py"
@@ -41,6 +49,16 @@ on:
       - "tests/test_doctor_quick_app_probe.py"
       - "tests/test_achievement_compact_process_lock.py"
       - "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+      - "app/ui/world_scan_panel.py"
+      - "tests/test_world_scan_async_loading.py"
+      - "tests/test_shell_home_character_compact.py"
+      - "tools/atlas_doctor_lib/ram_inventory.py"
+      - "tests/test_doctor_ram_inventory.py"
+      - "tools/atlas_doctor_lib/ram_forensics.py"
+      - "tests/test_doctor_ram_forensics.py"
+      - "main.py"
+      - "app/pages/organizer/organizer_ui.py"
+      - "tests/test_organizer_layout.py"
       - "tools/ci_domain_certification.py"
 
 permissions:
@@ -65,6 +83,9 @@ defaults:
 
 jobs:
   quick-whole-app:
+    # Keep heavyweight Qt/Windows campaigns out of Draft PR development.
+    # Manual dispatch and reusable workflow calls remain available.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: Full menu / preload / RAM / CPU / Qt (short)
     runs-on: windows-latest
     timeout-minutes: 30
@@ -95,13 +116,13 @@ jobs:
         # but do not need to replay these identical unit tests.
         if: ${{ !inputs.skip_preflight_unit_tests }}
         run: |
-          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock
+          python -m unittest -v tests.test_doctor_quick_app_probe tests.test_achievement_compact_process_lock tests.test_world_scan_async_loading tests.test_shell_home_character_compact tests.test_doctor_ram_inventory tests.test_doctor_ram_forensics tests.test_organizer_layout
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Materialize real Quest and Craft data
         run: |
-          git lfs pull --include="tools/doduda/doduda.exe" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # No LFS payload is consumed by this job. The public Doduda release
+          # inputs below are independently pinned by size and SHA-256.
           python -m scripts.windows.quest_assets --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
@@ -150,6 +171,34 @@ jobs:
           $affinity = @()
           if ('${{ inputs.one_core || false }}' -eq 'true') { $affinity = @('--one-core') }
           python -X faulthandler -m tools.atlas_doctor perf --app --max-seconds $max --timeout 18 --cycles $cycles --idle-seconds $idle --parallel-instances $instances --output artifacts/quick_app/report.json @affinity
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Doctor RAM forensics (separate traced run, never a speed baseline)
+        if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.number == 303) || inputs.ram_forensics }}
+        run: |
+          python -X faulthandler -m tools.atlas_doctor perf --app --cycles 1 --timeout 18 --max-seconds 540 --ram-forensics --output artifacts/quick_app/ram_forensics.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("artifacts/quick_app/ram_forensics.json").read_text(encoding="utf-8"))
+          profiling = payload.get("ram_forensics") or {}
+          print(json.dumps({
+            "status": payload.get("status"),
+            "exact_sha": payload.get("git_head"),
+            "tracing_status": profiling.get("status"),
+            "python_delta_mib": profiling.get("python_heap_delta_mib"),
+            "timing_comparable": payload.get("timing_comparable"),
+            "checkpoints": [
+              {"stage": row.get("label"), "python_mib": row.get("tracked_python_heap_mib"),
+               "private_commit": (row.get("windows_process") or {}).get("private_commit_mib"),
+               "top_increases": (row.get("top_increased_sources_since_previous_checkpoint") or [])[:5]}
+              for row in profiling.get("checkpoints", [])
+            ],
+          }, indent=2))
+          if payload.get("status") != "PASS" or profiling.get("status") != "PARTIAL_PYTHON_ONLY":
+            raise SystemExit("RAM forensics evidence unavailable")
+          '@ | python -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Print results and coverage

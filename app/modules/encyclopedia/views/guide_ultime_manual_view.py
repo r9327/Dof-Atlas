@@ -251,26 +251,32 @@ class GuideUltimeManualCard(QFrame):
         if not row_position:
             return []
 
-        quest_ids_by_name = {
-            self._quest_name_key(name): quest_id
-            for quest_id, name in self._quest_rows
-        }
-        result: list[int] = []
-        for waypoint in stage.get("waypoints", []) or []:
-            if not isinstance(waypoint, dict):
-                continue
-            try:
-                coordinates = f"{int(waypoint.get('x'))},{int(waypoint.get('y'))}"
-            except (TypeError, ValueError):
-                coordinates = ""
-            waypoint_position = coordinates or self._position_key(str(waypoint.get("label") or ""))
-            if waypoint_position != row_position:
-                continue
-            for quest_name in waypoint.get("quests", []) or []:
-                quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
-                if quest_id is not None and quest_id not in result:
-                    result.append(quest_id)
-        return result
+        # The authored stage is immutable for this visible Guide sheet. Build
+        # its waypoint-to-Quest mapping once, not for each rendered action.
+        by_position = getattr(self, "_waypoint_quest_ids_by_position", None)
+        if by_position is None:
+            quest_ids_by_name = {
+                self._quest_name_key(name): quest_id
+                for quest_id, name in self._quest_rows
+            }
+            by_position = {}
+            for waypoint in stage.get("waypoints", []) or []:
+                if not isinstance(waypoint, dict):
+                    continue
+                try:
+                    coordinates = f"{int(waypoint.get('x'))},{int(waypoint.get('y'))}"
+                except (TypeError, ValueError):
+                    coordinates = ""
+                position = coordinates or self._position_key(str(waypoint.get("label") or ""))
+                if not position:
+                    continue
+                matches = by_position.setdefault(position, [])
+                for quest_name in waypoint.get("quests", []) or []:
+                    quest_id = quest_ids_by_name.get(self._quest_name_key(quest_name))
+                    if quest_id is not None and quest_id not in matches:
+                        matches.append(quest_id)
+            self._waypoint_quest_ids_by_position = by_position
+        return list(by_position.get(row_position, ()))
 
     def _quest_ids_for_row(self, row: dict[str, Any]) -> list[int]:
         waypoint_ids = self._waypoint_quest_ids_for_row(row)
@@ -279,10 +285,16 @@ class GuideUltimeManualCard(QFrame):
         # Without waypoint evidence, a multi-quest page must not attach every
         # quest to an unrelated action. Use the quest explicitly named here.
         text = self._quest_name_key(row.get("text") or "")
+        normalized_rows = getattr(self, "_quest_normalized_rows", None)
+        if normalized_rows is None:
+            normalized_rows = tuple(
+                (quest_id, self._quest_name_key(name))
+                for quest_id, name in self._quest_rows if name
+            )
+            self._quest_normalized_rows = normalized_rows
         named_ids = [
-            quest_id
-            for quest_id, name in self._quest_rows
-            if name and self._quest_name_key(name) in text
+            quest_id for quest_id, name_key in normalized_rows
+            if name_key in text
         ]
         if named_ids:
             return named_ids
@@ -290,12 +302,19 @@ class GuideUltimeManualCard(QFrame):
         # its action says only "Parler au PNJ".
         return [self._quest_rows[0][0]] if len(self._quest_rows) == 1 else []
 
-    def _add_inline_quest_links(self, row_layout: QHBoxLayout, row: dict[str, Any]) -> None:
+    def _add_inline_quest_links(
+        self, row_layout: QHBoxLayout, row: dict[str, Any],
+        *, quest_ids: list[int] | None = None,
+    ) -> None:
         if not self._quest_rows:
             return
-        names = {quest_id: name for quest_id, name in self._quest_rows}
+        names = getattr(self, "_quest_row_names_by_id", None)
+        if names is None:
+            names = dict(self._quest_rows)
         stage_id = str(self.card.get("manual_stage_id") or "")
-        for quest_id in self._quest_ids_for_row(row):
+        if quest_ids is None:
+            quest_ids = self._quest_ids_for_row(row)
+        for quest_id in quest_ids:
             if int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))
@@ -340,21 +359,36 @@ class GuideUltimeManualCard(QFrame):
         result: list[dict[str, Any]] = []
         seen: set[tuple[int, int]] = set()
         names = {quest_id: name for quest_id, name in self._quest_rows}
-
+        quest_ids: list[int] = []
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
-                quest_id = int(raw)
+                quest_ids.append(int(raw))
             except (TypeError, ValueError):
                 continue
 
+        # The compact-backed Quest provider can fetch all these rows with one
+        # SQLite handle. Custom/legacy providers retain the old point lookup.
+        batch_getter = getattr(provider, "guide_evidence_many", None)
+        evidence_by_id = None
+        if callable(evidence) and callable(batch_getter) and quest_ids:
+            try:
+                evidence_by_id = batch_getter(quest_ids)
+            except (KeyError, LookupError, TypeError, ValueError):
+                evidence_by_id = None
+
+        for quest_id in quest_ids:
             combat_rows: list[dict[str, Any]] = []
             if callable(evidence):
                 try:
-                    payload = evidence(quest_id)
+                    payload = (
+                        evidence_by_id.get(quest_id, {})
+                        if isinstance(evidence_by_id, dict)
+                        else evidence(quest_id)
+                    )
                 except (KeyError, LookupError, TypeError, ValueError):
                     payload = None
                 if isinstance(payload, dict):
-                    combat_rows = [
+                    combat_rows: list[dict[str, Any]] = [
                         objective
                         for objective in payload.get("combats", []) or []
                         if isinstance(objective, dict)

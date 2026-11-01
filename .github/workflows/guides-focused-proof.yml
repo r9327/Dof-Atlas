@@ -2,11 +2,14 @@ name: Guides / Focused Windows Proof
 
 on:
   pull_request:
-    types: [synchronize]
+    types: [synchronize, ready_for_review]
     paths:
       - '.github/workflows/guides-focused-proof.yml'
       - 'tests/test_guide_manual_selected_validation.py'
       - 'tests/test_guide_preparation_model.py'
+      - 'tests/test_lazy_quests_detail_cache.py'
+      - 'app/modules/encyclopedia/providers/quest_provider.py'
+      - 'app/modules/encyclopedia/views/guide_ultime_manual_view.py'
       - 'app/modules/encyclopedia/services/guide_preparation_model.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
       - 'app/modules/encyclopedia/views/guide_catalog_view.py'
@@ -25,6 +28,44 @@ on:
       - 'tests/test_unity_skin.py'
       - 'app/pages/craft_page.py'
       - 'tests/test_craft_minimal_lazy.py'
+      - 'tests/test_guide_prebuilt_route.py'
+      - 'tests/test_guide_catalog_route_store_relative.py'
+      - 'app/modules/encyclopedia/services/guide_catalog_prebuilt_route.py'
+      - 'app/modules/encyclopedia/services/guide_catalog_manual_runtime_service.py'
+      - 'scripts/windows/build_guide_routes.py'
+      - 'scripts/windows/build_guide_rewards.py'
+      - 'app/modules/encyclopedia/services/guide_prebuilt_rewards.py'
+      - 'tests/test_guide_prebuilt_rewards.py'
+      - 'tests/test_quest_index_prebuilt.py'
+      - 'app/quest_index_prebuilt.py'
+      - 'app/quest_catalog_details.py'
+      - 'app/quest_source_index.py'
+      - 'app/startup_cache_domain_worker.py'
+      - 'app/modules/encyclopedia/providers/memory_bound_guide_provider.py'
+      - 'app/modules/encyclopedia/providers/dofus_item_provider.py'
+      - 'app/modules/encyclopedia/providers/memory_bound_achievement_provider.py'
+      - 'app/startup_cache_warmup.py'
+      - 'tests/test_startup_warmup_subprocess_flags.py'
+      - 'tests/test_guide_cold_relation_lookup.py'
+      - 'tests/test_guide_entity_query_reuse.py'
+      - 'tests/test_compact_guide_item_effects.py'
+      - 'tests/test_achievement_compact_subprocess_lifecycle.py'
+      - 'tests/test_achievement_frozen_detail_runtime.py'
+      - 'app/modules/encyclopedia/services/achievement_index_warmup.py'
+      - 'tests/test_shared_guide_combat_global_contract.py'
+      - 'scripts/windows/build_quest_index.py'
+      - 'app/modules/encyclopedia/views/guides_view.py'
+      - 'app/modules/encyclopedia/views/achievements_view.py'
+      - 'tests/test_success_async_detail_runtime.py'
+      - 'tests/test_encyclopedia_success_detail_prewarm.py'
+      - 'tests/test_guides_home_render_cache.py'
+      - 'tests/test_quest_source_boundaries.py'
+      - 'app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py'
+      - 'app/ui/world_scan_panel.py'
+      - 'tests/test_world_scan_async_loading.py'
+      - 'tests/test_shell_home_character_compact.py'
+      - 'tests/test_guide_manual_contract_row_cache.py'
+      - 'tests/test_guide_ultime_manual_runtime_text.py'
 
 permissions:
   contents: read
@@ -45,6 +86,8 @@ jobs:
       complete_campaign: true
 
   guide-targeted-windows:
+    # No repeated Windows setup on Draft pushes; focused local contracts only.
+    if: ${{ github.event.pull_request.draft == false }}
     name: Guides / Selected unit + Qt Windows
     runs-on: windows-latest
     timeout-minutes: 20
@@ -94,6 +137,33 @@ jobs:
       - name: Targeted manual multi-character validation
         shell: pwsh
         run: python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation
+      - name: Portable Sylvestre release-index integrity and fallback
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_route
+      - name: Relative SQLite cache integrity, missing file, compressed corruption
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_catalog_route_store_relative
+      - name: Read-only Windows cartography placeholder fallback
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_cartography_asset_readonly_fallback
+      - name: Ganymede dynamic cutover and trusted source contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_ganymede_cutover tests.test_ganymede_source_cutovers tests.test_ganymede_trusted_cutovers
+      - name: Real 20 Ganymede trusted cutovers and catalog readiness audit
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_ganymede_live_cutover_inventory
+      - name: Canonical reward precompile / alignment regressions
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_guide_prebuilt_rewards
+      - name: Portable first-boot Quest SQLite index contracts
+        shell: pwsh
+        run: python -X faulthandler -m unittest -v tests.test_quest_index_prebuilt
+      - name: Batch Quest Guide-evidence parity (no rich Quest hydration)
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_lazy_quests_detail_cache.QuestEvidenceBatchTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Targeted preparation accounting if present
         shell: pwsh
         run: |
@@ -116,6 +186,31 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Nonblocking combat matching and early domain warmup regressions
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_shared_guide_combat_global_contract.SharedGuideCombatHotPathTests tests.test_startup_warmup_subprocess_flags tests.test_guide_cold_relation_lookup tests.test_guide_entity_query_reuse tests.test_compact_guide_item_effects tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactRowIdentityTests tests.test_achievement_compact_subprocess_lifecycle.AchievementNameIndexIntegrityTests tests.test_achievement_frozen_detail_runtime.AchievementFrozenDetailRuntimeTests.test_frozen_success_catalogue_prefers_prebuilt_compact_rows tests.test_achievement_frozen_detail_runtime.AchievementFrozenDetailRuntimeTests.test_frozen_success_missing_or_bad_compact_uses_inprocess_fallback
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Guide line/waypoint and runtime text parity
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_manual_contract_row_cache tests.test_guide_ultime_manual_runtime_text
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: World Map return-to-Home and Qt lifecycle parity
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_world_scan_async_loading tests.test_shell_home_character_compact.ShellWorldScanHibernationTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Final targeted Success Qt, Guide prerequisite and Quest index regressions
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_success_async_detail_runtime tests.test_encyclopedia_success_detail_prewarm tests.test_guides_home_render_cache tests.test_quest_source_boundaries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Bounded Unity fallback icon cache
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_lanyel_shared_manual_ui.GuideFallbackIconCacheTests.test_guide_reward_fallback_icon_is_shared_and_bounded
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reconstructible Craft release regression
         shell: pwsh

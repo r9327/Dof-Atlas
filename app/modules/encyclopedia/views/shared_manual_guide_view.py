@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -301,6 +301,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.index = index
         self.travel_command_callback = travel_command_callback
         self._quest_rows = self._canonical_quest_rows()
+        self._quest_row_names_by_id = dict(self._quest_rows)
+        self._quest_normalized_rows = tuple(
+            (quest_id, self._quest_name_key(name))
+            for quest_id, name in self._quest_rows if name
+        )
+        self._waypoint_quest_ids_by_position = None
         # One visible quest shortcut per quest and per rendered guide sheet.
         self._shown_quest_ids: set[int] = set()
         self._resource_names = self._clickable_resource_names(service, card)
@@ -532,6 +538,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         group_layout = None
         group_position = ""
         combat_heading_added = False
+        # This catalogue index is immutable for one sheet. Rebuilding it for
+        # every rendered line multiplied the cost of long Guides by the
+        # number of linked Quests, even for a simple hover tooltip.
+        quest_names = getattr(self, "_quest_row_names_by_id", None)
+        if quest_names is None:
+            quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
@@ -583,19 +595,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            quest_names = {
-                quest_id: name for quest_id, name in self._quest_rows
-            }
+            related_quest_ids = self._quest_ids_for_row(row)
             related_names = [
                 quest_names[quest_id]
-                for quest_id in self._quest_ids_for_row(row)
+                for quest_id in related_quest_ids
                 if quest_id in quest_names
             ]
             if related_names:
                 line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
             if section_key == "now":
-                self._add_inline_quest_links(row_layout, row)
+                self._add_inline_quest_links(
+                    row_layout, row, quest_ids=related_quest_ids
+                )
 
             current_key = group_keys[row_index]
             adjacent = bool(current_key) and (
@@ -636,6 +648,28 @@ class SharedGuideManualCard(GuideUltimeManualCard):
     def _combat_key(target: dict[str, Any]) -> tuple[int, int]:
         return int(target["quest_id"]), int(target["objective_id"])
 
+    def _cached_quest_for_combat(self, quest_id: int) -> Any:
+        """Never compile a cold rich Quest while painting a Guide sheet.
+
+        Canonical compact combat evidence and the authored Guide remain the
+        first sources. Rich objective/solution fallback is permitted only when
+        those details have already been hydrated by a Quest worker or an
+        earlier user action. No background job is launched from Qt painting.
+        """
+        provider = getattr(self.service, "quest_provider", None)
+        getter = getattr(provider, "get_quest", None)
+        if not callable(getter):
+            return None
+        catalog = getattr(provider, "_catalog", None)
+        if bool(getattr(catalog, "deferred_details", False)):
+            cached = getattr(catalog, "is_detail_cached", None)
+            if not callable(cached) or not bool(cached(int(quest_id))):
+                return None
+        try:
+            return getter(int(quest_id))
+        except (KeyError, LookupError, TypeError, ValueError):
+            return None
+
     def _combat_evidence(self, target: dict[str, Any]) -> tuple[str, str]:
         key = self._combat_key(target)
         cached = self._combat_evidence_cache.get(key)
@@ -644,13 +678,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         position = ""
         objective_text = ""
-        provider = getattr(self.service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if callable(getter):
-            try:
-                quest = getter(key[0])
-            except (KeyError, LookupError, TypeError, ValueError):
-                quest = None
+        quest = self._cached_quest_for_combat(key[0])
+        if quest is not None:
             for step in getattr(quest, "steps", ()) or ():
                 for objective in getattr(step, "objectives", ()) or ():
                     try:
@@ -687,15 +716,26 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if self._combat_key(target) not in self._rendered_combat_keys
         ]
 
-        direct: list[dict[str, Any]] = []
+        # The compact Guide evidence already contains the monster name and
+        # objective ID. Match it before touching any deferred rich Quest.
+        # _combat_evidence() can hydrate a cold 69 MiB source catalogue on
+        # the Qt thread; doing that for every ordinary text row caused the
+        # 19-second mid-route stall observed in the Windows Guide benchmark.
+        direct = [
+            target for target in unseen
+            if self._combat_text_matches(row_text, target.get("monster"))
+        ]
+        if direct:
+            return direct
+        # Non-combat rows can never consume position/solution fallbacks;
+        # avoid triggering even one rich Quest hydration for such rows.
+        if not row_is_combat:
+            return []
+
         same_position: list[dict[str, Any]] = []
         for target in unseen:
             target_position, objective_text = self._combat_evidence(target)
-            if self._combat_text_matches(
-                row_text,
-                target.get("monster"),
-                objective_text,
-            ):
+            if self._combat_text_matches(row_text, objective_text):
                 direct.append(target)
                 continue
             if (
@@ -731,20 +771,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if not row_is_combat:
             return []
 
-        provider = getattr(self.service, "quest_provider", None)
-        getter = getattr(provider, "get_quest", None)
-        if not callable(getter):
-            return []
-
         row_position = self._position_key(str(row.get("position") or ""))
         candidates: list[tuple[dict[str, Any], str, str, str]] = []
         seen: set[tuple[int, int]] = set()
         for raw in self.card.get("manual_quest_ids", []) or []:
             try:
                 quest_id = int(raw)
-                quest = getter(quest_id)
-            except (KeyError, LookupError, TypeError, ValueError):
+            except (TypeError, ValueError):
                 continue
+            quest = self._cached_quest_for_combat(quest_id)
             if quest is None:
                 continue
             quest_name = str(getattr(quest, "name", "") or "").strip()
@@ -922,6 +957,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
+        # One bounded SQLite detail per tick. A navigation change stops the
+        # previous neighborhood before reading anything for the new sheet.
+        self._catalog_prefetch_index: int | None = None
+        self._catalog_prefetch_timer = QTimer(self)
+        self._catalog_prefetch_timer.setInterval(16)
+        self._catalog_prefetch_timer.timeout.connect(self._prefetch_catalog_slice)
         root = QVBoxLayout(self)
         # Qt's default layout minimum otherwise forces the guide wider than
         # the available viewport, preventing the compact labels from activating.
@@ -1426,6 +1467,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, index)
+            # Normalization is expensive across a 1,000+ card route. Persist
+            # only a tiny search key on the item, not a second route model.
+            item.setData(Qt.UserRole + 1, normalize_text(label))
             self.summary_list.addItem(item)
         # Rebuilding the model must not silently discard the active search.
         self._filter_summary(self.summary_search.text())
@@ -1434,7 +1478,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         needle = normalize_text(value)
         for index in range(self.summary_list.count()):
             item = self.summary_list.item(index)
-            item.setHidden(bool(needle and needle not in normalize_text(item.text())))
+            normalized = item.data(Qt.UserRole + 1)
+            # Old/external QListWidgetItems still obey the original semantics.
+            if not isinstance(normalized, str):
+                normalized = normalize_text(item.text())
+            item.setHidden(bool(needle and needle not in normalized))
 
     def _summary_item_clicked(self, item: QListWidgetItem) -> None:
         try:
@@ -1580,6 +1628,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 sections_for_card=(
                     lambda card, key=character_key: (
                         None if "_manual_stage_payload" in card else
+                        card.get("manual_sections", {})
+                        if card.get("_catalog_route_detail_lazy") else
                         sections_getter(key, card) if callable(sections_getter)
                         else card.get("manual_sections", {})
                     )
@@ -2221,6 +2271,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._follow_active_after_progress_change()
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
+        self._catalog_prefetch_timer.stop()
+        self._catalog_prefetch_index = None
         self._clear_cards()
         if not self.service.cards:
             return
@@ -2248,6 +2300,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
+        # Schedule neighbor disk reads after the visible Qt sheet is ready.
+        # Never read nine SQLite bodies synchronously during _render_window.
+        if callable(getattr(self.service, "prefetch_route_near", None)):
+            self._catalog_prefetch_index = index
+            self._catalog_prefetch_timer.start()
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < len(self.service.cards) - 1)
         self.guide_button.setToolTip(
@@ -2257,6 +2314,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         if reset_scroll:
             self._reset_scroll_to_top()
+
+    def _prefetch_catalog_slice(self) -> None:
+        """Allow event processing between adjacent catalog-detail reads."""
+        index = self._catalog_prefetch_index
+        prefetch = getattr(self.service, "prefetch_route_near", None)
+        if index is None or not callable(prefetch) or index != self.view_index:
+            self._catalog_prefetch_timer.stop()
+            return
+        if not prefetch(index, max_reads=1):
+            self._catalog_prefetch_timer.stop()
 
     def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
         navigator = self.navigate_entity
