@@ -124,7 +124,6 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 self.assertEqual(progress["guide_complet"], (0, 0, ""))
 
     def test_source_library_exposes_all_95_without_replacing_optimized_guides(self):
-        from app.modules.encyclopedia.views.guide_library_sources import ATLAS_EQUIVALENTS
         from app.modules.encyclopedia.services.guide_ganymede_cutover import (
             active_manual_catalog_sources,
         )
@@ -179,19 +178,14 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 native_ids = {
                     row["source_guide_id"] for row in manifest.values()
                 }
-                # Sylvestre Ganymède source is represented only by the
-                # preserved Atlas optimized card, never a duplicate.
-                sylvestre = next(
-                    source for source, atlas in ATLAS_EQUIVALENTS.items()
-                    if atlas == "dofus_sylvestre"
-                )
-                self.assertEqual(len(ids_visible_as_links), 72)
-                # Alignments have their own Ganymède entrypoints in the left
-                # tree; the web-only metadata is correctly deduplicated.
+                # The short Ganymède Sylvan Dofus remains accessible
+                # independently from the large preserved Atlas Sylvestre Opti.
+                self.assertIn(2290, ids_visible_as_links)
+                self.assertEqual(len(ids_visible_as_links), 73)
+                # Alignments open through their existing left-tree entries.
                 alignment_sources = {2249, 2263}
                 self.assertEqual(
-                    ids_visible_as_links | native_ids
-                    | {sylvestre} | alignment_sources,
+                    ids_visible_as_links | native_ids | alignment_sources,
                     source_ids,
                 )
                 self.assertTrue(ids_visible_as_links.isdisjoint(native_ids))
