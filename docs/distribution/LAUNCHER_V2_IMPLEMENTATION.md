@@ -66,7 +66,11 @@ La racine des données persistantes est `%LOCALAPPDATA%/DofusAtlas/`.
 disque, tandis que launcher, journaux et profils restent dans LocalAppData.
 Le déplacement copie dans un staging voisin, vérifie le nouvel exécutable,
 puis commute la configuration ; il conserve l'ancien emplacement pour
-récupération. Les liens symboliques/junctions, dossiers imbriqués et
+récupération. Pour une installation **existante**, le Setup n'exécute plus
+cette copie lui-même : il lance `DofusAtlas.exe --atlas-configure` pour
+utiliser les verrous canoniques du launcher pendant le déplacement et sa
+mise à jour. La première sélection sans installation active reste disponible
+dans le Setup. Les liens symboliques/junctions, dossiers imbriqués et
 emplacements réseau non sûrs sont rejetés. L'usage réel avec chemins Unicode,
 DPI et antivirus doit encore être validé dans #287.
 
