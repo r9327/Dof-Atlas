@@ -113,7 +113,7 @@ ORGANIZER_UI_PATHS = frozenset({
 ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/core/runtime_state.py", "app/core/macro_lock.py",
     "app/input/input_state.py", "app/input/managed_hooks.py",
-    "app/input/hotkeys.py",
+    "app/input/hotkeys.py", "app/windows/clicks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_character_order.py",
@@ -123,6 +123,7 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_macro_reliability.py",
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_mirror_plan.py",
+    "tests/test_organizer_sendinput.py",
     "tests/test_runtime_lazy_macros.py",
     "tests/test_runtime_hook_lifecycle.py",
     "tests/test_direction_macro.py",
