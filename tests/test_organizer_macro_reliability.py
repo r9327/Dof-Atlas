@@ -19,6 +19,19 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+    def test_invalid_zaap_does_not_start_or_reserve_macro(self) -> None:
+        runtime = _runtime()
+        self.assertFalse(ZaapMacro(runtime).run_async("/zaap fake"))
+        self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2 ; /travel 3,4"))
+        runtime._spawn_macro.assert_not_called()
+
+    def test_valid_zaap_still_uses_existing_macro_runner(self) -> None:
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = True
+        self.assertTrue(ZaapMacro(runtime).run_async("/ZAAP -5,12"))
+        self.assertEqual(runtime._spawn_macro.call_count, 1)
+        self.assertEqual(runtime._spawn_macro.call_args.args[0], "Auto zaap")
+
     def test_zaap_restores_favorite_after_chat_failure(self) -> None:
         runtime = _runtime()
         with (
