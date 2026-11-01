@@ -160,12 +160,22 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     copied = 0
 
     def ignore(directory, names):
-        if Path(directory) == source:
-            return set(names) & excluded
-        return set()
+        # The disk preflight and actual copy are separate filesystem walks.
+        # Recheck reparse points when copytree reaches each directory; a
+        # junction inserted after the first walk must not be preserved as a
+        # link inside the new runtime (copytree uses symlinks=True).
+        where = Path(directory)
+        ignored = set(names) & excluded if where == source else set()
+        if (_linked(where) or any(
+            _linked(where / name) for name in names if name not in ignored
+        )):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
+        return ignored
 
     def copy_checked(src, dst):
         nonlocal copied
+        if _linked(Path(src)):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
         shutil.copy2(src, dst)
         source, copied_file = Path(src), Path(dst)
         size = source.stat().st_size
