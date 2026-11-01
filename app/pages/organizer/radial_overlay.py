@@ -218,8 +218,10 @@ class OrganizerRadialHoldController:
                     self.overlay.track_cursor()
                     # Close before any session resolution or Windows focus work.
                     self.overlay.hide()
+                    # A focus loss between key polls must never refocus a
+                    # Dofus window on release (e.g. Alt+Tab to another app).
                     handle = self.overlay.finish(
-                        self.participants(), cancel=cancelled
+                        self.participants(), cancel=cancelled or not self.can_open()
                     )
                 else:
                     handle = None
@@ -232,6 +234,11 @@ class OrganizerRadialHoldController:
             self.cancel()
             return
         if self._down:
+            if not self.can_open():
+                # Disarm until the original key is released; do not let the
+                # overlay bring the user back from another application.
+                self.cancel()
+                return
             if self.overlay.isVisible():
                 self.overlay.track_cursor()
             return
