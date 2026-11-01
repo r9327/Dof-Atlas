@@ -4,12 +4,77 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+from app.distribution import setup as atlas_setup
 from app.distribution.setup import install_launcher, install_maintenance_helper
 
 
 class SetupTests(unittest.TestCase):
+    def test_setup_existing_installation_defers_move_to_launcher_mutex(self):
+        with tempfile.TemporaryDirectory() as directory:
+            current = Path(directory) / "runtime"
+            tk = MagicMock()
+            tk.messagebox.askyesno.return_value = True
+            with (
+                patch.dict("sys.modules", {"tkinter": tk}),
+                patch("app.distribution.install_location.runtime_root",
+                      return_value=current),
+                patch("app.distribution.install.read_state",
+                      return_value={"active": "v1"}) as state,
+                patch("app.distribution.install_location.relocate_runtime") as move,
+            ):
+                self.assertTrue(atlas_setup.choose_runtime_before_setup())
+            state.assert_called_once_with(current)
+            move.assert_not_called()
+            tk.filedialog.askdirectory.assert_not_called()
+            tk.Tk.return_value.destroy.assert_called_once()
+
+    def test_setup_first_install_can_select_drive_without_copying_a_slot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            current = base / "current" / "runtime"
+            selected = base / "Disque été"
+            target = selected / "DofusAtlas" / "runtime"
+            tk = MagicMock()
+            tk.messagebox.askyesno.return_value = True
+            tk.filedialog.askdirectory.return_value = str(selected)
+            with (
+                patch.dict("sys.modules", {"tkinter": tk}),
+                patch("app.distribution.install_location.runtime_root",
+                      return_value=current),
+                patch("app.distribution.install.read_state",
+                      return_value={"active": None}),
+                patch("app.distribution.install_location.relocate_runtime") as move,
+            ):
+                self.assertFalse(atlas_setup.choose_runtime_before_setup())
+            move.assert_called_once()
+            self.assertEqual(move.call_args.args, (target,))
+            self.assertIsNotNone(move.call_args.kwargs.get("progress"))
+            tk.Toplevel.return_value.destroy.assert_called_once()
+            tk.Tk.return_value.destroy.assert_called_once()
+
+    def test_setup_existing_move_launches_configuration_in_one_launcher(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "Programs" / "DofusAtlas" / "DofusAtlas.exe"
+            with (
+                patch.object(atlas_setup, "os", SimpleNamespace(name="nt")),
+                patch.object(atlas_setup, "choose_runtime_before_setup",
+                             return_value=True),
+                patch.object(atlas_setup, "embedded_launcher",
+                             return_value=Path(directory) / "Embedded.exe"),
+                patch.object(atlas_setup, "install_launcher",
+                             return_value=target),
+                patch.object(atlas_setup, "install_maintenance_helper"),
+                patch.object(atlas_setup.subprocess, "Popen") as launch,
+            ):
+                self.assertEqual(atlas_setup.main([]), 0)
+            launch.assert_called_once_with(
+                [str(target), "--atlas-configure"],
+                cwd=str(target.parent), creationflags=0,
+            )
+
     def test_install_launcher_creates_stable_binary_and_preserves_user_data(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
