@@ -5,6 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
+from app.input import hotkeys as _hotkeys  # preload before monkeypatching os.name
 from app.macros import input_tools
 from app.windows import clicks
 
