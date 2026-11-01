@@ -33,6 +33,28 @@ class OrganizerShutdownGuardTests(unittest.TestCase):
 
         self.assertEqual(stopped, ["window", "release", "watcher"])
 
+    def test_offscreen_page_does_not_schedule_native_startup_scan(self) -> None:
+        import os
+        from unittest.mock import patch
+
+        QApplication.instance() or QApplication([])
+        with (
+            patch.dict(os.environ, {"QT_QPA_PLATFORM": "offscreen"}),
+            patch("app.pages.organizer_page.scan_unity_sessions",
+                  side_effect=AssertionError("native scan ran in Qt test")),
+            patch("app.pages.organizer_page.UnityWindowEventWatcher.start",
+                  side_effect=AssertionError("native watcher started")),
+        ):
+            page = OrganizerPage(lambda _text: None, lambda: None)
+            try:
+                self.assertFalse(page.startup_scan_timer.isActive())
+                QApplication.instance().processEvents()
+            finally:
+                page.stop_session_event_watcher()
+                page.deleteLater()
+        # Main production Windows startup still uses the guarded start(0);
+        # this test does not alter the real-runtime path.
+
     def test_late_runtime_badge_callback_ignores_deleted_qt_owner(self) -> None:
         QApplication.instance() or QApplication([])
         page = OrganizerPage(lambda _text: None, lambda: None)
