@@ -481,6 +481,20 @@ class OrganizerUiMixin:
         super().showEvent(event)
         self.flush_sessions_render_if_dirty()
 
+    def hideEvent(self, event) -> None:
+        # The Organizer service and Unity watcher must stay alive while
+        # navigating Atlas, but its eight richly decorated/interactive rows
+        # are purely presentational. Free only those Qt objects on Home.
+        # Session identities, profile state, macro timers and watcher are
+        # intentionally untouched; fresh rows bind the current state on show.
+        if self.drag_session_index is None:
+            self.sessions_panel.clear_slots()
+            self.session_row_widgets = []
+            self.session_slot_widgets = []
+            self.sessions_placeholder = None
+            self._sessions_render_dirty = True
+        super().hideEvent(event)
+
     def render_sessions(self) -> None:
         self.sessions_panel.clear_slots()
         self.session_row_widgets = []

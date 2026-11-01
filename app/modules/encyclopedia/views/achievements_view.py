@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+import weakref
+from threading import Thread
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QPainter, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
@@ -123,6 +125,10 @@ class AchievementListDelegate(QStyledItemDelegate):
 
 class AchievementsView(QWidget):
     """Lot 7 catalogue: category or zone -> achievement -> detail."""
+
+    # Emitted by the disposable detail worker; Qt queues the decorated slot
+    # to the owning QWidget thread. The worker never builds UI elements.
+    _detailLoaded = Signal(int, int, object)
 
     def _initialize_achievements_view(
         self,
@@ -412,15 +418,12 @@ class AchievementsView(QWidget):
             self.search.clear()
         for row, candidate in enumerate(self.filtered):
             if candidate.id == achievement.id:
-                # Direct navigation may target a row outside the currently
-                # materialized viewport. Render only up to that target instead
-                # of eagerly building the whole category.
-                while (
-                    self.isVisible()
-                    and self.list_widget.count() <= row
-                    and self._achievement_pending_rows
-                ):
-                    self._render_next_achievement_batch()
+                # Direct navigation must open the real detail immediately.
+                # Rendering every preceding QListWidgetItem synchronously
+                # can stall Qt for a deep link near the end of a category.
+                # Keep selection pending; its row will be highlighted when
+                # a later scroll batch naturally reaches it.
+                self._achievement_pending_selected_id = achievement.id
                 if row < self.list_widget.count():
                     self.list_widget.setCurrentRow(row)
                 self.show_achievement(achievement.id)
@@ -432,16 +435,111 @@ class AchievementsView(QWidget):
         if achievement_id is None:
             return
         achievement_id = int(achievement_id)
-        if self._detail_open and self.current_achievement_id == achievement_id:
+        if (
+            self.current_achievement_id == achievement_id
+            and (self._detail_open or
+                 self._detail_requested is not None and
+                 self._detail_requested[1] == achievement_id)
+        ):
             self.close_detail_panel()
             return
         self.show_achievement(achievement_id)
 
     def show_achievement(self, achievement_id: int) -> None:
-        achievement = self.provider.get_detail_by_id(int(achievement_id))
-        if achievement is None or not self.provider.is_retained(achievement.id):
+        achievement_id = int(achievement_id)
+        if self._detail_requested is not None and self._detail_requested[1] == achievement_id:
+            return
+        summary = self.provider.get_by_id(achievement_id)
+        if summary is None or not self.provider.is_retained(achievement_id):
             self.show_empty()
             return
+        self._detail_generation += 1
+        generation = self._detail_generation
+        self._detail_requested = None
+        self.current_achievement_id = achievement_id
+
+        # Only MemoryBoundAchievementProvider's cold path starts a disposable
+        # subprocess / parses rich source on demand. Preserve the lightweight
+        # normal provider path and cache-hit semantics.
+        recent = getattr(self.provider, "_recent_rich_details", None)
+        active_id = getattr(self.provider, "_detail_cache_id", None)
+        active = getattr(self.provider, "_detail_cache", None)
+        hot = active_id == achievement_id and active is not None
+        warm = isinstance(recent, dict) and achievement_id in recent
+        if hot and self._detail_worker_running:
+            # A running worker may currently mutate the provider's LRU.
+            # Render the already-read immutable detail without touching
+            # provider caches or starting another subprocess.
+            self._display_achievement(active)
+            return
+        if not self._detail_worker_running and (not isinstance(recent, dict) or hot or warm):
+            achievement = self.provider.get_detail_by_id(achievement_id)
+            if achievement is None:
+                self.show_empty()
+            else:
+                self._display_achievement(achievement)
+            return
+
+        # A single background worker is sufficient. Rapid clicks replace the
+        # pending request; an old completion cannot overwrite a newer detail.
+        self._detail_requested = (generation, achievement_id)
+        self._detail_open = False
+        self.detail_stack.setCurrentWidget(self.detail_scroll)
+        self.clear_detail()
+        loading = QLabel("Chargement du succès…")
+        loading.setObjectName("MutedLabel")
+        self.detail_layout.addWidget(loading)
+        if not self._detail_worker_running:
+            self._start_next_detail_worker()
+
+    def _start_next_detail_worker(self) -> None:
+        requested = self._detail_requested
+        if requested is None or self._detail_worker_running:
+            return
+        generation, achievement_id = requested
+        self._detail_worker_running = True
+        provider = self.provider
+        view_ref = weakref.ref(self)
+
+        def load_detail() -> None:
+            try:
+                detail = provider.get_detail_by_id(achievement_id)
+            except Exception:
+                _LOGGER.exception("Chargement du succès %s impossible", achievement_id)
+                detail = None
+            view = view_ref()
+            if view is not None:
+                try:
+                    # Emitting a Qt signal is thread-safe; the @Slot body runs
+                    # on the view's owner thread, not this Python worker.
+                    view._detailLoaded.emit(generation, achievement_id, detail)
+                except RuntimeError:
+                    # QWidget destroyed while this bounded read was running.
+                    pass
+
+        Thread(
+            target=load_detail, name="DofusAtlasAchievementDetail",
+            daemon=True,
+        ).start()
+
+    @Slot(int, int, object)
+    def _on_detail_loaded(self, generation: int, achievement_id: int, detail: object) -> None:
+        self._detail_worker_running = False
+        latest = self._detail_requested
+        if latest != (generation, achievement_id):
+            if latest is not None:
+                self._start_next_detail_worker()
+            return
+        self._detail_requested = None
+        if self.current_achievement_id != achievement_id:
+            return
+        if detail is None or not self.provider.is_retained(achievement_id):
+            self.show_empty()
+            self.status_callback("Détail du succès indisponible")
+            return
+        self._display_achievement(detail)
+
+    def _display_achievement(self, achievement: Achievement) -> None:
         self.current_achievement_id = achievement.id
         self._detail_open = True
         self.detail_stack.setCurrentWidget(self.detail_scroll)
@@ -618,7 +716,7 @@ class AchievementsView(QWidget):
         if not isinstance(choice, tuple) or len(choice) != 2:
             return
         side, order_name = str(choice[0]), str(choice[1])
-        if order_name not in ORDER_QUEST_IDS.get(side, {}):
+        if order_name not in _order_quest_ids().get(side, {}):
             return
         self.progress_service.set_alignment_order_choice(self.character_key, side, order_name)
         self.sync_automatic_progress()
@@ -715,9 +813,16 @@ class AchievementsView(QWidget):
         return bool(self.navigate_callback(str(entity_type), entity_id, source="achievement"))
 
     def close_detail_panel(self) -> None:
+        self._detail_generation += 1
+        self._detail_requested = None
         self._detail_open = False
         self.detail_stack.setCurrentWidget(self.detail_scroll)
         self.clear_detail()
+
+    def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
+        self._detail_generation += 1
+        self._detail_requested = None
+        super().closeEvent(event)
 
     def clear_detail(self) -> None:
         while self.detail_layout.count():
@@ -728,6 +833,9 @@ class AchievementsView(QWidget):
                 widget.deleteLater()
 
     def __init__(self, *args, **kwargs) -> None:
+        self._detail_generation = 0
+        self._detail_requested: tuple[int, int] | None = None
+        self._detail_worker_running = False
         self._catalog_refresh_signature: tuple[object, ...] | None = None
         self._achievement_render_generation = 0
         self._achievement_pending_rows: list[int] = []
@@ -738,6 +846,7 @@ class AchievementsView(QWidget):
         self._achievement_rendering_batch = False
         self._achievement_initializing = True
         self._initialize_achievements_view(*args, **kwargs)
+        self._detailLoaded.connect(self._on_detail_loaded)
         self._achievement_initializing = False
 
         # The Success search belongs to the tab content, not to the tab bar.
@@ -829,11 +938,16 @@ class AchievementsView(QWidget):
         if (
             not self._achievement_initializing
             and self._catalog_refresh_signature == signature
-            and not self._achievement_rows_dirty
-            and not self._achievement_pending_rows
             and hasattr(self, "list_widget")
-            and self.list_widget.count() > 0
+            and (
+                self.list_widget.count() > 0
+                or self._achievement_pending_rows
+                or not self.filtered
+            )
         ):
+            # Pending rows are the intentionally deferred part of the *same*
+            # catalogue snapshot. A redundant refresh while scrolling must
+            # not clear the visible list, restart batches and lose selection.
             return
 
         self.close_detail_panel()

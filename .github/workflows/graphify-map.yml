@@ -166,6 +166,36 @@ jobs:
           print("Advisory candidates require source-level proof before deletion or merge.")
           PY
 
+      - name: Verify Doctor full-scope with exact-SHA Graphify without second graph rebuild
+        shell: bash
+        run: |
+          set +e
+          python -m tools.atlas_doctor full-scope --with-graph \
+            --expected-sha "$CANDIDATE_SHA" \
+            --output artifacts/doctor_full_scope/graph_report.json --json \
+            > "$RUNNER_TEMP/doctor-graph-full-scope.json"
+          code=$?
+          set -e
+          test "$code" -eq 1 || { echo "::error::Unexpected full-scope code $code"; exit 1; }
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads(Path("artifacts/doctor_full_scope/graph_report.json").read_text(encoding="utf-8"))
+          coverage = report["source_coverage"]
+          graph = report["graph_architecture_audit"]
+          assert report["candidate_sha"] == os.environ["CANDIDATE_SHA"]
+          assert report["worktree_clean"] and coverage["status"] == "PASS"
+          assert coverage["inspected"] == coverage["total"] and not coverage["truncated"]
+          assert graph["status"] in {"PASS", "REVIEW"}, graph.get("reason")
+          assert graph["candidate_sha"] == os.environ["CANDIDATE_SHA"]
+          assert not graph.get("blocking_findings")
+          assert report["status"] == "REVIEW" and not report["complete_application_certified"]
+          print(f"Doctor + Graphify: {coverage['inspected']}/{coverage['total']} Python files; "
+                f"{coverage['functions_inspected']} functions; Graphify={graph['status']}")
+          print("Native UI, runtime dependencies and JSON semantic checks still NOT_RUN")
+          PY
+          cp artifacts/doctor_full_scope/graph_report.json graphify-out/doctor_full_scope.json
+
       - name: Verify Doctor interactive export against exact Graphify SHA
         shell: bash
         run: |

@@ -349,6 +349,36 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
     )
     achievement_post_navigation_wait_ms = milliseconds(render_wait_started)
     achievement_detail_ms = milliseconds(started)
+    # The runtime may have completed a disposable Success detail on the main
+    # Qt thread. Read its already-recorded phases without initiating another
+    # provider or detail load; the timer above remains unchanged.
+    peek = getattr(getattr(page, "service", None), "peek_achievement_provider", None)
+    existing_provider = peek() if callable(peek) else None
+    provider_phases = (
+        getattr(existing_provider, "last_detail_breakdown_ms", None)
+        if existing_provider is not None else None
+    )
+    success_source_phases = (
+        {key: provider_phases[key] for key in (
+            "thread", "total_ms", "synchronous_subprocess_ms", "decode_ms",
+            "subprocess_path_used", "cache_source", "recent_cache_entries",
+        ) if key in provider_phases}
+        if isinstance(provider_phases, dict) and provider_phases.get("thread")
+        else {"status": "NOT_OBSERVED"}
+    )
+    # A prewarmed deep link may be a hot-cache hit on the Qt thread. Preserve
+    # the original cold cost from the canonical provider so it is not erased.
+    source_cold = (
+        getattr(existing_provider, "last_cold_detail_breakdown_ms", None)
+        if existing_provider is not None else None
+    )
+    verified_cold = (
+        dict(source_cold)
+        if isinstance(source_cold, dict)
+        and source_cold.get("status") == "OBSERVED"
+        and source_cold.get("achievement_id") == achievement_id
+        else {"status": "NOT_OBSERVED_OR_DIFFERENT_DETAIL"}
+    )
 
     return {
         "quest_detail_ms": quest_detail_ms,
@@ -368,6 +398,8 @@ def measure_deep_first_content(app: QApplication, window: Any) -> dict[str, Any]
             "catalogue_lookup": achievement_catalogue_lookup_ms,
             "navigation_call": achievement_navigation_call_ms,
             "post_navigation_wait": achievement_post_navigation_wait_ms,
+            "provider_last_detail_breakdown_ms": success_source_phases,
+            "provider_cold_detail_breakdown_ms": verified_cold,
         },
         "quest_id": quest_id,
         "guide_id": guide_id,
@@ -484,6 +516,22 @@ def main() -> int:
             "python": sys.version.split()[0],
             "qt_qpa_platform": os.environ.get("QT_QPA_PLATFORM", ""),
         },
+        # Paired base/candidate runs in one GitHub Actions job share this
+        # attempt ID and runner label. Local operators can explicitly supply
+        # the same pair ID for both invocations. These are metadata, not
+        # proof of identical CPU load or successful certification.
+        "run_id": (
+            os.environ.get("ATLAS_BENCH_PAIR_ID")
+            or (
+                os.environ["GITHUB_RUN_ID"] + "-" +
+                os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+                if os.environ.get("GITHUB_RUN_ID") else None
+            )
+        ),
+        "runner_id": (
+            os.environ.get("ATLAS_BENCH_RUNNER_ID")
+            or os.environ.get("RUNNER_NAME")
+        ),
         "metrics": measure(),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

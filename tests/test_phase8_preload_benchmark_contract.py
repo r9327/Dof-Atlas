@@ -101,6 +101,43 @@ class DeepAchievementTimingContractTests(unittest.TestCase):
         )
 
 
+class DeepSuccessSubprocessAttributionContractTests(unittest.TestCase):
+    def test_success_probe_peeks_existing_provider_only_after_real_render(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        block = source[
+            source.index("    # Achievement: request the first real retained Achievement detail;"):
+            source.index("\ndef measure() -> dict[str, Any]:")
+        ]
+        self.assertIn("peek_achievement_provider", block)
+        self.assertIn('"provider_last_detail_breakdown_ms": success_source_phases', block)
+        self.assertIn('"provider_cold_detail_breakdown_ms": verified_cold', block)
+        self.assertIn("last_cold_detail_breakdown_ms", block)
+        self.assertIn('source_cold.get("achievement_id") == achievement_id', block)
+        self.assertIn('"synchronous_subprocess_ms"', block)
+        self.assertNotIn("provider.get_detail_by_id(", block)
+        self.assertLess(
+            block.index('label="first rendered Achievement detail"'),
+            block.index('achievement_detail_ms = milliseconds(started)'),
+        )
+        self.assertLess(
+            block.index("achievement_detail_ms = milliseconds(started)"),
+            block.index('peek_achievement_provider'),
+        )
+
+
+class PairedPhase8ProvenanceContractTests(unittest.TestCase):
+    def test_benchmark_emits_existing_actions_run_and_runner_ids(self) -> None:
+        source = BENCHMARK.read_text(encoding="utf-8")
+        main = source[source.index("def main() -> int:"):]
+        self.assertIn('"run_id":', main)
+        self.assertIn('"runner_id":', main)
+        self.assertIn('os.environ.get("ATLAS_BENCH_PAIR_ID")', main)
+        self.assertIn('os.environ["GITHUB_RUN_ID"]', main)
+        self.assertIn('os.environ.get("GITHUB_RUN_ATTEMPT", "1")', main)
+        self.assertIn('os.environ.get("RUNNER_NAME")', main)
+        self.assertIn('"metrics": measure()', main)
+
+
 class DeepQuestTimingContractTests(unittest.TestCase):
     def test_quest_breakdown_does_not_replace_real_detail_wait(self) -> None:
         source = BENCHMARK.read_text(encoding="utf-8")

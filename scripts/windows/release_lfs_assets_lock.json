@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_repo": "r9327/Dof-Atlas-App",
+  "tag": "sha-0ee44aeeb093",
+  "source_sha": "0ee44aeeb09358783dcceca799b743c6fb375299",
+  "manifest": {"name": "atlas-manifest.json", "size": 13078550, "sha256": "3c33b91d4747621ceed45cb6a1e5934c1ef9294ab07b5e3132be170a933479a3"},
+  "archive": {"size": 2713105574, "sha256": "9650f62db8ed768ec00c200ddef2dbc0d6df5f56ba53b66497fe98c6c8159cc2"},
+  "parts": [
+    {"name": "atlas-windows.part0001", "size": 1879048192, "sha256": "28692b2741e62433719d8bb3af62db4fd61354064de3398691dc79f4cb7c4aa8"},
+    {"name": "atlas-windows.part0002", "size": 834057382, "sha256": "07c9cfbc689e9afd571118ac358573ecf9bfe1082a666e4b4d63f8938b435698"}
+  ]
+}

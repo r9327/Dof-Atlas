@@ -98,6 +98,14 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
                 shell, name, factory
             )
         )
+        # Bind real cleanup methods added to AtlasWindow, not no-op mocks:
+        # this test uses a minimal shell but must exercise production Home logic.
+        shell._hibernate_world_scan_on_home = (
+            lambda: AtlasWindow._hibernate_world_scan_on_home(shell)
+        )
+        shell.release_transient_placeholders = (
+            lambda: AtlasWindow.release_transient_placeholders(shell)
+        )
         shell.collect_released_page_cycles = AtlasWindow.collect_released_page_cycles
 
         try:

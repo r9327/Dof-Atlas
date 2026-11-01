@@ -14,7 +14,11 @@ from unittest.mock import patch
 
 from app import quest_catalog as qc
 from app.quest_catalog import QuestCatalog, QuestRecord, QuestStep
-from app.quest_catalog_details import ensure_detail_source_offsets, load_lazy_catalog
+from app.quest_catalog_details import (
+    _solution_combat_rows,
+    ensure_detail_source_offsets,
+    load_lazy_catalog,
+)
 from app.quest_source_index import (
     JsonSourceMapping,
     QuestSources,
@@ -27,6 +31,29 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_solution_combats_have_stable_compact_evidence_without_rich_detail(self):
+        evidence = _solution_combat_rows({
+            "solution_steps": [
+                {"objectives": [
+                    {"text": "Parler au garde", "combat": False},
+                    {"text": "  Vaincre   le Bouftou Royal  ", "combat": True},
+                ]},
+                {"objectives": [
+                    {"text": "Vaincre le Bouftou Royal", "combat": True},
+                    {"text": "Combat tactique " + "très long " * 30, "combat": True},
+                ]},
+            ]
+        })
+
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual(evidence[0], {
+            "objective_id": 1_500_001_002,
+            "monster": "Vaincre le Bouftou Royal",
+            "quantity": 1,
+        })
+        self.assertEqual(evidence[1]["objective_id"], 1_500_002_002)
+        self.assertLessEqual(len(evidence[1]["monster"]), 160)
+
     def build(self, root, limit=32):
         context = {
             "achievement_names": {10: "Succès test"},

@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, run
+from tools.doctor_quick_app_probe import ROUTES, assert_inventory, open_route, summarize_revisits, startup_domain_breakdown, home_handoff_ready, run
 from tools.atlas_doctor import command_perf
 from tools.atlas_doctor_lib.parallel_app import validate_instance, prepare_instance_user_root
 
@@ -23,8 +23,43 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         ])
         assert_inventory()
         self.assertEqual([r[0] for r in ROUTES if r[4]], [
+            "dungeons", "monsters", "archmonsters", "wanted",
             "treasure_hunt", "ocre", "almanax", "tutorials", "dofus_noob",
         ])
+
+    def test_home_handoff_is_separate_from_all_preloads_finished(self):
+        window = SimpleNamespace(
+            preload_states={"quests": "READY", "encyclopedia": "LOADING", "craft": "IDLE"},
+            _home_revealed=True,
+        )
+        self.assertTrue(home_handoff_ready(window))
+        window._home_revealed = False
+        self.assertFalse(home_handoff_ready(window))
+        window._home_revealed = True
+        window.preload_states["quests"] = "LOADING"
+        self.assertFalse(home_handoff_ready(window))
+        window.preload_states["quests"] = "FAILED"
+        self.assertTrue(home_handoff_ready(window))
+
+    def test_preload_timings_only_accept_exact_session_and_valid_domains(self):
+        self.assertEqual(startup_domain_breakdown({})["status"], "UNAVAILABLE")
+        self.assertEqual(startup_domain_breakdown({"status": "failed"})["status"], "UNAVAILABLE")
+        evidence = {
+            "status": "ready", "elapsed_ms": 25000,
+            "domains": {
+                "guide": {"elapsed_ms": 7000, "worker_elapsed_ms": 6800,
+                          "mode": "rebuilt", "timings_ms": {"items": 3200}},
+                "quest": {"elapsed_ms": 17000, "mode": "rebuilt", "timings_ms": []},
+                "success": {"elapsed_ms": 800, "mode": "reused"},
+            },
+        }
+        result = startup_domain_breakdown(evidence)
+        self.assertEqual(result["status"], "OBSERVED")
+        self.assertEqual(result["domains"]["quest"]["elapsed_ms"], 17000)
+        self.assertEqual(result["domains"]["quest"]["timings_ms"], {})
+        self.assertEqual(result["domains"]["guide"]["timings_ms"]["items"], 3200)
+        evidence["domains"].pop("success")
+        self.assertEqual(startup_domain_breakdown(evidence)["status"], "PARTIAL")
 
     def test_new_unreviewed_category_cannot_be_silent(self):
         rows = list(ROUTES)
@@ -48,6 +83,26 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         open_route(app, window, ROUTES[12], 1)
         window.open_tools_tab.assert_called_once_with("Ocre")
         window.show_placeholder.assert_not_called()
+
+    def test_bestiary_inner_placeholder_is_not_counted_as_functional(self):
+        app = Mock()
+        inner = Mock()
+        inner.objectName.return_value = "EncyclopediaUnavailableBestiary"
+        shell = Mock()
+        shell.objectName.return_value = "EncyclopediaPage"
+        shell.tabs.currentWidget.return_value = inner
+        window = Mock()
+        window.active_page_name.return_value = "Quetes"
+        window.page_widgets = {"Quetes": shell}
+        with patch("tools.doctor_quick_app_probe.wait_until"):
+            open_route(app, window, ROUTES[5], 1)
+        window.open_encyclopedia_tab.assert_called_once_with("DONJONS")
+        # Fail closed if the route becomes a real Bestiary view but the
+        # reviewed inventory still describes it as an unavailable module.
+        inner.objectName.return_value = "RealDungeonView"
+        with patch("tools.doctor_quick_app_probe.wait_until"):
+            with self.assertRaisesRegex(RuntimeError, "placeholder classification mismatch"):
+                open_route(app, window, ROUTES[5], 1)
 
     def test_revisit_summary_uses_actual_stabilized_home_evidence(self):
         rows = [
@@ -110,6 +165,26 @@ class ShortWholeAppProbeTests(unittest.TestCase):
             engine.assert_not_called()
 
 
+    def test_doctor_ram_forensics_opt_in_only_and_not_parallel_eight(self):
+        args = SimpleNamespace(
+            app=True, deep=False, files_only=False, cycles=1,
+            timeout=18.0, max_seconds=540.0, idle_seconds=0.0,
+            one_core=False, ram_forensics=True, parallel_instances=1,
+            output=Path("artifacts/quick_app/ram_forensics.json"), json=True,
+        )
+        with patch("tools.doctor_quick_app_probe.run",
+                   return_value={"status": "PASS", "measured_routes": 20}) as engine:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "PASS")
+            engine.assert_called_once_with(
+                output=Path("/unused/artifacts/quick_app/ram_forensics.json"),
+                timeout=18.0, max_seconds=540.0, cycles=1,
+                idle_seconds=0.0, one_core=False, ram_forensics=True,
+            )
+        args.parallel_instances = 8
+        with patch("tools.atlas_doctor_lib.parallel_app.run_eight") as runner:
+            self.assertEqual(command_perf(Path("/unused"), args)["status"], "BLOCKED")
+            runner.assert_not_called()
+
     def test_eight_processes_need_real_per_instance_coverage(self):
         samples = [
             {"id": key, "cycle": 1,
@@ -120,12 +195,16 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         good = {
             "git_head": "a" * 40, "status": "PASS", "cycles": 1,
             "planned_samples": 20, "measured_routes": 20,
-            "functional_pass": 15, "placeholder_pass": 5,
+            "functional_pass": 11, "placeholder_pass": 9,
             "preload_states": {"quests": "READY", "encyclopedia": "READY", "craft": "READY"},
             "routes": samples, "failed_routes": [],
             "peak_process_tree_rss_mib": 150.0,
         }
         self.assertEqual(validate_instance(good, sha="a" * 40), [])
+        self.assertIn("FALSE_FUNCTIONAL_COVERAGE", validate_instance(
+            {**good, "functional_pass": 15, "placeholder_pass": 5},
+            sha="a" * 40,
+        ))
         self.assertIn("WRONG_ROUTE_ORDER_DUPLICATE_OR_FALSE_STATUS",
                       validate_instance({**good, "routes": samples[:-1] + [samples[0]]},
                                         sha="a" * 40))

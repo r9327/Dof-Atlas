@@ -17,6 +17,20 @@ class ToolCatalogTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def test_specialist_capabilities_are_discoverable_without_execution(self) -> None:
+        from tools.tool_catalog import _capabilities
+
+        expected = {
+            "tools/graph_audit.py": "graphify",
+            "tools/atlas_ram_inventory.py": "memory",
+            "tools/runtime_observation.py": "runtime_trace",
+            "tools/json_semantic_coverage.py": "json_data",
+            "tools/ci_orchestrator.py": "ci_intelligence",
+        }
+        for filename, capability in expected.items():
+            with self.subTest(path=filename):
+                self.assertIn(capability, _capabilities(filename))
+
     def test_agent_ready_tool_is_machine_readable_and_tested(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

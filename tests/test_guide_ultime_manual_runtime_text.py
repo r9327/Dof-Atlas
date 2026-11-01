@@ -21,6 +21,36 @@ class GuideUltimeManualRuntimeTextTests(unittest.TestCase):
         service._quest_name_to_id = {normalize_text("Au détour d'un rêve perdu"): 42}
         return service
 
+    def test_success_notes_preserve_authored_order_and_no_duplicate_mentions(self):
+        service = self._service()
+        stage = {
+            "route": [
+                {"pos": "[1,2]", "do": "Faire déjà le succès Alpha."},
+                {"pos": "[3,4]", "do": "Continuer l'étape normale."},
+            ],
+            "successes": ["Alpha", "Bêta", "Bêta", "Gamma"],
+        }
+        rows = service._stage_lines(stage, [])
+        lines = [str(row.get("text") or "") for row in rows]
+        # A Success already mentioned by an authored action is not added.
+        self.assertEqual(sum("Alpha" in row for row in lines), 1)
+        self.assertEqual(sum("Bêta" in row for row in lines), 1)
+        self.assertEqual(sum("Gamma" in row for row in lines), 1)
+        self.assertIn("Continuer", " ".join(lines))
+        self.assertLess(
+            next(i for i, row in enumerate(lines) if "Bêta" in row),
+            next(i for i, row in enumerate(lines) if "Gamma" in row),
+        )
+
+    def test_empty_success_name_is_not_suppressed_or_invented(self):
+        service = self._service()
+        rows = service._stage_lines({
+            "route": [{"pos": "[0,0]", "do": "Parler au PNJ."}],
+            "successes": [" ", "", " Succès vérifié "],
+        }, [])
+        texts = [str(row.get("text") or "") for row in rows]
+        self.assertEqual(sum("Succès vérifié" in row for row in texts), 1)
+
     def test_take_instruction_keeps_exact_quest_name(self):
         service = self._service()
         quest_key = normalize_text("Au détour d'un rêve perdu")

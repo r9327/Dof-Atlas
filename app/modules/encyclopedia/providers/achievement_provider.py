@@ -210,18 +210,17 @@ class AchievementProvider:
         return list(self._linked_quests.get(int(achievement_id), ()))
 
     def get_quest_preparation(self, achievement_id: int) -> tuple[dict[str, object], ...]:
-        """Read validated (or bundled) quest preparation for a Success, on demand.
+        """Fetch all linked Quest preparation evidence in one compact batch.
 
-        Uses the same QuestProvider data-pack gate as the Guide module.
-        Does not modify Success objectives, progress, points, hierarchy,
-        route ordering, or the underlying catalogue. Each linked quest
-        retains its own quantities: repeating items are not blindly summed.
+        Preserve the canonical linked-quest order, quantities and provenance.
+        A large Quest-linked Success must not open one SQLite connection per
+        linked Quest on the UI thread. Older custom providers still work.
         """
         achievement = self.get_by_id(int(achievement_id))
         if achievement is None:
             return ()
         refs = achievement.resolved_linked_quests or achievement.linked_quests
-        rows: list[dict[str, object]] = []
+        requested: list[tuple[int, str]] = []
         seen: set[int] = set()
         for ref in refs:
             if ref.entity_type != "quest":
@@ -233,9 +232,19 @@ class AchievementProvider:
             if quest_id <= 0 or quest_id in seen:
                 continue
             seen.add(quest_id)
-            # The Quest provider checks canonical IDs and accepted SHA-bound
-            # pack schema, with its built-in data as a safe fallback.
-            preparation = self.quest_provider.guide_evidence(quest_id)
+            requested.append((quest_id, str(ref.label)))
+        if not requested:
+            return ()
+
+        batch = getattr(self.quest_provider, "guide_evidence_many", None)
+        evidence_by_id = batch(quest_id for quest_id, _ in requested) if callable(batch) else None
+        rows: list[dict[str, object]] = []
+        for quest_id, quest_name in requested:
+            preparation = (
+                evidence_by_id.get(quest_id)
+                if isinstance(evidence_by_id, dict)
+                else self.quest_provider.guide_evidence(quest_id)
+            )
             if not isinstance(preparation, dict):
                 continue
             items = preparation.get("items", [])
@@ -246,7 +255,7 @@ class AchievementProvider:
                 continue
             rows.append({
                 "quest_id": quest_id,
-                "quest_name": str(ref.label),
+                "quest_name": quest_name,
                 "items": [dict(item) for item in items if isinstance(item, dict)],
                 "combats": [dict(row) for row in combats if isinstance(row, dict)],
             })
