@@ -222,10 +222,15 @@ class WindowHealthTests(unittest.TestCase):
             patch.object(launcher, "_run_lock", return_value=launcher_lock),
             patch.object(launcher, "SingleInstanceGuard", return_value=instance),
             patch.object(launcher, "relocate_runtime", side_effect=copy_checked) as copy,
+            patch.object(launcher, "record_startup_event") as trace,
         ):
             self.assertEqual(
                 launcher._relocate_runtime_safely(root, progress), root
             )
+        self.assertEqual(
+            [call.args[0] for call in trace.call_args_list],
+            ["install_relocation_begin", "install_relocation_committed"],
+        )
         copy.assert_called_once()
         instance.acquire.assert_called_once()
         instance.release.assert_called_once()
@@ -255,9 +260,14 @@ class WindowHealthTests(unittest.TestCase):
             patch.object(launcher, "SingleInstanceGuard", return_value=instance),
             patch.object(launcher, "relocate_runtime",
                          side_effect=OSError("Interrupted drive")) as copy,
+            patch.object(launcher, "record_startup_event") as trace,
         ):
             with self.assertRaisesRegex(OSError, "Interrupted drive"):
                 launcher._relocate_runtime_safely(Path("unavailable"))
+        self.assertEqual(
+            [call.args[0] for call in trace.call_args_list],
+            ["install_relocation_begin", "install_relocation_aborted"],
+        )
         copy.assert_called_once()
         instance.release.assert_called_once()
         lock.close.assert_called_once()
