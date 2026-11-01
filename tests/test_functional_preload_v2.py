@@ -18,6 +18,34 @@ class FunctionalPreloadV2Tests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+
+    def test_partial_session_domain_releases_quest_without_success_or_craft(self) -> None:
+        partial = {
+            "schema_version": 1, "token": "expected",
+            "status": "running", "completed_domains": ["quest"],
+            "quest_count": 1976, "encyclopedia_ready": False,
+        }
+        with (
+            patch.dict(main.os.environ, {main.STARTUP_CACHE_WARMUP_TOKEN_ENV: "expected"}),
+            patch.object(main, "_startup_cache_warmup_stamp", return_value=(1, 1)),
+            patch.object(main, "_startup_cache_warmup_payload", return_value=partial),
+        ):
+            self.assertEqual(
+                main._await_startup_cache_warmup(timeout_seconds=0, required_domain="quest"),
+                partial,
+            )
+            self.assertEqual(main._warm_quest_catalogue(), 1976)
+
+        # A stale token cannot pass the canonical payload validation.
+        with (
+            patch.dict(main.os.environ, {main.STARTUP_CACHE_WARMUP_TOKEN_ENV: "expected"}),
+            patch.object(main, "_startup_cache_warmup_stamp", return_value=(1, 1)),
+            patch.object(main, "_startup_cache_warmup_payload", return_value={}),
+        ):
+            self.assertEqual(
+                main._await_startup_cache_warmup(timeout_seconds=0, required_domain="quest"), {}
+            )
+
     def test_popup_tracks_functional_tasks_only(self) -> None:
         self.assertEqual(PRELOAD_TASK_ORDER, ("quests", "encyclopedia", "craft"))
         self.assertNotIn("runtime", PRELOAD_TASK_ORDER)

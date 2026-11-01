@@ -113,11 +113,9 @@ jobs:
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
       - name: Test validator against isolated healthy and broken widgets
         run: python -X faulthandler -m unittest discover -s tests -p test_doctor_ui_qt.py -v
-      - name: Materialize only public Guide catalog tool and UI assets
+      - name: Materialize locked public Guide catalog inputs
         shell: pwsh
         run: |
-          git lfs pull --include="tools/doduda/doduda.exe,data/images/misc/dofus_atlas_logo.png" --exclude=""
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.quest_assets --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download

@@ -194,6 +194,27 @@ class DoctorWorkflowArtifactSelectionTests(unittest.TestCase):
                 folder, artifact_prefix="atlas-exhaustive-guides",
                 report_name="guides.doctor.json", run_id=999, max_attempt=3), saved)
 
+    def test_flattened_single_wildcard_artifact_is_selected(self):
+        # download-artifact v8 extracts one matching archive at the root.
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            report = folder / "report.json"
+            report.write_text('{"status":"PASS"}', encoding="utf-8")
+            (folder / "ram_forensics.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(latest_attempt_report(
+                folder, artifact_prefix="atlas-short-complete-app-c3-cpufalse-p1",
+                report_name="report.json", run_id=999, max_attempt=1), report)
+
+    def test_flattened_mixed_layout_fails_closed(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder / "report.json").write_text("{}", encoding="utf-8")
+            (folder / "foreign-artifact").mkdir()
+            with self.assertRaisesRegex(ValueError, "Ambiguous flattened"):
+                latest_attempt_report(
+                    folder, artifact_prefix="atlas-short-complete-app-c3-cpufalse-p1",
+                    report_name="report.json", run_id=999, max_attempt=1)
+
     def test_future_attempt_or_foreign_run_cannot_certify_current(self):
         with TemporaryDirectory() as temp:
             folder = Path(temp)

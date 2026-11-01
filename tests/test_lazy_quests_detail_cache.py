@@ -1,7 +1,18 @@
 from __future__ import annotations
 
+import json
+from contextlib import closing
+import unittest
+import os
+import sqlite3
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from app.quest_catalog_details import QuestDetails
+from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+import app.quest_catalog_details as quest_details_module
 
 from app.pages.lazy_quests_page import LazyQuestsPage
 from app.pages.quests_page import QuestsPage
@@ -59,3 +70,332 @@ def test_changed_last_quest_id_persists_once() -> None:
         LazyQuestsPage.save_last_quest_id(fake, 42)
 
     base_save.assert_called_once_with(fake, 42)
+
+
+
+
+class QuestDetailOffsetPreloadTests(unittest.TestCase):
+    def test_warmup_exposes_exact_disk_indexes_without_changing_legacy_count(self):
+        from unittest.mock import MagicMock
+
+        created: list[MagicMock] = []
+
+        def source_factory(root, *, disk_backed=False):
+            self.assertTrue(disk_backed)
+            self.assertEqual(Path(root).name, "source_offsets")
+            sources = MagicMock()
+            def mapping(path, field, **kwargs):
+                result = MagicMock()
+                result.__len__.return_value = 1
+                result._disk_index = Path(root) / ("source_" + str(len(created)) + ".sqlite3")
+                created.append(result)
+                return result
+            sources.mapping.side_effect = mapping
+            return sources
+
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            quest_details_module, "QuestSources", side_effect=source_factory,
+        ):
+            paths: list[Path] = []
+            count = quest_details_module.ensure_detail_source_offsets(
+                Path(directory), cache_root=Path(directory), indexed_paths=paths,
+            )
+        self.assertEqual(count, len(quest_details_module._DETAIL_OFFSET_SOURCES) + 1)
+        self.assertEqual(len(paths), count)
+        self.assertEqual(len(set(paths)), count)
+        self.assertTrue(all(path.name.startswith("source_") for path in paths))
+
+
+class QuestObjectiveStepIndexTests(unittest.TestCase):
+    def test_first_rich_detail_primes_index_once_without_intermediate_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            raw = {"15": [101, 102], "16": [103]}
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute(
+                    "INSERT INTO metadata VALUES ('objective_step_ids', ?)",
+                    (json.dumps(raw),),
+                )
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            prime = Mock()
+            details._sources = SimpleNamespace(prime_objective_steps=prime)
+            details._prime_objective_step_index()
+            prime.assert_called_once_with(raw)
+            self.assertTrue(details._objective_step_index_checked)
+            details._prime_objective_step_index()
+            prime.assert_called_once()
+
+    def test_invalid_step_index_does_not_mark_ready_or_prime_partial_data(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
+                connection.execute(
+                    "INSERT INTO metadata VALUES ('objective_step_ids', ?)",
+                    (json.dumps({"15": ["not-an-id"]}),),
+                )
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            prime = Mock()
+            details._sources = SimpleNamespace(prime_objective_steps=prime)
+            with self.assertRaises(ValueError):
+                details._prime_objective_step_index()
+            prime.assert_not_called()
+            self.assertFalse(details._objective_step_index_checked)
+
+
+
+class QuestColdDetailBreakdownTests(unittest.TestCase):
+    def test_sqlite_cold_detail_reports_disk_decode_without_source_compilation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE quests(id INTEGER PRIMARY KEY, detail TEXT)")
+                connection.execute("INSERT INTO quests VALUES (42, ?)", ('{"id":42}',))
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            cached = object()
+            with patch.object(quest_details_module.qc, "_record_from_cache", return_value=cached) as decode:
+                self.assertIs(details.get(42), cached)
+                self.assertIs(details.get(42), cached)
+            decode.assert_called_once_with({"id": 42})
+            info = details.info()
+            self.assertEqual(info["loads"], 1)
+            self.assertEqual(info["hits"], 1)
+            phases = info["last_detail_breakdown_ms"]
+            self.assertEqual(phases["quest_id"], 42)
+            self.assertTrue(phases["sqlite_cache_hit"])
+            self.assertGreaterEqual(phases["total_ms"], 0.0)
+            self.assertNotIn("source_compile_ms", phases)
+
+    def test_first_source_detail_separates_preparation_compilation_and_storage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quests.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute("CREATE TABLE quests(id INTEGER PRIMARY KEY, detail TEXT)")
+                connection.execute("INSERT INTO quests VALUES (42, NULL)")
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            record = SimpleNamespace(id=42)
+            with (
+                patch.object(quest_details_module, "_signature", return_value=()),
+                patch.object(details, "_prime_objective_step_index"),
+                patch.object(details, "_load_source_context"),
+                patch.object(quest_details_module, "asdict", return_value={"id": 42}),
+                patch.object(
+                    quest_details_module.qc.QuestCatalog, "_load_source",
+                    return_value=SimpleNamespace(by_id={42: record}),
+                ) as compile_detail,
+            ):
+                self.assertIs(details.get(42), record)
+            compile_detail.assert_called_once()
+            phases = details.info()["last_detail_breakdown_ms"]
+            self.assertFalse(phases["sqlite_cache_hit"])
+            self.assertGreaterEqual(phases["source_index_and_context_ms"], 0.0)
+            self.assertGreaterEqual(phases["source_compile_ms"], 0.0)
+            self.assertGreaterEqual(phases["sqlite_serialize_and_persist_ms"], 0.0)
+            with closing(sqlite3.connect(path)) as connection:
+                row = connection.execute("SELECT detail FROM quests WHERE id=42").fetchone()
+            self.assertEqual(json.loads(row[0]), {"id": 42})
+
+
+class QuestEvidenceBatchTests(unittest.TestCase):
+    def test_bulk_compact_quest_evidence_matches_point_results_with_two_sql_chunks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "details.sqlite3"
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute(
+                    "CREATE TABLE quests(id INTEGER PRIMARY KEY, guide_evidence TEXT)"
+                )
+                connection.executemany(
+                    "INSERT INTO quests VALUES (?, ?)",
+                    [
+                        (qid, json.dumps({"combats": [{"objective_id": qid}]}))
+                        for qid in range(1, 451)
+                    ],
+                )
+                connection.execute(
+                    "UPDATE quests SET guide_evidence=? WHERE id=4",
+                    ("malformed",),
+                )
+                connection.commit()
+            details = QuestDetails(Path(directory), path, ())
+            expected = {
+                qid: details.guide_evidence(qid)
+                for qid in (1, 4, 401, 450)
+            }
+            with patch.object(
+                quest_details_module, "_connect",
+                wraps=quest_details_module._connect,
+            ) as connect:
+                batch = details.guide_evidence_many(
+                    [1, 4, 401, 450, 1] + list(range(1, 451))
+                )
+            assert connect.call_count == 1  # 450 records, 2 SQL batches, 1 handle.
+            assert len(batch) == 450
+            assert {qid: batch[qid] for qid in expected} == expected
+            assert details.guide_evidence_many([9999]) == {}
+
+
+    def test_quest_provider_keeps_optional_pack_semantics_in_bulk_mode(self) -> None:
+        batch = Mock(return_value={4: {"combats": [{"objective_id": 77}]}})
+        fake_catalog = SimpleNamespace(
+            guide_evidence_many=batch,
+            guide_evidence=Mock(return_value={}),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=fake_catalog, data_dir=Path(directory))
+            assert provider.guide_evidence_many([4, 4]) == {
+                4: {"combats": [{"objective_id": 77}]}
+            }
+            batch.assert_called_once_with((4,))
+
+            provider._pack_guide_evidence = {4: {"combats": [{"objective_id": 99}]}}
+            # Optional accepted packs are only active for the canonical data
+            # directory; the bulk method must preserve that exact boundary.
+            with patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True):
+                assert provider.guide_evidence_many([4, 4, 777]) == {
+                    4: {"combats": [{"objective_id": 99}]},
+                    777: {},
+                }
+            batch.assert_called_with((4, 777))
+            assert batch.call_count == 2
+
+    def test_pack_root_environment_keeps_bulk_sql_read_enabled(self) -> None:
+        baseline = {"combats": [{"objective_id": 37, "monster": "Tofu"}]}
+        batch = Mock(return_value={4: baseline})
+        catalogue = SimpleNamespace(
+            guide_evidence_many=batch,
+            guide_evidence=Mock(side_effect=AssertionError("no per-quest SQL")),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=catalogue, data_dir=Path(directory))
+            with (
+                patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True),
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value={},
+                ) as loader,
+            ):
+                self.assertEqual(provider.guide_evidence_many([4, 4]), {4: baseline})
+                self.assertEqual(provider.guide_evidence_many([4]), {4: baseline})
+            loader.assert_called_once()
+            self.assertEqual(batch.call_count, 2)
+
+    def test_pack_root_overrides_only_canonical_ids_and_copies_values(self) -> None:
+        baseline = {"combats": [{"objective_id": 37, "monster": "Tofu"}]}
+        offered = {"combats": [{"objective_id": 88, "monster": "Bouftou"}]}
+        pack = {4: offered, 9: {"fake": True}}
+        catalogue = SimpleNamespace(
+            guide_evidence_many=Mock(return_value={4: baseline}),
+            guide_evidence=Mock(side_effect=AssertionError("no per-quest SQL")),
+            by_id={4: object()},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=catalogue, data_dir=Path(directory))
+            with (
+                patch("app.modules.encyclopedia.providers.quest_provider._is_default_data_dir", return_value=True),
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value=pack,
+                ) as loader,
+            ):
+                result = provider.guide_evidence_many([4, 9, 10])
+                self.assertEqual(result[4], offered)
+                self.assertEqual(result[9], {})
+                self.assertEqual(result[10], {})
+                self.assertIsNot(result[4], offered)
+                result[4]["combats"].clear()
+                self.assertTrue(offered["combats"])
+            loader.assert_called_once()
+
+    def test_home_release_drops_optional_guide_pack_and_loads_it_only_on_reentry(self) -> None:
+        pack = {4: {"combats": [{"objective_id": 1, "monster": "Tofu"}]}}
+        with tempfile.TemporaryDirectory() as directory:
+            provider = QuestProvider(catalog=object(), data_dir=Path(directory))
+            with (
+                patch.dict(os.environ, {"DOFUS_ATLAS_PACK_ROOT": directory}),
+                patch(
+                    "app.distribution.quest_evidence_pack.load_accepted_quest_guide_evidence",
+                    return_value=pack,
+                ) as loader,
+            ):
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                loader.assert_called_once()
+                provider.release_catalogue()
+                self.assertIsNone(provider._catalog)
+                self.assertIsNone(provider._pack_guide_evidence)
+                self.assertIs(provider._accepted_guide_evidence_pack(), pack)
+                self.assertEqual(loader.call_count, 2)
+
+
+class AchievementPreparationBatchTests(unittest.TestCase):
+    def test_preparation_batches_only_canonical_quest_refs_in_order(self) -> None:
+        from app.modules.encyclopedia.models.entity_ref import EntityRef
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        refs = (
+            EntityRef("quest", 4, "Première quête"),
+            EntityRef("monster", 18, "Monstre"),
+            EntityRef("quest", 5, "Deuxième quête"),
+            EntityRef("quest", 4, "Doublon ignoré"),
+            EntityRef("quest", "not-an-id", "Référence invalide"),
+        )
+        evidence = {
+            4: {"items": [{"id": 7, "quantity": 3}], "combats": []},
+            5: {"items": [], "combats": [{"objective_id": 9, "monster": "Tofu"}]},
+        }
+        bulk = Mock(return_value=evidence)
+        individual = Mock(side_effect=AssertionError("no per-quest SQL"))
+        owner = SimpleNamespace(
+            get_by_id=Mock(return_value=SimpleNamespace(
+                resolved_linked_quests=refs, linked_quests=(),
+            )),
+            quest_provider=SimpleNamespace(
+                guide_evidence_many=bulk,
+                guide_evidence=individual,
+            ),
+        )
+
+        result = AchievementProvider.get_quest_preparation(owner, 42)
+        self.assertEqual(list(bulk.call_args.args[0]), [4, 5])
+        individual.assert_not_called()
+        self.assertEqual(result, (
+            {
+                "quest_id": 4, "quest_name": "Première quête",
+                "items": [{"id": 7, "quantity": 3}], "combats": [],
+            },
+            {
+                "quest_id": 5, "quest_name": "Deuxième quête",
+                "items": [], "combats": [{"objective_id": 9, "monster": "Tofu"}],
+            },
+        ))
+        result[0]["items"][0]["quantity"] = 100
+        self.assertEqual(evidence[4]["items"][0]["quantity"], 3)
+
+    def test_preparation_supports_old_quest_provider_without_batch_api(self) -> None:
+        from app.modules.encyclopedia.models.entity_ref import EntityRef
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        point = Mock(return_value={
+            "items": [{"id": 3, "quantity": 1}], "combats": [],
+        })
+        owner = SimpleNamespace(
+            get_by_id=lambda _id: SimpleNamespace(
+                resolved_linked_quests=(), linked_quests=(
+                    EntityRef("quest", 42, "Quête"),
+                ),
+            ),
+            quest_provider=SimpleNamespace(guide_evidence=point),
+        )
+        result = AchievementProvider.get_quest_preparation(owner, 99)
+        point.assert_called_once_with(42)
+        self.assertEqual(result[0]["quest_id"], 42)
+        self.assertEqual(result[0]["items"][0]["quantity"], 1)

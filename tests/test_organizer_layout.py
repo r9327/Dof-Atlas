@@ -97,6 +97,27 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertGreaterEqual(geometry.top(), content_rect.top())
                     self.assertLessEqual(geometry.bottom(), content_rect.bottom())
 
+    def test_hidden_organizer_evicts_only_slots_and_preserves_live_watcher(self):
+        from PySide6.QtCore import QCoreApplication, QEvent
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                watcher = page.session_event_watcher
+                previous_sessions = list(page.sessions)
+                page.hide()
+                QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                self.assertEqual(page.sessions_panel.grid.count(), 0)
+                self.assertEqual(page.session_slot_widgets, [])
+                self.assertTrue(page._sessions_render_dirty)
+                self.assertIs(page.session_event_watcher, watcher)
+                self.assertEqual(page.sessions, previous_sessions)
+                page.show()
+                self.app.processEvents()
+                self.assertEqual(page.sessions_panel.grid.count(), 8)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertIs(page.session_event_watcher, watcher)
+
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
