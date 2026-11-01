@@ -4,6 +4,7 @@ import math
 import unittest
 
 from app.pages.organizer.radial_selection import (
+    radial_roster_key,
     constrained_popup_center,
     confirmed_radial_target,
     selected_slice,
@@ -51,6 +52,15 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
         ]
         selected = visible_characters(sessions, {12, "unknown", None, 0})
         self.assertEqual([row["hwnd"] for row in selected], [12])
+
+    def test_roster_identity_prefers_verified_character_and_rejects_stale_pid(self) -> None:
+        verified = {"nom": "Panda", "hwnd": 10, "pid": 2, "character_key": "character:123"}
+        unverified = {"nom": "Panda", "hwnd": 10, "pid": 2}
+        self.assertEqual(radial_roster_key(verified), "character:123")
+        self.assertEqual(radial_roster_key(unverified), "unverified:panda:2")
+        self.assertNotEqual(radial_roster_key(unverified),
+                            radial_roster_key({"nom": "Panda", "hwnd": 10, "pid": 3}))
+        self.assertEqual(radial_roster_key({"nom": "", "hwnd": 10}), "")
 
     def test_clockwise_vectors_select_each_equal_sector(self) -> None:
         for count in (2, 3, 4, 6, 8):
