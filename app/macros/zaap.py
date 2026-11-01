@@ -18,8 +18,13 @@ def parse_zaap_command(value: str) -> tuple[int, int] | None:
     match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
     if match is None:
         return None
-    coords = int(match.group(1)), int(match.group(2))
-    if -(2**31) in coords:
+    try:
+        coords = int(match.group(1)), int(match.group(2))
+    except ValueError:
+        # Python can refuse huge integer strings; clipboard commands are
+        # untrusted text and must never crash the UI event handler.
+        return None
+    if any(not -(2**31) < value < 2**31 for value in coords):
         return None
     return coords
 
