@@ -30,6 +30,34 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(second.read_bytes(), source.read_bytes())
             self.assertEqual(profile.read_text(encoding="utf-8"), '{"character":"unchanged"}')
 
+    def test_repeat_setup_skips_rewriting_identical_launcher(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "DofusAtlas.exe"
+            source.write_bytes(b"MZ" + b"unchanged-launcher")
+            app = root / "Programs" / "DofusAtlas"
+            with patch("app.distribution.setup._create_shortcut") as shortcut:
+                installed = install_launcher(source, app)
+                original_stat = installed.stat()
+                with patch("app.distribution.setup.tempfile.mkstemp",
+                           side_effect=AssertionError("unchanged EXE must not be staged")):
+                    self.assertEqual(install_launcher(source, app), installed)
+                self.assertEqual(installed.stat().st_mtime_ns, original_stat.st_mtime_ns)
+                self.assertEqual(installed.read_bytes(), source.read_bytes())
+                self.assertEqual(shortcut.call_count, 2)
+
+    def test_same_size_but_changed_launcher_is_reinstalled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "DofusAtlas.exe"
+            source.write_bytes(b"MZcorrect")
+            app = root / "Programs" / "DofusAtlas"
+            with patch("app.distribution.setup._create_shortcut"):
+                installed = install_launcher(source, app)
+                installed.write_bytes(b"MZchanged")  # Same length, wrong checksum.
+                install_launcher(source, app)
+            self.assertEqual(installed.read_bytes(), b"MZcorrect")
+
     def test_reject_non_executable_without_writing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
