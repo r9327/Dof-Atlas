@@ -37,6 +37,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", return_value=101),
             patch("app.macros.zaap.send_chat_command", side_effect=RuntimeError("chat failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "chat failed"):
@@ -59,6 +60,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", return_value=101),
             patch("app.macros.zaap.send_chat_command", side_effect=stop_during_chat),
         ):
             ZaapMacro(runtime)._run("/zaap -5,12")
@@ -99,11 +101,26 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             DirectionMacro(runtime)._run("HOME")
         runtime.switch_character.restore_preferred_client.assert_not_called()
 
+    def test_zaap_never_sends_chat_when_focus_was_stolen(self) -> None:
+        runtime = _runtime()
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", return_value=999),
+            patch("app.macros.zaap.send_chat_command") as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        send.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "partiel", 0, 2
+        )
+
     def test_zaap_partial_delivery_is_not_reported_complete(self) -> None:
         runtime = _runtime()
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", side_effect=[101, 202]),
             patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
