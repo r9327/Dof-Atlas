@@ -14,6 +14,7 @@ SEGMENTS = (
     ("atlas_window_create_begin", "atlas_window_created", "AtlasWindow construction"),
     ("install_stage_begin", "install_stage_verified", "Install stage and verify"),
     ("install_stage_verified", "install_activation_committed", "Install activate"),
+    ("install_relocation_begin", "install_relocation_committed", "Runtime relocation"),
     ("launcher_update_begin", "launcher_update_end", "Update + startup"),
     ("update_check_begin", "update_check_end", "Update check"),
     ("app_spawn_begin", "app_health_ack", "Spawn -> Qt health ACK (not Home)"),
