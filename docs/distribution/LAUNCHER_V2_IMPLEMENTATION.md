@@ -66,7 +66,15 @@ La racine des données persistantes est `%LOCALAPPDATA%/DofusAtlas/`.
 disque, tandis que launcher, journaux et profils restent dans LocalAppData.
 Le déplacement copie dans un staging voisin, vérifie le nouvel exécutable,
 puis commute la configuration ; il conserve l'ancien emplacement pour
-récupération. Pour une installation **existante**, le Setup n'exécute plus
+récupération. Il transporte les versions **active et de rollback** ainsi que
+l'état, mais pas les caches ZIP `downloads/`, les slots endommagés sous
+`quarantine/` ni les fichiers de santé/verrouillage éphémères. Ces caches
+restent sur l'ancien disque pour récupération éventuelle et peuvent être
+retéléchargés sur le nouveau ; leur exclusion évite la copie de fichiers
+sans utilité pour le démarrage. La progression et la trace opt-in
+`install_relocation_committed.copied_bytes` comptent les octets copiés,
+sans inventer de gain de temps avant mesures Windows.
+Pour une installation **existante**, le Setup n'exécute plus
 cette copie lui-même : il lance `DofusAtlas.exe --atlas-configure` pour
 utiliser les verrous canoniques du launcher pendant le déplacement et sa
 mise à jour. La première sélection sans installation active reste disponible
