@@ -57,6 +57,12 @@ INFRA_PATHS = frozenset({
     ".ai/context_index.json", "README.md",
     ".gitattributes", ".gitignore",
 })
+# Exact, non-executable PR #303 Doctor audit registries. Their changes require
+# CI/domain review; unrelated JSON files remain unknown and fail closed.
+PR303_AUDIT_JSON_PATHS = frozenset({
+    "docs/performance/pr303-audit-candidats-20261031.json",
+    "docs/performance/pr303-audit-commits-20261031.json",
+})
 CI_FILES = frozenset({
     "tools/atlas_integrity.py", "tools/atlas_integrity_policy.json",
     "tools/atlas_meta_integrity.py", "tools/phase_certification_verdict.py",
@@ -78,6 +84,12 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/benchmark_atlas_exhaustive.py",
     "tools/doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
+    "tests/test_atlas_doctor_full_scope.py",
+    "tools/doctor_scenario_runner.py",
+    "tools/tool_catalog.py",
+    "tools/doctor_candidate_worklist.py",
+    "tools/audit_pr303_commits.py",
+    "tests/test_pr303_commit_audit.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -101,7 +113,7 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci"})
     if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
-    if path in CI_FILES or path.startswith("tools/atlas_doctor_lib/"):
+    if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
     if path in {"tools/install_rtk.ps1", "tests/test_install_rtk.py"}:
         # Manual developer/Codex bootstrap tooling. Keep the pair exact so an
@@ -129,6 +141,23 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "startup", "data"})
     if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
         return frozenset({"startup", "ui"})
+    if path in {
+        "scripts/windows/release_lfs_assets.py",
+        "scripts/windows/release_lfs_assets_lock.json",
+        "scripts/windows/runtime_visual_assets.py",
+        "scripts/windows/runtime_visual_assets_lock.json",
+        "tests/test_distribution_runtime_assets.py",
+    }:
+        # Candidate-verified release hydration supplies the complete packaged
+        # data and visual tree.  Enumerate every consumer explicitly; future
+        # Windows helpers and lock files must still acquire their own review.
+        return frozenset({"ci", "craft", "quests", "guides", "ui", "startup", "data"})
+    if path in {
+        "app/cartography/map_asset_loader.py",
+        "tests/test_cartography_asset_readonly_fallback.py",
+    }:
+        # The map loader renders bundled cartography data through Qt.
+        return frozenset({"ui", "data"})
     if path == "app/ui/preload_popup.py":
         return frozenset({"startup", "ui"})
     if path == "app/local_data_cache.py":
@@ -137,7 +166,7 @@ def owners_for(path: str) -> frozenset[str]:
     # startup and the Quest/Success/Guide cache seen by application consumers.
     # Do not generalize to all app/* or encyclopedia services: unknown code
     # must still BLOCK modular certification until separately reviewed.
-    if path == "app/startup_cache_warmup.py":
+    if path in {"app/startup_cache_warmup.py", "app/startup_cache_domain_worker.py"}:
         return frozenset({"startup", "quests", "guides", "data"})
     if path == "app/modules/encyclopedia/services/achievement_index_warmup.py":
         return frozenset({"startup", "quests", "guides"})
@@ -150,6 +179,14 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
+    if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
+        # Shared Home/lazy tab lifetime: Quest, Success, Guide and Qt startup.
+        # Keep a reviewed exact path, not a broad Encyclopedia view wildcard.
+        return frozenset({"quests", "guides", "ui", "startup"})
+    if path == "app/modules/encyclopedia/views/achievements_view.py":
+        # The Success catalogue is a Qt view whose detail links and completion
+        # interact with Quest and Guide providers; fail closed for siblings.
+        return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
@@ -196,11 +233,41 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "guides", "ui", "startup", "data"})
     if path == "scripts/windows/package_release.py":
         return frozenset({"ci", "ui", "startup", "data"})
+    # Exact CI ownership for bundled prebuilt Guide/Quest projections.
+    # These builders affect release startup and canonical data consumers.
+    if path in {
+        "scripts/windows/build_guide_rewards.py",
+        "scripts/windows/build_guide_routes.py",
+    }:
+        return frozenset({"ci", "startup", "guides", "data"})
+    if path == "scripts/windows/build_quest_index.py":
+        return frozenset({"ci", "startup", "quests", "data"})
+    if path == "docs/performance/atlas-ram-inventory-v1.json":
+        # Doctor's audit registry, not the live application data catalogue.
+        return frozenset({"ci"})
     if path == "scripts/windows/craft_seed.py":
         # The frozen first-install database is a Craft data artifact prepared
         # by CI and copied into user state during startup. Keep this exact so
         # future Windows build helpers remain fail-closed until reviewed.
         return frozenset({"ci", "craft", "data", "startup"})
+    if path == "tools/benchmark_phase8_preload.py":
+        # Windows Qt preload measurement executes the shell and all three
+        # Encyclopedia catalogues; this is not merely an isolated CI script.
+        return frozenset({"ci", "startup", "quests", "guides", "ui"})
+    if path == "tests/test_encyclopedia_success_detail_prewarm.py":
+        return frozenset({"startup", "quests", "guides", "ui"})
+    if path == "tests/test_success_async_detail_runtime.py":
+        return frozenset({"quests", "guides", "ui"})
+    if path == "tests/test_ganymede_live_cutover_inventory.py":
+        return frozenset({"guides", "data"})
+    if path == "tests/test_organizer_layout.py":
+        return frozenset({"ui", "identity"})
+    if path == "tests/test_world_scan_async_loading.py":
+        return frozenset({"ui"})
+    if path == "tests/test_startup_preload_window_visibility.py":
+        # The modal handoff and background service ordering are startup/UI,
+        # not Craft-only despite the historical generic 'preload' classifier.
+        return frozenset({"startup", "ui"})
     if path in {"tests/test_distribution_package.py", "tests/test_unity_pre_ci_runner.py"}:
         return frozenset({"ci", "startup"})
     if path == "tests/test_unity_assets_inventory.py":
@@ -215,6 +282,13 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})
+    if path in {
+        "app/modules/encyclopedia/providers/quest_provider.py",
+        "app/quest_catalog_details.py",
+    }:
+        # Compact Quest evidence is shared by the Guide renderer and its
+        # startup prebuild; keep exact ownership instead of the Quest wildcard.
+        return frozenset({"quests", "guides", "startup"})
     if path.startswith("app/modules/encyclopedia/providers/") or path.startswith("app/quest_"):
         return frozenset({"quests"})
     if path == "app/pages/_quests_page_impl.py":
@@ -237,7 +311,7 @@ def owners_for(path: str) -> frozenset[str]:
     if path.startswith("tests/test_") and path.endswith(".py"):
         leaf = path[11:-3]
         if leaf == "atlas_doctor_agent_protocol":
-            # Reviewed exact CI test; no wildcard ownership expansion.
+            # Exact reviewed Doctor named test suite merged from #290.
             return frozenset({"ci"})
         if leaf == "truthful_module_availability":
             # Existing cross-domain regression contract: truthful Craft

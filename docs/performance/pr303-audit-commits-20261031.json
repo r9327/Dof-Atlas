@@ -1,0 +1,3502 @@
+{
+ "schema_version": 1,
+ "source": "GitHub commits API + compare (historical page-limit recovery)",
+ "base_commit": "0ee44aeeb09358783dcceca799b743c6fb375299",
+ "head_sha": "7e2ebb04f2cbb2537d275d28ea4955d39f1f48ad",
+ "commit_count": 388,
+ "review_policy": "NO_COMMIT_IS_CERTIFIED_BY_LISTING_ALONE",
+ "history": [
+  {
+   "number": 1,
+   "sha": "983882daf5b418689b9a33c92552984620e228f1",
+   "title": "docs(perf): track all 36 Atlas optimization actions and JSON audit evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 2,
+   "sha": "51546c23620743dd9436d3236567d805d097867f",
+   "title": "chore(ai): refresh context index for optimization backlog tree",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 3,
+   "sha": "1607935969f38e7b6e05ce43bfd0412f42551109",
+   "title": "docs(doctor): require non-truncated full-scope architecture and Unity style audits",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 4,
+   "sha": "1c67b43561717b2efeba7ed48f756d158f52aade",
+   "title": "chore(ai): index exhaustive Doctor and Unity style audit scope",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 5,
+   "sha": "17ba476d8e72a22bd1c218ce1ff62e03b17fdd56",
+   "title": "feat(doctor): inventory every tracked Python source and Unity style without silent truncation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 6,
+   "sha": "e395442464365306ef36a534afd27375ebbff83c",
+   "title": "test(doctor): exercise full inventory beyond old source caps and honest Unity coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 7,
+   "sha": "d769ca0a987ebfe2bfab850c86b22dc7289c204d",
+   "title": "feat(doctor): expose full-scope static and Unity audit via Doctor CLI",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 8,
+   "sha": "d667cac80d2bb8f2cf9a02b79309a597e1435b65",
+   "title": "test(doctor): fix fixture inventory count and exercise full-scope CLI verdict",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 9,
+   "sha": "7295ec9d8180f79dd37bfd8c849e1b53ce0f12e1",
+   "title": "feat(doctor): account for all tracked JSON, Qt styles and assets separately from Python coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 10,
+   "sha": "cf7d4de5037a5feafd7397805eb12a9424e73409",
+   "title": "feat(doctor): connect full Python inventory, Graphify review and Unity static triage to Draft CI",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 11,
+   "sha": "9247e897b1d00037d54fe0b796f20b2829e3a935",
+   "title": "fix(ci): register exact ownership for Doctor full-scope regression suite",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 12,
+   "sha": "0c405ded0e1ef6f9865f386a904c8036174c71cf",
+   "title": "test(doctor): execute real-repository full-scope inventory and publish exact-SHA proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 13,
+   "sha": "863af641d03d5b101f0e4252b640c8580ba333c7",
+   "title": "test(doctor): verify full-scope against existing Graphify exact-SHA code map",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 14,
+   "sha": "d873d9b1c7fbbd69627abe59651443336b8fa3ef",
+   "title": "docs(doctor): add 30 measured Graphify, JSON, Qt and performance follow-up tasks",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 15,
+   "sha": "e2b8471e9a0a2c37fa57a7d774fc69534abf8d71",
+   "title": "chore(ai): refresh context index for measured Doctor follow-up checklist",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 16,
+   "sha": "a85635e4ae1fd58200645b548c271298f32709b6",
+   "title": "docs(doctor): fix formatting of complete 30-item measured remediation checklist",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 17,
+   "sha": "470e9ac693912e1b865f9fecfa70352e6ec7f01d",
+   "title": "perf(guides): bound memoization of repeatedly normalized short quest labels",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 18,
+   "sha": "0279d761422206d19c49ebfa10e5e18fa7c6af76",
+   "title": "test(guides): verify text parity, cache hits and bounded memory retention",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 19,
+   "sha": "27d14d644f6ad689460a2eff2eb896fee3b4c448",
+   "title": "chore(ai): update index for bounded Guide text normalization cache",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 20,
+   "sha": "7b3d096ecc63e59f88c01f09dc542f3ce7d8fc9a",
+   "title": "merge(doctor): reconcile optimization PR303 with merged named-test evidence #290",
+   "merge_parents": 2,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 21,
+   "sha": "8c38e5c2faddcbe5fa9b9df9f32f15cd2304c1c1",
+   "title": "test(guides): execute bounded text-cache regression in existing Windows guide benchmark",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 22,
+   "sha": "7d153694bec1e4ed124a9311487391a20182bd51",
+   "title": "chore(ai): track exact SHA after Guide regression CI attachment",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 23,
+   "sha": "46d93972a30d9653df9dc995419d9d4ba08720ed",
+   "title": "perf(doctor): attribute Sylvestre guide source load, assembly and Qt build separately",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 24,
+   "sha": "e28fcdc3817b3dc7ee9b795ef3aee6543ea92d5b",
+   "title": "perf(guides): bound position normalization cache and avoid duplicate coordinate parsing",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 25,
+   "sha": "290c969d3f8879e67e417aa1b61b0b922bfe5014",
+   "title": "perf(guides): defer repeated route-sheet finalization",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 26,
+   "sha": "dbbdf0baa93d591d98fbfca7fbf3a7d7f34b9e41",
+   "title": "test(guides): prove deferred segment parity and bounded finalization",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 27,
+   "sha": "a55ea5a0fc16f611312e47a8108b5fb6df749c15",
+   "title": "fix(guides): restore valid Python signature after API edit",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 28,
+   "sha": "270dfe0836bb9c86b3e250e6685e1013b70abd00",
+   "title": "perf(guides): reuse signed disk route projections across launches",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 29,
+   "sha": "85122e74b9a3a64ae6437afddab44acee1d4b98a",
+   "title": "fix(guides): bound disk-cache restores and cover frozen Windows builds",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 30,
+   "sha": "0fbf1c8926872e0e87ff2550d06918bf4e2cee4a",
+   "title": "test(guides): prove signed route reuse, stale invalidation, and cache isolation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 31,
+   "sha": "8e0bc2ceec6c7259007a30a6f5f9fab3a781dd96",
+   "title": "fix(guides): persist route cache across real Windows launcher sessions",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 32,
+   "sha": "c70af3aaca4fbe67a206bb9e71a241b22f03714f",
+   "title": "perf(guides): avoid manual-route policy scans on quest catalogue cards",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 33,
+   "sha": "d79a0638e7698f012065917cc2dca0fc86d0f3c5",
+   "title": "test(guides): preserve catalogue quest completion without manual branch scans",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 34,
+   "sha": "e9d63b52452be235e909c454d3e7f06407f82267",
+   "title": "perf(guides): introduce indexed per-sheet disk store for lazy walkthroughs",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 35,
+   "sha": "a4c29e6f03f66b7f8d80f4c5badeeb4463707aa5",
+   "title": "perf(guides): hydrate only active Sylvestre sheet with bounded neighbor prefetch",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 36,
+   "sha": "2f7ccf734c3a5445e7daad54208173d1d1d18575",
+   "title": "perf(ui): prefetch nearby Guide sheet text after rendering current card",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 37,
+   "sha": "cf5330a89d73cec60b0043c84d56703cc696aa12",
+   "title": "test(guides): verify lazy SQLite sheets, stable metadata, invalidation and LRU",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 38,
+   "sha": "3843889e306c2c5f28fba06fcfd0994c077f88ac",
+   "title": "docs(perf): audit lazy-loading boundaries across Atlas domains",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 39,
+   "sha": "51c865d1722a5cf47410d0fbb03feddc0542fca6",
+   "title": "fix(windows): close SQLite handles before atomic Guide cache replacement",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 40,
+   "sha": "97bf4c62eb13fdfa787acd7777f6e368f712cd60",
+   "title": "test(guides): assert lazy body parity after old gzip cache migration",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 41,
+   "sha": "c57ffe2304ad17fdf89008c0b6ae95709b9af40c",
+   "title": "perf(guides): keep filtered preparation metadata without all-sheet hydration",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 42,
+   "sha": "ca87d93b595c758ad49f92f2f3b3e4d45834f876",
+   "title": "perf(ui): aggregate Guide preparation from compact per-sheet index",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 43,
+   "sha": "cab1d0d0151ce7d958459fa8342dd89e324c0c12",
+   "title": "test(guides): preserve filtered global preparation without SQLite detail scan",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 44,
+   "sha": "21ea4642e2bc365b2637ad0d56874ef76a2a874f",
+   "title": "fix(guides): invalidate indexed preparation when policy code changes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 45,
+   "sha": "ed75e40a008468184dbc854d3fe6f2ee0ab98222",
+   "title": "perf(guides): bound catalog prefetch work to one detail per slice",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 46,
+   "sha": "74771bec3dd2130ec5b758d23abb06531c3b5af5",
+   "title": "perf(guides): schedule cancelable one-row prefetch after Qt render",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 47,
+   "sha": "3cee6383728be3a94c98a3f21a5bee9a90c9db85",
+   "title": "test(guides): verify one-row prefetch slices preserve lazy details",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 48,
+   "sha": "76af6928ba2721f3ae873a5ad0d24040e56bd79f",
+   "title": "docs(perf): inventory implemented modules vs placeholders and Qt prefetch slicing",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 49,
+   "sha": "e77e99fed936a949ddabee302e88b12dfc91c7cd",
+   "title": "fix(doctor): classify four Bestiary inner tabs as placeholders, not functional PASS",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 50,
+   "sha": "5668a16c668565eb99b06acb18e0add0c8fbd246",
+   "title": "fix(doctor): derive eight-instance functional counts from reviewed route inventory",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 51,
+   "sha": "4179c61e50557d23bb7ee1a7a8b7c9fe9e47fe74",
+   "title": "test(doctor): guard Bestiary placeholders and eight-Atlas functional counts",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 52,
+   "sha": "c242e6dc5e94fe873b5f017c9c17924e4018f072",
+   "title": "docs(doctor): distinguish 11 functional routes from nine placeholders per cycle",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 53,
+   "sha": "0b95ab59eab87f05cd43cf7e0ba8b81f3d83e34b",
+   "title": "perf(quests): avoid double text cleanup for each solution objective",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 54,
+   "sha": "f1b2592a05a85e64e55806135f9a593baf5322d6",
+   "title": "perf(guides): transfer privately owned route segments and release intermediate heaps early",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 55,
+   "sha": "6c23dd896027eb5bccaef25fb85a9191e7edf7eb",
+   "title": "fix(quests): preserve nested HTML parity in fast solution-text path",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 56,
+   "sha": "1412321b35f5a7e4923876e370b7ca6ac29c6d15",
+   "title": "test(guides): prove owned-route and fast text projection preserve legacy content",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 57,
+   "sha": "a740f8adaf837ca5e32bc1b86000967aef24e85a",
+   "title": "perf(quests): skip image filesystem probes in GPS-only start metadata",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 58,
+   "sha": "cc47fc56142d826729a57905e0f03537e1394d6a",
+   "title": "perf(guides): reuse quest start metadata instead of repeating source and image scans",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 59,
+   "sha": "c866f4de5f3f6bd4ce94234325d3b8a336514b44",
+   "title": "test(guides): prove GPS start projection skips images without changing navigation fields",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 60,
+   "sha": "d8a6aeb949dd9ca69f6a2fa9de5ebf5f2bfa54ba",
+   "title": "test(guides): initialize route identity in owned-card parity fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 61,
+   "sha": "d648ae81b58ef0539bc7b771e6a4ed110372eb6e",
+   "title": "perf(quests): compile deferred details in bounded eight-record source batches",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 62,
+   "sha": "51ddfbf965c3296fcf97117a8257d2b89b09c63f",
+   "title": "perf(guides): batch hydrate at most eight quest details before mapping each route chunk",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 63,
+   "sha": "270ce1455c8586638d2c6659a8b2583a529fccf2",
+   "title": "test(quests): validate bounded batch source compilation, persistence and LRU",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 64,
+   "sha": "3592e84a9a979436e6621d267771bd669f348ff2",
+   "title": "fix(guides): batch only true deferred quest provider and preserve custom fixtures",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 65,
+   "sha": "fe89fe9617e531fa9797badcb4a1667f4f113dce",
+   "title": "test(guides): guarantee ordered eight-quest source batches and complete route IDs",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 66,
+   "sha": "0cf2fdac3dfb13e8ba934cc6a7c47179b192b1c6",
+   "title": "revert(perf): reject slower eight-quest cold compilation (measured regression)",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 67,
+   "sha": "9c5fc3f73e3700f0db6b5569826d1721a2d18d4d",
+   "title": "revert(perf): reject slower eight-quest cold compilation (measured regression)",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 68,
+   "sha": "f0b5f8f19f3e45b2409cd59fbdd7762b3ce3687b",
+   "title": "revert(perf): reject slower eight-quest cold compilation (measured regression)",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 69,
+   "sha": "0124ee0de6761601af7b9cfd2df15614169c1200",
+   "title": "revert(perf): reject slower eight-quest cold compilation (measured regression)",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 70,
+   "sha": "f4cec31f694b949aa32b166372d790c658d74133",
+   "title": "perf(guides): implement portable release-compiled Sylvestre route with integrity checks",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 71,
+   "sha": "be65aa247a532ef4e5cd0e70f9024473370e242e",
+   "title": "build(windows): precompile Sylvestre route before PyInstaller and verify real content",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 72,
+   "sha": "da2805d97e9d30e69bf44b068fc42d59672d19b9",
+   "title": "perf(guides): restore verified bundled route before costly Quest source compilation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 73,
+   "sha": "1f916de7e9813bf2e63ba4e9099309da95df64aa",
+   "title": "ci(windows): build and assert portable Sylvestre route inside release candidate",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 74,
+   "sha": "f4cb1c1d004bbe7a49f8469c634f6403c86b6974",
+   "title": "test(guides): certify portable route parity, corruption, source mismatches and no cold rebuild",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 75,
+   "sha": "a61872761519fb47e2913d16ec55415cca73f2b1",
+   "title": "ci(guides): run portable release-route parity and corruption tests on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 76,
+   "sha": "1246235fedda083146bafac53b11be837251bca6",
+   "title": "ci(perf): build exact-SHA portable Sylvestre cache before real 52-Guide Windows benchmark",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 77,
+   "sha": "c3a3ebd15caa0e788a74703a81ab80ce369acb3f",
+   "title": "test(frozen): verify real AtlasApp EXE restores precompiled Sylvestre without fallback",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 78,
+   "sha": "733180cf5b41c58026d74d0cf249d66dcfd3d5b2",
+   "title": "ci(windows): exercise precompiled Sylvestre from actual frozen AtlasApp.exe",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 79,
+   "sha": "53fa0dfd5617831633b25a0201da72cb93d7aa2d",
+   "title": "perf(guides): portable build-time aggregated rewards for all Guide overviews",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 80,
+   "sha": "277f1785a45ec8ac438ca0735bec521e4e7dc7ad",
+   "title": "fix(guides): preserve canonical quest sequence in precomputed rewards",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 81,
+   "sha": "eb3cffb87cee476c40163cb24633fd70522d0118",
+   "title": "perf(guides): use build-time reward index for alignment and Dofus overviews without hydrating all quests",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 82,
+   "sha": "2fa0ab9f813dd6c9b92c7bb5c634fa830b933da9",
+   "title": "build(windows): precompute exact global rewards for Guide overviews from canonical sources",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 83,
+   "sha": "69a04937a52733cab629c7e9ec16adac8bd07394",
+   "title": "ci(windows): include and validate precomputed rewards for all Guide overviews in frozen release",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 84,
+   "sha": "ac590423cf2a206ddb0a5251a98bada6bf654e68",
+   "title": "test(guides): precompiled rewards parity, deduplication, portable paths and fallback",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 85,
+   "sha": "2a1899a9f7ac5dab1c8a6b75d060a099504a2a70",
+   "title": "ci(guides): validate reward precompile and targeted Guide index on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 86,
+   "sha": "59ebe8c56064911609eea72439e699de0d8bf466",
+   "title": "ci(perf): benchmark all guides using build-precompiled rewards rather than hydrating 1k Quest records",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 87,
+   "sha": "7ea57ed726f889793b46bf48be0f6e6225a3ee27",
+   "title": "test(frozen): assert portable alignment rewards are present without hydrating Quest details",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 88,
+   "sha": "85b735c198d4ed42b4069c4829507da0ce31a377",
+   "title": "fix(guides): bind precomputed rewards to exact Guide step order and source generation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 89,
+   "sha": "3d1287f3cd8ca350d46eacfa6810cf3080ee5156",
+   "title": "ci(release): enable once-per-ready exact-PR Windows frozen candidate for Atlas optimization 303",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 90,
+   "sha": "bc0cfc6082091be0d9468a6d0eaf8b8686205bea",
+   "title": "perf(build): avoid duplicate Sylvestre and adventure Quest hydration in reward precompiler",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 91,
+   "sha": "dd8ba550e8412b07cd093ca93126b0d5c27cb38c",
+   "title": "perf(doctor): report exact-session Guide Quest Success preload breakdown with worker elapsed times",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 92,
+   "sha": "e38e33329853da905a2e18c6979fcd2873df8b40",
+   "title": "test(doctor): reject malformed domain timing rows instead of crashing diagnostic",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 93,
+   "sha": "c8f163f1cee37a048e9c46e58190825637ea7f73",
+   "title": "test(doctor): assert per-domain warmup timing proof and fail-closed missing rows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 94,
+   "sha": "d5f75df3e248ab53eb412bc9355e6c1d18e8a344",
+   "title": "perf(quests): ship validated compact Quest SQLite index for cold Windows first boot",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 95,
+   "sha": "a9ff09def23738424866655d67da47226fc44a18",
+   "title": "perf(quests): initialize lazy SQLite catalog from signed Windows bootstrap index when available",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 96,
+   "sha": "864a8f0c359d92cb331a01bbc6e6cc2632f938c3",
+   "title": "build(windows): prepare Quest summary SQLite once before heavy Guide projection",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 97,
+   "sha": "bf1f5ed2c573a5096a2953a31feb2338a026cb1d",
+   "title": "ci(windows): ship compact Quest boot index before Guide builds and verify bundled artifact",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 98,
+   "sha": "f8f174b185b83d72408662a61a8124ee564071b3",
+   "title": "ci(perf): benchmark first boot with portable precompiled 1976-Quest compact index",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 99,
+   "sha": "f2f6ad14803c439d39db8c61a05d69f26b4a0cb8",
+   "title": "test(quests): portable 1976-row SQLite seed, cold-source skip, tamper and progress exclusion",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 100,
+   "sha": "6339aac565dded06cd461b93bd95cfcc02d5ca89",
+   "title": "test(frozen): ensure real Windows EXE restores 1976-Quest precompiled summary without recompilation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 101,
+   "sha": "024a642d514369135f4477204f523d225b8c6b1c",
+   "title": "ci(windows): validate portable Quest first-boot seed using real frozen AtlasApp.exe",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 102,
+   "sha": "271c5ae01b3803bc85af0a104f5c5dc4f7411591",
+   "title": "ci(quests): run exact Windows portable Quest-index parity and corruption tests",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 103,
+   "sha": "6a0ff06cf2df4ac727d6906fa4a1656dabc162f0",
+   "title": "fix(test/windows): close SQLite fixture handles before TempDirectory cleanup",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 104,
+   "sha": "5665ec732d7cf340590680261832f184635372f2",
+   "title": "perf(ram): release hidden Map Monde pixmap and worker image while preserving navigation state",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 105,
+   "sha": "2e0e937f40ab6fa0c97f398e50801c8754ba3fcb",
+   "title": "test(ram): verify Map Monde frees hidden QPixmap and deferred QImage without losing view/history",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 106,
+   "sha": "b9a46eaf7381a0d55ca47b9f74a48d28193d2b79",
+   "title": "ci(ram): exercise Map Monde hidden-image lifecycle and full navigation memory on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 107,
+   "sha": "81b9484f57611ebcdf3bb5b9049ef2f82740368b",
+   "title": "perf(ram): preserve unchanged character combo icons on repeated Home navigation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 108,
+   "sha": "3aa9ac528561efbc00503b16c5d92b6d9199dc3b",
+   "title": "test(ram): assert Home preserves unchanged Qt combo icons but refreshes actual character changes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 109,
+   "sha": "476abcb47ab91d76b5a0856995aa08f475ec1ed7",
+   "title": "ci(ram): prove idempotent Home character icons and Map Monde suspension in targeted Windows job",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 110,
+   "sha": "cc6a71c1fbb543ffc3f24341c96f8205bd33cb4d",
+   "title": "feat(doctor): bounded read-only RAM ownership inventory for widgets, image caches and lazy pages",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 111,
+   "sha": "2f9d84765f98cc49383192c89f1260f9fb354743",
+   "title": "feat(doctor): attach six live Qt/image/lifecycle RAM checkpoints to existing short full-app benchmark",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 112,
+   "sha": "791ce149cf62fa3db29a55b3518e70fe1e621199",
+   "title": "test(doctor): native Qt owner snapshots, image indicators, missing evidence and bounded checkpoints",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 113,
+   "sha": "5f1e9801b8aa8de248cf9afb6fe7814cd59028cc",
+   "title": "ci(doctor): run native RAM owner inventory proof through existing Windows short-app workflow",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 114,
+   "sha": "ee27a40c15ec2e12c050f48a46623a3e054a0d23",
+   "title": "docs(ram): register 50 individually traceable RAM workstreams with measured vs TODO status",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 115,
+   "sha": "a7b6d52cf0b6bb8637e3ab172ec77dde42793a7f",
+   "title": "feat(doctor): validate all 50 RAM audit workstreams and report PARTIAL coverage honestly",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 116,
+   "sha": "b21cd08ff44b8efb5c48d14e95d5c605929d9165",
+   "title": "feat(doctor): publish 50-point RAM audit coverage status without claiming functional PASS means full certification",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 117,
+   "sha": "325b1beebb246bf9dd180b90713d1e0aeba0e24c",
+   "title": "test(doctor): fail closed if any of the 50 RAM audit tracks disappears or duplicates",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 118,
+   "sha": "b8abccf6f62dac8bf3c2848a9701da19efb3a123",
+   "title": "docs(ram): define 50-task audit scope, no-false-PASS rules and tested optimization order",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 119,
+   "sha": "c3e98f54ebd21c125a488d1627bc6afa6a92e6e7",
+   "title": "perf(ram): evict hidden Organizer slot widgets but retain live Unity watcher and session state",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 120,
+   "sha": "8473aec1f233db1ec000d505e7b6e193a069141f",
+   "title": "test(ram): Organizer releases only hidden slot widgets and restores sessions without restarting Unity watcher",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 121,
+   "sha": "4fd37f7679189f64fcea67944291b01c4fe8e556",
+   "title": "perf(ram): release transient placeholder pages on Home instead of retaining every visited stub",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 122,
+   "sha": "b6ea94c41c6d0429871a9172119291a218759b0d",
+   "title": "test(ram): Home deletes only transient placeholders, preserves real/stub static pages and index mapping",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 123,
+   "sha": "d43629f3378a5d4c6706607ee3a6771a25e89969",
+   "title": "ci(ram): validate hidden Organizer and placeholder lifecycle in targeted Windows full-app proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 124,
+   "sha": "0981e7112f8e17ab9db56b23774ea5986c58c987",
+   "title": "perf(ram): evict hidden Map Monde menu widgets and rebuild only on visible navigation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 125,
+   "sha": "a86b04b1108c3201adef196f2943aa62c1820614",
+   "title": "test(ram): Map Monde menu is reconstructed on return without losing history or selected world",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 126,
+   "sha": "82f129b43e21f2be8da6e0168a1ca9a2414067c0",
+   "title": "feat(doctor): opt-in Python allocation hotspots and Windows private commit for RAM forensics",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 127,
+   "sha": "e63b4c2f292b25deb98ee28f2617098c398b3d01",
+   "title": "feat(doctor): take opt-in Python heap snapshots during actual menu/Guide navigation without contaminating normal CI baseline",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 128,
+   "sha": "6531f337cfe1f569bda3dea8740a5fe9a3d32b35",
+   "title": "feat(doctor): expose separate opt-in RAM forensic profiling via existing perf --app CLI",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 129,
+   "sha": "a907336f52b3e98b35edd58d2fca4baaa02aadd2",
+   "title": "test(doctor): verify opt-in traced Python hotspot attribution, bounded checkpoints and native-memory limits",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 130,
+   "sha": "6904a1a5b361fddd1ce965c2ae1d8258d55e74d6",
+   "title": "ci(doctor): separate opt-in RAM hotspot profile after normal Windows navigation benchmark, exact SHA",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 131,
+   "sha": "9ab7994bc6de694a8b7a04818613315e3bb2a7e5",
+   "title": "fix(doctor): preserve legacy CLI test harnesses without optional RAM forensics argument",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 132,
+   "sha": "a8958f52f3e5e2de4aed8efa949b0b63a4df75d9",
+   "title": "fix(doctor): keep exact legacy benchmark kwargs when forensic profiling is disabled",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 133,
+   "sha": "21e66be1a93d807db9bbfbb1b894fb27c6f36a40",
+   "title": "test(doctor): ensure forensic flag changes only opted-in calls, preserving normal CLI and 8 Atlas contracts",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 134,
+   "sha": "b97938f089b31bf65fadb52f61ae67ef8925bc40",
+   "title": "fix(doctor): separate benchmark harness allocations and report top Python allocation line numbers",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 135,
+   "sha": "c4642279253479451f78fdeb0e97264c3fbe5130",
+   "title": "feat(doctor): record Windows private commit per normal (unprofiled) Home checkpoint alongside RSS",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 136,
+   "sha": "7f8e7765fdb3a8f9bf5ff6564283494a2d7ada3c",
+   "title": "fix(doctor): label top-18 tracked bytes as partial, not entire Python heap ownership",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 137,
+   "sha": "77a40684f8024524e9d0d0be60fdc43b39b90849",
+   "title": "test(doctor): verify Windows private commit tracked without mixing it with process-tree RSS",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 138,
+   "sha": "597deeb7da1c32592a5079fae925dd61733bf7c8",
+   "title": "test(doctor): exercise per-line forensic attribution and separate harness indicators",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 139,
+   "sha": "7750d9b83787cf6d11df66c5751b58035972d398",
+   "title": "perf(preload): reveal Home after Quest bootstrap while optional warmups continue",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 140,
+   "sha": "e4a635e0b78b0aad5caebfb5af41b32c634e35d9",
+   "title": "fix(ci): attribute exact PR303 prebuilt and Qt regression paths without weakening gate",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 141,
+   "sha": "96ea155e73bc6b1ea43447cb5e679064e030c411",
+   "title": "perf(success): open deep-linked detail without synchronous list materialization",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 142,
+   "sha": "2eb52459d6d44a628945f8a3322cb34fc8b0c582",
+   "title": "test(doctor): record Quest-to-Home gate independently of full warmup",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 143,
+   "sha": "6cc8ad178c8246026acf6df6319c337077522d93",
+   "title": "fix(preload): mark early popup handoff terminal for safe dialog cleanup",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 144,
+   "sha": "4386558c688feca0231b3bcd29ea62bca11dd846",
+   "title": "perf(guides): avoid deferred Quest hydration for noncombat guide rows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 145,
+   "sha": "601e5ee54ada03b765ed52a6f16994a444626dfa",
+   "title": "test(guides): isolate hot-path combat matching from heavyweight data fixtures",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 146,
+   "sha": "0a124470c3f9c7650b91eebc127df153e3987896",
+   "title": "perf(preload): publish Quest readiness per-domain before Guide/Success warmup completes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 147,
+   "sha": "641a5ad42ada4483f672ab4840d81902b6f92cfa",
+   "title": "ci(guides): run isolated combat hotpath and per-domain warmup tests on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 148,
+   "sha": "31b932b8fc82c5820f9b65474d64f21c8c775191",
+   "title": "perf(guides): prevent cold rich Quest compilation from combat fallbacks on Qt thread",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 149,
+   "sha": "c99be8410b625ea618ca13461b9f08151678c54e",
+   "title": "fix(ci): map reviewed achievements Qt view to exact Quest Guide UI owners",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 150,
+   "sha": "be142d0bd2f82a075b95289a705960f996c9f69c",
+   "title": "perf(success): preserve pending list batches on unchanged refresh [skip ci]",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 151,
+   "sha": "92654fed0ceb02dc4ed0abaf01e0180340bbce3a",
+   "title": "test(success): no repeated Qt list reset with deferred rows [skip ci]",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 152,
+   "sha": "ce8cdfbd6d7fcc749c5b3e00c259be186df39faa",
+   "title": "perf(home): hibernate idle World Map while preserving world selection and history",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 153,
+   "sha": "8710a84cb39909cb97140ed8bd2f3293cceea77c",
+   "title": "perf(guides): batch compact combat evidence for 700+ quest sheet in one SQLite connection",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 154,
+   "sha": "d8e5c040287a690632c4e36c241c3f8e6e5554da",
+   "title": "test(ci): validate SQLite batch evidence and cross-domain ownership in focused Windows proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 155,
+   "sha": "013c7ab6c84533eafbb4330c04d098551088035f",
+   "title": "test(ci): use truly unowned path in fail-closed Quest evidence owner proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 156,
+   "sha": "7c917c660d31d3f3bd3bb67e3eba75638516f0ac",
+   "title": "fix(guides): retain batched Quest evidence with launcher packs and close Windows test DB",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 157,
+   "sha": "fe248f47d95a632c95e02622dfb46b3d84d6268e",
+   "title": "fix(map): hibernate after active cartography worker finishes on Home",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 158,
+   "sha": "cd39af381fe9dfe18e84ea240346df3b244c8fd8",
+   "title": "perf(guides): build per-sheet Quest tooltip index once instead of per row",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 159,
+   "sha": "f1d96f6769718be2a13d325508e424c3705e0e7f",
+   "title": "fix(map): preserve pending world selection across Home eviction, retain worker errors",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 160,
+   "sha": "203351cfd86b6e23e0f66618c0f9272283ab7496",
+   "title": "test(guides): prove batched combat rows preserve Quest IDs, order and legacy results",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 161,
+   "sha": "efb030b64a6b5cefc7e3b574caf2fe3cb38768dc",
+   "title": "perf(guides): index waypoint Quest links once per visible sheet",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 162,
+   "sha": "9dd60ce40263ff23df3a85cee03617a1602bd393",
+   "title": "perf(guides): normalize linked Quest names once for visible sheet",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 163,
+   "sha": "a6daaa1ed65a4168356278d97608d169fad594ec",
+   "title": "fix(map): restore deferred world history and coordinates on ordinary page re-entry",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 164,
+   "sha": "24a1dea256d6dd4724f2c20dabd952fd6794366c",
+   "title": "perf(guides): avoid repeated quest-waypoint lookup for tooltip and action link",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 165,
+   "sha": "8de6dce288fab0857cd6674d396e0ed8922950c4",
+   "title": "perf(guide-complet): normalize staged Success text once for duplicate suppression",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 166,
+   "sha": "b31ac98cab92ebdde2744034ab224e10072e73b1",
+   "title": "perf(guides): reuse bounded Unity fallback icons across reward rows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 167,
+   "sha": "883b9df18a7357ecb24f0c47cdd9fb6f29fe9537",
+   "title": "test(qt): initialize QApplication before isolated World Map hibernation tests",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 168,
+   "sha": "c9ab2410efd9ba22625f49057cc6efe00a287ee3",
+   "title": "test(ci): prove Guide and Map optimization contracts in existing focused Windows job",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 169,
+   "sha": "4f20bb7b9f9d0029ac7d1bd0002ab082488b09fb",
+   "title": "fix(world): preserve legacy deferred view keys when payload omits view object",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 170,
+   "sha": "9e771cabb2bd43d8c05732d55c9654526d440c37",
+   "title": "test(qt): isolate fallback-icon contract from heavy Success catalogue fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 171,
+   "sha": "3cf4af3c00e9971b6b8aeda414a9d367a86f0913",
+   "title": "feat(doctor): opt-in exhaustive JSON syntax and canonical ID candidate coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 172,
+   "sha": "d7013cd051e98d1b1765bb1ad69a85fbf67efe53",
+   "title": "test(doctor): use valid newline fixtures for exhaustive JSON opt-in",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 173,
+   "sha": "d1939dd4b1bc07565b86e3bfdc4606f61a9d76c3",
+   "title": "test(doctor): reject non-standard JSON, missing inventory, and LFS-pointer data",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 174,
+   "sha": "7611ad5b60654e03677cbb012af3502b7934b833",
+   "title": "fix(doctor): read complete Git LFS pointer prefix before JSON parse",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 175,
+   "sha": "53300887bb1521af77cb2ac06acdcab89b33d834",
+   "title": "ci(doctor): inspect every tracked JSON syntax only for PR 303 Draft proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 176,
+   "sha": "f9a216ca8e9ef80587b5a4c5e434581a0753f9fb",
+   "title": "test(doctor): reject unmaterialized JSON LFS pointer and label syntax scope exactly",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 177,
+   "sha": "187349662adf592cd9169e84304165c5f878673f",
+   "title": "perf(doctor): identify newly imported Atlas modules across Home RAM checkpoints",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 178,
+   "sha": "6da0f76d11298ec483a92f41443080e6bc3b86a0",
+   "title": "test(doctor): accept empty optional application import inventory",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 179,
+   "sha": "49bd17f2a0b0665618cf17b36848ce9afb5e151f",
+   "title": "doctor(json): surface repeated JSON object keys without claiming semantic integrity",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 180,
+   "sha": "9e5bbd1e7278ecdb199aae10a8c10ed16dfa0e58",
+   "title": "test(doctor): lock nested duplicate-key triage and source immutability",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 181,
+   "sha": "50c3d26fc804d7985ab42b30ef7bf6a09193f2d4",
+   "title": "fix(test): ensure Python fixture contains newline rather than literal escape",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 182,
+   "sha": "872874aa97e6e82d9de3fa07a27b9e9f6e547f42",
+   "title": "doctor(json): inspect ID collisions in all nested lists with bounded traversal stack",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 183,
+   "sha": "0441e9356854d23e048393089002ed57c0e93cc9",
+   "title": "fix(doctor): bind nested JSON walker iterators to their own path context",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 184,
+   "sha": "ad94b1353692bfe53ceb59f17bbbc26a0fde5f2f",
+   "title": "test(doctor): check nested ID collision paths and independent chapter lists",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 185,
+   "sha": "6a464d8aff05c0a87aae9f8abea1f3110c37fda1",
+   "title": "test(doctor): prove untruncated audit across 152 tracked JSON files",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 186,
+   "sha": "a2a83b553e1cbc4fb9b9389d521b70ee0dfe3ccf",
+   "title": "doctor(json): triage canonical Guide Ultime chapter references without loading routes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 187,
+   "sha": "ab5d8fad6215ef4e100f1dc0f3403b09f252e0a6",
+   "title": "test(doctor): ensure canonical chapter refs are tracked and traversal flagged",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 188,
+   "sha": "22a7c1d405b22cda2ab4c01378ebad059d786606",
+   "title": "doctor(json): include Guide Ultime conditional routes and named registries in reference triage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 189,
+   "sha": "ba096be542a5af8e417cad3c81490710381b4644",
+   "title": "test(doctor): cover all declared canonical route families without claiming runtime validity",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 190,
+   "sha": "1809c3acc407425e09e09b9e5a60c4f61ea1c919",
+   "title": "perf(encyclopedia): prune finished runtime Thread handles on subsequent warmups",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 191,
+   "sha": "4728cd70a445b9bf79d39c503edd3f91213a7541",
+   "title": "test(encyclopedia): retain live workers but prune finished handles across Home cycles",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 192,
+   "sha": "6302cf80f78847127f94a50c48a99942b29eacf3",
+   "title": "fix(test): assert worker completion on main test thread, not inside daemon",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 193,
+   "sha": "c4b2cf6d2ecf65a4fa91b9f2bd050fd3cd163dea",
+   "title": "perf(quests): release optional Guide evidence pack when returning Home",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 194,
+   "sha": "540e6bf88df8fe73d11156414e83e69717d5784c",
+   "title": "test(quests): verify accepted Guide pack is dropped on Home and lazily restored",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 195,
+   "sha": "f43a5cc54f12719a247405f151772af24da6dffb",
+   "title": "doctor(ram): expose retained versus active Encyclopedia thread handles after RSS sample",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 196,
+   "sha": "c71251d8005c944c0b9669e56a9bb4affa551999",
+   "title": "test(doctor): record finished runtime handles without false RSS attribution",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 197,
+   "sha": "04689b44b4e36022bf83390aec0bfdef2d1d965c",
+   "title": "doctor(ram): summarize retained and finished thread handles across Home checkpoints",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 198,
+   "sha": "a91e0c8fb2adbe342814e8351d1f1773ba8b3c82",
+   "title": "test(doctor): compare Home retained thread handles without unmeasured memory claims",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 199,
+   "sha": "450e4e735410b884fa304aaeb8c451ff4cef95c1",
+   "title": "doctor(json): account for every declared Guide Ultime manifest reference",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 200,
+   "sha": "0f84defcecb53ea5621a854552d1c2d364c18905",
+   "title": "test(doctor): require exact total for chapters, branches and registries",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 201,
+   "sha": "b4f6e55cac202a1ea8533e6ababfcf4c49b81a91",
+   "title": "perf(success): batch linked Quest preparation to avoid N SQLite opens on detail UI",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 202,
+   "sha": "80226be79927b236b11344fd01688c24083e531a",
+   "title": "test(success): prove one batch preserves linked Quest preparation and legacy fallback",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 203,
+   "sha": "b089732fedf2ac4d1fab1b167d522fb8ab5f1a07",
+   "title": "perf(encyclopedia): release completed worker handles at Home rather than next warmup",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 204,
+   "sha": "5b64b1965614e49c9dd57905e6dcab666b1fe434",
+   "title": "test(encyclopedia): Home immediately drops finished workers and keeps live ones",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 205,
+   "sha": "f14d85de70e910c4c4a5b3084b7156df03590ca6",
+   "title": "doctor(json): inspect Guide Ultime patch base_file dependencies, not only manifest roots",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 206,
+   "sha": "2aff8b38edbc7cdd53cc0c6cfb7bddbcd6982a24",
+   "title": "test(doctor): verify canonical patch ancestry missing, invalid and self refs",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 207,
+   "sha": "f29b371c7340a7a2964d2e8b0a6314cf8c3b20e8",
+   "title": "doctor(json): detect cyclic Guide Ultime patch ancestry using bounded filename graph",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 208,
+   "sha": "b0e5b708d15376a78f75d7cd0052b28b8e9dd736",
+   "title": "test(doctor): prove patch cycle detected without false-positive for upstream layer",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 209,
+   "sha": "73897ad29229bf50c3734901f63297dc7f284815",
+   "title": "perf(doctor): attribute cold Success detail subprocess vs decode time without runtime refactor",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 210,
+   "sha": "214f6fb3f44698ce91302290cc21fa3e67600b80",
+   "title": "test(success): time cold worker and capture failures without changing detail semantics",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 211,
+   "sha": "46646732c78a370882a480a23c20b15b319cfb06",
+   "title": "doctor(perf): retain last cold Success subprocess and JSON decode breakdown in RAM snapshots",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 212,
+   "sha": "2ad2f18aad596c8367b7f5171de59a1c7ab9831d",
+   "title": "test(doctor): collect cold Success phase breakdown without constructing providers",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 213,
+   "sha": "f3a7c0f53b075d42e4c377a0e360c5c72e214ead",
+   "title": "doctor(perf): surface observed Success cold-detail breakdown in checkpoint summary",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 214,
+   "sha": "7e2976a179bc188075917e5e446870a61defb3b7",
+   "title": "perf(quests): avoid duplicated objective-step list allocation on first rich detail",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 215,
+   "sha": "dc8cc17bcf220349e188196190de6f4c304d208c",
+   "title": "test(doctor): retain observed Success subprocess timings in checkpoint without fake deltas",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 216,
+   "sha": "fad7ea29f9b3f934ffdb12f1e0d23b953d990e37",
+   "title": "test(quests): verify objective index reuse avoids intermediate copy and rejects invalid IDs",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 217,
+   "sha": "935e9a49442c1e00b0b4a48d080dedb8791b260f",
+   "title": "perf(windows): suppress transient console for disposable Success cache and detail workers",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 218,
+   "sha": "49531163450b51c433fa9981b405c701492b57b4",
+   "title": "test(windows): ensure cold Success worker disables console only on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 219,
+   "sha": "d537a10e834ae1c1e3aa0ae3271ee30876023ed2",
+   "title": "perf(quests): attribute cold rich detail to indexes, compilation, and SQLite persistence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 220,
+   "sha": "c11d160d3ff31c0b209b5392fc53ccb6b9584c09",
+   "title": "test(quests): preserve cached and source rich-detail paths while reporting phase timings",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 221,
+   "sha": "0a9e9e544b3737169d07e3569a91d6e6e26c7bf1",
+   "title": "test(windows): frozen Success detail remains in-process and never spawns child",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 222,
+   "sha": "9c791ae190355208b63fd33745c4fa26f38d373f",
+   "title": "fix(test): stub dataclass serialization in minimal Quest source timing fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 223,
+   "sha": "b37d781660ac71fea2fa9c3cedeac54b7dd272f9",
+   "title": "perf(guide): normalize manual summary labels once rather than each search keystroke",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 224,
+   "sha": "bb0032176603c10c138c1ce72f134cef144a0ba8",
+   "title": "test(guide): search over long manual summary reuses cached row keys",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 225,
+   "sha": "7b8516cf88a52224ade33ba8f0a2dd6cd7f8e7e5",
+   "title": "perf(guide): attribute Sylvestre cold open to bundle, signature, projection and cache",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 226,
+   "sha": "c59bade9f38183595edc53805b04e1d893e47076",
+   "title": "test(guide): preserve prebuilt fast path and report legacy migration timing",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 227,
+   "sha": "f68dd6867d02e714612cc2eff72c470f1f78a45f",
+   "title": "perf(preload): report actual disk-backed Quest detail index artifacts to warmup",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 228,
+   "sha": "96b8c0a161768ed1284b0d107d07e329037e9824",
+   "title": "perf(preload): include Quest source offset indexes among warmup artifacts",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 229,
+   "sha": "39028ecadabec86cd560bccb20ac384f064eb09f",
+   "title": "perf(preload): invalidate missing Quest detail offsets and track enriched source changes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 230,
+   "sha": "7439507929ba763faf9df1c4500e13bf70276c34",
+   "title": "perf(preload): export exact count of completed Quest offset index files",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 231,
+   "sha": "0716475162ed32d91107833ece9abec4e39e1dcb",
+   "title": "fix(preload): require exact manifest count for source-offset cache reuse",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 232,
+   "sha": "bee65ff3de49fe6fa77b7acac2815aa21d83030c",
+   "title": "test(preload): stale or missing Quest source offsets force controlled warmup rebuild",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 233,
+   "sha": "d60680a74efae33cdc4b531b9d77781551c102e6",
+   "title": "test(preload): source offset inventory preserves original count and unique artifact paths",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 234,
+   "sha": "fd21d1bc1ebd3dd6be3b14eb2db8c012a5c8c889",
+   "title": "fix(guide): invalidate cached Sylvestre route when enriched Quest source changes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 235,
+   "sha": "85d4c817f58c95bcf0fc0aba3d7ef77ce8e88ca9",
+   "title": "fix(guide): bind certified prebuilt Sylvestre route to enriched Quest source size",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 236,
+   "sha": "8761918bb6469520e5cecfba6b2780f3d825a0b8",
+   "title": "test(guide): invalidate cached and prebuilt routes on enriched walkthrough changes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 237,
+   "sha": "8215a1c3b56f5649f51397220f1f0a376a147396",
+   "title": "feat(doctor): audit nested JSON ID collisions and repeated object keys without truncation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 238,
+   "sha": "f7c6ebd2db2198f3183c871cca8566fa1be5a8a6",
+   "title": "fix(test): preserve real newline in JSON scanner fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 239,
+   "sha": "866b90e7b5b78e4464e5c7d7316e1c69c1955957",
+   "title": "feat(doctor): check all canonical Guide catalog references against parsed tracked JSON",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 240,
+   "sha": "89fab9582eb549cd91b0debabe1e304400f643f3",
+   "title": "fix(test): use actual Python fixture lines in Guide manifest audits",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 241,
+   "sha": "bfb4a5dc7b0757ae8b0c2b430889a21f24a8c5ab",
+   "title": "fix(doctor): keep tracked null Guide manifest in review rather than marking absent",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 242,
+   "sha": "49840180c5a268d362f5facb0a4ebc95f741da77",
+   "title": "doctor: correlate exact-SHA performance evidence and choose tools via canonical catalog",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 243,
+   "sha": "85b78d9a9d22c80228fe1939ababfcdb4da8a0fd",
+   "title": "doctor: expose correlated hypotheses and canonical tool recommendations in optimization reports",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 244,
+   "sha": "150c03c912eb2c9e7bfa55431d0c42bba6ce93b1",
+   "title": "test(doctor): prevent stale evidence, unsafe tool selection and false causal claims",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 245,
+   "sha": "2285a24610e87fcb0a8dfcd999d2b4c5e74b0d3a",
+   "title": "audit(doctor): bound numeric evidence and expose invalid catalog as missing proof",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 246,
+   "sha": "a92103df641fac0bee082481f9b455fdc799ee1a",
+   "title": "fix(test): use canonical tool catalog cost enum in Doctor routing fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 247,
+   "sha": "958ab48cac699ec4a65199a43c1e170eae8ddc2c",
+   "title": "doctor: cross-check guide hot methods against observed slow revisits on same SHA",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 248,
+   "sha": "d8f2fe6f22d0d71fe386240e57a5405821b81cf4",
+   "title": "test(doctor): prove cross-specialist Guide correlation stays advisory",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 249,
+   "sha": "887419ff3da9a42fa50872b3618ecfa8aae4aa78",
+   "title": "doctor(tools): discover Graphify, memory, runtime, JSON and CI specialist capabilities",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 250,
+   "sha": "42c41892a0cce01ff387cca066b019989f919640",
+   "title": "doctor: route each correlated symptom to matching memory, trace and Graphify capabilities",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 251,
+   "sha": "b99b59d7de4cd1da499497c8f547e0cc54b95d0c",
+   "title": "test(doctor): verify canonical Graphify/memory/trace routing and no automatic execution",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 252,
+   "sha": "db7d2525687784d6e0f025b4b9e91286e70ec762",
+   "title": "test(tools): preserve discovery of Graphify, RAM, runtime, JSON and CI capabilities",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 253,
+   "sha": "fa267c4e08f52add9b7a5f024bc485fea760c2ea",
+   "title": "doctor: add bounded causal investigation plan and prevent mutating tools in automatic triage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 254,
+   "sha": "068b3675540374efad6bfe4d3151d8607d4d9cc4",
+   "title": "test(doctor): guard investigation routing, tool de-duplication and deferred certification",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 255,
+   "sha": "60a4d6729a94c154d6e923736e5fe4bcc39344cd",
+   "title": "doctor: choose bounded cold/warm RAM and Guides probes without duplicating benchmark engines",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 256,
+   "sha": "d6afa1e837c9e23c5882c557b6997ba0bf11e90a",
+   "title": "doctor: show planned specialist phases and benchmark probes in existing report",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 257,
+   "sha": "3c974df10e8d37badeace6282cffcc4ac6c7f8bd",
+   "title": "test(doctor): verify scenario selection, mandatory sentinels and unrun diagnostics",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 258,
+   "sha": "0df592c6861478419eeee3b81a4be4c20b7ee0ff",
+   "title": "perf(doctor): reuse Agent exact-worktree tool catalog cache and expose scan cost",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 259,
+   "sha": "fa613af4fbdd12d70291ab64c2c37b0a00bf0f12",
+   "title": "test(doctor): ensure optimization report reuses existing catalog cache instead of rescanning",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 260,
+   "sha": "c89d1541d766246b5fcfa22db54fe4779a0650c9",
+   "title": "fix(test): keep catalog-cache contract standalone without cross-test dependency",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 261,
+   "sha": "29cd7ab7ae5b3ce74670b394fce8dc1b8c63758c",
+   "title": "perf(doctor): avoid expensive catalog discovery on stale or failed benchmark evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 262,
+   "sha": "f464fb35978a6ad5385fea2a31aae5a620838500",
+   "title": "test(doctor): stale evidence never triggers unnecessary tool inventory scan",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 263,
+   "sha": "ad367bbe421c4ae1b83a23c6bc1e0f40d8be9377",
+   "title": "fix(doctor): reconcile current PR guide-catalog checks with richer manual manifest JSON triage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 264,
+   "sha": "ae4c2dfb30d36daf9501525b41f051ccd21fc78e",
+   "title": "test(doctor): reconcile PR static Guide catalog assertions with worktree JSON semantic coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 265,
+   "sha": "706e3a4143cc2d68b1f87d8801a03862bb92c373",
+   "title": "merge(pr303): preserve PR's five JSON Guide checks alongside Doctor optimizations",
+   "merge_parents": 2,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 266,
+   "sha": "6fad686e385d2743bd23e0da8f4cc21701c3ffba",
+   "title": "fix(doctor): surface every tool-budget truncation instead of silently dropping investigative coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 267,
+   "sha": "56b7759cbc779d4e535e6995ad30993edfbaefd9",
+   "title": "test(doctor): oversized multi-tool plans expose omissions and never claim complete coverage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 268,
+   "sha": "20d71853b481a63def4ada2cca9d3a2b46cc5b09",
+   "title": "doctor: distinguish same-run signal overlap from cross-specialist correlation strength",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 269,
+   "sha": "557029660a9269b487ae08e521c98ae90ea15841",
+   "title": "test(doctor): report evidence strength without inventing causal confidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 270,
+   "sha": "6f179247cb3f5ef9d918ec64b57f11508186d26a",
+   "title": "fix(doctor): count attribution and navigation as one benchmark evidence family",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 271,
+   "sha": "d5dd393026d9af5a27c56fcc217914b431c78607",
+   "title": "test(doctor): treat app and attribution as same-run correlated signals",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 272,
+   "sha": "8c03a68e69139fd476dc4f39785e52221e4f2a7b",
+   "title": "cleanup(doctor): remove unused Guide catalog flag after branch reconciliation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 273,
+   "sha": "eae60b3eac546f69f0d5c52fd91be207a83df1e7",
+   "title": "fix(doctor): retain PR semantic JSON count aliases while combining richer manifest checks",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 274,
+   "sha": "5e3844e7598ccfcf6bdc6579cb74f2a14056bfbe",
+   "title": "test(doctor): retain upstream nested duplicate JSON compatibility contract",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 275,
+   "sha": "a58bfd31e59a1296d2a98eb905022cb44b1a2f88",
+   "title": "test(doctor): preserve canonical root-qualified JSON paths when reconciling upstream contract",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 276,
+   "sha": "18d046fdd531ac96eac1dd19dbb6b6d2d9fe250b",
+   "title": "fix(doctor): never recommend tools from a different or dirty commit than benchmark evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 277,
+   "sha": "7954e84ad4bd8a67eb40a625648201317352a1bb",
+   "title": "test(doctor): never use present-day tool catalog for stale or uncommitted benchmark SHA",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 278,
+   "sha": "7e7d9033fb1b5ac213abf46e69e662ebce27687e",
+   "title": "doctor: diagnose measured first rendered Quest, Success and Guide details from Phase 8 evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 279,
+   "sha": "898ba823d4f2eedc3046130beca246e1e7d8dfe7",
+   "title": "doctor: accept existing Phase 8 deep first-use evidence in canonical optimization report",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 280,
+   "sha": "849b14a327e428fb4108ad43cbbced85c891cbf8",
+   "title": "test(doctor): first detail diagnosis requires rendered Phase 8 evidence and consistent exact-SHA timings",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 281,
+   "sha": "2d6296421d7060841f0761115aa78a2a872cb653",
+   "title": "test(doctor): consume existing Phase 8 first-use JSON through the canonical report entrypoint",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 282,
+   "sha": "87bbf01af802f24b20eeb44b18476870e3a7d845",
+   "title": "fix(doctor): report missing tool inventory without losing measured performance evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 283,
+   "sha": "9266e825c1f58ab5f08e8966a6d3c95e0eb6cb34",
+   "title": "test(doctor): unavailable inventory cannot erase measurements or claim routed tools",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 284,
+   "sha": "f6e0bd9d72a1f98eee1490e7773e5407e751f57e",
+   "title": "fix(doctor): preserve every capability of shared tools and avoid treating unknown cost as cheap",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 285,
+   "sha": "b7f1fb91e74c3675e72b9fb33e8b237f9a7fc65d",
+   "title": "test(doctor): preserve shared specialist capabilities and fail closed on unknown tool cost",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 286,
+   "sha": "921277aa0be0b9e10d8a76a6684f8ff795b09b19",
+   "title": "fix(doctor): recognize already-selected shared tools even when investigation budget is full",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 287,
+   "sha": "07e67bbbe7799ee579b7f2c11e2d8e4d6cc7c469",
+   "title": "test(doctor): full budget does not reject a capability handled by a selected shared tool",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 288,
+   "sha": "2415b440e2f850543596975b45cdf09bf6fc643b",
+   "title": "perf(success): reuse two previous rich details without restarting disposable workers",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 289,
+   "sha": "54665b22ea3b710914a0e3c2a4a6626a946edecd",
+   "title": "fix(success): distinguish cache hits from subprocess timing in Doctor diagnostics",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 290,
+   "sha": "5e9a5b5bad5db070d697cdda3d6321f2425c77c5",
+   "title": "test(success): no extra child process when switching among recent details; Home release clears cache",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 291,
+   "sha": "825e71bc7740a94650578fbc5b63a2cffcfe55b0",
+   "title": "fix(preload): reject unreadable Quest source-offset SQLite caches before reporting warmup reused",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 292,
+   "sha": "b801b60df0ce2b1b2248b933867fe4ef00b2deef",
+   "title": "fix(preload): close read-only offset SQLite handles immediately on Windows",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 293,
+   "sha": "e574f5ebb284f3869a2d509a7fc58fdc25e26003",
+   "title": "test(preload): verify corrupt, missing-schema and invalid-span Quest indexes cannot be reused",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 294,
+   "sha": "92126c76b534706a93623f4a456f9b82710b9850",
+   "title": "fix(test): produce actual newline-delimited achievement worker JSON, not literal slash-n",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 295,
+   "sha": "a14e990ef920ec4326f4541a6d8ab8f4c2f9ae72",
+   "title": "perf(phase8): include measured Success detail subprocess/wait phases without additional work",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 296,
+   "sha": "61ddc50adb727e0a481acefb59fdde3f774dc34b",
+   "title": "doctor: correlate Phase 8 Success detail latency with measured synchronous MainThread worker time",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 297,
+   "sha": "d23139326e6db6ec1f8f89ae5a6242cf7194cbde",
+   "title": "test(doctor): distinguish main-thread Success subprocess waits from stale or background timings",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 298,
+   "sha": "087316003f7510e56fb8d51ce2a79af95826fbeb",
+   "title": "test(phase8): retain real Success rendering gate and observe only already-loaded provider timings",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 299,
+   "sha": "448cb5f4a44acf1db89bfb3dc60ff0c9990912fe",
+   "title": "test(success): Windows EXE detail cache reuses recent identities without source rebuild or subprocess",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 300,
+   "sha": "7ad3b02393099805bf1fb42e6363fbd87ec6f5fb",
+   "title": "fix(success): invalidate rich-detail LRU whenever compact or in-process catalogue is rebuilt",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 301,
+   "sha": "bf5695633fbe1d215586b5d0497899d4803cce6d",
+   "title": "test(success): refreshing the source catalogue invalidates all cached rich detail identities",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 302,
+   "sha": "0d2721dddac26545a4ea5781f28021584e1bdc78",
+   "title": "fix(test): close SQLite fixtures before unlink on real Windows benchmark runners",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 303,
+   "sha": "d12ef304d7eb95710d428f3dd78b24de8ddf00e4",
+   "title": "doctor: reuse canonical Phase 8 first-use comparator and report directional regressions only",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 304,
+   "sha": "43438a35e816cff180c944da3854b173b18edc2a",
+   "title": "test(doctor): reject non-comparable Phase 8 fixtures and flag net regressions without certified gains",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 305,
+   "sha": "bf01980fa734ac5669ab131603b249ef63d37148",
+   "title": "doctor: map correlated findings to real exact-SHA scenario contracts with single-pass tool selection",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 306,
+   "sha": "1c348bc954888226498f5f9e66d143651701ce38",
+   "title": "test(doctor): exact scenario registry routing, unmapped symptoms and malformed tool metadata",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 307,
+   "sha": "3ccd452f35cb11f573df1eb489f713337720039e",
+   "title": "doctor: publish exact-SHA scenario contract coverage and unmapped diagnoses in optimization reports",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 308,
+   "sha": "9993ba476279f1d8b4d14e9ec58181d42638faef",
+   "title": "doctor: register targeted cold-detail and intelligence contracts in the existing SHA-guarded scenario runner",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 309,
+   "sha": "b6f2a30abf3e7ac448d9dad98802981d64522821",
+   "title": "doctor: route cold Quest, Success and Guide hypotheses to distinct canonical targeted contracts",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 310,
+   "sha": "5eede4bc52afd0c5d8d56a5e5e410381c867b8b6",
+   "title": "test(doctor): five targeted scenarios cover all major performance hypotheses without exceeding budget",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 311,
+   "sha": "90d71ca03a849fd5682538ec38183b6de49cd8cb",
+   "title": "test(doctor): preserve five legacy journeys and verify new targeted contract paths and exact-SHA gating",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 312,
+   "sha": "c4100e77f58d4c024236ad5a05e3cca0d74a5005",
+   "title": "fix(doctor): invalid specialist inventory payloads must be reported as missing evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 313,
+   "sha": "7cda265202395b9d572c7c453ec8a5bc26e6acaf",
+   "title": "fix(doctor): never mark optimization evidence usable when same-SHA benchmark failed",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 314,
+   "sha": "d73351406ea12d723f9d24b458a77ccff4ae06b8",
+   "title": "test(doctor): same-SHA failed benchmark never produces diagnostic-ready or measured shares",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 315,
+   "sha": "b582c52c06341767ad4dc0e8e986202216a4a3d1",
+   "title": "doctor: execute only explicitly requested, same-SHA diagnostic scenario contracts via existing guarded runner",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 316,
+   "sha": "8cd34e4bccc6db30ce8bd8865646a4be12eff4aa",
+   "title": "doctor: validate diagnostic-to-runner contract provenance and complete hypothesis coverage before execution",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 317,
+   "sha": "b8b698a3c05e2d4d1ee3aab0ef29c11800217167",
+   "title": "test(doctor): prove diagnostic-driven runner is explicit, SHA guarded, isolated and rejects forged scenarios",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 318,
+   "sha": "3d36fb7733519ed3bfca7797045ce647ace2d388",
+   "title": "doctor: post-run Git integrity guard blocks stale or modified scenario evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 319,
+   "sha": "fbff4e829cd7bb7b41fa323e12373200a1c1f730",
+   "title": "test(doctor): scenario success requires exact clean Git state after every scoped batch",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 320,
+   "sha": "337624a6fcc5cda0f37e18ab0790b194dd80d699",
+   "title": "doctor: constrain scenario evidence outputs to artifacts JSON before any test execution",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 321,
+   "sha": "e8afcc4aaa7e7a20f7d265c012bf93e78cefaa70",
+   "title": "test(doctor): invalid output destination blocks before any selected test executes",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 322,
+   "sha": "e78426891dab5c1efaf5191a219601331ad956a1",
+   "title": "doctor: record real per-scenario module wall cost for future adaptive scheduling",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 323,
+   "sha": "b331d4a0c9314b5c5c7c885d79f99e68281b2913",
+   "title": "test(doctor): actual contract cost accounting never masquerades as application RAM or CPU profiling",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 324,
+   "sha": "f28f64d17cc8c99f88982ab56fb369862760ae19",
+   "title": "perf(success): warm targeted deep-link detail in existing achievement stage worker instead of Qt click",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 325,
+   "sha": "c565cc59f3f1261b8efd82a03fa5ecb41c3d0462",
+   "title": "test(success): prove target-only stage prewarm, fallback, no extra threads or duplicate runtime",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 326,
+   "sha": "e7df5da444fe0a7100a12c7b56446a2cea0470e5",
+   "title": "doctor: include new runtime deep-link worker behavior in targeted Success contract",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 327,
+   "sha": "67e271524307f3c4a60eb58a4ab3605333e9097b",
+   "title": "doctor: add bounded repeated exact-SHA Phase 8 A/B analysis without duplicating the benchmark",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 328,
+   "sha": "4e32074768e3dc77273bf2d9b8b305f180e26dff",
+   "title": "doctor: expose repeated Phase 8 comparison through existing optimization CLI and Markdown",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 329,
+   "sha": "924b57dd53ad6f60ae7c386c5e44d57149a49513",
+   "title": "test(doctor): repeated Phase 8 A/B pairs require unique runs, same fixtures, accounting and non-certifying verdict",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 330,
+   "sha": "862a771a4d7fb6999bae2862e2842aa2acbf9cfe",
+   "title": "doctor: rank safe specialists by real catalog cost and shared evidence coverage before route planning",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 331,
+   "sha": "2cc197dc0be79271d89fe723facecd3564363b54",
+   "title": "doctor: deduplicate all advertised specialist capabilities before considering another tool",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 332,
+   "sha": "b6db9e76bb4ab0d684c0c07256fd7118b9b2d7b4",
+   "title": "test(doctor): one cheap read-only specialist covers three symptoms while expensive/mutating tools stay unused",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 333,
+   "sha": "63e1784305617dc7afb239d011897a7b9f8dbcd7",
+   "title": "perf(success): preserve exact first-detail worker cost across cache hits and reset on catalog lifecycle",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 334,
+   "sha": "63211dc5a6f3f81b9befe1cd2326d6ade2d863e9",
+   "title": "doctor(phase8): preserve prewarmed Success cold cost after UI cache hit for exact fixture",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 335,
+   "sha": "c1901f205e4a0c44776f13db2ca0e403aa137db1",
+   "title": "doctor: preserve background Success prewarm timing without mislabeling it as a Qt freeze",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 336,
+   "sha": "7fa1a99ae1ec20fa7a032834d9bf3b13bd6d3913",
+   "title": "perf(success): avoid cold prewarming nonexistent or unretained achievement links",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 337,
+   "sha": "a2656c3384e1bf63ac7fbf54afc97b2f6f4590b9",
+   "title": "test(success): invalid deep links cannot trigger expensive background detail build",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 338,
+   "sha": "3d36b4ef2a66dd5e9b08a27380a95bd919bdc5b4",
+   "title": "test(success): real worker-thread cold timing survives UI cache hits and is cleared on Home",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 339,
+   "sha": "43b4a8acdceedbef64be4ce8d9549b2c470b16e5",
+   "title": "test(success): packaged Windows detail captures cold cost and wipes it after source refresh",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 340,
+   "sha": "e0319fdfb7abfdb5472156518bcaefd84a402450",
+   "title": "test(phase8): cold detail attribution must match real rendered Success fixture after worker prewarm",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 341,
+   "sha": "6cca187cf1b0d3eaef2d0ff5738e26e3aefdc1e5",
+   "title": "test(doctor): background prewarm cost retained after hot Qt render without false main-thread freeze attribution",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 342,
+   "sha": "0960524d83394ad43a15b4fd726581e837ceb3eb",
+   "title": "doctor: route first-detail background prewarm observations to canonical Success contract",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 343,
+   "sha": "ccd3aa07ae87f2431f8eb5770c79de4f6baa32db",
+   "title": "fix(quest): reject invalid SQLite byte spans in actual source reader, not just preload manifest",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 344,
+   "sha": "580e64e10db9f99df296d004dc9eda2d73bedc48",
+   "title": "test(quest): corrupted and missing SQLite index schema self-heal before detail read",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 345,
+   "sha": "b4265452d2460858397f63cd263c7e7040f96181",
+   "title": "test(success): prewarm runs on existing Python stage worker, never on the main Qt thread",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 346,
+   "sha": "431513c51f11ca6c0e0d806765bebb0fa2c7efe4",
+   "title": "doctor(phase8): record paired GitHub run and runner provenance for repeated A/B analysis",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 347,
+   "sha": "382e18eb54a12289238a83076d46da597e29398e",
+   "title": "test(phase8): repeated comparisons receive exact workflow-attempt and runner provenance",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 348,
+   "sha": "e65e65f473d6d72e3f7ec29b9d671dc2047cec82",
+   "title": "fix(success): compact subprocess catalogue refresh also invalidates bounded rich-detail cache and timings",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 349,
+   "sha": "f245a906bb17520cd9597ef8e39b1aeadf153e4f",
+   "title": "test(success): compatibility compact catalogue replacement drops old objects and stale Doctor cost evidence",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 350,
+   "sha": "82c92335b09e6e752927536d5697e64b190a143b",
+   "title": "perf(success): hydrate uncached detail off Qt with single latest-request worker and queued render",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 351,
+   "sha": "eb3a46e073a95c0d1f30ec7cf6320563da49ea1b",
+   "title": "fix(success): cancel stale pending loads on hot navigation, close and repeated selection",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 352,
+   "sha": "efbb6ba143d523d8706e54c6cd65e72fd42759be",
+   "title": "test(qt): cold Success worker latest-request handling, hot navigation, cancellation and failure",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 353,
+   "sha": "1f6fd40fd608fd804580e4ad3b64aa6605293144",
+   "title": "fix(qt): weak-reference Success detail view to prevent long-lived closed-window retention",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 354,
+   "sha": "eb023a725add32f33c49e174d3954b452a5377c7",
+   "title": "fix(qt): never overlap cached UI provider mutation with in-flight detail worker",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 355,
+   "sha": "be8b829f063a5a82c8a6cd0799a364b3ca24c291",
+   "title": "test(qt): 50 rapid Success clicks coalesce to one latest detail without worker accumulation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 356,
+   "sha": "d22ccf77898b7e39b003439701dc09ace1a7f510",
+   "title": "fix(ram): stage Success worker retains data providers but not a closed Qt encyclopedia page",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 357,
+   "sha": "609d10f91caa81233ce27bbbcd06b6a186b7d660",
+   "title": "test(ram): worker stage probe uses weakref-capable view to match Qt lifecycle",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 358,
+   "sha": "569bbbe4f617afa724122d3fda380b0d5f3f637d",
+   "title": "doctor: certify asynchronous Success clicks and 50-navigation latest-wins stress in targeted contracts",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 359,
+   "sha": "01c493d69456d0a2598f085b7b829468395bf2a3",
+   "title": "docs(perf): record actual candidate implementation versus still-required Windows proof and launcher boundary",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 360,
+   "sha": "6d3d08c1803ff1b9a6ecc203e0d2876b7c54a8ac",
+   "title": "fix(review): preserve instant hot Success while old worker runs; allow cancel on second click",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 361,
+   "sha": "27db44c9c69068cfe86d7f337474dc58b734c8e9",
+   "title": "fix(review): use lazy alignment-order map instead of undefined constant in Success UI",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 362,
+   "sha": "9014ed0d8f65f14a14ac5b97cae41372c212e7b3",
+   "title": "test(review): Success alignment choice resolves current lazy order table without NameError",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 363,
+   "sha": "d1c0a86f919df884de06d746401181c92947b9f3",
+   "title": "perf(guides): replace repeated O(n) prerequisite name scans with per-catalog lazy index",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 364,
+   "sha": "a8aab4640b14a7fddab0c592105ea4ae641a4327",
+   "title": "test(guides): prerequisite index parity, duplicate first-match semantics and catalog invalidation",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 365,
+   "sha": "543f37479762fa77376e84ee6c26b30eef6779bd",
+   "title": "test(windows): exercise final Success async and Guide/Quest regressions in existing focused workflow",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 366,
+   "sha": "3770db90b1e17810aba698503e070f5cf2cea00b",
+   "title": "perf(guides): instantiate prerequisite Qt rows only when their section is expanded",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 367,
+   "sha": "8b01974894f467fb9be28acd057bb65066bfc215",
+   "title": "test(guides): collapsed prerequisites avoid Qt rows until first expansion; no duplicate rebuilding",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 368,
+   "sha": "ebd51689d4d4c93db68d30635330c39090577618",
+   "title": "fix(ci): close PR303 exact owner map for Success preload and Doctor tools",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 369,
+   "sha": "34fc4500fa28a67f39a7a08ed3b287ee96a7f0f1",
+   "title": "fix(doctor): reject drive-relative Guide JSON manifest references",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 370,
+   "sha": "72e613116c155acb71d1ea54dc4bbf77d36cd87f",
+   "title": "perf(doctor): bound RAM trace attribution to a single grouped snapshot pass",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 371,
+   "sha": "a02090330ecb6a584e160146524e16e25256c236",
+   "title": "fix(doctor): report freed RAM sites separately from positive allocation hotspots",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 372,
+   "sha": "839f69ffa20db03cf6c7222806e854b216379cf1",
+   "title": "ci(perf): defer expensive Windows specialist jobs until PR Ready for review",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 373,
+   "sha": "5ae099671a3bfd9fe2ebe43b12172ef044076917",
+   "title": "fix(doctor): reject JSON float overflow as non-finite during full scope audit",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 374,
+   "sha": "de86849c59869c52e1d43d69f89d57a86a853937",
+   "title": "test(doctor): write valid Python fixture in JSON overflow regression",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 375,
+   "sha": "0a66da3d2423de0bf308e183bf6cd25613102378",
+   "title": "fix(doctor): fail closed on unsupported JSON depth and unsafe Windows guide names",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 376,
+   "sha": "a81d26d15212415ce5f1e394cfe1e4a725fd7732",
+   "title": "fix(doctor): stop only owned tracemalloc sessions during RAM forensics",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 377,
+   "sha": "f9d25c7d1563d42e70f7991a3f41c0df952a1dbe",
+   "title": "feat(doctor): triage static JSON and asset consumer connections",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 378,
+   "sha": "eab87dae0e5b6f3c82d6835ac4fe56d7c377ec57",
+   "title": "test(doctor): execute resource links in Draft CI and page unlinked candidates",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 379,
+   "sha": "10d5c883fac3fb9de9e998d04506eddb53416db0",
+   "title": "perf(doctor): reuse parsed AST and JSON payloads in resource link triage",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 380,
+   "sha": "4299639ed7eeadc94c87651bce19259f79bd212f",
+   "title": "feat(doctor): one-pass exhaustive export of unlinked resource candidates",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 381,
+   "sha": "613ec84c29537b10f97093de2f57cfdf168d82a5",
+   "title": "ci(doctor): preserve complete resource triage evidence on PR 303",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 382,
+   "sha": "d4b7b9f5ffd9a7f6afa6505da08d05d852732535",
+   "title": "fix(ci): honor allowlisted Ready-only Windows candidate trigger in Doctor routing tests",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 383,
+   "sha": "3325b48d5282a37af57713c0869c8ac9c0c06043",
+   "title": "fix(ai-context): synchronize committed top-level Git fingerprints for PR 303",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 384,
+   "sha": "b7627c50e5928ba951cd7897ed491877d9e650a4",
+   "title": "fix(ci): fail fast on diff hygiene and AI context before full Doctor tests",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 385,
+   "sha": "050c1918fff90959d8f8e1835c9c1d3ffcec4c1e",
+   "title": "fix(windows): support relative Quest SQLite paths in packaged seed build",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 386,
+   "sha": "368cd349a4ba4151e596db318022c07b7928b799",
+   "title": "fix(ai-context): serialize indexed Git entries in canonical key order",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 387,
+   "sha": "c04c8134870bd22c52bb414ebc6c530fe6094d12",
+   "title": "test(windows): exercise real Home cleanup methods in minimal Qt shell",
+   "merge_parents": 1,
+   "patch_inventory": "INSPECTED_AUTOMATICALLY_ON_C04C813",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  },
+  {
+   "number": 388,
+   "sha": "7e2ebb04f2cbb2537d275d28ea4955d39f1f48ad",
+   "title": "fix(windows): resolve relative Sylvestre SQLite paths before read-only URI",
+   "merge_parents": 1,
+   "patch_inventory": "NOT_IN_C04C813_AUDIT",
+   "human_review": "NOT_REVIEWED",
+   "decision": "REVIEW_REQUIRED"
+  }
+ ]
+}

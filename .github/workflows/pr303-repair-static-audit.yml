@@ -1,0 +1,137 @@
+name: PR303 Doctor All JSON and Resources (repair)
+on:
+  pull_request:
+    branches:
+      - perf/atlas-global-optimization-backlog-20261030
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+concurrency:
+  group: pr303-repair-static-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  doctor-all-sources:
+    name: All tracked Python JSON and resource consumers, no deletion
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout exact repair SHA (no Qt or Windows FULL)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - name: Verify checkout and Python runtime
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+      - name: Set up pinned Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Test real full-scope and all-link export contracts
+        run: |
+          python -m unittest discover -s tests -p test_doctor_resource_link_audit.py -v
+          python -m unittest discover -s tests -p test_atlas_doctor_full_scope.py -v
+          python -m unittest discover -s tests -p test_doctor_candidate_worklist.py -v
+          python -m unittest discover -s tests -p test_distribution_export.py -v
+      - name: Test relative Windows SQLite contract with real read-only mode
+        run: python -m unittest discover -s tests -p test_guide_catalog_route_store_relative.py -v
+      - name: Run Doctor full Python JSON and literal/resource links without truncating candidates
+        shell: bash
+        run: |
+          set +e
+          python -m tools.atlas_doctor full-scope \
+            --expected-sha "$CANDIDATE_SHA" --with-json --with-links --links-all \
+            --output artifacts/pr303_repair_static/full_scope.json --json \
+            > artifacts_output.json
+          actual=$?
+          set -e
+          if [ "$actual" -ne 1 ]; then
+            echo "::error::Expected truthful Doctor REVIEW (1), got $actual"
+            exit 1
+          fi
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          v=json.loads(Path("artifacts/pr303_repair_static/full_scope.json").read_text())
+          c=v["source_coverage"]
+          j=v["json_semantic_audit"]
+          links=v["resource_link_audit"]
+          assert v["candidate_sha"]==os.environ["CANDIDATE_SHA"]
+          assert v["status"]=="REVIEW" and v["worktree_clean"]
+          assert c["status"]=="PASS" and c["inspected"]==c["total"] and not c["truncated"]
+          assert j["syntax_coverage"]=="PASS" and not j["truncated"]
+          assert j["counts"]["tracked"]==j["counts"]["valid_syntax"]
+          assert j["counts"]["invalid_syntax"]==j["counts"]["unavailable"]==0
+          assert links["status"]=="REVIEW" and links["all_candidates_exported"]
+          assert links["automatic_deletion_authorized"] is False
+          assert links["no_static_consumer_total"]==len(links["no_static_consumer_all_candidates"])
+          assert links["all_link_candidates_exported"] is True
+          assert links["triage_counts_complete"] is True
+          assert links["triage_verified"] is False
+          assert not links["automatic_deletion_authorized"]
+          assert sum(links["link_triage_buckets"].values()) == (
+              links["counts"]["unresolved_literals"] + links["counts"]["unsafe_literals"]
+              + links["counts"]["possible_edges"])
+          assert sum(row["count"] for row in links["asset_triage_buckets"].values()) == links["no_static_consumer_total"]
+          assert j["counts"]["map_view_assets_inspected"] > 0
+          assert j["semantic_links_verified"] is False
+          counts=links["counts"]
+          assert len(links["unresolved_literal_all_candidates"]) == counts["unresolved_literals"] + counts["unsafe_literals"]
+          assert len(links["ambiguous_literal_all_candidates"]) == counts["possible_edges"]
+          assert all(len(item["candidates"]) == item["candidate_count"] for item in links["ambiguous_literal_all_candidates"])
+          print("SOURCE:",c["inspected"],"/",c["total"])
+          print("JSON:",j["counts"]["valid_syntax"],"/",j["counts"]["tracked"])
+          print("UNLINKED CANDIDATES:",links["no_static_consumer_total"])
+          print("UNRESOLVED + UNSAFE:",len(links["unresolved_literal_all_candidates"]))
+          print("AMBIGUOUS:",len(links["ambiguous_literal_all_candidates"]))
+          print("MAP VIEW ASSETS:",j["counts"]["map_view_assets_inspected"])
+          print("MAP VIEW ASSET CANDIDATES:",j["counts"]["map_view_asset_reference_candidates"])
+          print("LINK TRIAGE:",links["link_triage_buckets"])
+          print("UNLINKED ASSET FAMILIES:",{key: value["count"] for key,value in links["asset_triage_buckets"].items()})
+          PY
+      - name: Export one open review row per link and asset, with App-mirror rules
+        shell: bash
+        run: |
+          python -m tools.doctor_candidate_worklist \
+            --input artifacts/pr303_repair_static/full_scope.json \
+            --out-dir artifacts/pr303_repair_static/worklist \
+            --expected-sha "$CANDIDATE_SHA"
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+          base=Path("artifacts/pr303_repair_static/worklist")
+          report=json.loads((base/"summary.json").read_text())
+          source=json.loads(Path("artifacts/pr303_repair_static/full_scope.json").read_text())
+          with (base/"link_reviews.csv").open(newline="", encoding="utf-8") as f:
+              links=list(csv.DictReader(f))
+          with (base/"asset_reviews.csv").open(newline="", encoding="utf-8") as f:
+              assets=list(csv.DictReader(f))
+          expected=source["resource_link_audit"]
+          assert report["candidate_sha"] == source["candidate_sha"]
+          assert len(links) == report["links_count"] == (
+              expected["counts"]["unresolved_literals"] +
+              expected["counts"]["unsafe_literals"] +
+              expected["counts"]["possible_edges"])
+          assert len(assets) == report["assets_count"] == expected["no_static_consumer_total"]
+          assert all(row["review_status"].startswith("OPEN_") for row in links + assets)
+          assert not report["automatic_deletion_authorized"]
+          print("Candidate worklists:",len(links),"links;",len(assets),"assets.")
+          print("Direct App mirror allowlist:",report["assets_by_mirror_allowlist"])
+          PY
+      - name: Persist exact-SHA all-candidate static scan
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pr303-repair-static-all-candidates-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/pr303_repair_static/full_scope.json
+            artifacts/pr303_repair_static/worklist/*.csv
+            artifacts/pr303_repair_static/worklist/*.json
+          if-no-files-found: error
+          retention-days: 30

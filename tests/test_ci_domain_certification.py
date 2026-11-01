@@ -33,12 +33,157 @@ class ModularDomainRoutingTests(unittest.TestCase):
                      "tests/test_ci_delivery_guard.py"):
             self.assertEqual(owners_for(path), frozenset({"ci"}), path)
 
+    def test_pr303_bundled_preloads_and_qt_ram_contracts_have_exact_owners(self):
+        exact = {
+            "scripts/windows/build_guide_rewards.py": {"ci", "startup", "guides", "data"},
+            "scripts/windows/build_guide_routes.py": {"ci", "startup", "guides", "data"},
+            "scripts/windows/build_quest_index.py": {"ci", "startup", "quests", "data"},
+            "docs/performance/atlas-ram-inventory-v1.json": {"ci"},
+            "docs/performance/pr303-audit-candidats-20261031.json": {"ci"},
+            "docs/performance/pr303-audit-commits-20261031.json": {"ci"},
+            "tests/test_organizer_layout.py": {"ui", "identity"},
+            "tests/test_world_scan_async_loading.py": {"ui"},
+            "tests/test_startup_preload_window_visibility.py": {"startup", "ui"},
+        }
+        for path, owners in exact.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route(list(exact))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["full_suite_executed"])
+        for path in (
+            "scripts/windows/build_unreviewed_cache.py",
+            "docs/performance/new-ram-registry.json",
+            "docs/performance/pr303-audit-unreviewed.json",
+            "tests/test_unknown_layout.py",
+        ):
+            self.assertFalse(owners_for(path), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+    def test_pr303_release_fallback_and_final_audit_paths_have_exact_owners(self):
+        release_owners = {"ci", "craft", "quests", "guides", "ui", "startup", "data"}
+        exact = {
+            "app/cartography/map_asset_loader.py": {"ui", "data"},
+            "tests/test_cartography_asset_readonly_fallback.py": {"ui", "data"},
+            "scripts/windows/release_lfs_assets.py": release_owners,
+            "scripts/windows/release_lfs_assets_lock.json": release_owners,
+            "scripts/windows/runtime_visual_assets.py": release_owners,
+            "scripts/windows/runtime_visual_assets_lock.json": release_owners,
+            "tests/test_distribution_runtime_assets.py": release_owners,
+            "tests/test_ganymede_live_cutover_inventory.py": {"guides", "data"},
+            "tests/test_pr303_commit_audit.py": {"ci"},
+            "tools/audit_pr303_commits.py": {"ci"},
+            "tools/doctor_candidate_worklist.py": {"ci"},
+        }
+        for path, expected in exact.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+        plan = self.route(list(exact))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        for path in (
+            "scripts/windows/unreviewed_release_assets.py",
+            "app/cartography/unreviewed_loader.py",
+            "tools/doctor_unreviewed_worklist.py",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(owners_for(path))
+                self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+    def test_expensive_windows_specialists_wait_for_ready_not_draft(self):
+        from pathlib import Path
+        workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
+        for name in (
+            "atlas-short-full-app.yml",
+            "atlas-exhaustive-benchmark.yml",
+        ):
+            with self.subTest(workflow=name):
+                content = (workflows / name).read_text(encoding="utf-8")
+                self.assertIn("ready_for_review", content)
+                self.assertIn("workflow_call:", content)
+                self.assertIn("workflow_dispatch:", content)
+                self.assertIn(
+                    "if: ${{ github.event_name != 'pull_request' || "
+                    "github.event.pull_request.draft == false }}",
+                    content,
+                )
+        focused = (workflows / "guides-focused-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("types: [synchronize, ready_for_review]", focused)
+        self.assertIn("if: ${{ github.event.pull_request.draft == false }}", focused)
+
+    def test_pr303_late_preload_and_doctor_paths_have_reviewed_owners(self):
+        # The exact seven unknown paths surfaced by the SHA-specific Draft
+        # domain closure are cross-domain; a filename heuristic must not
+        # silently convert a Success/Qt test into Craft-only coverage.
+        expected = {
+            "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
+                {"quests", "guides", "ui", "startup"},
+            "app/startup_cache_domain_worker.py":
+                {"startup", "quests", "guides", "data"},
+            "tests/test_encyclopedia_success_detail_prewarm.py":
+                {"startup", "quests", "guides", "ui"},
+            "tests/test_success_async_detail_runtime.py":
+                {"quests", "guides", "ui"},
+            "tools/benchmark_phase8_preload.py":
+                {"ci", "startup", "quests", "guides", "ui"},
+            "tools/doctor_scenario_runner.py": {"ci"},
+            "tools/tool_catalog.py": {"ci"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        plan = self.route(list(expected))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"],
+                         ["ci", "quests", "guides", "ui", "startup", "data"])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertFalse(plan["merge_authorized"])
+        for unknown in (
+            "app/startup_cache_unreviewed_worker.py",
+            "app/modules/encyclopedia/views/memory_bound_unreviewed_page.py",
+            "tests/test_success_unreviewed_runtime.py",
+            "tools/benchmark_phase8_unreviewed.py",
+            "tools/doctor_unknown_runner.py",
+        ):
+            with self.subTest(unknown=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_batch_quest_evidence_has_guide_and_startup_consumers(self):
+        for path in (
+            "app/quest_catalog_details.py",
+            "app/modules/encyclopedia/providers/quest_provider.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"quests", "guides", "startup"}))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertFalse(owners_for("app/unreviewed_backend_details.py"))
+        self.assertEqual(self.route(["app/unreviewed_backend_details.py"])["status"], "BLOCKED")
+
+    def test_achievement_qt_view_has_cross_domain_ownership_without_wildcards(self):
+        path = "app/modules/encyclopedia/views/achievements_view.py"
+        self.assertEqual(owners_for(path), frozenset({"quests", "guides", "ui"}))
+        result = self.route([path])
+        self.assertEqual(result["status"], "READY_TO_EXECUTE")
+        self.assertEqual(result["domains"], ["quests", "guides", "ui"])
+        self.assertEqual(result["unknown_paths"], [])
+        for unknown in (
+            "app/modules/encyclopedia/views/achievements_unreviewed_view.py",
+            "app/modules/encyclopedia/views/unknown_success_detail.py",
+        ):
+            self.assertFalse(owners_for(unknown))
+            self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
         paths = [
             "tools/atlas_doctor.py",
             "tools/atlas_perf_attribution.py",
             "tools/benchmark_atlas_exhaustive.py",
             "tests/test_atlas_exhaustive_benchmark.py",
+            "tests/test_atlas_doctor_full_scope.py",
         ]
         for path in paths:
             with self.subTest(path=path):

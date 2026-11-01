@@ -17,19 +17,156 @@ def comparable(a, b):
     return all(a.get(k) == b.get(k) for k in keys) and a.get("status") == b.get("status") == "PASS"
 
 
+def comparable_phase8_first_use(
+    sha: str, phase8: dict | None, reference: dict | None,
+) -> dict[str, Any]:
+    """Delegate to the existing Phase 8 comparator; never infer repeated gains."""
+    if phase8 is None or reference is None:
+        return {"status": "NOT_RUN", "reason": "Phase 8 candidate/baseline pair unavailable"}
+    current = phase8.get("metrics") if isinstance(phase8, dict) else None
+    previous = reference.get("metrics") if isinstance(reference, dict) else None
+    current_env = phase8.get("environment") if isinstance(phase8, dict) else None
+    previous_env = reference.get("environment") if isinstance(reference, dict) else None
+    if not isinstance(current, dict) or not isinstance(previous, dict):
+        return {"status": "NOT_COMPARABLE", "reason": "Missing Phase 8 metrics"}
+    if (
+        current_env is None or previous_env is None
+        or current_env != previous_env
+        or current.get("git_head") != sha
+    ):
+        return {"status": "NOT_COMPARABLE",
+                "reason": "Different environment or mismatched candidate SHA"}
+    from tools.phase8_deep_comparison import compare_deep_first_use
+    try:
+        result = compare_deep_first_use(
+            previous, current, base_sha=previous.get("git_head"),
+            candidate_sha=sha,
+        )
+    except (TypeError, ValueError) as exc:
+        return {"status": "NOT_COMPARABLE", "reason": str(exc)[:250]}
+    return {
+        "status": "DIRECTIONAL_ONLY",
+        "verdict": result["verdict"],
+        "details": result,
+        "same_runner_attested": False,
+        "repeat_runs_verified": False,
+        "certified_gain": False,
+        "warning": "Identical environment labels are not hardware/runner proof;"
+                   " compare repeated runs on the same runner before claiming a gain.",
+    }
+
+
+def repeated_phase8_first_use(
+    sha: str, baseline_runs: list[dict] | None,
+    candidate_runs: list[dict] | None,
+) -> dict[str, Any]:
+    """Aggregate real A/B Phase 8 pairs without inventing independent proof.
+
+    Each pair comes from a unique measured run, retaining raw source and runner
+    identity. Canonical single-run validation still owns every timing check.
+    This is directional evidence, NOT a full certification or a new benchmark.
+    """
+    from statistics import median
+
+    if not baseline_runs and not candidate_runs:
+        return {"status": "NOT_RUN", "repeat_count": 0,
+                "reason": "No repeated Phase 8 reports"}
+    if (not isinstance(baseline_runs, list) or not isinstance(candidate_runs, list)
+            or len(baseline_runs) != len(candidate_runs)
+            or len(baseline_runs) < 3 or len(baseline_runs) > 20):
+        return {"status": "INSUFFICIENT_REPEATS",
+                "reason": "Require 3–20 baseline/candidate pairs in identical order",
+                "repeat_count": 0, "certified_gain": False}
+
+    samples: list[float] = []
+    run_ids: set[str] = set()
+    expected_env = None
+    base_sha = None
+    for index, (baseline, candidate) in enumerate(zip(baseline_runs, candidate_runs)):
+        if not isinstance(baseline, dict) or not isinstance(candidate, dict):
+            return {"status": "NOT_COMPARABLE", "reason": f"Malformed run {index}",
+                    "certified_gain": False}
+        b_id = baseline.get("run_id")
+        a_id = candidate.get("run_id")
+        runner = baseline.get("runner_id")
+        if (not isinstance(b_id, str) or not b_id or b_id != a_id
+                or b_id in run_ids or not isinstance(runner, str) or not runner
+                or candidate.get("runner_id") != runner):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Missing, duplicate or cross-run identities for pair {index}",
+                    "certified_gain": False}
+        run_ids.add(b_id)
+        env = baseline.get("environment")
+        if not isinstance(env, dict) or not env or env != candidate.get("environment"):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Environment mismatch for pair {index}",
+                    "certified_gain": False}
+        if expected_env is None:
+            expected_env = env
+        elif env != expected_env:
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Mixed environment configurations at pair {index}",
+                    "certified_gain": False}
+        b_metrics, a_metrics = baseline.get("metrics"), candidate.get("metrics")
+        if not isinstance(b_metrics, dict) or not isinstance(a_metrics, dict):
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Metrics missing in pair {index}",
+                    "certified_gain": False}
+        if base_sha is None:
+            base_sha = b_metrics.get("git_head")
+        if b_metrics.get("git_head") != base_sha or a_metrics.get("git_head") != sha:
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Wrong immutable commit in pair {index}",
+                    "certified_gain": False}
+        comparison = comparable_phase8_first_use(sha, candidate, baseline)
+        if comparison["status"] != "DIRECTIONAL_ONLY":
+            return {"status": "NOT_COMPARABLE",
+                    "reason": f"Invalid benchmark accounting in pair {index}: "
+                              + str(comparison.get("reason", "unknown")),
+                    "certified_gain": False}
+        samples.append(float(comparison["details"]["net_full_first_use_gain_ms"]))
+
+    direction = (
+        "REPEATED_FASTER" if all(value > 0 for value in samples)
+        else "REPEATED_SLOWER" if all(value < 0 for value in samples)
+        else "MIXED_OR_NOISY"
+    )
+    return {
+        "status": "REPEATED_DIRECTIONAL_ONLY",
+        "candidate_sha": sha, "baseline_sha": base_sha,
+        "repeat_count": len(samples),
+        "paired_run_ids": sorted(run_ids),
+        "median_net_gain_ms": round(median(samples), 2),
+        "min_net_gain_ms": round(min(samples), 2),
+        "max_net_gain_ms": round(max(samples), 2),
+        "direction": direction,
+        "p95": "NOT_STABLE_UNDER_20_REPEATS" if len(samples) < 20 else "NOT_COMPUTED",
+        "p99": "NOT_STABLE_UNDER_100_REPEATS",
+        "certified_gain": False,
+        "warning": "Runner labels and repeated timings are not proof of identical hardware, "
+                   "correct UI completion or full Phase certification",
+    }
+
+
 def optimization_report(sha: str, app: dict, hub: dict | None = None,
                         baseline: dict | None = None, guides: dict | None = None,
-                        ci_costs: dict | None = None) -> dict[str, Any]:
+                        ci_costs: dict | None = None,
+                        tool_catalog_report: dict | None = None,
+                        phase8: dict | None = None,
+                        phase8_baseline: dict | None = None,
+                        phase8_baseline_runs: list[dict] | None = None,
+                        phase8_candidate_runs: list[dict] | None = None) -> dict[str, Any]:
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Full immutable hexadecimal SHA required")
     hub, guides = hub or {}, guides or {}
-    valid = app.get("git_head") == sha
+    same_sha = app.get("git_head") == sha
+    valid = same_sha and app.get("status") == "PASS"
     findings = []
     def add(priority, code, title, evidence, action):
         findings.append({"priority": priority, "id": code, "title": title,
                          "evidence": evidence, "recommended_action": action,
                          "automatic_fix": False})
-    if not valid:
+    if not same_sha:
         add("P0", "STALE_APP", "Atlas benchmark missing or stale",
             str(app.get("git_head") or "NOT_RUN"), "Execute Doctor perf --app on the candidate SHA")
     elif app.get("status") != "PASS":
@@ -136,7 +273,35 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
             comparison = {"status": "DIRECTIONAL_ONLY" if metrics else "NOT_MEASURED",
                           "baseline_sha": baseline["git_head"], "metrics": metrics,
                           "warning": "Same scenario not proof of same hardware/load; repeat before claiming gain"}
+    deep_comparison = comparable_phase8_first_use(sha, phase8, phase8_baseline)
+    repeated_comparison = repeated_phase8_first_use(
+        sha, phase8_baseline_runs, phase8_candidate_runs,
+    )
+    if (
+        deep_comparison["status"] == "DIRECTIONAL_ONLY"
+        and deep_comparison["verdict"] == "NET_REGRESSION"
+    ):
+        add("P0", "PHASE8_FIRST_CONTENT_REGRESSION",
+            "First real Quest/Success/Guide path became slower",
+            str(deep_comparison["details"]["net_full_first_use_gain_ms"]) +
+            " ms net change (single comparable observation)",
+            "Confirm with repeats on one runner; profile actual first details before merging")
+    if (repeated_comparison["status"] == "REPEATED_DIRECTIONAL_ONLY"
+            and repeated_comparison["direction"] == "REPEATED_SLOWER"):
+        add("P0", "PHASE8_REPEAT_REGRESSION",
+            "Repeated first-content path is slower across comparable pairs",
+            str(repeated_comparison["median_net_gain_ms"]) +
+            " ms median net gain across " + str(repeated_comparison["repeat_count"]) +
+            " runs (directional, not certified)",
+            "Inspect cold stage costs; retain identical fixtures and Phase certification")
     findings.sort(key=lambda x: ({"P0": 0, "P1": 1, "P2": 2}[x["priority"]], x["id"]))
+    # Correlate the same immutable evidence without introducing a second
+    # benchmark or promoting advisory hypotheses to certification.
+    from .diagnostic_correlation import correlate_diagnostics
+    correlation = correlate_diagnostics(
+        sha, app, hub=hub if hub else None, guides=guides if guides else None,
+        catalog_report=tool_catalog_report, phase8=phase8,
+    )
     return {
         "schema": 1, "kind": "atlas_doctor_optimization_report", "git_head": sha,
         "status": "DIAGNOSTIC_READY" if valid and shares else "BLOCKED",
@@ -159,6 +324,9 @@ def optimization_report(sha: str, app: dict, hub: dict | None = None,
             "internal_screen_operations": "NOT_RUN", "real_desktop_fps": "NOT_RUN",
             "eight_real_dofus_clients": "NOT_RUN", "public_network_rollback": "NOT_RUN"},
         "comparison": comparison,
+        "phase8_first_use_comparison": deep_comparison,
+        "phase8_repeated_comparison": repeated_comparison,
+        "diagnostic_correlation": correlation,
         "limitations": ["Phase wall% and process CPU% have different denominators",
                         "Worker CPU excluded from main-process CPU ratios",
                         "Suspected repeated work is not proof of duplicate code",
@@ -217,6 +385,73 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("- " + item["name"] + ": " + str(item["before"]) + " -> " +
                      str(item["after"]) + " " + item["unit"] + " (" +
                      str(item["delta_pct"]) + "% indicatif)")
+    correlation = report.get("diagnostic_correlation") or {}
+    deep_cmp = report.get("phase8_first_use_comparison") or {}
+    lines += ["", "## Comparaison Phase 8 — vrai premier contenu", "",
+              "État: " + str(deep_cmp.get("status", "NOT_RUN")) +
+              " ; verdict: " + str(deep_cmp.get("verdict", "NOT_MEASURED"))]
+    if deep_cmp.get("details"):
+        detail = deep_cmp["details"]
+        lines.append("Variation nette du parcours complet : " +
+                     str(detail.get("net_full_first_use_gain_ms")) +
+                     " ms (mesure unique, non certifiée).")
+    if deep_cmp.get("warning"):
+        lines.append(str(deep_cmp["warning"]))
+    repeated = report.get("phase8_repeated_comparison") or {}
+    lines += ["", "### Mesures répétées et comparables (non certifiantes)",
+              "État: " + str(repeated.get("status", "NOT_RUN"))]
+    if repeated.get("status") == "REPEATED_DIRECTIONAL_ONLY":
+        lines.append(
+            "Tendance: " + str(repeated["direction"]) +
+            " ; paires: " + str(repeated["repeat_count"]) +
+            " ; gain médian net: " + str(repeated["median_net_gain_ms"]) +
+            " ms ; plage: " + str(repeated["min_net_gain_ms"]) + " à " +
+            str(repeated["max_net_gain_ms"]) + " ms."
+        )
+        lines.append("P95/P99 : " + str(repeated["p95"]) + " / " + str(repeated["p99"]))
+    if repeated.get("warning"):
+        lines.append(str(repeated["warning"]))
+    lines += ["", "## Corrélation Doctor et orchestration conseillée", "",
+              "Statut: " + str(correlation.get("status", "NOT_RUN")) +
+              " (hypothèses non causales, aucun outil exécuté)."]
+    for row in correlation.get("hypotheses", []):
+        lines += ["", "### " + str(row["id"]) + " — " + str(row["title"]),
+                  "Constat: " + str(row["interpretation"]),
+                  "Prochaine mesure: " + str(row["next_probe"])]
+        selection = row.get("tool_plan") or {}
+        for tool in selection.get("selected", []):
+            lines.append("- Outil disponible: " + str(tool["path"]) +
+                         " (" + str(tool["capability"]) + ", non exécuté)")
+        for capability in selection.get("unresolved_capabilities", []):
+            lines.append("- Outil non prêt / absent pour: " + str(capability))
+    for gap in correlation.get("evidence_gaps", []):
+        lines.append("- Preuve manquante: " + str(gap))
+    investigation = correlation.get("investigation_plan") or {}
+    lines += ["", "### Plan de décision adaptatif (pas encore exécuté)",
+              "Statut: " + str(investigation.get("status", "NOT_RUN"))]
+    for step in investigation.get("steps", []):
+        lines.append("- " + str(step.get("phase")) + " : " +
+                     str(step.get("tool")) + " (" +
+                     ", ".join(str(cap) for cap in step.get("capabilities", [])) + ")")
+    contracts = investigation.get("scenario_contracts") or {}
+    lines += ["", "### Scénarios contractuels existants",
+              "Plan : " + str(contracts.get("status", "NOT_SELECTED")) +
+              " ; exécutés : NON"]
+    for item in contracts.get("selected", []):
+        lines.append("- " + str(item["scenario"]) +
+                     " : " + ", ".join(item.get("covered_hypotheses", [])) +
+                     " ; état " + str(item.get("execution_status", "NOT_RUN")))
+    for hypothesis in contracts.get("uncovered_hypotheses", []):
+        lines.append("- Hypothèse sans scénario contractuel : " + str(hypothesis))
+    for probe in investigation.get("adaptive_benchmark_probes", []):
+        lines.append("- Benchmark proposé " + str(probe.get("scenario")) +
+                     " via " + str(probe.get("owner")) +
+                     " : " + str(probe.get("status", "NOT_RUN")))
+    for unready in investigation.get("unresolved", []):
+        lines.append("- Investigation incomplète : " + str(unready))
+    lines.append("Certification finale obligatoire : " +
+                 str((investigation.get("verification_contract") or {}).get(
+                     "final_phase_certification", "NOT_RUN")))
     lines += ["", "## Couverture non prouvée", ""]
     lines.extend("- " + k + ": " + str(v) for k, v in report["functional_coverage"].items())
     lines += ["", "## Limites", ""]
@@ -239,14 +474,62 @@ def load(root: Path, path: Path | None) -> dict | None:
 def generate(root: Path, *, sha: str, app_report: Path, hub_report: Path | None = None,
              baseline: Path | None = None, guides: Path | None = None,
              ci_costs: Path | None = None,
+             phase8_report: Path | None = None,
+             phase8_baseline_report: Path | None = None,
+             phase8_repeat_baselines: list[Path] | None = None,
+             phase8_repeat_candidates: list[Path] | None = None,
              output: Path = Path("artifacts/doctor_complete/optimization.json")) -> dict:
     root = root.resolve()
     target = (root / output).resolve()
     if target.suffix != ".json" or not target.is_relative_to((root / "artifacts").resolve()):
         raise ValueError("Optimization report output must be a JSON file under artifacts/")
-    report = optimization_report(sha, load(root, app_report) or {},
+    # The same bounded artifact loader governs all repeated measurements.
+    # A partially supplied pair is not silently ignored.
+    baselines = (
+        [load(root, item) for item in phase8_repeat_baselines]
+        if phase8_repeat_baselines is not None else None
+    )
+    candidates = (
+        [load(root, item) for item in phase8_repeat_candidates]
+        if phase8_repeat_candidates is not None else None
+    )
+    app_evidence = load(root, app_report) or {}
+    catalog_cache: dict[str, Any] = {"status": "NOT_REQUIRED"}
+    tooling = None
+    if app_evidence.get("git_head") == sha and app_evidence.get("status") == "PASS":
+        # Catalog metadata must be from the same *clean* repository revision
+        # as the measured benchmark. Never route a historical SHA to tools
+        # discovered from a newer worktree.
+        from .core import git_state
+        try:
+            state = git_state(root)
+        except (OSError, RuntimeError, ValueError):
+            state = {}
+        if state.get("head") != sha or state.get("dirty") is not False:
+            catalog_cache = {
+                "status": "SHA_OR_WORKTREE_MISMATCH",
+                "reason": "Current clean worktree must match benchmark SHA",
+            }
+        else:
+            from tools.agent_planner import _planning_catalog
+            catalog_cache = {}
+            try:
+                tooling = _planning_catalog(root, cache_info=catalog_cache)
+            except (OSError, RuntimeError, ValueError) as exc:
+                # Missing inventory is explicit; keep the measured report
+                # available and never promote tool routing to a PASS.
+                catalog_cache = {
+                    "status": "UNAVAILABLE",
+                    "reason": type(exc).__name__,
+                }
+                tooling = None
+    report = optimization_report(sha, app_evidence,
         hub=load(root, hub_report), baseline=load(root, baseline),
-        guides=load(root, guides), ci_costs=load(root, ci_costs))
+        guides=load(root, guides), ci_costs=load(root, ci_costs),
+        tool_catalog_report=tooling, phase8=load(root, phase8_report),
+        phase8_baseline=load(root, phase8_baseline_report),
+        phase8_baseline_runs=baselines, phase8_candidate_runs=candidates)
+    report["tool_catalog_cache"] = catalog_cache
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     target.with_suffix(".md").write_text(render_markdown(report), encoding="utf-8")
@@ -261,11 +544,24 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--baseline", type=Path)
     p.add_argument("--guides", type=Path)
     p.add_argument("--ci-costs", type=Path)
+    p.add_argument("--phase8-report", type=Path,
+                   help="Existing real first-detail Phase 8 JSON; same candidate SHA required")
+    p.add_argument("--phase8-baseline-report", type=Path,
+                   help="Existing baseline Phase 8 JSON; comparison is directional only")
+    p.add_argument("--phase8-repeat-baseline", action="append", type=Path,
+                   help="Repeated baseline Phase 8 artifact; pair with --phase8-repeat-candidate")
+    p.add_argument("--phase8-repeat-candidate", action="append", type=Path,
+                   help="Repeated candidate Phase 8 artifact; 3–20 pairs, exact-SHA")
     p.add_argument("--output", type=Path, default=Path("artifacts/doctor_complete/optimization.json"))
     opts = p.parse_args(argv)
     result = generate(Path(__file__).resolve().parents[2], sha=opts.sha,
         app_report=opts.app_report, hub_report=opts.hub_report,
-        baseline=opts.baseline, guides=opts.guides, ci_costs=opts.ci_costs, output=opts.output)
+        baseline=opts.baseline, guides=opts.guides, ci_costs=opts.ci_costs,
+        phase8_report=opts.phase8_report,
+        phase8_baseline_report=opts.phase8_baseline_report,
+        phase8_repeat_baselines=opts.phase8_repeat_baseline,
+        phase8_repeat_candidates=opts.phase8_repeat_candidate,
+        output=opts.output)
     print(json.dumps({"status": result["status"], "findings": len(result["priority_findings"])}))
     return 0 if result["status"] == "DIAGNOSTIC_READY" else 2
 

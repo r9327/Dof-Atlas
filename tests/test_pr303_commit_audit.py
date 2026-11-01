@@ -1,0 +1,209 @@
+"""Regression tests for the metadata-only, per-patch PR303 audit."""
+import unittest
+from tools.audit_pr303_commits import scan_patch
+
+
+class CommitAuditTests(unittest.TestCase):
+    def test_real_added_lines_and_deleted_assertions(self):
+        report = scan_patch(
+            "--- a/a.py\n+++ b/a.py\n@@ -1,2 +1,3 @@\n"
+            "-assert True\n+try:\n+    subprocess.run(cmd, shell=True)\n"
+            "+except Exception:\n+    pass\n"
+        )
+        self.assertEqual(report["deleted_assertions"], 1)
+        self.assertEqual(report["risk_leads"]["PROCESS"], 1)
+        self.assertEqual(report["risk_leads"]["EXCEPTION"], 1)
+
+    def test_headers_and_deleted_code_are_not_counted_as_added(self):
+        report = scan_patch(
+            "--- a/file\n+++ b/file\n-except Exception:\n+value = 1\n"
+            "Binary files a/icon.png and b/icon.png differ\n"
+        )
+        self.assertNotIn("EXCEPTION", report["risk_leads"])
+        self.assertTrue(report["binary_manual_review"])
+        self.assertEqual(report["added_lines"], 1)
+
+    def test_file_suffixes_and_typed_except_have_signals(self):
+        paths = [".json", ".png", ".qss", ".webp", ".svg",
+                 ".jpg", ".jpeg", ".ico", ".ttf", ".otf"]
+        for suffix in paths:
+            with self.subTest(suffix=suffix):
+                report = scan_patch("+asset = 'assets/example" + suffix + "'\n")
+                self.assertEqual(report["risk_leads"].get("DATA"), 1)
+        report = scan_patch("+except OSError:\n+    pass\n")
+        self.assertEqual(report["risk_leads"]["EXCEPTION"], 1)
+
+    def test_typed_exceptions_with_aliases_and_exception_groups_are_not_omitted(self):
+        for source in (
+            "except OSError as error:",
+            "except (ValueError, TypeError) as exc:",
+            "except* ValueError as errors:",
+            "except* (KeyError, OSError) as group:",
+            "except:",
+        ):
+            with self.subTest(source=source):
+                report = scan_patch("+" + source + "\n+    pass\n")
+                self.assertEqual(report["risk_leads"].get("EXCEPTION"), 1)
+
+    def test_added_skips_and_xfails_require_review_not_automatic_rejection(self):
+        for line in (
+            "@unittest.skip('reason')",
+            "@unittest.skipIf(True, 'reason')",
+            "@unittest.skipUnless(False, 'reason')",
+            "@pytest.mark.skip(reason='reason')",
+            "@pytest.mark.skipif(True, reason='reason')",
+            "@pytest.mark.xfail(reason='reason')",
+            "pytest.skip('reason')",
+            "pytest.xfail('reason')",
+            "self.skipTest('reason')",
+        ):
+            with self.subTest(line=line):
+                candidate = scan_patch("+    " + line + "\n")
+                self.assertEqual(candidate["risk_leads"].get("TEST_SKIP"), 1)
+                self.assertEqual(candidate["risk_locations"][0]["category"], "TEST_SKIP")
+        self.assertNotIn("TEST_SKIP", scan_patch("+counter = 1\n")["risk_leads"])
+
+    def test_performance_does_not_match_general_words(self):
+        report = scan_patch("+program = 1\n+framework = 2\n+parameter = 3\n")
+        self.assertNotIn("PERFORMANCE", report["risk_leads"])
+        self.assertEqual(scan_patch("+ram = 2\n")["risk_leads"]["PERFORMANCE"], 1)
+
+    def test_only_removed_real_assertions_are_counted(self):
+        patch = ("-# assert noted in documentation\n"
+                 "-label = 'assert passed'\n"
+                 "-assert ready\n"
+                 "-self.assertTrue(ready)\n"
+                 "-with pytest.raises(ValueError):\n"
+                 "-self.fail('unexpected')\n")
+        self.assertEqual(scan_patch(patch)["deleted_assertions"], 4)
+
+    def test_pytest_fail_removed_is_explicit_review_evidence(self):
+        report = scan_patch(
+            "diff --git a/tests/example.py b/tests/example.py\n"
+            "--- a/tests/example.py\n+++ b/tests/example.py\n"
+            "@@ -8 +8 @@\n-pytest.fail('broken')\n+return None\n"
+        )
+        self.assertEqual(report["deleted_assertions"], 1)
+        self.assertEqual(report["deleted_assertion_locations"], [
+            {"file": "tests/example.py", "line": 8},
+        ])
+
+    def test_patch_flags_preserve_each_file_and_hunk_line(self):
+        diff = (
+            "diff --git a/app/first.py b/app/first.py\n"
+            "--- a/app/first.py\n+++ b/app/first.py\n"
+            "@@ -0,0 +12,2 @@\n+ram = 1\n+json.loads(source)\n"
+            "diff --git a/app/second.py b/app/second.py\n"
+            "--- a/app/second.py\n+++ b/app/second.py\n"
+            "@@ -0,0 +25,1 @@\n+except OSError:\n"
+        )
+        rows = scan_patch(diff)["risk_locations"]
+        self.assertIn({"file": "app/first.py", "line": 12,
+                       "category": "PERFORMANCE"}, rows)
+        self.assertIn({"file": "app/first.py", "line": 13,
+                       "category": "DATA"}, rows)
+        self.assertIn({"file": "app/second.py", "line": 25,
+                       "category": "EXCEPTION"}, rows)
+
+    def test_new_file_resets_prior_hunk_line_coordinates(self):
+        patch = (
+            "diff --git a/app/one.py b/app/one.py\n"
+            "--- a/app/one.py\n+++ b/app/one.py\n"
+            "@@ -1 +40 @@\n+ram = 1\n"
+            "diff --git a/app/two.py b/app/two.py\n"
+            "--- a/app/two.py\n+++ b/app/two.py\n"
+            "@@ -1 +7 @@\n+json.loads(payload)\n"
+        )
+        self.assertEqual(scan_patch(patch)["risk_locations"], [
+            {"file": "app/one.py", "line": 40, "category": "PERFORMANCE"},
+            {"file": "app/two.py", "line": 7, "category": "DATA"},
+        ])
+        no_hunk = (
+            "diff --git a/app/one.py b/app/one.py\n"
+            "+++ b/app/one.py\n@@ -1 +40 @@\n+ram = 1\n"
+            "diff --git a/app/two.py b/app/two.py\n"
+            "+++ b/app/two.py\n+ram = 2\n"
+        )
+        self.assertIsNone(scan_patch(no_hunk)["risk_locations"][-1]["line"])
+
+    def test_removed_assertions_keep_original_file_and_old_hunk_line(self):
+        patch = (
+            "diff --git a/tests/one.py b/tests/one.py\n"
+            "--- a/tests/one.py\n+++ b/tests/one.py\n"
+            "@@ -17,4 +17,3 @@\n context\n-assert ready\n"
+            " keep\n-self.assertTrue(result)\n+value = 1\n"
+            "diff --git a/tests/two.py b/tests/two.py\n"
+            "--- a/tests/two.py\n+++ b/tests/two.py\n"
+            "@@ -50,2 +50 @@\n-with pytest.raises(ValueError):\n"
+            "-# assert only a comment\n+value = 2\n"
+        )
+        result = scan_patch(patch)
+        self.assertEqual(result["deleted_assertions"], 3)
+        self.assertEqual(result["deleted_assertion_locations"], [
+            {"file": "tests/one.py", "line": 18},
+            {"file": "tests/one.py", "line": 20},
+            {"file": "tests/two.py", "line": 50},
+        ])
+        self.assertEqual(result["risk_locations"], [])
+
+    def test_deleted_test_functions_are_reviewed_without_false_auto_verdict(self):
+        patch_text = (
+            "diff --git a/tests/test_a.py b/tests/test_a.py\n"
+            "--- a/tests/test_a.py\n+++ b/tests/test_a.py\n"
+            "@@ -10,2 +10,1 @@\n"
+            "-def test_reject_bad_source():\n+def helper():\n"
+            "-    legacy_call()\n"
+            "diff --git a/tests/test_b.py b/tests/test_b.py\n"
+            "--- a/tests/test_b.py\n+++ b/tests/test_b.py\n"
+            "@@ -30,2 +30 @@\n"
+            "-async def test_refresh():\n+async def refresh():\n"
+            "-    await fetch()\n"
+        )
+        report = scan_patch(patch_text)
+        self.assertEqual(report["deleted_test_definitions"], 2)
+        self.assertEqual(report["deleted_test_locations"], [
+            {"file": "tests/test_a.py", "line": 10,
+             "definition": "def test_reject_bad_source():"},
+            {"file": "tests/test_b.py", "line": 30,
+             "definition": "async def test_refresh():"},
+        ])
+        self.assertEqual(report["deleted_assertions"], 0)
+
+    def test_dynamic_expected_commit_count(self):
+        from unittest.mock import patch
+        from tools.audit_pr303_commits import review
+        a = "a" * 40
+        b = "b" * 40
+        calls = {
+            ("rev-parse", "--verify", a + "^{commit}"): a,
+            ("rev-parse", "--verify", b + "^{commit}"): b,
+            ("rev-list", "--reverse", a + ".." + b): b,
+            ("rev-list", "--parents", "-n", "1", b): b + " " + a,
+            ("diff", "--name-status", "--find-renames", a, b): "M\tapp/view.py",
+            ("diff", "--no-ext-diff", "--unified=0", "--find-renames", a, b): (
+                "diff --git a/tests/example.py b/tests/example.py\n"
+                "--- a/tests/example.py\n+++ b/tests/example.py\n"
+                "@@ -3 +3,2 @@\n-def test_old():\n"
+                "+ram = 1\n+@pytest.mark.skipif(True, reason='temporary')"
+            ),
+            ("log", "-1", "--format=%s", b): "fix memory",
+        }
+        with (
+            patch("tools.audit_pr303_commits.git", side_effect=lambda *args: calls[args]),
+            patch("tools.audit_pr303_commits.subprocess.run") as run,
+        ):
+            report = review(a, b)
+            self.assertEqual(report["expected"], 1)
+            self.assertEqual(report["expected_policy"], "DYNAMIC_RANGE")
+            self.assertEqual(report["inspected"], 1)
+            self.assertEqual(report["status"], "PATCH_INVENTORY_COMPLETE_HUMAN_REVIEW_REQUIRED")
+            self.assertEqual(report["records"][0]["human_review"], "NOT_RUN")
+            self.assertIn("REMOVED_TEST_DEFINITIONS_REVIEW", report["records"][0]["flags"])
+            self.assertIn("ADDED_TEST_SKIP_REVIEW", report["records"][0]["flags"])
+            self.assertFalse(report["auto_merge_authorized"])
+            run.assert_called_once()
+
+
+
+if __name__ == "__main__":
+    unittest.main()

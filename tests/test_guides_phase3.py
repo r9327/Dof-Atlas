@@ -6,6 +6,7 @@ import socket
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -22,6 +23,7 @@ from app.modules.encyclopedia.services import (
     build_related_encyclopedia_data,
     related_data_build_count,
 )
+from app.modules.encyclopedia.services import related_data_service
 from app.modules.encyclopedia.views import EncyclopediaPage, GuidesView
 from app.modules.encyclopedia.views.guides_view import (
     DOFUS_CARD_HEIGHT,
@@ -483,10 +485,23 @@ class GuidePhase3Tests(unittest.TestCase):
             achievements_view = page.ensure_achievements_view()
             self.assertTrue(achievements_view.select_achievement(TURQUOISE_ACHIEVEMENT_ID))
 
-            linked_quest = next(
-                row
-                for row in achievements_view.findChildren(AchievementEntityRow)
-                if row.entity.entity_type == "quest" and int(row.entity.entity_id) == 1653
+            linked_quest = None
+            for _attempt in range(500):
+                linked_quest = next(
+                    (
+                        row
+                        for row in achievements_view.findChildren(AchievementEntityRow)
+                        if row.entity.entity_type == "quest"
+                        and int(row.entity.entity_id) == 1653
+                    ),
+                    None,
+                )
+                if linked_quest is not None:
+                    break
+                QTest.qWait(10)
+            self.assertIsNotNone(
+                linked_quest,
+                "le détail asynchrone du succès n'a pas été rendu",
             )
             QTest.mouseClick(linked_quest, Qt.LeftButton)
             self.app.processEvents()
@@ -965,9 +980,20 @@ class GuidePhase3Tests(unittest.TestCase):
     def test_related_data_cache_reuses_providers_and_graph_for_the_session_catalog(self):
         catalog = self.quest_provider.get_catalog()
         count_before = related_data_build_count()
-        first = build_related_encyclopedia_data(catalog)
-        count_after_first = related_data_build_count()
-        second = build_related_encyclopedia_data(catalog)
+        # This test owns the in-process session cache contract, not the five
+        # rebuildable warmup subprocesses.  Running those here made the result
+        # depend on compact-cache state left by hundreds of earlier tests.
+        # Their process and payload contracts have dedicated suites.
+        with (
+            patch.object(related_data_service, "_warm_achievement_source_indexes", return_value=7),
+            patch.object(related_data_service, "_warm_achievement_catalogue", return_value=1418),
+            patch.object(related_data_service, "_warm_guide_files", return_value=23),
+            patch.object(related_data_service, "_warm_guide_catalogue", return_value=20),
+            patch.object(related_data_service, "_warm_guide_items_index", return_value=6),
+        ):
+            first = build_related_encyclopedia_data(catalog)
+            count_after_first = related_data_build_count()
+            second = build_related_encyclopedia_data(catalog)
 
         self.assertIs(second, first)
         self.assertIs(second.guide_provider, first.guide_provider)

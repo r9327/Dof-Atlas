@@ -242,6 +242,17 @@ class AdaptiveCertificationTests(unittest.TestCase):
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def test_scoped_runner_materializes_pinned_data_before_module_execution(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/doctor-certification.yml").read_text(
+                        encoding="utf-8")
+        scoped = workflow.split("  scoped:\n", 1)[1].split("\n\n  journeys:", 1)[0]
+        materialize = "name: Materialize canonical data required by selected scoped tests"
+        execute = "name: Execute canonical scoped tests and produce passport"
+        self.assertIn(materialize, scoped)
+        self.assertIn("python -m scripts.windows.quest_assets --download", scoped)
+        self.assertLess(scoped.index(materialize), scoped.index(execute))
+
     def test_new_certification_cannot_replace_phase_full(self):
         root = Path(__file__).resolve().parents[1]
         phase = (root / ".github/workflows/phase-certification.yml").read_text(encoding="utf-8")

@@ -385,6 +385,11 @@ def run(*, cycles: int, output: Path, timeout: float,
         write_json(output, payload)
         from app.modules.encyclopedia.views.guides_view import GuidesView
         from app.modules.encyclopedia.views.manual_route_guides_view import ManualRouteGuidesView
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            GuideCatalogManualRuntimeService,
+        )
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
         hooks.enter_context(attributor.instrument(page.__class__, (
             "navigate_to_guide", "open_pending_lazy_tab", "ensure_full_guides_view",
             "_start_full_guide_runtime",
@@ -399,6 +404,18 @@ def run(*, cycles: int, output: Path, timeout: float,
         hooks.enter_context(attributor.instrument(ManualRouteGuidesView, (
             "select_guide", "ensure_catalog_manual_view",
             "_catalog_route_map_count", "_refresh_catalog_route_home_labels",
+        )))
+        # Split the Sylvestre 20-second first-open into source quest lookup,
+        # position/step transformation and Qt widget construction. These are
+        # measurements only; no runtime or UI behavior is changed.
+        hooks.enter_context(attributor.instrument(GuideCatalogManualRuntimeService, (
+            "_load_manual_preview", "_quest_segments", "_merge_consecutive_positions",
+            "_segment_to_card", "_finalize_segment", "_merge_segment",
+        )))
+        hooks.enter_context(attributor.instrument(QuestProvider, ("get_catalog", "get_quest")))
+        hooks.enter_context(attributor.instrument(SharedGuideManualView, (
+            "_build_ui", "_render_window", "_render_preparation",
+            "_load_preparation_needs",
         )))
         hooks.enter_context(attributor.instrument(provider.__class__, ("get_by_id", "load_all")))
 

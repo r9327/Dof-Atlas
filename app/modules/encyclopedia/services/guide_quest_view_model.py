@@ -684,7 +684,9 @@ def _aggregate_global_rewards(
     return tuple(merged[key] for key in order)
 
 
-def quest_start_info(quest: QuestRecord) -> QuestStartInfo:
+def quest_start_info(
+    quest: QuestRecord, *, include_map_images: bool = True,
+) -> QuestStartInfo:
     source_info = getattr(quest, "source_info", {}) or {}
     launch = source_info.get("launch_position") if isinstance(source_info, dict) else {}
     launch = launch if isinstance(launch, dict) else {}
@@ -698,7 +700,11 @@ def quest_start_info(quest: QuestRecord) -> QuestStartInfo:
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),
         source_zone or (quest.zones[0] if quest.zones else ""),
     )
-    map_image_paths = _explicit_start_map_paths(source_meta)
+    # Route generation needs only NPC, position and zone; avoid thousands of
+    # filesystem image existence checks that never affect the GPS itinerary.
+    map_image_paths = (
+        _explicit_start_map_paths(source_meta) if include_map_images else ()
+    )
     map_image_path = map_image_paths[0] if map_image_paths else ""
     for step in quest.steps:
         for objective in step.objectives:
@@ -851,7 +857,17 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
 
 
 def _clean_solution_instruction_text(text: str) -> str:
-    text = MINIMAP_PLACEHOLDER_RE.sub("", clean_text(text))
+    """Avoid redundant cleanup while preserving legacy nested HTML decoding.
+
+    solution_objective already calls clean_text. Decode again only if there are
+    still entity/markup markers; the old double pass was meaningful for nested
+    escapes such as &amp;lt;. Most plain instructions need no more regex work.
+    """
+    if "&" in text or "{{" in text or "<" in text:
+        text = clean_text(text)
+    if "mini-carte" not in text.casefold():
+        return text
+    text = MINIMAP_PLACEHOLDER_RE.sub("", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -897,8 +913,10 @@ def related_quests(
     )
 
 
-def first_position_from_quest(quest: QuestRecord) -> str:
-    info = quest_start_info(quest)
+def first_position_from_quest(
+    quest: QuestRecord, *, start_info: QuestStartInfo | None = None,
+) -> str:
+    info = start_info if start_info is not None else quest_start_info(quest)
     if info.position:
         return info.position
     for step in quest.steps:
@@ -928,7 +946,23 @@ def clean_requirement_line(value: str) -> str:
 
 
 def clean_text(value: object) -> str:
-    text = html.unescape(str(value or ""))
+    """Normalize repeated Guide/Quest labels without retaining entire chapters.
+
+    Guide cards reuse the same objective and NPC labels across many route
+    positions. Cache only short, immutable text values; do not pin long
+    walkthrough descriptions or objects in the process for the entire session.
+    """
+    raw = str(value or "")
+    return _cached_clean_text(raw) if len(raw) <= 512 else _normalize_clean_text(raw)
+
+
+@lru_cache(maxsize=2048)
+def _cached_clean_text(raw: str) -> str:
+    return _normalize_clean_text(raw)
+
+
+def _normalize_clean_text(raw: str) -> str:
+    text = html.unescape(raw)
 
     def replace_markup(match: re.Match[str]) -> str:
         content = match.group(0)[2:-2]

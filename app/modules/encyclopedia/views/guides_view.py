@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
+from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal, Slot
@@ -1033,7 +1034,7 @@ class CollapsibleInfoSection(QFrame):
         status_text: str,
         state: str,
         expanded: bool,
-        widgets: list[QWidget],
+        widgets: list[QWidget] | Callable[[], list[QWidget]],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -1079,8 +1080,13 @@ class CollapsibleInfoSection(QFrame):
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(6)
-        for widget in widgets:
-            body_layout.addWidget(widget)
+        # Collapsed prerequisite sections need only their count/header.
+        # Materialize their potentially large Qt widget trees on first open.
+        self._body_widgets_factory = widgets if callable(widgets) else None
+        self._body_initialized = not callable(widgets)
+        if not callable(widgets):
+            for widget in widgets:
+                body_layout.addWidget(widget)
         root.addWidget(self.body)
         self.set_expanded(self.expanded)
 
@@ -1095,6 +1101,15 @@ class CollapsibleInfoSection(QFrame):
 
     def set_expanded(self, expanded: bool) -> None:
         self.expanded = bool(expanded)
+        if self.expanded and not self._body_initialized:
+            factory = self._body_widgets_factory
+            if factory is not None:
+                # Build only once. Preserve existing row navigation/signals.
+                self._body_initialized = True
+                self._body_widgets_factory = None
+                layout = self.body.layout()
+                for widget in factory():
+                    layout.addWidget(widget)
         self.body.setVisible(self.expanded)
         self.chevron.setText("▲" if self.expanded else "▼")
         self.chevron.setToolTip(
@@ -3106,15 +3121,17 @@ class GuidesView(QWidget):
         completed, total, _state = self.guide_progress_tuple(guide)
         self.right_layout.addWidget(info_section("PROGRESSION", [progress_summary(completed, total)]))
 
-        prereqs = self._guide_prerequisite_widgets(guide)
-        if prereqs:
+        prereq_entries = self._guide_prerequisite_entries(guide)
+        if prereq_entries:
             expanded = self.guide_prerequisites_expanded.get(guide.id, False)
             section = CollapsibleInfoSection(
                 "PRÉREQUIS",
-                str(len(prereqs)),
+                str(len(prereq_entries)),
                 "neutral",
                 expanded,
-                prereqs,
+                lambda rows=tuple(prereq_entries): [
+                    self._guide_prerequisite_row(*row) for row in rows
+                ],
             )
             section.toggled.connect(
                 lambda value, guide_id=guide.id: self.guide_prerequisites_expanded.__setitem__(guide_id, value)
@@ -3132,15 +3149,25 @@ class GuidesView(QWidget):
         if guide.category == "aventure":
             rewards = self._selected_series_rewards(guide)
         else:
-            rewards = guide_rewards(
-                guide,
-                self.achievement_provider,
-                (
-                    self.quest_catalog.by_id[quest_id]
-                    for quest_id in self._quest_ids_for_steps(guide.required_steps)
-                    if quest_id in self.quest_catalog.by_id
-                ),
+            # The build has already aggregated rewards from every Quest in
+            # this Guide. Without this snapshot the overview resolves hundreds
+            # of rich Quest records on the Qt thread (4s+ for alignments).
+            # Development/custom data and invalid bundles retain exact legacy
+            # behavior instead of silently showing incomplete rewards.
+            from app.modules.encyclopedia.services.guide_prebuilt_rewards import (
+                cached_rewards,
             )
+            rewards = cached_rewards(guide)
+            if rewards is None:
+                rewards = guide_rewards(
+                    guide,
+                    self.achievement_provider,
+                    (
+                        self.quest_catalog.by_id[quest_id]
+                        for quest_id in self._quest_ids_for_steps(guide.required_steps)
+                        if quest_id in self.quest_catalog.by_id
+                    ),
+                )
 
         if rewards:
             reward_widgets = [reward_row(reward) for reward in rewards]
@@ -3264,17 +3291,28 @@ class GuidesView(QWidget):
         return rows
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
-        clean = clean_text(line)
-        key = normalize_text(clean)
-        prefixes = ("quete_terminee_", "quete_active_")
-        prefix = next((value for value in prefixes if key.startswith(value)), "")
-        if not prefix:
+        key = normalize_text(clean_text(line))
+        prefix = next(
+            (value for value in ("quete_terminee_", "quete_active_")
+             if key.startswith(value)), "",
+        )
+        if not prefix or self.quest_catalog is None:
             return None
-        target = key[len(prefix) :]
-        for quest in self.quest_catalog.quests:
-            if normalize_text(quest.name) == target:
-                return int(quest.id)
-        return None
+        target = key[len(prefix):]
+        catalog = self.quest_catalog
+        quests = catalog.quests
+        # Prerequisites in the right panel may resolve dozens of names. The
+        # previous implementation scanned every Quest (up to ~2k) per line,
+        # while Qt was rendering Guide widgets. Build once per catalog; the
+        # rich Guide view and this index are both disposed on catalogue Home.
+        stamp = (id(catalog), id(quests), len(quests))
+        if getattr(self, "_quest_name_id_index_stamp", None) != stamp:
+            lookup: dict[str, int] = {}
+            for quest in quests:
+                lookup.setdefault(normalize_text(quest.name), int(quest.id))
+            self._quest_name_id_index = lookup
+            self._quest_name_id_index_stamp = stamp
+        return self._quest_name_id_index.get(target)
 
     def _guide_prerequisite_row(
         self, text: str, quest_id: int | None, success_id: int | None = None,
@@ -4346,7 +4384,10 @@ def solution_objective_row(objective: SolutionObjective) -> QWidget:
     return row
 
 
+@lru_cache(maxsize=16)
 def atlas_icon(kind: str) -> QIcon:
+    # Bounded cache for the fixed Unity fallback icons. Reward rows otherwise
+    # repaint the same 20px QPixmap hundreds of times on the Qt UI thread.
     pixmap = QPixmap(20, 20)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import subprocess
@@ -10,6 +11,8 @@ import tempfile
 from collections import OrderedDict, defaultdict
 from dataclasses import asdict, replace
 from pathlib import Path
+from threading import current_thread
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -67,9 +70,12 @@ def _achievement_compact_source_signature(data_dir: Path) -> list[list[object]]:
         try:
             stat = path.stat()
         except OSError:
-            signature.append([relative, -1, -1])
+            signature.append([relative, -1, -1, -1, -1])
             continue
-        signature.append([relative, int(stat.st_size), int(stat.st_mtime_ns)])
+        signature.append([
+            relative, int(stat.st_size), int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns), int(stat.st_ino),
+        ])
     return signature
 
 
@@ -109,9 +115,41 @@ def ensure_achievement_compact_cache(
             index_payload = json.loads(
                 _achievement_compact_index_path(path).read_text(encoding="utf-8")
             )
-            return max(0, int(index_payload.get("achievement_count") or 0))
+            if isinstance(index_payload, dict):
+                count = index_payload.get("achievement_count")
+                retained = index_payload.get("retained_count")
+                retained_ids = index_payload.get("retained_ids")
+                offsets = index_payload.get("offsets")
+                with path.open("r", encoding="utf-8") as stream:
+                    source_meta = json.loads(stream.readline())
+                source_marker = source_meta.get("cache_generation")
+                index_marker = index_payload.get("cache_generation")
+                same_generation = (
+                    (source_marker is None and index_marker is None)
+                    or (isinstance(source_marker, str) and bool(source_marker)
+                        and source_marker == index_marker)
+                )
+                if (same_generation
+                        and type(count) is int and count > 0
+                        and type(retained) is int and 0 < retained <= count
+                        and isinstance(retained_ids, list)
+                        and len(retained_ids) == retained
+                        and all(type(value) is int for value in retained_ids)
+                        and len(set(retained_ids)) == retained
+                        and isinstance(offsets, dict)
+                        and len(offsets) == retained
+                        and set(offsets) == {str(value) for value in retained_ids}
+                        and all(
+                            isinstance(span, list) and len(span) == 2
+                            and type(span[0]) is int and span[0] >= 0
+                            and type(span[1]) is int and span[1] > 0
+                            for span in offsets.values()
+                        )):
+                    return count
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            return 0
+            pass
+        # The JSONL header can be valid while its sidecar is corrupt. A zero
+        # result incorrectly certified an unbuilt cache instead of repairing it.
     if bool(getattr(sys, "frozen", False)):
         return 0
     completed = subprocess.run(
@@ -130,6 +168,8 @@ def ensure_achievement_compact_cache(
         env=_utf8_subprocess_env(),
         timeout=90,
         check=True,
+        # No transient console/conhost for captured disposable Windows workers.
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
     )
     lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
     if not lines:
@@ -478,7 +518,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
+        self._compact_quest_link_stamp: tuple[int, int, int, int] | None = None
+        # Optional precomputed relations in newer disposable sidecars.
+        # None preserves the validated JSONL scan for historical caches.
+        self._compact_quest_ids_by_quest: dict[int, tuple[int, ...]] | None = None
+        self._compact_quest_map_stamp: tuple[int, int, int, int] | None = None
+        self._compact_quest_sidecar_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
+        # One active rich detail + two previous ones. Reopening a Success must
+        # not spend another 5s rebuilding a disposable detail worker.
+        self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
+        self._last_detail_cache_source = "cold"
+        # The previous cold event survives hot/recent hits, so Doctor can
+        # measure the worker cost even when Qt renders from an already warm
+        # detail after the stage signal.
+        self._last_cold_detail_breakdown: dict[str, object] = {}
         super().__init__(*args, **kwargs)
 
     def _reset_sources(self) -> None:
@@ -505,6 +559,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
         self._detail_cache_id = None
         self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._detail_sources_ready = False
         self._progress_objectives = {}
         self._compat_cache_id = None
@@ -514,6 +571,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
         self._compact_quest_link_cache.clear()
+        self._compact_quest_link_stamp = None
+        self._compact_quest_ids_by_quest = None
+        self._compact_quest_map_stamp = None
+        self._compact_quest_sidecar_stamp = None
         self._compact_summary_cache.clear()
         self._reset_sources()
 
@@ -554,6 +615,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def _finish_in_process_catalogue(self) -> None:
         self._trim_catalogue_payload()
+        # A rebuilt catalogue invalidates previously hydrated rich details.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._progress_objectives = {
             int(achievement.id): json.dumps(
                 [
@@ -632,7 +699,17 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     continue
         self._by_category = defaultdict(list, by_category)
         self._by_quest = defaultdict(list, by_quest)
+        self._compact_quest_ids_by_quest = None
+        self._compact_quest_map_stamp = None
+        self._compact_quest_sidecar_stamp = None
         self._progress_objectives = progress_objectives
+        # Compatibility subprocess may replace the whole catalogue in the
+        # same provider. Never retain rich detail objects from older sources.
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_cold_detail_breakdown = {}
+        self._last_detail_cache_source = "cold"
         self._linked_quests = {}
         self._linked_monsters = {}
         self._linked_dungeons = {}
@@ -689,14 +766,25 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         ):
             raise RuntimeError("Cache compact Succès absent ou périmé")
 
+        # The JSONL and its offset sidecar are published separately. Detect
+        # concurrent replacement before installing an incoherent catalogue.
+        def fingerprint(path: Path) -> tuple[int, int, int, int]:
+            stat = path.stat()
+            return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino
+
+        source_path = ACHIEVEMENT_COMPACT_CACHE
+        sidecar_path = _achievement_compact_index_path(source_path)
+        source_generation = fingerprint(source_path)
+        sidecar_generation = fingerprint(sidecar_path)
         try:
             index_payload = json.loads(
-                _achievement_compact_index_path().read_text(encoding="utf-8")
+                sidecar_path.read_text(encoding="utf-8")
             )
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise RuntimeError("Index compact Succès absent ou invalide") from exc
 
         categories: dict[int, AchievementCategory] = {}
+        source_marker: object = None
         with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
             for raw_line in stream:
                 line = raw_line.strip()
@@ -706,6 +794,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 if not isinstance(row, dict):
                     continue
                 kind = str(row.get("kind") or "")
+                if kind == "meta":
+                    source_marker = row.get("cache_generation")
+                    continue
                 if kind == "achievement":
                     break
                 value = row.get("value")
@@ -762,6 +853,17 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         )
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
+        index_marker = index_payload.get("cache_generation")
+        # Old schema-5 pairs had no marker and remain readable. A newly
+        # published pair must carry the SAME non-empty generation token.
+        if (source_marker is not None or index_marker is not None) and (
+            not isinstance(source_marker, str) or not source_marker
+            or source_marker != index_marker
+        ):
+            raise RuntimeError("Cache compact Succès et index de générations différentes")
+        if (fingerprint(source_path) != source_generation
+                or fingerprint(sidecar_path) != sidecar_generation):
+            raise RuntimeError("Cache compact Succès remplacé pendant le chargement")
 
         self._categories = categories
         self._achievements = []
@@ -777,8 +879,42 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = retained_ids
         self._compact_retained_set = frozenset(retained_ids)
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        relation_rows = index_payload.get("by_quest")
+        relation_count = index_payload.get("by_quest_ref_count")
+        relation_map: dict[int, tuple[int, ...]] | None = None
+        if isinstance(relation_rows, dict) and type(relation_count) is int:
+            candidate: dict[int, tuple[int, ...]] = {}
+            retained_set = set(retained_ids)
+            observed = 0
+            for raw_quest, raw_achievements in relation_rows.items():
+                if (not isinstance(raw_quest, str)
+                        or not 0 < len(raw_quest) <= 20
+                        or not raw_quest.isascii() or not raw_quest.isdecimal()
+                        or str(int(raw_quest)) != raw_quest
+                        or not isinstance(raw_achievements, list)
+                        or not raw_achievements
+                        or any(type(ident) is not int or ident not in retained_set
+                               for ident in raw_achievements)
+                        or len(set(raw_achievements)) != len(raw_achievements)):
+                    break
+                candidate[int(raw_quest)] = tuple(raw_achievements)
+                observed += len(raw_achievements)
+            else:
+                if observed == relation_count:
+                    relation_map = candidate
+        self._compact_quest_ids_by_quest = relation_map
+        self._compact_quest_map_stamp = source_generation if relation_map is not None else None
+        self._compact_quest_sidecar_stamp = (
+            sidecar_generation if relation_map is not None else None
+        )
         self._compact_quest_link_cache.clear()
+        self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
+        self._detail_cache_id = None
+        self._detail_cache = None
+        self._recent_rich_details.clear()
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
         self._image_indexes.clear()
         self._reset_sources()
 
@@ -866,14 +1002,25 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     def _load(self) -> None:
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
+        if current_data_dir != default_data_dir:
             self._load_in_process()
             return
         if _achievement_compact_cache_valid(
             ACHIEVEMENT_COMPACT_CACHE,
             data_dir=self.data_dir,
         ):
-            self._load_from_compact_cache()
+            try:
+                # Packaged Windows can consume the compact Success catalogue.
+                # Avoid materializing the full raw graph in the UI heap.
+                self._load_from_compact_cache()
+                return
+            except (OSError, UnicodeError, ValueError, TypeError, KeyError, RuntimeError) as exc:
+                logging.getLogger(__name__).warning(
+                    "Success compact cache rejected; rebuilding from sources: %s", exc,
+                )
+        if bool(getattr(sys, "frozen", False)):
+            # The frozen executable cannot launch a Python -m child.
+            self._load_in_process()
             return
         self._load_from_compact_subprocess()
 
@@ -882,7 +1029,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if self._compact_external_index is None:
             try:
                 payload = json.loads(
-                    _achievement_compact_index_path().read_text(encoding="utf-8")
+                    _achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE).read_text(encoding="utf-8")
                 )
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 self._compact_external_index = {}
@@ -902,24 +1049,47 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         span = self._compact_external_index.get(achievement_id)
         if span is not None:
             start, length = span
-            try:
-                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                    stream.seek(start)
-                    row = json.loads(stream.read(length))
-            except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                return None
-            value = row.get("value") if isinstance(row, dict) else None
-            return value if isinstance(value, dict) else None
+            if start >= 0 and length > 0:
+                try:
+                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                        # Corrupt offsets must never trigger a negative seek
+                        # or read(-1), which reads the *entire* compact file.
+                        stream.seek(0, 2)
+                        total = stream.tell()
+                        if start <= total and length <= total - start:
+                            stream.seek(start)
+                            row = json.loads(stream.read(length))
+                            value = row.get("value") if isinstance(row, dict) else None
+                            if (isinstance(row, dict)
+                                    and row.get("kind") == "achievement"
+                                    and isinstance(value, dict)
+                                    and type(value.get("id")) is int
+                                    and value["id"] == achievement_id):
+                                return value
+                except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                    pass
+            # A malformed sidecar span may be repaired asynchronously. Keep
+            # a bounded-stream fallback rather than hiding a real achievement.
 
         # Non-retained Successes are compatibility/cross-link lookups only.
-        # Stream the compact file for those rare requests instead of retaining
-        # a second global offset table for the whole corpus.
+        # A retained Success with an invalid offset also needs the fallback.
+        # Stream the compact file on this exceptional path without retaining
+        # an extra global table.
+        retained_target = achievement_id in getattr(
+            self, "_compact_retained_set", frozenset()
+        )
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 external = False
                 for raw_line in stream:
                     line = raw_line.strip()
                     if not line:
+                        continue
+                    # External compatibility lookups used to decode every
+                    # heavyweight retained summary just to reach the boundary.
+                    # Keep the canonical marker parsed, but skip the rest.
+                    if (not external and not retained_target
+                            and '"external_start"' not in line):
                         continue
                     row = json.loads(line)
                     if not isinstance(row, dict):
@@ -928,16 +1098,18 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     if kind == "external_start":
                         external = True
                         continue
-                    if not external or kind != "achievement":
+                    # The retained section is relevant only if the retained
+                    # offset was missing or corrupt; otherwise skip it.
+                    if not external and not retained_target:
+                        continue
+                    if kind != "achievement":
                         continue
                     value = row.get("value")
                     if not isinstance(value, dict):
                         continue
-                    try:
-                        row_id = int(value.get("id"))
-                    except (TypeError, ValueError):
+                    if type(value.get("id")) is not int:
                         continue
-                    if row_id == achievement_id:
+                    if value["id"] == achievement_id:
                         return value
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return None
@@ -975,6 +1147,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return {}
         result: dict[str, tuple[int, str]] = {}
         try:
+            before = ACHIEVEMENT_COMPACT_CACHE.stat()
+            generation = (
+                before.st_size, before.st_mtime_ns,
+                before.st_ctime_ns, before.st_ino,
+            )
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
                 for raw_line in stream:
                     line = raw_line.strip()
@@ -986,11 +1163,15 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     value = row.get("value")
                     if not isinstance(value, dict):
                         continue
-                    achievement_id = safe_int(value.get("id"))
+                    achievement_id = value.get("id")
                     name = str(value.get("name") or "").strip()
                     key = normalize_text(name)
-                    if achievement_id is not None and key and key not in result:
-                        result[key] = (int(achievement_id), name)
+                    if type(achievement_id) is int and key and key not in result:
+                        result[key] = (achievement_id, name)
+            after = ACHIEVEMENT_COMPACT_CACHE.stat()
+            if (after.st_size, after.st_mtime_ns,
+                    after.st_ctime_ns, after.st_ino) != generation:
+                return {}
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return {}
         return result
@@ -1047,20 +1228,32 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             span = self._compact_external_index.get(achievement_id)
             if span is not None:
                 start, length = span
-                try:
-                    with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                        stream.seek(start)
-                        payload = json.loads(stream.read(length))
-                except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                    return None
-                value = payload.get("value") if isinstance(payload, dict) else None
-                if isinstance(value, dict):
-                    return (
-                        achievement_id,
-                        str(value.get("name") or ""),
-                        safe_int(value.get("level")),
-                        int(value.get("points") or 0),
-                    )
+                if start >= 0 and length > 0:
+                    try:
+                        with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                            # A broken offset must never cause read(-1) or a
+                            # multi-megabyte read from the compact catalogue.
+                            stream.seek(0, 2)
+                            total = stream.tell()
+                            if start <= total and length <= total - start:
+                                stream.seek(start)
+                                payload = json.loads(stream.read(length))
+                                value = payload.get("value") if isinstance(payload, dict) else None
+                                if (isinstance(payload, dict)
+                                        and payload.get("kind") == "achievement"
+                                        and isinstance(value, dict)
+                                        and type(value.get("id")) is int
+                                        and value["id"] == achievement_id):
+                                    return (
+                                        achievement_id,
+                                        str(value.get("name") or ""),
+                                        safe_int(value.get("level")),
+                                        int(value.get("points") or 0),
+                                    )
+                    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                        pass
+                # A broken primitive offset is not an absent Success:
+                # delegate to the existing summary fallback below.
 
         summary = self._summary_by_id(achievement_id)
         if summary is None or not self.is_retained(achievement_id):
@@ -1096,50 +1289,107 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def _compact_achievement_ids_for_quest(self, quest_id: int) -> tuple[int, ...]:
         quest_id = int(quest_id)
+        # Never reuse a positive or negative result from a replaced JSONL.
+        try:
+            first = ACHIEVEMENT_COMPACT_CACHE.stat()
+            stamp = (first.st_size, first.st_mtime_ns, first.st_ctime_ns, first.st_ino)
+        except OSError:
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = None
+            self._compact_quest_ids_by_quest = None
+            self._compact_quest_map_stamp = None
+            self._compact_quest_sidecar_stamp = None
+            return ()
+        if self._compact_quest_link_stamp != stamp:
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = stamp
+        if self._compact_quest_ids_by_quest is not None:
+            try:
+                sidecar = _achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE)
+                current = sidecar.stat()
+                sidecar_stamp = (
+                    current.st_size, current.st_mtime_ns,
+                    current.st_ctime_ns, current.st_ino,
+                )
+            except OSError:
+                sidecar_stamp = None
+            if (
+                getattr(self, "_compact_quest_map_stamp", None) == stamp
+                and getattr(self, "_compact_quest_sidecar_stamp", None) == sidecar_stamp
+                and sidecar_stamp is not None
+            ):
+                # Both files still belong to the generation validated on load.
+                # No JSONL scan and no rich Achievement materialization.
+                return self._compact_quest_ids_by_quest.get(quest_id, ())
+            self._compact_quest_ids_by_quest = None
+            self._compact_quest_map_stamp = None
+            self._compact_quest_sidecar_stamp = None
         cached = self._compact_quest_link_cache.get(quest_id)
         if cached is not None:
             self._compact_quest_link_cache.move_to_end(quest_id)
             return cached
 
         matches: list[int] = []
+        seen: set[int] = set()
+        wanted_retained = set(self._compact_retained_ids)
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
-                for raw_line in stream:
-                    line = raw_line.strip()
+                meta = json.loads(stream.readline())
+                if not isinstance(meta, dict) or meta.get("kind") != "meta":
+                    raise ValueError("Success header missing")
+                boundary = False
+                for raw in stream:
+                    line = raw.strip()
                     if not line:
                         continue
                     row = json.loads(line)
                     if not isinstance(row, dict):
-                        continue
-                    kind = str(row.get("kind") or "")
+                        raise ValueError("Success row invalid")
+                    kind = row.get("kind")
                     if kind == "external_start":
+                        boundary = True
                         break
+                    if kind == "category":
+                        continue
                     if kind != "achievement":
-                        continue
+                        raise ValueError("Unexpected Success row")
                     value = row.get("value")
-                    if not isinstance(value, dict):
-                        continue
+                    if not isinstance(value, dict) or type(value.get("id")) is not int:
+                        raise ValueError("Success ID invalid")
+                    ident = value["id"]
+                    if ident in seen or ident not in wanted_retained:
+                        raise ValueError("Success retained catalogue mismatch")
+                    seen.add(ident)
                     linked = value.get("linked_quests")
                     if not isinstance(linked, list):
                         continue
-                    linked_ids: set[int] = set()
                     for ref in linked:
                         if not isinstance(ref, dict):
                             continue
                         try:
-                            linked_ids.add(int(ref.get("entity_id")))
+                            linked_id = int(ref.get("entity_id"))
                         except (TypeError, ValueError):
                             continue
-                    if quest_id not in linked_ids:
-                        continue
-                    try:
-                        matches.append(int(value.get("id")))
-                    except (TypeError, ValueError):
-                        continue
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            matches = []
+                        if linked_id == quest_id:
+                            matches.append(ident)
+                            break
+                if not boundary or seen != wanted_retained:
+                    raise ValueError("Success retained relation cache truncated")
+            after = ACHIEVEMENT_COMPACT_CACHE.stat()
+            if (after.st_size, after.st_mtime_ns,
+                    after.st_ctime_ns, after.st_ino) != stamp:
+                raise ValueError("Success cache replaced during relation lookup")
+        except (OSError, UnicodeError, ValueError, TypeError) as exc:
+            # A broken cache is NOT evidence that a quest has no Success.
+            # Do not retain the false negative: next lookup can retry.
+            logging.getLogger(__name__).warning(
+                "Success relations unavailable; next lookup will retry: %s", exc,
+            )
+            self._compact_quest_link_cache.clear()
+            self._compact_quest_link_stamp = None
+            return ()
 
-        result = tuple(dict.fromkeys(matches))
+        result = tuple(matches)
         self._compact_quest_link_cache[quest_id] = result
         self._compact_quest_link_cache.move_to_end(quest_id)
         while len(self._compact_quest_link_cache) > 24:
@@ -1428,11 +1678,69 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         finally:
             self._reset_sources()
 
+    def _remember_rich_detail(
+        self, achievement_id: int, detail: Achievement,
+        old_id: int | None, old_detail: Achievement | None,
+    ) -> None:
+        """Retain only the last few details; never the whole rich catalogue."""
+        if old_detail is not None and old_id is not None and old_id != achievement_id:
+            self._recent_rich_details[old_id] = old_detail
+            self._recent_rich_details.move_to_end(old_id)
+        self._recent_rich_details.pop(achievement_id, None)
+        while len(self._recent_rich_details) > 2:
+            self._recent_rich_details.popitem(last=False)
+        self._detail_cache_id = achievement_id
+        self._detail_cache = detail
+
+    def _reuse_recent_rich_detail(self, achievement_id: int) -> Achievement | None:
+        cached = self._recent_rich_details.pop(achievement_id, None)
+        if cached is None:
+            return None
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._remember_rich_detail(achievement_id, cached, old_id, old_detail)
+        self._last_detail_cache_source = "recent"
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
+        self._last_detail_ms = 0.0
+        self._last_detail_thread_name = current_thread().name
+        return cached
+
+    @property
+    def last_cold_detail_breakdown_ms(self) -> dict[str, object]:
+        """Last successful cold detail cost, independent of subsequent cache hits."""
+        return dict(self._last_cold_detail_breakdown)
+
+    @property
+    def last_detail_breakdown_ms(self) -> dict[str, object]:
+        """Identify cold Success detail blocking work, without importing a profiler."""
+        return {
+            "thread": self._last_detail_thread_name,
+            "total_ms": self._last_detail_ms,
+            "synchronous_subprocess_ms": getattr(self, "_last_detail_subprocess_ms", 0.0),
+            "decode_ms": getattr(self, "_last_detail_decode_ms", 0.0),
+            "subprocess_path_used": bool(getattr(self, "_last_detail_subprocess_used", False)),
+            "cache_source": self._last_detail_cache_source,
+            "recent_cache_entries": len(self._recent_rich_details),
+        }
+
     def get_detail_by_id(self, achievement_id: int):
         self._ensure_loaded()
         achievement_id = int(achievement_id)
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+            self._last_detail_cache_source = "hot"
+            self._last_detail_subprocess_used = False
+            self._last_detail_subprocess_ms = 0.0
+            self._last_detail_decode_ms = 0.0
+            self._last_detail_ms = 0.0
+            self._last_detail_thread_name = current_thread().name
             return self._detail_cache
+        recent = self._reuse_recent_rich_detail(achievement_id)
+        if recent is not None:
+            return recent
+        old_id, old_detail = self._detail_cache_id, self._detail_cache
+        self._last_detail_cache_source = "cold"
+        self._last_cold_detail_breakdown = {}
 
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
@@ -1441,35 +1749,87 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and current_data_dir == default_data_dir
             and _DUMP_DETAIL_FLAG not in sys.argv
         ):
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-                    _DUMP_DETAIL_FLAG,
-                    str(achievement_id),
-                ],
-                cwd=ROOT_DIR,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=_utf8_subprocess_env(),
-                timeout=90,
-                check=True,
-            )
-            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-            if not lines:
-                return None
-            payload = json.loads(lines[-1])
-            if not isinstance(payload, dict):
-                return None
-            detail = _achievement_from_dict(payload)
-            self._detail_cache_id = achievement_id
-            self._detail_cache = detail
-            return detail
+            # Doctor must distinguish the expensive disposable worker from
+            # JSON decoding instead of reporting only an opaque Qt stall.
+            # This path is intentionally synchronous until an exact-SHA
+            # Graphify impact review authorizes an async UI lifecycle change.
+            started = perf_counter()
+            self._last_detail_subprocess_used = True
+            self._last_detail_decode_ms = 0.0
+            try:
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                        _DUMP_DETAIL_FLAG,
+                        str(achievement_id),
+                    ],
+                    cwd=ROOT_DIR,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=_utf8_subprocess_env(),
+                    timeout=90,
+                    check=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+                )
+            finally:
+                self._last_detail_subprocess_ms = round(
+                    (perf_counter() - started) * 1000.0, 3,
+                )
+                self._last_detail_ms = self._last_detail_subprocess_ms
+                self._last_detail_thread_name = current_thread().name
 
-        return self._get_detail_in_process(achievement_id)
+            decode_started = perf_counter()
+            try:
+                lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+                if not lines:
+                    return None
+                payload = json.loads(lines[-1])
+                if not isinstance(payload, dict):
+                    return None
+                detail = _achievement_from_dict(payload)
+                self._remember_rich_detail(
+                    achievement_id, detail, old_id, old_detail,
+                )
+                return detail
+            finally:
+                self._last_detail_decode_ms = round(
+                    (perf_counter() - decode_started) * 1000.0, 3,
+                )
+                self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+                if self._detail_cache_id == achievement_id and self._detail_cache is not None:
+                    self._last_cold_detail_breakdown = {
+                        "achievement_id": achievement_id,
+                        "status": "OBSERVED",
+                        "thread": self._last_detail_thread_name,
+                        "total_ms": self._last_detail_ms,
+                        "synchronous_subprocess_ms": self._last_detail_subprocess_ms,
+                        "decode_ms": self._last_detail_decode_ms,
+                        "subprocess_path_used": True,
+                    }
+
+        self._last_detail_subprocess_used = False
+        self._last_detail_subprocess_ms = 0.0
+        self._last_detail_decode_ms = 0.0
+        started = perf_counter()
+        detail = self._get_detail_in_process(achievement_id)
+        self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
+        self._last_detail_thread_name = current_thread().name
+        if detail is not None:
+            self._remember_rich_detail(achievement_id, detail, old_id, old_detail)
+            self._last_cold_detail_breakdown = {
+                "achievement_id": achievement_id,
+                "status": "OBSERVED",
+                "thread": self._last_detail_thread_name,
+                "total_ms": self._last_detail_ms,
+                "synchronous_subprocess_ms": 0.0,
+                "decode_ms": 0.0,
+                "subprocess_path_used": False,
+            }
+        return detail
 
     def get_linked_quests(self, achievement_id: int):
         self._ensure_loaded()
@@ -1524,17 +1884,57 @@ def _unique_cache_temporary_path(target: Path) -> Path:
     return target.with_name(f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp")
 
 
-def _build_compact_cache(path: Path) -> int:
-    """Build once per shared cache path and reuse a completed peer result."""
+def _discard_cache_temporary_paths(*paths: Path) -> None:
+    """Best-effort cleanup that preserves the primary build failure."""
+    for path in paths:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            logging.getLogger(__name__).warning(
+                "Success cache temporary file cleanup failed for %s: %s", path, exc,
+            )
+
+
+def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
+    """Build once per shared cache path; repair invalid sidecars under the lock."""
     path = Path(path)
     with _achievement_compact_write_lock(path):
-        if _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
+        # A valid JSONL header and positive count do not prove the companion
+        # offsets index is usable. The preload can require a repair explicitly.
+        if not force_rebuild and _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
             try:
                 index_payload = json.loads(
                     _achievement_compact_index_path(path).read_text(encoding="utf-8")
                 )
-                count = int(index_payload.get("achievement_count") or 0)
-                if count > 0:
+                count = index_payload.get("achievement_count")
+                retained = index_payload.get("retained_count")
+                retained_ids = index_payload.get("retained_ids")
+                offsets = index_payload.get("offsets")
+                with path.open("r", encoding="utf-8") as stream:
+                    source_meta = json.loads(stream.readline())
+                source_marker = source_meta.get("cache_generation")
+                index_marker = index_payload.get("cache_generation")
+                same_generation = (
+                    (source_marker is None and index_marker is None)
+                    or (isinstance(source_marker, str) and bool(source_marker)
+                        and source_marker == index_marker)
+                )
+                if (same_generation
+                        and type(count) is int and count > 0
+                        and type(retained) is int and 0 < retained <= count
+                        and isinstance(retained_ids, list)
+                        and len(retained_ids) == retained
+                        and all(type(value) is int for value in retained_ids)
+                        and len(set(retained_ids)) == retained
+                        and isinstance(offsets, dict)
+                        and len(offsets) == retained
+                        and set(offsets) == {str(value) for value in retained_ids}
+                        and all(
+                            isinstance(span, list) and len(span) == 2
+                            and type(span[0]) is int and span[0] >= 0
+                            and type(span[1]) is int and span[1] > 0
+                            for span in offsets.values()
+                        )):
                     print(json.dumps(
                         {"achievement_count": count, "path": str(path)},
                         ensure_ascii=False, separators=(",", ":"),
@@ -1546,14 +1946,18 @@ def _build_compact_cache(path: Path) -> int:
 
 
 def _build_compact_cache_unlocked(path: Path) -> int:
+    source_generation = _achievement_compact_source_signature(RAW_QUEST_DATA_DIR)
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
     provider._load_disposable_worker_fast()
+    if _achievement_compact_source_signature(RAW_QUEST_DATA_DIR) != source_generation:
+        raise RuntimeError("Success sources changed during compact-cache build")
     retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
     path = Path(path)
     index_path = _achievement_compact_index_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = _unique_cache_temporary_path(path)
     temp_index = _unique_cache_temporary_path(index_path)
+    generation = uuid4().hex
     offsets: dict[str, list[int]] = {}
 
     def line_bytes(payload: dict[str, object]) -> bytes:
@@ -1567,9 +1971,8 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 {
                     "kind": "meta",
                     "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
-                    "source_signature": _achievement_compact_source_signature(
-                        RAW_QUEST_DATA_DIR
-                    ),
+                    "cache_generation": generation,
+                    "source_signature": source_generation,
                 }
             )
         )
@@ -1589,10 +1992,23 @@ def _build_compact_cache_unlocked(path: Path) -> int:
             if int(achievement.category_id) not in retained_ids
         ]
         by_category_ids: dict[int, list[int]] = defaultdict(list)
+        by_quest_ids: dict[int, list[int]] = defaultdict(list)
         for achievement in retained:
             by_category_ids[int(achievement.category_id)].append(int(achievement.id))
             if achievement.subcategory_id is not None:
                 by_category_ids[int(achievement.subcategory_id)].append(int(achievement.id))
+            # Match the canonical scan: malformed links are ignored, and a
+            # repeated quest reference must not duplicate an achievement.
+            seen_quests: set[int] = set()
+            for ref in achievement.linked_quests:
+                try:
+                    quest_id = int(ref.entity_id)
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                if quest_id in seen_quests:
+                    continue
+                seen_quests.add(quest_id)
+                by_quest_ids[quest_id].append(int(achievement.id))
         for achievement in retained:
             payload = {
                 "kind": "achievement",
@@ -1621,12 +2037,18 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "schema_version": _ACHIEVEMENT_COMPACT_SCHEMA,
                 "achievement_count": len(provider._achievements),
                 "retained_count": len(retained),
+                "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
                 "by_category": {
                     str(category_id): list(dict.fromkeys(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())
                 },
                 "offsets": offsets,
+                "by_quest": {
+                    str(quest_id): ids
+                    for quest_id, ids in sorted(by_quest_ids.items())
+                },
+                "by_quest_ref_count": sum(len(ids) for ids in by_quest_ids.values()),
             },
             ensure_ascii=False,
             separators=(",", ":"),
@@ -1634,8 +2056,18 @@ def _build_compact_cache_unlocked(path: Path) -> int:
         + "\n",
         encoding="utf-8",
     )
-    temp_path.replace(path)
-    temp_index.replace(index_path)
+    if _achievement_compact_source_signature(RAW_QUEST_DATA_DIR) != source_generation:
+        # Do not sign old data as current after a concurrent source update.
+        # Neither half of the JSONL/sidecar pair may be published.
+        _discard_cache_temporary_paths(temp_path, temp_index)
+        raise RuntimeError("Success sources changed before compact-cache publication")
+    try:
+        temp_path.replace(path)
+        temp_index.replace(index_path)
+    finally:
+        # Windows file-sharing failures must not leave large stale .tmp files.
+        # A mixed published pair remains fail-closed via cache_generation.
+        _discard_cache_temporary_paths(temp_path, temp_index)
     print(
         json.dumps(
             {
