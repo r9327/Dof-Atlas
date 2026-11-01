@@ -223,7 +223,7 @@ def owners_for(path: str) -> frozenset[str]:
         # The same persisted cache is consumed by startup, Quests and Guides.
         # Exact path only: new app/core helpers must still fail closed.
         return frozenset({"startup", "quests", "guides", "data"})
-    if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
+    # Root constants are imported across every product domain. Keep full\n    # cross-domain regression coverage rather than treating a shared module\n    # as Organizer-only because this candidate adds radial shortcut keys.\n    if path == "app/constants.py":\n        return frozenset({"craft", "quests", "guides", "ui", "startup",\n                          "identity", "data", "organizer"})\n    # Organizer profile defaults are read by Qt/session startup and persisted\n    # for character-bound input. Unknown app/core files still fail closed.\n    if path == "app/core/profile_settings.py":\n        return frozenset({"organizer", "ui", "startup", "identity", "data"})\n    if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
         # OrganizerPage creates the native watcher, Qt timers and startup scan.
         return frozenset({"organizer", "startup", "ui", "identity"})
     if path == "app/pages/organizer/character_sessions.py":
