@@ -24,25 +24,39 @@ class DirectionMacro:
             self.release_virtual_inputs()
             return
         timings = self.runtime.settings.timings
-        for client in self.runtime.switch_character.ordered_clients_from_source(source):
-            if self.runtime.macro_lock.should_stop():
-                return
-            if not is_unity_window(client.handle):
-                self.runtime.logger.info("Switch deplacement fenetre introuvable/non Unity: hwnd=%s", client.handle)
-                continue
-            if activate_window(
-                client.handle,
-                timings.click_focus_settle_ms,
-                timings.activate_attempts,
-                timings.activate_retry_ms,
-                self.runtime.logger,
-                "Switch deplacement",
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
-                press_key(key_name, timings.movement_key_hold_ms)
+        focus_lost = False
+        try:
+            for client in self.runtime.switch_character.ordered_clients_from_source(source):
                 if self.runtime.macro_lock.should_stop():
                     return
-        self.runtime.switch_character.restore_preferred_client("Switch deplacement")
+                if not is_unity_window(client.handle):
+                    self.runtime.logger.info("Switch deplacement fenetre introuvable/non Unity: hwnd=%s", client.handle)
+                    continue
+                if activate_window(
+                    client.handle,
+                    timings.click_focus_settle_ms,
+                    timings.activate_attempts,
+                    timings.activate_retry_ms,
+                    self.runtime.logger,
+                    "Switch deplacement",
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    if foreground_window() != int(client.handle):
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Switch deplacement interrompu: focus perdu avant frappe hwnd=%s",
+                            client.handle,
+                        )
+                        return
+                    press_key(key_name, timings.movement_key_hold_ms)
+                    if self.runtime.macro_lock.should_stop():
+                        return
+        finally:
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+                try:
+                    self.runtime.switch_character.restore_preferred_client("Switch deplacement")
+                except Exception:
+                    self.runtime.logger.exception("Switch deplacement: retour au favori impossible.")
 
     def release_virtual_inputs(self) -> None:
         for key_name in ("HOME", "DELETE", "END", "PAGEDOWN"):
