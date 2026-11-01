@@ -6,14 +6,18 @@ progression. Sommaire stays open until the user explicitly closes it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from copy import deepcopy
+from html import escape
 
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QApplication, QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
+from app.ui.theme import PALETTE
+from app.ui.unity_skin import sprite_icon_path
 from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
@@ -25,6 +29,42 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+
+
+
+def _source_actions_for_display(step: Mapping[str, object]) -> str:
+    """Show the source's ordered actions as a route, not a flat quest list.
+
+    Classification is presentation-only: none of the candidates certifies a
+    canonical quest objective, item quantity or automated player action.
+    """
+    candidates = step.get("source_action_candidates")
+    if not isinstance(candidates, list) or not candidates:
+        return str(step.get("content") or "Actions de cette étape non renseignées.")
+    lines = []
+    previous_heading = None
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping):
+            continue
+        label = candidate.get("label")
+        if not isinstance(label, str) or not label.strip():
+            continue
+        kind = candidate.get("kind")
+        if kind in {"quest_prerequisite", "guide_dependency"}:
+            heading = "Avant de commencer"
+        elif kind in {"prepare_object", "optional_preparation"}:
+            heading = "À préparer · références à vérifier"
+        else:
+            heading = "À faire maintenant"
+        if heading != previous_heading:
+            if lines:
+                lines.append("")
+            lines.append(heading)
+            previous_heading = heading
+        lines.append("• " + label.strip())
+    return "\n".join(lines) or str(
+        step.get("content") or "Actions de cette étape non renseignées."
+    )
 
 
 class _GuideCharacterProgressButton(QToolButton):
@@ -89,7 +129,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self._source_payload_sha256 = certified_payload_sha256(dict(route))
         # Runtime-only planner overlay. Never trust a similarly named field
         # inside Ganymède's imported/signed source JSON.
-        self._verified_travel_plans = dict(verified_travel_plans or {})
+        self._verified_travel_plans = deepcopy(dict(verified_travel_plans or {}))
         # Only expose registered stable Atlas characters, including offline
         # ones. A removed window must not silently deselect its character.
         self.available_characters = tuple(
@@ -100,20 +140,57 @@ class ContinuousGuideRoutePanel(QWidget):
         self.character_icon_buttons = {}
         self._summary_open = False
         self._preparation_open = False
+        self._characters_open = False
+        self._copyable_preparation_labels: tuple[str, ...] = ()
+        self._copyable_coordinates: tuple[str, ...] = ()
+        # The source route is immutable for this panel instance. A progress
+        # refresh must not rescan all preceding source actions on a 237-step
+        # guide when the viewed step has not changed.
+        self._preparation_by_step: dict[str, tuple] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(7)
+        self.guide_title = QLabel(str(route.get("title") or "Guide Ganymède"))
+        self.guide_title.setObjectName("GuideCompactTitle")
+        # Same compact header family as Guide Succès Opti; manual Ganymède
+        # keeps its own ordered source steps instead of quest-series navigation.
+        header = QFrame(self)
+        header.setObjectName("GuideCompactHeader")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(10, 6, 10, 7)
+        header_layout.setSpacing(6)
         head = QHBoxLayout()
+        head.setSpacing(6)
+        head.addWidget(self.guide_title, 1)
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
-        head.addWidget(self.position_label, 1)
+        head.addWidget(self.position_label)
+        self.step_jump = QSpinBox()
+        self.step_jump.setObjectName("GuideCompactPageJump")
+        self.step_jump.setPrefix("Fiche ")
+        self.step_jump.setRange(1, len(self.navigation.step_ids))
+        self.step_jump.setMaximumWidth(115)
+        self.step_jump.setToolTip("Consulter directement une étape Ganymède")
+        self.step_jump.valueChanged.connect(
+            lambda number: self.show_step(self.navigation.step_ids[number - 1])
+        )
+        head.addWidget(self.step_jump)
+        self.actual_button = self._button("Actuelle", "GuideCompactCurrentButton")
+        self.actual_button.clicked.connect(self.show_actual)
+        head.addWidget(self.actual_button)
+        header_layout.addLayout(head)
+        actions_row = QHBoxLayout()
+        actions_row.setSpacing(7)
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideContinuousCharactersButton")
-        self.participants_button.setPopupMode(QToolButton.InstantPopup)
+        # Use the same stable inline character panel as the optimized Guide.
+        # Keep the QAction model for existing keyboard/progress consumers, but
+        # do not expose its oversized native QMenu as the primary control.
+        self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self._characters_menu = QMenu(self.participants_button)
-        self.participants_button.setMenu(self._characters_menu)
+        self.participants_button.setToolTip("Afficher les personnages du parcours")
         for character in self.available_characters:
             if character.key in self._character_actions:
                 continue
@@ -129,13 +206,27 @@ class ContinuousGuideRoutePanel(QWidget):
         if not self._character_actions:
             empty = self._characters_menu.addAction("Aucun personnage identifié")
             empty.setEnabled(False)
-        head.addWidget(self.participants_button)
+        portrait = sprite_icon_path("character")
+        if portrait is not None:
+            self.participants_button.setIcon(QIcon(str(portrait)))
+            self.participants_button.setIconSize(QSize(19, 19))
+            self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        else:
+            self.participants_button.setText("Pers.")
+        self.participants_button.setFixedSize(40, 28)
+        actions_row.addWidget(self.participants_button)
         self.summary_toggle = QToolButton()
         self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
         self.summary_toggle.setText("Sommaire")
+        self.summary_toggle.setCheckable(True)
+        self.summary_toggle.setFixedHeight(28)
+        self.summary_toggle.setMaximumWidth(122)
         self.summary_toggle.clicked.connect(self.toggle_summary)
-        head.addWidget(self.summary_toggle)
-        portraits = QHBoxLayout()
+        actions_row.addWidget(self.summary_toggle)
+        self.characters_panel = QFrame(self)
+        self.characters_panel.setObjectName("GuideContinuousCharactersPanel")
+        portraits = QHBoxLayout(self.characters_panel)
+        portraits.setContentsMargins(6, 5, 6, 5)
         portraits.setSpacing(4)
         for character in self.available_characters:
             if character.key in self.character_icon_buttons:
@@ -163,12 +254,19 @@ class ContinuousGuideRoutePanel(QWidget):
             portraits.addWidget(button)
         if self.character_icon_buttons:
             portraits.addStretch(1)
-            layout.addLayout(portraits)
+        else:
+            portraits.addWidget(QLabel("Aucun personnage identifié"))
+        self.characters_panel.setVisible(False)
+        self.participants_button.toggled.connect(self.toggle_characters)
         self.route_progress = QProgressBar()
         self.route_progress.setObjectName("GuideContinuousRouteProgress")
         self.route_progress.setRange(0, 100)
         self.route_progress.setTextVisible(True)
-        layout.addWidget(self.route_progress)
+        self.route_progress.setFixedHeight(18)
+        header_layout.addWidget(self.route_progress)
+        header_layout.addLayout(actions_row)
+        header_layout.addWidget(self.characters_panel)
+        layout.addWidget(header)
 
         work = QHBoxLayout()
         work.setSpacing(9)
@@ -176,10 +274,12 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary.setObjectName("GuideContinuousSommaire")
         self.summary.setMinimumWidth(170)
         self.summary.setMaximumWidth(250)
-        self.summary_model = QStringListModel([
+        self._summary_base_labels = tuple(
             f"Fiche {i} — {str(row.get('title') or f'Étape {i}')}"
             for i, row in enumerate(self.rows, 1)
-        ], self)
+        )
+        self._summary_progress_labels: tuple[str, ...] = ()
+        self.summary_model = QStringListModel(list(self._summary_base_labels), self)
         self.summary.setModel(self.summary_model)
         self.summary.clicked.connect(
             lambda index: self.show_step(self.navigation.step_ids[index.row()])
@@ -188,10 +288,16 @@ class ContinuousGuideRoutePanel(QWidget):
 
         content = QFrame()
         content.setObjectName("GuideContinuousCard")
+        content.setStyleSheet(
+            "QFrame#GuideContinuousCard { "
+            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+            f"stop:0 #344B76, stop:1 {PALETTE['PANEL']}); "
+            f"border: 1px solid {PALETTE['BORDER']}; border-radius: 9px; }}"
+            "QFrame#GuideContinuousCard QLabel { border: none; background: transparent; }"
+        )
         detail = QVBoxLayout(content)
         detail.setContentsMargins(8, 8, 8, 8)
         detail.setSpacing(6)
-        detail.addLayout(head)
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideContinuousTitle")
         self.title_label.setTextFormat(Qt.PlainText)
@@ -201,7 +307,28 @@ class ContinuousGuideRoutePanel(QWidget):
         self.body_label.setObjectName("GuideContinuousActions")
         self.body_label.setTextFormat(Qt.PlainText)
         self.body_label.setWordWrap(True)
-        detail.addWidget(self.body_label)
+        self.body_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.body_scroll = QScrollArea()
+        self.body_scroll.setObjectName("GuideContinuousActionsScroll")
+        self.body_scroll.setWidgetResizable(True)
+        self.body_scroll.setMinimumHeight(110)
+        self.body_scroll.setMaximumHeight(280)
+        self.body_scroll.setFrameShape(QFrame.NoFrame)
+        self.body_scroll.setWidget(self.body_label)
+        detail.addWidget(self.body_scroll, 1)
+        self.coordinates_label = QLabel()
+        self.coordinates_label.setObjectName("GuideContinuousCoordinates")
+        self.coordinates_label.setWordWrap(True)
+        self.coordinates_label.setTextFormat(Qt.RichText)
+        self.coordinates_label.setTextInteractionFlags(
+            Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard
+        )
+        self.coordinates_label.setOpenExternalLinks(False)
+        self.coordinates_label.setToolTip(
+            "Cliquer copie une position citée par la source ; aucun déplacement automatique"
+        )
+        self.coordinates_label.linkActivated.connect(self._copy_source_link)
+        detail.addWidget(self.coordinates_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
         self.preparation_toggle = self._button(
@@ -210,15 +337,27 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_toggle.setToolTip(
             "Références d'objets à vérifier — quantités et achats non certifiés"
         )
+        self.preparation_toggle.setCheckable(True)
+        self.preparation_toggle.setFixedHeight(28)
+        self.preparation_toggle.setMaximumWidth(150)
         self.preparation_toggle.clicked.connect(self.toggle_preparation)
-        detail.addWidget(self.preparation_toggle)
+        actions_row.addWidget(self.preparation_toggle)
+        actions_row.addStretch(1)
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
         self.preparation_scroll.setWidgetResizable(True)
         self.preparation_scroll.setMaximumHeight(136)
         self.preparation_label = QLabel()
         self.preparation_label.setObjectName("GuideContinuousPreparationItems")
-        self.preparation_label.setTextFormat(Qt.PlainText)
+        self.preparation_label.setTextFormat(Qt.RichText)
+        self.preparation_label.setTextInteractionFlags(
+            Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard
+        )
+        self.preparation_label.setOpenExternalLinks(False)
+        self.preparation_label.setToolTip(
+            "Cliquer sur un nom copie uniquement le nom de l’objet ; aucune quantité certifiée"
+        )
+        self.preparation_label.linkActivated.connect(self._copy_source_link)
         self.preparation_label.setWordWrap(True)
         self.preparation_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.preparation_scroll.setWidget(self.preparation_label)
@@ -235,28 +374,27 @@ class ContinuousGuideRoutePanel(QWidget):
         nav.addWidget(self.previous_button)
         self.next_button = self._button("Suivant", "GuideContinuousNext")
         self.next_button.clicked.connect(self.next_step)
-        nav.addWidget(self.next_button)
-        self.actual_button = self._button("Actuelle", "GuideContinuousActual")
-        self.actual_button.clicked.connect(self.show_actual)
-        nav.addWidget(self.actual_button)
         self.travel_button = self._button("Aller à l'étape", "GuideContinuousTravel")
         self.travel_button.clicked.connect(self.request_current_travel)
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        self.validate_button = self._button("✓", "GuideContinuousValidate")
+        self.validate_button = self._button("Valider", "GuideContinuousValidate")
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
         )
         self.validate_button.clicked.connect(self.toggle_manual_current)
         nav.addWidget(self.validate_button)
+        nav.addWidget(self.next_button)
         detail.addLayout(nav)
         # The four navigation controls stay in one compact row; the travel
         # action has its own width so it cannot squeeze or overlap them.
         detail.addWidget(self.travel_button)
         work.addWidget(content, 3)
         layout.addLayout(work, 1)
-        self.navigation.show_actual()
+        if self.navigation.show_actual() is None:
+            # A guide is readable before choosing a character.
+            self.navigation.show_step(self.navigation.step_ids[0])
         self.refresh()
 
     @staticmethod
@@ -267,12 +405,33 @@ class ContinuousGuideRoutePanel(QWidget):
         button.setCursor(Qt.PointingHandCursor)
         return button
 
+    def _copy_source_link(self, href: str) -> None:
+        """Copy only currently visible source hints; never trigger travel."""
+        kind, separator, index_text = href.partition(":")
+        if (not separator or len(index_text) > 9
+                or not index_text.isascii() or not index_text.isdecimal()):
+            # Never parse an unbounded integer supplied via a Qt link signal.
+            return
+        targets = (
+            self._copyable_preparation_labels if kind == "item" else
+            self._copyable_coordinates if kind == "coordinate" else ()
+        )
+        index = int(index_text)
+        if 0 <= index < len(targets):
+            QApplication.clipboard().setText(targets[index])
+
+    def toggle_characters(self, opened: bool) -> None:
+        self._characters_open = bool(opened)
+        self.characters_panel.setVisible(self._characters_open)
+
     def toggle_summary(self) -> None:
         self._summary_open = not self._summary_open
+        self.summary_toggle.setChecked(self._summary_open)
         self.summary.setVisible(self._summary_open)
 
     def toggle_preparation(self) -> None:
         self._preparation_open = not self._preparation_open
+        self.preparation_toggle.setChecked(self._preparation_open)
         self.preparation_scroll.setVisible(
             self._preparation_open and self.preparation_toggle.isVisibleTo(self)
         )
@@ -315,14 +474,43 @@ class ContinuousGuideRoutePanel(QWidget):
 
     def toggle_manual_current(self) -> None:
         step_id = self.navigation.viewed_step_id
-        if step_id is None or not self.navigation.selected_character_keys:
+        if step_id is None:
             return
-        all_done = all(
-            self.navigation.progress.is_manual_step_completed(
+        if not self.navigation.selected_character_keys:
+            # Open participant selection; never validate an implicit identity.
+            self.participants_button.setChecked(True)
+            return
+        # Capture the exact per-character flags that produced this button
+        # decision. The persistence service rechecks them under its lock
+        # before writing: concurrent Organizer/Guide updates cannot be lost.
+        expected = {
+            key: self.navigation.progress.is_manual_step_completed(
                 key, self.navigation.guide_id, step_id,
             ) for key in self.navigation.selected_character_keys
-        )
-        self.navigation.mark_manual_step(step_id, not all_done)
+        }
+        all_done = all(expected.values())
+        was_actual = self.navigation.position().actual_step_id == step_id
+        try:
+            changed = self.navigation.mark_manual_step(
+                step_id, not all_done, expected_completed=expected,
+            )
+        except RuntimeError as exc:
+            if str(exc) != "Guide progress changed since selection; reload before validating":
+                raise
+            self._verified_travel_plans.clear()
+            self.refresh()
+            self.progress_label.setText(
+                "Progression modifiée ailleurs. Vérifiez les personnages, puis réessayez."
+            )
+            return
+        if changed:
+            # A manual completion or undo changes the planner's progress
+            # snapshot. Never revive an old travel command after an undo.
+            self._verified_travel_plans.clear()
+        # Only advance when validating the step genuinely being followed.
+        # Reviewing a later/earlier fiche or undoing a check never jumps.
+        if changed and not all_done and was_actual:
+            self.navigation.show_actual()
         self.refresh()
 
     @staticmethod
@@ -331,7 +519,7 @@ class ContinuousGuideRoutePanel(QWidget):
             return None
         x, y = value.get("x"), value.get("y")
         if (type(x) is not int or type(y) is not int
-                or -(2**31) in (x, y)):
+                or not all(-(2**31) < value < 2**31 for value in (x, y))):
             return None
         return x, y
 
@@ -341,7 +529,9 @@ class ContinuousGuideRoutePanel(QWidget):
         """Replace only the in-memory Atlas planner overlay, then refresh."""
         if not isinstance(plans, Mapping):
             raise ValueError("Verified travel plans must be a mapping")
-        self._verified_travel_plans = dict(plans)
+        # Own the entire plan snapshot: callers may mutate a nested destination
+        # after the planner result was checked. Never dispatch their edits.
+        self._verified_travel_plans = deepcopy(dict(plans))
         self.refresh()
 
     def apply_projected_runtime_plan(self, projection: Mapping[str, object]) -> bool:
@@ -414,8 +604,44 @@ class ContinuousGuideRoutePanel(QWidget):
         if request is not None:
             self.travelRequested.emit(*request)
 
+    def _refresh_summary_progress(self, position) -> None:
+        """Show followed/checked/partially checked steps without reloading routes."""
+        selected = position.selected_character_keys
+        checked = tuple(
+            self.navigation.progress.manual_steps(key, self.navigation.guide_id)
+            for key in selected
+        )
+        labels = []
+        for step_id, base in zip(self.navigation.step_ids, self._summary_base_labels):
+            done = sum(step_id in completed for completed in checked)
+            if done == len(checked) and checked:
+                prefix = "✓ "
+            elif step_id == position.actual_step_id:
+                prefix = "→◐ " if done else "→ "
+            elif done:
+                prefix = "◐ "
+            else:
+                prefix = "  "
+            labels.append(prefix + base)
+        rendered = tuple(labels)
+        if rendered == self._summary_progress_labels:
+            return
+        if len(rendered) != len(self._summary_progress_labels):
+            self.summary_model.setStringList(labels)
+        else:
+            # One-step navigation only changes the current/previous markers.
+            # Resetting a 200+ row Qt summary on every click invalidates all
+            # indexes, selection and layout. Emit only the changed rows.
+            for row, (before, after) in enumerate(zip(self._summary_progress_labels, rendered)):
+                if before != after:
+                    self.summary_model.setData(
+                        self.summary_model.index(row), after, Qt.EditRole,
+                    )
+        self._summary_progress_labels = rendered
+
     def refresh(self) -> None:
         position = self.navigation.position()
+        self._refresh_summary_progress(position)
         total_checks = position.total_steps * len(position.selected_character_keys)
         completed_checks = sum(position.completed_by_character.values())
         self.route_progress.setValue(
@@ -426,7 +652,9 @@ class ContinuousGuideRoutePanel(QWidget):
             if total_checks else "Route · aucun personnage sélectionné"
         )
         selected = set(position.selected_character_keys)
-        self.participants_button.setText(f"Mes personnages ({len(selected)})")
+        self.participants_button.setToolTip(
+            f"Mes personnages ({len(selected)}) — sélectionner les participants"
+        )
         for key, action in self._character_actions.items():
             was_blocked = action.blockSignals(True)
             try:
@@ -446,9 +674,16 @@ class ContinuousGuideRoutePanel(QWidget):
         actual = position.actual_step_id
         self.actual_button.setEnabled(actual is not None)
         self.validate_button.setEnabled(
-            current is not None and bool(position.selected_character_keys)
+            current is not None
+            and bool(position.selected_character_keys or self.character_icon_buttons)
         )
         self.validate_button.setVisible(current is not None)
+        all_done = bool(current and position.selected_character_keys) and all(
+            self.navigation.progress.is_manual_step_completed(
+                key, self.navigation.guide_id, current,
+            ) for key in position.selected_character_keys
+        )
+        self.validate_button.setText("Annuler validation" if all_done else "Valider l'étape")
         travel = self._current_verified_travel()
         self.travel_button.setEnabled(travel is not None)
         if current is None:
@@ -458,38 +693,72 @@ class ContinuousGuideRoutePanel(QWidget):
                 if position.status == "NO_SELECTED_CHARACTER"
                 else "Toutes les fiches du parcours sont terminées."
             )
+            self._copyable_coordinates = ()
+            self.coordinates_label.clear()
             index = -1
         else:
             index = self.navigation.step_ids.index(current)
             row = self.rows[index]
-            self.title_label.setText(str(row.get("title") or f"Fiche {index + 1}"))
-            self.body_label.setText(str(row.get("content") or
-                                        "Actions de cette étape non renseignées."))
-        references = (
-            visible_object_references(self.route, current) if current else ()
-        )
+            self.title_label.setText(str(row.get("title") or f"Étape {index + 1}"))
+            self.body_label.setText(_source_actions_for_display(row))
+            coordinates = row.get("source_coordinates_mentioned")
+            locations = []
+            if isinstance(coordinates, list):
+                for value in coordinates:
+                    if (isinstance(value, list) and len(value) == 2
+                            and all(type(number) is int for number in value)):
+                        location = f"[{value[0]}, {value[1]}]"
+                        if location not in locations:
+                            locations.append(location)
+            self._copyable_coordinates = tuple(locations)
+            self.coordinates_label.setText(
+                "Positions citées (clic pour copier) : "
+                + " · ".join(
+                    f'<a href="coordinate:{i}">{escape(location)}</a>'
+                    for i, location in enumerate(locations)
+                ) if locations else ""
+            )
+        if current is None:
+            references = ()
+        else:
+            if current not in self._preparation_by_step:
+                self._preparation_by_step[current] = visible_object_references(
+                    self.route, current,
+                )
+            references = self._preparation_by_step[current]
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
         self.preparation_toggle.setVisible(bool(references))
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
+        self._copyable_preparation_labels = tuple(item.label for item in references)
         self.preparation_label.setText(
-            "Références à vérifier (aucun achat présumé) :\n"
-            + "\n".join(
-                "• " + item.label
+            "Références à vérifier (aucun achat présumé) :<br>"
+            + "<br>".join(
+                f'• <a href="item:{i}">{escape(item.label)}</a>'
                 + (" · facultatif" if item.optional_or_conditional else "")
                 + (" · sur le trajet" if item.obtainable_on_route else "")
                 + (f" · étape {item.needed_at_step}"
                    if item.needed_at_step != index + 1 else "")
-                for item in references
+                for i, item in enumerate(references)
             ) if references else ""
         )
         self.position_label.setText(
-            f"FICHE {index + 1}" if index >= 0
-            else "PARCOURS CONTINU"
+            f"ÉTAPE {index + 1} / {position.total_steps}" if index >= 0
+            else f"PARCOURS · {position.total_steps} ÉTAPES"
         )
+        if index >= 0 and self.step_jump.value() != index + 1:
+            blocked = self.step_jump.blockSignals(True)
+            try:
+                self.step_jump.setValue(index + 1)
+            finally:
+                self.step_jump.blockSignals(blocked)
         self.previous_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < position.total_steps - 1)
+        actual_index = (
+            self.navigation.step_ids.index(actual) + 1 if actual is not None else None
+        )
         self.progress_label.setText(
-            "Suivi manuel : "
+            (f"À suivre · étape {actual_index}/{position.total_steps} — "
+             if actual_index is not None else "Suivi manuel : ")
             + " · ".join(
                 f"{key} {done}/{position.total_steps}"
                 for key, done in position.completed_by_character.items()
@@ -497,8 +766,10 @@ class ContinuousGuideRoutePanel(QWidget):
             if position.completed_by_character
             else "Aucun personnage sélectionné"
         )
-        if index >= 0:
-            self.summary.selectionModel().clearSelection()
+        if index >= 0 and self.summary.currentIndex().row() != index:
+            # Preserve the existing selection/scroll position on progress-only
+            # refreshes. Clearing and reselecting triggers Qt selection/layout
+            # churn even when the viewed source step has not changed.
             self.summary.setCurrentIndex(self.summary_model.index(index))
         self.summary.setVisible(self._summary_open)
 

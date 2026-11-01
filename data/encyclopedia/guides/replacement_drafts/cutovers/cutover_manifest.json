@@ -7,7 +7,7 @@
       "source_guide_id": 2269,
       "source_step_count": 174,
       "fingerprint": "7a8a1668d6503eb4ad27bf0f60a1ce966580a3df5b1647adb899467256dc79f0",
-      "payload_sha256": "aede874c7205ff9bf21fc746e3eae9a5ac7e3d20ddbbfeba9305aded2780e02b"
+      "payload_sha256": "47f8e8c20dc0157e5a3573992a0e9cc051725e48e70a3bc4189aab693b046da0"
     },
     "dofus_argente": {
       "enabled": true,
@@ -15,7 +15,7 @@
       "source_guide_id": 2203,
       "source_step_count": 237,
       "fingerprint": "d6c75035be7dfd9afdd8b575276cd3fcf86944e4e6d39c3ab6505a659987a047",
-      "payload_sha256": "17946a574c282f23923a186f6f8657516a56e6bd908844973aa5fb96767559d7"
+      "payload_sha256": "fbe2f1c91008e423bf7832c025dc031c5264531873e4f2edb8fbbcc4e268ab24"
     },
     "dofus_cawotte": {
       "enabled": true,
@@ -31,7 +31,7 @@
       "source_guide_id": 2216,
       "source_step_count": 121,
       "fingerprint": "156aebd6ea2754ec01d79d5f25c78fb4481a53f369eb6b3fa2a8236b6456d2b6",
-      "payload_sha256": "1ddd1d9b70aec33f799dbc018b9be4a78e40b259921227ac70b91915963c10e2"
+      "payload_sha256": "3cadc0fade9e72dfc53ca1a1288d6a9388a73965fe9cb8f62ffea48f97549072"
     },
     "dofus_des_veilleurs": {
       "enabled": true,
@@ -39,7 +39,7 @@
       "source_guide_id": 2209,
       "source_step_count": 88,
       "fingerprint": "9ce39c973b0134a30de2247474b0eb4755cbe19e8f9387a8628e4ebac2be9f43",
-      "payload_sha256": "a402994949e61e65c7337e00aa2e22d37b3108ab63a423b19fc50640ce19cdff"
+      "payload_sha256": "c16c1b6f1605a76aed187cf4f9d885a7e8f9bd86a7ca7e54677a9173a904b225"
     },
     "dofus_dom_de_pin": {
       "enabled": true,
@@ -63,7 +63,7 @@
       "source_guide_id": 2261,
       "source_step_count": 142,
       "fingerprint": "41147153dac7a948b2f49753cc6db324c3c0fb567ee6fdee391a8f693782dedc",
-      "payload_sha256": "2578fdb4252ec730ffd6918c252e104f7ed3b9af058ef36e2f520b1bd13fbda3"
+      "payload_sha256": "7f73384c2adecd1400072f54a80e0baba0fdcfe8d7f0825df6d5e4962c0788f8"
     },
     "dofus_emeraude": {
       "enabled": true,
@@ -151,7 +151,7 @@
       "source_guide_id": 2212,
       "source_step_count": 120,
       "fingerprint": "1fc93234cc12bdc6b8671a59e8cf7af491de4981a9a68e240f2449de5190b7ea",
-      "payload_sha256": "f2f28f4ddae70ff2e835f8721e7c045b36423280d0563f922c3226476f200987"
+      "payload_sha256": "b5db32f7cb15cc1842662c7c13d599e17ae365d75dba9787ff7125ef0f082d72"
     },
     "dorigami": {
       "enabled": true,

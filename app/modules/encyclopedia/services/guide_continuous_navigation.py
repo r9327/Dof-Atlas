@@ -26,9 +26,12 @@ def known_guide_participants(
         key for row in available_characters
         if is_character_key(key := getattr(row, "key", ""))
     }
-    return tuple(
+    # Saved selections can repeat a stable character after legacy UI merges.
+    # Normalize only this untrusted selection boundary; explicit navigation
+    # APIs still reject duplicate keys instead of silently rewriting input.
+    return tuple(dict.fromkeys(
         key for key in selected_keys if is_character_key(key) and key in available
-    )
+    ))
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,14 +173,18 @@ class ContinuousGuideNavigation:
             return None
         return self.show_step(self.step_ids[index - 1])
 
-    def mark_manual_step(self, step_id: str, completed: bool) -> bool:
-        """Explicit user action only. Never write quest/achievement progress."""
+    def mark_manual_step(
+        self, step_id: str, completed: bool, *,
+        expected_completed: dict[str, bool] | None = None,
+    ) -> bool:
+        """Manual-only write; optionally reject a stale multi-character view."""
         if step_id not in self._step_set:
             raise ValueError("step not in this guide")
         if not self.selected_character_keys:
             return False
         return self.progress.set_manual_steps_for_characters(
             self.selected_character_keys, self.guide_id, step_id, bool(completed),
+            expected_completed=expected_completed,
         )
 
 

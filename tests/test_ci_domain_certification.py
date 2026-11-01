@@ -16,6 +16,16 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_ganymede_reader_is_guides_and_ui_owned_with_fail_closed_neighbors(self):
+        reader = "app/modules/encyclopedia/views/guide_continuous_route_panel.py"
+        self.assertEqual(owners_for(reader), frozenset({"guides", "ui"}))
+        plan = self.route([reader, "app/modules/encyclopedia/views/guides_view.py"])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["guides", "ui"])
+        unreviewed = "app/modules/encyclopedia/views/new_unknown_route_panel.py"
+        self.assertEqual(owners_for(unreviewed), frozenset())
+        self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
+
     def test_reviewed_organizer_files_get_strict_cross_domain_ownership(self):
         # Neither an unrelated macro nor a future native hook gets a free pass.
         cases = {

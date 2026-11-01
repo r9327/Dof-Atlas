@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.services.guide_progress_service import (
@@ -39,12 +40,48 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_progress_refresh_does_not_clear_current_summary_selection(self):
+        changes = []
+        selection = self.panel.summary.selectionModel()
+        selection.selectionChanged.connect(lambda *_: changes.append(True))
+        self.panel.refresh()
+        self.panel.refresh()
+        self.assertEqual(changes, [])
+        self.panel.show_step("ganymede_2205_step_0002")
+        self.assertEqual(self.panel.summary.currentIndex().row(), 1)
+        changes.clear()
+        self.panel.refresh()
+        self.assertEqual(changes, [])
+        self.assertEqual(self.panel.summary.currentIndex().row(), 1)
+
+    def test_step_navigation_preserves_summary_model_and_updates_only_markers(self):
+        resets = []
+        changed = []
+        self.panel.summary_model.modelReset.connect(lambda: resets.append(True))
+        self.panel.summary_model.dataChanged.connect(lambda *_: changed.append(True))
+        model = self.panel.summary_model
+        old_first = model.data(model.index(0, 0))
+        old_second = model.data(model.index(1, 0))
+        # Simply browsing a different step does not alter the followed
+        # marker. Validating the actual step does, and must avoid a full reset.
+        self.panel.validate_button.click()
+        self.assertEqual(resets, [])
+        self.assertTrue(changed)
+        self.assertNotEqual(model.data(model.index(0, 0)), old_first)
+        self.assertNotEqual(model.data(model.index(1, 0)), old_second)
+        self.assertTrue(model.data(model.index(1, 0)).startswith("→ "))
+        self.panel.show_step("ganymede_2205_step_0001")
+        self.panel.validate_button.click()  # Undo the first step for both characters.
+        self.assertEqual(resets, [])
+        self.assertEqual(model.data(model.index(0, 0)), old_first)
+        self.assertEqual(model.data(model.index(1, 0)), old_second)
+
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
             self.panel.navigation.position().viewed_step_id,
             "ganymede_2205_step_0001",
         )
-        self.assertEqual(self.panel.title_label.text(), "Fiche 1")
+        self.assertEqual(self.panel.title_label.text(), "Étape 1")
         self.assertFalse(self.panel.summary.isVisible())
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
@@ -67,15 +104,19 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
 
-    def test_character_and_summary_controls_belong_to_the_active_card_header(self):
+    def test_compact_header_keeps_step_navigation_and_source_card_separate(self):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
+        header = self.panel.position_label.parentWidget()
+        self.assertEqual(header.objectName(), "GuideCompactHeader")
         for control in (
-            self.panel.position_label, self.panel.participants_button,
-            self.panel.summary_toggle,
+            self.panel.participants_button, self.panel.summary_toggle,
+            self.panel.preparation_toggle, self.panel.step_jump,
+            self.panel.actual_button,
         ):
-            self.assertIs(control.parentWidget(), card)
-        self.assertEqual(self.panel.position_label.text(), "FICHE 1")
+            self.assertIs(control.parentWidget(), header)
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 1 / 3")
+        self.assertEqual(self.panel.step_jump.value(), 1)
         self.assertFalse(self.panel._characters_menu.isVisible())
         self.addCleanup(self.panel.hide)
         self.panel.show()
@@ -87,15 +128,62 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 self.assertFalse(self.panel.participants_button.geometry().intersects(
                     self.panel.summary_toggle.geometry(),
                 ))
-                self.assertLess(
-                    self.panel.participants_button.geometry().bottom(),
-                    self.panel.title_label.geometry().top(),
-                )
-                self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+                self.assertLess(header.geometry().bottom(), card.geometry().top())
+                self.assertTrue(header.rect().contains(
+                    self.panel.summary_toggle.geometry()
+                ))
+        self.panel.step_jump.setValue(3)
+        self.assertEqual(
+            self.panel.navigation.position().viewed_step_id,
+            "ganymede_2205_step_0003",
+        )
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 3 / 3")
+        self.panel.actual_button.click()
+        self.assertEqual(self.panel.step_jump.value(), 1)
+
+    def test_source_actions_follow_guide_sections_not_flat_quest_names(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_action_candidates"] = [
+            {"kind": "quest_prerequisite", "label": "Vérifier le prérequis"},
+            {"kind": "talk", "label": "Parler au PNJ"},
+            {"kind": "move", "label": "Aller sur la carte indiquée"},
+            {"kind": "prepare_object", "label": "Objet nécessaire"},
+        ]
+        extra = ContinuousGuideRoutePanel(route, self.store, ("character:1",))
+        self.addCleanup(extra.deleteLater)
+        body = extra.body_label.text()
+        self.assertLess(body.index("Avant de commencer"), body.index("À faire maintenant"))
+        self.assertLess(body.index("À faire maintenant"), body.index("À préparer"))
+        self.assertIn("Parler au PNJ", body)
+        self.assertIn("Aller sur la carte indiquée", body)
+        self.assertIn("références à vérifier", body)
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_sommaire_marks_actual_checked_and_partially_checked_steps(self):
+        idx = self.panel.summary_model.index
+        label = lambda i: self.panel.summary_model.data(idx(i))
+        self.assertTrue(label(0).startswith("→ "))
+        self.assertFalse(label(1).startswith("✓ "))
+        self.panel.validate_button.click()
+        self.assertTrue(label(0).startswith("✓ "))
+        self.assertTrue(label(1).startswith("→ "))
+        self.panel.set_characters(("character:1",))
+        self.panel.show_step("ganymede_2205_step_0001")
+        self.panel.validate_button.click()
+        self.panel.set_characters(("character:1", "character:2"))
+        self.assertTrue(label(0).startswith("→◐ "))
+        self.assertTrue(label(0).endswith("Fiche 1 — Étape 1"))
+        self.assertEqual(self.panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0001")
 
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0002")
+        self.assertEqual(self.panel.step_jump.value(), 2)
         self.assertTrue(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id,
@@ -109,6 +197,61 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
+
+    def test_concurrent_progress_change_aborts_qt_validation_and_shows_feedback(self):
+        from unittest.mock import patch
+
+        first = "ganymede_2205_step_0001"
+        external = GuideProgressService(self.store.path)
+        original = self.store.set_manual_steps_for_characters
+        injected = False
+
+        def concurrent_update(*args, **kwargs):
+            nonlocal injected
+            if not injected:
+                injected = True
+                external.set_manual_step_completed(
+                    "character:2", "dofus_cawotte", first, True,
+                )
+            return original(*args, **kwargs)
+
+        with patch.object(
+            self.store, "set_manual_steps_for_characters",
+            side_effect=concurrent_update,
+        ):
+            self.panel.validate_button.click()
+
+        self.assertTrue(injected)
+        self.assertFalse(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", first,
+        ))
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:2", "dofus_cawotte", first,
+        ))
+        self.assertEqual(self.panel.navigation.position().viewed_step_id, first)
+        self.assertIn("Progression modifiée ailleurs", self.panel.progress_label.text())
+        self.panel.validate_button.click()  # Fresh flags: safe atomic retry.
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", first,
+        ))
+        self.assertEqual(
+            self.panel.navigation.position().actual_step_id,
+            "ganymede_2205_step_0002",
+        )
+
+    def test_reviewing_future_step_does_not_replace_actual_route_position(self):
+        future = "ganymede_2205_step_0003"
+        self.panel.show_step(future)
+        self.panel.validate_button.click()
+        self.assertEqual(self.panel.navigation.position().viewed_step_id, future)
+        self.assertEqual(self.panel.position_label.text(), "ÉTAPE 3 / 3")
+        self.assertEqual(self.panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", future
+        ))
+        self.panel.actual_button.click()
+        self.assertEqual(self.panel.step_jump.value(), 1)
 
     def test_character_picker_switches_real_keys_without_changing_manual_progress(self):
         characters = [
@@ -131,7 +274,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             ("character:1", "character:2"),
         )
         self.assertEqual(updates[-1], ("character:1", "character:2"))
-        self.assertEqual(extra.participants_button.text(), "Mes personnages (2)")
+        self.assertIn("Mes personnages (2)", extra.participants_button.toolTip())
         self.assertEqual(extra.navigation.position().completed_by_character,
                          {"character:1": 0, "character:2": 0})
         extra._character_actions["character:1"].trigger()
@@ -236,6 +379,32 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(received, [])
         self.assertEqual(extra.navigation.position().actual_step_id, "ganymede_2205_step_0001")
 
+    def test_empty_selection_can_browse_first_step_and_validation_opens_picker(self):
+        from types import SimpleNamespace
+        panel = ContinuousGuideRoutePanel(
+            _source_route(), self.store, (),
+            available_characters=(
+                SimpleNamespace(key="character:1", label="Premier", class_key="iop"),
+            ),
+        )
+        self.addCleanup(panel.deleteLater)
+        self.assertEqual(panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertIsNone(panel.navigation.position().actual_step_id)
+        self.assertEqual(panel.step_jump.value(), 1)
+        self.assertTrue(panel.validate_button.isEnabled())
+        panel.validate_button.click()
+        self.assertTrue(panel.participants_button.isChecked())
+        self.assertTrue(panel.characters_panel.isVisibleTo(panel))
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+        panel.character_icon_buttons["character:1"].click()
+        self.assertEqual(panel.navigation.position().selected_character_keys,
+                         ("character:1",))
+        panel.validate_button.click()
+        self.assertTrue(self.store.is_manual_step_completed(
+            "character:1", "dofus_cawotte", "ganymede_2205_step_0001"
+        ))
+
     def test_no_character_can_browse_source_without_checking_steps(self):
         self.panel.set_characters(())
         self.assertTrue(self.panel.next_button.isEnabled())
@@ -247,6 +416,33 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIsNone(self.panel.navigation.position().actual_step_id)
         self.assertFalse(self.panel.validate_button.isEnabled())
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_preparation_source_scan_is_cached_across_progress_refreshes(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services.guide_continuous_preparation import (
+            visible_object_references,
+        )
+
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            wraps=visible_object_references,
+        ) as scan:
+            panel = ContinuousGuideRoutePanel(
+                _source_route(), self.store, ("character:1",),
+            )
+            self.addCleanup(panel.deleteLater)
+            self.assertEqual(scan.call_count, 1)
+            for _ in range(5):
+                panel.refresh()
+            self.assertEqual(scan.call_count, 1)
+            panel.next_step()
+            self.assertEqual(scan.call_count, 2)
+            panel.previous_step()
+            self.assertEqual(scan.call_count, 2)
+            # Manual progress affects selection and labels, never immutable
+            # source preparation references for a previously visited step.
+            panel.toggle_manual_current()
+            self.assertEqual(scan.call_count, 2)
 
     def test_preparation_is_compact_read_only_and_due_step_scoped(self):
         from copy import deepcopy
@@ -276,6 +472,173 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIn("Cawottes facultatives", panel.preparation_label.text())
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
+
+    def test_all_twenty_enabled_source_guides_open_with_inert_progress(self):
+        guides_dir = (
+            Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        )
+        catalog = json.loads((guides_dir / "catalog.json").read_text(encoding="utf-8"))
+        rows = [
+            row for row in catalog["guides"]
+            if row.get("ganymede_manual_ui_ready") is True
+        ]
+        self.assertEqual(len(rows), 20)
+        for row in rows:
+            with self.subTest(guide=row["id"]):
+                route_file = (
+                    guides_dir / "replacement_drafts" / "cutovers"
+                    / f"{row['id']}.json"
+                )
+                route = json.loads(route_file.read_text(encoding="utf-8"))
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1",),
+                )
+                try:
+                    total = route["expected_source_step_count"]
+                    self.assertEqual(len(panel.navigation.step_ids), total)
+                    self.assertIn(f"ÉTAPE 1 / {total}", panel.position_label.text())
+                    self.assertTrue(panel.body_label.text().strip())
+                    self.assertFalse(panel.travel_button.isEnabled())
+                    panel.step_jump.setValue(total)
+                    self.assertEqual(panel.step_jump.value(), total)
+                    self.assertIn(
+                        f"ÉTAPE {total} / {total}", panel.position_label.text()
+                    )
+                    panel.actual_button.click()
+                    self.assertEqual(panel.step_jump.value(), 1)
+                    self.assertEqual(
+                        self.store.manual_steps("character:1", row["id"]), set()
+                    )
+                finally:
+                    panel.deleteLater()
+                    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
+    def test_thirty_reopens_keep_manual_progress_and_source_step_identity(self):
+        route = _source_route()
+        first_step = "ganymede_2205_step_0001"
+        self.store.set_manual_step_completed(
+            "character:1", "dofus_cawotte", first_step, True,
+        )
+        for cycle in range(30):
+            with self.subTest(cycle=cycle):
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1", "character:2"),
+                )
+                try:
+                    panel.show()
+                    self.app.processEvents()
+                    self.assertEqual(
+                        panel.navigation.position().actual_step_id, first_step
+                    )
+                    self.assertEqual(
+                        panel.navigation.position().completed_by_character,
+                        {"character:1": 1, "character:2": 0},
+                    )
+                    panel.next_button.click()
+                    panel.actual_button.click()
+                    self.assertEqual(
+                        panel.navigation.position().viewed_step_id, first_step
+                    )
+                finally:
+                    panel.hide()
+                    panel.deleteLater()
+                    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertEqual(
+            self.store.manual_steps("character:1", "dofus_cawotte"), {first_step}
+        )
+        self.assertEqual(
+            self.store.manual_steps("character:2", "dofus_cawotte"), set()
+        )
+
+    def test_shipped_cawotte_and_argente_are_real_browsable_manual_routes(self):
+        source_dir = (
+            Path(__file__).resolve().parents[1] / "data" / "encyclopedia"
+            / "guides" / "replacement_drafts" / "cutovers"
+        )
+        for guide_id, expected_count, source_id in (
+            ("dofus_cawotte", 64, 2205),
+            ("dofus_argente", 237, 2203),
+        ):
+            with self.subTest(guide_id=guide_id):
+                route = json.loads(
+                    (source_dir / f"{guide_id}.json").read_text(encoding="utf-8")
+                )
+                panel = ContinuousGuideRoutePanel(
+                    route, self.store, ("character:1",),
+                )
+                self.addCleanup(panel.deleteLater)
+                self.assertEqual(len(panel.navigation.step_ids), expected_count)
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_0001",
+                )
+                self.assertNotIn(
+                    "Actions de cette étape non renseignées.",
+                    panel.body_label.text(),
+                )
+                panel.step_jump.setValue(expected_count)
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_{expected_count:04d}",
+                )
+                panel.actual_button.click()
+                self.assertEqual(
+                    panel.navigation.position().viewed_step_id,
+                    f"ganymede_{source_id}_step_0001",
+                )
+                self.assertEqual(self.store.manual_steps("character:1", guide_id), set())
+
+    def test_copyable_source_items_and_coordinates_never_trigger_travel(self):
+        from copy import deepcopy
+
+        route = deepcopy(_source_route())
+        route["sections"][0]["steps"][0]["source_action_candidates"] = [
+            {"kind": "prepare_object", "object_id": 969,
+             "label": 'Cape du "Wa" <Wabbit>'},
+        ]
+        route["sections"][0]["steps"][0]["source_coordinates_mentioned"] = [
+            [25, -4], [24, -3],
+        ]
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda *args: emitted.append(args))
+        self.assertIn("&lt;Wabbit&gt;", panel.preparation_label.text())
+        self.assertFalse(panel.preparation_label.openExternalLinks())
+        self.assertFalse(panel.coordinates_label.openExternalLinks())
+
+        clipboard = QApplication.clipboard()
+        clipboard.clear()
+        panel.preparation_label.linkActivated.emit("item:0")
+        self.assertEqual(clipboard.text(), 'Cape du "Wa" <Wabbit>')
+        panel.coordinates_label.linkActivated.emit("coordinate:1")
+        self.assertEqual(clipboard.text(), "[24, -3]")
+        for invalid in (
+            "item:1000", "item:-1", "item:0/other", "https://bad.test",
+            "item:" + "9" * 6000, "coordinate:" + "9" * 6000,
+        ):
+            panel._copy_source_link(invalid)
+            self.assertEqual(clipboard.text(), "[24, -3]")
+
+        self.assertEqual(emitted, [])
+        self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_runtime_travel_rejects_unbounded_and_boolean_coordinates(self):
+        for bad in (
+            {"x": 2**64, "y": 0},
+            {"x": -(2**31), "y": 0},
+            {"x": 0, "y": -(2**31)},
+            {"x": 0, "y": 2**80},
+            {"x": True, "y": 1},
+            {"x": 0, "y": 1.5},
+        ):
+            with self.subTest(bad=bad):
+                self.assertIsNone(self.panel._exact_coordinates(bad))
+        self.assertEqual(
+            self.panel._exact_coordinates({"x": 25, "y": -4}), (25, -4)
+        )
 
     def test_route_progress_reports_only_manual_selected_checks(self):
         self.assertEqual(self.panel.route_progress.value(), 0)
@@ -328,6 +691,46 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(emitted, [])
 
+    def test_manual_check_and_undo_invalidate_stale_runtime_travel_plan(self):
+        """A route projection cannot be reused after progress has changed."""
+        route = _source_route()
+        first = "ganymede_2205_step_0001"
+        plan = {
+            "mode": "direct",
+            "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": first,
+            "source_payload_sha256": certified_payload_sha256(route),
+            "evidence": "canonical:verified-route",
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            verified_travel_plans={first: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda *args: emitted.append(args))
+
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.validate_button.click()
+        self.assertEqual(panel.navigation.position().actual_step_id,
+                         "ganymede_2205_step_0002")
+        self.assertEqual(panel._verified_travel_plans, {})
+        panel.show_step(first)
+        self.assertFalse(panel.travel_button.isEnabled())
+
+        panel.validate_button.click()  # Undo the completed first step.
+        self.assertEqual(panel.navigation.position().actual_step_id, first)
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [])
+
+        # A newly verified projection for the current progress may be used.
+        panel.set_verified_travel_plans({first: plan})
+        self.assertTrue(panel.travel_button.isEnabled())
+
     def test_runtime_plan_rejects_foreign_guide_or_source_step(self):
         from copy import deepcopy
 
@@ -350,10 +753,12 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(panel.travel_button.isEnabled())
         plan["atlas_guide_id"] = "dofus_cawotte"
         plan["source_step_id"] = "ganymede_2205_step_0002"
-        panel.refresh()
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertFalse(panel.travel_button.isEnabled())
         plan["source_step_id"] = step_id
-        panel.refresh()
+        panel.refresh()  # Mutating caller state alone has no effect.
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertTrue(panel.travel_button.isEnabled())
         panel.set_verified_travel_plans({})
         self.assertFalse(panel.travel_button.isEnabled())
@@ -383,6 +788,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
         self.assertTrue(panel.travel_button.isEnabled())
+        # The original caller must not alter an already-accepted destination.
+        plan["destination"]["x"] = 400
+        panel.refresh()
         panel.travel_button.click()
         self.assertEqual(events, [("/travel 5,-18", ("character:2",))])
         panel.set_characters(("character:1",))
@@ -423,6 +831,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         ])
         plan["destination"]["x"] = -(2**31)
         panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())  # Snapshot unchanged.
+        panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
         self.assertEqual(len(events), 1)

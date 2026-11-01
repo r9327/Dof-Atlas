@@ -34,6 +34,52 @@ def certified_payload_sha256(payload: dict) -> str:
 
 
 
+
+def reconstruct_trusted_manual_route(guide: object) -> dict:
+    """Rehydrate only the currently selected route from compact typed models.
+
+    MemoryBoundGuideProvider/IndexedGuideProvider remove nested raw sections to
+    avoid retaining duplicate JSON trees. The Ganymède reader must not assume
+    guide.raw still contains 'sections'; nor should it read all routes again.
+    All source action facts remain in GuideStep.raw and the integrity-gated
+    cutover was checked when the provider selected this guide.
+    """
+    root = getattr(guide, "raw", None)
+    if not isinstance(root, dict) or root.get("replacement_status") != "TRUSTED_SOURCE_STEPS":
+        raise ValueError("not an active manual source route")
+    sections = getattr(guide, "sections", ())
+    if len(sections) != 1:
+        raise ValueError("manual source route must have one section")
+    rebuilt = dict(root)
+    rebuilt["sections"] = []
+    for section in sections:
+        original = getattr(section, "raw", None)
+        if not isinstance(original, dict):
+            raise ValueError("missing source section metadata")
+        section_data = dict(original)
+        section_data["steps"] = []
+        for step in getattr(section, "steps", ()):
+            raw_step = getattr(step, "raw", None)
+            if not isinstance(raw_step, dict):
+                raise ValueError("missing source step metadata")
+            section_data["steps"].append(dict(raw_step))
+        rebuilt["sections"].append(section_data)
+    # Validate all IDs and the declared count before the UI uses the payload.
+    source_id = rebuilt.get("source_guide_id")
+    count = rebuilt.get("expected_source_step_count")
+    steps = rebuilt["sections"][0]["steps"]
+    if (type(source_id) is not int or type(count) is not int
+            or count < 1 or len(steps) != count
+            or any(
+                row.get("id") != f"ganymede_{source_id}_step_{i:04d}"
+                or row.get("source_step_number") != i
+                or row.get("source_guide_id") != source_id
+                for i, row in enumerate(steps, 1)
+            )):
+        raise ValueError("source route lost its certified step order")
+    return rebuilt
+
+
 def select_verified_replacement_path(
     guides_dir: Path,
     catalog_row: dict,
@@ -177,3 +223,70 @@ def select_verified_replacement_path(
         return path
     except (OSError, ValueError, TypeError, KeyError):
         return None
+
+
+def active_manual_catalog_sources(provider: object, guides: list[object]) -> dict[str, tuple[int, int]]:
+    """Return (source ID, step count) for *selected* trusted manual routes.
+
+    Only the small manifest is read. Memory-bound providers have already
+    selected an integrity-checked cutover and retain its exact file path in
+    _detail_entries; never rehydrate all 1,694 steps for the home counters.
+    A legacy fallback must not display the Ganymède manual progress.
+    """
+    guides_dir = getattr(provider, "guides_dir", None)
+    if guides_dir is None:
+        return {}
+    trusted = Path(guides_dir) / "replacement_drafts" / "cutovers"
+    try:
+        manifest = json.loads((trusted / _MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+        return {}
+    declarations = manifest.get("guides")
+    if not isinstance(declarations, dict):
+        return {}
+    selected_entries = getattr(provider, "_detail_entries", None)
+    result: dict[str, tuple[int, int]] = {}
+    for guide in guides:
+        guide_id = getattr(guide, "id", None)
+        if (not isinstance(guide_id, str) or guide_id in {
+                "guide_complet", "dofus_sylvestre"}
+                or getattr(guide, "category", None) != "dofus"):
+            continue
+        declaration = declarations.get(guide_id)
+        if not isinstance(declaration, dict) or declaration.get("enabled") is not True:
+            continue
+        if declaration.get("status") != "TRUSTED_SOURCE_STEPS":
+            continue
+        source_id = declaration.get("source_guide_id")
+        total = declaration.get("source_step_count")
+        if type(source_id) is not int or source_id <= 0 or type(total) is not int or total <= 0:
+            continue
+        if isinstance(selected_entries, dict):
+            selected = selected_entries.get(guide_id)
+            if (not isinstance(selected, tuple) or not selected
+                    or Path(selected[0]) != trusted / f"{guide_id}.json"):
+                continue
+        else:
+            raw = getattr(guide, "raw", None)
+            if not isinstance(raw, dict) or raw.get("replacement_status") != "TRUSTED_SOURCE_STEPS":
+                continue
+        result[guide_id] = (source_id, total)
+    return result
+
+
+def manual_source_completed_count(
+    progress_service: object, character_key: str, guide_id: str,
+    source_id: int, total: int,
+) -> int:
+    """Count only stable Ganymède step keys; never count finished quests."""
+    from app.core.character_identity import is_character_key
+
+    if not is_character_key(character_key):
+        return 0
+    checked = progress_service.manual_steps(character_key, guide_id)
+    return sum(
+        f"ganymede_{source_id}_step_{position:04d}" in checked
+        for position in range(1, total + 1)
+    )
