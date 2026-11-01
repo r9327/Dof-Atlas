@@ -123,6 +123,75 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 # The two optimized routes retain their previous progress contract.
                 self.assertEqual(progress["guide_complet"], (0, 0, ""))
 
+    def test_source_library_exposes_all_95_without_replacing_optimized_guides(self):
+        from app.modules.encyclopedia.views.guide_library_sources import ATLAS_EQUIVALENTS
+        from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+            active_manual_catalog_sources,
+        )
+        import json
+
+        base = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        manifest = json.loads((
+            base / "replacement_drafts" / "cutovers" / "cutover_manifest.json"
+        ).read_text(encoding="utf-8"))["guides"]
+        guides = [
+            _guide("guide_complet", "aventure"),
+            _guide("dofus_sylvestre", "aventure"),
+            *(_guide(guide_id, "dofus") for guide_id in manifest),
+        ]
+        provider = _Provider()
+        provider.guides = guides
+        provider.guides_dir = base
+        provider._detail_entries = {
+            guide_id: (
+                base / "replacement_drafts" / "cutovers" / f"{guide_id}.json",
+                i, {},
+            )
+            for i, guide_id in enumerate(manifest)
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=provider,
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                self.assertEqual(set(view.featured_cards), {
+                    "guide_complet", "dofus_sylvestre",
+                })
+                self.assertEqual(
+                    len(active_manual_catalog_sources(provider, guides)), 20,
+                )
+                ids_visible_as_links = set()
+                for key, _label in CATEGORIES:
+                    view.library_category = key
+                    view.refresh_home()
+                    for i in range(view.home_metadata_list.count()):
+                        item = view.home_metadata_list.item(i)
+                        self.assertTrue(item.flags() & Qt.ItemIsEnabled)
+                        ids_visible_as_links.add(item.data(Qt.UserRole))
+
+                source_ids = {entry.source_id for entry in view.ganymede_listings}
+                native_ids = {
+                    row["source_guide_id"] for row in manifest.values()
+                }
+                # Sylvestre Ganymède source is represented only by the
+                # preserved Atlas optimized card, never a duplicate.
+                sylvestre = next(
+                    source for source, atlas in ATLAS_EQUIVALENTS.items()
+                    if atlas == "dofus_sylvestre"
+                )
+                self.assertEqual(len(ids_visible_as_links), 74)
+                self.assertEqual(
+                    ids_visible_as_links | native_ids | {sylvestre}, source_ids,
+                )
+                self.assertTrue(ids_visible_as_links.isdisjoint(native_ids))
+            finally:
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_unity_catalog_inner_roots_and_featured_card_alpha(self):
         from unittest.mock import patch
 
@@ -226,7 +295,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(view.library_category, "dimensions")
                     self.assertGreater(view.home_metadata_list.count(), 0)
                     self.assertTrue(all(
-                        not (view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
+                        bool(view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
                         for i in range(view.home_metadata_list.count())
                     ))
                     alignments.setExpanded(False)
