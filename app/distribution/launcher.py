@@ -84,13 +84,22 @@ def _relocate_runtime_safely(target: Path, progress=None, *, after_relocation=No
         if not instance.acquire():
             raise UpdateError("Fermez Dofus Atlas avant de deplacer son installation")
         try:
+            copied_bytes = 0
+
+            def measured_progress(done: int, total: int) -> None:
+                nonlocal copied_bytes
+                copied_bytes = done
+                if progress is not None:
+                    progress(done, total)
+
             record_startup_event("install_relocation_begin")
             try:
-                location = relocate_runtime(target, progress=progress)
+                location = relocate_runtime(target, progress=measured_progress)
             except Exception:
                 record_startup_event("install_relocation_aborted")
                 raise
-            record_startup_event("install_relocation_committed")
+            record_startup_event("install_relocation_committed",
+                                 copied_bytes=copied_bytes)
             if after_relocation is not None:
                 after_relocation(location, instance)
             return location
