@@ -23,6 +23,23 @@ class StartupTraceReportTests(unittest.TestCase):
         self.assertEqual(durations_ms(collect([json.dumps(x) for x in rows]),
                                       "launcher_entry", "home_event_loop"), [])
 
+    def test_relocation_duration_requires_a_committed_copy(self) -> None:
+        rows = [
+            {"session": "success", "event": "install_relocation_begin",
+             "t_ns": 1_000_000},
+            {"session": "success", "event": "install_relocation_committed",
+             "t_ns": 8_500_000},
+            {"session": "failed", "event": "install_relocation_begin",
+             "t_ns": 2_000_000},
+            {"session": "failed", "event": "install_relocation_aborted",
+             "t_ns": 30_000_000},
+        ]
+        segment = summarize([json.dumps(item) for item in rows])[
+            "segments"]["install_relocation_begin_to_install_relocation_committed"]
+        self.assertEqual(segment["n"], 1)
+        self.assertEqual(segment["p50_ms"], 7.5)
+        self.assertEqual(segment["p99_ms"], 7.5)
+
     def test_counters_only_from_completed_operations(self) -> None:
         rows = [
             {"session": "a", "event": "download_archive_ready", "network_bytes": 0, "t_ns": 1},
