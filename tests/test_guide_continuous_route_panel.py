@@ -753,10 +753,12 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(panel.travel_button.isEnabled())
         plan["atlas_guide_id"] = "dofus_cawotte"
         plan["source_step_id"] = "ganymede_2205_step_0002"
-        panel.refresh()
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertFalse(panel.travel_button.isEnabled())
         plan["source_step_id"] = step_id
-        panel.refresh()
+        panel.refresh()  # Mutating caller state alone has no effect.
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertTrue(panel.travel_button.isEnabled())
         panel.set_verified_travel_plans({})
         self.assertFalse(panel.travel_button.isEnabled())
@@ -786,6 +788,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
         self.assertTrue(panel.travel_button.isEnabled())
+        # The original caller must not alter an already-accepted destination.
+        plan["destination"]["x"] = 400
+        panel.refresh()
         panel.travel_button.click()
         self.assertEqual(events, [("/travel 5,-18", ("character:2",))])
         panel.set_characters(("character:1",))
@@ -826,6 +831,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         ])
         plan["destination"]["x"] = -(2**31)
         panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())  # Snapshot unchanged.
+        panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
         self.assertEqual(len(events), 1)
