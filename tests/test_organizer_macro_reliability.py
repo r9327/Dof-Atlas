@@ -79,6 +79,21 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 DirectionMacro(runtime)._run("HOME")
         runtime.switch_character.restore_preferred_client.assert_called_once_with("Switch deplacement")
 
+    def test_direction_skips_all_keys_if_focus_is_stolen(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        with (
+            patch("app.macros.direction.foreground_window", side_effect=[101, 999, 999]),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.activate_window", return_value=True),
+            patch("app.macros.direction.press_key") as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_called_once_with(
+            "Switch deplacement"
+        )
+
     def test_direction_does_not_restore_on_stop(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
