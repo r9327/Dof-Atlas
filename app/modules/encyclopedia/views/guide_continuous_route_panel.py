@@ -6,6 +6,7 @@ progression. Sommaire stays open until the user explicitly closes it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from copy import deepcopy
 from html import escape
 
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
@@ -128,7 +129,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self._source_payload_sha256 = certified_payload_sha256(dict(route))
         # Runtime-only planner overlay. Never trust a similarly named field
         # inside Ganymède's imported/signed source JSON.
-        self._verified_travel_plans = dict(verified_travel_plans or {})
+        self._verified_travel_plans = deepcopy(dict(verified_travel_plans or {}))
         # Only expose registered stable Atlas characters, including offline
         # ones. A removed window must not silently deselect its character.
         self.available_characters = tuple(
@@ -528,7 +529,9 @@ class ContinuousGuideRoutePanel(QWidget):
         """Replace only the in-memory Atlas planner overlay, then refresh."""
         if not isinstance(plans, Mapping):
             raise ValueError("Verified travel plans must be a mapping")
-        self._verified_travel_plans = dict(plans)
+        # Own the entire plan snapshot: callers may mutate a nested destination
+        # after the planner result was checked. Never dispatch their edits.
+        self._verified_travel_plans = deepcopy(dict(plans))
         self.refresh()
 
     def apply_projected_runtime_plan(self, projection: Mapping[str, object]) -> bool:
