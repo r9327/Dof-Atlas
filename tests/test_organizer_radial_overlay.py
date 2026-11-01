@@ -133,6 +133,45 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_external_focus_loss_while_held_disarms_until_release(self):
+        overlay = _Overlay(selection=101)
+        pressed = [True]
+        parent, controller, launched = self._controller(overlay, pressed)
+        focus = [True]
+        controller.can_open = lambda: focus[0]
+        try:
+            controller.poll()
+            self.assertTrue(overlay.visible)
+            focus[0] = False
+            controller.poll()
+            self.assertFalse(overlay.visible)
+            focus[0] = True
+            controller.poll()
+            self.assertEqual(len(overlay.opens), 1)
+            pressed[0] = False
+            controller.poll()
+            self.assertEqual(launched, [])
+        finally:
+            parent.deleteLater()
+
+    def test_focus_loss_only_at_release_never_reactivates_game(self):
+        overlay = _Overlay(selection=101)
+        pressed = [True]
+        parent, controller, launched = self._controller(overlay, pressed)
+        focus = [True]
+        controller.can_open = lambda: focus[0]
+        try:
+            controller.poll()
+            self.assertTrue(overlay.visible)
+            focus[0] = False
+            pressed[0] = False  # no intermediate key-down poll
+            controller.poll()
+            self.assertFalse(overlay.visible)
+            self.assertEqual(launched, [])
+            self.assertTrue(overlay.finishes[-1][1])
+        finally:
+            parent.deleteLater()
+
     def test_capture_cancel_does_not_reopen_until_release(self):
         overlay = _Overlay(selection=101)
         pressed = [True]
