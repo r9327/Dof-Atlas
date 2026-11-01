@@ -588,6 +588,22 @@ class OrganizerUiMixin:
                 # A favorite is an action, not a drag handle: swallowing its
                 # mouse release during a tiny drag loses the click/selection.
             layout.addWidget(star)
+            radial_enabled = self.radial_session_is_selected(session)
+            radial_toggle = AtlasButton("◉" if radial_enabled else "○")
+            radial_toggle.setObjectName(
+                "FavoriteButtonActive" if radial_enabled else "FavoriteButton"
+            )
+            radial_toggle.setFixedSize(22, 24)
+            radial_toggle.setAccessibleName(
+                f"{'Retirer' if radial_enabled else 'Ajouter'} {name} du camembert"
+            )
+            radial_toggle.setToolTip(
+                f"{'Retirer' if radial_enabled else 'Ajouter'} ce personnage au camembert"
+            )
+            radial_toggle.clicked.connect(
+                lambda _checked=False, target=dict(session): self.toggle_radial_session(target)
+            )
+            layout.addWidget(radial_toggle)
             icon = QLabel()
             icon.setFixedSize(24, 24)
             icon.setAlignment(Qt.AlignCenter)
