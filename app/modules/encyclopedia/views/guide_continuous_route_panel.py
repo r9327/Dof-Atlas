@@ -142,6 +142,10 @@ class ContinuousGuideRoutePanel(QWidget):
         self._characters_open = False
         self._copyable_preparation_labels: tuple[str, ...] = ()
         self._copyable_coordinates: tuple[str, ...] = ()
+        # The source route is immutable for this panel instance. A progress
+        # refresh must not rescan all preceding source actions on a 237-step
+        # guide when the viewed step has not changed.
+        self._preparation_by_step: dict[str, tuple] = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
@@ -689,9 +693,14 @@ class ContinuousGuideRoutePanel(QWidget):
                     for i, location in enumerate(locations)
                 ) if locations else ""
             )
-        references = (
-            visible_object_references(self.route, current) if current else ()
-        )
+        if current is None:
+            references = ()
+        else:
+            if current not in self._preparation_by_step:
+                self._preparation_by_step[current] = visible_object_references(
+                    self.route, current,
+                )
+            references = self._preparation_by_step[current]
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
         self.preparation_toggle.setVisible(bool(references))
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
