@@ -172,6 +172,45 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
                 logger.addHandler.call_args.args[0], logging.NullHandler,
             )
 
+    def test_missing_tk_refuses_first_install_without_network_or_writes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "empty-runtime"
+            with (
+                patch.dict(sys.modules, {"tkinter": None}),
+                patch.object(launcher, "_LOCATION_ERROR", None),
+                patch.object(launcher, "ROOT", root),
+                patch.object(launcher, "read_state", return_value={"active": None}),
+                patch.object(launcher, "run_update") as update,
+                patch.object(launcher, "latest_release") as remote,
+                patch.object(launcher, "install_release") as install,
+            ):
+                self.assertEqual(launcher.main(), 1)
+            update.assert_not_called()
+            remote.assert_not_called()
+            install.assert_not_called()
+            self.assertFalse(root.exists())
+
+    def test_missing_tk_still_launches_existing_installation(self):
+        with (
+            patch.dict(sys.modules, {"tkinter": None}),
+            patch.object(launcher, "_LOCATION_ERROR", None),
+            patch.object(launcher, "read_state", return_value={"active": "v1"}),
+            patch.object(launcher, "run_update") as update,
+        ):
+            self.assertEqual(launcher.main(), 0)
+        update.assert_called_once()
+
+    def test_missing_tk_refuses_invalid_saved_location_before_state(self):
+        with (
+            patch.dict(sys.modules, {"tkinter": None}),
+            patch.object(launcher, "_LOCATION_ERROR", "Bad installation.json"),
+            patch.object(launcher, "read_state") as state,
+            patch.object(launcher, "run_update") as update,
+        ):
+            self.assertEqual(launcher.main(), 1)
+        state.assert_not_called()
+        update.assert_not_called()
+
     def test_corrupt_location_settings_do_not_break_module_bootstrap(self):
         with tempfile.TemporaryDirectory() as temp:
             app_data = Path(temp) / "DofusAtlas"
