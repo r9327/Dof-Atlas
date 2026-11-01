@@ -211,8 +211,10 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             view.resize(490, 320)
             QApplication.processEvents()
             self.assertLess(view.width(), 520)
-            self.assertEqual(view.participants_button.text(), "1")
+            self.assertEqual(view.participants_button.text(), "")
+            self.assertFalse(view.participants_button.icon().isNull())
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
+            self.assertIn("Choisir les identités", view.participants_button.toolTip())
             self.assertEqual(view.current_button.text(), "")
             self.assertEqual(view.current_button.accessibleName(), "Actuelle")
             self.assertTrue(view.current_button.icon().isNull() is False)
@@ -222,7 +224,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
 
             view.resize(960, 640)
             QApplication.processEvents()
-            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.participants_button.text(), "")
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertEqual(view.current_button.text(), "Actuelle")
             self.assertEqual(view.page_jump.maximumWidth(), 115)
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
@@ -292,7 +295,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             travel_callback=lambda command, keys: calls.append((command, keys)),
         )
         try:
-            self.assertEqual(view.participants_button.text(), "Mes personnages · 1")
+            self.assertEqual(view.participants_button.text(), "")
+            self.assertFalse(view.participants_button.icon().isNull())
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertFalse(view.participants_panel.isVisible())
             view.participants_button.click()
             QApplication.processEvents()
@@ -300,6 +305,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual([portrait.accessibleName() for portrait in portraits], ["Alpha", "Beta"])
             self.assertTrue(all(portrait.text() == "" for portrait in portraits))
             portraits[1].click()
+            self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 2")
+            self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(
                 participants.selected_keys(),
                 ("character:1", "character:2"),
