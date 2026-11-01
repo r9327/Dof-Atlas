@@ -501,17 +501,17 @@ class AtlasRuntime:
                 self.synthetic_guard.reset()
                 self.macro_lock.end(label)
 
-        thread = threading.Thread(target=runner, name=f"DofusAtlas-{label}", daemon=True)
-        self._threads = [thread for thread in self._threads if thread.is_alive()]
         try:
+            thread = threading.Thread(target=runner, name=f"DofusAtlas-{label}", daemon=True)
             thread.start()
         except Exception:
-            # try_begin() reserved the single macro lease; a failed thread
-            # start must release it so every subsequent hotkey is not blocked.
+            # try_begin() reserved the single macro lease; both a failed
+            # thread construction and start must release it.
             self.macro_lock.end(label)
             self.logger.exception("%s impossible de demarrer le thread macro.", label)
             self._emit_status(f"{label}: lancement impossible.")
             return False
+        self._threads = [old for old in self._threads if old.is_alive()]
         self._threads.append(thread)
         return True
 
