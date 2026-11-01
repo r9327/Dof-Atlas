@@ -10,6 +10,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QWidget
 
+from app.constants import KEY_RADIAL_PARTICIPANTS
+from app.pages.organizer_page import OrganizerPage
 from app.pages.organizer.radial_overlay import (
     OrganizerRadialHoldController,
     OrganizerRadialOverlay,
@@ -177,6 +179,43 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             self.assertEqual(launched, [])
         finally:
             parent.deleteLater()
+
+
+class OrganizerRadialRosterTests(unittest.TestCase):
+    def test_new_dofus_detection_does_not_auto_add_radial_part(self):
+        page = Mock()
+        page.profiles = {}
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 101, "pid": 1001},
+            {"nom": "Enu", "hwnd": 102, "pid": 1002},
+        ]
+        OrganizerPage.ensure_radial_participants(page)
+        self.assertEqual(len(page.profiles[KEY_RADIAL_PARTICIPANTS]), 2)
+        page.sessions.append({"nom": "Cra", "hwnd": 103, "pid": 1003})
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 102],
+        )
+
+    def test_character_can_be_removed_from_radial_and_reenabled(self):
+        page = Mock()
+        page.profiles = {}
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 101, "pid": 1001},
+            {"nom": "Enu", "hwnd": 102, "pid": 1002},
+        ]
+        page.ensure_radial_participants = lambda: OrganizerPage.ensure_radial_participants(page)
+        OrganizerPage.toggle_radial_session(page, page.sessions[0])
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [102],
+        )
+        page.save_profiles.assert_called_once()
+        OrganizerPage.toggle_radial_session(page, page.sessions[0])
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 102],
+        )
 
 
 if __name__ == "__main__":
