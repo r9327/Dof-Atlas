@@ -40,6 +40,12 @@ class DirectionMacro:
                     "Switch deplacement",
                     should_stop=self.runtime.macro_lock.should_stop,
                 ):
+                    if foreground_window() != int(client.handle):
+                        self.runtime.logger.warning(
+                            "Switch deplacement refuse: focus perdu avant frappe hwnd=%s",
+                            client.handle,
+                        )
+                        continue
                     press_key(key_name, timings.movement_key_hold_ms)
                     if self.runtime.macro_lock.should_stop():
                         return
