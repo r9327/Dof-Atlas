@@ -38,6 +38,15 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
         )
         self.assertEqual(visible_characters(sessions, set()), [])
 
+    def test_invalid_and_stale_handles_do_not_crash_or_create_slices(self) -> None:
+        sessions = [
+            {"nom": "Alpha", "hwnd": 12},
+            {"nom": "Bad handle", "hwnd": "unknown"},
+            {"nom": "Stale", "hwnd": 0},
+        ]
+        selected = visible_characters(sessions, {12, "unknown", None, 0})
+        self.assertEqual([row["hwnd"] for row in selected], [12])
+
     def test_clockwise_vectors_select_each_equal_sector(self) -> None:
         for count in (2, 3, 4, 6, 8):
             for index in range(count):
