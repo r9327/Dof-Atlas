@@ -4,6 +4,7 @@ import math
 import unittest
 
 from app.pages.organizer.radial_selection import (
+    confirmed_radial_target,
     selected_slice,
     slice_count,
     visible_characters,
@@ -56,6 +57,21 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
                     angle = index * math.tau / count
                     dx, dy = 100 * math.sin(angle), -100 * math.cos(angle)
                     self.assertEqual(selected_slice(dx, dy, count), index)
+
+    def test_releasing_after_window_is_closed_or_reused_cancels(self) -> None:
+        snapshot = [
+            {"hwnd": 12, "nom": "Alpha", "pid": 121, "character_key": "character:1"},
+            {"hwnd": 13, "nom": "Beta", "pid": 131, "character_key": "character:2"},
+        ]
+        self.assertEqual(confirmed_radial_target(snapshot, snapshot[::-1], 0), 12)
+        self.assertIsNone(confirmed_radial_target(snapshot, snapshot[1:], 0))
+        self.assertIsNone(confirmed_radial_target(snapshot, [
+            {"hwnd": 12, "nom": "Other", "pid": 121, "character_key": "character:9"}
+        ], 0))
+        self.assertIsNone(confirmed_radial_target(snapshot, [
+            {"hwnd": 12, "nom": "Alpha", "pid": 999, "character_key": "character:1"}
+        ], 0))
+        self.assertIsNone(confirmed_radial_target(snapshot, [], None))
 
     def test_center_and_empty_selection_cancel(self) -> None:
         self.assertIsNone(selected_slice(0, 0, 8))
