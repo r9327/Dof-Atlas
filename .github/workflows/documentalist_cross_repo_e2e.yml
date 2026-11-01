@@ -13,16 +13,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: r9327/Atlas-Holding
           ref: b7d900e00ec6f6c25846f773f49917247badf1a3
           path: holding-source
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: r9327/Dof-Atlas
           ref: 8eebcc6a1c4c858a33b74ae7fe627e5e9aec09cd
