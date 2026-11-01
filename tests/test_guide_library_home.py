@@ -76,6 +76,53 @@ class GuideLibraryHomeTests(unittest.TestCase):
         visible_ids = {entry.source_id for entry in selected}
         self.assertTrue({2247, 2285, 2290}.isdisjoint(visible_ids))
 
+    def test_real_ganymede_home_counts_manual_steps_not_completed_quests(self):
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            progress_path = root / "guide_progress.json"
+            source_dir = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+            manual = GuideProgressService(progress_path)
+            manual.set_manual_step_completed(
+                "character:1", "dofus_cawotte", "ganymede_2205_step_0001", True,
+            )
+            provider = _Provider()
+            provider.guides_dir = source_dir
+            provider._detail_entries = {
+                "dofus_cawotte": (
+                    source_dir / "replacement_drafts" / "cutovers" / "dofus_cawotte.json",
+                    0, {},
+                ),
+            }
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
+                progress_path,
+            ), patch(
+                "app.modules.encyclopedia.views.encyclopedia_page.GUIDE_PROGRESS_FILE",
+                progress_path,
+            ):
+                view = GuideCatalogView(
+                    lambda _message: None, provider=provider,
+                    quest_progress_path=root / "quest_progress.json",
+                    character_key="character:1",
+                    defer_runtime=True,
+                )
+                self.addCleanup(view.deleteLater)
+                view.hydrate_runtime()
+                progress = view._progress_snapshot()
+                self.assertEqual(progress["dofus_cawotte"], (1, 64, "En cours"))
+                self.assertNotEqual(progress["dofus_ivoire"], (1, 64, "En cours"))
+                self.assertEqual(
+                    EncyclopediaPage._build_guide_progress_snapshot(
+                        provider, "character:1", root / "quest_progress.json",
+                    )["dofus_cawotte"],
+                    (1, 64, "En cours"),
+                )
+                # The two optimized routes retain their previous progress contract.
+                self.assertEqual(progress["guide_complet"], (0, 0, ""))
+
     def test_unity_catalog_inner_roots_and_featured_card_alpha(self):
         from unittest.mock import patch
 
