@@ -8,6 +8,7 @@ from app.constants import (
     KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_SCRIPT_SPEED,
+    KEY_RADIAL_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -66,6 +67,7 @@ class OrganizerHotkeysMixin:
             (KEY_CLICK_HOTKEY, "Switch Clique"),
             (KEY_DOUBLE_CLICK_HOTKEY, "Switch clic x2"),
             (KEY_STOP_SCRIPT_HOTKEY, "Stop script"),
+            (KEY_RADIAL_HOTKEY, "Sélection personnage"),
         ):
             if value == self.hotkey_label(key):
                 return label
@@ -100,6 +102,10 @@ class OrganizerHotkeysMixin:
 
     def clear_global_hotkey(self, key: str) -> None:
         self.profiles.pop(key, None)
+        if key == KEY_RADIAL_HOTKEY:
+            controller = getattr(self, "_radial_controller", None)
+            if controller is not None:
+                controller.set_shortcut("")
         if key == KEY_CLICK_HOTKEY:
             self.profiles[KEY_SWITCH_CLICK] = False
         elif key == KEY_DOUBLE_CLICK_HOTKEY:
@@ -154,6 +160,8 @@ class OrganizerHotkeysMixin:
             self.double_click_button.setText("...")
         elif kind == "stop_script":
             self.stop_script_hotkey_button.setText("...")
+        elif kind == "radial":
+            self.radial_hotkey_button.setText("...")
         self.setFocus(Qt.ShortcutFocusReason)
         self.status_callback("En attente d'une touche...")
 
@@ -177,6 +185,11 @@ class OrganizerHotkeysMixin:
             self.render_sessions()
             return
         kind = target.get("kind")
+        if kind != "radial" and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
+            self.update_global_buttons()
+            self.render_sessions()
+            self.status_callback("Raccourci déjà utilisé par Sélection personnage.")
+            return
         if kind == "client" and target.get("slot") is not None:
             slot_index = int(target["slot"])
             owner = self.global_hotkey_owner(hotkey) or self.client_hotkey_owner(hotkey, exclude_slot=slot_index)
@@ -186,6 +199,17 @@ class OrganizerHotkeysMixin:
                 self.status_callback(f"Raccourci deja utilise par {owner}.")
                 return
             self.profiles[client_slot_hotkey_key(slot_index)] = hotkey
+        elif kind == "radial":
+            owner = self.client_hotkey_owner(hotkey)
+            existing_global = self.global_hotkey_owner(hotkey)
+            if existing_global and existing_global != "Sélection personnage":
+                owner = existing_global
+            if owner:
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+                return
+            self.profiles[KEY_RADIAL_HOTKEY] = hotkey
         elif kind == "click":
             if hotkey == self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY):
                 self.update_global_buttons()
@@ -244,5 +268,8 @@ class OrganizerHotkeysMixin:
         self.export_client_index()
         self.update_global_buttons()
         self.render_sessions()
+        controller = getattr(self, "_radial_controller", None)
+        if controller is not None:
+            controller.set_shortcut(self.hotkey_label(KEY_RADIAL_HOTKEY))
         self.reload_runtime_callback()
         self.status_callback(f"Raccourci {hotkey} enregistré.")
