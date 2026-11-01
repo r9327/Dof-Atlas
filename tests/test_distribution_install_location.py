@@ -182,6 +182,44 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertFalse(target.exists())
                 self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
 
+    def test_same_size_corruption_in_non_executable_aborts_migration(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as temp:
+            user = Path(temp) / "Data"
+            source = user / "runtime"
+            executable = source / "versions" / "v1" / "AtlasApp" / "AtlasApp.exe"
+            executable.parent.mkdir(parents=True)
+            binary = b"MZ!valid"
+            executable.write_bytes(binary)
+            (source / "versions" / "v1" / "assets.dat").write_bytes(b"safe-assets")
+            (source / "state.json").write_text(json.dumps({
+                "active": "v1", "previous": None, "pending": False,
+                "entrypoint": "AtlasApp/AtlasApp.exe",
+                "entrypoint_size": len(binary),
+                "entrypoint_sha256": hashlib.sha256(binary).hexdigest(),
+                "source_sha": "a" * 40,
+            }), encoding="utf-8")
+            target = Path(temp) / "NewDisk" / "runtime"
+            original_copy2 = shutil.copy2
+
+            def corrupt_asset(src, dst, *args, **kwargs):
+                result = original_copy2(src, dst, *args, **kwargs)
+                if Path(src).name == "assets.dat":
+                    Path(dst).write_bytes(b"evil-assets")
+                return result
+
+            with (patch.object(loc, "APP_DATA", user),
+                  patch.object(loc, "_SETTINGS", user / "installation.json"),
+                  patch.object(loc, "DEFAULT_RUNTIME", source)):
+                loc.set_runtime_root(source)
+                with patch("shutil.copy2", side_effect=corrupt_asset):
+                    with self.assertRaisesRegex(UpdateError, "corrompue"):
+                        loc.relocate_runtime(target)
+                self.assertEqual(loc.runtime_root(), source.resolve())
+                self.assertEqual((source / "versions" / "v1" / "assets.dat").read_bytes(), b"safe-assets")
+                self.assertFalse(target.exists())
+                self.assertEqual(list(target.parent.glob(".atlas-move-*")), [])
+
     def test_destination_collision_does_not_discard_current_installation(self):
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "current" / "runtime"
