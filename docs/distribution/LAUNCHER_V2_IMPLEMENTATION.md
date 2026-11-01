@@ -98,6 +98,17 @@ l'exécutable du launcher démarre ; il ne valide ni les chemins ni les données
 personnelles. Après correction du fichier de configuration, relancer le
 launcher ; ne pas interpréter son code de sortie comme une réparation.
 
+Si Tk est indisponible, le lanceur peut encore démarrer une installation
+locale **déjà active**, mais refuse une première installation silencieuse :
+le choix du disque ne doit pas être court-circuité par une extraction
+de plusieurs gigaoctets dans AppData.
+
+Les journaux restent diagnostics : si Windows refuse la création de
+`logs/updater.log` (permissions, disque plein ou verrouillage antivirus),
+le launcher continue et affiche directement les erreurs dans sa fenêtre.
+Le journal rotatif n'est remplacé par un `NullHandler` qu'en cas d'échec
+d'ouverture ; les écritures de release/progression ne dépendent pas de lui.
+
 ## Vérification, cache et installation transactionnelle
 
 `app/distribution/launcher.py` prend un verrou de mise à jour et vérifie
