@@ -56,7 +56,7 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             self.assertLessEqual(abs(overlay.geometry().center().x() -
                                      screen.geometry().center().x()), 1)
             self.assertLessEqual(abs(overlay.geometry().center().y() -
-                                     screen.availableGeometry().center().y()), 1)
+                                     screen.geometry().center().y()), 1)
             self.assertTrue(bool(overlay.windowFlags() &
                                  Qt.WindowDoesNotAcceptFocus))
         finally:
