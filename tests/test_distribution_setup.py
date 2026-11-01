@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.distribution.setup import install_launcher
+from app.distribution.setup import install_launcher, install_maintenance_helper
 
 
 class SetupTests(unittest.TestCase):
@@ -57,6 +57,23 @@ class SetupTests(unittest.TestCase):
                 installed.write_bytes(b"MZchanged")  # Same length, wrong checksum.
                 install_launcher(source, app)
             self.assertEqual(installed.read_bytes(), b"MZcorrect")
+
+    def test_maintenance_helper_skips_identical_setup_and_repairs_corruption(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            programs = root / "Programs"
+            programs.mkdir()
+            source = root / "DofusAtlasSetup.exe"
+            source.write_bytes(b"MZmaintenance-binary")
+            helper = install_maintenance_helper(source, programs)
+            self.assertEqual(helper.read_bytes(), source.read_bytes())
+            with patch("app.distribution.setup.tempfile.mkstemp",
+                       side_effect=AssertionError("same maintenance EXE must not be staged")):
+                self.assertEqual(install_maintenance_helper(source, programs), helper)
+            helper.write_bytes(b"XX" + source.read_bytes()[2:])
+            self.assertEqual(helper.stat().st_size, source.stat().st_size)
+            install_maintenance_helper(source, programs)
+            self.assertEqual(helper.read_bytes(), source.read_bytes())
 
     def test_reject_non_executable_without_writing(self):
         with tempfile.TemporaryDirectory() as directory:
