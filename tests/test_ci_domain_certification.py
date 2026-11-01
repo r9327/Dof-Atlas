@@ -28,6 +28,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_hotkey_capture.py": {"organizer", "ui", "identity"},
+            "docs/organizer/radial-selector.md": {"organizer", "ui", "identity"},
+            "docs/organizer/mirror-feasibility.md": {"organizer", "ui", "identity"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
@@ -39,7 +42,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
                 self.assertFalse(planned["phase_certified"])
         for unknown in ("app/macros/unreviewed.py",
                         "app/core/unreviewed_runtime.py",
-                        "tests/test_organizer_unreviewed_backend.py"):
+                        "tests/test_organizer_unreviewed_backend.py",
+                        "docs/organizer/unreviewed-contract.md"):
             with self.subTest(unknown=unknown):
                 self.assertFalse(owners_for(unknown))
                 self.assertEqual(self.route([unknown])["status"], "BLOCKED")
