@@ -83,9 +83,16 @@ def _send_keyboard(vk_code: int, *, up: bool) -> None:
     )
     sent = int(user32.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT)))
     if sent != 1:
-        # 0 is not enough to diagnose UIPI (Windows does not reliably report
-        # that cause). Do not claim successful input or bypass integrity levels.
-        raise OSError("Windows SendInput refused a keyboard event (sent=0/1; check integrity and focus)")
+        # Preserve the immediate Win32 diagnostic when available. UIPI is not
+        # identified by SendInput's return value or GetLastError alone.
+        try:
+            win32_error = int(ctypes.windll.kernel32.GetLastError())
+        except (AttributeError, OSError, ValueError):
+            win32_error = 0
+        raise OSError(
+            f"Windows SendInput refused a keyboard event (sent={sent}/1, "
+            f"win32_error={win32_error}; check integrity and focus)"
+        )
 
 
 def key_down(vk_code: int) -> None:
