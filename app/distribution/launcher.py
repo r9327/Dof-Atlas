@@ -68,6 +68,27 @@ def _run_lock():
     return handle
 
 
+def _relocate_runtime_safely(target: Path, progress=None) -> Path:
+    """Hold the existing installer lock and GUI mutex through the whole copy.
+
+    The folder picker previously migrated before run_update() acquired either
+    guard, so an active Atlas process or another launcher could mutate files
+    while copytree was reading them. Keep the same canonical locks, then let
+    run_update take its own lock for the selected new runtime location.
+    """
+    handle = _run_lock()
+    try:
+        instance = SingleInstanceGuard()
+        if not instance.acquire():
+            raise UpdateError("Fermez Dofus Atlas avant de deplacer son installation")
+        try:
+            return relocate_runtime(target, progress=progress)
+        finally:
+            instance.release()
+    finally:
+        handle.close()
+
+
 def _marker_matches_process(marker: Path, process: subprocess.Popen) -> bool:
     """Require the complete PID written by the exact spawned Atlas process.
 
@@ -486,7 +507,7 @@ def main() -> int:
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)
-                    ROOT = relocate_runtime(target, progress=moved)
+                    ROOT = _relocate_runtime_safely(target, progress=moved)
                 else:
                     set_runtime_root(ROOT)
             # Scoped to the Tk worker, never the headless maintenance path.
