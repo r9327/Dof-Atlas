@@ -40,6 +40,20 @@ class StartupTraceReportTests(unittest.TestCase):
         self.assertEqual(segment["p50_ms"], 7.5)
         self.assertEqual(segment["p99_ms"], 7.5)
 
+    def test_relocation_counter_excludes_aborted_attempts(self) -> None:
+        rows = [
+            {"session": "completed", "event": "install_relocation_committed",
+             "t_ns": 50, "copied_bytes": 800},
+            {"session": "aborted", "event": "install_relocation_aborted",
+             "t_ns": 70, "copied_bytes": 90000},
+            {"session": "completed", "event": "install_relocation_aborted",
+             "t_ns": 72, "copied_bytes": 500},
+        ]
+        summary = summarize([json.dumps(item) for item in rows])
+        self.assertEqual(summary["completed_operation_counters"]["copied_bytes"],
+                         {"n": 1, "p50": 800, "p95": 800, "p99": 800,
+                          "min": 800, "max": 800})
+
     def test_counters_only_from_completed_operations(self) -> None:
         rows = [
             {"session": "a", "event": "download_archive_ready", "network_bytes": 0, "t_ns": 1},
