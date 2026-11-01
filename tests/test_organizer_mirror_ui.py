@@ -142,5 +142,54 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_click.run_async.assert_not_called()
 
 
+    def test_exact_source_guard_does_not_consume_another_window_or_fallback(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        runtime = Mock()
+        mirror = SwitchClickMacro(runtime)
+        for handle, reason in ((202, "cursor"), (101, "preferred_center")):
+            with self.subTest(handle=handle, reason=reason):
+                context = SwitchClickContext(handle, 10, 10, 0.4, 0.4, reason)
+                with patch.object(mirror, "_capture_trigger_context", return_value=context):
+                    self.assertFalse(mirror.run_async(
+                        "Left", 50, 60, 1, "Miroir", exact_source_handle=101,
+                    ))
+        runtime._spawn_macro.assert_not_called()
+        runtime.input_state.begin_mouse_block.assert_not_called()
+
+    def test_sequential_sender_visits_2_4_8_clients_exactly_once(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        for count in (2, 4, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                clients = [SimpleNamespace(handle=h, display_name=str(h)) for h in handles]
+                runtime = Mock()
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                runtime.settings.client_by_handle.return_value = clients[0]
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    input_double_gap_ms=5, switch_click_down_ms=1,
+                    switch_background_post_up_ms=0, switch_client_settle_ms=0,
+                )
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(handles[0], 20, 30, 0.5, 0.5, "cursor")
+                with (
+                    patch("app.macros.switch_click.current_cursor_pos", return_value=(100, 200)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.activate_window", return_value=True),
+                    patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
+                    patch.object(macro, "_target_point", return_value=(20, 30)),
+                ):
+                    macro._run("Left", 1, "Miroir", context)
+                self.assertEqual(sender.call_count, count)
+                self.assertEqual(
+                    [call.args[0] for call in sender.call_args_list], list(handles),
+                )
+                runtime.switch_character.restore_preferred_client.assert_called_once_with("Miroir")
+
+
 if __name__ == "__main__":
     unittest.main()
