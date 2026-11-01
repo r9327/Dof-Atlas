@@ -291,8 +291,13 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     validate.click()
                     progress = GuideProgressService(progress_path)
                     step_id = f"ganymede_{source.source_id}_step_0001"
+                    mapped_id = ATLAS_EQUIVALENTS.get(source.source_id)
+                    progress_id = (
+                        mapped_id if mapped_id and mapped_id != "dofus_sylvestre"
+                        else f"ganymede_source_{source.source_id}"
+                    )
                     self.assertTrue(progress.is_manual_step_completed(
-                        "character:7", f"ganymede_source_{source.source_id}", step_id,
+                        "character:7", progress_id, step_id,
                     ))
                     spinner.setValue(2)
                     self.assertEqual(
@@ -305,7 +310,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertFalse(
                         GuideProgressService(progress_path).is_manual_step_completed(
                             "character:7",
-                            f"ganymede_source_{source.source_id}",
+                            progress_id,
                             step_id,
                         )
                     )
