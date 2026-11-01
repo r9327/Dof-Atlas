@@ -139,11 +139,59 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
         self.assertEqual(columns(1024, 7), 4)  # 4 + 3
         self.assertEqual(columns(1024, 9), 3)  # Three full rows
         self.assertEqual(columns(1024, 11), 4)  # 4 + 4 + 3
-        self.assertEqual(columns(1024, 22), 2)  # No orphan if exact fit exists
+        self.assertEqual(columns(1024, 22), 4)  # 4 x 5 + 2, not 3 x 7 + 1
+        self.assertEqual(columns(1120, 22), 4)  # Qt 320px cap must be considered
+        for width, count in ((1024, 5), (1024, 6), (1024, 7),
+                             (1024, 9), (1024, 11), (1024, 22), (1120, 22)):
+            selected = columns(width, count)
+            cell_width = min(320, max(1, width // selected))
+            physical_columns = width // cell_width
+            self.assertEqual(physical_columns, selected)
+            self.assertNotEqual(count % physical_columns, 1)
         self.assertEqual(columns(610, 5), 2)   # Never squeeze 3 narrow cards
         self.assertEqual(columns(180, 5), 1)
         self.assertEqual(columns(1024, 1), 1)
         self.assertEqual(columns(1024, 0), 1)
+
+    def test_twenty_two_dofus_do_not_leave_a_lone_card_in_real_qt_grid(self) -> None:
+        provider = _CatalogProvider()
+        provider.guides.extend(
+            _guide(f"dofus_test_{i}", "dofus", f"Dofus {i}")
+            for i in range(22)
+        )
+        # Replace the two fixture Dofus so this is exactly 22 cards.
+        provider.guides = [guide for guide in provider.guides
+                           if guide.id not in {"dofus_turquoise", "dofus_cawotte"}]
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.catalog_route_map_count_hint",
+                return_value=0,
+            ):
+                view = GuideCatalogView(
+                    lambda _text: None,
+                    provider=provider,
+                    quest_progress_path=Path(directory) / "progress.json",
+                    defer_runtime=True,
+                )
+                view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
+                view.resize(1450, 900)
+                view.show()
+                self.app.processEvents()
+                try:
+                    view._sync_grid_columns()
+                    viewport_width = view.home_dofus_list.viewport().width()
+                    cell_width = view.home_dofus_list.gridSize().width()
+                    self.assertGreaterEqual(viewport_width, 930)
+                    self.assertEqual(view.home_dofus_model.rowCount(), 22)
+                    self.assertGreater(cell_width, 0)
+                    physical_columns = viewport_width // cell_width
+                    self.assertEqual(physical_columns, 4)
+                    self.assertEqual(22 % physical_columns, 2)
+                finally:
+                    view.close()
+                    view.deleteLater()
+                    self.app.processEvents()
 
     def test_grid_cells_fit_narrow_and_scaled_viewports(self) -> None:
         # High DPI / vertically stacked columns may leave less than 215px.

@@ -463,19 +463,25 @@ class GuideCatalogView(QWidget):
 
     @staticmethod
     def _balanced_grid_columns(viewport_width: int, count: int) -> int:
-        """Avoid a lone last-row Dofus when a balanced row is possible."""
-        columns = min(4, max(1, viewport_width // 205), max(1, count))
-        if count <= 1 or count % columns == 0:
-            return columns
-        # First prefer fully occupied rows without sacrificing card width.
-        for candidate in range(columns - 1, 1, -1):
-            if count % candidate == 0:
-                return candidate
-        # Five cards in four columns would strand one; three columns give 3+2.
-        for candidate in range(columns - 1, 1, -1):
-            if count % candidate >= 2:
-                return candidate
-        return columns
+        """Balance the *physical* Qt grid, including the 320px cell cap.
+
+        Requesting two columns can actually draw three when the viewport is
+        wider than two capped cells. Rank the layouts Qt can really fit:
+        fewer rows first, then no lone last card, then full rows.
+        """
+        limit = min(4, max(1, viewport_width // 205), max(1, count))
+        if count <= 1:
+            return 1
+        choices: list[tuple[int, bool, bool, int, int]] = []
+        for candidate in range(1, limit + 1):
+            cell_width = min(320, max(1, viewport_width // candidate))
+            if max(1, viewport_width // cell_width) != candidate:
+                continue  # Qt would pack more cards than requested.
+            rows = (count + candidate - 1) // candidate
+            remainder = count % candidate
+            choices.append((rows, remainder == 1, remainder != 0,
+                            -candidate, candidate))
+        return min(choices)[-1] if choices else limit
 
     @staticmethod
     def _grid_cell_width(viewport_width: int) -> int:
