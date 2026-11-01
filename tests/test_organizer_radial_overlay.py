@@ -28,6 +28,9 @@ class _Overlay:
     def isVisible(self):
         return self.visible
 
+    def hide(self):
+        self.visible = False
+
     def open_for(self, rows):
         self.opens.append(list(rows))
         self.visible = bool(rows)
@@ -50,7 +53,9 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
     def test_popup_is_centered_on_screen_not_cursor(self):
         overlay = OrganizerRadialOverlay()
         try:
-            self.assertTrue(overlay.open_for([{"nom": "Pandawa", "hwnd": 101}]))
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for([{"nom": "Pandawa", "hwnd": 101}]))
             from PySide6.QtGui import QCursor
             screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
             self.assertLessEqual(abs(overlay.geometry().center().x() -
@@ -59,6 +64,18 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
                                      screen.geometry().center().y()), 1)
             self.assertTrue(bool(overlay.windowFlags() &
                                  Qt.WindowDoesNotAcceptFocus))
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
+    def test_real_overlay_always_closes_even_without_mouse_movement(self):
+        overlay = OrganizerRadialOverlay()
+        try:
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for([{"nom": "Panda", "hwnd": 101}]))
+            self.assertIsNone(overlay.finish([{"nom": "Panda", "hwnd": 101}]))
+            self.assertFalse(overlay.isVisible())
         finally:
             overlay.hide()
             overlay.deleteLater()
