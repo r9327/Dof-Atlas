@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QPushButton
 from app.constants import (
     KEY_CLICK_HOTKEY,
     KEY_DEBUG_MODE,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_SCRIPT_SPEED,
     KEY_RADIAL_HOTKEY,
@@ -19,6 +20,24 @@ from .common import SESSION_SLOT_COUNT, client_slot_hotkey_key
 
 
 class OrganizerHotkeysMixin:
+    def set_macro_mode(self, value: str) -> None:
+        mode = "mirror" if value == "mirror" else "macro"
+        if mode == self.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"):
+            return
+        # Do not let an active classic macro survive the mode change.
+        if callable(self.stop_runtime_callback):
+            self.stop_runtime_callback()
+        self.profiles[KEY_ORGANIZER_MACRO_MODE] = mode
+        self.save_profiles(self.profiles)
+        self.export_client_index()
+        self.update_macro_mode_buttons()
+        self.update_switch_buttons()
+        self.reload_runtime_callback()
+        self.status_callback(
+            "Miroir : clics sur le favori recopiés séquentiellement."
+            if mode == "mirror" else "Macros classiques réactivées."
+        )
+
     def toggle_profile_bool(self, key: str) -> None:
         self.set_profile_bool(key, not profile_bool(self.profiles, key, False))
 

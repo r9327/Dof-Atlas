@@ -531,6 +531,8 @@ class AtlasRuntime:
                 action_id,
             )
             return
+        if self.settings.macro_mode == "mirror":
+            return
         if action_id.startswith("client:"):
             try:
                 client_index = int(payload.get("client_index", 0))
@@ -547,6 +549,43 @@ class AtlasRuntime:
             self.direction.run_async(key_name)
             return
 
+    def _handle_mirror_click(self, button: str, screen_x: int, screen_y: int) -> bool:
+        """Replay a consumed favorite-window click through the existing sender.
+
+        Fail closed without an explicit favorite or a real physical click on
+        that foreground Unity window. Do not create a parallel input backend.
+        """
+        from app.windows.unity_windows import (
+            find_known_client_from_point, foreground_window, is_unity_window,
+        )
+        from app.macros.mirror_plan import mirror_delivery_targets
+
+        settings = self.settings
+        favorite = settings.client_by_handle(settings.primary_handle) if settings.primary_handle else None
+        if favorite is None or not is_unity_window(favorite.handle):
+            return False
+        live_handles = tuple(c.handle for c in settings.clients if is_unity_window(c.handle))
+        destinations = mirror_delivery_targets(
+            live_handles, live_handles, favorite.handle, source_was_consumed=True,
+        )
+        if len(destinations) < 2:
+            return False
+        if foreground_window() != favorite.handle:
+            return False
+        if find_known_client_from_point(screen_x, screen_y, (favorite.handle,)) != favorite.handle:
+            return False
+        if self.macro_lock.active_label:
+            self.logger.debug("Miroir: clic ignoré, macro déjà active.")
+            return True
+        try:
+            return bool(self.switch_click.run_async(
+                button, screen_x, screen_y, 1, "Miroir",
+                exact_source_handle=favorite.handle,
+            ))
+        except Exception:
+            self.logger.exception("Miroir: démarrage impossible.")
+            return False
+
     def _handle_mouse_click(self, button: str, screen_x: int, screen_y: int) -> bool:
         if not self._running or not self._admin_ok:
             self.logger.debug(
@@ -558,6 +597,8 @@ class AtlasRuntime:
                 screen_y,
             )
             return False
+        if self.settings.macro_mode == "mirror":
+            return self._handle_mirror_click(button, screen_x, screen_y)
         action = self.registry.switch_action_for_pressed_keys()
         if action is None:
             self.logger.debug(

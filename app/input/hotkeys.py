@@ -242,6 +242,14 @@ def parse_hotkey(text: str) -> tuple[HotkeySpec | None, str]:
 
 
 def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
+    # Mutually exclusive macro modes; emergency stop always takes priority.
+    if settings.macro_mode == "mirror":
+        return ([HotkeyAction(
+            action_id="stop_script",
+            label="Stop urgence",
+            hotkey_text=settings.stop_hotkey,
+            kind="press",
+        )] if settings.stop_hotkey else [])
     actions: list[HotkeyAction] = []
     if settings.switch_click_enabled or settings.switch_click_hotkey:
         actions.append(

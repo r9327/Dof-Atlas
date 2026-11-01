@@ -1,61 +1,39 @@
 # Organizer — Miroir expérimental, issue #321
 
-**État : R&D Draft / non relié au runtime.** Ce document et
-`app/macros/mirror_plan.py` ne constituent pas un Miroir fonctionnel.
+**État : interface et clics séquentiels intégrés, NON certifiés.**
+Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 
-## État vérifié du dépôt
-Le vrai Organizer utilise `app/macros/switch_click.py`,
-`app/macros/switch_character.py`, `app/macros/zaap.py`,
-`app/core/runtime_state.py`, `MacroLock` et les hooks gérés.
-L'actuelle diffusion de clics repose sur des changements de focus et des
-entrées Windows. Il faut conserver ces chemins en état de marche.
+## Interface
+- Dans la carte Macro : sélecteur compact Macro | Miroir sur le titre.
+- Macro est le mode par défaut ; Miroir désactive et grise les quatre macros classiques.
+- Action rapide : Auto-groupe, Sélection personnage puis Vitesse de script.
+- Troisième carte Contrôles : Relancer scripts et Debug côte à côte ;
+  Stop urgence en dessous sur toute la largeur.
+- Même ligne de trois cartes, aucun panneau Miroir supplémentaire.
 
-## Sécurité du prototype actuel
+## Source et destinataires automatiques
+- Source : exclusivement le favori explicitement étoilé dans Organizer,
+  réellement détecté et au premier plan ; jamais le premier slot par défaut.
+- Cibles : toutes les autres fenêtres Unity connues d'Organizer, maximum
+  huit fenêtres. Sans favori explicite, aucun clic n'est intercepté.
+- Le moteur existant SwitchClickMacro recopie SEQUENTIELLEMENT les clics
+  physiques sur le favori, y compris la source dont le hook consomme le clic
+  original, une fois par fenêtre ; mêmes SendInput, MacroLock, arrêt d'urgence,
+  conversion des coordonnées et vérification des fenêtres.
+  Pas de second moteur d'injection, pas de PostMessage non attesté.
+- Le hook ignore les clics synthétiques. Il ne doit jamais intercepter les
+  clics sur d'autres applications ou d'autres fenêtres du jeu.
+- Un changement d'étoile favorite rafraîchit l'index et le runtime.
+- Le mode est mémorisé dans le profil sous __organizer_macro_mode.
+  Les raccourcis classiques sont désactivés à la source dans le registre,
+  les préférences restent intactes et Stop urgence reste actif.
 
-- `delivery_mode` renvoie **toujours `sequential`** à ce stade :
-  deux drapeaux booléens n'attestent pas d'un test Windows/Dofus réel.
-  Aucun adaptateur de diffusion ciblée n'est raccordé.
-- Les handles de clients sont filtrés (invalides, doublons, fermés par
-  rapport à la liste configurée) et le meneur n'est jamais inclus une
-  deuxième fois. Une liste de plus de huit clients bloque le prototype.
-- Le mode séquentiel est une **décision de repli**, pas une nouvelle fonction
-  Miroir visible : le runtime actuel reste inchangé.
-
-## Conditions de faisabilité
-- Tester sur Windows si Dofus Unity accepte réellement les messages de souris
-  et clavier ciblés lorsqu'il ne possède pas le focus.
-- `PostMessage` est une hypothèse à tester, **pas** une compatibilité établie.
-- Ne pas injecter du code dans Dofus, ne pas utiliser son protocole réseau,
-  ne pas contourner de protection ni ajouter de périphérique trompeur.
-- Respecter les règles de jeu applicables avant d'activer une diffusion
-  automatique; en cas de doute, conserver le contrôle manuel.
-- Une preuve isolée Win32 n'est pas une preuve sur Dofus; il faut
-  les deux pour envisager le ciblage d'arrière-plan.
-
-## Fonctionnalités prévues mais absentes
-- Contrôle Miroir temporaire dans Organizer, affichage d'état réel.
-- Réutilisation des raccourcis / touches maintenues, clic, molette, clavier.
-- Mapping propre à chaque fenêtre, distinction physique / synthétique.
-- Aucune double émission sur le meneur.
-- Exécution sûre sur 1/2/4/8 clients, annulation/arrêt et journaux.
-- Fallback séquentiel et chronométrage p50/p95/p99 sans délai arbitraire.
-- Tests des interactions et des cas d'erreur, compatibilité réelle Windows.
-
-## Preuves requises
-Graphify exact-SHA avant travaux structurels des hooks ; Doctor/tests ciblés ;
-test utilisateur réel sur Windows/Dofus suivi dans #322 (MIRR-005).
-Aucun `PASS` ni `CERTIFIED` supposé.
-
-
-## Contrat d'un geste physique unique
-- `mirror_delivery_targets(..., source_was_consumed=...)` est un
-  planificateur pur, sans injection, basé sur le signal *réel* du hook.
-- Si le hook a laissé passer le geste, il **n'émet pas** une seconde copie
-  vers le personnage source.
-- Si le hook a intercepté le geste, il prévoit **une seule** émission sur
-  la source, en plus des clients explicitement sélectionnés.
-- Source inconnue, poignée corrompue, plus de huit clients ou provenance
-  de consommation ambiguë : liste vide, aucune diffusion.
-- Aucun raccordement runtime : la méthode de passage du signal
-  `source_was_consumed` sera revue dans Graphify avant toute connexion
-  aux hooks. Aucun `PostMessage` Dofus sans preuve Windows/Unity.
+## Manques et preuves obligatoires
+- Clavier, touches maintenues, molette et mouvement continu ne sont PAS encore
+  reproduits. Le repli séquentiel sur ces gestes risquerait de perdre les
+  événements de relâchement et de bloquer des touches.
+- PostMessage ciblé en arrière-plan et compatibilité réelle avec Unity
+  NON PROUVÉS ; pas de diffusion simultanée annoncée.
+- Scénarios 1/2/4/8 fenêtres en jeu et mesures p50/p95/p99 : NOT_RUN (#322).
+- Exigences MIRR-001/002/003/004/005 et certification indépendante non
+  closes : PR Draft. Ne pas fusionner avant implémentation et preuves finales.

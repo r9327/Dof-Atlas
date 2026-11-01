@@ -4,6 +4,7 @@ kind: shared_infrastructure
 working_set:
   - app/core/character_identity.py
   - app/core/json_store.py
+  - app/core/profile_settings.py
   - app/core/progress_coordinator.py
   - app/storage.py
 shared_dependencies: []

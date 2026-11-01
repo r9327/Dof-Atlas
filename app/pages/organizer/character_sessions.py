@@ -582,6 +582,8 @@ class CharacterSessionsMixin:
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.render_sessions()
+        # Rebind the mirror source immediately after a favorite change.
+        self.reload_runtime_callback()
         self.status_callback(f"Fenêtre principale : {name}")
 
     def export_client_index(self) -> None:
