@@ -316,6 +316,34 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     dialog.close()
                     self.app.processEvents()
+                    # Ganymède Sylvan Dofus is a 2-step source, not the
+                    # separate large Atlas Sylvestre Opti progress namespace.
+                    source_row = next(
+                        i for i in range(view.home_metadata_list.count())
+                        if view.home_metadata_list.item(i).data(Qt.UserRole) == 2290
+                    )
+                    view._open_ganymede_source_item(
+                        view.home_metadata_list.item(source_row),
+                    )
+                    sylvan = view._ganymede_source_dialog
+                    sylvan_validate = sylvan.findChild(
+                        QPushButton, "GanymedeSourceValidateStep",
+                    )
+                    sylvan_validate.click()
+                    self.assertTrue(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", "ganymede_source_2290",
+                            "ganymede_2290_step_0001",
+                        )
+                    )
+                    self.assertFalse(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", "dofus_sylvestre",
+                            "ganymede_2290_step_0001",
+                        )
+                    )
+                    sylvan.close()
+                    self.app.processEvents()
             finally:
                 view.close()
                 view.deleteLater()
