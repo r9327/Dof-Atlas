@@ -209,6 +209,7 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback(f"Raccourci déjà utilisé par {owner}.")
                 return
+            self.ensure_radial_participants()
             self.profiles[KEY_RADIAL_HOTKEY] = hotkey
         elif kind == "click":
             if hotkey == self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY):
