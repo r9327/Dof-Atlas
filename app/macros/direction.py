@@ -24,6 +24,7 @@ class DirectionMacro:
             self.release_virtual_inputs()
             return
         timings = self.runtime.settings.timings
+        focus_lost = False
         try:
             for client in self.runtime.switch_character.ordered_clients_from_source(source):
                 if self.runtime.macro_lock.should_stop():
@@ -41,16 +42,17 @@ class DirectionMacro:
                     should_stop=self.runtime.macro_lock.should_stop,
                 ):
                     if foreground_window() != int(client.handle):
+                        focus_lost = True
                         self.runtime.logger.warning(
-                            "Switch deplacement refuse: focus perdu avant frappe hwnd=%s",
+                            "Switch deplacement interrompu: focus perdu avant frappe hwnd=%s",
                             client.handle,
                         )
-                        continue
+                        return
                     press_key(key_name, timings.movement_key_hold_ms)
                     if self.runtime.macro_lock.should_stop():
                         return
         finally:
-            if not self.runtime.macro_lock.should_stop():
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
                 except Exception:
