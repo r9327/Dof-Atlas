@@ -574,12 +574,30 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(clipboard.text(), 'Cape du "Wa" <Wabbit>')
         panel.coordinates_label.linkActivated.emit("coordinate:1")
         self.assertEqual(clipboard.text(), "[24, -3]")
-        for invalid in ("item:1000", "item:-1", "item:0/other", "https://bad.test"):
+        for invalid in (
+            "item:1000", "item:-1", "item:0/other", "https://bad.test",
+            "item:" + "9" * 6000, "coordinate:" + "9" * 6000,
+        ):
             panel._copy_source_link(invalid)
             self.assertEqual(clipboard.text(), "[24, -3]")
 
         self.assertEqual(emitted, [])
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
+
+    def test_runtime_travel_rejects_unbounded_and_boolean_coordinates(self):
+        for bad in (
+            {"x": 2**64, "y": 0},
+            {"x": -(2**31), "y": 0},
+            {"x": 0, "y": -(2**31)},
+            {"x": 0, "y": 2**80},
+            {"x": True, "y": 1},
+            {"x": 0, "y": 1.5},
+        ):
+            with self.subTest(bad=bad):
+                self.assertIsNone(self.panel._exact_coordinates(bad))
+        self.assertEqual(
+            self.panel._exact_coordinates({"x": 25, "y": -4}), (25, -4)
+        )
 
     def test_route_progress_reports_only_manual_selected_checks(self):
         self.assertEqual(self.panel.route_progress.value(), 0)
