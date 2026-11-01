@@ -501,10 +501,21 @@ class AtlasRuntime:
                 self.synthetic_guard.reset()
                 self.macro_lock.end(label)
 
-        thread = threading.Thread(target=runner, name=f"DofusAtlas-{label}", daemon=True)
-        self._threads = [thread for thread in self._threads if thread.is_alive()]
-        self._threads.append(thread)
-        thread.start()
+        thread = None
+        try:
+            thread = threading.Thread(target=runner, name=f"DofusAtlas-{label}", daemon=True)
+            self._threads = [worker for worker in self._threads if worker.is_alive()]
+            self._threads.append(thread)
+            thread.start()
+        except Exception:
+            # Preserve tracking before start() in case stop() races startup,
+            # but never leak the exclusive lease on construction/start failure.
+            if thread is not None and thread in self._threads:
+                self._threads.remove(thread)
+            self.macro_lock.end(label)
+            self.logger.exception("%s impossible de demarrer le thread macro.", label)
+            self._emit_status(f"{label}: lancement impossible.")
+            return False
         return True
 
     def _handle_hotkey(self, action_id: str, payload: dict[str, object]) -> None:
