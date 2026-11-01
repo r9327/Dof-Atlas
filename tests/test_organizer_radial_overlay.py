@@ -54,7 +54,7 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             from PySide6.QtGui import QCursor
             screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
             self.assertLessEqual(abs(overlay.geometry().center().x() -
-                                     screen.availableGeometry().center().x()), 1)
+                                     screen.geometry().center().x()), 1)
             self.assertLessEqual(abs(overlay.geometry().center().y() -
                                      screen.availableGeometry().center().y()), 1)
             self.assertTrue(bool(overlay.windowFlags() &
