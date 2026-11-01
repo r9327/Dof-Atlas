@@ -75,6 +75,18 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(down.call_args_list, [call(0x11), call(0x41)])
         up.assert_called_once_with(0x11)
 
+    def test_original_sendinput_error_survives_release_error(self) -> None:
+        with (
+            patch.object(input_tools, "_vk", side_effect=[0x11, 0x41]),
+            patch.object(input_tools, "key_down",
+                         side_effect=[None, OSError("original keyboard failure")]),
+            patch.object(input_tools, "key_up",
+                         side_effect=OSError("cleanup failure")) as release,
+        ):
+            with self.assertRaisesRegex(OSError, "original keyboard failure"):
+                input_tools.press_hotkey("CTRL", "A")
+        release.assert_called_once_with(0x11)
+
     def test_emergency_release_attempts_every_button_and_modifier(self) -> None:
         with (
             patch.object(input_tools.os, "name", "nt"),
