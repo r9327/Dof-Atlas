@@ -73,6 +73,8 @@ class ToolCatalogTests(unittest.TestCase):
                 with self.subTest(name=name), self.assertRaises(ValueError):
                     local_candidate_preflight([name])
             with self.assertRaises(ValueError):
+                local_candidate_preflight(["msgspec", "bad;name"])
+            with self.assertRaises(ValueError):
                 local_candidate_preflight(["msgspec"] * 65)
             distribution.assert_not_called()
             which.assert_not_called()
