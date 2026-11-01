@@ -107,5 +107,50 @@ class RepoUpdatePointerTests(unittest.TestCase):
             parse_repo_update_pointer(json.dumps(doc).encode())
 
 
+
+class RepoUpdatePublisherTests(unittest.TestCase):
+    def test_builder_accepts_only_real_verified_frozen_delta(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from scripts.windows.build_repo_update_pointer import build_pointer
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            body = b"valid-win-delta"
+            manifest_doc = json.loads(_manifest())
+            manifest_doc["delta"]["archive_sha256"] = hashlib.sha256(body).hexdigest()
+            manifest_doc["delta"]["archive_size"] = len(body)
+            raw = json.dumps(manifest_doc).encode()
+            manifest = root / "atlas-manifest.json"
+            delta = root / "atlas-delta.zip"
+            manifest.write_bytes(raw)
+            delta.write_bytes(body)
+            pointer = parse_repo_update_pointer(build_pointer(manifest, delta, APP_COMMIT))
+            self.assertEqual(pointer.source_sha, SRC)
+            self.assertEqual(pointer.app_commit_sha, APP_COMMIT)
+            self.assertEqual(pointer.delta_size, len(body))
+            self.assertEqual(verify_repo_update_manifest(pointer, raw).source_sha, SRC)
+
+            delta.write_bytes(b"tampered")
+            with self.assertRaises(ManifestError):
+                build_pointer(manifest, delta, APP_COMMIT)
+
+    def test_builder_refuses_missing_or_invalid_package(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from scripts.windows.build_repo_update_pointer import build_pointer
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = root / "atlas-manifest.json"
+            delta = root / "atlas-delta.zip"
+            manifest.write_bytes(_manifest())
+            with self.assertRaises(ManifestError):
+                build_pointer(manifest, delta, APP_COMMIT)
+            delta.write_bytes(b"whatever")
+            with self.assertRaises(ManifestError):
+                build_pointer(manifest, delta, "main")
+
+
 if __name__ == "__main__":
     unittest.main()
