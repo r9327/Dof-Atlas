@@ -76,6 +76,23 @@ class SetupTests(unittest.TestCase):
                 cwd=str(target.parent), creationflags=0,
             )
 
+    def test_unattended_setup_does_not_open_picker_or_auto_start_launcher(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "Programs" / "DofusAtlas.exe"
+            with (
+                patch.object(atlas_setup, "os", SimpleNamespace(name="nt")),
+                patch.object(atlas_setup.Path, "cwd", return_value=Path(directory)),
+                patch.object(atlas_setup, "choose_runtime_before_setup") as chooser,
+                patch.object(atlas_setup, "embedded_launcher",
+                             return_value=Path(directory) / "Embedded.exe"),
+                patch.object(atlas_setup, "install_launcher", return_value=target),
+                patch.object(atlas_setup, "install_maintenance_helper"),
+                patch.object(atlas_setup.subprocess, "Popen") as launch,
+            ):
+                self.assertEqual(atlas_setup.main(["--no-launch"]), 0)
+            chooser.assert_not_called()
+            launch.assert_not_called()
+
     def test_install_launcher_creates_stable_binary_and_preserves_user_data(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
