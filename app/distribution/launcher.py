@@ -30,7 +30,21 @@ from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
 from app.windows.single_instance import SingleInstanceGuard
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
-ROOT = runtime_root()
+
+
+def _initial_runtime_location() -> tuple[Path, str | None]:
+    """Do not crash at module import on a broken install-location setting.
+
+    A recovery-only fallback permits a useful Tk error. It must never
+    authorize an update or a fresh install at the default directory.
+    """
+    try:
+        return runtime_root(), None
+    except (UpdateError, OSError) as exc:
+        return APP_DIR / "runtime", str(exc)
+
+
+ROOT, _LOCATION_ERROR = _initial_runtime_location()
 USER_DIR = APP_DIR / "user"
 LOG_DIR = APP_DIR / "logs"
 
@@ -48,6 +62,8 @@ def _logger() -> logging.Logger:
 
 def _run_lock():
     """Prevent concurrent install state changes from multiple launchers."""
+    if _LOCATION_ERROR is not None:
+        raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
     ROOT.mkdir(parents=True, exist_ok=True)
     handle = (ROOT / ".launcher.lock").open("a+b")
     handle.seek(0, os.SEEK_END)
@@ -462,6 +478,8 @@ def main() -> int:
     # Never mistake it for a fresh install: that could invite a replacement
     # runtime and obscure the last recoverable version.
     try:
+        if _LOCATION_ERROR is not None:
+            raise UpdateError("Emplacement Atlas invalide : " + _LOCATION_ERROR)
         installed = bool(read_state(ROOT).get("active"))
         startup_error = None
     except (UpdateError, OSError) as exc:
