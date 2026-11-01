@@ -136,12 +136,20 @@ def _launch_with_health(executable: Path, report, *, settle_seconds: float = 0) 
                     # A Home paint + event-loop turn, not the preload dialog,
                     # controls the new launcher's successful handoff.
                     deadline = time.monotonic() + 130.0
+                    waiting_polls = 0
                     while time.monotonic() < deadline:
                         if _marker_matches_process(home, proc):
                             record_startup_event("app_home_ack")
                             break
                         if proc.poll() is not None:
                             return False
+                        waiting_polls += 1
+                        # A Home import/preload can last tens of seconds. Keep
+                        # the single Tk window informative instead of leaving
+                        # a motionless 98% label that looks like a hang.
+                        # The timeout and rollback safety stay unchanged.
+                        if waiting_polls % 25 == 0:
+                            report(f"Attente de Home ({waiting_polls // 5} s)", 98)
                         time.sleep(0.2)
                     else:
                         if proc.poll() is not None:
