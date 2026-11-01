@@ -47,6 +47,31 @@ class OrganizerSendInputTests(unittest.TestCase):
             (1, 0x24, 0x47, 0x0003, marker),
         ])
 
+    def test_windows_input_layout_and_extended_modifier_flags(self) -> None:
+        import os
+        if os.name == "nt":
+            expected = 40 if ctypes.sizeof(ctypes.c_void_p) == 8 else 28
+            self.assertEqual(ctypes.sizeof(clicks.INPUT), expected)
+        # Right-side modifiers and divide have an E0 scancode in Win32.
+        for vk in (0x5C, 0x6F, 0xA3, 0xA5):
+            self.assertIn(vk, input_tools.EXTENDED_VKS)
+        user32 = Mock()
+        user32.MapVirtualKeyW.return_value = 0x38
+        observed = []
+        def emit(_count, ptr, _size):
+            item = ctypes.cast(ptr, ctypes.POINTER(clicks.INPUT)).contents
+            observed.append(int(item.union.ki.dwFlags))
+            return 1
+        user32.SendInput.side_effect = emit
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.object(input_tools.ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+        ):
+            input_tools.key_down(0xA5)
+            input_tools.key_up(0xA5)
+        self.assertEqual(observed, [0x0001, 0x0003])
+
     def test_failed_sendinput_does_not_claim_key_delivered(self) -> None:
         user32 = Mock()
         user32.MapVirtualKeyW.return_value = 0x1E
