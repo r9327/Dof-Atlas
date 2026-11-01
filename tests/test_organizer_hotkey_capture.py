@@ -23,6 +23,7 @@ class _CaptureWidget(OrganizerHotkeysMixin, QWidget):
         self.stop_script_hotkey_button = Mock()
         self.radial_hotkey_button = Mock()
         self.profiles = {}
+        self.ensure_radial_participants = Mock()
         self.save_profiles = Mock()
         self.export_client_index = Mock()
         self.reload_runtime_callback = Mock()
@@ -50,6 +51,7 @@ class OrganizerHotkeyCaptureTests(unittest.TestCase):
                 event.modifiers.return_value = Qt.NoModifier
                 widget.keyPressEvent(event)
                 self.assertEqual(widget.profiles[KEY_RADIAL_HOTKEY], "F6")
+                widget.ensure_radial_participants.assert_called_once_with()
                 widget.save_profiles.assert_called_once()
                 widget.reload_runtime_callback.assert_called_once()
         finally:
