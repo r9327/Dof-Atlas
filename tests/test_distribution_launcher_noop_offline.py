@@ -229,15 +229,22 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         fake_tk.filedialog.askdirectory.return_value = str(parent)
         order = []
 
-        def relocate(target, *, progress=None):
+        held_guard = MagicMock()
+
+        def relocate(target, *, progress=None, after_relocation=None):
             self.assertEqual(target, destination)
             self.assertEqual(launcher.ROOT, source)
             self.assertIsNotNone(progress)
             order.append("guarded_migration")
+            self.assertIsNotNone(after_relocation)
+            after_relocation(target, held_guard)
+            order.append("source_lock_released")
             return target
 
-        def run_after_move(report, *, verify_installation=False):
+        def run_after_move(report, *, verify_installation=False,
+                           preacquired_instance=None):
             self.assertEqual(launcher.ROOT, destination)
+            self.assertIs(preacquired_instance, held_guard)
             order.append("launch")
             report("Dofus Atlas est pret", 100)
 
@@ -267,7 +274,7 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             patch.object(launcher.threading, "Thread", _ImmediateThread),
         ):
             self.assertEqual(launcher.main(), 0)
-        self.assertEqual(order, ["guarded_migration", "launch"])
+        self.assertEqual(order, ["guarded_migration", "launch", "source_lock_released"])
         guarded.assert_called_once()
         raw_copy.assert_not_called()
 
