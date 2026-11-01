@@ -90,9 +90,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         ):
             DirectionMacro(runtime)._run("HOME")
         press.assert_not_called()
-        runtime.switch_character.restore_preferred_client.assert_called_once_with(
-            "Switch deplacement"
-        )
+        runtime.switch_character.restore_preferred_client.assert_not_called()
 
     def test_direction_does_not_restore_on_stop(self) -> None:
         runtime = _runtime()
@@ -126,8 +124,9 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
         send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.logger.info.assert_any_call(
-            "Auto zaap %s: envoyes=%s/%s", "partiel", 0, 2
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2
         )
 
     def test_zaap_partial_delivery_is_not_reported_complete(self) -> None:
