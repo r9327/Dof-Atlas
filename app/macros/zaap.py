@@ -57,6 +57,7 @@ class ZaapMacro:
             command,
         )
         sent = 0
+        focus_lost = False
         try:
             for client in clients:
                 if self.runtime.macro_lock.should_stop():
@@ -78,10 +79,11 @@ class ZaapMacro:
                 # A focus change after activation must not send the chat
                 # command to Organizer, another game window, or a browser.
                 if foreground_window() != int(client.handle):
+                    focus_lost = True
                     self.runtime.logger.warning(
-                        "Auto zaap refuse: focus perdu avant commande hwnd=%s", client.handle
+                        "Auto zaap interrompu: focus perdu avant commande hwnd=%s", client.handle
                     )
-                    continue
+                    return
                 if not send_chat_command(
                     command,
                     self.runtime.logger,
@@ -98,13 +100,13 @@ class ZaapMacro:
         finally:
             # Restituer le favori même si un client ou le chat échoue, mais ne
             # jamais réactiver une fenêtre après un stop d'urgence.
-            if not self.runtime.macro_lock.should_stop():
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
             state = (
-                "interrompu" if self.runtime.macro_lock.should_stop()
+                "interrompu" if self.runtime.macro_lock.should_stop() or focus_lost
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
