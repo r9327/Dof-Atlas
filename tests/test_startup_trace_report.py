@@ -102,17 +102,17 @@ class StartupTraceReportTests(unittest.TestCase):
                 )
             ]
 
-        baseline = sample([100, 100, 100, 100, 100])
-        candidate = sample([100, 100, 100, 100, 140])
+        baseline = sample([100] * 20)
+        candidate = sample([100] * 19 + [140])
         summary = summarize(candidate)["segments"]["launcher_entry_to_home_first_paint"]
         self.assertEqual(summary["p50_ms"], 100)
-        self.assertEqual(summary["p95_ms"], 140)
+        self.assertEqual(summary["p95_ms"], 100)
         self.assertEqual(summary["p99_ms"], 140)
         comparison = compare_traces(baseline, candidate)
         result = comparison["segments"]["launcher_entry_to_home_first_paint"]
         self.assertEqual(result["candidate_p99_ms"], 140)
         self.assertEqual(result["p99_change_percent"], 40.0)
-        self.assertEqual(result["status"], "INVESTIGATE_OVER_5_PERCENT")
+        self.assertEqual(result["status"], "NO_5_PERCENT_ALERT")
 
         # P99 can exaggerate a single outlier; it must be a displayed metric,
         # not a new source of automatic certification or a changed CI gate.
