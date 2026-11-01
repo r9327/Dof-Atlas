@@ -45,3 +45,17 @@ entrées Windows. Il faut conserver ces chemins en état de marche.
 Graphify exact-SHA avant travaux structurels des hooks ; Doctor/tests ciblés ;
 test utilisateur réel sur Windows/Dofus suivi dans #322 (MIRR-005).
 Aucun `PASS` ni `CERTIFIED` supposé.
+
+
+## Contrat d'un geste physique unique
+- `mirror_delivery_targets(..., source_was_consumed=...)` est un
+  planificateur pur, sans injection, basé sur le signal *réel* du hook.
+- Si le hook a laissé passer le geste, il **n'émet pas** une seconde copie
+  vers le personnage source.
+- Si le hook a intercepté le geste, il prévoit **une seule** émission sur
+  la source, en plus des clients explicitement sélectionnés.
+- Source inconnue, poignée corrompue, plus de huit clients ou provenance
+  de consommation ambiguë : liste vide, aucune diffusion.
+- Aucun raccordement runtime : la méthode de passage du signal
+  `source_was_consumed` sera revue dans Graphify avant toute connexion
+  aux hooks. Aucun `PostMessage` Dofus sans preuve Windows/Unity.
