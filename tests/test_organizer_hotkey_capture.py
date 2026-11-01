@@ -11,6 +11,7 @@ from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+from app.constants import KEY_CLICK_HOTKEY, KEY_RADIAL_HOTKEY
 
 
 class _CaptureWidget(OrganizerHotkeysMixin, QWidget):
@@ -20,6 +21,11 @@ class _CaptureWidget(OrganizerHotkeysMixin, QWidget):
         self.click_button = Mock()
         self.double_click_button = Mock()
         self.stop_script_hotkey_button = Mock()
+        self.radial_hotkey_button = Mock()
+        self.profiles = {}
+        self.save_profiles = Mock()
+        self.export_client_index = Mock()
+        self.reload_runtime_callback = Mock()
         self.update_global_buttons = Mock()
         self.render_sessions = Mock()
         self.status_callback = Mock()
@@ -29,6 +35,46 @@ class OrganizerHotkeyCaptureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_radial_button_captures_a_real_configurable_shortcut(self) -> None:
+        widget = _CaptureWidget()
+        try:
+            with (
+                patch("app.pages.organizer.organizer_hotkeys.QTimer"),
+                patch("app.pages.organizer.organizer_hotkeys.key_sequence_to_hotkey",
+                      return_value="F6"),
+            ):
+                widget.begin_capture("radial")
+                event = Mock()
+                event.key.return_value = Qt.Key_F6
+                event.modifiers.return_value = Qt.NoModifier
+                widget.keyPressEvent(event)
+                self.assertEqual(widget.profiles[KEY_RADIAL_HOTKEY], "F6")
+                widget.save_profiles.assert_called_once()
+                widget.reload_runtime_callback.assert_called_once()
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_radial_shortcut_rejects_collision_with_switch_click(self) -> None:
+        widget = _CaptureWidget()
+        widget.profiles[KEY_CLICK_HOTKEY] = "F6"
+        try:
+            with (
+                patch("app.pages.organizer.organizer_hotkeys.QTimer"),
+                patch("app.pages.organizer.organizer_hotkeys.key_sequence_to_hotkey",
+                      return_value="F6"),
+            ):
+                widget.begin_capture("radial")
+                event = Mock()
+                event.key.return_value = Qt.Key_F6
+                event.modifiers.return_value = Qt.NoModifier
+                widget.keyPressEvent(event)
+                self.assertNotIn(KEY_RADIAL_HOTKEY, widget.profiles)
+                widget.save_profiles.assert_not_called()
+        finally:
+            widget.close()
+            widget.deleteLater()
 
     def test_escape_does_not_persist_a_shortcut(self) -> None:
         widget = _CaptureWidget()
