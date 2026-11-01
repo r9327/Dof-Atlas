@@ -486,6 +486,10 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         was_actual = self.navigation.position().actual_step_id == step_id
         changed = self.navigation.mark_manual_step(step_id, not all_done)
+        if changed:
+            # A manual completion or undo changes the planner's progress
+            # snapshot. Never revive an old travel command after an undo.
+            self._verified_travel_plans.clear()
         # Only advance when validating the step genuinely being followed.
         # Reviewing a later/earlier fiche or undoing a check never jumps.
         if changed and not all_done and was_actual:
