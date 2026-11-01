@@ -352,7 +352,10 @@ class OrganizerPage(
         self.startup_scan_timer = QTimer(self)
         self.startup_scan_timer.setSingleShot(True)
         self.startup_scan_timer.timeout.connect(self.auto_scan_sessions_on_startup)
-        self.startup_scan_timer.start(0)
+        # Reuse the offscreen safety guard from merged PR #328: Qt tests
+        # must never scan real Dofus windows merely by spinning the event loop.
+        if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
+            self.startup_scan_timer.start(0)
 
 
 __all__ = [
