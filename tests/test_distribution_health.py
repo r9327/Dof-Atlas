@@ -90,6 +90,38 @@ class WindowHealthTests(unittest.TestCase):
             self.assertFalse(self.launch_with_process(root, process, [10, 10]))
             self.assertFalse(list(health.iterdir()))
 
+    def test_long_home_wait_updates_visible_status_without_premature_handoff(self):
+        from app.distribution.release_client import UpdateError
+        with tempfile.TemporaryDirectory() as location:
+            root = Path(location)
+            health = root / ".health"
+            health.mkdir()
+            (health / "fixed.ready").write_text("123", encoding="ascii")
+            (health / "fixed.capable").write_text("123", encoding="ascii")
+            fake_exe = root / "AtlasApp.exe"
+            fake_exe.write_bytes(b"MZ")
+            process = SimpleNamespace(pid=123, poll=lambda: None)
+            messages = []
+            with (
+                patch.object(launcher, "ROOT", root),
+                patch.object(launcher, "USER_DIR", root / "user"),
+                patch.object(launcher, "prepare_user_data"),
+                patch.object(launcher.uuid, "uuid4",
+                             return_value=SimpleNamespace(hex="fixed")),
+                patch.object(launcher.subprocess, "Popen", return_value=process),
+                patch.object(launcher.time, "monotonic",
+                             side_effect=[10] + [11] * 25 + [141]),
+                patch.object(launcher.time, "sleep"),
+            ):
+                with self.assertRaisesRegex(UpdateError, "Home n'a pas confirme"):
+                    _launch_with_health(
+                        fake_exe, lambda status, pct: messages.append((status, pct))
+                    )
+            self.assertIn(("Attente de Home (5 s)", 98), messages)
+            self.assertNotIn(("Dofus Atlas est pret", 100), messages)
+            self.assertNotIn(("Prechargement Qt actif", 98), messages)
+            self.assertEqual(list(health.iterdir()), [])
+
     def test_home_timeout_while_process_alive_must_not_trigger_rollback(self):
         from app.distribution.release_client import UpdateError
         with tempfile.TemporaryDirectory() as location:
