@@ -6,8 +6,9 @@ from unittest.mock import Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtGui import QApplication, QGuiApplication
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.pages.organizer.radial_overlay import (
     OrganizerRadialHoldController,
@@ -57,7 +58,7 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             self.assertLessEqual(abs(overlay.geometry().center().y() -
                                      screen.availableGeometry().center().y()), 1)
             self.assertTrue(bool(overlay.windowFlags() &
-                                 __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WindowDoesNotAcceptFocus))
+                                 Qt.WindowDoesNotAcceptFocus))
         finally:
             overlay.hide()
             overlay.deleteLater()
