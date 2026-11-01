@@ -56,6 +56,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.controls_panel.isAncestorOf(page.reload_runtime_button))
                     self.assertTrue(page.controls_panel.isAncestorOf(page.debug_button))
                     self.assertTrue(page.controls_panel.isAncestorOf(page.stop_script_button))
+                    self.assertIsNone(page.macro_grid_host.graphicsEffect())
                     self.assertTrue(page.macro_grid_host.isEnabled())
                     page.mirror_mode_button.click()
                     self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")

@@ -5,7 +5,6 @@ from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
-    QGraphicsOpacityEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -324,8 +323,6 @@ class OrganizerUiMixin:
         controls_grid.setHorizontalSpacing(8)
         controls_grid.setVerticalSpacing(8)
         self.macro_grid_host = controls_grid_host
-        self.macro_grid_opacity = QGraphicsOpacityEffect(controls_grid_host)
-        controls_grid_host.setGraphicsEffect(self.macro_grid_opacity)
         controls_grid.addWidget(macro_cell(self.switch_character), 0, 0)
         controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
@@ -488,7 +485,6 @@ class OrganizerUiMixin:
             button.setObjectName("segmentedButtonActive" if selected else "segmentedButton")
             self.restyle_button(button)
         self.macro_grid_host.setEnabled(not mirror)
-        self.macro_grid_opacity.setOpacity(0.43 if mirror else 1.0)
         self.mirror_mode_button.setToolTip(
             "Miroir : source = favori étoilé, cibles = autres sessions détectées."
         )
