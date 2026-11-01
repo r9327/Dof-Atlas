@@ -136,6 +136,21 @@ def install_launcher(source: Path, install_root: Path | None = None) -> Path:
     root = install_root or user_programs_directory()
     root.mkdir(parents=True, exist_ok=True)
     target = root / _LAUNCHER_NAME
+    # Re-running Setup must not rewrite an unchanged EXE: it is expensive on
+    # Windows and may fail when the installed launcher is currently in use.
+    # Hash both binaries rather than trusting a version name or file size.
+    if target.is_file() and not target.is_symlink():
+        if source.stat().st_size == target.stat().st_size:
+            def digest(path: Path) -> str:
+                result = hashlib.sha256()
+                with path.open("rb") as stream:
+                    for block in iter(lambda: stream.read(1024 * 1024), b""):
+                        result.update(block)
+                return result.hexdigest()
+
+            if digest(source) == digest(target):
+                _create_shortcut(target)
+                return target
     fd, tmp_name = tempfile.mkstemp(prefix=".atlas-launcher-", suffix=".tmp", dir=root)
     try:
         with os.fdopen(fd, "wb") as dest, source.open("rb") as current:
