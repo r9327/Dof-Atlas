@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from app.macros.input_tools import send_chat_command
 from app.windows.focus import activate_window
-from app.windows.unity_windows import is_unity_window
+from app.windows.unity_windows import foreground_window, is_unity_window
 
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
@@ -74,6 +74,13 @@ class ZaapMacro:
                     should_stop=self.runtime.macro_lock.should_stop,
                 ):
                     self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
+                    continue
+                # A focus change after activation must not send the chat
+                # command to Organizer, another game window, or a browser.
+                if foreground_window() != int(client.handle):
+                    self.runtime.logger.warning(
+                        "Auto zaap refuse: focus perdu avant commande hwnd=%s", client.handle
+                    )
                     continue
                 if not send_chat_command(
                     command,
