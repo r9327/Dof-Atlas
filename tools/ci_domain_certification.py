@@ -221,8 +221,12 @@ def owners_for(path: str) -> frozenset[str]:
         # The same persisted cache is consumed by startup, Quests and Guides.
         # Exact path only: new app/core helpers must still fail closed.
         return frozenset({"startup", "quests", "guides", "data"})
-    if path in ORGANIZER_RUNTIME_PATHS:
+    if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
+        # OrganizerPage creates the native watcher, Qt timers and startup scan.
         return frozenset({"organizer", "startup", "ui", "identity"})
+    if path == "app/pages/organizer/character_sessions.py":
+        # Session refresh is also a persistent JSON/INI and identity writer.
+        return frozenset({"organizer", "ui", "identity", "data"})
     if path in ORGANIZER_MACRO_PATHS or path in ORGANIZER_UI_PATHS:
         return frozenset({"organizer", "ui", "identity"})
     if path in ORGANIZER_TEST_PATHS:
