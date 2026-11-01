@@ -199,6 +199,14 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     try:
         shutil.copytree(source, stage, dirs_exist_ok=True, symlinks=True,
                         ignore=ignore, copy_function=copy_checked)
+        # A source link can also appear between copytree's ignore callback
+        # and the individual file operation. Verify the private staged tree
+        # itself before it becomes the install location. Directory checks do
+        # not reread multi-gigabyte payload bytes already SHA-256 verified.
+        for base, directories, names in os.walk(stage, followlinks=False):
+            where = Path(base)
+            if any(_linked(where / name) for name in (*directories, *names)):
+                raise UpdateError("La copie Atlas contient un lien non autorise")
         if read_state(stage) != state or active_executable(stage) is None:
             raise UpdateError("La copie Atlas n'a pas pu etre validee")
         os.replace(stage, destination)
