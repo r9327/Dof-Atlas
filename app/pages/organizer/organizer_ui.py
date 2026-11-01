@@ -194,7 +194,8 @@ class OrganizerUiMixin:
         self.switch_double_click = AtlasButton("")
         self.switch_movement = AtlasButton("")
         self.switch_fake = AtlasButton("Auto-groupe")
-        self.radial_select_button = AtlasButton("Sélection personnage")
+        self.radial_select_button = AtlasButton("Sélection\npersonnage")
+        self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = AtlasButton("")
         self.double_click_button = AtlasButton("")
         self.double_click_clear = AtlasButton("x")
@@ -246,6 +247,8 @@ class OrganizerUiMixin:
             "Relâcher : fermer, avec ou sans sélection."
         )
         self.radial_hotkey_button.setToolTip("Configurer la touche maintenue pour sélectionner un personnage")
+        self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
+        self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
         self.script_speed_title.setObjectName("MutedLabel")
         self.script_speed_title.setFixedSize(stop_size.width(), 0)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
