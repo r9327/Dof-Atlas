@@ -407,7 +407,9 @@ class ContinuousGuideRoutePanel(QWidget):
     def _copy_source_link(self, href: str) -> None:
         """Copy only currently visible source hints; never trigger travel."""
         kind, separator, index_text = href.partition(":")
-        if not separator or not index_text.isascii() or not index_text.isdecimal():
+        if (not separator or len(index_text) > 9
+                or not index_text.isascii() or not index_text.isdecimal()):
+            # Never parse an unbounded integer supplied via a Qt link signal.
             return
         targets = (
             self._copyable_preparation_labels if kind == "item" else
@@ -496,7 +498,7 @@ class ContinuousGuideRoutePanel(QWidget):
             return None
         x, y = value.get("x"), value.get("y")
         if (type(x) is not int or type(y) is not int
-                or -(2**31) in (x, y)):
+                or not all(-(2**31) < value < 2**31 for value in (x, y))):
             return None
         return x, y
 
