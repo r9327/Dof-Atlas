@@ -145,6 +145,13 @@ def owners_for(path: str) -> frozenset[str]:
         raise ValueError("Unsafe changed path")
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
+    # Only the reviewed Organizer feature contracts are owned documentation.
+    # Generic docs remain excluded rather than inheriting a broad wildcard.
+    if path in {
+        "docs/organizer/radial-selector.md",
+        "docs/organizer/mirror-feasibility.md",
+    }:
+        return frozenset({"organizer", "ui", "identity"})
     if path in INFRA_PATHS or (path.startswith("docs/") and path.endswith(".md")):
         return frozenset()
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
