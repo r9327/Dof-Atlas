@@ -25,6 +25,18 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2 ; /travel 3,4"))
         runtime._spawn_macro.assert_not_called()
 
+    def test_zaap_rejects_out_of_range_and_huge_coordinates(self) -> None:
+        from app.macros.zaap import parse_zaap_command
+        huge = "9" * 5000
+        self.assertIsNone(parse_zaap_command("/zaap " + huge + ",1"))
+        self.assertIsNone(parse_zaap_command("/zaap 2147483648,1"))
+        self.assertIsNone(parse_zaap_command("/zaap -2147483648,1"))
+        self.assertEqual(parse_zaap_command("/zaap -2147483647,2147483647"),
+                         (-2147483647, 2147483647))
+        runtime = _runtime()
+        self.assertFalse(ZaapMacro(runtime).run_async("/zaap " + huge + ",1"))
+        runtime._spawn_macro.assert_not_called()
+
     def test_valid_zaap_still_uses_existing_macro_runner(self) -> None:
         runtime = _runtime()
         runtime._spawn_macro.return_value = True
