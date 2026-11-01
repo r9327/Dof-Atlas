@@ -339,8 +339,10 @@ def _startup_cache_warmup_stamp() -> tuple[int, int] | None:
     return int(stat.st_mtime_ns), int(stat.st_size)
 
 
-def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]:
-    """Wait from a preload worker for the disposable sibling warmup, never the UI."""
+def _await_startup_cache_warmup(
+    timeout_seconds: float = 75.0, *, required_domain: str = "",
+) -> dict[str, Any]:
+    """Await one validated domain, not unrelated warmup work or the Qt UI."""
 
     if not os.environ.get(STARTUP_CACHE_WARMUP_TOKEN_ENV, "").strip():
         return {}
@@ -351,7 +353,16 @@ def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]
         if stamp is not None and stamp != last_stamp:
             last_stamp = stamp
             payload = _startup_cache_warmup_payload()
-            if str(payload.get("status") or "") in {"ready", "failed"}:
+            status = str(payload.get("status") or "")
+            if status in {"ready", "failed"}:
+                return payload
+            completed = payload.get("completed_domains")
+            if (
+                required_domain in {"quest", "guide", "success"}
+                and status == "running"
+                and isinstance(completed, list)
+                and required_domain in completed
+            ):
                 return payload
         if monotonic() >= deadline:
             return {}
@@ -361,8 +372,8 @@ def _await_startup_cache_warmup(timeout_seconds: float = 75.0) -> dict[str, Any]
 def _warm_encyclopedia_compact_stores() -> None:
     """Prepare Guide/Success indexes outside the long-lived Atlas process."""
 
-    prewarmed = _await_startup_cache_warmup()
-    if str(prewarmed.get("status") or "") == "ready" and bool(
+    prewarmed = _await_startup_cache_warmup(required_domain="success")
+    if str(prewarmed.get("status") or "") in {"ready", "running"} and bool(
         prewarmed.get("encyclopedia_ready")
     ):
         return
@@ -467,12 +478,12 @@ def guide_progress_state(completed: int, total: int) -> str:
 def _warm_quest_catalogue() -> int:
     """Build/validate the Quest SQLite store outside the long-lived Atlas process."""
 
-    prewarmed = _await_startup_cache_warmup()
+    prewarmed = _await_startup_cache_warmup(required_domain="quest")
     try:
         prewarmed_count = int(prewarmed.get("quest_count") or 0)
     except (TypeError, ValueError):
         prewarmed_count = 0
-    if str(prewarmed.get("status") or "") == "ready" and prewarmed_count > 0:
+    if str(prewarmed.get("status") or "") in {"ready", "running"} and prewarmed_count > 0:
         return prewarmed_count
 
     raw = _run_preload_module_result(
@@ -797,6 +808,8 @@ class AtlasWindow(QMainWindow):
         self.page_indexes: dict[str, int] = {}
         self.page_widgets: dict[str, QWidget] = {}
         self.page_factories: dict[str, Any] = {}
+        # Only primitive Map Monde navigation state survives a Home hibernation.
+        self._world_scan_return_state: dict[str, Any] | None = None
         self.preload_results: dict[str, Any] = dict(initial_preload) if isinstance(initial_preload, dict) else {}
         initial_quests = self.preload_results.get("quests")
         initial_related_ready = bool(
@@ -806,6 +819,8 @@ class AtlasWindow(QMainWindow):
             and initial_quests.get("quest_graph") is not None
         )
         self.preload_started = False
+        self._home_revealed = False
+        self._post_preload_services_started = False
         self.preload_finished = bool(initial_preload) and initial_related_ready
         self.preload_states = {
             "quests": PRELOAD_READY if "quests" in self.preload_results else PRELOAD_IDLE,
@@ -1091,20 +1106,40 @@ class AtlasWindow(QMainWindow):
             -1,
         )
 
+        # A Home return should not destroy/recreate every combo icon and Qt
+        # item when the canonical connected-character projection is unchanged.
+        # Keep the profile/runtime refresh below; only skip redundant widgets.
+        character_rows = [
+            (
+                character,
+                self.character_icon_path(
+                    character.label, class_key=getattr(character, "class_key", "")
+                ),
+            )
+            for character in connected_characters
+        ]
+        combo_signature = tuple(
+            (
+                str(character.key),
+                str(character.label),
+                str(getattr(character, "class_key", "")),
+                icon_path,
+            )
+            for character, icon_path in character_rows
+        )
         previous_blocked = self.character_combo.blockSignals(True)
         try:
-            self.character_combo.clear()
-            for character in connected_characters:
-                icon_path = self.character_icon_path(
-                    character.label, class_key=getattr(character, "class_key", "")
-                )
-                icon = QIcon(icon_path) if icon_path else QIcon()
-                self.character_combo.addItem(icon, character.label, character)
-                self.character_combo.setItemData(
-                    self.character_combo.count() - 1,
-                    character.label,
-                    Qt.ToolTipRole,
-                )
+            if combo_signature != getattr(self, "_character_combo_signature", None):
+                self.character_combo.clear()
+                for character, icon_path in character_rows:
+                    icon = QIcon(icon_path) if icon_path else QIcon()
+                    self.character_combo.addItem(icon, character.label, character)
+                    self.character_combo.setItemData(
+                        self.character_combo.count() - 1,
+                        character.label,
+                        Qt.ToolTipRole,
+                    )
+                self._character_combo_signature = combo_signature
 
             if selected_index >= 0:
                 self.character_combo.setCurrentIndex(selected_index)
@@ -1828,6 +1863,13 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            # The cartography canvas is reconstructible; keep only the last
+            # selected world/map and history, never the loaded Qt widget tree.
+            # Active I/O deliberately prevents hibernation until a safe visit.
+            self._hibernate_world_scan_on_home()
+            # Dynamically generated "not implemented" screens are cheap but
+            # otherwise accumulate for the whole session. Recreate on demand.
+            self.release_transient_placeholders()
             # deleteLater() tears down the Qt side, but signal/layout cycles can
             # keep Python wrappers alive until a generational GC eventually runs.
             # Flush deferred deletes once Home is visible, then collect only the
@@ -1843,6 +1885,34 @@ class AtlasWindow(QMainWindow):
                 page.set_character_key(self.current_character_key)
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
+
+    def _hibernate_world_scan_on_home(self) -> None:
+        # Worker completion is queued from the map pane. If the player
+        # navigated away from Home in the meantime, keep their live page.
+        if self.stack.currentWidget() is not self.page_widgets.get("Home"):
+            return
+        if self.pending_page_name == "Scan Monde":
+            return
+        if "Scan Monde" in self.page_factories:
+            return
+        page = self.page_widgets.get("Scan Monde")
+        snapshot = getattr(page, "export_lightweight_navigation_state", None)
+        if not callable(snapshot):
+            return
+        state = snapshot()
+        if not isinstance(state, dict):
+            # A map worker may still be computing a generation. Do not tear
+            # down its Qt receiver or discard the pending result.
+            return
+        self._world_scan_return_state = state
+        self.release_reconstructible_page("Scan Monde", self.create_world_scan_page)
+
+    def _on_world_scan_load_finished(self, _generation: int, _payload: object) -> None:
+        """Finish a previously deferred Home eviction after map I/O completes."""
+        if self.stack.currentWidget() is self.page_widgets.get("Home"):
+            # Let WorldScanPanel first apply or defer its worker result and
+            # start any coalesced request; never delete a receiver mid-signal.
+            self._schedule_owned_callback(0, self._hibernate_world_scan_on_home)
 
     @staticmethod
     def collect_released_page_cycles() -> None:
@@ -1880,6 +1950,29 @@ class AtlasWindow(QMainWindow):
         ]
         page.deleteLater()
         self.rebuild_page_indexes()
+
+    def release_transient_placeholders(self) -> None:
+        """Drop transient navigation-only screens; keep real modules intact."""
+
+        removed = False
+        for name, page in tuple(self.page_widgets.items()):
+            if not name.startswith("Placeholder::"):
+                continue
+            if self.stack.currentWidget() is page:
+                continue
+            self.stack.removeWidget(page)
+            self.page_widgets.pop(name, None)
+            self.page_nav_group.pop(name, None)
+            self.page_factories.pop(name, None)
+            self.pages = [
+                (page_name, widget)
+                for page_name, widget in self.pages
+                if page_name != name
+            ]
+            page.deleteLater()
+            removed = True
+        if removed:
+            self.rebuild_page_indexes()
 
     def ensure_pending_page_loaded(self, name: str) -> QWidget | None:
         if self.pending_page_name != name:
@@ -1959,7 +2052,13 @@ class AtlasWindow(QMainWindow):
     def create_world_scan_page(self) -> QWidget:
         from app.ui.world_scan_panel import WorldScanPanel
 
-        return WorldScanPanel(self.set_status)
+        panel = WorldScanPanel(self.set_status)
+        panel.cartographyLoadFinished.connect(self._on_world_scan_load_finished)
+        state = self._world_scan_return_state
+        if isinstance(state, dict):
+            panel.restore_navigation_state(state)
+            self._world_scan_return_state = None
+        return panel
 
     def create_organizer_page(self) -> QWidget:
         organizer_type = _resolve_organizer_page()
@@ -2139,25 +2238,37 @@ class AtlasWindow(QMainWindow):
             popup.update_states(dict(self.preload_states))
 
     def _reveal_after_preload(self) -> None:
-        """Only expose the main interface after every preload task is terminal."""
-        if not self.preload_finished:
+        """Show Home once the Quest base is terminal; finish other warmups in background."""
+        if self._home_revealed or self.preload_states.get("quests") not in {
+            PRELOAD_READY, PRELOAD_FAILED,
+        }:
             return
-        record_startup_event("preload_complete")
+        self._home_revealed = True
         self.show()
         record_startup_event("home_visible")
-        # Home readiness is emitted only after the Home widget actually paints.
         app = QApplication.instance()
         if app is not None:
-            # Once the main window exists, normal close-to-quit semantics resume.
             app.setQuitOnLastWindowClosed(True)
         if self.topmost_enabled:
             self.apply_topmost_state(True)
+        # Avoid competing with the disposable preload workers for CPU/RAM:
+        # service startup is deferred until *all* warmups are terminal.
+        self._start_post_preload_services()
+        LOGGER.info("[main] Home shown; remaining preloads continue in background")
+
+    def _start_post_preload_services(self) -> None:
+        """Start secondary services exactly once, after all warmup workers exit."""
+        if not self._home_revealed or not self.preload_finished:
+            return
+        if self._post_preload_services_started:
+            return
+        self._post_preload_services_started = True
+        record_startup_event("preload_complete")
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
-        LOGGER.info("[main] AtlasWindow shown after functional preload")
 
     def start_preload(
         self,
@@ -2354,6 +2465,12 @@ class AtlasWindow(QMainWindow):
                 for state in self.preload_states.values()
             )
         self.refresh_preload_popup()
+        if not self._home_revealed and self.preload_states.get("quests") in {
+            PRELOAD_READY, PRELOAD_FAILED,
+        }:
+            self.preload_popup.handoff()
+        if self.preload_finished:
+            self._start_post_preload_services()
         if not loading:
             self.preload_poll_timer.stop()
         if fatal_error:

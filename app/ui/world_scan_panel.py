@@ -65,6 +65,11 @@ class WorldScanPanel(QWidget):
         self._deferred_load_result: tuple[int, object] | None = None
         self._initial_load_pending = True
         self._last_cache_summary = None
+        # Keep the map coordinates/history, but not the full native pixmap
+        # when this page is hidden behind Home or another Atlas module.
+        self._image_suspended = False
+        self._world_menu_suspended = False
+        self._restore_selected_coord: tuple[int, int] | None = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 10, 12, 10)
@@ -221,6 +226,75 @@ class WorldScanPanel(QWidget):
         self.set_scan_progress(summary.scanned_count, summary.total_count)
         self.set_cache_state(summary.cache_state)
 
+    def export_lightweight_navigation_state(self) -> dict[str, Any] | None:
+        """A safe, primitive snapshot; never retain Pixmaps or DB rows on Home."""
+        if self._load_in_flight or self._pending_load_request is not None:
+            return None
+        selected = self.selected_map
+        coord = None
+        if isinstance(selected, dict):
+            try:
+                coord = (int(selected["x"]), int(selected["y"]))
+            except (KeyError, TypeError, ValueError):
+                pass
+        view_key = str(self.current_view_key or "")
+        world_name = str(self.current_world_name or DEFAULT_WORLD_NAME)
+        history = [str(key) for key in self.history[-64:] if str(key)]
+        deferred = self._deferred_load_result
+        if deferred is not None and int(deferred[0]) == self._load_generation:
+            # A user can return Home before the next world is applied. The
+            # hidden worker has completed and discarded its image, so its
+            # *latest* validated view is the correct state to restore.
+            payload = deferred[1]
+            if not isinstance(payload, dict) or payload.get("error"):
+                return None  # Keep the original view to surface its error.
+            next_key = str(payload.get("view_key") or "")
+            if next_key:
+                if "view" in payload and payload.get("view") is None:
+                    return None  # An explicitly missing canonical view is not success.
+                if bool(payload.get("push_history")) and view_key and next_key != view_key:
+                    history.append(view_key)
+                if next_key != view_key:
+                    coord = None
+                view_key = next_key
+            world_name = str(payload.get("world_name") or world_name)
+            requested_coord = payload.get("select_coord")
+            if isinstance(requested_coord, (tuple, list)) and len(requested_coord) == 2:
+                try:
+                    coord = (int(requested_coord[0]), int(requested_coord[1]))
+                except (TypeError, ValueError):
+                    coord = None
+        return {
+            "view_key": view_key,
+            "world_name": world_name,
+            "history": tuple(history[-64:]),
+            "select_coord": coord,
+        }
+
+    def restore_navigation_state(self, state: dict[str, Any]) -> None:
+        """Restore only user navigation; the fresh worker owns map contents."""
+        if not isinstance(state, dict):
+            return
+        self.current_view_key = str(state.get("view_key") or "")
+        self.current_world_name = str(state.get("world_name") or DEFAULT_WORLD_NAME)
+        history = state.get("history")
+        self.history = [
+            str(key) for key in history[-64:] if isinstance(key, str) and key
+        ] if isinstance(history, (tuple, list)) else []
+        coord = state.get("select_coord")
+        if isinstance(coord, (tuple, list)) and len(coord) == 2:
+            try:
+                self._restore_selected_coord = (int(coord[0]), int(coord[1]))
+            except (TypeError, ValueError):
+                self._restore_selected_coord = None
+        self._initial_load_pending = True
+
+    def release_runtime(self) -> None:
+        """Drop our global Qt event filter before a reconstructed page is deleted."""
+        app = QApplication.instance()
+        if app is not None:
+            app.removeEventFilter(self)
+
     def reload_all(self) -> None:
         if not self.isVisible():
             self._initial_load_pending = True
@@ -228,10 +302,15 @@ class WorldScanPanel(QWidget):
         self._initial_load_pending = False
         self.set_message("Chargement de la cartographie…")
         self.set_map_placeholder("Chargement de la cartographie…")
+        # A Home-recreated page restores its selected map once, when the
+        # asynchronous canonical map data has been reloaded.
+        restore_coord = self._restore_selected_coord
+        self._restore_selected_coord = None
         self._queue_cartography_load(
             mode="reload",
             view_key=self.current_view_key,
             push_history=False,
+            select_coord=restore_coord,
         )
 
     def import_manifest(self) -> None:
@@ -386,10 +465,22 @@ class WorldScanPanel(QWidget):
             self._start_next_cartography_load()
             return
         if not self.isVisible():
+            if isinstance(payload, dict):
+                image = payload.get("image")
+                if isinstance(image, QImage) and not image.isNull():
+                    # A finished worker must not keep megabytes of QImage
+                    # alive while Map Monde is no longer visible.
+                    payload = dict(payload)
+                    payload["image"] = QImage()
+                    self._image_suspended = True
             self._deferred_load_result = (int(generation), payload)
             self._start_next_cartography_load()
             return
         self._apply_cartography_payload(payload)
+        if isinstance(payload, dict):
+            image = payload.get("image")
+            if isinstance(image, QImage) and not image.isNull():
+                self._image_suspended = False
         self._start_next_cartography_load()
 
     def _apply_cartography_payload(self, payload: object) -> None:
@@ -753,13 +844,20 @@ class WorldScanPanel(QWidget):
             names.append(name)
         return names or list(WORLD_NAMES)
 
-    def rebuild_world_menu(self, names: list[str]) -> None:
+    def _evict_world_menu_items(self) -> None:
+        """Remove inactive menu buttons without losing the loaded view data."""
+
         while self.world_menu_list.count():
             item = self.world_menu_list.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
         self.world_buttons = {}
+        self._world_menu_suspended = True
+
+    def rebuild_world_menu(self, names: list[str]) -> None:
+        self._evict_world_menu_items()
+        self._world_menu_suspended = False
         for world in names:
             item = QPushButton(world)
             item.setObjectName("WorldMenuItem")
@@ -812,15 +910,65 @@ class WorldScanPanel(QWidget):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
+        if self._world_menu_suspended:
+            self.rebuild_world_menu(self.world_names_from_views())
+            self.refresh_world_menu_state()
         deferred = self._deferred_load_result
-        self._deferred_load_result = None
         if deferred is not None and int(deferred[0]) == self._load_generation:
-            self._apply_cartography_payload(deferred[1])
+            if (
+                self._image_suspended and isinstance(deferred[1], dict)
+                and not deferred[1].get("error")
+            ):
+                # Reuse the exact Home snapshot semantics before consuming
+                # the deferred worker result. The bitmap was deliberately
+                # dropped, but its world, history and selection still matter.
+                state = self.export_lightweight_navigation_state()
+                if isinstance(state, dict):
+                    previous_key = self.current_view_key
+                    self.current_view_key = state["view_key"]
+                    self.current_world_name = state["world_name"]
+                    self.history = list(state["history"])
+                    self._restore_selected_coord = state["select_coord"]
+                    if self.current_view_key != previous_key:
+                        self.selected_map = None
+                else:
+                    self._apply_cartography_payload(deferred[1])
+            else:
+                # A worker error must remain visible on re-entry; it is not
+                # a successful world switch just because the bitmap is cold.
+                self._apply_cartography_payload(deferred[1])
+        self._deferred_load_result = None
         if self._initial_load_pending and not self._load_in_flight:
             self.reload_all()
+        elif self._image_suspended and not self._load_in_flight:
+            self._image_suspended = False
+            select_coord = self._restore_selected_coord
+            self._restore_selected_coord = None
+            if select_coord is None:
+                coord = self.selected_map
+                select_coord = (
+                    (int(coord["x"]), int(coord["y"]))
+                    if isinstance(coord, dict) and "x" in coord and "y" in coord
+                    else None
+                )
+            self._queue_cartography_load(
+                mode="view" if self.current_view_key else "reload",
+                view_key=self.current_view_key,
+                push_history=False,
+                select_coord=select_coord,
+            )
 
     def hideEvent(self, event) -> None:
         self.hide_world_menu()
+        # The menu is recreated on show from the already retained list of
+        # worlds; keep its Qt children out of the resident Home widget tree.
+        self._evict_world_menu_items()
+        if not self.canvas.pixmap.isNull():
+            # QPixmap is the largest long-lived native allocation in this
+            # module (often a full 1400x880 ARGB image). Release pixels but
+            # preserve the selected world, coordinates, and navigation history.
+            self.canvas.pixmap = QPixmap()
+            self._image_suspended = True
         super().hideEvent(event)
 
     def resizeEvent(self, event) -> None:

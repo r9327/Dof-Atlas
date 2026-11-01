@@ -1,9 +1,12 @@
 """Doctor optimization-report contracts: no fabricated savings or certification."""
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown
+from tools.atlas_doctor_lib.optimization_report import optimization_report, render_markdown, generate
 
 HEAD = "a" * 40
 OLD = "b" * 40
@@ -27,6 +30,42 @@ def sample(sha=HEAD, **kwargs):
     }
     report.update(kwargs)
     return report
+
+
+def phase8_report(sha: str, *, success_ms: float = 5000,
+                  environment: dict | None = None) -> dict:
+    quest_ms, guide_ms = 2000.0, 1000.0
+    deep_total = quest_ms + guide_ms + success_ms
+    opens = {
+        "quests_open_ms": 100,
+        "achievements_open_ms": 100,
+        "guide_open_ms": 100,
+        "craft_open_ms": 100,
+        "equipment_open_ms": 100,
+    }
+    metrics = {
+        "git_head": sha,
+        "deep_first_content": {
+            "all_details_rendered": True, "quest_id": 18,
+            "guide_id": "bonta", "achievement_id": 20,
+        },
+        "preload_completed_from_constructor_ms": 1000,
+        **opens,
+        "deep_quest_detail_ms": quest_ms,
+        "deep_guide_detail_ms": guide_ms,
+        "deep_achievement_detail_ms": success_ms,
+        "deep_first_content_total_ms": deep_total,
+        "total_first_path_ms": 1000 + sum(opens.values()) + deep_total,
+    }
+    return {
+        "schema_version": 1,
+        "environment": (
+            environment if environment is not None
+            else {"platform": "win32", "python": "3.13.0",
+                  "qt_qpa_platform": "offscreen"}
+        ),
+        "metrics": metrics,
+    }
 
 
 class OptimizationReportTests(unittest.TestCase):
@@ -66,6 +105,20 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["status"], "BLOCKED")
         self.assertEqual(doc["measured_costs"], [])
 
+    def test_failed_same_sha_cannot_launder_measured_costs_into_ready_status(self):
+        failed = sample(
+            status="FAIL", preload_status="FAIL",
+            peak_process_tree_rss_mib=140,
+        )
+        report = optimization_report(HEAD, failed)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("APP_FAILED", {row["id"] for row in report["priority_findings"]})
+        self.assertNotIn("STALE_APP", {row["id"] for row in report["priority_findings"]})
+        self.assertEqual(report["measured_costs"], [])
+        self.assertEqual(report["comparison"]["status"], "NOT_RUN")
+        self.assertEqual(report["diagnostic_correlation"]["status"], "BLOCKED")
+        self.assertFalse(report["is_certification"])
+
     def test_block_false_attribution(self):
         doc = optimization_report(HEAD, sample(cost_attribution={
             "status": "BLOCKED", "reason": "OVERLAPPING_OR_INVALID_TIMING_SPANS"}))
@@ -86,6 +139,169 @@ class OptimizationReportTests(unittest.TestCase):
         self.assertEqual(doc["comparison"]["status"], "DIRECTIONAL_ONLY")
         self.assertEqual(next(x["delta_pct"] for x in doc["comparison"]["metrics"]
                               if x["name"] == "preload_ms"), -50)
+
+    def test_phase8_comparison_reuses_canonical_deep_fixture_verdict(self):
+        from tools.atlas_doctor_lib.optimization_report import comparable_phase8_first_use
+
+        before = phase8_report(OLD, success_ms=1000)
+        after = phase8_report(HEAD, success_ms=5000)
+        result = comparable_phase8_first_use(HEAD, after, before)
+        self.assertEqual(result["status"], "DIRECTIONAL_ONLY")
+        self.assertEqual(result["verdict"], "NET_REGRESSION")
+        self.assertEqual(result["details"]["net_full_first_use_gain_ms"], -4000)
+        self.assertFalse(result["same_runner_attested"])
+        self.assertFalse(result["repeat_runs_verified"])
+        self.assertFalse(result["certified_gain"])
+        doc = optimization_report(
+            HEAD, sample(), phase8=after, phase8_baseline=before,
+        )
+        self.assertIn("PHASE8_FIRST_CONTENT_REGRESSION",
+                      {row["id"] for row in doc["priority_findings"]})
+        self.assertFalse(doc["is_certification"])
+        self.assertIn("mesure unique", render_markdown(doc))
+
+    def test_repeated_phase8_pairs_detect_consistent_regression_without_certification(self):
+        from tools.atlas_doctor_lib.optimization_report import repeated_phase8_first_use
+
+        before = []
+        after = []
+        for i, value in enumerate([5000, 5300, 4800]):
+            baseline = phase8_report(OLD, success_ms=1000)
+            candidate = phase8_report(HEAD, success_ms=value)
+            for artifact in (baseline, candidate):
+                artifact["run_id"] = "windows-run-" + str(i)
+                artifact["runner_id"] = "same-windows-profile"
+            before.append(baseline)
+            after.append(candidate)
+        result = repeated_phase8_first_use(HEAD, before, after)
+        self.assertEqual(result["status"], "REPEATED_DIRECTIONAL_ONLY")
+        self.assertEqual(result["direction"], "REPEATED_SLOWER")
+        self.assertEqual(result["repeat_count"], 3)
+        self.assertEqual(result["median_net_gain_ms"], -4000.0)
+        self.assertEqual(result["p95"], "NOT_STABLE_UNDER_20_REPEATS")
+        self.assertFalse(result["certified_gain"])
+        doc = optimization_report(
+            HEAD, sample(),
+            phase8_baseline_runs=before,
+            phase8_candidate_runs=after,
+        )
+        self.assertIn("PHASE8_REPEAT_REGRESSION",
+                      {r["id"] for r in doc["priority_findings"]})
+        self.assertIn("paires: 3", render_markdown(doc))
+        self.assertFalse(doc["is_certification"])
+
+    def test_repeated_phase8_rejects_missing_pairs_duplicate_runs_and_mismatch(self):
+        from tools.atlas_doctor_lib.optimization_report import repeated_phase8_first_use
+
+        baselines = []
+        candidates = []
+        for i in range(3):
+            b, a = phase8_report(OLD), phase8_report(HEAD)
+            b.update({"run_id": str(i), "runner_id": "windows"})
+            a.update({"run_id": str(i), "runner_id": "windows"})
+            baselines.append(b)
+            candidates.append(a)
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines[:2], candidates[:2])["status"],
+            "INSUFFICIENT_REPEATS",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["run_id"] = "duplicate-or-missing-id"
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["metrics"] = dict(candidates[1]["metrics"])
+        bad[1]["metrics"]["deep_quest_detail_ms"] = True
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        bad = [dict(x) for x in candidates]
+        bad[1]["metrics"] = dict(candidates[1]["metrics"])
+        bad[1]["metrics"]["deep_first_content"] = dict(
+            candidates[1]["metrics"]["deep_first_content"]
+        )
+        bad[1]["metrics"]["deep_first_content"]["quest_id"] = 999
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, bad)["status"],
+            "NOT_COMPARABLE",
+        )
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, baselines, None)["status"],
+            "INSUFFICIENT_REPEATS",
+        )
+        self.assertEqual(
+            repeated_phase8_first_use(HEAD, None, None)["status"], "NOT_RUN",
+        )
+
+    def test_repeated_phase8_artifacts_load_through_one_bounded_report_entrypoint(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "app.json").write_text(
+                json.dumps(sample()), encoding="utf-8",
+            )
+            b_paths, a_paths = [], []
+            for i in range(3):
+                before, after = phase8_report(OLD, success_ms=5000), phase8_report(
+                    HEAD, success_ms=2000,
+                )
+                for payload in (before, after):
+                    payload["run_id"] = "run_" + str(i)
+                    payload["runner_id"] = "test-runner"
+                b_path = artifacts / f"before-{i}.json"
+                a_path = artifacts / f"after-{i}.json"
+                b_path.write_text(json.dumps(before), encoding="utf-8")
+                a_path.write_text(json.dumps(after), encoding="utf-8")
+                b_paths.append(b_path.relative_to(root))
+                a_paths.append(a_path.relative_to(root))
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}),
+            ):
+                report = generate(
+                    root, sha=HEAD,
+                    app_report=Path("artifacts/app.json"),
+                    phase8_repeat_baselines=b_paths,
+                    phase8_repeat_candidates=a_paths,
+                )
+            result = report["phase8_repeated_comparison"]
+            self.assertEqual(result["direction"], "REPEATED_FASTER")
+            self.assertEqual(result["median_net_gain_ms"], 3000)
+            self.assertFalse(result["certified_gain"])
+            self.assertFalse(any(
+                r["id"] == "PHASE8_REPEAT_REGRESSION"
+                for r in report["priority_findings"]
+            ))
+
+    def test_phase8_comparison_fails_closed_on_fixture_or_environment_mismatch(self):
+        from tools.atlas_doctor_lib.optimization_report import comparable_phase8_first_use
+
+        baseline = phase8_report(OLD)
+        candidate = phase8_report(HEAD)
+        changed_environment = phase8_report(
+            HEAD, environment={"platform": "linux",
+                               "python": "3.13.0", "qt_qpa_platform": "offscreen"},
+        )
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, changed_environment, baseline)["status"],
+            "NOT_COMPARABLE",
+        )
+        candidate["metrics"]["deep_first_content"]["achievement_id"] = 21
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, candidate, baseline)["status"],
+            "NOT_COMPARABLE",
+        )
+        self.assertEqual(
+            comparable_phase8_first_use(HEAD, candidate, None)["status"],
+            "NOT_RUN",
+        )
 
     def test_not_run_cannot_claim_full_ui_or_launcher(self):
         doc = optimization_report(HEAD, sample())
@@ -127,6 +343,133 @@ class OptimizationReportTests(unittest.TestCase):
                 {"step": "EXE", "duration_seconds": 30.0, "percent_of_job_measured_steps": 75.0}]}]})
         self.assertEqual(doc["ci_step_costs"][0]["job"], "Windows Packaging")
         self.assertIn("75.0% du job", render_markdown(doc))
+
+    def test_report_reuses_canonical_agent_tool_catalog_cache(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            import json
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}) as cached,
+            ):
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            cached.assert_called_once()
+            self.assertEqual(cached.call_args.kwargs["cache_info"],
+                             report["tool_catalog_cache"])
+            self.assertEqual(report["diagnostic_correlation"]["status"], "NO_CORRELATION")
+            self.assertTrue((root / "artifacts" / "doctor_complete" /
+                             "optimization.json").is_file())
+
+    def test_catalog_routing_requires_same_clean_git_revision_as_benchmark(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            for state in ({"head": OLD, "dirty": False},
+                          {"head": HEAD, "dirty": True}):
+                with (
+                    self.subTest(state=state),
+                    patch("tools.atlas_doctor_lib.core.git_state", return_value=state),
+                    patch("tools.agent_planner._planning_catalog",
+                          side_effect=AssertionError("stale or dirty worktree")) as scan,
+                ):
+                    report = generate(root, sha=HEAD,
+                                      app_report=Path("artifacts/app.json"))
+                    scan.assert_not_called()
+                    self.assertEqual(
+                        report["tool_catalog_cache"]["status"],
+                        "SHA_OR_WORKTREE_MISMATCH",
+                    )
+                    self.assertEqual(
+                        report["diagnostic_correlation"]["investigation_plan"]
+                        ["steps"], [],
+                    )
+                    self.assertFalse(
+                        report["diagnostic_correlation"]["tools_executed"],
+                    )
+
+    def test_existing_phase8_benchmark_is_reused_without_running_another_probe(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "app.json").write_text(
+                json.dumps(sample()), encoding="utf-8",
+            )
+            phase8 = {"schema_version": 1, "metrics": {
+                "git_head": HEAD,
+                "deep_first_content": {
+                    "all_details_rendered": True,
+                    "quest_id": 18, "guide_id": "bonta", "achievement_id": 20,
+                },
+                "deep_quest_detail_ms": 7000,
+                "deep_guide_detail_ms": 2500,
+                "deep_achievement_detail_ms": 5000,
+                "deep_first_content_total_ms": 14500,
+            }}
+            (artifacts / "phase8.json").write_text(
+                json.dumps(phase8), encoding="utf-8",
+            )
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      return_value={"schema_version": 1, "tools": []}),
+            ):
+                report = generate(
+                    root, sha=HEAD, app_report=Path("artifacts/app.json"),
+                    phase8_report=Path("artifacts/phase8.json"),
+                )
+            causes = report["diagnostic_correlation"]["hypotheses"]
+            self.assertIn("COLD_QUEST_DETAIL", {row["id"] for row in causes})
+            self.assertIn("COLD_ACHIEVEMENT_DETAIL", {row["id"] for row in causes})
+            self.assertFalse(report["diagnostic_correlation"]["tests_executed"])
+            self.assertIn("phase8_deep_first_use_same_fixture",
+                          render_markdown(report))
+
+    def test_inventory_unavailable_preserves_benchmark_and_exposes_missing_evidence(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            app_json.write_text(json.dumps(sample()), encoding="utf-8")
+            with (
+                patch("tools.atlas_doctor_lib.core.git_state",
+                      return_value={"head": HEAD, "dirty": False}),
+                patch("tools.agent_planner._planning_catalog",
+                      side_effect=OSError("tool metadata unavailable")),
+            ):
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            self.assertEqual(report["tool_catalog_cache"]["status"], "UNAVAILABLE")
+            self.assertEqual(report["tool_catalog_cache"]["reason"], "OSError")
+            self.assertEqual(report["diagnostic_correlation"]["status"], "NO_CORRELATION")
+            self.assertIn("tool_catalog: NOT_PROVIDED",
+                          report["diagnostic_correlation"]["evidence_gaps"])
+            self.assertTrue((root / "artifacts" / "doctor_complete" /
+                             "optimization.json").is_file())
+
+    def test_stale_app_skips_expensive_tool_catalog_discovery(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            app_json = root / "artifacts" / "app.json"
+            app_json.parent.mkdir(parents=True)
+            import json
+            app_json.write_text(json.dumps(sample(sha=OLD)), encoding="utf-8")
+            with patch("tools.agent_planner._planning_catalog",
+                       side_effect=AssertionError("catalog must not scan stale data")):
+                report = generate(root, sha=HEAD, app_report=Path("artifacts/app.json"))
+            self.assertEqual(report["status"], "BLOCKED")
+            self.assertEqual(report["tool_catalog_cache"]["status"], "NOT_REQUIRED")
+            self.assertEqual(report["diagnostic_correlation"]["status"], "BLOCKED")
 
     def test_bad_rss_numbers_not_counted(self):
         doc = optimization_report(HEAD, sample(

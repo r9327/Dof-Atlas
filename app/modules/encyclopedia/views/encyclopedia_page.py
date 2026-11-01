@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread, current_thread
@@ -148,6 +149,11 @@ def _start_runtime_thread(owner: object, target, name: str) -> None:
     thread = Thread(target=target, name=name, daemon=True)
     threads = getattr(owner, "_runtime_threads", None)
     if isinstance(threads, list):
+        # The shell may re-enter Encyclopedia many times. Finished Thread
+        # objects are no longer joinable work and need not remain retained
+        # until the whole Qt page is destroyed. Keep every active worker so
+        # closeEvent / destroyed still waits for its completion.
+        threads[:] = [existing for existing in threads if existing.is_alive()]
         threads.append(thread)
     thread.start()
 
@@ -1141,9 +1147,18 @@ class EncyclopediaPage(QWidget):
         character_key = str(self.current_character_key or "")
         achievement_progress_service = self.achievement_progress_service
         quest_progress_path = self.quest_progress_path
+        # A direct Success deep link identifies the first detail before the
+        # canonical stage worker starts. Prepare that one detail inside this
+        # existing worker, avoiding a synchronous subprocess on the Qt click.
+        pending_detail_id = (
+            self._pending_achievement_id
+            if open_success and isinstance(self._pending_achievement_id, int)
+            and self._pending_achievement_id > 0 else None
+        )
         guide_provider = (
             self.service.guide_provider if self._guide_runtime_ready else None
         )
+        page_ref = weakref.ref(self)
 
         def worker() -> None:
             with background_io_priority():
@@ -1154,6 +1169,22 @@ class EncyclopediaPage(QWidget):
                         load_runtime()
                     else:
                         achievement_provider.load_all()
+                    if pending_detail_id is not None:
+                        try:
+                            # Refuse an unrelated/non-retained link before an
+                            # expensive cold source read. The provider is
+                            # already loaded in this same canonical stage.
+                            retained = getattr(achievement_provider, "is_retained", None)
+                            if not callable(retained) or retained(pending_detail_id):
+                                # Reuse the same provider and its bounded cache.
+                                achievement_provider.get_detail_by_id(pending_detail_id)
+                        except Exception:
+                            # A missing/corrupt individual detail must not
+                            # prevent the entire Success catalogue from opening.
+                            LOGGER.exception(
+                                "Préparation du détail Succès %s impossible",
+                                pending_detail_id,
+                            )
                     progress_synchronized = False
                     if is_character_key(character_key):
                         achievement_progress_service.sync_from_quest_progress(
@@ -1176,13 +1207,15 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                try:
-                    self.achievementRuntimeFinished.emit(result)
-                except RuntimeError:
-                    LOGGER.debug(
-                        "Success runtime receiver deleted before worker completion.",
-                        exc_info=True,
-                    )
+                page = page_ref()
+                if page is not None:
+                    try:
+                        page.achievementRuntimeFinished.emit(result)
+                    except RuntimeError:
+                        LOGGER.debug(
+                            "Success runtime receiver deleted before worker completion.",
+                            exc_info=True,
+                        )
 
         try:
             _start_runtime_thread(self, worker, "DofusAtlasAchievementStage")

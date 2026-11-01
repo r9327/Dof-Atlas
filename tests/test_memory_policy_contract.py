@@ -728,18 +728,18 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
         shell.index("def _warm_quest_catalogue"):
         shell.index("def build_quest_preload")
     ]
-    assert "_await_startup_cache_warmup()" in quest_warmup
-    assert 'prewarmed.get("status") or "") == "ready"' in quest_warmup
+    assert '_await_startup_cache_warmup(required_domain="quest")' in quest_warmup
+    assert 'prewarmed.get("status") or "") in {"ready", "running"}' in quest_warmup
     assert "prewarmed_count > 0" in quest_warmup
     encyclopedia_warmup = shell[
         shell.index("def _warm_encyclopedia_compact_stores"):
         shell.index("def build_quest_related_preload")
     ]
-    assert "_await_startup_cache_warmup()" in encyclopedia_warmup
+    assert '_await_startup_cache_warmup(required_domain="success")' in encyclopedia_warmup
     assert 'prewarmed.get("encyclopedia_ready")' in encyclopedia_warmup
     assert "_run_preload_module_status(" in encyclopedia_warmup
 
-    assert '_DOMAIN_ORDER = ("guide", "quest", "success")' in warmup
+    assert '_DOMAIN_ORDER = ("quest", "guide", "success")' in warmup
     assert '"app.startup_cache_domain_worker"' in warmup
     assert "STARTUP_CACHE_MANIFEST" in warmup
     assert "startup_cache_manifest_v1.json" in warmup
@@ -762,7 +762,8 @@ def test_launcher_prewarms_reconstructible_caches_before_long_lived_atlas() -> N
     assert "_build_manual_runtime_compact_cache_in_worker" in domain_worker
     assert "_build_guide_items_index" in domain_worker
     assert "ensure_lazy_catalog_cache()" in domain_worker
-    assert "ensure_detail_source_offsets()" in domain_worker
+    assert "details.ensure_detail_source_offsets(" in domain_worker
+    assert "indexed_paths=detail_indexes" in domain_worker
     assert "_build_compact_cache" in domain_worker
     assert "write_achievement_name_index()" in domain_worker
     assert "subprocess.run(" not in domain_worker
@@ -1377,7 +1378,8 @@ def test_dofus_item_worker_streams_monolithic_doduda_sources() -> None:
     assert "extra_rows" in load_in_process
     assert load_in_process.count("_iter_doduda_refs(items_path)") == 1
     assert "effect_candidates" in load_in_process
-    assert "del effect_candidates" in load_in_process
+    assert "tempfile.SpooledTemporaryFile" in load_in_process
+    assert "effect_candidates.write(" in load_in_process
     guide_builder = source[
         source.index("def _build_guide_items_index("):
         source.index("def _ensure_guide_items_index_cli(")

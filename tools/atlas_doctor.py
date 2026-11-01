@@ -406,6 +406,42 @@ def command_code_inspect(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+
+def command_full_scope(root: Path, args) -> dict[str, Any]:
+    """Full static inventory + Unity triage; no runtime/visual certification."""
+    from tools.atlas_doctor_lib.full_scope import (
+        audit_full_scope, write_full_scope_report,
+    )
+    if getattr(args, 'links_all', False) and (not args.with_links or not args.output):
+        return {"status": "BLOCKED", "reason": "--links-all requires --with-links and --output under artifacts/"}
+    result = audit_full_scope(root, expected_sha=args.expected_sha,
+                              with_graph=args.with_graph, with_json=args.with_json,
+                              with_links=args.with_links, links_offset=getattr(args, "links_offset", 0),
+                              links_all=getattr(args, "links_all", False))
+    if args.output:
+        try:
+            path = write_full_scope_report(root, args.output, result)
+            result["report_path"] = str(path)
+        except (OSError, ValueError) as exc:
+            result["status"] = "BLOCKED"
+            result["output_error"] = str(exc)
+    if not args.json:
+        coverage = result.get("source_coverage") or {}
+        style = result.get("unity_style") or {}
+        print(
+            f"Doctor full-scope: {result['status']} | "
+            f"{coverage.get('inspected', 0)}/{coverage.get('total', 0)} fichiers Python "
+            f"| {coverage.get('functions_inspected', 0)} fonctions"
+        )
+        print(
+            f"Unity style: {style.get('status', 'NOT_RUN')} "
+            f"| {style.get('candidate_count', 0)} anomalies candidates "
+            "| rendu Windows natif NOT_RUN"
+        )
+        print("Analyse statique seulement; aucune certification UI ou runtime implicite.")
+    return result
+
+
 def command_graph_compare(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.architecture import graph_status
     from tools.atlas_doctor_lib.graph_intelligence import compare_graphs
@@ -636,7 +672,7 @@ def command_perf(root: Path, args) -> dict[str, Any]:
         if args.deep or args.files_only or args.cycles not in (1, 2, 3, 5, 10):
             return {"status": "BLOCKED", "reason": "Incompatible Doctor app benchmark options"}
         if args.parallel_instances == 8:
-            if args.one_core or args.idle_seconds or args.cycles != 1:
+            if args.one_core or args.idle_seconds or args.cycles != 1 or getattr(args, 'ram_forensics', False):
                 return {"status": "BLOCKED", "reason": "Eight-Atlas scenario requires cycles=1, no idle/one-core"}
             from tools.atlas_doctor_lib.parallel_app import run_eight
             report = run_eight(root, output=root / args.output, max_seconds=args.max_seconds)
@@ -645,10 +681,16 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                       f"| {len(report.get('instances', []))}/8 actual processes")
             return report
         from tools.doctor_quick_app_probe import run as run_app_benchmark
+        # Preserve the historical exact kwargs for all normal Doctor callers:
+        # RAM forensics is an opt-in mode, never a changed default contract.
+        forensic_options = (
+            {'ram_forensics': True} if getattr(args, 'ram_forensics', False) else {}
+        )
         report = run_app_benchmark(
             output=root / args.output, timeout=args.timeout,
             max_seconds=args.max_seconds, cycles=args.cycles,
             idle_seconds=args.idle_seconds, one_core=args.one_core,
+            **forensic_options,
         )
         if not args.json:
             print(f"Doctor App Benchmark: {report['status']} "
@@ -657,7 +699,8 @@ def command_perf(root: Path, args) -> dict[str, Any]:
                   f" | idle {report.get('idle_seconds_requested')}s")
         return report
     if (getattr(args, 'one_core', False) or getattr(args, 'idle_seconds', 0.0)
-            or getattr(args, 'parallel_instances', 1) != 1):
+            or getattr(args, 'parallel_instances', 1) != 1
+            or getattr(args, 'ram_forensics', False)):
         return {"status": "BLOCKED", "reason": "App-only performance flags require Doctor perf --app"}
     if getattr(args, 'deep', False):
         return command_perf_lab(root, args)
@@ -967,6 +1010,21 @@ def build_parser() -> argparse.ArgumentParser:
     ci.add_argument('--entrypoint', action='append', help='Point entree connu (plusieurs possibles).')
     ci.add_argument('--baseline', type=Path, help='Ancien Graphify graph.json pour comparaison.')
     ci.add_argument('--trace', type=Path, help='Trace opt-in .ai/runtime du même commit.')
+    full_scope = sub.add_parser(
+        'full-scope', help='Inventaire complet des sources Python et triage du style Unity, sans runtime.')
+    full_scope.add_argument('--expected-sha', help='Refuser un checkout different de ce SHA Git exact.')
+    full_scope.add_argument('--with-graph', action='store_true',
+                            help='Inclure tous les candidats du graphe Graphify exact SHA, sans rebuild.')
+    full_scope.add_argument('--with-json', action='store_true',
+                            help='Parser tous les JSON suivis, sans prétendre certifier leurs relations métier.')
+    full_scope.add_argument('--with-links', action='store_true',
+                            help='Trier les liens statiques JSON/assets sans suppression ni preuve runtime.')
+    full_scope.add_argument('--links-offset', type=int, default=0,
+                            help='Page de 40 ressources sans consommateur statique; --with-links requis.')
+    full_scope.add_argument('--links-all', action='store_true',
+                            help='Exporter tous les fichiers sans lien statique (requiert --with-links --output).')
+    full_scope.add_argument('--output', type=Path,
+                            help='Ecrire les preuves JSON sous artifacts/ uniquement (opt-in).')
     gc = sub.add_parser('graph-compare', help='Comparer l’ancien graph.json à celui du HEAD actuel.')
     gc.add_argument('--baseline', required=True, type=Path)
     graph = sub.add_parser('graph', help='Architecture Graphify; lecture du graph par defaut.')
@@ -1000,6 +1058,8 @@ def build_parser() -> argparse.ArgumentParser:
                       help='Observation post-Home; ne prétend pas démontrer une fuite.')
     perf.add_argument('--one-core', action='store_true',
                       help='Affinité effective sur un cœur logique Windows; pas une machine bas de gamme.')
+    perf.add_argument('--ram-forensics', action='store_true',
+                      help='Python tracemalloc + Private Bytes Windows, opt-in, vitesse non comparable.')
     perf.add_argument('--parallel-instances', type=int, choices=(1, 8), default=1,
                       help='8 vrais processus Atlas CI isolés; jamais 8 comptes DOFUS.')
     perf.add_argument('--cycles', type=int, choices=(1, 2, 3, 5, 10), default=2)
@@ -1160,6 +1220,7 @@ def main(argv: list[str] | None = None) -> int:
         'consumer-sites': command_consumer_sites,
         'isolate-triage': command_isolate_triage,
         'code-inspect': command_code_inspect,
+        'full-scope': command_full_scope,
         'runtime-trace': command_runtime_trace,
         'capture-ui': command_capture_ui,
         'ui': command_ui,
@@ -1230,6 +1291,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if payload['status'] in {'PASS', 'RECORDED'} else 1
     if args.command == 'runtime-trace':
         return 0 if payload['status'] == 'RECORDED' else 1
+    if args.command == 'full-scope':
+        return {'REVIEW': 1, 'BLOCKED': 2}.get(payload['status'], 2)
     if args.command == 'code-inspect':
         return {'PASS': 0, 'REVIEW': 1, 'BLOCKED': 2}[payload['status']]
     if args.command == 'isolate-triage':
