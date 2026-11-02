@@ -14,7 +14,7 @@ from app.modules.encyclopedia.views.guide_featured_home import (
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
     ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
-    load_ganymede_local_observations,
+    load_ganymede_local_observations, load_ganymede_local_instructions,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -751,25 +751,33 @@ class GuideCatalogView(QWidget):
         dialog.setMinimumSize(560, 400)
         layout = QVBoxLayout(dialog)
         try:
+            instructions = load_ganymede_local_instructions(entry)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            instructions = None
+            self.status_callback(f"Consignes locales Ganymède invalides : {exc}")
+        try:
             local_steps = load_ganymede_local_observations(entry)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             local_steps = ()
             self.status_callback(f"Repères locaux Ganymède indisponibles : {exc}")
         notice = QLabel(
-            ("Repères factuels sauvegardés localement (hors ligne). "
-             "Ces relevés ne contiennent pas encore les consignes complètes "
-             "ni les objectifs certifiés de Ganymède. "
+            ("Consignes structurées disponibles hors ligne (Atlas). "
+             "Progression manuelle du personnage actif. "
+             if instructions else
+             "Repères factuels uniquement : consignes jouables manquantes. "
+             "La validation est désactivée. "
              if local_steps else
              "Relevés locaux absents : lecteur source en ligne uniquement. ")
-            + "Les étapes cochées sont enregistrées dans Atlas "
-              "pour le personnage sélectionné.",
+            + ("Progression enregistrée par personnage dans Atlas."
+               if instructions else
+               "Ce relevé ne constitue pas un parcours jouable."),
             dialog,
         )
         notice.setWordWrap(True)
         layout.addWidget(notice)
 
         browser = None
-        if local_steps:
+        if local_steps or instructions:
             fallback = QPlainTextEdit(dialog)
             fallback.setReadOnly(True)
             fallback.setObjectName("GanymedeOfflineSourceStep")
@@ -793,7 +801,7 @@ class GuideCatalogView(QWidget):
 
         count = entry.step_count if type(entry.step_count) is int and entry.step_count > 0 else 0
         selected = str(self.current_character_key or "")
-        can_record = is_character_key(selected)
+        can_record = is_character_key(selected) and bool(instructions)
         # Share the eventual native guide's stable identity where known.
         # Never reuse an Atlas optimized guide's unrelated manual progress.
         mapped_id = ATLAS_EQUIVALENTS.get(entry.source_id)
@@ -854,7 +862,11 @@ class GuideCatalogView(QWidget):
                 current_page[0] = page
                 previous_button.setEnabled(page > 1)
                 next_button.setEnabled(page < count)
-                if local_steps:
+                if instructions:
+                    fallback.setPlainText(
+                        self._format_offline_instruction(instructions[page - 1], page, count)
+                    )
+                elif local_steps:
                     fallback.setPlainText(
                         self._format_offline_observation(local_steps[page - 1], page, count)
                     )
@@ -862,11 +874,14 @@ class GuideCatalogView(QWidget):
                     browser.setUrl(step_url(page))
                 is_done = source_step_id(page) in checked
                 validate_button.setText(
+                    "Consignes manquantes" if not instructions else
                     "Annuler la validation" if is_done else "Valider l'étape"
                 )
                 progress_label.setText(
                     f"{completed_count[0]} / {count} étapes validées"
                     if can_record else
+                    "Progression indisponible : instructions non intégrées."
+                    if not instructions else
                     "Choisir un personnage Atlas pour enregistrer la progression."
                 )
 
@@ -935,6 +950,23 @@ class GuideCatalogView(QWidget):
             lambda _result, source_dialog=dialog: self._clear_ganymede_source_dialog(source_dialog)
         )
         dialog.show()
+
+    @staticmethod
+    def _format_offline_instruction(step: dict, page: int, count: int) -> str:
+        """Render authored objectives instead of observed link IDs."""
+        lines = [f"ÉTAPE {page} / {count}", str(step["title"]).strip(), "",
+                 str(step["instructions"]).strip(), ""]
+        labels = {
+            "travel": "Aller à", "talk": "Parler", "interact": "Interagir",
+            "fight": "Combattre", "prepare": "Préparer",
+            "use_item": "Utiliser", "deliver": "Remettre",
+            "craft": "Fabriquer", "information": "Information",
+        }
+        for action in step["actions"]:
+            coords = action.get("coordinates")
+            position = f" [{coords[0]}, {coords[1]}]" if coords else ""
+            lines.append(f"• {labels[action['kind']]}{position} — {action['text'].strip()}")
+        return "\n".join(lines)
 
     @staticmethod
     def _format_offline_observation(step: dict, page: int, count: int) -> str:

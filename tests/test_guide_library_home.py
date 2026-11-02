@@ -446,6 +446,38 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_fact_only_steps_cannot_be_marked_as_completed(self):
+        from PySide6.QtWidgets import QPushButton
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _text: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                character_key="character:7", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "dimensions"
+                view.refresh_home()
+                item = view.home_metadata_list.item(0)
+                with patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.load_ganymede_local_instructions",
+                    return_value=None,
+                ):
+                    view._open_ganymede_source_item(item)
+                dialog = view._ganymede_source_dialog
+                validate = dialog.findChild(
+                    QPushButton, "GanymedeSourceValidateStep",
+                )
+                self.assertFalse(validate.isEnabled())
+                self.assertEqual(validate.text(), "Consignes manquantes")
+                dialog.close()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_source_offline_reader_step_navigation_and_character_progress(self):
         import sys
         from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
@@ -477,6 +509,16 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     if row.source_id == item.data(Qt.UserRole)
                 )
                 self.assertGreater(source.step_count, 2)
+                def authored_steps(entry):
+                    return tuple({
+                        "source_step_number": number,
+                        "title": f"Instruction {number}",
+                        "instructions": "Parcours rédigé pour test hors ligne",
+                        "actions": [{
+                            "kind": "talk", "text": f"Parler au PNJ numéro {number}",
+                        }],
+                    } for number in range(1, entry.step_count + 1))
+
                 with patch.dict(sys.modules, {
                     "PySide6.QtWebEngineWidgets": SimpleNamespace(
                         QWebEngineView=OfflineWeb,
@@ -484,6 +526,9 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 }), patch(
                     "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
                     progress_path,
+                ), patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.load_ganymede_local_instructions",
+                    side_effect=authored_steps,
                 ):
                     view._open_ganymede_source_item(item)
                     dialog = view._ganymede_source_dialog
@@ -513,7 +558,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     ))
                     spinner.setValue(2)
                     self.assertIn("ÉTAPE 2 /", local.toPlainText())
-                    self.assertIn("REPÈRES HORS LIGNE", local.toPlainText())
+                    self.assertIn("Parler au PNJ numéro 2", local.toPlainText())
                     spinner.setValue(1)
                     self.assertEqual(validate.text(), "Annuler la validation")
                     # A second session clears the step after this dialog

@@ -181,3 +181,77 @@ def load_ganymede_local_observations(
                     or any(type(value) is not int or value <= 0 for value in ids)):
                 raise ValueError(f"Invalid links at {entry.source_id}:{number}")
     return tuple(steps)
+
+
+# Strict optional contract for *real* offline instructions. An observed-link
+# snapshot is never promoted to authored actions. Only a fully supplied route
+# can use this reader. Guides are loaded lazily on selection, not at Home load.
+_INSTRUCTION_KINDS = frozenset({
+    "travel", "talk", "interact", "fight", "prepare", "use_item", "deliver",
+    "craft", "information",
+})
+_MISSING_INSTRUCTIONS = frozenset({
+    "", "todo", "tbd", "à compléter", "a completer",
+    "voir le guide", "voir ganymède", "voir ganymede",
+})
+
+
+def load_ganymede_local_instructions(
+    entry: GanymedeListing, *, data_dir: Path | None = None,
+) -> tuple[dict, ...] | None:
+    """Load a completely authored offline route, or return None if not supplied.
+
+    This *does not* scrape or fabricate Ganymède text. Content must be original
+    Atlas writing or licensed for distribution and provided by an author.
+    Corrupt/partial routes fail closed, never reverting to a quest checklist.
+    """
+    if (not isinstance(entry, GanymedeListing)
+            or type(entry.source_id) is not int or entry.source_id <= 0
+            or type(entry.step_count) is not int or entry.step_count <= 0):
+        raise ValueError("Invalid Ganymède instruction catalogue entry")
+    root = Path(data_dir) if data_dir is not None else INDEX_PATH.parent
+    file = root / f"ganymede_{entry.source_id}_instructions.json"
+    if not file.exists():
+        return None
+    payload = json.loads(file.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid Ganymède instructions {entry.source_id}")
+    steps = payload.get("steps")
+    if (payload.get("schema_version") != 1
+            or payload.get("source_guide_id") != entry.source_id
+            or payload.get("source_url") != entry.source_url
+            or payload.get("expected_source_step_count") != entry.step_count
+            or payload.get("rights_basis") not in {
+                "atlas_original", "redistribution_permission",
+            }
+            or not isinstance(steps, list)
+            or len(steps) != entry.step_count):
+        raise ValueError(f"Unverified/partial Ganymède instructions {entry.source_id}")
+    for number, step in enumerate(steps, 1):
+        if not isinstance(step, dict):
+            raise ValueError(f"Invalid Ganymède instruction step {entry.source_id}:{number}")
+        title = step.get("title")
+        detail = step.get("instructions")
+        actions = step.get("actions")
+        if (type(step.get("source_step_number")) is not int
+                or step["source_step_number"] != number
+                or not isinstance(title, str) or not title.strip()
+                or not isinstance(detail, str)
+                or detail.casefold().strip() in _MISSING_INSTRUCTIONS
+                or not isinstance(actions, list) or not actions):
+            raise ValueError(f"Incomplete Ganymède instruction step {entry.source_id}:{number}")
+        for action in actions:
+            if not isinstance(action, dict):
+                raise ValueError(f"Invalid Ganymède action {entry.source_id}:{number}")
+            text = action.get("text")
+            if (action.get("kind") not in _INSTRUCTION_KINDS
+                    or not isinstance(text, str)
+                    or text.casefold().strip() in _MISSING_INSTRUCTIONS):
+                raise ValueError(f"Unverified Ganymède action {entry.source_id}:{number}")
+            coords = action.get("coordinates")
+            if coords is not None and (
+                not isinstance(coords, list) or len(coords) != 2
+                or any(type(v) is not int for v in coords)
+            ):
+                raise ValueError(f"Invalid Ganymède action coordinates {entry.source_id}:{number}")
+    return tuple(steps)
