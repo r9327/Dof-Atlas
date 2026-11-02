@@ -18,19 +18,23 @@
     {
       "source_step_number": 1,
       "title": "Préparer le voyage vers Valonia",
-      "instructions": "Ce début de parcours n'exige pas de collecte préalable. Prévoir le paiement du transport et rejoindre le port de Madrestam. Capturer le Raccooper pour l'Ocre reste facultatif.",
+      "instructions": "Départ du parcours Valonia 1, à partir du niveau 60 environ, pour un succès portant sur la découverte de l'archipel. Aucun prérequis ni ressource à collecter n'est exigé au lancement. Seul le prix du bateau doit être disponible au moment de l'embarquement ; la capture du Raccooper pour le Dofus Ocre reste entièrement facultative.",
       "actions": [
         {
+          "kind": "information",
+          "text": "Niveau conseillé : 60. Ce parcours ne requiert aucune quête préalable ni collecte de ressources de départ."
+        },
+        {
           "kind": "prepare",
-          "text": "Conserver au moins 100 kamas pour la traversée."
+          "text": "Garder 100 kamas disponibles pour le billet de bateau auprès d'Isabello Tissier."
         },
         {
           "kind": "information",
-          "text": "La capture du Raccooper pour la quête de l'Ocre est facultative."
+          "text": "Facultatif : emporter une pierre d'âme pour capturer le Raccooper dans le cadre du Dofus Ocre."
         },
         {
           "kind": "travel",
-          "text": "Rejoindre le quai de départ au port de Madrestam en [10,-3].",
+          "text": "Aller au port de Madrestam en [10,-3] et chercher le capitaine.",
           "coordinates": [
             10,
             -3
