@@ -1,6 +1,6 @@
 # Organizer — Miroir expérimental, issue #321
 
-**État : interface et clics séquentiels intégrés, NON certifiés.**
+**État : interface, clics, clavier court et molette séquentiels intégrés, NON certifiés.**
 Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 
 ## Interface
@@ -34,11 +34,12 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 
 ## Manques et preuves obligatoires
 - Gestion pure du cycle clavier : `MirrorHeldKeys`, `mirror_key_transition` et
-  `mirror_release_all_keys` sont testés contre répétitions, relâchements orphelins
-  et arrêt d'urgence. **Non raccordés au hook ni à l'injection Windows.**
-- Clavier, touches maintenues, molette et mouvement continu ne sont PAS encore
-  reproduits. Le repli séquentiel sur ces gestes risquerait de perdre les
-  événements de relâchement et de bloquer des touches.
+  `mirror_release_all_keys` couvrent les répétitions et relâchements orphelins
+  dans des tests dédiés ; ce **planificateur de maintien n'est pas branché**.
+- Les touches courtes et la molette sont raccordées au hook/sender séquentiel.
+  Les touches maintenues de façon continue et les mouvements/glisser-déposer
+  restent non supportés : le repli séquentiel change de focus et ne peut garantir
+  les mêmes séquences DOWN/MOVE/UP à tous les clients.
 - PostMessage ciblé en arrière-plan et compatibilité réelle avec Unity
   NON PROUVÉS ; pas de diffusion simultanée annoncée.
 - Scénarios 1/2/4/8 fenêtres en jeu et mesures p50/p95/p99 : NOT_RUN (#322).
@@ -64,5 +65,7 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
   continu, raccourcis combinés, glisser-déposer, mouvements de souris en
   continu, diffusion réellement simultanée/en arrière-plan. Le mode
   séquentiel avec changements de focus ne peut garantir ces comportements.
-- **Statut de validation** : tests de simulation ajoutés, pas encore exécutés
-  au HEAD final ; recette Windows / DOFUS Unity #322 : NOT_RUN.
+- **Statut de validation** : tests de simulation ajoutés et tests clavier/molette
+  restaurés après audit ; aucune exécution Python/Windows certifiée au HEAD final.
+  Recette Windows / DOFUS Unity #322 : NOT_RUN. Les p50/p95/p99 de SendInput
+  par geste sont journalisés, pas des mesures de rendu Unity.

@@ -61,6 +61,7 @@ class MirrorInputMacro:
         timings = runtime.settings.timings
         start = perf_counter()
         delivered = 0
+        send_samples_ms: list[float] = []
         cursor = None
         if kind == "wheel":
             try:
@@ -90,6 +91,7 @@ class MirrorInputMacro:
                 if runtime.macro_lock.should_stop():
                     break
                 try:
+                    sent_at = perf_counter()
                     if kind == "key":
                         from app.macros.input_tools import key_down, key_up
                         vk = int(payload)
@@ -115,6 +117,7 @@ class MirrorInputMacro:
                         finally:
                             runtime.synthetic_guard.end(120)
                     delivered += 1
+                    send_samples_ms.append((perf_counter() - sent_at) * 1000.0)
                 except Exception:
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)
                     break
@@ -127,9 +130,18 @@ class MirrorInputMacro:
                     set_cursor_pos(*cursor)
                 except Exception:
                     runtime.logger.exception("Miroir molette: restauration curseur impossible.")
-            if not runtime.macro_lock.should_stop():
-                runtime.switch_character.restore_preferred_client("Miroir " + kind)
+            # A changed favorite must not be activated as a side effect of
+            # aborting the original gesture (same policy as mouse clicks).
+            if not runtime.macro_lock.should_stop() and self._still_current(source, handles):
+                try:
+                    runtime.switch_character.restore_preferred_client("Miroir " + kind)
+                except Exception:
+                    runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
+            from app.macros.mirror_plan import mirror_latency_percentiles_ms
+
+            latency = mirror_latency_percentiles_ms(send_samples_ms)
             runtime.logger.info(
-                "Miroir %s: envoyés=%s/%s total_ms=%.2f",
+                "Miroir %s: envoyés=%s/%s total_ms=%.2f SendInput_ms=%s",
                 kind, delivered, len(handles), (perf_counter() - start) * 1000.0,
+                latency if latency is not None else "NOT_MEASURED",
             )

@@ -426,5 +426,91 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_keyboard_and_wheel_callbacks_use_frozen_favorite_roster(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime._mirror_gesture_targets.return_value = (101, (101, 202, 303))
+        runtime.mirror_input.run_key.return_value = True
+        runtime.mirror_input.run_wheel.return_value = True
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point", return_value=101),
+            patch("app.windows.unity_windows.screen_to_client", return_value=(20, 25)),
+            patch("app.windows.unity_windows.client_point_ratio", return_value=(0.2, 0.5)),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+            self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, False))
+            self.assertTrue(AtlasRuntime._handle_mirror_wheel(runtime, -120, 80, 95, False))
+        runtime.mirror_input.run_key.assert_called_once_with(65, 101, (101, 202, 303))
+        runtime.mirror_input.run_wheel.assert_called_once_with(
+            -120, False, 0.2, 0.5, 101, (101, 202, 303),
+        )
+
+    def test_keyboard_and_wheel_leave_other_apps_untouched(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime._mirror_gesture_targets.return_value = (101, (101, 202, 303))
+        with patch("app.windows.unity_windows.foreground_window", return_value=777):
+            self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+            self.assertFalse(AtlasRuntime._handle_mirror_wheel(runtime, 120, 80, 95, False))
+        runtime.mirror_input.run_key.assert_not_called()
+        runtime.mirror_input.run_wheel.assert_not_called()
+
+    def test_keyboard_hook_consumes_exact_key_pair_and_preserves_modifiers(self):
+        import ctypes
+        import logging
+        from app.input.hotkeys import (
+            HotkeyRegistry, KBDLLHOOKSTRUCT, WM_KEYDOWN, WM_KEYUP,
+        )
+        from app.input.input_state import InputState
+
+        registry = HotkeyRegistry(InputState(), logging.getLogger("mirror_keyboard_test"), Mock())
+        physical = Mock(return_value=True)
+        registry.physical_key_callback = physical
+        event = KBDLLHOOKSTRUCT()
+        event.vkCode = 65
+        next_hook = Mock(return_value=37)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+            create=True,
+        ):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
+            self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
+            physical.assert_called_once_with(65, True)
+            self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ptr), 1)
+            self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ptr), 37)
+            event.vkCode = 0xA4  # ALT modifier must pass through.
+            self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 37)
+        physical.assert_called_once()
+
+
+    def test_mirror_abort_does_not_switch_to_new_favorite(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        mirror = MirrorInputMacro(runtime)
+        with (
+            patch.object(mirror, "_still_current", side_effect=[True, False, False]),
+            patch("app.macros.mirror_input.is_dofus_unity_process") as probe,
+            patch("app.macros.mirror_input.activate_window") as activate,
+        ):
+            mirror._run("key", 65, 101, (101, 202))
+        activate.assert_not_called()
+        probe.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+
+
 if __name__ == "__main__":
     unittest.main()
