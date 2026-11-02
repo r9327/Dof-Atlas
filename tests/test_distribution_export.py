@@ -85,6 +85,18 @@ class ExportTests(unittest.TestCase):
         # separate source/bundle tests, not an automatic Doctor orphan decision.
         self.assertTrue(selected_runtime_path(
             "data/encyclopedia/guides/ganymede_2203_action_candidates.json"))
+        # Both numeric and legacy-named factual offline sources must ship with
+        # the App mirror, not remain dev-only research artifacts.
+        for source in (
+            "ganymede_2290_observed_links.json",
+            "ganymede_2249_observed_links.json",
+            "ganymede_master_observed_links.json",
+            "ganymede_otomai_1_observed_links.json",
+        ):
+            self.assertTrue(
+                selected_runtime_path("data/encyclopedia/guides/" + source),
+                source,
+            )
 
     def test_reject_unmaterialized_lfs_icon(self):
         with tempfile.TemporaryDirectory() as directory:
