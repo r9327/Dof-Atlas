@@ -183,6 +183,26 @@ Le mode `--asset-trial` ne se combine pas avec `--run` ou `--verify-live` ;
 aucun asset n'est analysé par ce spécialiste automatiquement lors
 d'un simple `agent check`.
 
+## Essai fontTools pour les polices Unity
+
+Pour une police TTF/OTF locale précise, le propriétaire Assets peut interroger
+`fontTools` sans modifier la police ou le pack Unity :
+
+```powershell
+py -3.13 -m tools.atlas_doctor oss app/assets/themes/dofus_unity/ma_police.ttf --font-trial --json
+```
+
+Remplacer le chemin par une police **réellement présente**. Le mode
+`--font-trial` lit seulement les TTF/OTF explicitement sélectionnés,
+au maximum 16 fichiers de 2 Mio chacun. Il vérifie les SHA256 avant/après,
+lit les noms de famille/style et la **présence** d'une mention de licence
+sans en déduire des droits de redistribution. Le chargement Qt, le rendu DPI,
+l'intégration aux consommateurs et la provenance des assets restent à vérifier
+séparément. Sans `fontTools`, le rapport indique `NOT_AVAILABLE`; si une
+police est illisible, `ERROR`. Aucun fichier n'est transformé.
+`--font-trial`, `--asset-trial`, `--verify-live` et `--run` sont des
+modes exclusifs ; les deux essais Assets sont toujours manuels.
+
 ## Commandes
 
 Plan consultatif sans processus tiers :
