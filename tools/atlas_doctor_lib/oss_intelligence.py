@@ -177,6 +177,8 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                   else "REVIEW",
         "scopes": scopes,
         "recommended": included,
+        "evaluated_candidates": rows,
+        "omitted_candidates": rows[limit:],
         "omitted_count": omitted,
         "native_routes": list(dict.fromkeys(native_routes)),
         "inventory_coverage": complete_inventory,
@@ -219,7 +221,10 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
         {"id": "commit_audit_and_phase_certification", "when": "PR_READY", "required": True,
          "command": None},
     )
-    selection_rows = selection.get("recommended") or []
+    # The bounded top 8 are suggested for immediate execution/preflight,
+    # but agents must still be able to inspect EVERY contextual alternative.
+    selection_rows = (selection.get("evaluated_candidates")
+                      or selection.get("recommended") or [])
     observed_packages = {
         row["id"]: row for row in (selection.get("local_preflight") or {}).get("tools", [])
         if isinstance(row, dict) and isinstance(row.get("id"), str)
@@ -228,6 +233,10 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
         {"tool_id": row.get("id"), "name": row.get("name"),
          "decision": row.get("decision"),
          "reason_scopes": list(row.get("reason_scopes") or []),
+         "shortlisted": row.get("id") in {
+             item.get("id") for item in selection.get("recommended", [])
+             if isinstance(item, dict)
+         },
          "local_distribution": row.get("local_distribution"),
          "local_binary": row.get("local_binary"),
          "locally_available": observed_packages.get(row.get("id"), {}).get("available"),
