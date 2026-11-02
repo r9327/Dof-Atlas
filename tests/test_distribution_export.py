@@ -101,7 +101,7 @@ class ExportTests(unittest.TestCase):
     def test_original_offline_routes_are_included_in_app_distribution(self):
         # Without these data files the local guide reader would appear empty
         # in Atlas App even though it works in the development checkout.
-        for guide_id in (2219, 2220, 2252, 2248, 2285, 2290, 2273, 2247):
+        for guide_id in (2219, 2220, 2252, 2248, 2285, 2290, 2273, 2247, 2227):
             name = (
                 "data/encyclopedia/guides/"
                 f"ganymede_{guide_id}_instructions.json"
