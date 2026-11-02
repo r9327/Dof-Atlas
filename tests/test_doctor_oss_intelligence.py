@@ -173,6 +173,38 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertFalse(any("certify" in item.casefold() for item in routes))
         self.assertFalse(plan["certified"])
 
+    def test_real_optional_trials_are_routed_but_never_auto_executed(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        paths = [
+            "tools/atlas_json_benchmark.py",
+            "app/assets/themes/dofus_unity/somefont.ttf",
+            "tests/test_guide_stage.py",
+        ]
+        plan = intelligent_plan(paths, study())
+        observed = {row["id"]: row for row in plan["evaluated_candidates"]}
+        optional = {
+            "ATOSS-02", "ATOSS-11", "ATOSS-12", "ATOSS-13",
+            "ATOSS-14", "ATOSS-16", "ATOSS-17",
+        }
+        self.assertTrue(optional.issubset(observed))
+        for cid in optional:
+            with self.subTest(cid=cid):
+                row = observed[cid]
+                self.assertEqual(row["decision"], "OPT_IN_TRIAL_AVAILABLE")
+                self.assertTrue(row["opt_in_trial_route"])
+                self.assertFalse(row["trial_executed"])
+                self.assertFalse(row["tool_executed"])
+                self.assertFalse(row["adoption_qualified"])
+        summary = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1},
+                                   plan)
+        routed = {row["tool_id"]: row for row in summary["oss_recommendations"]}
+        for cid in optional:
+            self.assertEqual(routed[cid]["opt_in_trial_route"],
+                             observed[cid]["opt_in_trial_route"])
+            self.assertFalse(routed[cid]["adoption_qualified"])
+            self.assertFalse(routed[cid]["trial_executed"])
+        self.assertFalse(summary["may_claim_full_certification"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
