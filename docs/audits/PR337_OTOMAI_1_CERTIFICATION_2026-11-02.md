@@ -63,3 +63,56 @@ Les champs `source_parity_certified=false` et
 
 **Aucun guide suivant entamé dans ce lot. PR #337 reste Draft,
 CHANGES REQUIRED.**
+
+## Correctifs locaux du lecteur — lot additionnel du 2 novembre
+
+**Périmètre effectivement modifié :** consignes Otomaï 1 et composants
+existants du lecteur de guides rédigés. Pas de nouveau guide, pas de
+modification des deux guides optimisés, pas de restructuration
+d'architecture ni de migration des sauvegardes.
+
+| Problème | État après ce lot | Preuve |
+| --- | --- | --- |
+| Plusieurs positions à copier sur une étape | **CODE CORRIGÉ / TEST QT NOT_RUN** | Un lien `copy:<index>` par déplacement, chaque lien copie la commande `/travel x,y` depuis la seule étape affichée |
+| PNJ et objets copiables distinctement | **CODE CORRIGÉ SUR #2219 / QT NOT_RUN** | `copy_values` explicites (20 libellés sur 13 actions) : PNJ distincts, ingrédients, montures et équipement ; palette suivant `talk`, `prepare`, `deliver` et `travel` |
+| Source texte/clipboard sécurisé | **CONTRAT AJOUTÉ / QT NOT_RUN** | `html.escape`, liens uniquement internes `copy:<index>`, contrôle des bornes au clic, liste d'étiquettes bornée par le chargeur |
+| Compatibilité du lecteur existant | **RÉGRESSION ÉVITÉE / QT NOT_RUN** | Le commit initial utilisait `QTextBrowser`, incompatible avec les tests historiques `QPlainTextEdit`. Correction en `07f682c` : `QPlainTextEdit` conservé, bande de liens `QLabel` séparée ; l'ancien bouton `GanymedeSourceCopyTravel` et la progression restent inchangés |
+| En-tête partagé à 100 % avec le Guide optimisé | **FAIL / NON LIVRÉ** | `GanymedeSourceReader` est toujours un `QDialog` indépendant. Une modification structurelle exige Graphify exact-SHA et un test d'intégration, non disponibles ici |
+| Clics dans le vrai Windows / DOFUS Unity | **NOT_RUN** | Environnement sans PySide6 ni DOFUS Unity, aucune preuve de fonctionnement réel |
+| Parité source 2219, quantité de sésame | **NOT_VERIFIED / CONFLIT** | Toujours à comparer directement à la source et au jeu |
+
+### Inventaire de commits de ce lot
+
+- `e99216a` : ajout initial du moteur de liens `copy:<index>`
+  dans une vue riche. **IMPROVEMENT REQUIRED** : rompait les
+  consommateurs `QPlainTextEdit` préexistants, malgré sa logique de copie.
+- `e2b1292` : annotations explicites de copie des noms dans la route
+  Otomaï 1, sans inférence fragile depuis les textes.
+- `9def252` : trois tests ajoutés sur HTML échappé, liens et 20 libellés ;
+  ils restent **NOT_RUN**.
+- `5c1416c` : validation du champ facultatif `copy_values`
+  au chargement strict (32 valeurs maximum par action, 256 caractères).
+- `2a15639` : test de refus des valeurs invalides/volumineuses.
+- `07f682c` : correction de compatibilité Qt, conserve le
+  `QPlainTextEdit` attendu et déplace les liens dans un
+  `QLabel` séparé. **Correction obligatoire de la régression initiale**.
+- `7e3d6d4` : quatrième test pour vérifier que la bande de liens
+  ne répète pas les consignes du lecteur principal.
+
+**Contrôle statique au SHA `7e3d6d41352ff3b53f43f5117b716782c76176bc` :**
+7 étapes, 40 actions, 9/9 coordonnées présentes dans les observations
+de la même étape, 20 noms explicitement copiables, 4 tests de copie
+définis et un test du contrat de chargeur. Lecture des fichiers de
+code/tests en GitHub : aucun écart à ces assertions statiques.
+**Ce contrôle n'est PAS l'exécution des cinq tests Python.**
+
+Le workflow « Guides / Focused Windows Proof » associé au SHA courant
+est **SKIPPED**, et non PASS. Aucun Graphify exact-SHA utilisable n'a
+été identifié parmi les runs de ce commit. Les tests Qt et le passage
+réel en jeu sont donc toujours manquants.
+
+**Verdict final du guide #2219 : NON CERTIFIÉ / CHANGES REQUIRED.**
+Il reste à aligner l'en-tête commun après un diagnostic Graphify
+exact-SHA, exécuter les tests Qt/Windows, résoudre la divergence des
+ressources, vérifier les objectifs dans DOFUS Unity et produire les
+preuves individuelles. Rester sur Otomaï 1 ; ne pas commencer #2220.
