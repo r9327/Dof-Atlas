@@ -169,6 +169,7 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertTrue(any("Launcher scoped owner" in item for item in routes))
         self.assertTrue(any("asset review" in item for item in routes))
         self.assertTrue(any("--asset-trial" in item for item in routes))
+        self.assertTrue(any("--font-trial" in item for item in routes))
         self.assertFalse(any("certify" in item.casefold() for item in routes))
         self.assertFalse(plan["certified"])
 
