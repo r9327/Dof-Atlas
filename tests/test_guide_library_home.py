@@ -515,7 +515,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         "title": f"Instruction {number}",
                         "instructions": "Parcours rédigé pour test hors ligne",
                         "actions": [{
-                            "kind": "talk", "text": f"Parler au PNJ numéro {number}",
+                            "kind": "travel" if number == 1 else "talk",
+                            "text": (f"Aller à la destination {number}" if number == 1
+                                     else f"Parler au PNJ numéro {number}"),
+                            **({"coordinates": [24, -3]} if number == 1 else {}),
                         }],
                     } for number in range(1, entry.step_count + 1))
 
@@ -545,6 +548,11 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     self.assertEqual(spinner.value(), 1)
                     self.assertTrue(validate.isEnabled())
+                    copy = dialog.findChild(QPushButton, "GanymedeSourceCopyTravel")
+                    self.assertIsNotNone(copy)
+                    self.assertTrue(copy.isEnabled())
+                    copy.click()
+                    self.assertEqual(QApplication.clipboard().text(), "/travel 24 -3")
                     validate.click()
                     progress = GuideProgressService(progress_path)
                     step_id = f"ganymede_{source.source_id}_step_0001"
@@ -557,6 +565,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         "character:7", progress_id, step_id,
                     ))
                     spinner.setValue(2)
+                    self.assertFalse(copy.isEnabled())
                     self.assertIn("ÉTAPE 2 /", local.toPlainText())
                     self.assertIn("Parler au PNJ numéro 2", local.toPlainText())
                     spinner.setValue(1)

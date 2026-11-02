@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
+    QApplication, QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
     QListWidgetItem, QPlainTextEdit, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
@@ -13,7 +13,8 @@ from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
-    ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
+    ATLAS_EQUIVALENTS, CATEGORIES, INDEX_PATH,
+    displayable_listings, load_ganymede_listings,
     load_ganymede_local_observations, load_ganymede_local_instructions,
 )
 
@@ -172,7 +173,7 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Ganymède — repères locaux")
+        self.metadata_title = QLabel("Ganymède — parcours")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
@@ -625,11 +626,15 @@ class GuideCatalogView(QWidget):
         self.home_metadata_list.clear()
         for entry in entries:
             count = f" · {entry.step_count} étapes" if entry.step_count is not None else ""
-            item = QListWidgetItem(f"{entry.title}{count} · repères locaux")
+            path = INDEX_PATH.parent / f"ganymede_{entry.source_id}_instructions.json"
+            has_instructions = path.is_file() and not path.is_symlink()
+            state = "consignes à vérifier" if has_instructions else "parcours incomplet"
+            item = QListWidgetItem(f"{entry.title}{count} · {state}")
             item.setToolTip(
-                "Ouvrir les repères d'étapes locaux dans Atlas, même hors ligne. "
-                "Les consignes complètes ne sont pas encore importées. "
-                "Les validations manuelles restent enregistrées dans Atlas."
+                "Des consignes locales seront vérifiées à l'ouverture."
+                if has_instructions else
+                "Consignes absentes : parcours non jouable. "
+                "Les simples liens et coordonnées ne sont pas des actions."
             )
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
@@ -705,9 +710,12 @@ class GuideCatalogView(QWidget):
                 count = f" · {entry.step_count} étapes" if entry.step_count else ""
                 item = QListWidgetItem(f"{entry.title}{count}")
                 item.setData(Qt.UserRole, entry.source_id)
+                path = INDEX_PATH.parent / f"ganymede_{entry.source_id}_instructions.json"
+                has_instructions = path.is_file() and not path.is_symlink()
                 item.setToolTip(
-                    "Repères factuels Ganymède disponibles hors ligne ; "
-                    "consignes complètes non importées · suivi manuel Atlas"
+                    "Consignes locales à vérifier à l'ouverture"
+                    if has_instructions else
+                    "Parcours incomplet : aucune consigne jouable"
                 )
                 listing.addItem(item)
             listing.parentWidget().setVisible(listing.count() > 0)
@@ -844,12 +852,18 @@ class GuideCatalogView(QWidget):
             validate_button = QPushButton("Valider l'étape", dialog)
             validate_button.setObjectName("GanymedeSourceValidateStep")
             validate_button.setEnabled(can_record)
+            copy_button = QPushButton("Copier /travel", dialog)
+            copy_button.setObjectName("GanymedeSourceCopyTravel")
+            copy_button.setEnabled(False)
             for widget in (previous_button, current_button, number, next_button, validate_button):
                 controls.addWidget(widget)
             layout.addLayout(controls)
             progress_label = QLabel(dialog)
             progress_label.setObjectName("GanymedeSourceProgress")
-            layout.addWidget(progress_label)
+            progress_row = QHBoxLayout()
+            progress_row.addWidget(progress_label, 1)
+            progress_row.addWidget(copy_button)
+            layout.addLayout(progress_row)
 
             def first_unchecked() -> int:
                 return next(
@@ -872,6 +886,12 @@ class GuideCatalogView(QWidget):
                     )
                 elif browser is not None:
                     browser.setUrl(step_url(page))
+                actionable_positions = (
+                    [action["coordinates"] for action in instructions[page - 1]["actions"]
+                     if action["kind"] == "travel" and action.get("coordinates") is not None]
+                    if instructions else []
+                )
+                copy_button.setEnabled(bool(actionable_positions))
                 is_done = source_step_id(page) in checked
                 validate_button.setText(
                     "Consignes manquantes" if not instructions else
@@ -917,6 +937,20 @@ class GuideCatalogView(QWidget):
                 )
                 select_page(current_page[0])
 
+            def copy_travel() -> None:
+                if not instructions:
+                    return
+                positions = [
+                    action["coordinates"] for action in instructions[current_page[0] - 1]["actions"]
+                    if action["kind"] == "travel" and action.get("coordinates") is not None
+                ]
+                if not positions:
+                    return
+                x, y = positions[0]
+                QApplication.clipboard().setText(f"/travel {x} {y}")
+                self.status_callback(f"Position copiée : [{x}, {y}]")
+
+            copy_button.clicked.connect(copy_travel)
             number.valueChanged.connect(select_page)
             previous_button.clicked.connect(
                 lambda: number.setValue(max(1, number.value() - 1))
