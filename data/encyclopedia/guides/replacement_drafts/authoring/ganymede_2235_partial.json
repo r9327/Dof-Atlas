@@ -13,7 +13,11 @@
   "source_reference": "https://ganymede-app.com/guides/2235",
   "evidence_scope": "first_ten_public_source_stages_2026-11-02_and_local_fact_snapshot_not_game_certified",
   "fact_sources": [
-    "https://ganymede-app.com/guides/2235"
+    "https://ganymede-app.com/guides/2235",
+    "https://www.dofuserie.com/quetes/l-entree-des-artistes/",
+    "https://www.dofuserie.com/quetes/un-salaire-germinable/",
+    "https://www.dofuserie.com/quetes/au-pied-du-mur/",
+    "https://www.dofuserie.com/quetes/rituel-oblige/"
   ],
   "source_parity_certified": false,
   "gameplay_certified": false,
@@ -30,7 +34,7 @@
       "actions": [
         {
           "kind": "information",
-          "text": "Objectif : avancer les quatre quêtes de Gisgoul, dont L'entrée des artistes, Le salaire de la sueur, Au pied du mur et le rituel local."
+          "text": "Succès « Le double effet Gisgoul » : L'entrée des artistes, Un salaire germinable, Au pied du mur et Rituel oblige."
         },
         {
           "kind": "prepare",
@@ -61,6 +65,10 @@
         },
         {
           "kind": "prepare",
+          "text": "Prévoir au moins 3 100 kamas pour les dépenses des quatre quêtes (bières et renseignements)."
+        },
+        {
+          "kind": "prepare",
           "text": "Obtenir 5 Shigekax Menthe auprès du marchand de bonbons de la foire."
         },
         {
@@ -76,11 +84,11 @@
     {
       "source_step_number": 3,
       "title": "Accepter le travail de Moctar",
-      "instructions": "À l'entrée de Gisgoul, rencontrer Moctar Kitekt pour ouvrir la quête du mur. La prochaine étape mène dans la tour.",
+      "instructions": "À l'entrée de Gisgoul, rencontrer Moctar Chitekt pour ouvrir la quête du mur. La prochaine étape mène dans la tour.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retrouver Moctar Kitekt en [-19,17].",
+          "text": "Retrouver Moctar Chitekt en [-19,17].",
           "coordinates": [
             -19,
             17
@@ -107,7 +115,7 @@
       "actions": [
         {
           "kind": "travel",
-          "text": "Rencontrer l'inspecteur Jet Gad devant la tour en [-16,17].",
+          "text": "Rencontrer l'inspecteur Gad Jayte devant la tour en [-16,17].",
           "coordinates": [
             -16,
             17
@@ -119,7 +127,7 @@
         },
         {
           "kind": "talk",
-          "text": "Retrouver Moctar Kitekt, entrer dans la tour puis lui reparler."
+          "text": "Retrouver Moctar Chitekt, entrer dans la tour puis lui reparler."
         },
         {
           "kind": "interact",
@@ -158,7 +166,7 @@
         },
         {
           "kind": "talk",
-          "text": "Parler à la mineuse gobeline et proposer son aide pour lancer la quête du salaire."
+          "text": "Demander à Gobovette de lui venir en aide pour ouvrir « Un salaire germinable »."
         },
         {
           "kind": "travel",
@@ -172,8 +180,8 @@
     },
     {
       "source_step_number": 6,
-      "title": "Interroger la Bworkette de la taverne",
-      "instructions": "La piste de la mine conduit à une Bworkette de l'auberge. Épuiser ses dialogues pour obtenir la suite de l'enquête.",
+      "title": "Interroger Mamée Talika de la taverne",
+      "instructions": "La piste de la mine conduit à Mamée Talika. Épuiser ses dialogues pour obtenir la suite de l'enquête.",
       "actions": [
         {
           "kind": "travel",
@@ -185,11 +193,11 @@
         },
         {
           "kind": "talk",
-          "text": "Interroger la Bworkette Metally Cutey à propos de la situation des mineurs."
+          "text": "Interroger Mamée Talika et lui offrir une Bière de Gisgoul pour connaître les visiteurs de l'auberge."
         },
         {
           "kind": "talk",
-          "text": "Relancer le dialogue pour débloquer la suite de son témoignage."
+          "text": "Relancer son dialogue pour récupérer ses autres indications sur la tour."
         },
         {
           "kind": "travel",
@@ -238,12 +246,12 @@
     },
     {
       "source_step_number": 8,
-      "title": "Faire le compte rendu à Metally Cutey",
-      "instructions": "Le sac utilisé, retourner voir la Bworkette avant de poursuivre l'enquête à Brâkmar.",
+      "title": "Faire le compte rendu à Mamée Talika",
+      "instructions": "Le sac utilisé, retourner voir Mamée Talika avant de poursuivre l'enquête à Brâkmar.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre Metally Cutey dans la taverne en [-19,21].",
+          "text": "Rejoindre Mamée Talika dans la taverne en [-19,21].",
           "coordinates": [
             -19,
             21
@@ -251,7 +259,7 @@
         },
         {
           "kind": "talk",
-          "text": "Présenter à Metally Cutey le résultat de la visite de la mine."
+          "text": "Reparler à Mamée Talika, puis poursuivre les investigations à Brâkmar."
         },
         {
           "kind": "travel",
