@@ -1,0 +1,424 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2590,
+  "source_url": "https://ganymede-app.com/guides/2590",
+  "expected_source_step_count": 16,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "original_guide_actions_cross_checked_independently_not_live_player_or_source_route_certified",
+  "fact_sources": [
+    "https://www.dofuspourlesnoobs.com/halouine.html",
+    "https://www.dofuspourlesnoobs.com/des-bonbons-ou-un-sort.html",
+    "https://www.dofuspourlesnoobs.com/une-citwouille-pour-halouine.html",
+    "https://www.dofuspourlesnoobs.com/le-rituel-de-la-biere.html",
+    "https://www.dofuspourlesnoobs.com/une-friandise-pas-comme-les-autres.html",
+    "https://www.dofuserie.com/en/quests/trick-or-treat/",
+    "https://www.dofuserie.com/en/quests/a-pumpkwin-for-al-howin/",
+    "https://www.dofuserie.com/en/quests/beer-ritual/",
+    "https://www.dofuserie.com/en/quests/a-sweet-not-like-the-others/"
+  ],
+  "completion_note": "16 stations originales, couvrant les quatre quêtes d'Halouine. L'ordre factuel de la série est confirmé indépendamment ; parité exacte des 16 pages sources et vérification en jeu non certifiées.",
+  "steps": [
+    {
+      "title": "Réunir les ressources pour Halouine",
+      "instructions": "Prépare la série du succès « Même pas peur » avant les déplacements : les quatre quêtes se suivent et ne sont disponibles que pendant l'événement d'Halouine. Le premier besoin est de cinq Bonbons Zaï Hallucinogènes. Pour la suite, conserve une Tête de Citwouille, trente Bières bwork et dix Teintures magiques orange. Deux donjons et un Vampire seront nécessaires.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Atteindre le niveau 80 et vérifier que l'événement Halouine est actif."
+        },
+        {
+          "kind": "prepare",
+          "text": "Réunir 5 Bonbons Zaï Hallucinogènes, achetés ou obtenus sur les Bouftous d'Halouine / Champêtrouilles."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 1 Tête de Citwouille, 30 Bières bwork et 10 Teintures magiques orange."
+        },
+        {
+          "kind": "information",
+          "text": "Planifier le Potager d'Halouine puis l'Antre de la Reine Nyée ; ne pas les confondre."
+        }
+      ],
+      "source_step_number": 1
+    },
+    {
+      "title": "Ouvrir « Des bonbons ou un sort »",
+      "instructions": "Depuis le zaap de la Plaine des Scarafeuilles, monte jusqu'à l'entrée du Potager d'Halouine. Parle à Diabworktik, puis au Disciple d'Asid sur la même carte. Une fois les cinq bonbons réunis, offre-les à Diabworktik : il les refuse et te maudit, mais ce dialogue clôt la première quête et ouvre « Une Citwouille pour Halouine ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée du Potager en Plaine des Scarafeuilles.",
+          "coordinates": [
+            -1,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Diabworktik puis interroger le Disciple d'Asid sur les friandises qu'il recherche."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 5 Bonbons Zaï Hallucinogènes à Diabworktik puis poursuivre la discussion pour accepter « Une Citwouille pour Halouine »."
+        }
+      ],
+      "source_step_number": 2
+    },
+    {
+      "title": "Vaincre Halouine au Potager",
+      "instructions": "Une fois « Une Citwouille pour Halouine » active, franchis le Potager grâce à une clef ou au trousseau disponible. Dans la dernière salle, parle d'abord au boss Halouine, combats-le et reparle-lui avant de sortir. Il remet des Graines de Citwouille Maudite, nécessaires pour la suite en extérieur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le donjon Potager d'Halouine.",
+          "coordinates": [
+            -1,
+            22
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Traverser le Potager et vaincre Halouine après le premier dialogue dans la salle finale."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Halouine et récupérer les Graines de Citwouille Maudite avant de quitter le donjon."
+        }
+      ],
+      "source_step_number": 3
+    },
+    {
+      "title": "Préparer la Citwouille Maudite",
+      "instructions": "Avant de faire pousser la Citwouille, récupère et équipe une Tête de Citwouille. Elle s'obtient sur les Tofus ou Bouftous d'Halouine et protège de la malédiction pendant ces combats. Conserve les Graines de Citwouille Maudite reçues du boss ; elles sont un objet de quête à activer sur la carte du Clos.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier la présence des Graines de Citwouille Maudite reçues au Potager."
+        },
+        {
+          "kind": "prepare",
+          "text": "Obtenir et équiper une Tête de Citwouille à la place de la coiffe."
+        },
+        {
+          "kind": "information",
+          "text": "La prochaine interaction se fait au Clos des Citwouilles : inutile de relancer le donjon une fois les graines acquises."
+        }
+      ],
+      "source_step_number": 4
+    },
+    {
+      "title": "Faire apparaître la Citwouille dans le Clos",
+      "instructions": "Repars de l'entrée du Potager en [-1,22] et emprunte le passage derrière le Disciple d'Asid pour atteindre le Clos des Citwouilles [0,19]. Sur cette carte, double-clique sur les graines reçues pendant la quête pour faire apparaître la Citwouille Maudite. Garde la Tête de Citwouille équipée afin de pouvoir l'approcher.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Clos des Citwouilles par le passage au-dessus du Potager.",
+          "coordinates": [
+            0,
+            19
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser les Graines de Citwouille Maudite depuis l'inventaire de quête."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver la Tête de Citwouille équipée pour le prochain dialogue."
+        }
+      ],
+      "source_step_number": 5
+    },
+    {
+      "title": "Combattre puis remettre la Citwouille Maudite",
+      "instructions": "Au Clos [0,19], parle à la Citwouille sous ton déguisement et lance le combat ; il est possible de venir à plusieurs. Récupère ensuite la Citwouille Maudite dans les objets de quête. Retourne au Potager : le Disciple d'Asid te reconduit vers Halouine, auquel tu remets la plante. Halouine t'oriente alors vers un mage bwork.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre les Citwouilles Maudites au Clos et obtenir l'objet de quête correspondant.",
+          "coordinates": [
+            0,
+            19
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner devant le Potager d'Halouine.",
+          "coordinates": [
+            -1,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander au Disciple d'Asid l'accès à Halouine puis lui livrer la Citwouille Maudite."
+        },
+        {
+          "kind": "deliver",
+          "text": "Confirmer la remise de la Citwouille Maudite au boss."
+        }
+      ],
+      "source_step_number": 6
+    },
+    {
+      "title": "Trouver le mage Bworknroll",
+      "instructions": "Après la livraison de la Citwouille, gagne le Village des Bworks. Dans la grotte en [-5,10], prends le passage à gauche pour rencontrer Bworknroll. Parle-lui de la malédiction : il propose une expérience de purification et lance « Le rituel de la bière ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la grotte de Bworknroll au Village des Bworks.",
+          "coordinates": [
+            -5,
+            10
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander de l'aide à Bworknroll, puis accepter « Le rituel de la bière »."
+        }
+      ],
+      "source_step_number": 7
+    },
+    {
+      "title": "Rassembler les ingrédients du rituel",
+      "instructions": "Le rituel demande trente Bières bwork, dix Teintures magiques orange et cinq Échantillons de créature contaminée. Ces échantillons se récupèrent en combattant les Bouftous ou Tofus d'Halouine après acceptation de la quête. Pour fabriquer les dix teintures, il faut au total vingt Peaux de larve orange et dix Eaux potables. Équipe la Tête de Citwouille avant les combats.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Prévoir 30 Bières bwork et 10 Teintures magiques orange (ou leurs ingrédients)."
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre des Tofus ou Bouftous d'Halouine jusqu'à obtenir 5 Échantillons de créature contaminée."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier les trois compteurs et la Tête de Citwouille avant de revenir chez Bworknroll."
+        }
+      ],
+      "source_step_number": 8
+    },
+    {
+      "title": "Effectuer le rituel et rencontrer Paindep",
+      "instructions": "Retourne auprès de Bworknroll avec les ingrédients. Place-toi sur la case indiquée devant lui et poursuis le dialogue pour déclencher le rituel ; l'expérience échoue et transforme ton personnage. Il t'envoie ensuite chez Paindep, dans le Territoire des Dragodindes en [-12,8], pour régler ta malédiction.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Revenir parler à Bworknroll dans sa grotte.",
+          "coordinates": [
+            -5,
+            10
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Lui fournir les 30 Bières bwork, les 10 Teintures magiques orange et les 5 Échantillons contaminés."
+        },
+        {
+          "kind": "interact",
+          "text": "Se placer sur la cellule demandée devant Bworknroll et lancer le rituel."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Paindep sur le Territoire des Dragodindes.",
+          "coordinates": [
+            -12,
+            8
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Paindep pour clôturer « Le rituel de la bière » et lancer « Une friandise pas comme les autres »."
+        }
+      ],
+      "source_step_number": 9
+    },
+    {
+      "title": "Obtenir le Slip souillé et partir au donjon",
+      "instructions": "Paindep accepte de fabriquer une friandise cauchemardesque si tu rapportes quatre ingrédients de quête. Demande à rencontrer les enfants, puis parle à Ella Lafrousse, à l'enfant habillé en blanc et enfin à Jamy Lafrousse pour obtenir le Slip souillé. Prépare ensuite l'Antre de la Reine Nyée en [-6,-15].",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Demander à Paindep de te présenter les enfants.",
+          "coordinates": [
+            -12,
+            8
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler d'abord à Ella Lafrousse, puis au garçon en blanc, puis à Jamy Lafrousse."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier dans l'inventaire de quête que le Slip souillé a été récupéré."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée de l'Antre de la Reine Nyée.",
+          "coordinates": [
+            -6,
+            -15
+          ]
+        }
+      ],
+      "source_step_number": 10
+    },
+    {
+      "title": "Vaincre la Reine Nyée",
+      "instructions": "Traverse l'Antre de la Reine Nyée. À l'issue du combat contre le boss, récupère la Patte de la Reine Nyée comme objet de quête. Avant de repartir vers Paindep, il faut encore trouver un Os volé et du Sang visqueux de Vampire au cimetière d'Amakna.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre la Reine Nyée dans son donjon.",
+          "coordinates": [
+            -6,
+            -15
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier l'obtention de la Patte de la Reine Nyée."
+        },
+        {
+          "kind": "travel",
+          "text": "Partir vers les cryptes du cimetière d'Amakna.",
+          "coordinates": [
+            9,
+            15
+          ]
+        }
+      ],
+      "source_step_number": 11
+    },
+    {
+      "title": "Récupérer l'Os volé et le Sang visqueux",
+      "instructions": "Dans la crypte droite du cimetière d'Amakna [9,15], examine le tombeau de gauche pour récupérer l'Os volé. Puis affronte un Vampire dans les cryptes pour obtenir son Sang visqueux. Contrôle que les quatre objets sont présents : Slip souillé, Patte de la Reine Nyée, Os volé et Sang visqueux du Vampire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la crypte droite du cimetière d'Amakna.",
+          "coordinates": [
+            9,
+            15
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur la tombe de gauche pour obtenir l'Os volé."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre un Vampire dans les cryptes pour récupérer le Sang visqueux."
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler les quatre ingrédients de quête avant de retourner chez Paindep."
+        }
+      ],
+      "source_step_number": 12
+    },
+    {
+      "title": "Recevoir la Friandise cauchemardesque",
+      "instructions": "Rejoins Paindep en [-12,8] et livre-lui les quatre ingrédients obtenus. Elle prépare la Friandise cauchemardesque et te demande d'aller avertir Bworknroll qu'elle a honoré sa dette. Ne consomme pas la friandise : elle devra être remise à Diabworktik.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner voir Paindep au Territoire des Dragodindes.",
+          "coordinates": [
+            -12,
+            8
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre le Slip souillé, la Patte de la Reine Nyée, l'Os volé et le Sang visqueux de Vampire."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier la réception de la Friandise cauchemardesque."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bworknroll au Village des Bworks.",
+          "coordinates": [
+            -5,
+            10
+          ]
+        }
+      ],
+      "source_step_number": 13
+    },
+    {
+      "title": "Identifier la véritable origine de la malédiction",
+      "instructions": "Parle de nouveau à Bworknroll. En apprenant que Paindep a préparé la friandise, il suspecte que l'auteur de la malédiction ne soit pas un simple bwork. Reprends alors la direction du Potager pour confronter Diabworktik.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Informer Bworknroll de la dette remboursée par Paindep.",
+          "coordinates": [
+            -5,
+            10
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Retenir son soupçon sur l'identité de Diabworktik pour le dialogue final."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner devant le Potager d'Halouine.",
+          "coordinates": [
+            -1,
+            22
+          ]
+        }
+      ],
+      "source_step_number": 14
+    },
+    {
+      "title": "Démasquer Diabworktik et terminer les quêtes",
+      "instructions": "Rejoins Diabworktik en [-1,22] avec la friandise. Remets-la-lui puis accuse-le d'être Asid, le Méryde de la peur. Il révèle sa véritable identité, lève la malédiction et propose un déguisement. Vérifie que « Une friandise pas comme les autres » et le succès « Même pas peur » sont validés dans le jeu avant de cocher l'étape Atlas.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à Diabworktik et l'identifier comme Asid, Méryde de la peur.",
+          "coordinates": [
+            -1,
+            22
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre la Friandise cauchemardesque à Diabworktik."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la levée de la malédiction et la validation des quatre quêtes du succès « Même pas peur »."
+        }
+      ],
+      "source_step_number": 15
+    },
+    {
+      "title": "Consulter les récompenses et les déguisements",
+      "instructions": "Après la fin de la série, le sac de Diabworktik permet d'acquérir les déguisements liés à Halouine contre quelques kamas. Cette boutique est facultative : elle ne remplace aucune des quatre quêtes. Vérifie ta récompense de fin de série et laisse les achats de costumes à ton appréciation.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Examiner le sac de Diabworktik près du Potager pour afficher la boutique des déguisements."
+        },
+        {
+          "kind": "information",
+          "text": "Choisir un costume uniquement si tu le souhaites ; les achats ne sont pas requis pour le succès."
+        },
+        {
+          "kind": "information",
+          "text": "Terminer le suivi Atlas après avoir confirmé les récompenses en jeu."
+        }
+      ],
+      "source_step_number": 16
+    }
+  ]
+}
