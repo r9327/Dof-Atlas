@@ -25,14 +25,6 @@
         {
           "kind": "information",
           "text": "Objectif : compléter les quêtes Paulette Pain-bèche, Potion Bulbique, Polka Merer, Le fils caché, La femme perdue et les chasses de Crocodaille Dandi."
-        },
-        {
-          "kind": "travel",
-          "text": "Aller au Professeur Fournesol près de la côte.",
-          "coordinates": [
-            -48,
-            19
-          ]
         }
       ]
     },
@@ -52,6 +44,14 @@
         {
           "kind": "information",
           "text": "Vérifier les recettes et les noms exacts dans la version du jeu utilisée ; ne pas remplacer un objet de quête par un homonyme."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au Professeur Fournesol près de la côte.",
+          "coordinates": [
+            -48,
+            19
+          ]
         }
       ]
     },
