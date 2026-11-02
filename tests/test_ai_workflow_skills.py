@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -16,6 +17,17 @@ NEW_SKILLS = {
     "evidence-driven-validation",
     "performance-triage",
 }
+
+
+def _committed_text(path: str) -> str:
+    """Read exact-HEAD instructions even in an intentional sparse CI checkout.
+
+    Missing or untracked paths still fail instead of being silently skipped.
+    """
+    return subprocess.check_output(
+        ["git", "show", f"HEAD:{path}"], cwd=ROOT, text=True,
+        encoding="utf-8", timeout=15,
+    )
 
 
 class AiWorkflowSkillsTests(unittest.TestCase):
@@ -70,19 +82,19 @@ class AiWorkflowSkillsTests(unittest.TestCase):
         ]
         for name in providers:
             with self.subTest(name=name):
-                content = (ROOT / name).read_text(encoding="utf-8")
+                content = _committed_text(name)
                 for anchor in (
                     "AI_ENTRYPOINT.md", "ai_tool_workflow",
                     "agent plan", "agent check --run-tests", "agent validate",
                     "tools.tool_catalog", "tools/skills/dofus-atlas-tools/SKILL.md",
                 ):
                     self.assertIn(anchor, content)
-        canonical = (ROOT / "AI_ENTRYPOINT.md").read_text(encoding="utf-8")
+        canonical = _committed_text("AI_ENTRYPOINT.md")
         self.assertIn("--preferred-only --safe-only --ready-only", canonical)
         self.assertIn("native_routes_executed_by_selection=false", canonical)
 
     def test_oss_docs_do_not_require_manual_enable_on_normal_check(self) -> None:
-        docs = (ROOT / "docs/doctor-oss-routing.md").read_text(encoding="utf-8")
+        docs = _committed_text("docs/doctor-oss-routing.md")
         self.assertIn("agent check --run-tests", docs)
         self.assertIn("automatiquement", docs)
         self.assertIn("--verify-live", docs)
