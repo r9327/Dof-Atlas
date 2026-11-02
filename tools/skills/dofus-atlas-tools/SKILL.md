@@ -72,16 +72,23 @@ install, import, execute, license, or qualify the detected candidates.
   now routes its actual Doctor OSS tests into the **existing** unittest runner.
   When Hypothesis is locally installed, the same selector additionally runs
   `tests.test_doctor_oss_hypothesis`. A missing dependency is not PASS.
-- Quest JSON parser performance work: use the existing owner
-  `py -3.13 -m tools.atlas_json_benchmark --compare-parsers` to try
-  stdlib/orjson/msgspec on identical source bytes, or `--compare-streaming`
-  for ijson quest-ID/value parity. Both are opt-in **developer experiments**;
-  neither selects or imports a runtime parser, proves a cold-load/RSS gain, or
-  makes an installation decision.
-- Launcher, Organizer, UI, Guide, security and asset candidates: use the
-  contextual recommendation plus the established owner in the original study;
-  `locally_available=true` is never authorization to run a new binary.
-  Preserve the respective branch ownership and Windows-only proof boundary.
+- JSON data evaluation: the canonical catalog now advertises
+  `tools.atlas_json_benchmark` with explicit `--compare-parsers`
+  (stdlib/orjson/msgspec), `--compare-streaming` (ijson quest parity) and
+  `--compare-compression` (zlib/zstandard round-trip). These are **manual
+  offline trials**, not a runtime parser/installer migration or RAM proof.
+- Local visual/font assets: Doctor can propose `oss --asset-trial` to compare
+  *explicit* image files using ImageHash, or `oss --font-trial` to inspect
+  selected Unity TTF/OTF using fontTools. Both commands are read-only, opt-in,
+  bounded, and do not demonstrate safe deletion, licence or Qt rendering.
+- Hypothesis: select the existing targeted test owner when the package is
+  installed; missing is not PASS. Qt/Launcher/Organizer/Guide specialists use
+  their established owners and branch-specific sources, never a fabricated
+  common runtime or third-party scanner.
+- An `OPT_IN_TRIAL_AVAILABLE` candidate means a tested invocation path has
+  been *implemented*, **not** that its dependency is present, the command ran,
+  or the backend has been approved for runtime. `locally_available=true`
+  does not authorize any new binary. Preserve independent Windows-only proofs.
 
 ## Routing rules
 
