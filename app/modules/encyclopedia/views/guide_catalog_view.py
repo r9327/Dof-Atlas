@@ -629,16 +629,24 @@ class GuideCatalogView(QWidget):
                 step_id = source_step_id(current_page[0])
                 completed = step_id not in checked
                 try:
-                    progress_service.set_manual_step_completed(
-                        selected, progress_id, step_id, completed,
+                    progress_service.set_manual_steps_for_characters(
+                        (selected,), progress_id, step_id, completed,
+                        expected_completed={selected: not completed},
                     )
-                except (OSError, ValueError, RuntimeError) as exc:
+                except RuntimeError as exc:
+                    # Another Atlas window or guide may have updated the same
+                    # source step. Refresh instead of overwriting its decision.
+                    progress_service.reload()
+                    checked.clear()
+                    checked.update(progress_service.manual_steps(selected, progress_id))
+                    select_page(current_page[0])
+                    self.status_callback(f"Progression Ganymède actualisée : {exc}")
+                    return
+                except (OSError, ValueError) as exc:
                     self.status_callback(f"Progression Ganymède non enregistrée : {exc}")
                     return
-                if completed:
-                    checked.add(step_id)
-                else:
-                    checked.discard(step_id)
+                checked.clear()
+                checked.update(progress_service.manual_steps(selected, progress_id))
                 select_page(current_page[0])
 
             number.valueChanged.connect(select_page)
