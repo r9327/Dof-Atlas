@@ -62,16 +62,16 @@ Le CLI renvoie un rapport JSON avec ID, SHA, nombre d'étapes/actions, fiches pr
 ## Contrôles et limites
 
 - Toute action doit conserver **son ordre**, son type combat/non-combat et sa position dans la fiche commune ; les objets structurés doivent apparaître dans la liste des ressources.
-- Une `copy_values` explicite sans représentation dans le projecteur de #337 **bloque** la publication : la valeur exacte ne peut pas se perdre silencieusement. La correction appartient à #337, pas à un deuxième système de rendu.
+- Les `copy_values` et `items` structurés sont conservés sans perte dans les données des fiches communes ; le contrôleur **bloque** toute régression de projection. Le comportement effectif des liens, couleurs, quantités et du presse-papiers reste à tester dans le renderer de #337 sous Qt/Windows.
 - Le manifeste SHA doit correspondre **au fichier ET à chacune des étapes** ; tout écart bloque l'ensemble du lot avant import.
 - Après `--apply`, les empreintes des fichiers publiés sont revérifiées.
 - Les contrôles d'exécution réelle Windows/Qt, couleurs, copie réelle du presse-papiers, persistance par personnage, parité éditoriale avec chaque page source et autorisations restent `NOT_RUN/NOT_VERIFIED` tant qu'une preuve externe n'est pas fournie. Aucun `CERTIFIED` automatique.
-- Le publieur existant écrit les fichiers un par un et ne garantit pas une transaction globale avec restauration de tous les fichiers si le système tombe en panne au milieu. Pour cette raison, ne pas lancer d'import massivement sur des fichiers déjà publiés sans sauvegarde. Cette limite doit être corrigée dans l'owner `import_authored_routes` avant de déclarer l'outil prêt pour une exploitation non surveillée.
+- Le publieur existant a été renforcé : **préparation complète sur disque puis publication fichier par fichier avec rollback** en cas d'erreur récupérable, y compris restauration des anciens fichiers. Une panne système ou une coupure électrique **pendant** la publication n'est pas une transaction ACID multi-fichiers ; une sauvegarde reste nécessaire avant un écrasement en masse. Un journal de reprise durable serait nécessaire pour promettre une reprise automatique après coupure.
 
 ## Tests ciblés
 
 ```powershell
-py -3.13 -X utf8 -m unittest tests.test_atlas_guide_importer tests.test_import_ganymede_authored_routes tests.test_ganymede_local_instructions
+py -3.13 -X utf8 -m unittest tests.test_atlas_guide_importer tests.test_import_ganymede_authored_routes tests.test_ganymede_local_instructions tests.test_ganymede_local_copy_links
 ```
 
 Pendant la Draft : tests ciblés et revue par commit. La Phase Certification globale ne se lance qu'à la fin du développement, sur le SHA exact, conformément à `AGENTS.md`. Le rapport du contrat Delivery Guard doit être complété avant Ready.
