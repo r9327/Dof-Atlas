@@ -95,3 +95,34 @@ def mirror_delivery_targets(
     if source_was_consumed:
         other_targets.add(source[0])
     return tuple(handle for handle in configured if handle in other_targets)
+
+
+def mirror_latency_percentiles_ms(samples_ms: Iterable[float]) -> dict[str, float] | None:
+    """Measured SendInput call percentiles using nearest-rank, never fake values.
+
+    These numbers are per completed mirror action, not proof of real-game
+    background support or input-to-render latency.
+    """
+    import math
+
+    clean: list[float] = []
+    for sample in samples_ms:
+        try:
+            numeric = float(sample)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if math.isfinite(numeric) and numeric >= 0:
+            clean.append(numeric)
+    if not clean:
+        return None
+    clean.sort()
+
+    def value(percent: float) -> float:
+        return round(clean[max(0, math.ceil(len(clean) * percent) - 1)], 3)
+
+    return {
+        "n": len(clean),
+        "p50": value(0.50),
+        "p95": value(0.95),
+        "p99": value(0.99),
+    }

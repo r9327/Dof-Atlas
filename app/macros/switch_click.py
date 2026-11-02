@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from app.windows.clicks import current_cursor_pos, send_client_click, set_cursor_pos
@@ -135,6 +136,8 @@ class SwitchClickMacro:
         target_total = 0
         mouse_blocked = mouse_block_started
         should_restore_preferred = False
+        mirror_started_at = perf_counter() if action_label == "Miroir" else None
+        mirror_send_samples: list[float] = []
 
         try:
             try:
@@ -248,7 +251,8 @@ class SwitchClickMacro:
                     context.reason,
                 )
 
-                if send_client_click(
+                send_started_at = perf_counter() if mirror_started_at is not None else None
+                delivered = send_client_click(
                     client.handle,
                     target[0],
                     target[1],
@@ -261,7 +265,10 @@ class SwitchClickMacro:
                     self.runtime.synthetic_guard,
                     self.runtime.logger,
                     should_stop=self.runtime.macro_lock.should_stop,
-                ):
+                )
+                if send_started_at is not None:
+                    mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
+                if delivered:
                     sent_count += 1
 
                 if (
@@ -300,6 +307,24 @@ class SwitchClickMacro:
                     action_label,
                     remaining_blocks,
                 )
+
+            if mirror_started_at is not None:
+                from app.macros.mirror_plan import mirror_latency_percentiles_ms
+
+                quantiles = mirror_latency_percentiles_ms(mirror_send_samples)
+                elapsed_ms = round((perf_counter() - mirror_started_at) * 1000.0, 2)
+                if quantiles is None:
+                    self.runtime.logger.info(
+                        "Miroir mesures: n=0 total_ms=%s envoyés=%s/%s",
+                        elapsed_ms, sent_count, target_total,
+                    )
+                else:
+                    self.runtime.logger.info(
+                        "Miroir mesures sendinput: n=%s p50_ms=%s p95_ms=%s "
+                        "p99_ms=%s total_ms=%s envoyés=%s/%s",
+                        quantiles["n"], quantiles["p50"], quantiles["p95"],
+                        quantiles["p99"], elapsed_ms, sent_count, target_total,
+                    )
 
             if target_total > 0:
                 self.runtime.logger.info(

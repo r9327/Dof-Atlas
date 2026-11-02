@@ -4,10 +4,25 @@ import unittest
 
 from app.macros.mirror_plan import (
     MirrorCapability, delivery_mode, mirror_delivery_targets, mirror_targets,
+    mirror_latency_percentiles_ms,
 )
 
 
 class OrganizerMirrorPlanTests(unittest.TestCase):
+    def test_measured_mirror_percentiles_ignore_invalid_samples(self) -> None:
+        self.assertEqual(
+            mirror_latency_percentiles_ms([8, 12, 20, 17]),
+            {"n": 4, "p50": 12, "p95": 20, "p99": 20},
+        )
+        self.assertEqual(
+            mirror_latency_percentiles_ms(["invalid", None, -1, float("nan")]),
+            None,
+        )
+        self.assertEqual(
+            mirror_latency_percentiles_ms([7.5]),
+            {"n": 1, "p50": 7.5, "p95": 7.5, "p99": 7.5},
+        )
+
     def test_only_registered_selected_windows_are_destinations(self) -> None:
         self.assertEqual(mirror_targets([101, 202, 303], {202, 303, 999}, 101), (202, 303))
         self.assertEqual(mirror_targets([101, 202], {202}, 999), ())
