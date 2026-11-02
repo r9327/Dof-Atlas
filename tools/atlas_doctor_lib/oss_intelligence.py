@@ -151,11 +151,22 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
     if "qt" in scopes:
         native_routes.append("tools.atlas_doctor ui (existing Qt scenarios)")
     if "guide" in scopes:
-        native_routes.append("tools.atlas_doctor certify (guide owner)")
+        # Guide development must never silently dispatch certification.
+        native_routes.append("tools.atlas_doctor agent check (Guide scoped owner)")
+        native_routes.append("tools.atlas_doctor graph (Guide dependency impact)")
     if "perf" in scopes:
         native_routes.append("tools.atlas_doctor perf (single Perf Lab)")
     if "json" in scopes:
         native_routes.append("tools.atlas_json_inventory (existing JSON owner)")
+        native_routes.append("tools.atlas_json_benchmark (explicit parser/stream/compression trials)")
+    if "launcher" in scopes:
+        native_routes.append("tools.atlas_doctor agent check (Launcher scoped owner)")
+    if "test_tools" in scopes:
+        native_routes.append("tools.ai_context recommended_tests (existing unittest owner)")
+    if "assets" in scopes:
+        native_routes.append("tools.atlas_doctor file-audit (asset review, no deletion)")
+    if "dependencies" in scopes:
+        native_routes.append("tools.tool_catalog (local package metadata only)")
     if "python" in scopes:
         native_routes.append("tools.atlas_doctor agent check (existing targeted tests)")
     complete_inventory = {
