@@ -122,13 +122,14 @@ def inspect_import(
     index_path: Path = INDEX_PATH,
     target_dir: Path | None = None,
     strict: bool = True,
-    expected_routes: int = 95,
+    expected_routes: int = 95, allow_overwrite: bool = False,
 ) -> dict:
     """Preflight in read-only mode, including the existing importer gate."""
     source = Path(source_dir)
     plan = import_authored_routes(
         source, index_path=index_path, target_dir=target_dir,
         strict=strict, expected_routes=expected_routes, apply=False,
+        allow_overwrite=allow_overwrite,
     )
     catalog = {entry.source_id: entry for entry in load_ganymede_listings(index_path)}
     manifest = _load_reference(manifest_path) if manifest_path is not None else None
@@ -184,6 +185,7 @@ def run_pipeline(
     report = inspect_import(
         source_dir, manifest_path=manifest_path, index_path=index_path,
         target_dir=target_dir, strict=strict, expected_routes=expected_routes,
+        allow_overwrite=allow_overwrite,
     )
     if not apply:
         return report
