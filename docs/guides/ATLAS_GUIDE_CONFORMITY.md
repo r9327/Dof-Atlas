@@ -167,6 +167,11 @@ l'indisponibilité de Cawotte est elle-même attestée) ; pour chaque guide
 suivant, chaque preuve du précédent doit être **PASS et vérifiée
 indépendamment** au SHA source+code exact, avec couverture positive
 des étapes et actions et aucune anomalie bloquante ou non vérifiée.
+Le verrou exige en plus `certification_status=CERTIFIED`, un reçu
+`independent_final_certificate` vérifié par l'hôte de confiance et
+l'égalité stricte `certified_steps == total_steps > 0` et
+`certified_actions == total_actions > 0`. Une signature/attestation
+indépendante absente interdit toute étape suivante.
 Le retour `ELIGIBLE_FOR_INDEPENDENT_REVIEW` **n'est PAS un certificat**.
 Une preuve manquante, un SHA périmé, une chaîne interrompue ou un
 vérificateur indisponible retourne BLOCKED. Un guide ne peut être
