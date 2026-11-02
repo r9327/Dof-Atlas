@@ -18,7 +18,9 @@
     "https://ganymede-app.com/guides/183",
     "https://www.dofuspourlesnoobs.com/le-secret-des-flaqueux.html",
     "https://www.dofuspourlesnoobs.com/scaeacuteroplane-agrave-tregraves-grande-vitesse.html",
-    "https://papycha.fr/quete-un-autre-moyen-de-transport/"
+    "https://papycha.fr/quete-un-autre-moyen-de-transport/",
+    "https://www.dofuserie.com/quetes/un-autre-moyen-de-transport/",
+    "https://www.dofuspourlesnoobs.com/haute-voltige.html"
   ],
   "steps": [
     {
@@ -188,7 +190,7 @@
     {
       "source_step_number": 5,
       "title": "Organiser les deux quêtes de transport",
-      "instructions": "Une fois le zaap côtier [-46,18] actif, préparer le succès « Haute voltige ». Flip Flap demande un certificat de Dragodinde Rousse sauvage et un certificat de Dragodinde Amande sauvage (et non des montures génériques). Spitte Fayeur demande des Ailes en bois améliorées et un Casque amélioré ; les deux équipements sont réalisables par un Tailleur de niveau 30.",
+      "instructions": "Une fois le zaap côtier [-46,18] actif, préparer le succès « Haute voltige ». Flip Flap demande 1 Dragodinde Rousse et 1 Dragodinde Amande : vérifier dans le dialogue le format remis (monture ou certificat selon la version du jeu) plutôt que supposer que seules des montures sauvages en certificat conviennent. Spitte Fayeur demande des Ailes en bois améliorées et un Casque amélioré ; les deux équipements sont réalisables par un Tailleur de niveau 30.",
       "actions": [
         {
           "kind": "travel",
@@ -200,7 +202,7 @@
         },
         {
           "kind": "prepare",
-          "text": "Pour « Un autre moyen de transport » : obtenir 1 certificat de Dragodinde Rousse sauvage et 1 certificat de Dragodinde Amande sauvage."
+          "text": "Pour « Un autre moyen de transport » : prévoir 1 Dragodinde Rousse et 1 Dragodinde Amande. Vérifier le format demandé dans le journal/la version Unity ; des guides anciens mentionnent les certificats de montures sauvages."
         },
         {
           "kind": "prepare",
@@ -223,7 +225,7 @@
     {
       "source_step_number": 6,
       "title": "Débloquer le scaéroplane des Plaines herbeuses",
-      "instructions": "En [-56,22], accepter « Un autre moyen de transport » auprès de Flip Flap et lui donner les deux certificats de dragodindes sauvages. Après validation de cette quête pour le personnage, parler de nouveau à Flip Flap et choisir explicitement le scaéroport de l'Arbre Hakam pour accéder au dernier pilote.",
+      "instructions": "En [-56,22], accepter « Un autre moyen de transport » auprès de Flip Flap et lui apporter 1 Dragodinde Rousse et 1 Dragodinde Amande dans le format effectivement demandé par le journal Unity. Une fois la quête validée sur ce personnage, parler de nouveau à Flip Flap et choisir le scaéroport de l'Arbre Hakam pour rejoindre le dernier pilote.",
       "actions": [
         {
           "kind": "travel",
@@ -239,7 +241,7 @@
         },
         {
           "kind": "deliver",
-          "text": "Lui remettre 1 certificat de Dragodinde Rousse sauvage et 1 certificat de Dragodinde Amande sauvage."
+          "text": "Remettre à Flip Flap 1 Dragodinde Rousse et 1 Dragodinde Amande, en respectant le format du journal de quête Unity ; ne pas imposer le certificat sauvage sans contrôle en jeu."
         },
         {
           "kind": "information",
@@ -285,6 +287,7 @@
   "review_pending": [
     "Compare all 7 steps directly against Ganymede MG6 route 2219 on the same candidate revision; GP6 183 is a similar parallel reference, not proof of MG6 parity.",
     "Validate combat encounters, quest/achievement completion, wild Dragoturkey certificates, map transitions, and optional parasol under DOFUS Unity.",
-    "Verify the common optimized guide UI and per-character validation/persistence in the Windows app; collect exact-SHA test evidence."
+    "Verify the common optimized guide UI and per-character validation/persistence in the Windows app; collect exact-SHA test evidence.",
+    "Compare current Unity quest journal requirements with older sources regarding certificate vs live Dragoturkey before game certification."
   ]
 }
