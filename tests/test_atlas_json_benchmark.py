@@ -12,6 +12,19 @@ from tools.atlas_json_shards import build
 
 
 class AtlasJsonBenchmarkTests(unittest.TestCase):
+    def test_json_trial_is_catalog_discoverable_without_runtime_import(self) -> None:
+        from tools.tool_catalog import _validated_tool_spec
+        path = Path(__file__).resolve().parents[1] / "tools/atlas_json_benchmark.py"
+        spec, errors = _validated_tool_spec(
+            path.read_text(encoding="utf-8"), "tools/atlas_json_benchmark.py")
+        self.assertEqual(errors, [])
+        self.assertEqual(spec["id"], "quest_json_benchmark")
+        self.assertTrue(spec["canonical"])
+        self.assertEqual(spec["side_effects"], "artifact_output")
+        self.assertIn("compare_compression", spec["modes"])
+        self.assertIn("tests.test_atlas_json_benchmark",
+                      spec["recommended_tests"])
+
     def test_compare_both_strategies_without_mutating_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
