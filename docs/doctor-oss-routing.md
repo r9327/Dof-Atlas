@@ -159,6 +159,30 @@ au Launcher, à Organizer, aux Guides et à Holding doivent encore avoir
 leurs vrais témoins sur leurs branches propriétaires ; conserver la PR
 Draft jusqu'à la fin du code, puis audit et certification sur le HEAD final.
 
+## Essai ImageHash sur assets choisis
+
+Pour des icônes ou illustrations du même périmètre (jamais un scan
+automatique de tout le bundle Unity), Doctor expose un essai de doublons
+**visuels potentiels** :
+
+```powershell
+py -3.13 -m tools.atlas_doctor oss data/images/items/exemple1.png data/images/items/exemple2.png --asset-trial --json
+```
+
+Remplacer les deux chemins par des assets **réellement présents**. Le mode
+`--asset-trial` valide explicitement les chemins, refuse les symlinks et
+les entrées non-image, limite les images à 2 millions de pixels et 2 Mio
+par fichier, puis importe Pillow/ImageHash uniquement à la demande.
+Il compare les empreintes perceptuelles sous un seuil Hamming de 6,
+revérifie les SHA256 des sources avant/après, et ne publie ni pixels ni
+suppression. Les différences de charte, variantes Unity/DPI et vrais
+consommateurs de chaque image doivent rester examinés séparément.
+Un outil absent donne `NOT_AVAILABLE`, un scan impossible `ERROR`,
+et aucun de ces états n'autorise une suppression ou un PASS CI.
+Le mode `--asset-trial` ne se combine pas avec `--run` ou `--verify-live` ;
+aucun asset n'est analysé par ce spécialiste automatiquement lors
+d'un simple `agent check`.
+
 ## Commandes
 
 Plan consultatif sans processus tiers :
