@@ -61,7 +61,7 @@
     {
       "source_step_number": 3,
       "title": "Valider « Le nouveau monde » à Sufokia",
-      "instructions": "Parle au Capitaine Kradoc en [15,28], lance « Le nouveau monde » et remets-lui les fournitures demandées. Après validation, reparle au capitaine pour embarquer. Prévois d'enchaîner trois combats durant la traversée, faisables avec des alliés.",
+      "instructions": "Parle au Capitaine Kradoc en [15,28], lance « Le nouveau monde » et remets-lui les fournitures demandées. Après validation, reparle au capitaine pour embarquer. Les trois combats de traversée se déroulent après l'embarquement, à l'étape suivante.",
       "actions": [
         {
           "kind": "talk",
@@ -70,18 +70,18 @@
         {
           "kind": "talk",
           "text": "Lui reparler après validation pour prendre le bateau vers Otomaï."
-        },
-        {
-          "kind": "fight",
-          "text": "Remporter les trois affrontements du trajet maritime, en groupe si nécessaire."
         }
       ]
     },
     {
       "source_step_number": 4,
       "title": "Réparer le bateau pendant l'escale et rejoindre Otomaï",
-      "instructions": "Après l'échouage sur l'île des Naufragés, parle de nouveau à Kradoc pour poursuivre la quête. Obtiens les quatre ressources de réparation si tu ne les as pas apportées, puis remets-les au capitaine. Une fois sur Otomaï, enregistre immédiatement le zaap du Village côtier en [-46,18] : il permettra de revenir sans refaire le voyage.",
+      "instructions": "Une fois embarqué, remporte les trois combats de traversée (possibles en groupe). Après l'échouage sur l'île des Naufragés, parle de nouveau à Kradoc pour poursuivre la quête. Obtiens les quatre ressources de réparation si tu ne les as pas apportées, puis remets-les au capitaine. Une fois sur Otomaï, enregistre immédiatement le zaap du Village côtier en [-46,18] : il permettra de revenir sans refaire le voyage.",
       "actions": [
+        {
+          "kind": "fight",
+          "text": "Remporter les trois affrontements du trajet maritime, en groupe si nécessaire."
+        },
         {
           "kind": "talk",
           "text": "Lancer la suite de « L'île des naufragés » auprès du Capitaine Kradoc."
