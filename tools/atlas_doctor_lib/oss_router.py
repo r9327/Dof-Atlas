@@ -334,6 +334,73 @@ def qualify_live(root: Path, paths: Iterable[str], *,
     }
 
 
+def trial_imagehash(root: Path, paths: Iterable[str], *,
+                    max_pixels: int = 2_000_000,
+                    max_file_bytes: int = 4 * 1024 * 1024) -> dict[str, Any]:
+    """Explicit ImageHash advisory for local assets, never a deletion decision.
+
+    Pixel or image contents never leave memory. ImageHash/Pillow are imported
+    only when this trial is requested. Bounded files and dimensions prevent
+    accidental whole-asset-tree scans or oversized decompression.
+    """
+    files = _safe_files(root, paths)
+    if not files or any(not path.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+                        for path in files):
+        raise ValueError("ImageHash trial requires only explicit image files")
+    if not 1 <= max_pixels <= 2_000_000 or not 1 <= max_file_bytes <= 4 * 1024 * 1024:
+        raise ValueError("Unbounded ImageHash trial rejected")
+    try:
+        from PIL import Image
+        import imagehash
+    except ImportError:
+        return {
+            "schema_version": 1, "status": "NOT_AVAILABLE",
+            "tool": "imagehash", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Pillow/ImageHash unavailable; developer-only optional trial",
+        }
+    try:
+        before = _file_digests(root, files)
+        hashes = []
+        for relative in files:
+            path = root.resolve() / relative
+            if path.stat().st_size > max_file_bytes:
+                raise ValueError("Image file exceeds trial budget")
+            with Image.open(path) as picture:
+                if (picture.width < 1 or picture.height < 1 or
+                        picture.width * picture.height > max_pixels):
+                    raise ValueError("Image dimension exceeds trial budget")
+                hashes.append(imagehash.phash(picture))
+        intact = before == _file_digests(root, files)
+        if not intact:
+            raise ValueError("Image input changed during ImageHash trial")
+        candidates = [
+            {"first": files[i], "second": files[j], "distance": int(hashes[i] - hashes[j])}
+            for i in range(len(files)) for j in range(i + 1, len(files))
+            if int(hashes[i] - hashes[j]) <= 6
+        ]
+    except (OSError, ValueError, TypeError, AttributeError,
+            RuntimeError, Image.DecompressionBombError):
+        return {
+            "schema_version": 1, "status": "ERROR",
+            "tool": "imagehash", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Image input or trial could not be safely verified",
+        }
+    return {
+        "schema_version": 1, "status": "TRIAL_COMPLETE",
+        "source": "tools.atlas_doctor_lib.oss_router.trial_imagehash",
+        "tool": "imagehash", "requested_files": len(files),
+        "execution_count": 1, "input_integrity_verified": True,
+        "max_hamming_distance": 6,
+        "possible_visual_duplicates": candidates,
+        "automated_deletion_allowed": False,
+        "runtime_consumers_verified": False,
+        "phase_certified": False, "license_verified": False,
+        "limits": "Potential visual overlaps only; Unity variants and actual runtime consumers need human review.",
+    }
+
+
 def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
               timeout_seconds: int = 20) -> dict[str, Any]:
     """Select useful tools by file type; run only reviewed Ruff on explicit opt-in."""
