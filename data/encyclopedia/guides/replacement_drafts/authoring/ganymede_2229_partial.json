@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2229,
+  "source_url": "https://ganymede-app.com/guides/2229",
+  "expected_source_step_count": 67,
+  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "reviewed_stage_range": [
+    1,
+    10
+  ],
+  "rights_basis": "atlas_original",
+  "editorial_source_text_copied": false,
+  "source_reference": "https://ganymede-app.com/guides/2229",
+  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Vérifier l'accès aux chasses de Nimaltopia",
+      "instructions": "Cette série de quêtes prépare le succès lié aux chasseurs et peut contribuer au parcours du Dofus Ivoire. Le personnage doit avoir progressé dans les prérequis de la Fratrie des Oubliés.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Avoir avancé la quête de la Fratrie des Oubliés liée à l'accès aux missions de chasse."
+        },
+        {
+          "kind": "information",
+          "text": "Niveau recommandé : 190. Le reste du parcours nécessite plusieurs ressources, à rassembler avant de commencer."
+        },
+        {
+          "kind": "travel",
+          "text": "Prendre ses repères près de Bonta avant la tournée.",
+          "coordinates": [
+            -31,
+            -56
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Rassembler les provisions du parcours",
+      "instructions": "Préparer les fournitures nécessaires aux différentes missions pour éviter de refaire le trajet. Les boissons totalisent vingt unités entre les deux quêtes.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Prévoir 20 Eaux potables pour les deux séries de demandes."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 5 Brioches dorées, 5 Espadons poêlés et 5 Andouillettes de gibier."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 32 Bois d'Orme et 16 Dolomites."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 8 Mandragores, 7 Bois de Bambou Sacré et 7 Bières d'Amakna."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 2 Cawottes, 1 Pyrute et 1 Viande de minuit."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le premier contact en [-31,-55].",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Recevoir la première mission de chasse",
+      "instructions": "Ouvrir la quête auprès de Robert Gene, puis consulter les professionnels concernés.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Robert Gene.",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter la demande de Robert Gene liée aux viandes de chasse."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'atelier des chasseurs en [-30,-52].",
+          "coordinates": [
+            -30,
+            -52
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Rencontrer Ala Raine",
+      "instructions": "Prendre les informations dans l'atelier des chasseurs et se diriger vers le prochain interlocuteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'atelier des chasseurs.",
+          "coordinates": [
+            -30,
+            -52
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Ala Raine au sujet de la demande."
+        },
+        {
+          "kind": "travel",
+          "text": "Se déplacer d'une carte vers la gauche.",
+          "coordinates": [
+            -31,
+            -52
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Consulter Erem Dran",
+      "instructions": "Faire confirmer par Erem Dran les informations sur la viande de Blibli et poursuivre la tournée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Erem Dran.",
+          "coordinates": [
+            -31,
+            -52
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui demander les renseignements sur la viande de Blibli."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au contact suivant.",
+          "coordinates": [
+            -32,
+            -52
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Passer voir Nani Tago",
+      "instructions": "Consulter Nani Tago puis rejoindre la taverne de Bonta.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Nani Tago.",
+          "coordinates": [
+            -32,
+            -52
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Nani Tago."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'auberge en [-35,-55].",
+          "coordinates": [
+            -35,
+            -55
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Consulter Kikim Indabutt",
+      "instructions": "Entrer dans l'auberge pour continuer la collecte d'informations.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la taverne Kikim.",
+          "coordinates": [
+            -35,
+            -55
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Kikim Indabutt."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre à l'épicerie en [-33,-57].",
+          "coordinates": [
+            -33,
+            -57
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Visiter l'épicerie",
+      "instructions": "Interroger les deux personnes présentes dans l'épicerie avant de retourner auprès du donneur de quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'épicerie.",
+          "coordinates": [
+            -33,
+            -57
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Échanger avec Connie Vini."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler ensuite à Huta Wouite."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner auprès de Robert Gene.",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Faire le point avec Robert Gene",
+      "instructions": "Revenir voir le commanditaire après les échanges dans les boutiques de Bonta.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Robert Gene.",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Faire le compte rendu des informations obtenues."
+        },
+        {
+          "kind": "travel",
+          "text": "Gagner l'atelier voisin en [-35,-54].",
+          "coordinates": [
+            -35,
+            -54
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Retrouver Camille",
+      "instructions": "Consulter Camille pour poursuivre l'enquête avant la prochaine destination.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Camille.",
+          "coordinates": [
+            -35,
+            -54
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Échanger avec Camille."
+        },
+        {
+          "kind": "travel",
+          "text": "Continuer vers la destination suivante.",
+          "coordinates": [
+            -36,
+            -54
+          ]
+        }
+      ]
+    }
+  ]
+}
