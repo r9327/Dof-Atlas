@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QDialog, QFrame, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
+    QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
     QListWidgetItem, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
@@ -108,18 +108,15 @@ class GuideCatalogView(QWidget):
             )
             return label
 
-        # Exactly two highlighted guides; alignments remain in the browsable library.
+        # Two existing optimized Atlas guides; both keep their identity and handlers.
         self.featured_cards = {
             guide_id: FeaturedGuideCard(guide_id, title, self.select_guide, self)
             for guide_id, title in FEATURED
         }
-        root.addWidget(heading("GUIDES OPTIMISÉS"))
         self.optimized_pair = FeaturedPair(
             (self.featured_cards["guide_complet"],
              self.featured_cards["dofus_sylvestre"]), self
         )
-        root.addWidget(self.optimized_pair)
-
         # Preserve the legacy model roles for integrations and external progress.
         self.result_model = GuideListModel(self)
         self.home_dofus_model = GuideListModel(self)
@@ -138,6 +135,8 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.setWrapping(True)
         self.home_dofus_list.setResizeMode(QListView.Adjust)
         self.home_dofus_list.setGridSize(QSize(280, 96))
+        self.home_dofus_list.setMinimumHeight(210)
+        self.home_dofus_list.setMaximumHeight(370)
         self.home_dofus_list.clicked.connect(self._on_clicked)
         self.home_dofus_list.activated.connect(self._on_clicked)
 
@@ -198,10 +197,69 @@ class GuideCatalogView(QWidget):
         self.home_empty.setVisible(False)
         result_layout.addWidget(self.home_empty, 1)
 
+        # First row: optimized routes + alignments on the left; Dofus on the
+        # right. Keep the legacy category tree as a hidden compatibility
+        # controller for existing navigation integrations, not a home menu.
+        self.home_left = QWidget(self)
+        self.home_left.setObjectName("GuidesHomeOptimizedAndAlignments")
+        left_layout = QVBoxLayout(self.home_left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(8)
+        left_layout.addWidget(heading("GUIDES OPTIMISÉS"))
+        left_layout.addWidget(self.optimized_pair)
+        left_layout.addWidget(heading("ALIGNEMENTS"))
+        self.alignment_buttons = {}
+        for guide_id, label in (
+            ("alignement_bonta", "Bonta"),
+            ("alignement_brakmar", "Brâkmar"),
+        ):
+            button = QPushButton(label, self.home_left)
+            button.setObjectName("GuidesHomeAlignment_" + guide_id)
+            button.setMinimumHeight(38)
+            button.setCursor(Qt.PointingHandCursor)
+            button.clicked.connect(
+                lambda checked=False, key=guide_id: self.select_guide(key)
+            )
+            left_layout.addWidget(button)
+            self.alignment_buttons[guide_id] = button
+        left_layout.addStretch(1)
+        self.library_categories.setVisible(False)
         self.home_columns = GuideHomeColumns(
-            self.library_categories, self.library_right, self
+            self.home_left, self.library_right, self
         )
-        root.addWidget(self.home_columns, 1)
+        root.addWidget(self.home_columns, 0)
+
+        # Below: independent compact, scrollable lists for every other family.
+        # No browser or rich guide widget is created until a route is opened.
+        self.other_groups_widget = QWidget(self)
+        self.other_groups_widget.setObjectName("GuidesHomeOtherFamilies")
+        group_layout = QGridLayout(self.other_groups_widget)
+        group_layout.setContentsMargins(0, 4, 0, 0)
+        group_layout.setHorizontalSpacing(12)
+        group_layout.setVerticalSpacing(10)
+        self.other_category_lists = {}
+        families = [
+            (key, title) for key, title in CATEGORIES
+            if key not in {"optimized", "alignements", "dofus"}
+        ]
+        for index, (category, title) in enumerate(families):
+            section = QFrame(self.other_groups_widget)
+            section.setObjectName("GuidesHomeFamily_" + category)
+            section_layout = QVBoxLayout(section)
+            section_layout.setContentsMargins(6, 5, 6, 5)
+            section_layout.setSpacing(5)
+            section_layout.addWidget(heading(title.upper()))
+            listing = QListWidget(section)
+            listing.setObjectName("GuidesHomeFamilyList_" + category)
+            listing.setAlternatingRowColors(False)
+            listing.setMaximumHeight(184)
+            listing.setMinimumHeight(56)
+            listing.itemClicked.connect(self._open_other_category_item)
+            section_layout.addWidget(listing)
+            self.other_category_lists[category] = listing
+            group_layout.addWidget(section, index // 2, index % 2)
+        root.addWidget(self.other_groups_widget, 0)
+        root.addStretch(1)
 
         if defer_runtime:
             self._show_runtime_loading()
