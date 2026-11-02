@@ -1307,8 +1307,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
-        return 1 if (payload.get("execution") or {}).get("status") in (
-            "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") else 0
+        executions = payload.get("execution_results") or [payload.get("execution") or {}]
+        return 1 if any(row.get("status") in (
+            "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") for row in executions) else 0
     if args.command == 'agent':
         return int(payload.get('exit_code', 2))
     if args.command == 'evidence-hub':
