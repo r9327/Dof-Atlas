@@ -163,6 +163,62 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(sel.call_args.kwargs["capability"], "ci_intelligence")
         run.assert_not_called()
 
+    def test_imagehash_is_explicit_readonly_and_reports_visual_candidates(self):
+        from types import ModuleType
+        from tools.atlas_doctor_lib.oss_router import trial_imagehash
+        a = self.root / "tests" / "first.png"
+        b = self.root / "tests" / "second.png"
+        a.parent.mkdir(parents=True, exist_ok=True)
+        a.write_bytes(b"example a")
+        b.write_bytes(b"example b")
+
+        class Picture:
+            width = 10
+            height = 10
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        image = ModuleType("PIL.Image")
+        image.open = lambda path: Picture()
+        image.DecompressionBombError = ValueError
+        pil = ModuleType("PIL")
+        pil.Image = image
+        imagehash = ModuleType("imagehash")
+        class Hash:
+            def __sub__(self, other):
+                return 2
+        imagehash.phash = lambda picture: Hash()
+        with patch.dict("sys.modules", {"PIL": pil, "PIL.Image": image,
+                                         "imagehash": imagehash}):
+            report = trial_imagehash(self.root, ["tests/first.png",
+                                                  "tests/second.png"])
+        self.assertEqual(report["status"], "TRIAL_COMPLETE")
+        self.assertEqual(report["execution_count"], 1)
+        self.assertEqual(report["possible_visual_duplicates"][0]["distance"], 2)
+        self.assertFalse(report["automated_deletion_allowed"])
+        self.assertFalse(report["runtime_consumers_verified"])
+        self.assertTrue(a.is_file() and b.is_file())
+
+    def test_imagehash_is_never_automatic_or_silent_without_dependency(self):
+        from tools.atlas_doctor_lib.oss_router import trial_imagehash
+        image = self.root / "tests" / "first.png"
+        image.parent.mkdir(parents=True, exist_ok=True)
+        image.write_bytes(b"example a")
+        with patch.dict("sys.modules", {"imagehash": None}):
+            report = trial_imagehash(self.root, ["tests/first.png"])
+        self.assertEqual(report["status"], "NOT_AVAILABLE")
+        self.assertEqual(report["execution_count"], 0)
+        with self.assertRaises(ValueError):
+            trial_imagehash(self.root, ["tools/example.py"])
+
+        from tools.atlas_doctor import build_parser
+        parsed = build_parser().parse_args([
+            "oss", "tests/first.png", "--asset-trial"])
+        self.assertTrue(parsed.asset_trial)
+        self.assertFalse(parsed.run)
+        self.assertFalse(parsed.verify_live)
+
     def test_bad_paths_rejected_before_discovery_and_execution(self):
         for bad in ("../secret.py", "tools/../secret.py", "tools/@options.py",
                     "tools/example.py;touch", "/tools/example.py", "tools/missing.py"):
