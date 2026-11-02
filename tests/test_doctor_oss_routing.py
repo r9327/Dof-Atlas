@@ -118,6 +118,39 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertTrue(parsed.run)
         self.assertEqual(parsed.paths, ["tools/example.py"])
         self.assertEqual(parsed.timeout_seconds, 10)
+        parsed_agent = build_parser().parse_args(["agent", "check", "tools/example.py", "--run-oss"])
+        self.assertTrue(parsed_agent.oss_run)
+
+    def test_agent_check_can_invoke_advisor_without_modifying_doctor_verdict(self):
+        from tools.atlas_doctor import command_agent
+        args = SimpleNamespace(agent_action="check", paths=["tools/example.py"],
+                               base_ref="HEAD", structural=False, level=None,
+                               run_tests=False, max_tests=4, timeout_seconds=30,
+                               oss_run=True)
+        core = {"status": "REVIEW", "exit_code": 1, "phase_certified": False}
+        with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
+                    return_value=core) as agent,
+              patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    return_value={"status": "ADVISORY_ONLY"}) as oss):
+            result = command_agent(self.root, args)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["exit_code"], 1)
+        self.assertEqual(result["oss_advisory"]["status"], "ADVISORY_ONLY")
+        oss.assert_called_once()
+        agent.assert_called_once()
+
+    def test_agent_blocked_never_invokes_oss(self):
+        from tools.atlas_doctor import command_agent
+        args = SimpleNamespace(agent_action="check", paths=["tools/example.py"],
+                               base_ref="HEAD", structural=False, level=None,
+                               run_tests=False, max_tests=4, timeout_seconds=30,
+                               oss_run=True)
+        with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
+                    return_value={"status": "BLOCKED", "exit_code": 2}),
+              patch("tools.atlas_doctor_lib.oss_router.route_oss") as oss):
+            result = command_agent(self.root, args)
+        self.assertEqual(result["oss_advisory"]["status"], "NOT_RUN")
+        oss.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
