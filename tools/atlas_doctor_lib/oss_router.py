@@ -425,15 +425,24 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                           safe_only=True, ready_only=True, limit=5)
     study = _open_source_inventory(root)
     selection = intelligent_plan(files, study)
-    probe = local_candidate_preflight(
-        packages=["ruff"] if python_files else [],
-        binaries=["zizmor"] if workflows else [])
-    discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
-                  for row in probe["results"]}
+    # Optional package discovery is untrusted local metadata. A broken
+    # distribution must not terminate the canonical Doctor command or leak
+    # filesystem paths; it also must not silently become NOT_AVAILABLE.
+    preflight_error_type = None
+    try:
+        probe = local_candidate_preflight(
+            packages=["ruff"] if python_files else [],
+            binaries=["zizmor"] if workflows else [])
+        discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
+                      for row in probe["results"]}
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
+        discovered = {}
+        preflight_error_type = type(exc).__name__
     detected = discovered.get(("python_distribution", "ruff"))
     available = bool(detected and detected["available"])
     workflow_candidate = discovered.get(("path_executable", "zizmor"))
     workflow_executable = (
+        None if preflight_error_type else
         "zizmor" if workflow_candidate and workflow_candidate["available"]
         else _zizmor_executable() if workflows else None
     )
@@ -443,6 +452,10 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     if run and approved_files and before_digests is None:
         execution = {"status": "ERROR", "tool": "ruff",
                      "reason": "Cannot snapshot explicit scanner inputs"}
+    elif run and preflight_error_type:
+        execution = {"status": "ERROR", "tool": "ruff",
+                     "reason": "Optional package discovery failed",
+                     "error_type": preflight_error_type}
     elif run and not python_files:
         execution = {"status": "NOT_APPLICABLE", "reason": "No approved workflow OSS executor"}
     elif run and not available:
@@ -497,6 +510,10 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         elif before_digests is None:
             workflow_execution = {"status": "ERROR", "tool": "zizmor",
                                   "reason": "Cannot snapshot explicit scanner inputs"}
+        elif preflight_error_type:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Optional package discovery failed",
+                                  "error_type": preflight_error_type}
         elif not workflow_available:
             workflow_execution = {"status": "NOT_AVAILABLE", "tool": "zizmor",
                                   "reason": "Not installed; no installation attempted"}
@@ -565,6 +582,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         },
         "open_source_inventory": study,
         "intelligent_selection": selection,
+        "local_preflight_status": "ERROR" if preflight_error_type else "OBSERVED_NOT_QUALIFIED",
+        "local_preflight_error_type": preflight_error_type,
         "oss_candidates": [
             {"id": "ruff", "selected": bool(python_files),
              "available": available, "version_claim": detected["version"] if detected else None,
