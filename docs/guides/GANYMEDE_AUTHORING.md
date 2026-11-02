@@ -176,42 +176,65 @@ py -3.13 -m unittest tests.test_guide_cross_route_candidates
 
 ## Rédaction incrémentale des 80 guides restants — PR #337
 
-Les premières étapes de quatre parcours ont été **réécrites individuellement**
-d'après les actions et objectifs visibles dans leurs références publiques, puis
-rapprochées des relevés factuels locaux de la même étape. Cette matière est
-stockée sous `replacement_drafts/authoring/ganymede_<id>_partial.json` :
-**ce n'est pas un guide activable**. Le lecteur ne considère que les
-`ganymede_<id>_instructions.json` possédant toutes leurs étapes et une
-validation de schéma intégrale.
+Les parcours sont rédigés avec des actions originales, fondées sur les
+premières étapes Ganymède visibles, les observations locales par numéro
+d'étape et des fiches de quêtes indépendantes. **Les observations de positions
+et de liens ne suffisent pas à prouver la parité intégrale de la source.**
+Les fichiers de travail restent sous
+`replacement_drafts/authoring/ganymede_<id>_partial.json` et ne sont
+**jamais chargés dans l'application**. Même un fichier qui possède toutes
+ses étapes ne devient pas jouable automatiquement.
 
-| Guide | Étapes rédigées | Étapes source | État |
+| Guide | Étapes rédigées | Étapes attendues | État |
 | --- | ---: | ---: | --- |
-| 2204 — Mais où sont les Dofus ? | 10 | 26 | Brouillon incomplet |
-| 2206 — Valonia 1 | 10 | 30 | Brouillon incomplet |
-| 2228 — Sufokia | 10 | 39 | Brouillon incomplet |
-| 2229 — Nimaltopia | 10 | 67 | Brouillon incomplet |
-| **Total** | **40** | **162** | **Aucun n'est activé** |
+| 2204 — Mais où sont les Dofus ? | 26 | 26 | Brouillon entier, non certifié |
+| 2206 — Valonia 1 | 30 | 30 | Brouillon entier, non certifié |
+| 2228 — Sufokia | 10 | 39 | Brouillon partiel |
+| 2229 — Nimaltopia | 10 | 67 | Brouillon partiel |
+| **Total** | **76** | **162** | **Aucun n'est activé** |
 
-Les 40 étapes couvrent désormais **150 actions typées**, dont **73 déplacements
-sur 73** avec une position mentionnée dans le relevé de la même étape
-(contrôle statique de données, HEAD `7f281184644f5f1d3a703f616fe80c81b69e69c5`). Les consignes d'entrée ont été consolidées contre les dix premières étapes
-référencées des quatre sources : niveau 50 et quête du Réceptacle pour 2204,
-passage obligatoire au pont de Pandala, absence de prérequis à Valonia
-mais 100 kamas de transport, succès et donjons optionnels de Sufokia,
-et « Aventure miniature » puis « Ne tirez pas sur le messager » pour
-Nimaltopia. Les ressources sont regroupées par trois quêtes, en évitant de
-compter deux fois les 20 Eaux potables.
+Les **76 étapes rédigées** contiennent **309 actions typées**, avec
+**137/137 déplacements dont les coordonnées sont mentionnées dans le
+relevé local de la même étape** (lecture statique des quatre fichiers
+au HEAD `f48b0bdce0de6c4644e1719e151b68db29915a17`).
+Cela vérifie le positionnement documentaire, **pas** le caractère juste
+de la carte, du trajet, du combat ou de l'ordre original de Ganymède.
 
-Les quantités, dialogues, niveaux, identités des cartes,
-branches et combats demandent une vérification en jeu ainsi qu'une comparaison
-intégrale des pages source. Les intitulés d'objets et de PNJ traduits doivent
-aussi être confrontés à la version française effective.
+2204 et 2206 portent explicitement
+`authoring_status: FULL_DRAFT_NOT_PLAYABLE`,
+`source_parity_certified: false` et `gameplay_certified: false`.
+Les guides ont été recomposés à partir d'informations de quêtes
+indépendantes ; la comparaison 1:1 avec **toutes** les pages de la route
+source, les noms français, les embranchements, les combats en groupe/solo
+et la persistance par personnage doivent encore être validés.
+Le lecteur strict `load_ganymede_local_instructions` n'utilise **aucun**
+de ces deux brouillons.
 
-**Suite prioritaire** : rédiger et vérifier les étapes restantes de ces quatre
-parcours dans l'ordre, puis les faire passer **entièrement** par le contrat des
-consignes avant de les ouvrir à la progression manuelle. Poursuivre ensuite
-les autres guides. Aucun travail d'optimisation inter-guides ni remplacement
-des deux guides optimisés existants ne doit prendre cette priorité.
+Pour 2204, les fiches de contrôle des quêtes sont :
+- https://www.dofuserie.com/quetes/le-receptacle-des-dofus/
+- https://www.dofuserie.com/quetes/un-sage-parmi-les-sages/
+- https://www.dofuserie.com/quetes/protection-divine/
+- https://www.dofuserie.com/quetes/voir-le-dark-vlad-et-mourir-ou-pas/
+- https://www.dofuserie.com/quetes/la-magicienne-des-marecages/
+
+Pour 2206 :
+- https://www.dofuserie.com/quetes/dis-scierie/
+- https://www.dofuserie.com/quetes/colonie-de-vaillance/
+- https://www.dofuserie.com/quetes/dans-la-gueule-du-trankilou/
+- https://www.dofuserie.com/quetes/association-de-fureteurs/
+- https://www.dofuserie.com/quetes/la-complote-des-p-o-m-s/
+
+**Suite prioritaire :** confronter chaque étape des 2 brouillons entiers
+au parcours source exact, corriger les différences, vérifier sous DOFUS Unity
+et publier ensuite seulement des consignes complètes. Parallèlement,
+rédiger les **29 étapes restantes de Sufokia** et les **57 étapes restantes
+de Nimaltopia**, puis continuer les autres guides. Ne pas relancer de
+travail du Guide Ultime avant la fin des 95 parcours.
+
+**État métier inchangé : 15/95 guides publiés dans la bibliothèque locale
+avec consignes structurellement complètes, 2 brouillons entiers en
+pré-certification, 0 guide certifié en jeu/Windows.** Les deux grands
+guides optimisés restent intacts.
 
 Contrôle de structure ajouté :
 
