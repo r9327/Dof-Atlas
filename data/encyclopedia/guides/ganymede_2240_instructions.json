@@ -348,47 +348,47 @@
     },
     {
       "source_step_number": 16,
-      "title": "Ramasser des fragments de mémoire",
-      "instructions": "Les monstres Xélomorphes des Chemins d'hier donnent des fragments de mémoire pour « Retour vers le présent ». Rassemble dix fragments après avoir remis les pièces à Doc ; leur objectif est garanti pendant la quête.",
+      "title": "Préparer la chasse aux fragments de mémoire",
+      "instructions": "Au secteur [2,5], repère les groupes de Xélomorphes qui fourniront dix fragments de mémoire plus tard. Ne commence pas cette collecte pour « Retour vers le présent » tant que tu n'as pas récupéré le Tournevis sonique du Docteur Hou et livré les pièces détachées du Major Qiu à Doc Émiette Borgne. Profite de ce passage pour vérifier les montres de changement d'époque.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre le secteur de chasse des Chemins d'hier.",
+          "text": "Repérer le secteur de chasse des Xélomorphes sans démarrer la collecte avant les outils requis.",
           "coordinates": [
             2,
             5
           ]
         },
         {
-          "kind": "fight",
-          "text": "Combattre les Xélomorphes nécessaires pour obtenir dix fragments de mémoire."
+          "kind": "prepare",
+          "text": "Vérifier les montres pour le passage entre les époques."
         },
         {
-          "kind": "prepare",
-          "text": "Contrôler les dix fragments avant le retour."
+          "kind": "information",
+          "text": "La collecte des dix fragments de mémoire est réservée à l'étape après la livraison des pièces à Doc."
         }
       ]
     },
     {
       "source_step_number": 17,
-      "title": "Valider la collecte à l'avant-poste",
-      "instructions": "Rapporte les dix fragments à Doc Émiette Borgne et remets le tournevis sonique s'il est encore en ta possession. Il tente une restauration temporelle, mais l'énergie manque : cela ouvre « Prisonniers du temps ».",
+      "title": "Revenir à Doc sans terminer prématurément la quête",
+      "instructions": "Reviens à l'avant-poste [1,6] pour consulter les objectifs encore ouverts. Pour « Retour vers le présent », il faut désormais sortir chercher le Tournevis sonique en [20,25] et le Sac de pièces détachées en [-22,-24]. Aucun fragment de mémoire n'est à remettre à ce stade.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retourner à l'avant-poste.",
+          "text": "Retourner à l'avant-poste de Doc Émiette Borgne.",
           "coordinates": [
             1,
             6
           ]
         },
         {
-          "kind": "deliver",
-          "text": "Remettre les fragments de mémoire et le tournevis sonique à Doc."
+          "kind": "talk",
+          "text": "Confirmer les éléments nécessaires au dispositif temporel."
         },
         {
-          "kind": "talk",
-          "text": "Achever « Retour vers le présent » puis préparer « Prisonniers du temps »."
+          "kind": "prepare",
+          "text": "Partir chercher le Tournevis sonique et le Sac de pièces détachées avant le farm des fragments."
         }
       ]
     },

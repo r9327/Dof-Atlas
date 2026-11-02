@@ -71,19 +71,15 @@
     {
       "source_step_number": 4,
       "title": "Prendre Grand corps malade",
-      "instructions": "Le capitaine Pol Ouatnos demande d'enlever les déchets laissés sur le littoral. Écoute sa mission et commence la collecte.",
+      "instructions": "Le capitaine Pol Ouatnos est en [-83,-58]. Il te demande de retirer les déchets abandonnés sur le littoral pour « Grand corps malade ». Le relevé local de cette étape mentionne [-84,-58] dans les environs, mais ne constitue pas la position exacte du capitaine.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre le capitaine Pol Ouatnos.",
-          "coordinates": [
-            -84,
-            -58
-          ]
+          "text": "Rejoindre le capitaine Pol Ouatnos à la position documentée [-83,-58]."
         },
         {
           "kind": "talk",
-          "text": "Accepter « Grand corps malade »."
+          "text": "Accepter « Grand corps malade » auprès de Pol Ouatnos."
         }
       ]
     },
