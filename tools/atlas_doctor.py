@@ -244,6 +244,28 @@ def command_agent(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.oss_intelligence import intelligent_plan
     report["oss_selection"] = intelligent_plan(
         args.paths, _open_source_inventory(root))
+    # The selected distributions are inspected via installed metadata only.
+    # No import, subprocess, download, installation or licence approval occurs.
+    from tools.tool_catalog import local_candidate_preflight
+    selected_packages = report["oss_selection"].get("local_package_probes", [])
+    if selected_packages:
+        local = local_candidate_preflight(
+            packages=[item["distribution"] for item in selected_packages])
+        found = {item["name"].casefold(): item for item in local["results"]}
+        report["oss_local_preflight"] = {
+            "status": "OBSERVED_NOT_QUALIFIED", "network_used": False,
+            "tools": [
+                {"id": item["id"], "distribution": item["distribution"],
+                 "available": bool(found[item["distribution"].casefold()]["available"]),
+                 "version_claim": found[item["distribution"].casefold()]["version"],
+                 "license_verified": False, "execution_verified": False}
+                for item in selected_packages
+            ],
+        }
+    else:
+        report["oss_local_preflight"] = {
+            "status": "NOT_APPLICABLE", "tools": [], "network_used": False}
+    report["oss_selection"]["local_preflight"] = report["oss_local_preflight"]
     requested = bool(getattr(args, "run_oss", False) or (
         args.agent_action == "check" and args.run_tests
         and not getattr(args, "no_oss", False)))
