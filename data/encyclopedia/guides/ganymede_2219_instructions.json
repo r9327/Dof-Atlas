@@ -71,7 +71,7 @@
         },
         {
           "kind": "prepare",
-          "text": "1 Huile de Sésame (fabrication par un Paysan)."
+          "text": "1 Huile de Sésame : la route source GP6 mentionne 3 Graines de Sésame (fabrication Paysan) ; quantité actuelle à vérifier sous DOFUS Unity avant certification."
         },
         {
           "kind": "prepare",
@@ -97,6 +97,14 @@
       "instructions": "À Sufokia [15,28], parler au Capitaine Kradoc pour prendre « Le nouveau monde ». Lui donner les quatre ressources requises afin de terminer cette quête, puis lui reparler pour embarquer vers l'île d'Otomaï.",
       "actions": [
         {
+          "kind": "travel",
+          "text": "Rejoindre le Capitaine Kradoc en [15,28].",
+          "coordinates": [
+            15,
+            28
+          ]
+        },
+        {
           "kind": "talk",
           "text": "Parler au Capitaine Kradoc en [15,28] et lancer « Le nouveau monde »."
         },
@@ -119,6 +127,14 @@
       "title": "Réparer le bateau pendant l'escale et rejoindre Otomaï",
       "instructions": "La traversée vers Otomaï impose trois combats consécutifs pouvant être effectués en groupe. Après les combats, parler au Capitaine Kradoc pour ouvrir « L'île des naufragés ». L'île échouée permet facultativement « Le secret des Flaqueux » en [-43,-1]. Rassembler puis livrer les quatre ressources de réparation, repartir avec Kradoc et débloquer le zaap du Village côtier en [-46,18]. Chaque combat et chaque quête restent validés séparément par personnage.",
       "actions": [
+        {
+          "kind": "travel",
+          "text": "Après l'embarquement, les trois combats de traversée se déroulent pendant le passage vers l'île en [19,42].",
+          "coordinates": [
+            19,
+            42
+          ]
+        },
         {
           "kind": "fight",
           "text": "Premier combat de traversée : vaincre le Boomba rachitique. Combat en groupe possible ; il frappe à distance et peut devenir invisible."
@@ -145,7 +161,7 @@
         },
         {
           "kind": "interact",
-          "text": "Optionnel : cliquer sur le parasol en paille en [-43,-1] pour lancer et terminer « Le secret des Flaqueux », qui récompense un parchemin de prospection."
+          "text": "Optionnel : cliquer sur le parasol en paille en [-43,-1] pour lancer et terminer « Le secret des Flaqueux » ; récompense : 1 Parchemin des Flaqueux (+20 prospection pendant 20 combats)."
         },
         {
           "kind": "prepare",
@@ -176,7 +192,7 @@
     {
       "source_step_number": 5,
       "title": "Organiser les deux quêtes de transport",
-      "instructions": "Depuis le zaap du Village côtier [-46,18], préparer les deux quêtes de « Haute voltige » : une Dragodinde Rousse et une Dragodinde Amande à remettre à Flip Flap, puis des Ailes en bois améliorées et un Casque amélioré pour Spitte Fayeur. Les dragodindes requises sont des montures obtenues à l'HDV ou par capture, **pas** des parchemins de caractéristiques.",
+      "instructions": "Depuis le zaap du Village côtier [-46,18], préparer les deux quêtes de « Haute voltige » : une Dragodinde Rousse et une Dragodinde Amande à remettre à Flip Flap, puis des Ailes en bois améliorées et un Casque amélioré pour Spitte Fayeur. Les dragodindes requises sont des montures obtenues à l'HDV ou par capture, **pas** des parchemins de caractéristiques. Vérifier auprès de Flip Flap le format exact attendu dans la version du jeu : ne pas remplacer une monture par un parchemin de caractéristiques.",
       "actions": [
         {
           "kind": "prepare",
@@ -202,12 +218,20 @@
       "instructions": "En [-56,22], demander « Un autre moyen de transport » à Flip Flap puis lui remettre une Dragodinde Rousse et une Dragodinde Amande. Cette validation déverrouille le scaéroplane. Demander ensuite explicitement le scaéroport de l'Arbre Hakam pour atteindre la Canopée.",
       "actions": [
         {
+          "kind": "travel",
+          "text": "Rejoindre Flip Flap en [-56,22], dans les Plaines herbeuses.",
+          "coordinates": [
+            -56,
+            22
+          ]
+        },
+        {
           "kind": "talk",
           "text": "Parler à Flip Flap en [-56,22] et accepter « Un autre moyen de transport »."
         },
         {
           "kind": "deliver",
-          "text": "Remettre 1 Dragodinde Rousse et 1 Dragodinde Amande à Flip Flap pour terminer la quête."
+          "text": "Remettre 1 Dragodinde Rousse et 1 Dragodinde Amande à Flip Flap, dans le format du journal de quête pour la version du jeu ; ne pas remplacer par des parchemins de caractéristiques."
         },
         {
           "kind": "talk",
