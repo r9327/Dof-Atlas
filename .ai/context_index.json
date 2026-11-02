@@ -127,8 +127,8 @@
     },
     "data": {
       "mode": "040000",
-      "sha": "fff9286eb18111130782a96c89b8d91ce4a25811",
-      "type": "tree"
+      "type": "tree",
+      "sha": "7cda2f5c6f3b0dbb2847d2de71850518bdc7079c"
     },
     "docs": {
       "mode": "040000",
@@ -167,8 +167,8 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "d7121b21dc5953ca0cf027ee956e03310890330d",
-      "type": "tree"
+      "type": "tree",
+      "sha": "98888ecd0aa561dd3f93266e2e01caeb6ff16fc4"
     },
     "tools": {
       "mode": "040000",
