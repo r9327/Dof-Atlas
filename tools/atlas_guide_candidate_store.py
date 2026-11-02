@@ -90,6 +90,30 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                 not isinstance(item, dict) for item in actions
             ):
                 raise GuideRouteContractError("invalid original source actions")
+            sections = step.get("manual_sections")
+            if not isinstance(sections, dict):
+                raise GuideRouteContractError("missing projected UI sections")
+            order = ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
+            if set(sections) - set(order):
+                raise GuideRouteContractError("unexpected projected UI section")
+            presented: list[dict[str, Any]] = []
+            rendered: list[dict[str, Any]] = []
+            for section in order:
+                rows = sections.get(section, [])
+                if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                    raise GuideRouteContractError("invalid projected UI rows")
+                presented.extend(rows)
+                if section != "prepare":
+                    rendered.extend(rows)
+            if len(presented) != len(actions):
+                raise GuideRouteContractError("projected UI action coverage mismatch")
+            if step.get("manual_lines") != rendered:
+                raise GuideRouteContractError("rendered UI lines differ from projected sections")
+            for row, action in zip(presented, actions):
+                if (row.get("source_action_id") != str(action.get("action_id"))
+                        or row.get("source_action") != action
+                        or row.get("text") != action.get("text")):
+                    raise GuideRouteContractError("projected UI action altered or reordered")
         count += len(steps)
     for label in ("guide_count", "step_count", "action_count",
                   "expected_guide_count", "expected_step_count"):
