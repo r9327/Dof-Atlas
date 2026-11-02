@@ -59,23 +59,41 @@
       "actions": [
         {
           "kind": "prepare",
-          "text": "2 Miséricordes du Chafer d'Élite (drop sur Chafer d'Élite)."
+          "text": "2 Miséricordes du Chafer d'Élite (drop sur Chafer d'Élite).",
+          "copy_values": [
+            "Miséricorde du Chafer d'Élite"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "1 Gros Boulet (drop sur Raul Mops quand la quête est active)."
+          "text": "1 Gros Boulet (drop sur Raul Mops quand la quête est active).",
+          "copy_values": [
+            "Gros Boulet"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "1 Oreille de Foufayteur (drop sur Foufayteur)."
+          "text": "1 Oreille de Foufayteur (drop sur Foufayteur).",
+          "copy_values": [
+            "Oreille de Foufayteur"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "1 Huile de Sésame : la route source GP6 mentionne 3 Graines de Sésame (fabrication Paysan) ; quantité actuelle à vérifier sous DOFUS Unity avant certification."
+          "text": "1 Huile de Sésame : la route source GP6 mentionne 3 Graines de Sésame (fabrication Paysan) ; quantité actuelle à vérifier sous DOFUS Unity avant certification.",
+          "copy_values": [
+            "Huile de Sésame"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "Facultatif en avance : 1 Tronc de Kokoko (Kokoko), 1 Tranche de Nodkoko (Nodkoko), 1 Kokopaille (famille Kokoko), 1 Coffret maudit du Flib (Coffre Maudit du Flib)."
+          "text": "Facultatif en avance : 1 Tronc de Kokoko (Kokoko), 1 Tranche de Nodkoko (Nodkoko), 1 Kokopaille (famille Kokoko), 1 Coffret maudit du Flib (Coffre Maudit du Flib).",
+          "copy_values": [
+            "Tronc de Kokoko",
+            "Tranche de Nodkoko",
+            "Kokopaille",
+            "Coffret maudit du Flib"
+          ]
         },
         {
           "kind": "travel",
@@ -106,7 +124,10 @@
         },
         {
           "kind": "talk",
-          "text": "Parler au Capitaine Kradoc en [15,28] et lancer « Le nouveau monde »."
+          "text": "Parler au Capitaine Kradoc en [15,28] et lancer « Le nouveau monde ».",
+          "copy_values": [
+            "Capitaine Kradoc"
+          ]
         },
         {
           "kind": "prepare",
@@ -149,7 +170,10 @@
         },
         {
           "kind": "talk",
-          "text": "Après les trois combats, parler au Capitaine Kradoc sur l'île échouée en [19,42] et accepter « L'île des naufragés »."
+          "text": "Après les trois combats, parler au Capitaine Kradoc sur l'île échouée en [19,42] et accepter « L'île des naufragés ».",
+          "copy_values": [
+            "Capitaine Kradoc"
+          ]
         },
         {
           "kind": "travel",
@@ -196,11 +220,19 @@
       "actions": [
         {
           "kind": "prepare",
-          "text": "Prévoir 1 Dragodinde Rousse et 1 Dragodinde Amande (montures, à acheter ou capturer ; pas des parchemins de caractéristiques)."
+          "text": "Prévoir 1 Dragodinde Rousse et 1 Dragodinde Amande (montures, à acheter ou capturer ; pas des parchemins de caractéristiques).",
+          "copy_values": [
+            "Dragodinde Rousse",
+            "Dragodinde Amande"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "Prévoir 1 Ailes en bois améliorées et 1 Casque amélioré, fabriquables par un Tailleur niveau 30."
+          "text": "Prévoir 1 Ailes en bois améliorées et 1 Casque amélioré, fabriquables par un Tailleur niveau 30.",
+          "copy_values": [
+            "Ailes en bois améliorées",
+            "Casque amélioré"
+          ]
         },
         {
           "kind": "travel",
@@ -227,11 +259,18 @@
         },
         {
           "kind": "talk",
-          "text": "Parler à Flip Flap en [-56,22] et accepter « Un autre moyen de transport »."
+          "text": "Parler à Flip Flap en [-56,22] et accepter « Un autre moyen de transport ».",
+          "copy_values": [
+            "Flip Flap"
+          ]
         },
         {
           "kind": "deliver",
-          "text": "Remettre 1 Dragodinde Rousse et 1 Dragodinde Amande à Flip Flap, dans le format du journal de quête pour la version du jeu ; ne pas remplacer par des parchemins de caractéristiques."
+          "text": "Remettre 1 Dragodinde Rousse et 1 Dragodinde Amande à Flip Flap, dans le format du journal de quête pour la version du jeu ; ne pas remplacer par des parchemins de caractéristiques.",
+          "copy_values": [
+            "Dragodinde Rousse",
+            "Dragodinde Amande"
+          ]
         },
         {
           "kind": "talk",
@@ -258,11 +297,18 @@
         },
         {
           "kind": "talk",
-          "text": "Parler à Spitte Fayeur et lancer « Scaéroplane à très grande vitesse »."
+          "text": "Parler à Spitte Fayeur et lancer « Scaéroplane à très grande vitesse ».",
+          "copy_values": [
+            "Spitte Fayeur"
+          ]
         },
         {
           "kind": "deliver",
-          "text": "Remettre 1 Ailes en bois améliorées et 1 Casque amélioré à Spitte Fayeur pour terminer la quête."
+          "text": "Remettre 1 Ailes en bois améliorées et 1 Casque amélioré à Spitte Fayeur pour terminer la quête.",
+          "copy_values": [
+            "Ailes en bois améliorées",
+            "Casque amélioré"
+          ]
         },
         {
           "kind": "information",
