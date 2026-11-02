@@ -96,6 +96,14 @@ NAMED_KEYS = {
 for index in range(1, 25):
     NAMED_KEYS[f"F{index}"] = 0x6F + index
 
+# Only standalone short taps, never modifiers, system chords or extended
+# keys with persistent press/release semantics. Shared by the native hook
+# and the sender so callers cannot bypass the capture safety policy.
+MIRROR_DISCRETE_KEYS = frozenset(
+    {*range(0x30, 0x5B), *range(0x70, 0x88),
+     0x08, 0x0D, 0x1B, 0x20, 0x25, 0x26, 0x27, 0x28}
+)
+
 
 @dataclass(frozen=True)
 class HotkeySpec:
@@ -496,11 +504,7 @@ class HotkeyRegistry:
                     modifier_down = bool(
                         self.input_state.snapshot().intersection(MODIFIER_VKS)
                     )
-                    permitted = (
-                        (0x30 <= vk_code <= 0x5A and vk_code not in MODIFIER_VKS)
-                        or (0x70 <= vk_code <= 0x87)
-                        or vk_code in (0x08, 0x0D, 0x1B, 0x20, 0x25, 0x26, 0x27, 0x28)
-                    )
+                    permitted = vk_code in MIRROR_DISCRETE_KEYS
                     if (pressed and permitted and not reserved and not modifier_down
                             and self.physical_key_callback is not None):
                         if self.physical_key_callback(vk_code, True):

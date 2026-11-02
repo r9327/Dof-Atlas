@@ -6,6 +6,7 @@ physical event from the explicitly starred foreground DOFUS client.
 """
 from __future__ import annotations
 
+import math
 from time import perf_counter
 from typing import TYPE_CHECKING
 
@@ -25,7 +26,9 @@ class MirrorInputMacro:
         self.runtime = runtime
 
     def run_key(self, vk_code: int, source: int, handles: tuple[int, ...]) -> bool:
-        if type(vk_code) is not int or not (1 <= vk_code <= 254):
+        from app.input.hotkeys import MIRROR_DISCRETE_KEYS
+
+        if type(vk_code) is not int or vk_code not in MIRROR_DISCRETE_KEYS:
             return False
         return self.runtime._spawn_macro(
             "Miroir clavier", lambda: self._run("key", vk_code, source, handles)
@@ -36,7 +39,10 @@ class MirrorInputMacro:
         source: int, handles: tuple[int, ...],
     ) -> bool:
         if (type(delta) is not int or delta == 0 or abs(delta) > 32767
-                or not isinstance(horizontal, bool)):
+                or type(horizontal) is not bool
+                or any(type(v) not in (float, int) or not math.isfinite(v)
+                       or not 0.0 <= v <= 1.0
+                       for v in (x_ratio, y_ratio))):
             return False
         return self.runtime._spawn_macro(
             "Miroir molette", lambda: self._run(

@@ -512,5 +512,20 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_input_sender_rejects_system_keys_and_invalid_wheel_coords(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        mirror = MirrorInputMacro(runtime)
+        for vk in (0x5B, 0x5C, 0xA2, 0xA4, 0x10, 0, 255):
+            with self.subTest(vk=vk):
+                self.assertFalse(mirror.run_key(vk, 101, (101, 202)))
+        for x, y in ((float("nan"), 0.5), (float("inf"), 0.5),
+                     (-0.1, 0.5), (0.5, 1.1), ("0.4", 0.5)):
+            with self.subTest(x=x, y=y):
+                self.assertFalse(mirror.run_wheel(120, False, x, y, 101, (101, 202)))
+        runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
