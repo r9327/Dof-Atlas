@@ -16,6 +16,22 @@ py -3.13 -m tools.ai_context status
 
 Ensuite lire le code réellement concerné, rechercher ses appels/consommateurs et identifier la source de vérité avant de modifier quoi que ce soit.
 
+Ce préflight d'identité Git **ne remplace pas** le protocole de travail Doctor
+décrit dans `AI_ENTRYPOINT.md`. Pour toute modification non triviale,
+exécuter dans cet ordre :
+
+```powershell
+py -3.13 -X utf8 -m tools.atlas_doctor agent plan <paths> --base-ref HEAD --json
+# développement borné par le contrat Doctor
+py -3.13 -X utf8 -m tools.atlas_doctor agent check <paths> --base-ref HEAD --run-tests --json
+py -3.13 -X utf8 -m tools.atlas_doctor agent validate <paths> --base-ref HEAD --json
+```
+
+Le `oss_selection` de Doctor recommande seulement les outils ; les
+`gaps` et exécutions réelles figurent dans `oss_advisory.execution_summary`.
+Le catalogue `tools.tool_catalog` ne suffit pas à prouver une exécution.
+Ne pas annoncer de réussite native Windows/DOFUS sans constat local.
+
 ## Analyse structurelle avec Graphify
 
 Pour tout refactor non trivial, suppression ou déplacement de code, analyse de dépendances/cycles, recherche de consommateurs, nettoyage d'architecture ou estimation de blast radius, Graphify fait partie du préflight obligatoire.

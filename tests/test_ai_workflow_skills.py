@@ -48,6 +48,40 @@ class AiWorkflowSkillsTests(unittest.TestCase):
         self.assertIn("PHASE_CERTIFICATION.md", skill("evidence-driven-validation"))
         self.assertIn("Draft", skill("evidence-driven-validation"))
 
+    def test_ai_provider_entrypoints_require_full_doctor_loop(self) -> None:
+        """Catch instruction drift without adding another CI gate or tool registry."""
+        paths = (
+            "AI_ENTRYPOINT.md",
+            "CLAUDE.md",
+            ".github/copilot-instructions.md",
+            "AI_CONTEXT.md",
+            "tools/skills/dofus-atlas-tools/SKILL.md",
+        )
+        for relative in paths:
+            with self.subTest(entrypoint=relative):
+                text = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn("tools.atlas_doctor agent plan", text)
+                self.assertIn("tools.atlas_doctor agent check", text)
+                self.assertIn("--run-tests", text)
+                self.assertIn("tools.atlas_doctor agent validate", text)
+                self.assertIn("oss_selection", text)
+                if relative != "AI_ENTRYPOINT.md":
+                    self.assertIn("AI_ENTRYPOINT.md", text)
+
+    def test_ai_evidence_states_are_not_confused_with_certification(self) -> None:
+        entry = (ROOT / "AI_ENTRYPOINT.md").read_text(encoding="utf-8")
+        skill = (ROOT / "tools/skills/dofus-atlas-tools/SKILL.md").read_text(encoding="utf-8")
+        copilot = (ROOT / ".github/copilot-instructions.md").read_text(encoding="utf-8")
+        validation = (ROOT / ".agents/skills/evidence-driven-validation/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("oss_advisory.execution_summary", entry)
+        self.assertIn("oss_advisory.execution_summary", skill)
+        self.assertIn("oss_advisory.execution_summary", copilot)
+        self.assertIn("oss_advisory.execution_summary.gaps", validation)
+        self.assertIn("doctor oss", entry)
+        self.assertIn("--verify-live", entry)
+        self.assertIn("PHASE_CERTIFICATION.md", skill)
+        self.assertIn("Phase Certification", copilot)
+
     def test_canonical_routing_and_ci_are_wired(self) -> None:
         self.assertTrue((ROOT / "tools/skills/dofus-atlas-tools/SKILL.md").is_file())
         self.assertTrue((ROOT / ".agents/skills/find-docs/SKILL.md").is_file())

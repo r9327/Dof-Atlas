@@ -12,7 +12,7 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   Le routeur lit les outils `automation_ready` du catalogue canonique
   pour *recommander*, sans jamais les invoquer à leur place.
 - **Ruff (ATOSS-20)** : diagnostic Python sélectionné sur périmètre, exécuté si présent lors des checks autorisés,
-  **à la demande uniquement**, sur au plus 16 fichiers Python explicites.
+  **automatiquement pendant `agent check --run-tests` (ou sur `--run-oss` explicite)**, sur au plus 16 fichiers Python explicites.
   Le lancement utilise le Python actif, sans install automatique,
   sans exécution d'un chemin PATH, sans cache, sans correctif et avec timeout.
   Les règles sont isolées de la configuration locale. La version observée

@@ -21,6 +21,28 @@ third-party diagnostics without skipping required Doctor tests. The
 `oss_selection` field in every Agent action describes suggestions but does
 not authorize any other external executable. See `docs/doctor-oss-routing.md`.
 
+## Specialist tools and truthful evidence
+
+Before choosing an auxiliary executable, consult the repository-local
+`tools/skills/dofus-atlas-tools/SKILL.md` and the **derived**
+`py -3.13 -m tools.tool_catalog --preferred-only --safe-only --ready-only --json`
+view. Never create a second tool list, invoke an unreviewed binary or
+auto-install candidates from the 29 + 5 OSS study.
+
+Doctor's `oss_selection` is a recommendation, **not** an execution log.
+`agent check --run-tests` invokes only the two approved, locally available
+and in-scope scanners (Ruff for Python, zizmor offline for GitHub workflows).
+Read `oss_advisory.execution_summary` for `expected_tools`,
+`confirmed_executions`, and `gaps`. Missing/timeout/error results and
+truncated file coverage must remain visible; no partial advisory makes the
+canonical Doctor result PASS.
+
+Actual native qualification of both scanners is an **explicit** separate
+command: `doctor oss <python.py> <.github/workflows/file.yml> --verify-live --json`.
+`LIVE_PASS` on a runner does not attest the user's Windows machine;
+see `docs/doctor-oss-routing.md` and issue #346. All other OSS projects
+remain adoption candidates, not automatically executable adapters.
+
 Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.

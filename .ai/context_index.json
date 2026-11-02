@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
+      "sha": "c2eab167111a2b8ab57306a08e4ad95cdf7755da",
       "type": "tree"
     },
     ".codex": {
@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "501d27297a23c25bf09b1888ddbde268ed3f080f",
+      "sha": "f6f6d4a5198fa7c706ae597d11b9437eb43fcdba",
       "type": "tree"
     },
     ".gitignore": {
@@ -47,17 +47,17 @@
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "sha": "2fc248717448a1beb8f30345c5c49d78169393c6",
       "type": "blob"
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "3aaa63f0c3ae90fbeb478cc7bf75c5ee76710c4e",
+      "sha": "5d9903f0af47da189af688a6842148660ece75f1",
       "type": "blob"
     },
     "CLAUDE.md": {
       "mode": "100644",
-      "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96",
+      "sha": "1b857138bbc831ff208d85f7fc79429fa46c64a6",
       "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "e5331881b497bb54b8a6cfff45ce4bfebe39640b",
+      "sha": "2f2c4b65ab7896ef49cda5d99a6653871e030b91",
       "type": "tree"
     },
     "launch.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "9a5fdf6368c9f5554e0c22b4ca3113169d8c8e0d",
+      "sha": "c138ca07d9a51255369c345da4453fd93f846111",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "611b80b2b771b79537a8fe6211ad97fa1f848a20",
+      "sha": "dd9585bcde0c79b2bf491a4ec03001c154e6d5ff",
       "type": "tree"
     }
   },

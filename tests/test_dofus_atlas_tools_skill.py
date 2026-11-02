@@ -24,6 +24,22 @@ class DofusAtlasToolsSkillTests(unittest.TestCase):
         self.assertIn("GRAPHIFY.md", text)
         self.assertIn("PHASE_CERTIFICATION.md", text)
 
+    def test_skill_requires_doctor_execution_evidence_not_just_selection(self) -> None:
+        text = SKILL.read_text(encoding="utf-8")
+        for token in (
+            "tools.atlas_doctor agent plan",
+            "tools.atlas_doctor agent check",
+            "--run-tests",
+            "tools.atlas_doctor agent validate",
+            "oss_selection",
+            "oss_advisory.execution_summary",
+            "NOT_AVAILABLE",
+            "--verify-live",
+            "29 ATOSS + 5 AT-SUP",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
+
     def test_repository_file_references_in_skill_exist(self) -> None:
         text = SKILL.read_text(encoding="utf-8")
         references = set(

@@ -20,7 +20,27 @@ py -3.13 -m tools.tool_catalog --json
 ```
 
 For non-trivial coding work, use the stable Doctor agent protocol before broad
-tool discovery: `agent plan`, then `agent check`, then `agent validate`.
+tool discovery, with explicit scope and test execution:
+
+```powershell
+py -3.13 -X utf8 -m tools.atlas_doctor agent plan <paths> --base-ref HEAD --json
+# modify only the planned scope
+py -3.13 -X utf8 -m tools.atlas_doctor agent check <paths> --base-ref HEAD --run-tests --json
+py -3.13 -X utf8 -m tools.atlas_doctor agent validate <paths> --base-ref HEAD --json
+```
+
+Use `oss_selection` only to **recommend** OSS candidates; it is not
+installation or execution evidence. During `check --run-tests`, Doctor
+automatically invokes only approved in-scope Ruff/Python and offline
+zizmor/workflow scanners if available. Inspect
+`oss_advisory.execution_summary.expected_tools`,
+`confirmed_executions` and `gaps`; `NOT_AVAILABLE`/`NOT_RUN` and
+`INCOMPLETE` are never PASS. For a real local two-scanner attestation
+use `doctor oss <python.py> <.github/workflows/file.yml> --verify-live --json`
+per `docs/doctor-oss-routing.md`, explicitly and only when needed.
+A hosted CI result never certifies installation on the user's PC.
+The 29 ATOSS + 5 AT-SUP candidates are not all installed or executable.
+
 
 For automatic agent execution, prefer canonical entry points that are both safe and automation-ready:
 
