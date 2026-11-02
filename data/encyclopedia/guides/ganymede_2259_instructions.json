@@ -1,0 +1,655 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2259,
+  "source_url": "https://ganymede-app.com/guides/2259",
+  "expected_source_step_count": 25,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independent_quest_facts_cross_checked_against_step_coordinates_not_live_play_or_editorial_parity_certified",
+  "fact_sources": [
+    "https://www.dofuserie.com/succes/vampyre-vous-avez-dit-vampyre/",
+    "https://www.dofuserie.com/quetes/les-goules-a-zero/",
+    "https://www.dofuserie.com/quetes/le-trou-du-culte/",
+    "https://www.dofuserie.com/quetes/entretien-avec-une-vampyre/",
+    "https://www.dofuspourlesnoobs.com/vampyre-vous-avez-dit-vampyre.html"
+  ],
+  "completion_note": "25 étapes originales pour les trois quêtes de l'histoire des Katrepat. Vérifier indépendamment la parité éditoriale étape par étape avec le guide source et en jeu.",
+  "steps": [
+    {
+      "title": "Préparer les trois quêtes du bourg des Katrepat",
+      "instructions": "Le parcours « Sidimote 5 » regroupe « Les goules à zéro », « Le trou du culte » et « Entretien avec une Vampyre ». Prépare des combats contre les Goules des Terres Désacrées, un affrontement contre un groupe d'adorateurs, le donjon Manoir des Katrepat et le Comte d'Ourlette accompagné de ses goules. Le niveau 180 est nécessaire à la seconde quête ; le niveau 200 est conseillé pour tout enchaîner.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier l'accès aux Terres Désacrées et se préparer à combattre Kérigoule, Gouligane, Goultime et Pipisteuse."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir l'accès au Manoir des Katrepat ; Anerice la Shushess doit être vaincue dans la dernière quête."
+        },
+        {
+          "kind": "information",
+          "text": "La chasse est indépendante des dialogues d'infiltration : conserver le suivi des quatre compteurs de monstres."
+        }
+      ],
+      "source_step_number": 1
+    },
+    {
+      "title": "Rejoindre le camp des chasseurs de goules",
+      "instructions": "Rends-toi dans les Terres Désacrées en [-16,32]. Vanelle Sings organise la lutte contre la secte, tandis que le Chasseur de goules propose une mission d'élimination sur la carte voisine. Commence par prendre connaissance de la situation générale afin de préparer tes trajets.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le camp de Vanelle Sings dans les Terres Désacrées.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Vanelle Sings au sujet des goules et du culte."
+        }
+      ],
+      "source_step_number": 2
+    },
+    {
+      "title": "Accepter Les goules à zéro",
+      "instructions": "Le Chasseur de goules se trouve en [-16,33]. Accepte « Les goules à zéro » : il faut éliminer dix exemplaires de chacune des quatre espèces dans la région. La quête peut se faire au fil des déplacements de l'enquête, sans attendre un retour entre chaque groupe.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Chasseur de goules une carte au sud.",
+          "coordinates": [
+            -16,
+            33
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Les goules à zéro »."
+        },
+        {
+          "kind": "fight",
+          "text": "Éliminer 10 Kérigoules, 10 Gouliganes, 10 Goultimes et 10 Pipisteuses, en plusieurs combats de zone si nécessaire."
+        }
+      ],
+      "source_step_number": 3
+    },
+    {
+      "title": "Clore la chasse et ouvrir Le trou du culte",
+      "instructions": "Lorsque les quatre compteurs atteignent dix, retourne au Chasseur de goules pour faire valider sa mission. Passe ensuite voir Vanelle Sings en [-16,32], accepte « Le trou du culte », puis pars examiner les six traces d'un rassemblement clandestin. Le premier point de l'enquête se trouve aux alentours du cercle de pierres.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Rendre compte au Chasseur de goules une fois les 40 monstres éliminés.",
+          "coordinates": [
+            -16,
+            33
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Le trou du culte » auprès de Vanelle Sings en revenant au camp."
+        },
+        {
+          "kind": "travel",
+          "text": "Gagner les abords du cercle de pierres pour commencer les fouilles.",
+          "coordinates": [
+            -13,
+            27
+          ]
+        }
+      ],
+      "source_step_number": 4
+    },
+    {
+      "title": "Examiner l'autel du cercle de pierres",
+      "instructions": "Sur la carte [-13,27], repère l'autel et examine-le. Il contient une trace des réunions du groupe de goules ; conserve la page souillée obtenue comme preuve pour Vanelle Sings. Poursuis ensuite vers le vieux cimetière.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Fouiller l'autel du cercle de pierres et récupérer la page de quête.",
+          "coordinates": [
+            -13,
+            27
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le vieux cimetière des Terres Désacrées.",
+          "coordinates": [
+            -9,
+            23
+          ]
+        }
+      ],
+      "source_step_number": 5
+    },
+    {
+      "title": "Fouiller la tombe du vieux cimetière",
+      "instructions": "Dans le vieux cimetière en [-9,23], interagis avec la tombe de la quête pour récupérer un autre fragment de texte. Vérifie sa présence dans les objets de quête, puis pars vers le chantier de l'ancienne scierie.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Examiner la tombe indiquée au vieux cimetière.",
+          "coordinates": [
+            -9,
+            23
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler l'obtention du fragment de page marqué par des dents."
+        },
+        {
+          "kind": "travel",
+          "text": "Gagner le chantier de la scierie abandonnée.",
+          "coordinates": [
+            -12,
+            24
+          ]
+        }
+      ],
+      "source_step_number": 6
+    },
+    {
+      "title": "Chercher les preuves de la scierie",
+      "instructions": "Sur le chantier en [-12,24], examine les planches pour retrouver une page marquée par la sciure. Cette pièce s'ajoute aux documents ramassés ; évite de la confondre avec un objet de récolte ordinaire.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Fouiller les planches du chantier pour obtenir un document lié au culte.",
+          "coordinates": [
+            -12,
+            24
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Continuer vers les terres voisines de la tour sombre.",
+          "coordinates": [
+            -15,
+            23
+          ]
+        }
+      ],
+      "source_step_number": 7
+    },
+    {
+      "title": "Examiner les ossements de la tour sombre",
+      "instructions": "Aux abords de la tour sombre en [-15,23], inspecte les ossements laissés sur la carte. Ils constituent un indice supplémentaire sur les réunions du culte. Enchaîne ensuite sur le site du feu de camp.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Inspecter les ossements dans les environs de la tour sombre.",
+          "coordinates": [
+            -15,
+            23
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les abords de la tour décrépite.",
+          "coordinates": [
+            -19,
+            25
+          ]
+        }
+      ],
+      "source_step_number": 8
+    },
+    {
+      "title": "Retrouver les débris du feu de camp",
+      "instructions": "Sur la carte [-19,25], fouille le feu de camp abandonné. Tu dois récupérer un document brûlé ou un élément de la cérémonie. Le dernier lieu de fouille se trouve près des ruines de la tour de garde.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Examiner les cendres du feu de camp et conserver la page endommagée.",
+          "coordinates": [
+            -19,
+            25
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les ruines de la tour de garde.",
+          "coordinates": [
+            -17,
+            34
+          ]
+        }
+      ],
+      "source_step_number": 9
+    },
+    {
+      "title": "Inspecter le siège de la tour de garde",
+      "instructions": "Dans les ruines de la tour de garde [-17,34], examine le siège suspect. Après cette dernière recherche, contrôle dans les objets de quête que les documents des six lieux ont été collectés avant de retourner au camp.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le siège des ruines pour rechercher les ultimes indices.",
+          "coordinates": [
+            -17,
+            34
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler les six points d'enquête : autel, tombe, planches, ossements, feu de camp et siège."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir auprès de Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        }
+      ],
+      "source_step_number": 10
+    },
+    {
+      "title": "Montrer les preuves à Vanelle Sings",
+      "instructions": "Au camp en [-16,32], donne à Vanelle Sings les fragments retrouvés. Elle comprend où le groupe prépare ses cérémonies et t'envoie vers une crevasse en [-19,26]. Prépare un combat pouvant être effectué en groupe avant de descendre.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Montrer les pages et indices de l'enquête à Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir un combat contre les adorateurs de goules au fond de la crevasse."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le bord de la crevasse qui mène au repaire du culte.",
+          "coordinates": [
+            -19,
+            26
+          ]
+        }
+      ],
+      "source_step_number": 11
+    },
+    {
+      "title": "Descendre au repaire du culte",
+      "instructions": "En [-19,26], le passage du repaire est dissimulé près d'un piquet de bois. Interagis avec lui pour descendre. Parle à l'un des Adorateurs de goules présents, puis remporte le combat ; l'un d'eux devient ton prisonnier suiveur et tu récupères une nouvelle page.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Actionner le piquet en bois près du bord de la crevasse pour entrer dans le repaire.",
+          "coordinates": [
+            -19,
+            26
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à un Adorateur de goules pour engager le combat."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre les adorateurs de goules, puis récupérer la preuve supplémentaire."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au prisonnier qui devient personnage suiveur."
+        },
+        {
+          "kind": "travel",
+          "text": "Ramener le prisonnier vers le camp de Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        }
+      ],
+      "source_step_number": 12
+    },
+    {
+      "title": "Livrer le prisonnier et commencer l'infiltration",
+      "instructions": "Remets le prisonnier à Vanelle Sings. Il dévoile le nom de son supérieur, le Comte d'Ourlette. Cette remise clôt « Le trou du culte » ; en poursuivant le dialogue, accepte « Entretien avec une Vampyre ». La première enquête consiste à identifier un espion brâkmarien parmi les habitants du bourg des Katrepat.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Livrer l'Adorateur de goules capturé à Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Entretien avec une Vampyre » après le compte-rendu."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Prétendant vampire du bourg.",
+          "coordinates": [
+            -14,
+            27
+          ]
+        }
+      ],
+      "source_step_number": 13
+    },
+    {
+      "title": "Questionner le Prétendant vampire",
+      "instructions": "Commence l'enquête des quatre habitants par le Prétendant vampire en [-14,27]. Demande ce qu'il sait du Comte et des visiteurs suspects. Poursuis ensuite vers Hellébore Niolle.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Interroger le Prétendant vampire sur les activités du bourg.",
+          "coordinates": [
+            -14,
+            27
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Aller voir Hellébore Niolle.",
+          "coordinates": [
+            -15,
+            27
+          ]
+        }
+      ],
+      "source_step_number": 14
+    },
+    {
+      "title": "Interroger Hellébore Niolle",
+      "instructions": "En [-15,27], parle à Hellébore Niolle. Son témoignage complète les informations sur le Brâkmarien présent dans le bourg. L'objectif exige plusieurs conversations distinctes ; ne saute pas les habitants suivants.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Poser à Hellébore Niolle les questions de l'enquête.",
+          "coordinates": [
+            -15,
+            27
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Habitant du bourg des Katrepat.",
+          "coordinates": [
+            -17,
+            28
+          ]
+        }
+      ],
+      "source_step_number": 15
+    },
+    {
+      "title": "Interroger l'Habitant du bourg",
+      "instructions": "Questionne l'Habitant du bourg des Katrepat en [-17,28]. Une fois le dialogue de quête terminé, poursuis vers l'Habitante qui habite plus au nord.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Obtenir le témoignage de l'Habitant du bourg.",
+          "coordinates": [
+            -17,
+            28
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Habitante du bourg des Katrepat.",
+          "coordinates": [
+            -17,
+            25
+          ]
+        }
+      ],
+      "source_step_number": 16
+    },
+    {
+      "title": "Terminer les témoignages auprès de l'Habitante",
+      "instructions": "À [-17,25], termine la quatrième conversation avec l'Habitante du bourg. Tu disposes alors de suffisamment d'informations pour démasquer le faux vampire, en [-17,26].",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Questionner l'Habitante du bourg pour obtenir le quatrième témoignage.",
+          "coordinates": [
+            -17,
+            25
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Aller retrouver le Prétendu vampire, suspect de l'enquête.",
+          "coordinates": [
+            -17,
+            26
+          ]
+        }
+      ],
+      "source_step_number": 17
+    },
+    {
+      "title": "Démasquer le Brâkmarien et recevoir la rose de sang",
+      "instructions": "Le Prétendu vampire en [-17,26] est le Brâkmarien que tu recherches. Après confrontation, il t'apprend qu'Anerice la Shushess détient des renseignements sur le Comte. Récupère la rose de sang qu'il te confie : elle sera nécessaire pour obtenir les confidences d'Anerice après le combat du Manoir.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Confronter le Prétendu vampire à ses contradictions et révéler sa mission.",
+          "coordinates": [
+            -17,
+            26
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier la rose de sang reçue pour Anerice dans l'inventaire de quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Gagner l'entrée du Manoir des Katrepat.",
+          "coordinates": [
+            -14,
+            25
+          ]
+        }
+      ],
+      "source_step_number": 18
+    },
+    {
+      "title": "Vaincre Anerice et lui remettre la rose",
+      "instructions": "Entre au Manoir des Katrepat en [-14,25] et combats jusqu'à Anerice la Shushess. Après la victoire, ne quitte pas aussitôt la salle de sortie : parle-lui et offre la rose de sang obtenue chez le Brâkmarien. Elle indique que le Comte d'Ourlette a été envoyé chercher un prince vampire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le Manoir des Katrepat.",
+          "coordinates": [
+            -14,
+            25
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Anerice la Shushess, boss du donjon."
+        },
+        {
+          "kind": "talk",
+          "text": "Dans la salle de sortie, questionner Anerice et lui présenter la rose de sang."
+        },
+        {
+          "kind": "travel",
+          "text": "Partir chercher Hinu la Shibak au village.",
+          "coordinates": [
+            -13,
+            22
+          ]
+        }
+      ],
+      "source_step_number": 19
+    },
+    {
+      "title": "Demander de l'ail à Hinu la Shibak",
+      "instructions": "À la carte [-13,22], monte les escaliers pour rejoindre Hinu la Shibak. Elle confie une Gousse d'ail servant à repérer les vampires. Conserve cet objet jusqu'au sanctuaire ancien indiqué par la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Hinu la Shibak au sommet de l'escalier.",
+          "coordinates": [
+            -13,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui demander une aide pour trouver le Vieux vampire."
+        },
+        {
+          "kind": "prepare",
+          "text": "Récupérer la Gousse d'ail reçue dans l'inventaire de quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée du sanctuaire.",
+          "coordinates": [
+            -13,
+            25
+          ]
+        }
+      ],
+      "source_step_number": 20
+    },
+    {
+      "title": "Rencontrer le Vieux vampire au sanctuaire",
+      "instructions": "En [-13,25], cherche le squelette qui dissimule l'entrée du sanctuaire et active-le. Parle au Vieux vampire à l'intérieur : il révèle que le Comte d'Ourlette a été envoyé dans une église pour récupérer une relique.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Examiner le squelette de la carte pour pénétrer dans le sanctuaire.",
+          "coordinates": [
+            -13,
+            25
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au Vieux vampire pour localiser le Comte."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la vieille église des Terres Désacrées.",
+          "coordinates": [
+            -9,
+            24
+          ]
+        }
+      ],
+      "source_step_number": 21
+    },
+    {
+      "title": "Faire sortir le Comte d'Ourlette de l'église",
+      "instructions": "À [-9,24], entre dans l'église et trouve le Comte d'Ourlette. Le dialogue le pousse à fuir sur la carte extérieure. Sors immédiatement et prépare-toi à l'affronter avec ses quatre goules.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la vieille église des Terres Désacrées.",
+          "coordinates": [
+            -9,
+            24
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au Comte d'Ourlette à l'intérieur pour le forcer à se dévoiler."
+        },
+        {
+          "kind": "prepare",
+          "text": "Sortir de l'église et prévoir un combat contre le Comte et quatre goules."
+        }
+      ],
+      "source_step_number": 22
+    },
+    {
+      "title": "Capturer le Comte et l'escorter vers Vanelle",
+      "instructions": "Dehors en [-9,24], reparle au Comte d'Ourlette ; son groupe de goules t'attaque. Le combat est faisable à plusieurs. Une fois gagné, vérifie que le Comte a bien rejoint les personnages suiveurs et ramène-le au camp.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Reparler au Comte devant l'église pour lancer la confrontation.",
+          "coordinates": [
+            -9,
+            24
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Comte d'Ourlette et ses quatre goules."
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler la capture du Comte après le combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Escorter le Comte jusqu'à Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        }
+      ],
+      "source_step_number": 23
+    },
+    {
+      "title": "Livrer le Comte et terminer Entretien avec une Vampyre",
+      "instructions": "De retour en [-16,32], remets le Comte d'Ourlette à Vanelle Sings. Le dialogue clôt la quête « Entretien avec une Vampyre ». Le succès réclame aussi la validation de la chasse « Les goules à zéro » ; si elle n'a pas été remise, le Chasseur se trouve à une carte de là.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Livrer le Comte d'Ourlette à Vanelle Sings.",
+          "coordinates": [
+            -16,
+            32
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Terminer le dernier dialogue d'« Entretien avec une Vampyre »."
+        },
+        {
+          "kind": "travel",
+          "text": "Passer chez le Chasseur de goules pour vérifier le premier volet du succès.",
+          "coordinates": [
+            -16,
+            33
+          ]
+        }
+      ],
+      "source_step_number": 24
+    },
+    {
+      "title": "Contrôler les trois quêtes du succès",
+      "instructions": "Confirme auprès du Chasseur de goules en [-16,33] que les quatre groupes de dix monstres ont été comptabilisés, puis ouvre l'interface Succès pour vérifier « Les goules à zéro », « Le trou du culte » et « Entretien avec une Vampyre ». La validation de cette dernière étape dans Atlas reste indépendante de celle du jeu.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Si nécessaire, annoncer au Chasseur de goules que 10 Kérigoules, 10 Gouliganes, 10 Goultimes et 10 Pipisteuses ont été vaincus.",
+          "coordinates": [
+            -16,
+            33
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les trois quêtes du succès « Vampyre, vous avez dit Vampyre ? »."
+        },
+        {
+          "kind": "information",
+          "text": "Valider manuellement la progression du parcours dans Atlas seulement après contrôle en jeu."
+        }
+      ],
+      "source_step_number": 25
+    }
+  ]
+}
