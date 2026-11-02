@@ -314,5 +314,64 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
             self.assertFalse(reopened.manual_steps(one, atlas_sylvestre))
 
 
+    def test_authored_source_projection_preserves_every_action_and_manual_identity(self):
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            project_ganymede_authored_cards,
+        )
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings, load_ganymede_local_instructions,
+        )
+
+        complete = 0
+        for listing in load_ganymede_listings():
+            steps = load_ganymede_local_instructions(listing)
+            if steps is None:
+                continue
+            with self.subTest(source_id=listing.source_id):
+                cards = project_ganymede_authored_cards(
+                    listing.source_id, listing.title, steps,
+                )
+                self.assertEqual(len(cards), listing.step_count)
+                self.assertEqual(
+                    [c["manual_stage_id"] for c in cards],
+                    [f"ganymede_{listing.source_id}_step_{n:04d}"
+                     for n in range(1, listing.step_count + 1)],
+                )
+                for card, step in zip(cards, steps):
+                    rows = card["manual_sections"]["now"]
+                    self.assertEqual(len(rows), len(step["actions"]) + 1)
+                    self.assertTrue(all(row["text"].strip() for row in rows))
+                    self.assertFalse(card["auto_completion_allowed"])
+                    self.assertEqual(card["manual_lines"], rows)
+                    for row, action in zip(rows[1:], step["actions"]):
+                        if "coordinates" in action:
+                            x, y = action["coordinates"]
+                            self.assertEqual(row["position"], f"[{x},{y}]")
+            complete += 1
+        self.assertGreaterEqual(complete, 15)
+
+    def test_authored_source_projection_rejects_unordered_actions_or_positions(self):
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
+            project_ganymede_authored_cards,
+        )
+
+        step = {
+            "source_step_number": 1, "title": "Première étape",
+            "instructions": "Suivre la route vérifiée",
+            "actions": [{"kind": "travel", "text": "Aller à Sufokia",
+                         "coordinates": [13, 26]}],
+        }
+        cards = project_ganymede_authored_cards(2219, "Otomaï 1", (step,))
+        self.assertEqual(cards[0]["manual_sections"]["now"][1]["position"], "[13,26]")
+        step["source_step_number"] = 2
+        with self.assertRaisesRegex(ValueError, "Invalid authored step"):
+            project_ganymede_authored_cards(2219, "Otomaï 1", (step,))
+        step["source_step_number"] = 1
+        step["actions"][0]["coordinates"] = [True, 26]
+        with self.assertRaisesRegex(ValueError, "Invalid position"):
+            project_ganymede_authored_cards(2219, "Otomaï 1", (step,))
+
+
+
 if __name__ == "__main__":
     unittest.main()
