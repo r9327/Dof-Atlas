@@ -767,6 +767,11 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertTrue(progress.is_manual_step_completed(
                         "character:7", progress_id, step_id,
                     ))
+                    # Progress remains scoped to the selected character and
+                    # copies never validate any objective on another account.
+                    self.assertFalse(progress.is_manual_step_completed(
+                        "character:8", progress_id, step_id,
+                    ))
                     spinner.setValue(2)
                     self.assertFalse(copy.isEnabled())
                     self.assertFalse(copy_links.isVisible())
