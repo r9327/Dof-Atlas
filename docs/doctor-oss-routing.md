@@ -264,33 +264,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1 -Install
 ```
 
-Le mode `-Install` exige désormais **Windows x64 et Python 3.13 64 bits**.
-Il n'accepte que les deux wheels PyPI choisies et les hachages SHA-256
-exactement publiés sur [Ruff 0.17.3](https://pypi.org/project/ruff/0.17.3/)
-et [zizmor 1.30.1](https://pypi.org/project/zizmor/1.30.1/) :
-`ruff==0.17.3` (Windows AMD64, SHA-256
-`56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24`) et
-`zizmor==1.30.1` (Windows AMD64, SHA-256
-`06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868`).
-L'installation volontaire impose `pip --isolated --require-hashes`,
-`--only-binary=:all:`, `--no-deps` et une source PyPI explicite. Les
-wheels d'une autre architecture ou toute divergence d'empreinte sont rejetées.
-La liste temporaire de pins est supprimée dans un bloc `finally`.
+Le mode `-Install` exige **Windows x64 et Python 3.13 64 bits** et
+utilise `tools.doctor_oss_wheels`. Il télécharge explicitement les deux
+wheels officiels `ruff==0.17.3` et `zizmor==1.30.1` depuis PyPI, consulte
+le document JSON versionné de **PyPI** pour chaque *nom de fichier exact*,
+compare le SHA-256 des bytes téléchargés, puis fait revérifier ces SHA par
+`pip --isolated --require-hashes --no-index --no-deps` sur les fichiers
+locaux vérifiés. Un digest absent, une redirection de métadonnées, une
+architecture non conforme, une version imprévue ou une divergence bloque
+l'installation. Aucun SHA-256 non vérifié n'est conservé comme une constante.
 
-Cette installation est **côté développeur, dans son user-site Python** :
-elle ne modifie pas `requirements-pyside.txt`, ni l'EXE Windows ni les
-paquets embarqués, mais peut mettre à jour les deux packages de son
-environnement utilisateur. Pip ne garantit pas un rollback transactionnel
-en cas de panne partielle ; sur une machine critique, utiliser un Python
-développeur isolé et vérifier l'état initial avant `-Install`.
-Doctor peut ensuite trouver `zizmor.exe` dans le dossier `Scripts`
-du user-site Windows, même s'il n'est pas inscrit dans PATH.
+L'installation n'est **jamais** automatique pendant Doctor `plan/check` ;
+elle ne modifie pas le runtime Atlas, mais peut mettre à jour les deux
+packages du user-site Python du développeur. Les sources, wheels et fichiers
+temporaires sont supprimés après l'opération. L'installation pip n'est pas
+transactionnelle et ne garantit pas le rollback d'un environnement utilisateur
+en cas de panne partielle : préférer un environnement de développement isolé.
+Après installation, Doctor cherche également `zizmor.exe` dans les
+`Scripts` du user-site Windows.
 
-Les empreintes publiées protègent le téléchargement des **wheels ciblées** ;
-elles ne remplacent ni la vérification complète des licences/dépendances,
-ni une exécution réelle attestée, ni une revue de la provenance des builds.
-Ruff et zizmor déclarent MIT sur PyPI ; aucune licence n'est réputée
-auditée simplement par le préflight local.
+La comparaison des hashes vérifie le téléchargement contre les métadonnées
+PyPI récupérées en HTTPS au moment de la commande, **pas** la licence, la
+chaîne de provenance complète, les dépendances de l'outil, ni le comportement
+réel de ce binaire sur la machine. Ces preuves restent distinctes de
+`LIVE_PASS`, qui nécessite d'exécuter réellement les deux scanners.
 
 Les versions ci-dessus sont les versions de qualification choisies pour ce
 lot ; les mises à jour restent des décisions explicites, avec vérification
