@@ -405,6 +405,10 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                 findings = json.loads(result.stdout)
                 if not isinstance(findings, list) or result.returncode not in (0, 1):
                     raise ValueError("unexpected Ruff output")
+                # Ruff exits 0 when clean and 1 when lint findings exist.
+                # A contradictory exit code must not be interpreted as CLEAN.
+                if bool(findings) != (result.returncode == 1):
+                    raise ValueError("Ruff result and exit code disagree")
                 counts: dict[str, int] = {}
                 for item in findings:
                     if not isinstance(item, dict):
