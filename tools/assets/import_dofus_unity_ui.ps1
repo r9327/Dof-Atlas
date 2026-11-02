@@ -15,7 +15,12 @@ if ($InstallPersonalTheme) {
     if (-not $env:LOCALAPPDATA) { throw 'LOCALAPPDATA introuvable. Executer sur Windows.' }
     $sourceTheme = Join-Path $repo 'app\assets\themes\dofus_unity'
     $destination = Join-Path $env:LOCALAPPDATA 'DofusAtlas\themes\dofus_unity'
-    $original = Join-Path $sourceTheme 'background_selection_original.png'
+    # The import path below writes selection_perso_original.png. Prefer that
+    # exact filename; accept the previous checkout naming for compatibility.
+    $original = Join-Path $sourceTheme 'selection_perso_original.png'
+    if (!(Test-Path -LiteralPath $original -PathType Leaf)) {
+        $original = Join-Path $sourceTheme 'background_selection_original.png'
+    }
     $cleaned = Join-Path $destination 'background_selection_clean.png'
     $spriteFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'sprites') -Filter '*.png' -File)
     $fontFiles = @(Get-ChildItem -LiteralPath (Join-Path $sourceTheme 'fonts') -Filter '*.ttf' -File)

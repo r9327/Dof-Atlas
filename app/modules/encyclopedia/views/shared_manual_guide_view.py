@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QFrame,
@@ -37,7 +40,32 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+from app.constants import DATA_DIR
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+
+
+@lru_cache(maxsize=1)
+def _preparation_icon_roots() -> tuple[Path, ...]:
+    """Resolve shipped item images once, only on opening Preparation."""
+    roots = (DATA_DIR / "images" / "items", DATA_DIR / "images" / "resources")
+    # Both direct <id>.png and one-level category/<id>.png layouts exist.
+    # Preserve a bounded one-time scan: never walk the entire image library.
+    existing = tuple(root for root in roots if root.is_dir())
+    return existing + tuple(directory for root in existing
+                            for directory in root.iterdir() if directory.is_dir())
+
+
+@lru_cache(maxsize=1024)
+def _preparation_icon_path(item_id: int) -> Path | None:
+    # The canonical images are grouped by type, not in one flat directory.
+    # No eager image decode or full filesystem index at app startup.
+    for folder in _preparation_icon_roots():
+        candidate = folder / f"{item_id}.png"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 _COMBAT_STOP_WORDS = {
@@ -70,13 +98,20 @@ _PREPARATION_QUANTITY_RE = re.compile(
 def _guide_symbol_icon(
     widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
 ) -> QIcon:
-    """Draw small semantic icons without font glyph or platform-theme drift."""
+    """Share tiny semantic Qt icons instead of repainting one per row."""
+    # Retain the historical widget-taking API; this artwork is independent of
+    # widget identity and must not pin deleted QObjects in a global cache.
+    return _cached_guide_symbol_icon(symbol, size, color or PALETTE["TEXT_SOFT"])
 
+
+@lru_cache(maxsize=32)
+def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
+    """Build at most 32 lightweight icon rasters, on the Qt GUI thread."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(color or PALETTE["TEXT_SOFT"]), 1.6)
+    pen = QPen(QColor(color), 1.6)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
     painter.setPen(pen)
@@ -918,7 +953,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
-        self._preparation_preview: tuple[tuple[str, str, int], ...] = ()
+        self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
@@ -932,8 +967,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Qt's default layout minimum otherwise forces the guide wider than
         # the available viewport, preventing the compact labels from activating.
         root.setSizeConstraint(QLayout.SetNoConstraint)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        # Real shadows need an unpainted edge; 6px is enough without
+        # expanding the header or sacrificing scroll space.
+        root.setContentsMargins(6, 5, 6, 6)
+        root.setSpacing(8)
 
         self._build_compact_header(root)
         self._build_preparation_panel(root)
@@ -978,6 +1015,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
+        apply_unity_panel_shadow(nav, blur=14, vertical=3)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
@@ -1012,7 +1050,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_button.clicked.connect(
             lambda _checked=False: self._guide_button_clicked()
         )
-        title_row.addWidget(self.guide_button)
+        # Keep the back action available beside the sheet title, outside
+        # the three-row compact progress header agreed with the user.
         guide_icon = QLabel()
         guide_icon.setObjectName("GuideCompactTitleIcon")
         guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
@@ -1133,6 +1172,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_panel.setVisible(False)
         self.settings_button.toggled.connect(self.settings_panel.setVisible)
         right.addWidget(self.settings_panel)
+        apply_unity_panel_shadow(header, blur=18, vertical=4)
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
@@ -1143,13 +1183,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             _guide_symbol_icon(self.preparation_button, "clipboard")
         )
         self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.preparation_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.preparation_button.setMinimumHeight(32)
+        self.preparation_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.preparation_button.setFixedHeight(28)
+        self.preparation_button.setMaximumWidth(148)
         self.preparation_button.setArrowType(Qt.RightArrow)
         self.preparation_button.setCheckable(True)
         self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        self.header_actions_row.addWidget(self.preparation_button, 1)
+        self.header_actions_row.addWidget(self.preparation_button, 0)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1188,6 +1229,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
+        apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
         root.addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
@@ -1198,6 +1240,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         layout.setSpacing(6)
         top = QHBoxLayout()
         top.setSpacing(7)
+        top.addWidget(self.guide_button, 0, Qt.AlignVCenter)
         labels = QVBoxLayout()
         labels.setSpacing(1)
         self.sheet_meta_label = QLabel()
@@ -1211,13 +1254,16 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setText("Mes personnages")
+        self.participants_button.setText("")
+        portrait_icon = sprite_icon_path("character")
         self.participants_button.setIcon(
+            QIcon(str(portrait_icon)) if portrait_icon else
             _guide_symbol_icon(self.participants_button, "people")
         )
-        self.participants_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.participants_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.participants_button.setMinimumHeight(32)
+        self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.participants_button.setFixedSize(32, 28)
+        self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self.summary_button = QToolButton()
@@ -1225,13 +1271,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_button.setText("Sommaire")
         self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
         self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.summary_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.summary_button.setMinimumHeight(32)
+        self.summary_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.summary_button.setFixedHeight(28)
+        self.summary_button.setMaximumWidth(122)
         self.summary_button.setArrowType(Qt.RightArrow)
         self.summary_button.setCheckable(True)
         self.summary_button.setCursor(Qt.PointingHandCursor)
-        self.header_actions_row.addWidget(self.summary_button, 1)
-        self.header_actions_row.addWidget(self.participants_button, 1)
+        self.header_actions_row.addWidget(self.summary_button, 0)
+        self.header_actions_row.addWidget(self.participants_button, 0)
+        self.header_actions_row.addStretch(1)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1262,6 +1310,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_panel.setVisible(False)
         self.summary_button.toggled.connect(self._summary_toggled)
         layout.addWidget(self.summary_panel)
+        apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         self._refresh_participants_panel()
 
@@ -1276,7 +1325,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         count = len(self.selected_participant_keys())
         full_label = f"Mes personnages · {count}"
         narrow = self.width() < 520
-        self.participants_button.setText(str(count) if narrow else full_label)
+        # Icon-only participant selector: the count remains accessible through
+        # its tooltip and accessibility label without stretching the header.
+        self.participants_button.setText("")
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
             label.setText("Prép." if narrow and name == "Préparation" else name)
         self.participants_button.setAccessibleName(full_label)
@@ -1554,7 +1605,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not participant_keys:
             summary = aggregate_remaining((card, False) for card in self.service.cards)
             self._preparation_preview = tuple(
-                (need.category, need.name, need.quantity or 0) for need in summary
+                (need.category, need.name, need.quantity or 0, need.item_id)
+                for need in summary
             )
             self._preparation_needs = ()
             self._preparation_loaded = True
@@ -1707,15 +1759,19 @@ class SharedGuideManualView(GuideUltimeManualView):
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
             else:
-                # Read-only text, no checkbox and no anonymous persistence.
+                # Read-only progress, but names are still copyable and
+                # existing item artwork should be visible in preview mode.
                 visible = preview[:self._preparation_visible_limit]
-                lines = [f"• {quantity if quantity else '?'} × {name} ({category})"
-                         for category, name, quantity in visible]
-                details = QLabel(chr(10).join(lines))
-                details.setObjectName("GuidePreparationPreview")
-                details.setWordWrap(True)
-                details.setTextInteractionFlags(Qt.TextSelectableByMouse)
-                self.preparation_rows_layout.addWidget(details)
+                for category, name, quantity, item_id in visible:
+                    row = QFrame()
+                    row.setObjectName("GuidePreparationRow")
+                    row_layout = QHBoxLayout(row)
+                    row_layout.setContentsMargins(8, 3, 8, 3)
+                    row_layout.addWidget(self._copyable_preparation_item(
+                        name, f"{quantity if quantity else '?'} × {name} ({category})",
+                        item_id,
+                    ))
+                    self.preparation_rows_layout.addWidget(row)
                 self._append_preparation_more(
                     len(preview) - self._preparation_visible_limit
                 )
@@ -1774,6 +1830,30 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
 
+    def _copyable_preparation_item(self, name: str, display: str,
+                                   item_id: int | None) -> QPushButton:
+        button = QPushButton(display)
+        button.setObjectName("GuidePreparationItemCopy")
+        button.setFlat(True)
+        button.setCursor(Qt.PointingHandCursor)
+        button.setToolTip(f"Cliquer pour copier : {name}")
+        button.setAccessibleName(f"Copier {name}")
+        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        if item_id is not None:
+            path = _preparation_icon_path(item_id)
+            if path is not None:
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
+                if not pixmap.isNull():
+                    button.setIcon(QIcon(pixmap))
+        if button.icon().isNull():
+            fallback = sprite_icon_path("inventory")
+            if fallback:
+                button.setIcon(QIcon(str(fallback)))
+        button.setIconSize(QSize(24, 24))
+        button.clicked.connect(lambda _checked=False, value=name:
+                               QApplication.clipboard().setText(value))
+        return button
+
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
@@ -1795,11 +1875,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             else f"{quantity} × " if quantity is not None else "? × "
         )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
-        label = QLabel(f"{amount}{need.name} — {status}")
-        label.setToolTip(" ; ".join(need.sources[:8])
-                         or "Quantité ou provenance à confirmer")
-        label.setObjectName("GuidePreparationRowLabel")
-        top.addWidget(label, 1)
+        item_button = self._copyable_preparation_item(
+            need.name, f"{amount}{need.name}", need.item_id,
+        )
+        item_button.setToolTip("Cliquer pour copier le nom · " +
+                               (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
+        top.addWidget(item_button, 1)
+        status_label = QLabel(status)
+        status_label.setObjectName("GuidePreparationRowStatus")
+        top.addWidget(status_label)
         ready_button = QToolButton()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
@@ -1828,18 +1912,27 @@ class SharedGuideManualView(GuideUltimeManualView):
         details_layout = QVBoxLayout(details)
         details_layout.setContentsMargins(8, 2, 8, 3)
         details_layout.setSpacing(2)
-        labels_by_key = {
-            character.key: character.label
-            for character in self.participant_service.available_characters()
-        }
-        for character_key, quantity in need.required_by_character:
-            detail = QLabel(
-                f"{labels_by_key.get(character_key, character_key)} : "
-                f"besoin {quantity if quantity is not None else 'à confirmer'}"
-            )
-            detail.setObjectName("GuidePreparationParticipantNeed")
-            details_layout.addWidget(detail)
+        # Most preparation rows stay collapsed. The previous implementation
+        # fetched all character labels and constructed a QLabel per participant
+        # for EVERY need, even if the user never opened its details.
+        # Populate on the first expansion only, preserving copy/ready actions.
+        def populate_details(opened: bool) -> None:
+            if not opened or details_layout.count():
+                return
+            labels_by_key = {
+                character.key: character.label
+                for character in self.participant_service.available_characters()
+            }
+            for character_key, quantity in need.required_by_character:
+                detail = QLabel(
+                    f"{labels_by_key.get(character_key, character_key)} : "
+                    f"besoin {quantity if quantity is not None else 'à confirmer'}"
+                )
+                detail.setObjectName("GuidePreparationParticipantNeed")
+                details_layout.addWidget(detail)
+
         details.setVisible(False)
+        details_button.toggled.connect(populate_details)
         details_button.toggled.connect(details.setVisible)
         details_button.toggled.connect(
             lambda opened, button=details_button: button.setArrowType(
@@ -2112,9 +2205,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         reversible = any(manual for _, _, manual, _ in statuses)
         batcher = getattr(getattr(self.service, "guide_progress", None), "set_manual_steps_for_characters", None)
         page_key = getattr(self.service, "page_key", None)
-        enabled = bool(statuses) and callable(batcher) and callable(page_key) and not blocked and (not all_done or reversible)
+        enabled = (not statuses) or (bool(statuses) and callable(batcher) and callable(page_key)
+                                   and not blocked and (not all_done or reversible))
         if not statuses:
-            label, hint = "Choisir des personnages", "Sélectionnez un ou plusieurs personnages vérifiés dans Mes personnages."
+            label, hint = "Valider", "Choisissez d'abord un personnage avec le bouton portrait ; ce clic ouvre le sélecteur."
         elif blocked:
             label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
         elif all_done and reversible:
@@ -2142,7 +2236,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         statuses = self._validation_status(card, index)
         all_done = bool(statuses) and all(auto or manual for _, auto, manual, _ in statuses)
         blocked = any(blocked and not (auto or manual) for _, auto, manual, blocked in statuses)
-        if not statuses or blocked or checked == all_done:
+        if not statuses:
+            # A visible "Valider" must never silently write to the browsing
+            # character. Open the explicit portrait selector on first click.
+            self.participants_button.setChecked(True)
+            self._render_window()
+            return
+        if blocked or checked == all_done:
             self._render_window()
             return
         # A mixed team click fills only incomplete manual states; undo removes
