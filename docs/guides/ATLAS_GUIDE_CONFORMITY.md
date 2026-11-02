@@ -49,6 +49,15 @@ Local Doctor, Graphify and automated tests remain NOT_RUN in this session.
 
 ## Création structurée et utilisation commune (PR #363)
 
+**IMPORTANT — PHASE 0 : NE PAS EXÉCUTER LES COMMANDES CI-DESSOUS SUR DES
+GUIDES RÉELS.** Elles décrivent la future interface de développement,
+pas une autorisation d'extraire Cawotte ou les 95 guides. Avant la
+qualification intégrale de tous les outils/classes UI, exécuter uniquement
+les tests sur fixtures fictives. Le seul point d'entrée d'orchestration
+contrôlé est `tools.atlas_guide_pipeline` et son CLI refuse toute
+opération réelle en l'absence d'attestation de confiance.
+
+
 La création hors ligne se fait avec `tools.atlas_guide_importer` :
 une seule source JSON v1 autorisée, `guides` ordonnés, IDs stables
 `guide_id` / `source_step_id` / `action_id`, `rights_verified`,
