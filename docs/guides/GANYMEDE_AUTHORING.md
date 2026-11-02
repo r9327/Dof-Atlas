@@ -192,9 +192,17 @@ validation de schéma intégrale.
 | 2229 — Nimaltopia | 10 | 67 | Brouillon incomplet |
 | **Total** | **40** | **162** | **Aucun n'est activé** |
 
-Les 40 étapes couvrent 140 actions typées, dont 72 déplacements avec une
-position également mentionnée dans le relevé de la même étape (contrôle
-statique de données). Les quantités, dialogues, niveaux, identités des cartes,
+Les 40 étapes couvrent désormais **150 actions typées**, dont **73 déplacements
+sur 73** avec une position mentionnée dans le relevé de la même étape
+(contrôle statique de données, HEAD `7f281184644f5f1d3a703f616fe80c81b69e69c5`). Les consignes d'entrée ont été consolidées contre les dix premières étapes
+référencées des quatre sources : niveau 50 et quête du Réceptacle pour 2204,
+passage obligatoire au pont de Pandala, absence de prérequis à Valonia
+mais 100 kamas de transport, succès et donjons optionnels de Sufokia,
+et « Aventure miniature » puis « Ne tirez pas sur le messager » pour
+Nimaltopia. Les ressources sont regroupées par trois quêtes, en évitant de
+compter deux fois les 20 Eaux potables.
+
+Les quantités, dialogues, niveaux, identités des cartes,
 branches et combats demandent une vérification en jeu ainsi qu'une comparaison
 intégrale des pages source. Les intitulés d'objets et de PNJ traduits doivent
 aussi être confrontés à la version française effective.
