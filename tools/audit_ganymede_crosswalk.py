@@ -6,8 +6,10 @@ external quest steps or an optimized route have been imported or certified.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -281,18 +283,213 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
     }
 
 
+
+def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
+    """Read-only intersection report for the future combined Success route.
+
+    Identical coordinates indicate co-location, never equivalent objectives or
+    permission to reorder/complete steps. Source-tree links are documentation,
+    not Atlas dependency edges. The two optimized guides remain untouched.
+    This is a candidate-input API; GuideRoutePlanner stays the only scheduler.
+    """
+    from app.modules.encyclopedia.views.guide_library_sources import (
+        GanymedeListing, load_ganymede_local_instructions,
+    )
+
+    root = Path(root)
+    data = root / MAIN_INDEX
+    guide_dir = data.parent
+    issues: list[dict[str, str]] = []
+
+    try:
+        index = json.loads(data.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {
+            "schema_version": 1, "status": "FAIL",
+            "issues": [{"code": "invalid_source_index", "detail": str(exc)}],
+            "route_replacement_ready": False,
+        }
+    indexed = index.get("guides") if isinstance(index, dict) else None
+    if not isinstance(indexed, list) or not indexed:
+        return {
+            "schema_version": 1, "status": "FAIL",
+            "issues": [{"code": "empty_source_index", "detail": str(data)}],
+            "route_replacement_ready": False,
+        }
+
+    by_map: dict[tuple[int, int], list[dict[str, object]]] = defaultdict(list)
+    by_id: dict[int, dict[str, object]] = {}
+    authored_ids: list[int] = []
+    missing_ids: list[int] = []
+    reviewed_actions = 0
+    authored_steps = 0
+    source_predecessor_hints: list[dict[str, object]] = []
+    for row in indexed:
+        gid = row.get("ganymede_guide_id") if isinstance(row, dict) else None
+        count = row.get("listed_step_count") if isinstance(row, dict) else None
+        url = row.get("source_url") if isinstance(row, dict) else None
+        if (type(gid) is not int or gid <= 0 or gid in by_id
+                or type(count) is not int or count <= 0
+                or url != f"https://ganymede-app.com/guides/{gid}"):
+            issues.append({"code": "invalid_source_entry", "detail": str(gid)})
+            continue
+        by_id[gid] = row
+        predecessors = row.get("public_tree_prerequisite_guide_ids", [])
+        if (not isinstance(predecessors, list)
+                or any(type(p) is not int or p <= 0 for p in predecessors)):
+            issues.append({"code": "invalid_source_hint", "detail": str(gid)})
+            continue
+        source_predecessor_hints.extend({
+            "source_guide_id": gid, "predecessor_guide_id": p,
+            "confidence": "SOURCE_METADATA_ONLY",
+        } for p in predecessors)
+        authored_path = guide_dir / f"ganymede_{gid}_instructions.json"
+        if not authored_path.exists():
+            missing_ids.append(gid)
+            continue
+        try:
+            steps = load_ganymede_local_instructions(
+                GanymedeListing(
+                    source_id=gid, title=str(row.get("title") or gid),
+                    category="", level=None, step_count=count, source_url=url,
+                ),
+                data_dir=guide_dir,
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append({
+                "code": "invalid_authored_route",
+                "detail": f"{gid}: {exc}",
+            })
+            continue
+        if steps is None:
+            missing_ids.append(gid)
+            continue
+        authored_ids.append(gid)
+        authored_steps += len(steps)
+        file_sha = hashlib.sha256(authored_path.read_bytes()).hexdigest()
+        for step in steps:
+            for action_index, action in enumerate(step["actions"]):
+                reviewed_actions += 1
+                coords = action.get("coordinates")
+                if coords is None:
+                    continue
+                key = tuple(coords)
+                by_map[key].append({
+                    "source_guide_id": gid,
+                    "source_step_number": step["source_step_number"],
+                    "action_index": action_index,
+                    "action_kind": action["kind"],
+                    "source_file_sha256": file_sha,
+                    "source_evidence": "authored_instruction_not_game_certified",
+                })
+
+    locations = []
+    for (x, y), occurrences in sorted(by_map.items()):
+        if len({row["source_guide_id"] for row in occurrences}) < 2:
+            continue
+        locations.append({
+            "coordinates": [x, y],
+            "candidate_type": "co_location_only",
+            "objective_equivalence_verified": False,
+            "prerequisite_order_verified": False,
+            "occurrences": sorted(
+                occurrences,
+                key=lambda row: (
+                    row["source_guide_id"],
+                    row["source_step_number"],
+                    row["action_index"],
+                ),
+            ),
+        })
+
+    # Only canonical quest IDs in Atlas's own optimized routes can be joined.
+    # Ganymède prose and public DofusDB links are not proof of the same ID.
+    native_quests: dict[str, dict[int, list[str]]] = {}
+    for guide_id in ("guide_complet", "dofus_sylvestre"):
+        path = guide_dir / f"{guide_id}.json"
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict) or payload.get("id") != guide_id:
+                raise ValueError("wrong optimized guide ID")
+            occurrences: dict[int, list[str]] = defaultdict(list)
+            for section in payload["sections"]:
+                for step in section["steps"]:
+                    if step.get("type") != "quest":
+                        continue
+                    qid = step.get("entity_id")
+                    sid = step.get("id")
+                    if (type(qid) is not int or qid <= 0
+                            or not isinstance(sid, str) or not sid):
+                        raise ValueError("invalid canonical quest entry")
+                    occurrences[qid].append(sid)
+            native_quests[guide_id] = occurrences
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            issues.append({
+                "code": "invalid_optimized_guide",
+                "detail": f"{guide_id}: {exc}",
+            })
+
+    common_quests = []
+    if len(native_quests) == 2:
+        full = native_quests["guide_complet"]
+        sylvestre = native_quests["dofus_sylvestre"]
+        common_quests = [{
+            "quest_id": qid,
+            "guide_complet_step_ids": full[qid],
+            "dofus_sylvestre_step_ids": sylvestre[qid],
+            "identity_evidence": "same_canonical_atlas_quest_id",
+            "completion_or_order_verified": False,
+        } for qid in sorted(full.keys() & sylvestre.keys())]
+
+    if len(by_id) != len(indexed):
+        issues.append({"code": "source_index_duplicates", "detail": "invalid entries"})
+    unknown_hints = sorted({
+        row["predecessor_guide_id"] for row in source_predecessor_hints
+        if row["predecessor_guide_id"] not in by_id
+    })
+    if unknown_hints:
+        issues.append({"code": "unknown_source_hints", "detail": str(unknown_hints)})
+
+    return {
+        "schema_version": 1,
+        "status": "FAIL" if issues else "REVIEW_ONLY_NOT_OPTIMIZED",
+        "source_guides_indexed": len(by_id),
+        "source_guides_with_authored_steps": len(authored_ids),
+        "source_guides_missing_authored_steps": sorted(missing_ids),
+        "authored_source_guide_ids": sorted(authored_ids),
+        "authored_source_steps": authored_steps,
+        "authored_actions": reviewed_actions,
+        "co_location_candidates": locations,
+        "same_canonical_quest_candidates": common_quests,
+        "public_tree_hints": sorted(
+            source_predecessor_hints,
+            key=lambda row: (row["source_guide_id"], row["predecessor_guide_id"]),
+        ),
+        "public_tree_hints_are_hard_dependencies": False,
+        "ganymede_to_atlas_quest_mapping_verified": False,
+        "character_progress_consulted": False,
+        "automatic_validation_allowed": False,
+        "route_replacement_ready": False,
+        "scheduler_owner": "app.modules.encyclopedia.services.guide_route_planner.GuideRoutePlanner",
+        "issues": issues,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--cross-guide-candidates", action="store_true",
+                        help="Read-only cross-route candidates, never an optimized route")
     args = parser.parse_args()
-    report = audit_ganymede_crosswalk(args.root.resolve())
+    report = (analyze_cross_guide_candidates(args.root.resolve())
+              if args.cross_guide_candidates else audit_ganymede_crosswalk(args.root.resolve()))
     content = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(content, encoding="utf-8")
     print(content, end="")
-    return 0 if report["status"] == "PASS_METADATA_ONLY" else 1
+    return 0 if report["status"] in {"PASS_METADATA_ONLY", "REVIEW_ONLY_NOT_OPTIMIZED"} else 1
 
 
 if __name__ == "__main__":
