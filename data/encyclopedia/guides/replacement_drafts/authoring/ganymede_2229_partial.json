@@ -18,15 +18,15 @@
     {
       "source_step_number": 1,
       "title": "Vérifier l'accès aux chasses de Nimaltopia",
-      "instructions": "Parcours Nimaltopia à entreprendre vers le niveau 190 pour le succès « Chasse à l'homme », nécessaire au Dofus Ivoire. La suite de la Fratrie des Oubliés doit être suffisamment avancée : les étapes 3 et 7 ouvrent des quêtes requises et l'étape 9 concerne le lancement d'un autre succès lié au voyage. Préparer les ressources de l'étape 2 avant de partir évite plusieurs allers-retours.",
+      "instructions": "Parcours Nimaltopia à entreprendre vers le niveau 190 pour le succès de chasse de Nimaltopia, nécessaire au Dofus Ivoire. La suite de la Fratrie des Oubliés doit être suffisamment avancée : les étapes 3 et 7 ouvrent des quêtes requises et l'étape 9 concerne le lancement d'un autre succès lié au voyage. Préparer les ressources de l'étape 2 avant de partir évite plusieurs allers-retours.",
       "actions": [
         {
           "kind": "prepare",
-          "text": "Vérifier la quête « Ne tirez pas sur le messager », liée à l'étape 7 du parcours Fratrie des Oubliés."
+          "text": "Avoir achevé « Ne tirez pas sur le messager », quête associée à l'étape 7 du guide Fratrie des Oubliés."
         },
         {
           "kind": "prepare",
-          "text": "Avoir terminé « Aventure miniature », requise en amont à l'étape 3 du parcours Fratrie des Oubliés."
+          "text": "Avoir terminé « Aventure miniature », prérequis de « Ne tirez pas sur le messager » (étape 3 du guide Fratrie des Oubliés)."
         },
         {
           "kind": "information",
@@ -53,7 +53,7 @@
     {
       "source_step_number": 2,
       "title": "Rassembler les provisions du parcours",
-      "instructions": "Préparer les fournitures nécessaires aux différentes missions pour éviter de refaire le trajet. Les boissons totalisent vingt unités entre les deux quêtes.",
+      "instructions": "Préparer en une fois les ressources requises par les trois quêtes de ce parcours : « Frais de porc inclus », « Nos amies les bêtes » et « À armes égales ». Il faut 20 Eaux potables au total, réparties entre la première et la troisième quête. Les autres fournitures sont listées séparément ci-dessous pour éviter les doublons.",
       "actions": [
         {
           "kind": "prepare",
