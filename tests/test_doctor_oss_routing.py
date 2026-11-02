@@ -219,6 +219,98 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertFalse(parsed.run)
         self.assertFalse(parsed.verify_live)
 
+    def test_fonttools_reads_bounded_metadata_without_modifying_fonts(self):
+        import sys
+        from types import ModuleType
+        from tools.atlas_doctor_lib.oss_router import trial_fonttools
+        fontfile = self.root / "tests" / "unity.ttf"
+        fontfile.parent.mkdir(parents=True, exist_ok=True)
+        fontfile.write_bytes(b"synthetic-font")
+        class Names:
+            def getDebugName(self, key):
+                return {1: "Unity Family", 2: "Medium", 13: "do-not-trust"}[key]
+        class Font:
+            def __init__(self, path, *, lazy, recalcBBoxes, recalcTimestamp):
+                self.path = path
+                self.names = Names()
+                self.closed = False
+                self.settings = (lazy, recalcBBoxes, recalcTimestamp)
+                self_test.assertEqual(self.settings, (True, False, False))
+            def __getitem__(self, name):
+                self_test.assertEqual(name, "name")
+                return self.names
+            def close(self):
+                self.closed = True
+        self_test = self
+        package = ModuleType("fontTools")
+        package.__path__ = []
+        ttlib = ModuleType("fontTools.ttLib")
+        ttlib.TTFont = Font
+        package.ttLib = ttlib
+        with patch.dict(sys.modules, {"fontTools": package,
+                                      "fontTools.ttLib": ttlib}):
+            report = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(report["status"], "TRIAL_COMPLETE")
+        self.assertTrue(report["input_integrity_verified"])
+        self.assertEqual(report["fonts"][0]["family"], "Unity Family")
+        self.assertTrue(report["fonts"][0]["license_metadata_present"])
+        self.assertFalse(report["fonts"][0]["license_verified"])
+        self.assertFalse(report["qt_rendering_verified"])
+        self.assertFalse(report["runtime_consumers_verified"])
+        self.assertNotIn("do-not-trust", json.dumps(report))
+        self.assertEqual(fontfile.read_bytes(), b"synthetic-font")
+
+    def test_fonttools_rejects_bad_font_or_missing_optional_dependency(self):
+        import sys
+        from tools.atlas_doctor_lib.oss_router import trial_fonttools
+        fontfile = self.root / "tests" / "unity.ttf"
+        fontfile.parent.mkdir(parents=True, exist_ok=True)
+        fontfile.write_bytes(b"synthetic-font")
+        with patch.dict(sys.modules, {"fontTools": None,
+                                      "fontTools.ttLib": None}):
+            unavailable = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(unavailable["status"], "NOT_AVAILABLE")
+        self.assertEqual(unavailable["execution_count"], 0)
+        with self.assertRaises(ValueError):
+            trial_fonttools(self.root, ["tools/example.py"])
+        # A malformed local font must never yield a metadata or license PASS.
+        from types import ModuleType
+        package = ModuleType("fontTools")
+        package.__path__ = []
+        ttlib = ModuleType("fontTools.ttLib")
+        ttlib.TTFont = lambda *a, **k: (_ for _ in ()).throw(ValueError("source secret"))
+        package.ttLib = ttlib
+        with patch.dict(sys.modules, {"fontTools": package,
+                                      "fontTools.ttLib": ttlib}):
+            failed = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(failed["status"], "ERROR")
+        self.assertNotIn("source secret", json.dumps(failed))
+
+    def test_fonttools_cli_is_exclusive_and_not_a_fake_pass(self):
+        import contextlib
+        import io
+        from tools import atlas_doctor
+        args = atlas_doctor.build_parser().parse_args([
+            "oss", "tests/unity.ttf", "--font-trial"])
+        self.assertTrue(args.font_trial)
+        self.assertFalse(args.run)
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "NOT_AVAILABLE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(atlas_doctor.main([
+                "oss", "tests/unity.ttf", "--font-trial"]), 1)
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "TRIAL_COMPLETE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(atlas_doctor.main([
+                "oss", "tests/unity.ttf", "--font-trial"]), 0)
+        with patch("tools.atlas_doctor_lib.oss_router.trial_fonttools") as trial:
+            payload = atlas_doctor.command_oss(self.root,
+                atlas_doctor.build_parser().parse_args([
+                    "oss", "tests/unity.ttf", "--font-trial", "--run"]))
+        self.assertEqual(payload["status"], "BLOCKED")
+        trial.assert_not_called()
+
     def test_imagehash_cli_errors_are_nonzero_not_fake_success(self):
         import contextlib
         import io
