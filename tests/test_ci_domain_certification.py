@@ -62,6 +62,18 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
+    def test_guide_conformity_tool_has_exact_guide_owner_without_wildcard(self):
+        # A new executable under tools/ must never inherit Guide ownership
+        # just because its name resembles the approved source comparator.
+        source = "tools/atlas_guide_conformity.py"
+        self.assertEqual(owners_for(source), frozenset({"guides"}))
+        plan = self.route([source, "tests/test_atlas_guide_conformity.py"])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertIn("guides", plan["domains"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(owners_for("tools/atlas_guide_conformity_unreviewed.py"))
+
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
                      ".github/pull_request_template.md", "AGENTS.md",
