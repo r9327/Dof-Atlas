@@ -34,7 +34,7 @@
         },
         {
           "kind": "information",
-          "text": "Optionnel : avoir lancé Gelée bien eue auprès d'Emma Tompouce avant le donjon des Gelées royales."
+          "text": "Facultatif : être à l'étape « Gelée bien eue » du Tour du monde d'Emma Tompouce avant la Gelaxième Dimension ; ce donjon demande les quatre Gelées Royales."
         },
         {
           "kind": "information",
@@ -45,11 +45,11 @@
     {
       "source_step_number": 2,
       "title": "Commencer l'enquête sur les quais",
-      "instructions": "Depuis le zaap de Sufokia, parler à Océana pour démarrer la visite des quais puis continuer vers le nord.",
+      "instructions": "Depuis le zaap de Sufokia, parler à Océane pour démarrer la visite des quais puis continuer vers le nord.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retrouver Océana à proximité du zaap de Sufokia.",
+          "text": "Retrouver Océane à proximité du zaap de Sufokia.",
           "coordinates": [
             13,
             26
@@ -57,7 +57,7 @@
         },
         {
           "kind": "talk",
-          "text": "Accepter auprès d'Océana la quête de visite des quais."
+          "text": "Parler à Océane et accepter la quête « Promenade sur les quais »."
         },
         {
           "kind": "travel",
@@ -72,11 +72,11 @@
     {
       "source_step_number": 3,
       "title": "Ouvrir la quête des Gelées",
-      "instructions": "Rencontrer Ferdi McGellan et accepter son travail lié aux Gelées avant de rejoindre la taverne.",
+      "instructions": "Rencontrer Mage Hellan et accepter son travail lié aux Gelées avant de rejoindre la taverne.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Trouver Ferdi McGellan au nord du zaap.",
+          "text": "Trouver Mage Hellan au nord du zaap.",
           "coordinates": [
             13,
             25
@@ -84,7 +84,7 @@
         },
         {
           "kind": "talk",
-          "text": "Demander du travail à Ferdi McGellan et démarrer sa quête concernant les Gelées."
+          "text": "Demander du travail à Mage Hellan, puis accepter « Comment se mettre au jus » (Gelées de la péninsule)."
         },
         {
           "kind": "travel",
@@ -142,7 +142,7 @@
         },
         {
           "kind": "travel",
-          "text": "Rejoindre Fouln Dayre en [9,27].",
+          "text": "Rejoindre Paul Auchon en [9,27].",
           "coordinates": [
             9,
             27
@@ -152,12 +152,12 @@
     },
     {
       "source_step_number": 6,
-      "title": "Commencer l'enquête de Fouln Dayre",
-      "instructions": "Proposer son aide à Fouln Dayre pour ouvrir la quête d'enquête locale avant de revenir aux quais.",
+      "title": "Commencer l'enquête de Paul Auchon",
+      "instructions": "Proposer son aide à Paul Auchon pour ouvrir la quête d'enquête locale avant de revenir aux quais.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rencontrer Fouln Dayre.",
+          "text": "Rencontrer Paul Auchon.",
           "coordinates": [
             9,
             27
@@ -165,7 +165,7 @@
         },
         {
           "kind": "talk",
-          "text": "Questionner Fouln Dayre sur son activité et accepter de mener l'enquête."
+          "text": "Demander à Paul Auchon pourquoi il ne profite pas de la mer pour pêcher : lancer « Investigation embarquée »."
         },
         {
           "kind": "travel",
@@ -246,15 +246,15 @@
         },
         {
           "kind": "talk",
-          "text": "Interroger Jo Raybuchon sur ses produits pour ouvrir sa quête culinaire."
+          "text": "Demander à Joëlle Raiebuchon si elle a quelque chose d'original : lancer « Des étoiles dans l'estomac »."
         },
         {
           "kind": "talk",
-          "text": "Parler à Jake Combes et accepter la mission de chasse aux Scarafeuilles."
+          "text": "Parler à Jemas Kooc et choisir de traquer les Scarafeuilles : lancer « Pattes aux œufs frais »."
         },
         {
           "kind": "talk",
-          "text": "Reparler à Jake Combes pour ouvrir également la quête de collecte des perles."
+          "text": "Reparler à Jemas Kooc et proposer de chercher des perles : lancer « Collier de perles en vinaigrette »."
         },
         {
           "kind": "travel",
@@ -293,5 +293,12 @@
         }
       ]
     }
+  ],
+  "fact_sources": [
+    "https://ganymede-app.com/guides/310",
+    "https://www.dofuserie.com/quetes/promenade-sur-les-quais/",
+    "https://www.dofuserie.com/quetes/investigation-embarquee/",
+    "https://www.dofuserie.com/quetes/pattes-aux-oeufs-frais/",
+    "https://www.dofuserie.com/quetes/collier-de-perles-en-vinaigrette/"
   ]
 }
