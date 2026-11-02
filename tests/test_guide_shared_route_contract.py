@@ -138,6 +138,15 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaises(GuideRouteContractError):
             project_authorized_guide(bad)
 
+    def test_preparation_without_structured_items_is_blocked(self):
+        bad = sample()
+        bad["steps"][0]["actions"].insert(0, {
+            "action_id": "prepare", "kind": "prepare",
+            "text": "Préparer une ressource sans quantité",
+        })
+        with self.assertRaisesRegex(GuideRouteContractError, "explicit item names"):
+            project_authorized_guide(bad)
+
     def test_late_preparation_is_not_silently_reordered(self):
         bad = sample()
         bad["steps"][0]["actions"].append({
@@ -162,6 +171,9 @@ class TestSharedRouteContract(unittest.TestCase):
         })
         first = project_authorized_guide(bad)["steps"][0]
         self.assertEqual(len(first["a_preparer"]), 1)
+        self.assertEqual(first["a_preparer"][0]["name"], "Ressource")
+        self.assertEqual(first["a_preparer"][0]["quantity"], 3)
+        self.assertEqual(first["manual_sections"]["prepare"][0]["source_action_id"], "prepare")
         self.assertNotIn("prepare", [row["source_action_id"] for row in first["manual_lines"]])
         self.assertEqual(first["manual_resource_names"], ["Ressource"])
 
