@@ -97,7 +97,10 @@ def _check_projection(source_id: int, title: str, steps: tuple[dict, ...]) -> di
                     or not isinstance(row.get("text"), str)
                     or not row["text"].endswith(": " + action["text"].strip())):
                 raise ValueError(f"{source_id}:{number}:{index}: action lost or reordered")
-            for item in action.get("items", ()):
+            items = action.get("items") or []
+            if items and row.get("items") != items:
+                raise ValueError(f"{source_id}:{number}:{index}: structured items lost")
+            for item in items:
                 if item.get("name") not in resource_names:
                     raise ValueError(f"{source_id}:{number}:{index}: item lost")
             # Explicit author-provided copy targets must not be silently lost.
