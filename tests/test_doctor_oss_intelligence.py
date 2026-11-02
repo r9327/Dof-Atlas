@@ -63,6 +63,17 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertIn("tools.atlas_doctor perf (single Perf Lab)",
                       result["native_routes"])
 
+    def test_scope_policy_reaches_all_30_nonexcluded_candidates(self):
+        from tools.atlas_doctor_lib.oss_intelligence import _SCOPES
+        candidates = {key for values in _SCOPES.values() for key in values}
+        expected = {f"ATOSS-{n:02d}" for n in range(1, 26)}
+        expected.update(f"AT-SUP-{n:02d}" for n in range(1, 6))
+        self.assertEqual(expected - candidates, set())
+        self.assertTrue({"ATOSS-26", "ATOSS-27", "ATOSS-28", "ATOSS-29"}.isdisjoint(candidates))
+        self.assertIn("test_tools", classify_scope(["tests/test_doctor_auto_oss.py"]))
+        self.assertIn("agent_eval", classify_scope(["tools/atlas_doctor_lib/agent_protocol.py"]))
+        self.assertIn("perf", classify_scope(["tools/benchmark_phase8_memory.py"]))
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
