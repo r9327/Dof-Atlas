@@ -6,12 +6,12 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    20
+    34
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2229",
-  "evidence_scope": "source_visible_1_to_10_plus_independently_sourced_nimotopia_quest_facts_11_to_20_source_parity_unverified",
+  "evidence_scope": "first_ten_source_visible_plus_independently_sourced_quest_facts_11_to_34_unverified_ganymede_step_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -626,6 +626,456 @@
           "text": "Les trois métiers Bricoleur, Alchimiste et Forgeron de niveau 190 sont nécessaires pour les fabrications suivantes ; on peut faire appel à des artisans."
         }
       ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Voler le porte-chacha et poursuivre les préparatifs",
+      "instructions": "Près du camp, récupérer le porte-chacha demandé par Bérénice Corny. Il s'agit d'un objet de quête à voler dans le sac situé en hauteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver le sac du camp en [-66,33].",
+          "coordinates": [
+            -66,
+            33
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le sac en haut de la carte pour obtenir 1 Porte-chacha."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Chasram et Narco Leptik en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Acheter le plan de piège et le gaz soporifique",
+      "instructions": "Deux vendeurs sur la même carte fournissent des objets pour des quêtes parallèles de Nimotopia. Les coûts sont distincts et ne doivent pas être confondus.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les marchands du camp en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Acheter à Chasram le Plan de Pièges à Chasseur pour 100 kamas."
+        },
+        {
+          "kind": "talk",
+          "text": "Acheter à Narco Leptik un Flacon de Gaz Soporifique pour 20 kamas."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le plan, le flacon et 7 Bois de Bambou Sacré, 7 Bières d'Amakna pour le futur coffre de pièges."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller voir le Marin bougon en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Obtenir quatre cages de transport",
+      "instructions": "Le Marin bougon accepte un échange de bois et de minerais pour fournir les cages demandées par l'éthologue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler au Marin bougon en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 32 Bois d'Orme et 16 Dolomites pour obtenir 4 Cages de Transport."
+        },
+        {
+          "kind": "information",
+          "text": "Le matériel sert à « Nos amies les bêtes » : ne pas l'utiliser ni le vendre avant la capture."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre chez Dentel Castor en [-65,29].",
+          "coordinates": [
+            -65,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Interroger Dentel Castor sur le Jabeurwookie",
+      "instructions": "La piste de l'Épée Vorpale conduit à Dentel Castor. Le convaincre que la menace concerne aussi le dragon pour qu'il indique où se trouve Bujbuj Oiseau.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Dentel Castor en [-65,29].",
+          "coordinates": [
+            -65,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger sur le chasseur et l'accès à la vallée de Bujbuj Oiseau."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Domoizelle Craintive en [-67,28].",
+          "coordinates": [
+            -67,
+            28
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Rencontrer Bujbuj Oiseau déguisée",
+      "instructions": "La Domoizelle Craintive cache l'identité de Bujbuj Oiseau. Lui demander si le chasseur possédant l'épée est venu chercher le Jabeurwookie.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à la Domoizelle Craintive en [-67,28].",
+          "coordinates": [
+            -67,
+            28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui demander des nouvelles du chasseur ; elle confirme qu'il est déjà reparti."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner chez Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Préparer le leurre du Jabeurwookie",
+      "instructions": "Armelle explique que l'on peut attirer Peter Bankersnatch grâce à un banquier factice. Il faut aller demander cette fabrication à Pacyssureur Dellila.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Expliquer l'échec de la piste Bujbuj Oiseau et demander comment attirer le prédateur."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller voir Pacyssureur Dellila en [-64,32].",
+          "coordinates": [
+            -64,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "title": "Commander le Banquier empaillé",
+      "instructions": "Le fabricant demande plusieurs ressources, dont certaines ne se trouvent que sur les monstres et les cartes de l'île.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Pacyssureur Dellila en [-64,32].",
+          "coordinates": [
+            -64,
+            32
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander la fabrication d'un Banquier empaillé pour « Shyriiwook »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 4 Sacs de Plumes, 10 Cailloux dorés et 5 Papiers toilette."
+        },
+        {
+          "kind": "information",
+          "text": "Les sacs tombent sur les Chevrotines ; les cailloux se récupèrent aux Cailloux Terreux en [-66,29], après un combat seul contre une Salah Mandrine."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le camp des chasseurs en [-63,32].",
+          "coordinates": [
+            -63,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "title": "Récupérer le gourdin et les ressources des chasseurs",
+      "instructions": "Fouiller le camp pour « Nos amies les bêtes » et « Shyriiwook ». Les ressources obtenues sur les monstres sont à conserver jusqu'au retour auprès des deux donneurs de quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le camp en [-63,32].",
+          "coordinates": [
+            -63,
+            32
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur les débris derrière la tente et voler 1 Gourdin de Chassouilleur."
+        },
+        {
+          "kind": "interact",
+          "text": "Récupérer les 5 Papiers toilette au sol si ce n'est pas déjà fait."
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre au moins 4 Chevrotines pour obtenir les 4 Sacs de Plumes du Banquier empaillé."
+        },
+        {
+          "kind": "fight",
+          "text": "Collecter 8 Fléchettes tranquillisantes sur les monstres de Nimotopia pour « Nos amies les bêtes »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "title": "Présenter le matériel à Bérénice",
+      "instructions": "La spécialiste vérifie les fléchettes, cages et accessoires pour capturer les bêtes qui se comportent anormalement.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Présenter les Cages de Transport, le Flacon de Gaz Soporifique, les fléchettes, le Porte-chacha et le Gourdin."
+        },
+        {
+          "kind": "information",
+          "text": "Si le matériel n'est pas complet, poursuivre la collecte avant de valider cette étape."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la créature Tcha Chacha en [-66,29].",
+          "coordinates": [
+            -66,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "title": "Capturer Tcha Chacha en solo",
+      "instructions": "Pour « Nos amies les bêtes », engager seul Tcha Chacha. Sa capture demande un combat propre au personnage suivi.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Tcha Chacha en [-66,29].",
+          "coordinates": [
+            -66,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Provoquer Tcha Chacha pour tenter de le capturer."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre seul Tcha Chacha et obtenir sa cage de capture."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Noémie Souris en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "title": "Capturer le groupe de Noémie Souris",
+      "instructions": "La souris a déjà capturé une proie ; il faut engager son groupe. Ce combat peut être accompli à plusieurs si chacun a la quête au bon stade.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Noémie Souris en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Essayer de capturer plusieurs créatures en lui parlant."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Noémie Souris et son groupe ; combat pouvant être fait à plusieurs."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver les 4 Cages de Transport Occupées et la cage de Tcha Chacha pour Bérénice."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "title": "Remettre les cages à Bérénice",
+      "instructions": "À l'issue des combats, l'éthologue constate les mauvais traitements subis par les animaux et soupçonne les chasseurs.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 4 Cages de Transport Occupées et 1 Porte-Tcha Chacha."
+        },
+        {
+          "kind": "talk",
+          "text": "Raconter les attaques et accepter d'enquêter sur les chasseurs."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre au port de Nimotopia en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "title": "Infiltrer le port en déguisement de Crâmbo",
+      "instructions": "Le Marin bougon refuse de révéler la provenance des gliglis aux inconnus. Adopter l'apparence d'un Crâmbo, puis interroger le marin, Bébert et Gérard Barbak.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les chasseurs et le Marin bougon en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre des Crâmbos jusqu'à obtenir 1 Déguisement de Crâmbo si vous ne le possédez pas encore."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Déguisement de Crâmbo pour se faire passer pour un chasseur."
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger le Marin bougon puis convaincre Bébert avec la Peluche de bouftou arc-en-ciel obtenue dans la quête précédente."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Gérard Barbak d'où provient la viande de gligli."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à Bonta auprès de Robert Gine en [-31,-55].",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "title": "Achever Frais de porc inclus à Bonta",
+      "instructions": "Rapporter à l'inspecteur la véritable origine de la viande. La réponse dépend de l'alignement du personnage : les deux branches peuvent terminer la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Robert Gine en [-31,-55].",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Raconter l'enquête menée sur Nimotopia et les tromperies sur la viande."
+        },
+        {
+          "kind": "information",
+          "text": "Choisir de mentir si le personnage est Brâkmarien, ou de raconter la vérité s'il est Bontarien ; ne pas imposer une réponse commune à toute l'équipe."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier la fin de « Frais de porc inclus » dans le journal du personnage."
+        },
+        {
+          "kind": "travel",
+          "text": "Poursuivre la route dans Bonta en [-32,-54].",
+          "coordinates": [
+            -32,
+            -54
+          ]
+        }
+      ]
     }
   ],
   "fact_sources": [
@@ -637,6 +1087,8 @@
   "further_review_needed": [
     "Review original Ganymède 2229 stages 11-20 for exact narrative ordering; independent quest guides only prove factual ingredients.",
     "Check whether the Gulli Ver quest starts before or after the solo Léo Truche fight for each character and account for possible quest splits.",
-    "Verify Nimotopia map IDs and stage-19 item placement under Unity."
+    "Verify Nimotopia map IDs and stage-19 item placement under Unity.",
+    "Cross-check source 2229 steps 21-34 for exact order, overlap of parallel Shyriiwook, Nos amies les bêtes, À armes égales and Frais de porc inclus.",
+    "Verify whether the capture cages and disguises appear for every player individually; never globally certify completion."
   ]
 }
