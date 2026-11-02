@@ -247,20 +247,42 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
     expected = (["ruff"] if "python" in (selection.get("scopes") or []) else []) + (
         ["zizmor"] if "workflow" in (selection.get("scopes") or []) else [])
     summary = (advisory or {}).get("execution_summary") or {}
+    reported_rows = (advisory or {}).get("execution_results", [])
+    if not isinstance(reported_rows, list):
+        reported_rows = []
     witnessed = {
         row.get("tool"): row.get("status")
-        for row in (advisory or {}).get("execution_results", [])
+        for row in reported_rows
         if isinstance(row, dict) and isinstance(row.get("tool"), str)
     }
+    # The status alone is not a witness. Only the canonical adapter can
+    # attest execution, and the exact named tools, integrity snapshot and
+    # complete summary must agree. In particular, a mocked CLEAN/partial
+    # report must not become "all_executed" in the agent instructions.
+    attested = (
+        action == "check"
+        and (advisory or {}).get("source") == "tools.atlas_doctor_lib.oss_router.route_oss"
+        and (advisory or {}).get("status") == "ADVISORY_ONLY"
+        and (advisory or {}).get("input_integrity_verified") is True
+        and (advisory or {}).get("files_modified") is False
+        and summary.get("status") == "COMPLETE"
+        and summary.get("expected_tools") == expected
+        and len(reported_rows) == len(expected)
+        and all(isinstance(row, dict) and row.get("tool") == expected[i]
+                for i, row in enumerate(reported_rows))
+    )
     tools = []
     for name in expected:
         observed = witnessed.get(name)
+        executed = bool(attested and observed in {"CLEAN", "FINDINGS"})
         tools.append({
             "name": name,
             "selected": True,
-            "status": observed if observed else "NOT_RUN",
-            "executed": observed in {"CLEAN", "FINDINGS"},
-            "missing_or_incomplete": observed not in {"CLEAN", "FINDINGS"},
+            "status": ("UNVERIFIED" if observed in {"CLEAN", "FINDINGS"} and not executed
+                       else observed or "NOT_RUN"),
+            "reported_status": observed,
+            "executed": executed,
+            "missing_or_incomplete": not executed,
         })
     blockers = [
         {"tool": row["name"], "status": row["status"]}
@@ -283,6 +305,7 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
             "expected_tools": expected,
             "tools": tools,
             "all_executed": bool(expected) and not blockers,
+            "witness_integrity_verified": bool(attested),
             "coverage_incomplete": truncated,
             "reported_execution_summary_status": summary.get("status", "NOT_RUN"),
             "gaps": blockers,
