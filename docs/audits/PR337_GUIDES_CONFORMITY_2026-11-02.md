@@ -475,3 +475,66 @@ grands guides optimisés ni du moteur de validation.
 certifiés, 5/95 brouillons entiers non activés, 75/95 guides à
 rédiger encore intégralement, 0/95 certifié en jeu/Windows.**
 PR Draft, `CHANGES REQUIRED`, aucune CI finale ou fusion lancée.
+
+## Correction du critère « guide fait » — certification individuelle préalable
+
+**Décision utilisateur reconfirmée le 2 novembre 2026 : 1 guide fait =
+1 guide certifié à 100 % avant le suivant.**
+
+Le développement précédent a **violé l'ordre d'acceptation** en rédigeant
+cinq autres parcours après quinze fichiers de consignes complètes
+sans preuve de certification par guide. Il est **interdit** de présenter
+les « 20 contenus rédigés » comme « 20 guides terminés » : la seule
+mesure de fin est la certification intégrale individuelle accompagnée
+de preuves vérifiables au SHA exact.
+
+### Audit documentaire des 20 contenus présents
+
+- **15 fichiers de consignes publiés** (schéma complet à contrôler
+  individuellement) :
+  `2219`, `2220`, `2224`, `2227`, `2240`, `2247`,
+  `2248`, `2252`, `2259`, `2273`, `2274`, `2284`,
+  `2285`, `2290`, `2590`.
+  Les **15/15 fichiers lus au HEAD `ff70773`** ne contiennent
+  **aucune preuve individuelle** (`source_parity_certified`,
+  `gameplay_certified`, SHA de validation Windows ou compte rendu
+  de certification par guide). Un JSON structurellement complet ne
+  signifie pas « certifié ».
+- **5 fichiers brouillons**, `2204`, `2206`, `2228`, `2229`,
+  `2235`, explicitement `FULL_DRAFT_NOT_PLAYABLE` et
+  `source_parity_certified=false` / `gameplay_certified=false`,
+  tous hors chargeur d'instructions actives.
+
+| État de couverture au 02/11/2026 | Nombre |
+| --- | ---: |
+| Consignes complètes existantes, sans certificat individuel retrouvé | 15 |
+| Nouveaux brouillons à 100 % d'étapes, non certifiés et hors lecteur | 5 |
+| Autres guides sans contenu entièrement rédigé | 75 |
+| **Guides certifiés à 100 % avec preuves identifiées** | **0/95** |
+
+**Blocages réels à lever, un guide à la fois :**
+parité de toutes les étapes d'origine ; justesse des PNJ, objets,
+préparatifs, combats et déplacements ; UI universelle des guides
+optimisés et validation propre au parcours ; contrôles réels de
+progression et sauvegarde par `character:<id_dofus>` ; tests
+ciblés Python/Qt, exécution sous Windows et DOFUS Unity, preuve
+de fonctionnement sur le HEAD exact. Les tests rédigés mais
+**NOT_RUN** ne valent pas PASS. Aucune certification Windows/Unity
+n'a été produite dans cette séance.
+
+**Action immédiate de workflow :** suspendre la rédaction des 75
+autres, reprendre les 20 contenus présents et ne passer au guide
+suivant qu'après certification intégrale et audit du précédent.
+Le contrat canonique a été corrigé dans
+`docs/guides/GANYMEDE_AUTHORING.md` au commit `c0f6ee9`.
+Cette règle ne contourne ni `AGENTS.md` (PR Draft avant
+certification de la phase finale), ni `PHASE_CERTIFICATION.md`.
+Aucun changement au lecteur, aux données persistantes ou aux deux
+grands guides optimisés.
+
+**Audit de la règle après modification :** portée limitée à la PR
+#337 et à ses consignes éditoriales, pas de nouvel outil ni de
+workflow CI, aucune fausse attestation ou permission ; compatibilité
+avec les garde-fous existants et le refus des guides incomplets.
+**Verdict logique du correctif de procédure : REVIEW OK ;
+état de livraison globale : CHANGES REQUIRED.**
