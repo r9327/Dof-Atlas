@@ -18,15 +18,27 @@
     {
       "source_step_number": 1,
       "title": "Repérer les quêtes de Sufokia",
-      "instructions": "Le parcours commence par les succès d'introduction des quais et des habitants de Sufokia. Les donjons des Scarafeuilles, Forgerons et Gelées sont des détours facultatifs à combiner avec d'autres quêtes si nécessaire.",
+      "instructions": "À partir du niveau 40 environ, ce parcours regroupe les succès « Le bon air de la Mer d'Asse » (5 quêtes) et « Sufokons ensemble » (6 quêtes). Les donjons Scarafeuilles, Forgerons et Gelaxième Dimension peuvent être faits pendant le trajet, mais restent facultatifs.",
       "actions": [
         {
-          "kind": "information",
-          "text": "Prévoir de suivre deux séries de quêtes à Sufokia, avec plusieurs enquêtes ouvertes en parallèle."
+          "kind": "prepare",
+          "text": "Niveau conseillé : 40 ou plus ; préparer de la place pour les ressources obtenues en chemin."
         },
         {
           "kind": "information",
-          "text": "Garder en option les donjons Scarafeuilles, Forgerons et Gelées selon les quêtes de tour du monde et d'alignement du personnage."
+          "text": "Succès visés : Le bon air de la Mer d'Asse (5 quêtes) et Sufokons ensemble (6 quêtes)."
+        },
+        {
+          "kind": "information",
+          "text": "Pour rentabiliser le passage : avancer Les sbires du maître jusqu'au donjon des Scarafeuilles, qui débloque ensuite celui des Forgerons."
+        },
+        {
+          "kind": "information",
+          "text": "Optionnel : avoir lancé Gelée bien eue auprès d'Emma Tompouce avant le donjon des Gelées royales."
+        },
+        {
+          "kind": "information",
+          "text": "Optionnel : alignement Bonta au stade 12 si le donjon des Forgerons est attendu ; Brâkmar au stade 19 si la Gelaxième Dimension est attendue."
         }
       ]
     },
