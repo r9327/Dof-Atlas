@@ -67,11 +67,14 @@ class ModularDomainRoutingTests(unittest.TestCase):
         # just because its name resembles the approved source comparator.
         source = "tools/atlas_guide_conformity.py"
         creator = "tools/atlas_guide_importer.py"
+        publisher = "tools/atlas_guide_candidate_store.py"
         self.assertEqual(owners_for(source), frozenset({"guides"}))
         self.assertEqual(owners_for(creator), frozenset({"guides"}))
+        self.assertEqual(owners_for(publisher), frozenset({"guides"}))
         plan = self.route([
-            source, creator, "tests/test_atlas_guide_conformity.py",
+            source, creator, publisher, "tests/test_atlas_guide_conformity.py",
             "tests/test_atlas_guide_importer_preview.py",
+            "tests/test_atlas_guide_candidate_store.py",
         ])
         self.assertEqual(plan["status"], "READY_TO_EXECUTE")
         self.assertEqual(plan["unknown_paths"], [])
