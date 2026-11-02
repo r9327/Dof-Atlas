@@ -12,7 +12,8 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   Le routeur lit les outils `automation_ready` du catalogue canonique
   pour *recommander*, sans jamais les invoquer à leur place.
 - **Ruff (ATOSS-20)** : diagnostic Python sélectionné sur périmètre, exécuté si présent lors des checks autorisés,
-  **à la demande uniquement**, sur au plus 16 fichiers Python explicites.
+  **automatiquement pendant `agent check --run-tests` si installé**, ou par
+  `doctor oss --run` explicite, sur au plus 16 fichiers Python explicites.
   Le lancement utilise le Python actif, sans install automatique,
   sans exécution d'un chemin PATH, sans cache, sans correctif et avec timeout.
   Les règles sont isolées de la configuration locale. La version observée
@@ -130,11 +131,12 @@ Exécution opt-in si le paquet Ruff est *déjà* installé :
 py -3.13 -m tools.atlas_doctor oss tools/tool_catalog.py --run --json
 ```
 
-L'agent Doctor peut également déclencher ce diagnostic **pendant son
-`check`**, mais seulement avec un opt-in explicite :
+Pendant `agent check --run-tests`, Doctor active automatiquement les
+diagnostics approuvés et déjà disponibles. `--run-oss` reste un opt-in
+explicite pour un check sans exécution des tests :
 
 ```powershell
-py -3.13 -m tools.atlas_doctor agent check tools/tool_catalog.py --run-tests --run-oss --json
+py -3.13 -m tools.atlas_doctor agent check tools/tool_catalog.py --run-tests --json
 ```
 
 Le résultat figure sous `oss_advisory` ; il ne change jamais le
@@ -179,7 +181,8 @@ py -3.13 -X utf8 -m tools.atlas_doctor oss tools/atlas_doctor_lib/oss_router.py 
 ```
 
 Cette commande ne télécharge et n'installe **rien**. Elle exige Ruff
-installé dans le Python actif et zizmor accessible dans PATH ; un outil
+installé dans le Python actif et zizmor accessible via PATH ou le dossier
+`Scripts` du Python user-site Windows ; un outil
 manquant reste `REVIEW` avec un code retour non nul. Elle exécute les
 deux diagnostics en lecture seule, constate leurs réponses JSON, interroge
 leur version réelle et compare les empreintes SHA-256 des fichiers

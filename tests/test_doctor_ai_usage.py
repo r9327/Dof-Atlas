@@ -113,6 +113,27 @@ class DoctorAiUsageContractTests(unittest.TestCase):
         self.assertIn("ai_tool_workflow", output)
         self.assertIn("required_phases", output["ai_tool_workflow"])
 
+
+    def test_no_oss_override_remains_not_run_and_never_invokes_tools(self):
+        args = build_parser().parse_args(
+            ["agent", "check", "tools/probe.py", "--run-tests", "--no-oss"])
+        core = {"status": "PASS", "exit_code": 0}
+        with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
+                    return_value=core),
+              patch("tools.atlas_doctor_lib.oss_router._open_source_inventory",
+                    return_value={"status": "REVIEW", "candidates": [],
+                                  "supplemental": []}),
+              patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    side_effect=AssertionError("unexpected scanner execution"))):
+            output = command_agent(self.root, args)
+        self.assertEqual(output["status"], "PASS")
+        self.assertEqual(output["oss_advisory"]["status"], "NOT_RUN")
+        self.assertEqual(
+            output["ai_tool_workflow"]["approved_oss_execution"]["tools"][0]["status"],
+            "NOT_RUN")
+        self.assertFalse(
+            output["ai_tool_workflow"]["approved_oss_execution"]["all_executed"])
+
     def test_zizmor_python_user_scripts_on_windows_without_path_changes(self):
         scripts = self.root / "Scripts"
         scripts.mkdir()

@@ -44,7 +44,17 @@ py -3.13 -X utf8 -m tools.atlas_doctor agent validate tools/atlas_doctor.py --js
 ```
 
 Les fichiers ci-dessus sont des exemples à remplacer par les véritables
-chemins du lot. Le champ `ai_tool_workflow` indique le circuit obligatoire,
+chemins du lot. Le cycle canonique est `agent plan` →
+`agent check --run-tests` → `agent validate`. Choisir les outils spécialisés
+via le catalogue canonique, pas par une liste parallèle de scripts :
+
+```powershell
+py -3.13 -m tools.tool_catalog --preferred-only --safe-only --ready-only --json
+```
+
+Lire `tools/skills/dofus-atlas-tools/SKILL.md` et les `TOOL_SPEC` des outils
+réellement retenus. `automation_ready` autorise leur candidature, pas une
+attestation d'exécution ; seules les preuves de l'owner comptent. Le champ `ai_tool_workflow` indique le circuit obligatoire,
 les spécialistes natifs pertinents, les résultats OSS prouvés et les lacunes.
 `oss_selection` reste une recommandation : elle ne prouve aucune exécution.
 Ne jamais confondre `ai_tool_workflow` et un certificat de Phase.
