@@ -152,6 +152,24 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         self.assertTrue(expected.issubset(found))
 
 
+    def test_every_source_snapshot_loads_from_its_catalogue_id(self):
+        # Metadata and offline observations must cover all 95 guides, even
+        # where a historic descriptive filename replaces the numeric one.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings, load_ganymede_local_observations,
+        )
+
+        listings = load_ganymede_listings()
+        self.assertEqual(len(listings), 95)
+        for entry in listings:
+            with self.subTest(source_guide_id=entry.source_id):
+                observations = load_ganymede_local_observations(entry)
+                self.assertEqual(len(observations), entry.step_count)
+                self.assertEqual(
+                    [row["source_step_number"] for row in observations],
+                    list(range(1, entry.step_count + 1)),
+                )
+
     def test_otomai_one_source_crossing_fights_begin_at_step_four(self):
         # Source GP6/MG6: embark at step 3; the three battles belong to step 4.
         # This narrow regression does not certify the other route objectives.
