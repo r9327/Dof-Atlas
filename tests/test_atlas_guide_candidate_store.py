@@ -233,6 +233,31 @@ class CandidateStoreTests(unittest.TestCase):
                 publish_candidate(malformed, root=self.root)
         self.assertFalse(self.root.exists())
 
+    def test_ui_projection_cannot_drop_rewrite_or_hide_source_action(self) -> None:
+        for change in ("missing_row", "missing_line", "wrong_text",
+                       "wrong_action_id", "wrong_source_action"):
+            malformed = copy.deepcopy(self.preview)
+            stage = malformed["routes"][0]["steps"][0]
+            rows = stage["manual_sections"]["now"]
+            if change == "missing_row":
+                rows.clear()
+            elif change == "missing_line":
+                stage["manual_lines"].clear()
+            elif change == "wrong_text":
+                rows[0]["text"] = "Not in source"
+                stage["manual_lines"][0]["text"] = "Not in source"
+            elif change == "wrong_action_id":
+                rows[0]["source_action_id"] = "rogue"
+                stage["manual_lines"][0]["source_action_id"] = "rogue"
+            else:
+                rows[0]["source_action"]["text"] = "falsified"
+                stage["manual_lines"][0]["source_action"]["text"] = "falsified"
+            with self.subTest(change=change), self.assertRaises(
+                GuideRouteContractError
+            ):
+                publish_candidate(malformed, root=self.root)
+        self.assertFalse(self.root.exists())
+
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
         (self.root / "sensitive-user-data.json").write_text("{}")
