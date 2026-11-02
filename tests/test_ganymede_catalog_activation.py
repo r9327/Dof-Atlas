@@ -258,5 +258,61 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
                 self.assertIn("aucun repli legacy", provider.validation_errors[0])
 
 
+    def test_optimized_and_source_guide_validation_remain_isolated(self) -> None:
+        """One progress storage API must not imply one validation policy."""
+        from app.modules.encyclopedia.services.guide_progress_service import (
+            GuideProgressService,
+        )
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "guide_progress.json"
+            progress = GuideProgressService(path)
+            atlas_success = "guide_complet"
+            atlas_sylvestre = "dofus_sylvestre"
+            source_otomai = "ganymede_source_2219"
+            source_sylvestre = "ganymede_source_2290"
+            one = "character:101"
+            two = "character:202"
+
+            # The common persistence service stores explicit completion only:
+            # Ganymede source progress never completes an optimized guide.
+            self.assertTrue(progress.set_manual_step_completed(
+                one, source_otomai, "ganymede_2219_step_0001", True,
+            ))
+            self.assertTrue(progress.is_manual_step_completed(
+                one, source_otomai, "ganymede_2219_step_0001",
+            ))
+            for character, guide in (
+                (two, source_otomai),
+                (one, atlas_success),
+                (one, atlas_sylvestre),
+                (one, source_sylvestre),
+            ):
+                with self.subTest(character=character, guide=guide):
+                    self.assertFalse(progress.manual_steps(character, guide))
+
+            # Even when a guide has an identically named step, one guide's
+            # validation cannot leak into the other guide or character.
+            self.assertTrue(progress.set_manual_step_completed(
+                one, source_sylvestre, "ganymede_2219_step_0001", True,
+            ))
+            self.assertTrue(progress.set_manual_step_completed(
+                two, source_otomai, "ganymede_2219_step_0001", True,
+            ))
+            self.assertTrue(progress.set_manual_step_completed(
+                one, source_otomai, "ganymede_2219_step_0001", False,
+            ))
+            reopened = GuideProgressService(path)
+            self.assertFalse(reopened.manual_steps(one, source_otomai))
+            self.assertTrue(reopened.is_manual_step_completed(
+                one, source_sylvestre, "ganymede_2219_step_0001",
+            ))
+            self.assertTrue(reopened.is_manual_step_completed(
+                two, source_otomai, "ganymede_2219_step_0001",
+            ))
+            self.assertFalse(reopened.manual_steps(one, atlas_success))
+            self.assertFalse(reopened.manual_steps(one, atlas_sylvestre))
+
+
 if __name__ == "__main__":
     unittest.main()
