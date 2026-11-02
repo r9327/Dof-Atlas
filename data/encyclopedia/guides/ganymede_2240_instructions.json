@@ -1,0 +1,610 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2240,
+  "source_url": "https://ganymede-app.com/guides/2240",
+  "expected_source_step_count": 27,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independent_xelorium_quest_facts_plus_local_step_coordinates_no_editorial_parity_or_live_play_certification",
+  "fact_sources": [
+    "https://www.dofuspourlesnoobs.com/xeacutelorium.html",
+    "https://www.dofuspourlesnoobs.com/anomalies-temporelles.html",
+    "https://www.dofuspourlesnoobs.com/cest-ton-destin.html",
+    "https://www.dofuspourlesnoobs.com/retour-vers-le-preacutesent.html",
+    "https://www.dofuspourlesnoobs.com/prisonniers-du-temps.html",
+    "https://www.dofuspourlesnoobs.com/meacutegalithe-de-fraktale.html"
+  ],
+  "completion_note": "27 étapes originales du succès « Les temps qui courent » ; jeu Windows et parité exacte à la source restent à valider.",
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer Les temps qui courent",
+      "instructions": "La première tournée du Xélorium regroupe « Anomalies temporelles », « C'est ton destin », « Retour vers le présent » et « Prisonniers du temps ». Prépare les montres pour voyager entre les époques, un donjon Mégalithe de Fraktale et les ressources des premières quêtes.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Prévoir 1 Pétale de Rose Démoniaque, 1 Huile de Tournesol Sauvage et 1 Noix de Kokoko."
+        },
+        {
+          "kind": "prepare",
+          "text": "Préparer un accès au Mégalithe de Fraktale et deux montres temporelles pour passer d'une époque à l'autre."
+        },
+        {
+          "kind": "information",
+          "text": "La dimension se visite via un portail depuis la Tour des Voyageurs Dimensionnels."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Prendre contact avec l'avant-poste",
+      "instructions": "Dans les Chemins d'hier, rends-toi à l'avant-poste [1,6]. La Caporale Tarte lance « Anomalies temporelles » et Doc Émiette Borgne est le responsable de plusieurs autres enquêtes du même succès.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'avant-poste des Chemins d'hier.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Anomalies temporelles » auprès de la Caporale Tarte."
+        },
+        {
+          "kind": "talk",
+          "text": "Repérer Doc Émiette Borgne pour les enquêtes suivantes."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Assurer l'accès au Xélorium",
+      "instructions": "Si tu dois ressortir pour des composants, utilise la Tour des Voyageurs Dimensionnels en [-22,-24]. Les montres rapide et lente modifient l'époque de la carte depuis l'extérieur des bâtiments ; elles ne sont pas des potions de rappel ordinaires.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Passer par la Tour des Voyageurs Dimensionnels pour retrouver le portail.",
+          "coordinates": [
+            -22,
+            -24
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver les montres destinées aux changements d'époque."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir à l'avant-poste lorsque l'accès est rétabli.",
+          "coordinates": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Ouvrir C'est ton destin et récolter le premier œuf",
+      "instructions": "À l'avant-poste, Doc Émiette Borgne demande des œufs d'araignée temporelle pour « C'est ton destin ». Cherche le premier en [5,6] ; chaque œuf ramassé disparaît pour tous pendant quelques minutes.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « C'est ton destin » auprès de Doc Émiette Borgne.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Aller chercher le premier œuf de quête.",
+          "coordinates": [
+            5,
+            6
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser l'œuf d'araignée du temps s'il est présent."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Deuxième œuf de l'araignée du temps",
+      "instructions": "En [1,7], récupère le prochain œuf. Si un autre joueur l'a pris, change de carte plutôt que d'attendre sans rien faire ; un emplacement peut servir plusieurs fois après repop.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le deuxième site de ponte.",
+          "coordinates": [
+            1,
+            7
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Récupérer l'œuf de quête sur la carte."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Troisième œuf de l'araignée du temps",
+      "instructions": "En [2,5], inspecte les indices du nid d'araignée temporelle pour collecter un troisième œuf.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller au troisième nid.",
+          "coordinates": [
+            2,
+            5
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser le troisième œuf pour Doc Émiette Borgne."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Quatrième œuf de l'araignée du temps",
+      "instructions": "En [3,5], cherche l'œuf accessible sur la carte puis poursuis immédiatement la collecte.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre sur la quatrième carte.",
+          "coordinates": [
+            3,
+            5
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser l'œuf s'il est réapparu."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Cinquième œuf de l'araignée du temps",
+      "instructions": "En [3,6], termine la collecte des cinq œufs. Les objets sont partagés entre joueurs au niveau de l'interaction ; les repops permettent de compléter les compteurs si nécessaire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre la dernière carte du circuit.",
+          "coordinates": [
+            3,
+            6
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Collecter le cinquième œuf de quête."
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Vérifier les cinq œufs puis préparer les stabilisateurs",
+      "instructions": "Après le circuit [5,6] → [1,7] → [2,5] → [3,5] → [3,6], assure-toi d'avoir cinq œufs puis retourne chez Doc. Prépare ensuite « Anomalies temporelles » : l'agent Nick Couteau a besoin de protection lors du montage du stabilisateur.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier que cinq œufs d'araignée du temps sont disponibles."
+        },
+        {
+          "kind": "talk",
+          "text": "Livrer les œufs à Doc Émiette Borgne pour conclure « C'est ton destin »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Nick Couteau pour la mission de stabilisateur.",
+          "coordinates": [
+            2,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Protéger Nick Couteau",
+      "instructions": "L'agent Nick Couteau est en [2,5]. Pendant le dialogue, des Xélomorphes l'attaquent ; défendre l'agent permet d'obtenir un sablier cassé et deux Bracelets de Nick Couteau. La place de Nick occupe une position dans le combat de groupe.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Demander à Nick Couteau son besoin de protection.",
+          "coordinates": [
+            2,
+            5
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Défendre Nick face au Segmantidiot et aux Xélomorphes, sans dépasser sept joueurs avec l'agent."
+        },
+        {
+          "kind": "prepare",
+          "text": "Récupérer les Bracelets de Nick Couteau."
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Renvoyer les intrus du passé",
+      "instructions": "Après la défense du stabilisateur, des créatures venues d'un autre temps occupent les environs. Rejoins les Grozilla du passé, puis utilise les bracelets remis par Nick pour les renvoyer à leur époque.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'emplacement des anomalies signalées par Nick.",
+          "coordinates": [
+            2,
+            7
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Utiliser les Bracelets de Nick Couteau sur les créatures revenues du passé."
+        },
+        {
+          "kind": "talk",
+          "text": "Retourner informer Nick de la résolution de l'anomalie."
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Accepter Retour vers le présent",
+      "instructions": "Retourne à l'avant-poste [1,6] : confirme les stabilisateurs à la Caporale Tarte, puis interroge Doc Émiette Borgne. Il lance « Retour vers le présent » et demande l'aide du Docteur Hou ainsi que des pièces du Major Qiu.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Caporale Tarte puis Doc Émiette Borgne.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Faire valider « Anomalies temporelles »."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Retour vers le présent » et la collecte des pièces détachées."
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Explorer la zone des stabilisateurs",
+      "instructions": "Le déplacement dans les Chemins d'hier conduit à des monstres Xélomorphes et des stabilisateurs. Pour les quêtes de Doc, conserve le journal ouvert pour distinguer les fragments de mémoire des ressources de confection des montres.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Examiner la zone de stabilisateurs des Chemins d'hier.",
+          "coordinates": [
+            2,
+            7
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les compteurs de fragments de mémoire avant de déplacer le personnage."
+        },
+        {
+          "kind": "travel",
+          "text": "Passer par les chemins de la dimension.",
+          "coordinates": [
+            4,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Examiner la transition temporelle",
+      "instructions": "L'horlogerie du Xélorium fait correspondre une même carte à plusieurs époques. Pour rejoindre les agents de quête, emploie les montres en dehors des bâtiments et utilise le point [4,4] comme repère de circuit.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre le repère temporel des Chemins d'hier.",
+          "coordinates": [
+            4,
+            4
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser la montre correspondant à l'époque demandée par la quête, uniquement dehors."
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Continuer les recherches de l'avant-poste",
+      "instructions": "Depuis [4,4], retourne vers [4,5] pour regagner les agents et le circuit des Xélomorphes. Si tu as obtenu une quête de stabilisateur, termine l'interaction indiquée dans le journal avant le retour.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Revenir vers le trajet de l'avant-poste.",
+          "coordinates": [
+            4,
+            5
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Compléter les interactions de stabilisateur requises dans le journal."
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Ramasser des fragments de mémoire",
+      "instructions": "Les monstres Xélomorphes des Chemins d'hier donnent des fragments de mémoire pour « Retour vers le présent ». Rassemble dix fragments après avoir remis les pièces à Doc ; leur objectif est garanti pendant la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le secteur de chasse des Chemins d'hier.",
+          "coordinates": [
+            2,
+            5
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les Xélomorphes nécessaires pour obtenir dix fragments de mémoire."
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler les dix fragments avant le retour."
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Valider la collecte à l'avant-poste",
+      "instructions": "Rapporte les dix fragments à Doc Émiette Borgne et remets le tournevis sonique s'il est encore en ta possession. Il tente une restauration temporelle, mais l'énergie manque : cela ouvre « Prisonniers du temps ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner à l'avant-poste.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre les fragments de mémoire et le tournevis sonique à Doc."
+        },
+        {
+          "kind": "talk",
+          "text": "Achever « Retour vers le présent » puis préparer « Prisonniers du temps »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Aller chercher le tournevis chez le Docteur Hou",
+      "instructions": "Pour « Retour vers le présent », le Docteur Hou se trouve à Sufokia [20,25]. Demande-lui son tournevis sonique en expliquant la situation de Doc Émiette Borgne.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Docteur Hou à Sufokia.",
+          "coordinates": [
+            20,
+            25
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui emprunter son Tournevis sonique pour les voyageurs du Xélorium."
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Récupérer les pièces détachées auprès du Major Qiu",
+      "instructions": "Dans la Tour des Voyageurs Dimensionnels [-22,-24], contacte le Major Qiu et prends le Sac de pièces détachées commandé pour Doc.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Major Qiu à la Tour.",
+          "coordinates": [
+            -22,
+            -24
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander le Sac de pièces détachées de Doc Émiette Borgne."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le Sac et le Tournevis pour l'avant-poste."
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Livrer les pièces à Doc Émiette Borgne",
+      "instructions": "Retourne en [1,6] avec le tournevis et les pièces détachées. Doc demande la collecte des dix fragments de mémoire sur les Xélomorphes des Chemins d'hier ; accomplis cet objectif avant de repartir.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner à l'avant-poste Xélorium.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner le Sac de pièces détachées à Doc."
+        },
+        {
+          "kind": "fight",
+          "text": "Récupérer les dix fragments sur les monstres Xélomorphes si cela n'est pas déjà fait."
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Clore la recherche sur les fragments",
+      "instructions": "Remets les fragments et le tournevis à Doc Émiette Borgne. Il explique que le dispositif manque d'énergie : la suite exige un fragment plus puissant de Fraktale, à conserver grâce au Détecteur portable.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Remettre les fragments de mémoire et restituer le tournevis."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Prisonniers du temps » pour récupérer un fragment de Fraktale."
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Consulter la Gardienne du Muséum",
+      "instructions": "Dans le Jour présent, retrouve la Gardienne du Muséum [3,1] et demande comment obtenir le fragment. Elle t'oriente vers le Temple du Temps, où une Lame de Légende peut être récupérée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Gardienne du Muséum.",
+          "coordinates": [
+            3,
+            1
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander le procédé pour extraire le fragment de Fraktale."
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Prendre la Lame de Légende",
+      "instructions": "Au Temple du Temps en [4,2], examine l'appareil situé au fond : il fournit la Lame de Légende. Conserve-la comme objet de quête pour Doc.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le Temple du Temps.",
+          "coordinates": [
+            4,
+            2
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Activer l'appareil pour obtenir la Lame de Légende."
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Faire fabriquer le Détecteur portable",
+      "instructions": "Reviens en [1,6] et montre la Lame de Légende à Doc. Il te confie un Détecteur portable qui doit conserver l'énergie du fragment après la victoire contre Fraktale.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Doc Émiette Borgne.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Montrer la Lame de Légende."
+        },
+        {
+          "kind": "prepare",
+          "text": "Récupérer le Détecteur portable avant le donjon."
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Entrer au Mégalithe de Fraktale",
+      "instructions": "Le Mégalithe de Fraktale se trouve en [7,3]. Prévois la clef du donjon, qui ne peut pas être remplacée ici par un trousseau, et conserve le Détecteur portable dans les objets de quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Mégalithe de Fraktale.",
+          "coordinates": [
+            7,
+            3
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir la clef du Mégalithe et le Détecteur portable."
+        },
+        {
+          "kind": "interact",
+          "text": "Entrer dans le donjon."
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Vaincre Fraktale puis utiliser le Détecteur",
+      "instructions": "À la fin du Mégalithe, bats Fraktale puis **utilise le Détecteur portable sur la carte de sortie du donjon, avant de partir**. Le détecteur enregistre le fragment de mémoire et ne peut pas remplir l'objectif une fois sorti.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre Fraktale dans le Mégalithe.",
+          "coordinates": [
+            7,
+            3
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Détecteur portable dans la salle de sortie immédiatement après la victoire."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à l'avant-poste Xélorium.",
+          "coordinates": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "title": "Remettre le Détecteur et clôturer le succès",
+      "instructions": "Remets à Doc Émiette Borgne le détecteur chargé. La quête « Prisonniers du temps » se termine, tout comme le succès « Les temps qui courent » lorsque les trois autres quêtes sont déjà validées. Ne confonds pas ce guide avec la finale indépendante du Dofus Nébuleux.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Donner à Doc le Détecteur contenant le fragment de Fraktale.",
+          "coordinates": [
+            1,
+            6
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier « Anomalies temporelles », « C'est ton destin », « Retour vers le présent » et « Prisonniers du temps »."
+        },
+        {
+          "kind": "information",
+          "text": "Valider manuellement le parcours Atlas uniquement après le succès en jeu."
+        }
+      ]
+    }
+  ]
+}
