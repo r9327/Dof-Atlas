@@ -96,3 +96,43 @@ https://ganymede-app.com/guides/183 .
 Ce contrôle **local de deux étapes ne certifie pas** l'intégralité d'Otomaï 1,
 encore moins les 14 autres. Statut inchangé : **0/15 certifié**, PR Draft,
 aucune Phase Certification ni release demandée.
+
+## Recontrôle des relevés factuels et réparation du chargeur (2 novembre, lot suivant)
+
+**Révision GitHub analysée :** `40be25d6976adeb2ed2cb99b221865d5cf35c145`.
+La comparaison ci-dessous a été recalculée sur les JSON lus depuis GitHub,
+en rapprochant chaque action possédant `coordinates` du
+`coordinate_mentions` de la **même étape** de son relevé factuel local.
+Ce n'est pas un test Python/Qt exécuté ni une preuve de conformité éditoriale.
+
+- Les **15 consignes locales** représentent toujours **212 étapes,
+  645 actions et 231 actions positionnées**.
+- **229/231** coordonnées se retrouvent dans les observations **à la même
+  étape** ; seules les deux divergences déjà listées ci-dessus demeurent
+  (#2252 étape 1, #2273 étape 8). Aucun de ces relevés ne certifie le trajet
+  réel dans le jeu ou l'identité d'une carte/dimension.
+- Le catalogue annonce **95 sources / 7 705 étapes** et le répertoire
+  contient **95 relevés factuels**. Un défaut confirmé du chargeur ne
+  reconnaissait pas les **10 fichiers historiques** nommés `argente`,
+  `cawotte`, `dokoko`, `dolmanax`, `emeraude`, `glaces`,
+  `ivoire`, `pourpre`, `turquoise` et `veilleurs`.
+  Le mapping `_LOCAL_OBSERVATION_ALIASES` de
+  `guide_library_sources.py` comprend désormais **24 alias**, dont les
+  identités et décomptes de ces 10 fichiers ont été confirmés à leur source
+  JSON. **95/95 chemins sont résolus** depuis les IDs du catalogue ; cela
+  prouve l'existence des fichiers, pas leur certification de contenu.
+- Un test ciblé a été ajouté pour charger les observations des **95 IDs**
+  et vérifier numérotation et décompte ; **NON EXÉCUTÉ** sur Windows/CI
+  dans cette session. Les 9 tests de l'analyse inter-guides sont également
+  **NON EXÉCUTÉS** ; aucun PASS n'est revendiqué.
+
+La nouvelle commande `py -3.13 -m tools.audit_ganymede_crosswalk
+--cross-guide-candidates` fournit à l'avenir le diagnostic répétable par
+guide, les références externes réutilisées et les recoupements de coordonnées.
+Elle **n'active ni regroupement automatique ni validation** et refuse de
+déclarer le Guide Succès remplacé.
+
+**Verdict maintenu : CHANGES REQUIRED.** Certification réelle des 15 guides :
+**0/15**. Révision de la route originale étape par étape, correction des
+divergences, tests UI/Windows/DOFUS, Doctor et Graphify exact-SHA restent
+indispensables avant une refonte commune et la certification des 80 suivants.
