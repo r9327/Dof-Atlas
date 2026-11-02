@@ -173,18 +173,16 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
         # round-trip the original authorized step documents through the one
         # canonical adapter and demand identical UI data, including header,
         # page indexes, source flags, and any future schema extension.
-        source_meta = steps[0]["manual_runtime_metadata"]
-        raw_guide_id = source_meta.get("source_guide_id")
-        title = steps[0].get("manual_chapter_label")
-        if not isinstance(title, str) or not title:
-            raise GuideRouteContractError("missing canonical guide title")
-        reconstructed = project_authorized_guide({
-            "guide_id": raw_guide_id,
-            "title": title,
-            "steps": [
-                card["manual_runtime_metadata"]["source_step"] for card in steps
-            ],
-        })
+        source_meta = route.get("source_guide_metadata")
+        if not isinstance(source_meta, dict) or "steps" in source_meta:
+            raise GuideRouteContractError("missing/invalid original guide metadata")
+        if not isinstance(source_meta.get("title"), str):
+            raise GuideRouteContractError("missing canonical source guide title")
+        original = dict(source_meta)
+        original["steps"] = [
+            card["manual_runtime_metadata"]["source_step"] for card in steps
+        ]
+        reconstructed = project_authorized_guide(original)
         if reconstructed != route:
             raise GuideRouteContractError(
                 "candidate route differs from canonical source-to-UI projection"
