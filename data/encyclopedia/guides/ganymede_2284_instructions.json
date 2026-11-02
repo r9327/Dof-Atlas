@@ -1,0 +1,574 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2284,
+  "source_url": "https://ganymede-app.com/guides/2284",
+  "expected_source_step_count": 21,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independent_quest_facts_cross_checked_but_exact_reference_page_parity_and_live_play_unverified",
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/au-detour-d-un-reve-perdu/",
+    "https://www.dofuserie.com/quetes/entretemps-une-renaissance/",
+    "https://www.dofuserie.com/quetes/la-bete-au-bois-dormant/",
+    "https://www.dofuspourlesnoobs.com/le-secret-des-dofus-prologue.html"
+  ],
+  "completion_note": "21 stations de suivi original pour les trois quêtes du Prologue, selon les déplacements observés. Les bifurcations selon les choix anciens du personnage sont explicites. Chaque page du parcours de référence n'a pas été vérifiée individuellement ; contrôle en jeu nécessaire.",
+  "steps": [
+    {
+      "title": "Vérifier les prérequis du Prologue",
+      "instructions": "Cette route permet de terminer les trois quêtes du succès « Le secret des Dofus : Prologue ». Avant de partir, contrôle le niveau requis, la fin des séries « Après la pluie », « Six sur six », ainsi que les prérequis des quêtes d'Éliocalypse et de l'ambre. Garde les six Dofus primordiaux sur ton personnage. Si « Au détour d'un rêve perdu » est déjà accomplie, ne la rejoue pas et rejoins directement la partie « Entretemps, une renaissance ».",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier « Quand l'éveil n'est qu'un songe », « La fin… ou le commencement » et la possession des six Dofus primordiaux."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 1 Masque mortuaire, 1 Ambre gris spirituel et, pour la troisième quête, 1 Substrat de Sylve."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Draconiros dans la grotte du réceptacle de Pandala.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        }
+      ],
+      "source_step_number": 1
+    },
+    {
+      "title": "Lancer « Au détour d'un rêve perdu » et recevoir le coffret",
+      "instructions": "Devant le réceptacle, parle à Draconiros de la menace qui pèse sur le Monde des Douze. Il te renvoie au personnage qui avait orienté tes choix lors de la série des Dofus primordiaux. Le PNJ varie avec ta voie : Mériana, Rathrosk, Djaul, Lachandi, Septange ou Rimanda. Rejoins uniquement celui qui correspond à ton historique et récupère son Coffret mystérieux.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Commencer « Au détour d'un rêve perdu » auprès de Draconiros.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Voir le guide de destinée correspondant à tes choix de quête : Mériana [-6,-3], Rathrosk [4,-19], Djaul [-22,33], Lachandi [-76,-80], Septange [2,1] ou Rimanda [38,-21]."
+        },
+        {
+          "kind": "prepare",
+          "text": "Récupérer le Coffret mystérieux auprès du bon PNJ."
+        }
+      ],
+      "source_step_number": 2
+    },
+    {
+      "title": "Explorer le songe perdu et vaincre la Douleur persistante",
+      "instructions": "Double-clique sur le Coffret mystérieux pour rejoindre les ruines du songe. Interagis avec les décombres dans le coin supérieur gauche pour faire apparaître la Douleur persistante. Le combat est solitaire, avec deux Onigori diaboliques alliés. Évite de les sacrifier trop tôt : ils absorbent une partie des attaques et des retraits de PA. À la fin, parle à l'Onigori pour connaître la piste de la Mère des Douleurs.",
+      "actions": [
+        {
+          "kind": "use_item",
+          "text": "Ouvrir le Coffret mystérieux depuis l'inventaire de quête."
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les ruines du mur pour déclencher la rencontre."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre la Douleur persistante en combat seul, en utilisant les deux Onigori alliés."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à l'Onigori après la victoire avant de quitter le songe."
+        }
+      ],
+      "source_step_number": 3
+    },
+    {
+      "title": "Interroger Draconiros et prier la déesse Sacrieur",
+      "instructions": "Retourne à Pandala raconter à Draconiros ton expérience, puis rejoins le temple Sacrieur en [-3,-4]. Chaki Triss t'indique comment prier. Équipe les six Dofus primordiaux : sans eux, la statue n'est pas utilisable pour la suite. La déesse perçoit une présence démoniaque et t'envoie vers la cime maudite de Grobe.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Faire le compte-rendu à Draconiros dans la grotte du réceptacle.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Entrer dans le temple Sacrieur.",
+          "coordinates": [
+            -3,
+            -4
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Chaki Triss puis équiper les six Dofus primordiaux."
+        },
+        {
+          "kind": "interact",
+          "text": "Prier sur la statue Sacrieur, écouter le message de la déesse et accepter de prouver ta bonne foi."
+        }
+      ],
+      "source_step_number": 4
+    },
+    {
+      "title": "Demander le porte-bonheur de la sorcière",
+      "instructions": "La cime maudite n'est accessible que sous la protection d'Hakamori. Va dans sa cabane de Pandala en [37,-42], demande-lui de renouveler sa bénédiction et récupère le Porte-bonheur de la sorcière. Son effet est limité à trente minutes, donc enchaîne directement le trajet suivant.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller chez Hakamori sur Pandala.",
+          "coordinates": [
+            37,
+            -42
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander le renouvellement de la bénédiction de la sorcière."
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler la présence du Porte-bonheur de la sorcière et sa durée, avant de partir vers Grobe."
+        }
+      ],
+      "source_step_number": 5
+    },
+    {
+      "title": "Affronter les chafers de la cime maudite",
+      "instructions": "Rejoins la cime maudite en [39,-46] avec la protection d'Hakamori active. Dark Vlad refuse de te renseigner et fait surgir des Morts brûlants et des Morts incendiaires en vagues successives. Le combat peut se réaliser en groupe. Gère les vagues avant de reprendre la discussion avec Dark Vlad.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Monter sur la cime maudite de Grobe par la carte du sud.",
+          "coordinates": [
+            39,
+            -46
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Dark Vlad et refuser de lui abandonner le Dofus Émeraude."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre les vagues de Morts brûlants et Morts incendiaires."
+        }
+      ],
+      "source_step_number": 6
+    },
+    {
+      "title": "Écouter Médoroziam et clore la première quête",
+      "instructions": "Après le combat, échange de nouveau avec Dark Vlad et la Rage de Médoroziam. Tu apprends que la Mère des Ravageurs te recherche. Reviens annoncer cette information à Draconiros en [21,-33]. Contrôle dans le journal la fin de « Au détour d'un rêve perdu » avant de poursuivre.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à la Rage de Médoroziam après la victoire.",
+          "coordinates": [
+            39,
+            -46
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à la grotte du réceptacle de Pandala.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Rapporter les événements à Draconiros pour achever « Au détour d'un rêve perdu »."
+        }
+      ],
+      "source_step_number": 7
+    },
+    {
+      "title": "Commencer « Entretemps, une renaissance »",
+      "instructions": "Parle à nouveau à Draconiros près du réceptacle. Il t'explique qu'une voix ancienne a été entendue par l'esprit de Bakujikera. Prépare l'Ambre gris spirituel, puis rejoins l'entrée du Rituel de Kabahal en [43,-57] pour accéder au temple de la baleine et consulter cet esprit.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Lancer « Entretemps, une renaissance » auprès de Draconiros.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver l'Ambre gris spirituel nécessaire à l'accès au temple de la baleine."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée du Rituel de Kabahal.",
+          "coordinates": [
+            43,
+            -57
+          ]
+        }
+      ],
+      "source_step_number": 8
+    },
+    {
+      "title": "Consulter Bakujikera puis les notes de Pandora",
+      "instructions": "À l'entrée du temple de la baleine, utilise l'Ambre gris spirituel sur l'accès et fais apparaître Bakujikera en interagissant avec l'œil du piédestal. Après le dialogue, rends-toi au sanctuaire du dernier espoir en [15,-20] et examine le livre de la table : la piste d'Allisterine passe par son médaillon familial.",
+      "actions": [
+        {
+          "kind": "use_item",
+          "text": "Utiliser l'Ambre gris spirituel à l'entrée du temple de la baleine.",
+          "coordinates": [
+            43,
+            -57
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Activer l'œil du piédestal, puis interroger l'Esprit de Bakujikera."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le sanctuaire du dernier espoir.",
+          "coordinates": [
+            15,
+            -20
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Lire les notes de Pandora posées sur la table de pierre."
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter Entropix lorsqu'il apparaît et suivre la piste du médaillon."
+        }
+      ],
+      "source_step_number": 9
+    },
+    {
+      "title": "Retrouver Fallanster à Astrub",
+      "instructions": "Le médaillon d'Allisterine se trouve lié à la famille de Fallanster. Va lui parler en [4,-19] à Astrub, évoque les notes de Pandora et explique pourquoi tu dois consulter le bijou. Il te renvoie à la chapelle royale de Féca, au château d'Amakna.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller à Astrub retrouver Fallanster.",
+          "coordinates": [
+            4,
+            -19
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger sur le médaillon d'Allisterine et demander l'autorisation d'en retrouver la trace."
+        }
+      ],
+      "source_step_number": 10
+    },
+    {
+      "title": "Récupérer le médaillon dans la chapelle Féca",
+      "instructions": "Au château d'Amakna [4,-6], traverse les pièces jusqu'à la chapelle de Féca, puis interagis avec le coffret sur l'autel. Une protection divine se déclenche. Garde l'objet de quête après le combat : c'est lui qui permettra d'appeler Allisterine plus loin.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le château d'Amakna et sa chapelle royale de Féca.",
+          "coordinates": [
+            4,
+            -6
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ouvrir le coffret posé sur l'autel afin de récupérer le Médaillon de Fallanster."
+        }
+      ],
+      "source_step_number": 11
+    },
+    {
+      "title": "Résister au Bélier divin et accéder à Externam",
+      "instructions": "À la chapelle, défie le Bélier divin dans un combat seul. Évite de rester exposé à son corps-à-corps et à ses déplacements forcés. Après la victoire, parle à la déesse Féca pour connaître la destination du médaillon. Rejoins ensuite le Belvédère d'Ilyzaelle, équipe ton Masque mortuaire et parle au Gardien du Jour sans fin pour passer en Externam.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre le Bélier divin en combat seul dans la chapelle Féca.",
+          "coordinates": [
+            4,
+            -6
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à la déesse Féca après le combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Gardien du Jour sans fin et l'accès d'Externam.",
+          "coordinates": [
+            -73,
+            -76
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Équiper le Masque mortuaire avant de traverser le portail."
+        }
+      ],
+      "source_step_number": 12
+    },
+    {
+      "title": "Faire venir Allisterine et affronter les Cavaliers",
+      "instructions": "Dans Externam, utilise le Médaillon de Fallanster pour faire venir Allisterine. Discute avec elle jusqu'à obtenir le Coffret de la relique, puis suis Entropix vers le combat contre les quatre Cavaliers. Le combat est solitaire, avec la relique et un double ; son objectif est de neutraliser Misère, Corruption, Servitude et Guerre, pas de les tuer. Après chaque affaiblissement, utilise leur mécanique pour activer le glyphe de neutralisation.",
+      "actions": [
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Médaillon de Fallanster dans Externam pour appeler Allisterine."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Allisterine et récupérer le Coffret de la relique."
+        },
+        {
+          "kind": "fight",
+          "text": "Neutraliser les quatre Cavaliers en combat seul, avec les mécaniques de leur affaiblissement et le glyphe de neutralisation."
+        },
+        {
+          "kind": "information",
+          "text": "En cas de défaite, le Coffret de la relique permet de revenir au combat."
+        }
+      ],
+      "source_step_number": 13
+    },
+    {
+      "title": "Remettre le médaillon à Allisteria",
+      "instructions": "Après les Cavaliers, reparle à Allisterine : elle te demande de transmettre le médaillon à sa descendante. Rejoins Allisteria à Astrub, en [4,-15], et remets-lui l'objet. Cette remise termine « Entretemps, une renaissance » ; vérifie le journal de quête et les prérequis de la prochaine histoire.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Faire les adieux à Allisterine après le combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Retrouver Allisteria à Astrub.",
+          "coordinates": [
+            4,
+            -15
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre le Médaillon de Fallanster à Allisteria."
+        }
+      ],
+      "source_step_number": 14
+    },
+    {
+      "title": "Conclure « Entretemps » et reprendre le Prologue",
+      "instructions": "Après la remise du médaillon à Allisteria, rejoins Draconiros en [21,-33]. Vérifie que les conditions de « La bête au bois dormant » sont remplies : « Entretemps, une renaissance » et « Le serment de l'ambre » doivent être terminées, avec les six Dofus primordiaux dans l'inventaire. Prépare aussi un Substrat de Sylve.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Vérifier que « Entretemps, une renaissance » est marquée terminée."
+        },
+        {
+          "kind": "prepare",
+          "text": "Achever « Le serment de l'ambre » si la quête n'est pas encore validée."
+        },
+        {
+          "kind": "prepare",
+          "text": "Mettre les six Dofus primordiaux et 1 Substrat de Sylve dans l'inventaire."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner chez Draconiros sur Pandala.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        }
+      ],
+      "source_step_number": 15
+    },
+    {
+      "title": "Lancer « La bête au bois dormant » et chercher Terrakourial",
+      "instructions": "Draconiros te confie l'histoire de la Reine cornue, emprisonnée dans l'ambre. Sur l'île d'Otomaï, rencontre Toungousa en [-57,-1] pour entrer dans le rêve de Terrakourial. Si l'énigme des quatre fleurs n'est pas résolue, active-les dans l'ordre 3, 2, 1, 4 en les numérotant depuis la gauche. Le Gardien Polter te mène ensuite au dragon.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Lancer « La bête au bois dormant » auprès de Draconiros.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Toungousa dans la Tourbière sans fond.",
+          "coordinates": [
+            -57,
+            -1
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Toungousa l'accès au rêve de Terrakourial, puis passer le Gardien Polter."
+        },
+        {
+          "kind": "interact",
+          "text": "Résoudre les fleurs si nécessaire (ordre 3, 2, 1, 4 depuis la gauche)."
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Terrakourial sur l'emprisonnement de la Reine cornue."
+        }
+      ],
+      "source_step_number": 16
+    },
+    {
+      "title": "Interroger le temple Crâ",
+      "instructions": "Le dragon recommande d'enquêter sur les origines de la prison d'ambre. Rejoins le temple Crâ en [0,3] et parle à Edrige Valling du rôle de la déesse et de la Grande Chasseresse. Elle annonce une épreuve contre son champion avant toute audience.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le temple Crâ au Village d'Amakna.",
+          "coordinates": [
+            0,
+            3
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Edrige Valling sur la Reine cornue et le rôle de la déesse Crâ."
+        },
+        {
+          "kind": "prepare",
+          "text": "Préparer un équipement pour résister aux dommages de poussée avant l'épreuve suivante."
+        }
+      ],
+      "source_step_number": 17
+    },
+    {
+      "title": "Vaincre la Baliste de Crâ",
+      "instructions": "Traverse le temple et parle à Gobin des boâ, qui propose l'épreuve de la Baliste de Crâ. C'est un combat seul : la Baliste est invulnérable aux attaques à distance ; frappe au contact en utilisant le recul contre un obstacle et ne termine pas ton tour dans son axe. Après la victoire, écoute la déesse Crâ : elle t'envoie interroger le Vieux moussu en Forêt Maléfique.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à Gobin des boâ dans la cour du temple Crâ.",
+          "coordinates": [
+            0,
+            3
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre la Baliste de Crâ seul en frappant au contact et en évitant sa ligne en fin de tour."
+        },
+        {
+          "kind": "talk",
+          "text": "Échanger avec la déesse Crâ après le combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le secteur du Vieux moussu dans la Forêt Maléfique.",
+          "coordinates": [
+            -7,
+            19
+          ]
+        }
+      ],
+      "source_step_number": 18
+    },
+    {
+      "title": "Réveiller le Vieux moussu et l'aider",
+      "instructions": "En [-7,19], interagis avec le squelette près de la mâchoire rocheuse pour réveiller le Vieux moussu. Le combat est solitaire. Pour réduire ses fortes résistances Terre et Neutre, élimine les Boodmouss avant leur explosion. Après la victoire, donne-lui un Substrat de Sylve et poursuis le dialogue pour comprendre les événements qui ont conduit à la prison d'ambre.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Activer le squelette pour réveiller le Vieux moussu.",
+          "coordinates": [
+            -7,
+            19
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Vieux moussu en combat seul ; éliminer ses Boodmouss pour diminuer ses résistances."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 1 Substrat de Sylve au Vieux moussu et lui reparler."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier que tu possèdes une Enchanterelle, sinon préparer sa récolte sur les Malters."
+        }
+      ],
+      "source_step_number": 19
+    },
+    {
+      "title": "Récupérer une Enchanterelle et entrer dans le bloc d'ambre",
+      "instructions": "Si l'Enchanterelle ou le bonus « Au-delà des apparences » n'est plus disponible, combats les Malters de l'Orée enchantée pour en récupérer une. Ils se trouvent notamment en [-6,20] et sur les cartes proches. Rejoins ensuite le tumulus en [-3,19], parle à Hell Mina et utilise le Sceau de Terrakourial pour pénétrer dans le bloc d'ambre.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rechercher des Malters de l'Orée enchantée, notamment près de [-6,20].",
+          "coordinates": [
+            -6,
+            20
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Obtenir une Enchanterelle sur les Malters si nécessaire."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le tumulus de la Forêt Maléfique.",
+          "coordinates": [
+            -3,
+            19
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Hell Mina le passage vers le Sceau de Terrakourial."
+        },
+        {
+          "kind": "use_item",
+          "text": "Employer une Enchanterelle si le bonus requis n'est plus actif, puis utiliser le sceau pour entrer dans l'ambre."
+        }
+      ],
+      "source_step_number": 20
+    },
+    {
+      "title": "Parler à la Reine cornue et achever le Prologue",
+      "instructions": "Une fois dans le bloc d'ambre en [-3,19], discute avec la Reine cornue. Montre que tu es le gardien du Dofus Ocre : la présence de Terrakourial se manifeste. Termine le dialogue avec le dragon et vérifie la fin de « La bête au bois dormant » ainsi que la validation du succès « Le secret des Dofus : Prologue » avant de cocher cette ultime étape dans Atlas.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à la Reine cornue dans le bloc d'ambre.",
+          "coordinates": [
+            -3,
+            19
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier la présence du Dofus Ocre dans l'inventaire."
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter Terrakourial et achever son dialogue concernant la Reine cornue et Médoroziam."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les trois quêtes du Prologue et la validation du succès dans le journal."
+        }
+      ],
+      "source_step_number": 21
+    }
+  ]
+}
