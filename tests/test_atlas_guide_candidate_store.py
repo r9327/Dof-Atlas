@@ -368,6 +368,19 @@ class CandidateStoreTests(unittest.TestCase):
                                restore_sha256="b" * 64)
         self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
 
+    def test_boolean_schema_version_does_not_enter_candidate_store(self) -> None:
+        malformed = copy.deepcopy(self.preview)
+        malformed["schema_version"] = True
+        with self.assertRaisesRegex(GuideRouteContractError, "dry-run importer"):
+            publish_candidate(malformed, root=self.root)
+        self.assertFalse(self.root.exists())
+
+    def test_case_variant_protected_store_root_does_not_write(self) -> None:
+        forbidden = Path(self.temp.name) / "DATA" / "candidates"
+        with self.assertRaisesRegex(GuideRouteContractError, "data/save/cache"):
+            publish_candidate(self.preview, root=forbidden)
+        self.assertFalse(forbidden.parent.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

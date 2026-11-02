@@ -34,7 +34,7 @@ def prepare_preview(
     """Fail closed on invalid/incomplete source exports and preserve authored order."""
     if not isinstance(source, dict):
         raise GuideRouteContractError("source: JSON object expected")
-    if source.get("schema_version") != 1:
+    if type(source.get("schema_version")) is not int or source["schema_version"] != 1:
         raise GuideRouteContractError("schema_version: expected 1")
     if source.get("rights_verified") is not True or source.get("reference_verified") is not True:
         raise GuideRouteContractError("source: provenance/rights evidence not declared")
@@ -117,7 +117,8 @@ def main(argv: list[str] | None = None) -> int:
             # Confine optional output to a new file under an explicit path.
             if output.exists() or output.suffix.lower() != ".json":
                 raise GuideRouteContractError("output must be a new .json preview")
-            if any(part in {"data", ".git", ".cache"} for part in output.parts):
+            if any(part.casefold() in {"data", ".git", ".cache", "saves", "profiles", "user_data"}
+                   for part in output.parts):
                 raise GuideRouteContractError("output must not target app data/cache/git")
             output.parent.mkdir(parents=True, exist_ok=True)
             with output.open("x", encoding="utf-8") as stream:

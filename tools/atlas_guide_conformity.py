@@ -290,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     # Reports must never overwrite any Atlas data, guide, user state or
     # prior audit evidence. A fresh output directory is mandatory.
     output = args.output_dir.absolute()
-    if any(part in {"data", ".git", "saves", "profiles", "user_data"}
+    if any(part.casefold() in {"data", ".git", "saves", "profiles", "user_data"}
            for part in output.parts):
         parser.error("output directory must be outside Atlas data and saves")
     if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):

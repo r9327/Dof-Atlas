@@ -46,7 +46,9 @@ def _source_coordinates(value: Any) -> str:
 def _validate_candidate(preview: dict[str, Any]) -> None:
     if not isinstance(preview, dict):
         raise GuideRouteContractError("preview must be a JSON object")
-    if preview.get("schema_version") != 1 or preview.get("mode") != "DRY_RUN_ONLY":
+    if (type(preview.get("schema_version")) is not int
+            or preview["schema_version"] != 1
+            or preview.get("mode") != "DRY_RUN_ONLY"):
         raise GuideRouteContractError("preview must come from the dry-run importer")
     if preview.get("status") != "PREVIEW_ONLY_NOT_CERTIFIED" or preview.get("certified") is not False:
         raise GuideRouteContractError("candidate must remain NOT_CERTIFIED")
@@ -211,7 +213,8 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
 
 def _safe_root(root: Path) -> Path:
     candidate = Path(root).absolute()
-    if candidate.is_symlink() or any(part in _FORBIDDEN_PARTS for part in candidate.parts):
+    if candidate.is_symlink() or any(part.casefold() in _FORBIDDEN_PARTS
+                                    for part in candidate.parts):
         raise GuideRouteContractError("candidate root must not be an Atlas data/save/cache directory")
     if candidate.is_file():
         raise GuideRouteContractError("candidate root is a file")

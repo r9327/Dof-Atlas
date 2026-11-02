@@ -152,6 +152,25 @@ class GuideImporterPreviewTests(unittest.TestCase):
             with self.subTest(count=count), self.assertRaises(GuideRouteContractError):
                 prepare_preview(valid_export(), expected_guides=count)
 
+    def test_boolean_schema_version_never_counts_as_v1(self):
+        data = valid_export()
+        data["schema_version"] = True
+        with self.assertRaisesRegex(GuideRouteContractError, "schema_version"):
+            prepare_preview(data, expected_guides=1, expected_steps=1)
+
+    def test_cli_rejects_case_variant_protected_output_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            document = valid_export()
+            document["complete"] = False
+            source.write_text(json.dumps(document), encoding="utf-8")
+            output = root / "DATA" / "preview.json"
+            with self.assertRaises(SystemExit) as raised:
+                main(["--source", str(source), "--partial", "--output", str(output)])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.parent.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

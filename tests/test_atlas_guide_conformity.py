@@ -294,6 +294,22 @@ class TestGuideConformity(unittest.TestCase):
             delta = json.loads((root / "results" / "before_after.json").read_text())
             self.assertEqual(len(delta["resolved"]), 1)
 
+    def test_cli_rejects_case_variant_protected_report_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, data in (("reference", self.reference),
+                               ("before", self.atlas), ("after", self.atlas)):
+                (root / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+            output = root / "DATA" / "reports"
+            args = ["--reference", str(root / "reference.json"),
+                    "--before", str(root / "before.json"),
+                    "--after", str(root / "after.json"),
+                    "--output-dir", str(output)]
+            with self.assertRaises(SystemExit) as raised:
+                main(args)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.parent.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
