@@ -20,6 +20,29 @@ except ImportError:
             self.fail("Hypothesis was not installed")
 else:
     class DoctorOssHypothesisTests(unittest.TestCase):
+        @settings(max_examples=40, deadline=None)
+        @given(st.lists(st.integers(min_value=0, max_value=100000),
+                        min_size=0, max_size=16),
+               st.integers(min_value=0, max_value=100000))
+        def test_launcher_disk_budget_never_drops_file_bytes(self, sizes, reserve):
+            from types import SimpleNamespace
+            from app.distribution.disk_space import remaining_space_needed
+            manifest = SimpleNamespace(
+                files=[SimpleNamespace(size=size) for size in sizes],
+                archive_parts=(), archive_size=None)
+            total = remaining_space_needed(manifest, Path("unused"),
+                                           reserve_bytes=reserve)
+            self.assertEqual(total, sum(sizes) + reserve)
+            self.assertGreaterEqual(total, sum(sizes))
+
+        @settings(max_examples=32, deadline=None)
+        @given(st.text(alphabet="abc012-_", min_size=1, max_size=24))
+        def test_launcher_refuses_relative_install_root(self, name):
+            from app.distribution.install_location import _valid_root
+            from app.distribution.release_client import UpdateError
+            with self.assertRaises(UpdateError):
+                _valid_root(Path("relative") / name)
+
         @settings(max_examples=32, deadline=None)
         @given(st.text(alphabet="abc012", min_size=1, max_size=12))
         def test_safe_relative_module_path(self, stem):
