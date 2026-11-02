@@ -937,14 +937,6 @@
         {
           "kind": "deliver",
           "text": "Donner 5 Pains Sombres au premier Collecteur de pains."
-        },
-        {
-          "kind": "travel",
-          "text": "Aller au deuxième collecteur en [15,17].",
-          "coordinates": [
-            15,
-            17
-          ]
         }
       ]
     },
@@ -972,14 +964,6 @@
         {
           "kind": "deliver",
           "text": "Remettre 5 Pains Sombres au deuxième Collecteur de pains."
-        },
-        {
-          "kind": "travel",
-          "text": "Rejoindre la troisième livraison en [14,15].",
-          "coordinates": [
-            14,
-            15
-          ]
         }
       ]
     },
@@ -1007,14 +991,6 @@
         {
           "kind": "deliver",
           "text": "Donner 5 Pains Sombres au troisième Collecteur de pains."
-        },
-        {
-          "kind": "travel",
-          "text": "Aller jusqu'au quatrième collecteur en [13,12].",
-          "coordinates": [
-            13,
-            12
-          ]
         }
       ]
     },
@@ -1046,14 +1022,6 @@
         {
           "kind": "information",
           "text": "Vérifier les quatre livraisons distinctes avant de repartir."
-        },
-        {
-          "kind": "travel",
-          "text": "Rejoindre Sufokia en [15,22].",
-          "coordinates": [
-            15,
-            22
-          ]
         }
       ]
     },
