@@ -6,6 +6,7 @@ runtime. PARITY_PASS is a data comparison result, NEVER a gameplay certificate.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from collections import Counter
@@ -25,11 +26,10 @@ def _digest(payload: Any) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _preview(value: Any) -> Any:
-    if value is None or isinstance(value, (bool, int, float)):
-        return value
-    compact = json.dumps(value, sort_keys=True, ensure_ascii=False)
-    return compact if len(compact) <= 160 else compact[:157] + "..."
+def _snapshot(value: Any) -> Any:
+    # Evidence must be complete, not an ellipsized 160-character approximation.
+    # Only changed values are copied; the complete source is never mutated.
+    return copy.deepcopy(value)
 
 
 def _identifier(value: Any) -> str | None:
@@ -54,8 +54,8 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
         issues.append({
             "issue_code": code, "severity": severity, "field_path": path,
             "guide_id": context["guide_id"], "source_step_id": context["source_step_id"],
-            "action_id": context["action_id"], "expected": _preview(expected),
-            "actual": _preview(actual), "source_evidence_ref": evidence,
+            "action_id": context["action_id"], "expected": _snapshot(expected),
+            "actual": _snapshot(actual), "source_evidence_ref": evidence,
             "proposed_fix": {
                 "MISSING_GUIDE": "Ajouter le guide vérifié manquant",
                 "MISSING_STEP": "Ajouter l'étape vérifiée dans l'ordre",
@@ -209,7 +209,12 @@ def before_after(reference: dict[str, Any], before: dict[str, Any],
         "before_sha256": a["atlas_sha256"], "after_sha256": b["atlas_sha256"],
         "before_status": a["status"], "after_status": b["status"],
         "resolved": [old[k] for k in sorted(old.keys() - new.keys())],
-        "persistent": [new[k] for k in sorted(old.keys() & new.keys())],
+        # Preserve both observations. A quantity changing 8 -> 9 is still the
+        # same unresolved field, but the evolution must not disappear.
+        "persistent": [
+            {"before": old[k], "after": new[k], "changed": old[k] != new[k]}
+            for k in sorted(old.keys() & new.keys())
+        ],
         "introduced": [new[k] for k in sorted(new.keys() - old.keys())],
         "certified": False, "status": b["status"],
     }
