@@ -99,6 +99,8 @@ class CrossGuideCandidatesTests(unittest.TestCase):
         self.assertEqual(len(report["co_location_candidates"]), 1)
         match = report["co_location_candidates"][0]
         self.assertEqual(match["coordinates"], [1, 2])
+        self.assertEqual(match["candidate_type"], "same_xy_unverified_world_and_map")
+        self.assertFalse(match["same_game_map_verified"])
         self.assertEqual(
             [(r["source_guide_id"], r["source_step_number"], r["action_index"])
              for r in match["occurrences"]],
