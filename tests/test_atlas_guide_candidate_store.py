@@ -146,6 +146,37 @@ class CandidateStoreTests(unittest.TestCase):
                 publish_candidate(malformed, root=self.root)
         self.assertFalse(self.root.exists())
 
+    def test_action_count_and_false_numeric_metadata_never_published(self) -> None:
+        for field, value in (
+            ("action_count", 999),
+            ("action_count", True),
+            ("step_count", True),
+            ("guide_count", True),
+            ("expected_guide_count", 0),
+            ("expected_step_count", "1"),
+            ("is_partial", "false"),
+        ):
+            malformed = copy.deepcopy(self.preview)
+            malformed[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(
+                GuideRouteContractError
+            ):
+                publish_candidate(malformed, root=self.root)
+        self.assertFalse(self.root.exists())
+
+    def test_failed_atomic_generation_write_leaves_no_partial_named_file(self) -> None:
+        with patch("tools.atlas_guide_candidate_store.os.replace",
+                   side_effect=OSError("injected IO failure")):
+            with self.assertRaisesRegex(OSError, "injected IO failure"):
+                publish_candidate(self.preview, root=self.root)
+        self.assertEqual(list((self.root / "generations").glob("*.json")), [])
+        self.assertEqual(
+            list((self.root / "generations").glob(".atlas-stage-*")), []
+        )
+        self.assertEqual(selected_candidate(self.root), "NONE")
+        result = publish_candidate(self.preview, root=self.root)
+        self.assertEqual(selected_candidate(self.root), result["candidate_sha256"])
+
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
         (self.root / "sensitive-user-data.json").write_text("{}")
