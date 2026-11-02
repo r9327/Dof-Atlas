@@ -99,6 +99,35 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             self.assertFalse(visible[row["id"]]["automatic_execution"])
         self.assertFalse(workflow["may_claim_full_certification"])
 
+    def test_ai_execution_requires_real_named_integrity_witness(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        plan = intelligent_plan(["tools/test_tool.py"], study())
+        core = {"status": "REVIEW", "exit_code": 1}
+        fake = {"execution_results": [{"tool": "ruff", "status": "CLEAN"}],
+                "execution_summary": {"status": "COMPLETE",
+                                      "expected_tools": ["ruff"]},
+                "status": "ADVISORY_ONLY"}
+        result = ai_tool_workflow("check", core, plan, advisory=fake)
+        self.assertFalse(result["approved_oss_execution"]["all_executed"])
+        self.assertEqual(result["approved_oss_execution"]["tools"][0]["status"],
+                         "UNVERIFIED")
+
+        complete = dict(fake,
+            source="tools.atlas_doctor_lib.oss_router.route_oss",
+            input_integrity_verified=True, files_modified=False)
+        result = ai_tool_workflow("check", core, plan, advisory=complete)
+        self.assertTrue(result["approved_oss_execution"]["all_executed"])
+        self.assertTrue(result["approved_oss_execution"]["witness_integrity_verified"])
+        self.assertTrue(result["approved_oss_execution"]["tools"][0]["executed"])
+
+        for bad in (dict(complete, files_modified=True),
+                    dict(complete, input_integrity_verified=False),
+                    dict(complete, execution_results=[
+                        {"tool": "zizmor", "status": "CLEAN"}])):
+            report = ai_tool_workflow("check", core, plan, advisory=bad)
+            self.assertFalse(report["approved_oss_execution"]["all_executed"])
+            self.assertFalse(report["approved_oss_execution"]["witness_integrity_verified"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
