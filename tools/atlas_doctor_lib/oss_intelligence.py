@@ -165,6 +165,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
         native_routes.append("tools.ai_context recommended_tests (existing unittest owner)")
     if "assets" in scopes:
         native_routes.append("tools.atlas_doctor file-audit (asset review, no deletion)")
+        native_routes.append("tools.atlas_doctor oss --asset-trial (explicit ImageHash comparison, no deletion)")
     if "dependencies" in scopes:
         native_routes.append("tools.tool_catalog (local package metadata only)")
     if "python" in scopes:
