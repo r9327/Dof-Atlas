@@ -71,6 +71,20 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
             self.assertEqual(result["status"], "REVIEW")
 
+    def test_parser_trials_reject_input_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            original = Path(tmp) / "original.json"
+            alias = Path(tmp) / "alias.json"
+            original.write_text('{"quests":{"1":{}}}', encoding="utf-8")
+            try:
+                alias.symlink_to(original)
+            except (OSError, NotImplementedError):
+                self.skipTest("Symlinks unavailable in this environment")
+            with self.assertRaises(ValueError):
+                compare_json_parsers(alias)
+            with self.assertRaises(ValueError):
+                compare_json_streaming(alias)
+
     def test_parser_trial_rejects_unbounded_or_unknown_configuration(self) -> None:
         with self.assertRaises(ValueError):
             compare_json_parsers(Path("missing"), repeats=0)
