@@ -45,3 +45,35 @@ the user is authorized to consult. Do not publish protected source text in logs.
 
 Current proof: GitHub clean branch creation and ancestry review only.
 Local Doctor, Graphify and automated tests remain NOT_RUN in this session.
+
+
+## Création structurée et utilisation commune (PR #363)
+
+La création hors ligne se fait avec `tools.atlas_guide_importer` :
+une seule source JSON v1 autorisée, `guides` ordonnés, IDs stables
+`guide_id` / `source_step_id` / `action_id`, `rights_verified`,
+`reference_verified`, `complete`. **Les drapeaux déclarent un état,
+ils ne constituent jamais une preuve indépendante de droits ou de fidélité.**
+
+    py -3.13 -m tools.atlas_guide_importer --source authorized_export.json
+    py -3.13 -m tools.atlas_guide_importer --source authorized_export.json --output preview.json
+
+Le mode complet exige exactement **95 guides et 7 705 étapes**.
+`--partial` est disponible uniquement pour des lots explicitement incomplets,
+sans possibilité de les qualifier de complets/certifiés. L'outil refuse
+un fichier de sortie déjà présent, ne touche ni `data/` ni les sauvegardes,
+n'installe aucune route et ne scrappe aucune source tierce.
+
+L'adaptateur `guide_shared_route_contract.project_authorized_guide` forme
+les cartes compatibles avec `SharedGuideManualCard` existant dans `main` :
+IDs stables, positions au format `[x,y]` cliquables, objets/quantités,
+PNJ/choix et combats structurés conservés. La **visualisation réellement
+branchée à l'application et ses validations par personnage restent à faire**.
+
+Commandes de test ciblé :
+
+    py -3.13 -m unittest tests.test_atlas_guide_importer_preview tests.test_guide_shared_route_contract tests.test_atlas_guide_conformity -v
+
+L'extracteur de source externe, le publieur protégé/transactionnel,
+la preuve Graphify exact-SHA et la recette Windows/DOFUS ne sont pas livrés :
+**tous les guides restent NOT_CERTIFIED**.
