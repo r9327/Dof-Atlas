@@ -119,7 +119,7 @@ def displayable_listings(
         and (not query or query in entry.title.casefold())
     ]
 
-# Fourteen sources retain their older descriptive filenames; all others use
+# Twenty-four sources retain their older descriptive filenames; all others use
 # the numeric source ID. Only factual observations, never editorial guide text.
 _LOCAL_OBSERVATION_ALIASES = {
     2251: "master", 2204: "ou_sont_les_dofus",
@@ -129,6 +129,11 @@ _LOCAL_OBSERVATION_ALIASES = {
     2227: "koalaks", 2237: "enudorado_1",
     2250: "ecaflipus_1", 2220: "otomai_2",
     2240: "xelorium_1", 2252: "otomai_3",
+    # Existing factual snapshots kept their descriptive filenames.
+    2203: "argente", 2205: "cawotte", 2208: "dokoko",
+    2248: "dolmanax", 2211: "emeraude", 2216: "glaces",
+    2256: "ivoire", 2276: "pourpre", 2217: "turquoise",
+    2209: "veilleurs",
 }
 
 
