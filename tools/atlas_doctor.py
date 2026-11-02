@@ -294,6 +294,12 @@ def command_agent(root: Path, args) -> dict[str, Any]:
             "reason": "Use --run-tests for automatic approved OSS checks or --run-oss",
             "phase_certified": False,
         }
+    from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+    report["ai_tool_workflow"] = ai_tool_workflow(
+        args.agent_action, report, report["oss_selection"],
+        advisory=report.get("oss_advisory"),
+        dispatch=report.get("oss_dispatch"),
+    )
     return report
 
 

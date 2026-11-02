@@ -6,3 +6,7 @@ alwaysApply: true
 Read `AI_ENTRYPOINT.md` first. For non-trivial edits, run Atlas Doctor's
 `agent plan`, `agent check` and `agent validate` protocol. Never reinterpret a
 `REVIEW`, `BLOCKED` or scoped result as FULL certification.
+
+Read the machine-readable `ai_tool_workflow` in each Doctor JSON report;
+recommended native/OSS tools do not count as executed until their owner
+returns real evidence. Follow `AI_ENTRYPOINT.md` for authority and CI cadence.

@@ -31,6 +31,26 @@ Pour tout refactor non trivial, suppression ou déplacement de code, analyse de 
 
 Si aucun graphe du SHA exact ne peut être exécuté ou consulté, ne pas prétendre avoir utilisé Graphify et ne pas lancer un refactor structurel risqué sans signaler explicitement cette limite.
 
+## Doctor IA — boucle qui doit être réellement utilisée
+
+Avant une tâche non triviale, appeler le protocole machine existant et lire
+ses champs de décision, pas seulement les noms des outils :
+
+```powershell
+py -3.13 -X utf8 -m tools.atlas_doctor agent plan tools/atlas_doctor.py --json
+# Modifier exclusivement le périmètre planifié
+py -3.13 -X utf8 -m tools.atlas_doctor agent check tools/atlas_doctor.py --run-tests --json
+py -3.13 -X utf8 -m tools.atlas_doctor agent validate tools/atlas_doctor.py --json
+```
+
+Les fichiers ci-dessus sont des exemples à remplacer par les véritables
+chemins du lot. Le champ `ai_tool_workflow` indique le circuit obligatoire,
+les spécialistes natifs pertinents, les résultats OSS prouvés et les lacunes.
+`oss_selection` reste une recommandation : elle ne prouve aucune exécution.
+Ne jamais confondre `ai_tool_workflow` et un certificat de Phase.
+Lire `AI_ENTRYPOINT.md` pour les règles d'autorité et
+`docs/doctor-oss-routing.md` pour qualifier Ruff/zizmor sur Windows.
+
 ## Carte rapide
 
 - `main.py`, `launch.py`, `app/preload.py`, `app/background_work.py` : démarrage, orchestration et cycle de vie.

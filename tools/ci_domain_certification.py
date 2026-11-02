@@ -37,7 +37,7 @@ BASELINE_GROUPS = {
 # metadata. This ownership does NOT waive the independent root-of-trust/FULL
 # decision for PHASE_CERTIFICATION.md or any executable policy change.
 REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
-    "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+    "AGENTS.md", "AI_ENTRYPOINT.md", "AI_CONTEXT.md", "CLAUDE.md",
     ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
@@ -45,7 +45,7 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
-    # Independently reviewed working-set ownership for Organizer Mirror.
+    # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
     ".ai/scopes/persistence_identity.yaml",
@@ -119,8 +119,8 @@ ORGANIZER_UI_PATHS = frozenset({
 ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/core/runtime_state.py", "app/core/macro_lock.py",
     "app/input/input_state.py", "app/input/managed_hooks.py",
-    "app/input/mouse_hooks.py",
     "app/input/hotkeys.py", "app/windows/clicks.py",
+    "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_character_order.py",
@@ -169,6 +169,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
     if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
+        return frozenset({"ci"})
+    if path == "tools/setup_doctor_oss.ps1":
+        # Explicitly reviewed, opt-in developer-only Ruff/zizmor bootstrap.
+        # No tools/*.ps1 wildcard: future installers remain unknown until audited.
         return frozenset({"ci"})
     if path in {"tools/install_rtk.ps1", "tests/test_install_rtk.py"}:
         # Manual developer/Codex bootstrap tooling. Keep the pair exact so an
@@ -236,13 +240,12 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/constants.py":
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
-    # Shared Organizer runtime settings read the UI profile and live session
-    # index, so startup, identity and persistence consumers remain covered.
-    if path == "app/core/settings.py":
-        return frozenset({"organizer", "ui", "startup", "identity", "data"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":
+        return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    # Organizer reads the persisted UI/session registry from runtime settings.
+    if path == "app/core/settings.py":
         return frozenset({"organizer", "ui", "startup", "identity", "data"})
     if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
         # OrganizerPage creates the native watcher, Qt timers and startup scan.
