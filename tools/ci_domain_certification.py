@@ -252,7 +252,11 @@ def owners_for(path: str) -> frozenset[str]:
     # The independent offline source/Atlas comparator is a Guide tool, not
     # general CI infrastructure. Exact ownership only: unrelated tools stay
     # closed-world UNKNOWN until independently reviewed.
-    if path in {"tools/atlas_guide_conformity.py", "tools/atlas_guide_importer.py"}:
+    if path in {
+        "tools/atlas_guide_conformity.py",
+        "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_candidate_store.py",
+    }:
         return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
