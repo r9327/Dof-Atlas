@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QComboBox, QLabel, QListView, QLineEdit, QPlainTextEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QComboBox, QLabel, QListView, QLineEdit, QPlainTextEdit, QListWidgetItem
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
