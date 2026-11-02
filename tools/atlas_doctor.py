@@ -230,12 +230,28 @@ def command_capabilities(root: Path, args) -> dict[str, Any]:
 
 def command_agent(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.agent_protocol import run_agent_action
-    return run_agent_action(
+    report = run_agent_action(
         root, action=args.agent_action, paths=args.paths,
         base_ref=args.base_ref, structural=args.structural,
         level=args.level, run_tests=args.run_tests,
         max_tests=args.max_tests, timeout_seconds=args.timeout_seconds,
     )
+    # Optional evidence only; never override Doctor's status or exit_code.
+    if getattr(args, "run_oss", False):
+        if args.agent_action != "check" or report.get("status") in {"BLOCKED", "FAIL"}:
+            report["oss_advisory"] = {"status": "NOT_RUN",
+                                      "reason": "Only an unblocked agent check can run OSS"}
+        else:
+            from tools.atlas_doctor_lib.oss_router import route_oss
+            try:
+                report["oss_advisory"] = route_oss(
+                    root, args.paths, run=True,
+                    timeout_seconds=min(args.timeout_seconds, 60))
+            except ValueError as exc:
+                report["oss_advisory"] = {"status": "NOT_APPLICABLE",
+                                          "reason": str(exc),
+                                          "phase_certified": False}
+    return report
 
 
 def command_file_audit(root: Path, args) -> dict[str, Any]:
@@ -847,12 +863,32 @@ def command_all(root: Path, args) -> dict[str, Any]:
     return payload
 
 
+def command_oss(root: Path, args) -> dict[str, Any]:
+    """Run safe, opt-in third-party diagnostics without changing Doctor gates."""
+    from tools.atlas_doctor_lib.oss_router import route_oss
+    try:
+        payload = route_oss(root, args.paths, run=args.run,
+                            timeout_seconds=args.timeout_seconds)
+    except ValueError as exc:
+        payload = {"schema_version": 1, "status": "BLOCKED",
+                   "reason": str(exc), "phase_certified": False}
+    if not args.json:
+        print("Doctor OSS : " + payload.get("status", "BLOCKED"))
+        print("Execution : " + (payload.get("execution") or {}).get("status", "NOT_RUN"))
+    return payload
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Dofus Atlas Doctor - audit, performance et rapport IA.')
     parser.add_argument('--json', action='store_true', help='Sortie JSON machine-readable.')
     sub = parser.add_subparsers(dest='command')
 
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
+    oss = sub.add_parser("oss", help="Routage OSS consultatif, opt-in, sans installation.")
+    oss.add_argument("paths", nargs="+", help="Fichiers Python ou workflows explicites.")
+    oss.add_argument("--run", action="store_true", help="Lancer Ruff déjà installé, sans correction.")
+    oss.add_argument("--timeout-seconds", type=int, default=20,
+                     help="Limite d'exécution de Ruff (1 à 60 secondes).")
     ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
     ci_plan.add_argument('--base-ref', required=True)
     ci_plan.add_argument('--expected-sha', required=True)
@@ -876,6 +912,8 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument('--structural', action='store_true')
     agent.add_argument('--level', choices=('SOFT', 'MEDIUM', 'HARD'))
     agent.add_argument('--run-tests', action='store_true', help='Autoriser les tests cibles pour check.')
+    agent.add_argument('--run-oss', action='store_true',
+                       help='Lancer le diagnostic OSS approuvé pour un check, consultatif uniquement.')
     agent.add_argument('--max-tests', type=int, choices=range(1, 9), default=8)
     agent.add_argument('--timeout-seconds', type=int, choices=range(10, 181), default=90)
     advisory = sub.add_parser('local-ai', help='Diagnostic IA locale facultatif, sans certification ni modification.')
@@ -1207,6 +1245,7 @@ def main(argv: list[str] | None = None) -> int:
         'ci': command_ci,
         'quick': command_quick,
         'capabilities': command_capabilities,
+        'oss': command_oss,
         'agent': command_agent,
         'graph': command_graph,
         'graph-audit': command_graph_audit,
@@ -1265,6 +1304,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if graph_audit.get("status") in {"PASS", "REVIEW"} else 2
     if args.command == 'capabilities':
         return 2 if payload['status'] == 'BLOCKED' else 0
+    if args.command == 'oss':
+        if payload.get("status") == "BLOCKED":
+            return 2
+        return 1 if (payload.get("execution") or {}).get("status") in (
+            "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") else 0
     if args.command == 'agent':
         return int(payload.get('exit_code', 2))
     if args.command == 'evidence-hub':
