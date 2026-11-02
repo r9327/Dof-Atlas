@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2235,
+  "source_url": "https://ganymede-app.com/guides/2235",
+  "expected_source_step_count": 31,
+  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "reviewed_stage_range": [
+    1,
+    10
+  ],
+  "rights_basis": "atlas_original",
+  "editorial_source_text_copied": false,
+  "source_reference": "https://ganymede-app.com/guides/2235",
+  "evidence_scope": "first_ten_public_source_stages_2026-11-02_and_local_fact_snapshot_not_game_certified",
+  "fact_sources": [
+    "https://ganymede-app.com/guides/2235"
+  ],
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "further_review_needed": [
+    "Verify localized French PNJ and exact quest names in current DOFUS Unity.",
+    "Compare source Ganymède stages 11-31 before drafting them; observed GPS and quest IDs alone are not instructions.",
+    "Confirm requirements and per-character validations before any runtime promotion."
+  ],
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer le succès Gisgoul",
+      "instructions": "Ce parcours de niveau conseillé 170 à 180 vise le succès de Gisgoul composé de quatre quêtes. Aucun donjon n'est imposé, mais certains combats peuvent nécessiter des renforts.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Objectif : avancer les quatre quêtes de Gisgoul, dont L'entrée des artistes, Le salaire de la sueur, Au pied du mur et le rituel local."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir un personnage de niveau 170 à 180 ou davantage, avec une équipe disponible pour les combats les plus difficiles."
+        },
+        {
+          "kind": "information",
+          "text": "Le donjon n'est pas une condition de ce guide ; ne pas le cocher par anticipation."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Réunir les minerais et friandises",
+      "instructions": "Acheter ou récolter à l'avance les ressources de la mine, puis acheter cinq Shigekax à la menthe avant le trajet vers Gisgoul.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Mettre de côté 60 Argent et 30 Bauxite pour les quêtes des mineurs."
+        },
+        {
+          "kind": "travel",
+          "text": "Si besoin, rejoindre la foire du Trool en [-11,-38] pour les friandises.",
+          "coordinates": [
+            -11,
+            -38
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Obtenir 5 Shigekax Menthe auprès du marchand de bonbons de la foire."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre vers Gisgoul en [-19,17], depuis le zaap de l'Allée de la Caravane.",
+          "coordinates": [
+            -19,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Accepter le travail de Moctar",
+      "instructions": "À l'entrée de Gisgoul, rencontrer Moctar Kitekt pour ouvrir la quête du mur. La prochaine étape mène dans la tour.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Moctar Kitekt en [-19,17].",
+          "coordinates": [
+            -19,
+            17
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Proposer votre aide à Moctar pour lancer « Au pied du mur »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la tour de Gisgoul en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Inspecter l'intérieur de la tour de Gisgoul",
+      "instructions": "Démarrer une seconde quête auprès de l'inspecteur et suivre Moctar dans la tour. L'enquête réclame plusieurs interactions dans une salle cachée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rencontrer l'inspecteur Jet Gad devant la tour en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter son enquête pour ouvrir « L'entrée des artistes »."
+        },
+        {
+          "kind": "talk",
+          "text": "Retrouver Moctar Kitekt, entrer dans la tour puis lui reparler."
+        },
+        {
+          "kind": "interact",
+          "text": "Emprunter le passage à droite de la statue et monter les escaliers."
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les statues, les ossements et le livre de la pièce."
+        },
+        {
+          "kind": "talk",
+          "text": "Faire le point avec Moctar après avoir examiné les indices."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Commencer le travail de la mine",
+      "instructions": "La mineuse gobeline propose un service donnant lieu à une autre quête du succès.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à la mineuse gobeline et proposer son aide pour lancer la quête du salaire."
+        },
+        {
+          "kind": "travel",
+          "text": "Se diriger vers la taverne de la Vague dorée en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Interroger la Bworkette de la taverne",
+      "instructions": "La piste de la mine conduit à une Bworkette de l'auberge. Épuiser ses dialogues pour obtenir la suite de l'enquête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la taverne de la Vague dorée en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger la Bworkette Metally Cutey à propos de la situation des mineurs."
+        },
+        {
+          "kind": "talk",
+          "text": "Relancer le dialogue pour débloquer la suite de son témoignage."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Remettre les Shigekax et examiner le sac",
+      "instructions": "Dans la mine, les friandises sont destinées à un gobelin. Une fois l'objet remis, examiner le sac posé à proximité et utiliser l'objet de quête découvert.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver le Mineur Gobelin dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 5 Shigekax Menthe au Mineur Gobelin."
+        },
+        {
+          "kind": "interact",
+          "text": "Avancer d'une salle vers la droite et fouiller le grand sac."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Sac poussiéreux depuis les objets de quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir à la taverne de la Vague dorée en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Faire le compte rendu à Metally Cutey",
+      "instructions": "Le sac utilisé, retourner voir la Bworkette avant de poursuivre l'enquête à Brâkmar.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Metally Cutey dans la taverne en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Présenter à Metally Cutey le résultat de la visite de la mine."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la milice de Brâkmar en [-25,33], via le zaap et le zaapi si disponibles.",
+          "coordinates": [
+            -25,
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Consulter le responsable de la prison",
+      "instructions": "À Brâkmar, monter plusieurs étages à la milice pour interroger le geôlier, puis revenir au rez-de-chaussée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la milice de Brâkmar en [-25,33].",
+          "coordinates": [
+            -25,
+            33
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Monter trois fois les escaliers jusqu'au bureau du geôlier."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au responsable de la prison, Pen Itentiary."
+        },
+        {
+          "kind": "interact",
+          "text": "Redescendre les trois étages."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'auberge du Chabrûlé en [-28,38].",
+          "coordinates": [
+            -28,
+            38
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Interroger quatre témoins à l'auberge",
+      "instructions": "Au Chabrûlé, plusieurs clients donnent des renseignements complémentaires. Les quatre dialogues doivent être réalisés avant de changer de secteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'auberge du Chabrûlé en [-28,38].",
+          "coordinates": [
+            -28,
+            38
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Questionner Burnd Nettik."
+        },
+        {
+          "kind": "talk",
+          "text": "Questionner Jiggin Suke."
+        },
+        {
+          "kind": "talk",
+          "text": "Questionner Loopin Wolf."
+        },
+        {
+          "kind": "talk",
+          "text": "Questionner Margo Fujicakes."
+        },
+        {
+          "kind": "travel",
+          "text": "Continuer l'enquête vers [-26,39].",
+          "coordinates": [
+            -26,
+            39
+          ]
+        }
+      ]
+    }
+  ]
+}
