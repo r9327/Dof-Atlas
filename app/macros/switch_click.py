@@ -48,6 +48,7 @@ class SwitchClickMacro:
         action_label: str,
         *,
         exact_source_handle: int | None = None,
+        mirror_target_handles: tuple[int, ...] | None = None,
     ) -> bool:
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
@@ -112,6 +113,7 @@ class SwitchClickMacro:
                     context,
                     mouse_block_started=True,
                     exact_source_handle=exact_source_handle,
+                    mirror_target_handles=mirror_target_handles,
                 ),
             )
         except Exception:
@@ -130,6 +132,7 @@ class SwitchClickMacro:
         context: SwitchClickContext,
         mouse_block_started: bool = False,
         exact_source_handle: int | None = None,
+        mirror_target_handles: tuple[int, ...] | None = None,
     ) -> None:
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
@@ -180,6 +183,25 @@ class SwitchClickMacro:
                 context.source_hwnd
             )
             target_total = len(targets)
+            if mirror_target_handles is not None:
+                # Never fan out to a client that appeared after the physical
+                # click, or to a different favorite during an active gesture.
+                actual_handles = tuple(client.handle for client in targets)
+                captured_handles = tuple(mirror_target_handles)
+                if (
+                    len(captured_handles) < 2
+                    or len(captured_handles) > 8
+                    or len(set(captured_handles)) != len(captured_handles)
+                    or len(actual_handles) != len(captured_handles)
+                    or set(actual_handles) != set(captured_handles)
+                    or context.source_hwnd not in captured_handles
+                    or self.runtime.settings.primary_handle != context.source_hwnd
+                ):
+                    self.runtime.logger.warning(
+                        "%s annulé: liste des fenêtres modifiée pendant le clic.",
+                        action_label,
+                    )
+                    return
             should_restore_preferred = bool(targets)
 
             if not targets:

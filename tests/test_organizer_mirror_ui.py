@@ -108,6 +108,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             self.assertTrue(AtlasRuntime._handle_mirror_click(runtime, "Left", 12, 28))
         runtime.switch_click.run_async.assert_called_once_with(
             "Left", 12, 28, 1, "Miroir", exact_source_handle=101,
+            mirror_target_handles=(101, 202, 303),
         )
 
     def test_no_favorite_foreign_focus_one_client_or_too_many_fail_closed(self):
@@ -261,6 +262,36 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             macro._run("Left", 1, "Miroir", old, exact_source_handle=101)
         sender.assert_not_called()
         runtime.switch_character.ordered_clients_from_source.assert_not_called()
+
+
+    def test_mirror_sender_aborts_when_clients_change_after_capture(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101),
+            SimpleNamespace(handle=202),
+            SimpleNamespace(handle=404),
+        ]
+        macro = SwitchClickMacro(runtime)
+        original = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        with (
+            patch.object(macro, "_validated_context", return_value=original),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(100, 200)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.activate_window") as focus,
+            patch("app.macros.switch_click.send_client_click") as sender,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", original,
+                exact_source_handle=101,
+                mirror_target_handles=(101, 202, 303),
+            )
+        focus.assert_not_called()
+        sender.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
 
 
 if __name__ == "__main__":

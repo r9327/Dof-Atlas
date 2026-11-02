@@ -581,6 +581,7 @@ class AtlasRuntime:
             return bool(self.switch_click.run_async(
                 button, screen_x, screen_y, 1, "Miroir",
                 exact_source_handle=favorite.handle,
+                mirror_target_handles=destinations,
             ))
         except Exception:
             self.logger.exception("Miroir: démarrage impossible.")
