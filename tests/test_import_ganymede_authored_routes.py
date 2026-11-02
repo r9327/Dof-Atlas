@@ -74,6 +74,7 @@ class GanymedeAuthoredImportTests(unittest.TestCase):
         # Mocking avoids requiring Windows Developer Mode or admin symlinks.
         destination = self.outbox
         original = Path.is_symlink
+
         def fake_symlink(path):
             return path == destination or original(path)
         with mock.patch.object(Path, "is_symlink", fake_symlink):
