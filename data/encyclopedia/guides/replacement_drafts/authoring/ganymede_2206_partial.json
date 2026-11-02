@@ -3,15 +3,15 @@
   "source_guide_id": 2206,
   "source_url": "https://ganymede-app.com/guides/2206",
   "expected_source_step_count": 30,
-  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "authoring_status": "FULL_DRAFT_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    20
+    30
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2206",
-  "evidence_scope": "source_visible_first_ten_plus_independently_verified_valonia_quests_11_to_20_source_parity_not_yet_proven",
+  "evidence_scope": "first_ten_visible_source_steps_plus_cross_checked_quest_actions_11_to_30_against_step_local_facts_not_original_source_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -626,16 +626,331 @@
           "text": "Facultatif : garder 50 kamas pour le voyage en raccourci vers le barrage."
         }
       ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Prendre le raccourci vers le barrage",
+      "instructions": "Le passeur Edmön Taägnard propose un trajet optionnel payant jusqu'à proximité du barrage. Il ne faut pas confondre cette dépense avec les kamas obligatoires des quêtes précédentes.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Edmön Taägnard en [37,-77].",
+          "coordinates": [
+            37,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander le trajet vers le barrage pour 50 kamas, ou choisir de s'y rendre à pied."
+        },
+        {
+          "kind": "information",
+          "text": "Le raccourci fait arriver en [34,-83], à une carte du barrage. Le paiement reste facultatif."
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Interroger les ouvriers du barrage",
+      "instructions": "Au barrage, Judeau Keuter soigne un ouvrier. Interroger les blessés puis inspecter la structure pour comprendre l'origine du sabotage.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le barrage en [35,-83].",
+          "coordinates": [
+            35,
+            -83
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Bjarni Amblok et Arfinn Hékipe à propos des attaquants."
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les rondins du barrage et constater les dégradations."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Bjarni Amblok comment consolider les rondins : il manque de la kole."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller voir le contremaître Leichäf Odäg en [34,-81].",
+          "coordinates": [
+            34,
+            -81
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Récupérer le baril de kole Onialiste",
+      "instructions": "Le contremaître de la carrière dispose d'un baril de kole qui peut renforcer le barrage. Le prendre puis retourner sur les lieux du sabotage.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler au contremaître Leichäf Odäg en [34,-81].",
+          "coordinates": [
+            34,
+            -81
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander la kole nécessaire pour les réparations du barrage."
+        },
+        {
+          "kind": "prepare",
+          "text": "Récupérer le Baril de kole Onialiste, objet remis par Leichäf Odäg."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner au barrage en [35,-83].",
+          "coordinates": [
+            35,
+            -83
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Réparer les rondins et récupérer le baume",
+      "instructions": "Utiliser la kole pour réparer les supports puis reparler au médecin, qui remet un baume destiné à Aster Bou.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver les rondins abîmés en [35,-83].",
+          "coordinates": [
+            35,
+            -83
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur les rondins pour consommer 1 Baril de kole Onialiste et consolider le barrage."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Judeau Keuter et recevoir 1 Baume régénérant pour Aster Bou."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le point de retour du passeur en [34,-83] si vous empruntez le raccourci.",
+          "coordinates": [
+            34,
+            -83
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Revenir du barrage vers le village",
+      "instructions": "Utiliser le raccourci retour si souhaité. Conserver le Baume régénérant : il sera indispensable après le combat du Refuge sylvestre.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Edmön Taägnard en [34,-83], ou choisir le retour à pied.",
+          "coordinates": [
+            34,
+            -83
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Facultatif : payer 50 kamas à Edmön Taägnard pour regagner la colonie."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le Baume régénérant reçu du médecin pour soigner Bentlaitue après le donjon."
+        },
+        {
+          "kind": "information",
+          "text": "Le trajet de retour mène au village de Nouvelle Albuera."
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Faire le rapport et affronter Rakoopeur",
+      "instructions": "Thorbjarn soupçonne une révolte des animaux et demande de rencontrer Rakoopeur au Refuge sylvestre. Le combat du boss peut être validé via une sauvegarde de donjon.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Thorbjarn à Nouvelle Albuera en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui présenter les réparations du barrage et accepter d'aller parlementer avec Rakoopeur."
+        },
+        {
+          "kind": "travel",
+          "text": "Entrer dans le donjon Refuge sylvestre en [40,-84].",
+          "coordinates": [
+            40,
+            -84
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Rakoopeur, boss du Refuge sylvestre. Un retour directement au boss via sauvegarde de donjon est possible."
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "title": "Soigner Bentlaitue et ouvrir la complote",
+      "instructions": "Après la victoire, Rakoopeur explique qu'il n'aurait jamais saboté le barrage, dangereux pour son propre peuple. Soigner la tortue Bentlaitue puis recevoir la piste des saboteurs.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Rakoopeur dans la salle du boss à [40,-84].",
+          "coordinates": [
+            40,
+            -84
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter son explication au sujet du barrage saboté."
+        },
+        {
+          "kind": "use_item",
+          "text": "Retirer les bandages et appliquer 1 Baume régénérant à Bentlaitue."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Rakoopeur pour conclure « Association de fureteurs » et accepter « La complote des P.O.M.S »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les Hauteurs d'Albuera en [37,-84].",
+          "coordinates": [
+            37,
+            -84
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "title": "Repérer la cachette des P.O.M.S",
+      "instructions": "Sur les hauteurs, observer les indices qui révèlent un passage dissimulé dans les rochers. La progression demande de cliquer puis de se cacher sur une case précise.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller sur les Hauteurs d'Albuera en [37,-84].",
+          "coordinates": [
+            37,
+            -84
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner le sandwich abandonné près de la marche formée d'un rondin."
+        },
+        {
+          "kind": "interact",
+          "text": "Se cacher derrière le rocher à droite, sur la case du crâne du squelette."
+        },
+        {
+          "kind": "talk",
+          "text": "Observer Bjarni Amblok lorsqu'il revient vers le passage secret."
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le gros rocher à gauche pour pénétrer dans la salle des conspirateurs."
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "title": "Démasquer Aster Bou et vaincre les saboteurs",
+      "instructions": "Dans leur salle clandestine, Aster Bou et les P.O.M.S avouent avoir endommagé le barrage. Le groupe hostile attaque ; après la victoire, arrêter les saboteurs pour les remettre à Thorbjarn.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la salle secrète depuis [37,-84].",
+          "coordinates": [
+            37,
+            -84
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter Aster Bou exposer le plan des P.O.M.S."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Aster Bou et les ouvriers conspirateurs : combat réalisable en groupe."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Aster Bou puis à Bentlaitue après la victoire."
+        },
+        {
+          "kind": "interact",
+          "text": "Ligoter les saboteurs avant le retour au village."
+        },
+        {
+          "kind": "travel",
+          "text": "Ramener les saboteurs auprès de Thorbjarn en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "title": "Conclure l'enquête et le succès de Valonia",
+      "instructions": "Le retour à Thorbjarn permet de rétablir la vérité sur le sabotage du barrage et de négocier un meilleur traitement des animaux. Vérifier la clôture des quêtes du succès avant de valider l'étape.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Thorbjarn en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Présenter Aster Bou comme responsable du sabotage et écouter sa défense."
+        },
+        {
+          "kind": "talk",
+          "text": "Laisser Bentlaitue proposer une entente entre la colonie et les animaux de la futaie."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Thorbjarn pour terminer « La complote des P.O.M.S »."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier le succès « L'enfant regardait tomber la neige ». Une quête de haut niveau peut ensuite s'ouvrir, sans validation automatique dans Atlas."
+        }
+      ]
     }
   ],
   "fact_sources": [
     "https://www.dofuserie.com/quetes/colonie-de-vaillance/",
     "https://www.dofuserie.com/quetes/dans-la-gueule-du-trankilou/",
-    "https://www.dofuserie.com/quetes/association-de-fureteurs/"
+    "https://www.dofuserie.com/quetes/association-de-fureteurs/",
+    "https://www.dofuserie.com/quetes/la-complote-des-p-o-m-s/"
   ],
   "further_review_needed": [
-    "Compare stages 11-20 to original Ganymède GP11 stage sequence and wording of choices.",
-    "Review French NPC names and instanced group fight on Unity.",
-    "Confirm the separate quest transitions and guide-specific manual validation for each character."
+    "Compare every stage 11-30 against the original GP11 Ganymède page for 1:1 order and prerequisites.",
+    "Verify French localizations and native map IDs/dimensions, including optional ferry, dungeon return and quest completion.",
+    "Check independent progress for each character, mandatory fights and user validation in DOFUS Unity."
   ]
 }
