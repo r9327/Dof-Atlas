@@ -78,6 +78,33 @@ class GanymedeCopyLinksTests(unittest.TestCase):
         links.feed(html)
         self.assertEqual(links.hrefs, ["copy:0"])
 
+    def test_copy_strip_does_not_duplicate_reader_text(self):
+        from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
+        step = {
+            "title": "Étape originale",
+            "instructions": "Description complète hors ligne",
+            "actions": [
+                {"kind": "travel", "text": "Plusieurs cartes",
+                 "coordinates": [24, -3]},
+                {"kind": "talk", "text": "Questionner le marin",
+                 "copy_values": ["Capitaine Kradoc"]},
+                {"kind": "information", "text": "Aucune copie inventée"},
+            ],
+        }
+        html, targets = GuideCatalogView._format_offline_instruction_rich(
+            step, 1, 7, links_only=True,
+        )
+        self.assertNotIn("Étape originale", html)
+        self.assertNotIn("Description complète hors ligne", html)
+        self.assertNotIn("Plusieurs cartes", html)
+        self.assertNotIn("Aucune copie inventée", html)
+        self.assertIn("Copier :", html)
+        self.assertEqual(targets, ("/travel 24,-3", "Capitaine Kradoc"))
+        links = _Links()
+        links.feed(html)
+        self.assertEqual(links.hrefs, ["copy:0", "copy:1"])
+
     def test_otomai_one_contains_explicit_targets_without_certificate(self):
         data = json.loads(
             (GUIDES_DIR / "ganymede_2219_instructions.json").read_text(
