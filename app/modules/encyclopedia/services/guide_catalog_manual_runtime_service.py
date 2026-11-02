@@ -129,14 +129,13 @@ def project_ganymede_authored_cards(
                 positions.append(position)
             else:
                 position = ""
-            # Canonical HTML/copy/color rules are applied by SharedGuideManualCard.
-            rows.append({
-                "kind": "combat" if kind == "fight" else "action",
-                "position": position,
-                "text": f"{_GANYMEDE_ACTION_LABELS[kind]} : {text.strip()}",
-            })
-            # Do not guess purchasable object names from free-form prose.
-            for item in action.get("items", ()):
+            # Preserve source metadata without reordering actions. The shared
+            # card uses the names for its copy/color links; other consumers can
+            # still recover quantities and explicit author-supplied copy targets.
+            items = action.get("items", ())
+            if not isinstance(items, (list, tuple)):
+                raise ValueError(f"Invalid structured items {source_id}:{number}")
+            for item in items:
                 if not isinstance(item, dict):
                     raise ValueError(f"Invalid structured item {source_id}:{number}")
                 name = item.get("name")
@@ -144,6 +143,27 @@ def project_ganymede_authored_cards(
                     raise ValueError(f"Invalid structured item name {source_id}:{number}")
                 if name not in resource_names:
                     resource_names.append(name)
+            copy_values = action.get("copy_values")
+            if copy_values is not None and (
+                not isinstance(copy_values, list) or len(copy_values) > 32
+                or any(
+                    not isinstance(value, str) or not value.strip()
+                    or len(value) > 256
+                    for value in copy_values
+                )
+            ):
+                raise ValueError(f"Invalid authored copy values {source_id}:{number}")
+            # Canonical HTML/copy/color rules are applied by SharedGuideManualCard.
+            row = {
+                "kind": "combat" if kind == "fight" else "action",
+                "position": position,
+                "text": f"{_GANYMEDE_ACTION_LABELS[kind]} : {text.strip()}",
+            }
+            if "items" in action:
+                row["items"] = copy.deepcopy(items)
+            if copy_values is not None:
+                row["copy_values"] = list(copy_values)
+            rows.append(row)
         first_position = positions[0] if positions else ""
         cards.append({
             "index": number,
