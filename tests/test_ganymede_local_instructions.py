@@ -264,7 +264,7 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         self.assertIn("La grande kradoc", texts(1))
         self.assertIn("Haute voltige", texts(1))
         self.assertIn("étape 5", texts(1))
-        self.assertIn("3 Graines de Sésame", texts(2))
+        self.assertIn("10 Graines de Sésame", texts(2))
         self.assertIn("Kradoc", texts(3))
         self.assertTrue(any(a["kind"] == "deliver" for a in steps[2]["actions"]))
         self.assertFalse(any(a["kind"] == "fight" for a in steps[2]["actions"]))
