@@ -126,3 +126,51 @@ par guide. Si une preuve manque : `NOT_CERTIFIED`.
 Le protocole et les critères GIMP-016…018 sont conservés dans
 l'issue #361 ; la recette Windows et le pilote sont détaillés
 dans #362. Cette documentation ne constitue **aucune certification**.
+
+
+## Un seul point de contrôle et verrou de séquence (GIMP-016…018)
+
+Le point d'entrée de contrôle est `tools.atlas_guide_pipeline` :
+ce module assemble le gate séquentiel, le prévisualisateur de création,
+la comparaison indépendante avant/après et le stockage **non activé**
+du candidat. Il **ne lit aucune route réelle au stade actuel**.
+
+Commande de diagnostic **métadonnées seulement** (ne prépare jamais un guide) :
+
+    py -3.13 -m tools.atlas_guide_pipeline --plan evidence_plan.json --head-sha <git-sha-40>
+
+Le `plan` ne contient **que** des identifiants de guide et des reçus
+de preuve, jamais le texte des quêtes. Sans vérificateur externe de
+preuves fourni par un hôte de certification autorisé, la commande
+échoue **systématiquement en BLOCKED**, même si le JSON indique PASS.
+Aucun `--force`, `--trust`, `--apply` ou `--skip-checks` n'est disponible.
+La fonction Python `stage_checked_candidate` n'est pas une commande
+CLI : elle exige le vérificateur d'attestations indépendant et un
+alignement des quatre représentations (source autorisée, référence
+indépendante, Atlas avant et après), exactement **un** guide et zéro
+écart après comparaison. Elle ne crée qu'un *candidat* immutable
+sans activation de route ni modification de la progression.
+
+`tools.atlas_guide_sequence_gate.assess_next` est le seul propriétaire
+de la règle chronologique : Doctor/Graphify/tests/UI/Windows/perf et
+outils d'abord ; **Cawotte seul** comme pilote (Dokoko uniquement si
+l'indisponibilité de Cawotte est elle-même attestée) ; pour chaque guide
+suivant, chaque preuve du précédent doit être **PASS et vérifiée
+indépendamment** au SHA source+code exact, avec couverture positive
+des étapes et actions et aucune anomalie bloquante ou non vérifiée.
+Le retour `ELIGIBLE_FOR_INDEPENDENT_REVIEW` **n'est PAS un certificat**.
+Une preuve manquante, un SHA périmé, une chaîne interrompue ou un
+vérificateur indisponible retourne BLOCKED. Un guide ne peut être
+certifié par le certificateur lui-même.
+
+Commandes de tests uniquement sur **fixtures intégralement fictives** :
+
+    py -3.13 -m unittest tests.test_atlas_guide_sequence_gate tests.test_atlas_guide_pipeline -v
+
+Le `verifier` factice injecté dans les tests n'est pas un système
+de confiance de production. Aucun export Ganymède réel, aucune fiche
+Cawotte réelle, aucune donnée de guide réelle n'a été utilisée.
+**Ne pas déclencher le pilote** tant que Graphify, Doctor,
+l'architecture UI et les outils ne sont pas réellement qualifiés.
+L'activation en production, la certification indépendante et la
+vérification Windows/DOFUS restent des étapes futures obligatoires.
