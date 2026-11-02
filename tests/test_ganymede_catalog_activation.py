@@ -373,5 +373,33 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
 
 
 
+    def test_canonical_guide_colours_and_copy_links_are_shared(self) -> None:
+        """Source card rows must use the existing rich Guide formatter, not a clone."""
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+            GuideUltimeManualCard, NPC_COLOR, RESOURCE_COLOR, POSITION_COLOR,
+        )
+
+        rendered = GuideUltimeManualCard._format_line_html(
+            "• ", "[13,26]", "Parler à Capitaine Kradoc et préparer Gros Boulet",
+            ["Capitaine Kradoc"], ["Gros Boulet"],
+        )
+        self.assertIn('href="travel-copy:13,26"', rendered)
+        self.assertIn('href="item-copy:Gros%20Boulet"', rendered)
+        for palette_role in (NPC_COLOR, RESOURCE_COLOR, POSITION_COLOR):
+            self.assertIn(f"color:{palette_role}", rendered)
+        self.assertIn("<b>[13,26]</b>", rendered)
+        self.assertIn("<b>Capitaine Kradoc</b>", rendered)
+        self.assertIn("<b>Gros Boulet</b>", rendered)
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("travel-copy:13,26"),
+            "/travel 13,26",
+        )
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("item-copy:Gros%20Boulet"),
+            "Gros Boulet",
+        )
+
+
+
 if __name__ == "__main__":
     unittest.main()
