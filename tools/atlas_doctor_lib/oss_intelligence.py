@@ -39,6 +39,19 @@ _PRIORITY = {
     "ATOSS-06": 1, "ATOSS-10": 1, "ATOSS-11": 1,
     "ATOSS-15": 2, "ATOSS-16": 2,
 }
+# Exact developer-only opt-in entry points that already exist in this PR.
+# These are callable trials, NEVER automatic execution or evidence of adoption.
+# This table routes policy; the ATOSS study remains the candidate inventory.
+_OPTIONAL_TRIAL_ROUTES = {
+    "ATOSS-02": "tools.ai_context.recommended_tests (Hypothesis installed; scoped tests only)",
+    "ATOSS-11": "tools.atlas_json_benchmark --compare-parsers",
+    "ATOSS-12": "tools.atlas_json_benchmark --compare-parsers",
+    "ATOSS-13": "tools.atlas_json_benchmark --compare-streaming",
+    "ATOSS-14": "tools.atlas_json_benchmark --compare-compression",
+    "ATOSS-16": "tools.atlas_doctor oss --asset-trial (manual-only ImageHash)",
+    "ATOSS-17": "tools.atlas_doctor oss --font-trial (manual-only fontTools)",
+}
+
 # Only lookup aliases for read-only local package metadata (never imports or installs).
 # Candidate names, IDs and acceptance decisions still come from the study.
 _DISTRIBUTIONS = {
@@ -129,6 +142,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                  else "EXTERNAL_OWNER" if cid in _EXTERNAL_OWNER
                  else "REUSE_EXISTING" if cid in _EXISTING
                  else "OPT_IN_APPROVED_ADAPTER" if cid in _EXECUTABLE
+                 else "OPT_IN_TRIAL_AVAILABLE" if cid in _OPTIONAL_TRIAL_ROUTES
                  else "EVALUATION_REQUIRED")
         if "REJECT" in found.get("study_decision", ""):
             state = "REJECTED"
@@ -140,6 +154,9 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
             "licensed_for_automation": False,
             "local_distribution": _DISTRIBUTIONS.get(cid),
             "local_binary": _BINARIES.get(cid),
+            "opt_in_trial_route": _OPTIONAL_TRIAL_ROUTES.get(cid),
+            "trial_executed": False,
+            "adoption_qualified": False,
         })
     # Never truncate executable recommendations behind multiple optional
     # alternatives; the full inventory remains accessible separately.
@@ -252,6 +269,9 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
          },
          "local_distribution": row.get("local_distribution"),
          "local_binary": row.get("local_binary"),
+         "opt_in_trial_route": row.get("opt_in_trial_route"),
+         "adoption_qualified": False,
+         "trial_executed": False,
          "locally_available": observed_packages.get(row.get("id"), {}).get("available"),
          "installed_version_claim": observed_packages.get(row.get("id"), {}).get("version_claim"),
          "automatic_execution": False}
