@@ -334,6 +334,75 @@ def qualify_live(root: Path, paths: Iterable[str], *,
     }
 
 
+def trial_fonttools(root: Path, paths: Iterable[str]) -> dict[str, Any]:
+    """Explicit, bounded font metadata review; never modifies/repackages Unity fonts.
+
+    Only read 1..16 validated local TTF/OTF sources. Font names and metadata
+    are untrusted publisher claims, not proof of font license/redistribution.
+    """
+    files = _safe_files(root, paths)
+    if any(not path.casefold().endswith((".ttf", ".otf")) for path in files):
+        raise ValueError("fontTools trial accepts only explicit TTF/OTF sources")
+    try:
+        from fontTools.ttLib import TTFont
+    except ImportError:
+        return {
+            "schema_version": 1, "status": "NOT_AVAILABLE",
+            "tool": "fonttools", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "fontTools is an optional developer-only dependency",
+        }
+    try:
+        before = _file_digests(root, files)
+        rows = []
+        for relative in files:
+            file = root.resolve() / relative
+            font = TTFont(file, lazy=True, recalcBBoxes=False,
+                          recalcTimestamp=False)
+            try:
+                names = font["name"]
+                # Reading a name table is not a proof of glyph/Qt compatibility.
+                family = names.getDebugName(1)
+                style = names.getDebugName(2)
+                claim = names.getDebugName(13)
+                if not isinstance(family, str) or not family.strip():
+                    raise ValueError("Font is missing a display family")
+                rows.append({
+                    "path": relative,
+                    "family": family.strip()[:100],
+                    "style": style.strip()[:100] if isinstance(style, str) else None,
+                    "license_metadata_present": bool(claim),
+                    "license_verified": False,
+                    "qt_rendering_verified": False,
+                })
+            finally:
+                font.close()
+        if before != _file_digests(root, files):
+            raise ValueError("Font inputs changed during inspection")
+    except Exception:
+        # Parser failures are non-authoritative and must not spill untrusted
+        # font strings, paths or exceptions into the Doctor report.
+        return {
+            "schema_version": 1, "status": "ERROR",
+            "tool": "fonttools", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Font metadata could not be verified safely",
+        }
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_doctor_lib.oss_router.trial_fonttools",
+        "status": "TRIAL_COMPLETE", "tool": "fonttools",
+        "requested_files": len(files), "execution_count": 1,
+        "input_integrity_verified": True,
+        "fonts": rows,
+        "license_verified": False,
+        "qt_rendering_verified": False,
+        "runtime_consumers_verified": False,
+        "no_file_mutations": True,
+        "phase_certified": False,
+    }
+
+
 def trial_imagehash(root: Path, paths: Iterable[str], *,
                     max_pixels: int = 2_000_000,
                     max_file_bytes: int = 2_000_000) -> dict[str, Any]:
