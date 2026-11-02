@@ -240,3 +240,29 @@ pas que l'UI affiche fidèlement toutes leurs actions**. Les tests de
 mutation correspondants utilisent exclusivement des objets imaginaires.
 La certification finale des couleurs/clics effectifs attend toujours
 la vérification réelle du lecteur sous Windows/DOFUS.
+
+
+### Inventaire exhaustif et reconstruction canonique (durcissement Phase 0)
+
+Le rapport `compare` comporte maintenant les compteurs
+`reference_full_guides/steps/actions` et
+`atlas_full_guides/steps/actions`, calculés **sur les deux documents
+complets**, et pas seulement dans les guides communs. Deux exports
+identiques contenant une route sans étapes, une étape sans actions ou
+un type d'action inexploitable ne peuvent plus produire de PASS.
+Un guide manquant reste bloquant, mais ses étapes/actions restent
+comptabilisées dans l'inventaire source complet.
+
+Les cartes candidates doivent être exactement identiques à une
+**reprojection fraîche depuis les étapes source** via l'unique adaptateur
+`project_authorized_guide`. Cela bloque les faux drapeaux de
+certification/renderer, l'index de page altéré, l'en-tête substitué,
+les étapes omises et les champs invisibles ajoutés hors du schéma.
+Le guide conserve désormais ses métadonnées d'origine **une fois par
+route**, pas une copie complète par fiche.
+
+Ces protections sont testées avec des fixtures fictives. Une
+coïncidence de données ne constitue toujours pas une preuve
+d'authenticité de la source ou de validation UI réelle ; les
+attestations indépendantes, Doctor/Graphify et Windows restent
+obligatoires, et aucun guide réel n'est traité en phase 0.
