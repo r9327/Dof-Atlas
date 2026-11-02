@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_sha": "d22e2da5e6cdd1982420ca5c6009b684e201e20d",
+  "description": "Historical quest-list guide data, never used by the Ganymede runtime",
+  "files": {
+    "alignement_bonta.json": "3638f45489611a97300e4a26e77d520707c581b6",
+    "alignement_brakmar.json": "ae965dc118c4189a6b4c47faece268bca8a2df13",
+    "dofoozbz.json": "147d3527c4af0d20f0fefc0aecee50ef4fcfc13f",
+    "dofus_abyssal.json": "b90c11d800d4fa79af32f4b2d68e8c6d84027072",
+    "dofus_argente.json": "434cf9c5dda4f71d53fd4f87c4da03ca554870d6",
+    "dofus_cawotte.json": "7cb932368afc8dec43ff0dd853dfb5fe87fe6108",
+    "dofus_des_glaces.json": "ba85fec7fe48f5a0621219eaf2182d6a62497f76",
+    "dofus_des_veilleurs.json": "db73311eaea4fd25b24151ae5b56d967af75579c",
+    "dofus_dom_de_pin.json": "6c84dd0434fb89aa3acf9417ce4df75c71acc569",
+    "dofus_du_cauchemar.json": "4fc8714023c817cd9b7ec6db82cba4760d9cdae2",
+    "dofus_ebene.json": "bdce0bfe6f6fc9c94e4bffecbc69731ae2a8e0ff",
+    "dofus_emeraude.json": "63188f2999a6b3a4a72f8d2caa631b4420b6c451",
+    "dofus_forgelave.json": "ea7bdeb40c8a50c8b2598074de6bf167200c6eef",
+    "dofus_ivoire.json": "dc244f3074f15e98604db8abf27ce1c58c4396ea",
+    "dofus_nebuleux.json": "599ff4859f5636df7f4f9a10d1a8f00238d8f1cf",
+    "dofus_pourpre.json": "bf27954a90ce64178852fff8be11dd3ecc6bb1db",
+    "dofus_tachete.json": "1b903f06966637fc5132672fcf02a0955fd32d5b",
+    "dofus_turquoise.json": "f586bfc887ded683e90c541d550c10e368a46366",
+    "dofus_vulbis.json": "8d32d2d47cecda593cdd6cae0a80bb2ed649274f",
+    "dokille.json": "c94daf0886828c75755ed756e3a422319ebf4fe4",
+    "dokoko.json": "b93e77c2b461bd4416f59d79ad38dedec3b85a4c",
+    "dolmanax.json": "7de4948fe36d46625ddc0b97ee1fdff4e88b2699",
+    "domakuro.json": "4c24cf6c9a32b4b883dab3815f20912ac8fc4aba",
+    "dorigami.json": "d23b31baeb0f904602cee9a9e9fa303ee07b4dfa"
+  }
+}

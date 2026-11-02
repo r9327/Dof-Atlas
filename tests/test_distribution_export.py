@@ -98,6 +98,14 @@ class ExportTests(unittest.TestCase):
                 source,
             )
 
+    def test_archived_legacy_data_is_outside_app_export(self):
+        self.assertFalse(selected_runtime_path(
+            "archives/legacy-guides-2026-11-02/dofus_cawotte.json",
+        ))
+        self.assertFalse(selected_runtime_path(
+            "archives/legacy-guides-2026-11-02/alignement_bonta.json",
+        ))
+
     def test_reject_unmaterialized_lfs_icon(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

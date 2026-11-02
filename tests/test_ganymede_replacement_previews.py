@@ -264,10 +264,7 @@ class GanymedeReplacementPreviewTests(unittest.TestCase):
             not s["manual_completion_allowed"]
             for s in cawotte["sections"][0]["steps"]
         ))
-        self.assertEqual(
-            set(result["dofus_guides_without_direct_ganymede"]),
-            {"dokille", "dofoozbz"},
-        )
+        self.assertEqual(result["dofus_guides_without_direct_ganymede"], [])
         for preview in result["previews"].values():
             steps = preview["sections"][0]["steps"]
             self.assertEqual(len(steps), preview["expected_source_step_count"])

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from tools.audit_ganymede_master_refs import INDEX, ROOT, audit_ganymede_master_refs
 from tools.audit_ganymede_replacement_readiness import (
-    CATALOG, CROSSWALK, GUIDES_DIR,
+    CATALOG, CROSSWALK, GUIDES_DIR, legacy_evidence_path,
 )
 
 
@@ -91,7 +91,7 @@ def build_dofus_replacement_previews(root: Path) -> dict[str, object]:
                              "detail": f"{atlas_id}: {valid['issues']}"})
             continue
         try:
-            old = _json(root / GUIDES_DIR / record["file"])
+            old = _json(legacy_evidence_path(root, record))
             if old.get("id") != atlas_id:
                 raise ValueError("Guide ID mismatch")
             observed = _json(snapshot_path)

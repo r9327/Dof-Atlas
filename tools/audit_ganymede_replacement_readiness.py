@@ -21,6 +21,17 @@ from app.modules.encyclopedia.services.guide_ganymede_cutover import (
 GUIDES_DIR = Path("data/encyclopedia/guides")
 CATALOG = GUIDES_DIR / "catalog.json"
 CROSSWALK = GUIDES_DIR / "ganymede_source_crosswalk.json"
+LEGACY_ARCHIVE = Path("archives/legacy-guides-2026-11-02")
+
+
+def legacy_evidence_path(root: Path, entry: dict) -> Path:
+    """Read historical quest data only for offline audits, never at runtime."""
+    filename = str(entry["file"])
+    if (entry.get("ganymede_manual_ui_ready") is True
+            and filename == f"replacement_drafts/cutovers/{entry['id']}.json"):
+        return root / LEGACY_ARCHIVE / f"{entry['id']}.json"
+    return root / GUIDES_DIR / filename
+
 
 
 def audit_ganymede_replacement_readiness(root: Path) -> dict:
@@ -72,9 +83,7 @@ def audit_ganymede_replacement_readiness(root: Path) -> dict:
         if not originals:
             blockers.append("NO_DIRECT_GANYMEDE_MAPPING")
         try:
-            existing = json.loads((
-                root / GUIDES_DIR / entry["file"]
-            ).read_text(encoding="utf-8"))
+            existing = json.loads(legacy_evidence_path(root, entry).read_text(encoding="utf-8"))
             if existing.get("id") != local_id:
                 raise ValueError("local guide ID differs from catalog")
             old_steps = sum(len(section["steps"]) for section in

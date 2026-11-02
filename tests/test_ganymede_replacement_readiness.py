@@ -82,31 +82,26 @@ class ReplacementReadinessTests(unittest.TestCase):
         self.assertIn("INVALID_LEGACY_GUIDE", report["guide_reports"][0]["blockers"])
         self.assertEqual(report["ready_to_replace"], 0)
 
-    def test_repository_dofus_routes_are_staged_without_breaking_legacy(self) -> None:
+    def test_repository_dofus_routes_are_active_and_legacy_archived(self) -> None:
         report = audit_ganymede_replacement_readiness(ROOT)
-        self.assertEqual(report["status"], "SOURCE_TRUSTED_MANUAL_STAGED",
-                         report["issues"])
-        self.assertEqual(report["dofus_guides"], 22)
+        self.assertEqual(report["status"], "SOURCE_TRUSTED_MANUAL_ACTIVE", report["issues"])
+        self.assertEqual(report["dofus_guides"], 20)
         self.assertEqual(report["dofus_guides_with_direct_source_mapping"], 20)
-        self.assertEqual(
-            set(report["dofus_guides_without_direct_source_mapping"]),
-            {"dofoozbz", "dokille"},
-        )
-        self.assertEqual(report["ready_to_replace"], 0)
-        self.assertEqual(report["replacement_activated_count"], 0)
-        self.assertFalse(report["replacement_activated"])
+        self.assertEqual(report["dofus_guides_without_direct_source_mapping"], [])
+        self.assertEqual(report["ready_to_replace"], 20)
+        self.assertEqual(report["replacement_activated_count"], 20)
+        self.assertTrue(report["replacement_activated"])
         self.assertEqual(report["source_trusted_manual_staged_count"], 20)
         self.assertEqual(report["source_trusted_manual_guides"], 20)
         self.assertEqual(report["certified_canonical_guides"], 0)
-        staged = [g for g in report["guide_reports"] if g["replacement_staged"]]
-        self.assertEqual(len(staged), 20)
-        self.assertTrue(all(g["source_trusted_manual_only"] for g in staged))
-        self.assertTrue(all(not g["canonical_objectives_verified"] for g in staged))
-        self.assertTrue(all(not g["replacement_active"] for g in staged))
-        self.assertTrue(all("MANUAL_UI_AND_QUEST_LINKS_NOT_INTEGRATED" in g["blockers"]
-                            for g in staged))
-        self.assertTrue(all(not g["replacement_staged"] for g in report["guide_reports"]
-                            if g["atlas_guide_id"] in {"dofoozbz", "dokille"}))
+        records = report["guide_reports"]
+        self.assertEqual(len(records), 20)
+        self.assertTrue(all(row["source_trusted_manual_only"] for row in records))
+        self.assertTrue(all(not row["canonical_objectives_verified"] for row in records))
+        self.assertTrue(all(row["replacement_staged"] for row in records))
+        self.assertTrue(all(row["replacement_active"] for row in records))
+        self.assertTrue(all(row["legacy_guide_preserved"] for row in records))
+        self.assertTrue(all(not row["blockers"] for row in records))
 
 
 if __name__ == "__main__":

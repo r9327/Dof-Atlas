@@ -174,23 +174,32 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
                     payload["expected_source_step_count"],
                 )
 
-    def test_legacy_quest_guides_are_disabled_and_two_optimized_untouched(self) -> None:
+    def test_archived_old_guides_replaced_by_ganymede_routes(self) -> None:
+        from hashlib import sha1
+
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
+        archive = GUIDES.parents[2] / "archives" / "legacy-guides-2026-11-02"
+        manifest = json.loads((archive / "manifest.json").read_text(encoding="utf-8"))
         by_id = {row["id"]: row for row in catalogue["guides"]}
+        self.assertEqual(len(by_id), 22)
+        self.assertEqual(len(manifest["files"]), 24)
         for guide_id in ("guide_complet", "dofus_sylvestre"):
             self.assertTrue(by_id[guide_id]["enabled"])
-            self.assertNotIn("ganymede_manual_ui_ready", by_id[guide_id])
+            self.assertEqual(by_id[guide_id]["file"], f"{guide_id}.json")
+            self.assertTrue((GUIDES / f"{guide_id}.json").is_file())
+            self.assertNotIn(f"{guide_id}.json", manifest["files"])
         for guide_id in ("dokille", "dofoozbz", "alignement_bonta", "alignement_brakmar"):
-            with self.subTest(guide=guide_id):
-                self.assertFalse(by_id[guide_id]["enabled"])
-                self.assertNotIn("ganymede_manual_ui_ready", by_id[guide_id])
-        self.assertEqual(
-            {row["id"] for row in catalogue["guides"] if row["enabled"]},
-            {"guide_complet", "dofus_sylvestre", *(
-                row["id"] for row in catalogue["guides"]
-                if row.get("ganymede_manual_ui_ready") is True
-            )},
-        )
+            self.assertNotIn(guide_id, by_id)
+        for filename, blob_sha in manifest["files"].items():
+            with self.subTest(filename=filename):
+                self.assertFalse((GUIDES / filename).exists())
+                data = (archive / filename).read_bytes()
+                content_sha = sha1(b"blob " + str(len(data)).encode() + bytes([0]) + data).hexdigest()
+                self.assertEqual(content_sha, blob_sha)
+        for row in catalogue["guides"]:
+            if row.get("ganymede_manual_ui_ready") is True:
+                self.assertEqual(row["file"], f"replacement_drafts/cutovers/{row['id']}.json")
+                self.assertTrue((GUIDES / row["file"]).is_file())
 
     def test_published_catalogue_selects_no_legacy_quest_file(self) -> None:
         from app.modules.encyclopedia.providers.guide_provider import GuideProvider
