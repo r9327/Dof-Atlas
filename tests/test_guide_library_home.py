@@ -452,8 +452,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(set(view.featured_cards), {
                         "guide_complet", "dofus_sylvestre",
                     })
+                    # The optimized cards stack inside the narrower left
+                    # panel instead of forcing a wide third column.
                     self.assertEqual(view.optimized_pair.pair_layout.direction(),
-                                     QBoxLayout.LeftToRight)
+                                     QBoxLayout.TopToBottom)
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
                     self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
@@ -491,6 +493,124 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.close()
                     view.deleteLater()
                     self.app.processEvents()
+
+    def test_home_shows_optimized_alignments_and_dofus_then_other_families(self):
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _text: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            view.resize(1200, 800)
+            view.show()
+            self.app.processEvents()
+            try:
+                self.assertEqual(
+                    view.home_columns.layout().direction(), QBoxLayout.LeftToRight,
+                )
+                self.assertTrue(view.home_left.isVisibleTo(view))
+                self.assertTrue(view.library_right.isVisibleTo(view))
+                self.assertEqual(
+                    set(view.alignment_buttons),
+                    {"alignement_bonta", "alignement_brakmar"},
+                )
+                self.assertTrue(view.alignment_buttons["alignement_bonta"].isEnabled())
+                self.assertIn("774", view.alignment_buttons["alignement_bonta"].text())
+                self.assertIn("696", view.alignment_buttons["alignement_brakmar"].text())
+                self.assertEqual(view.library_results_title.text(), "DOFUS")
+                self.assertFalse(view.library_categories.isVisibleTo(view))
+                self.assertEqual(
+                    set(view.other_category_lists),
+                    {"dimensions", "eliocalypse", "regions", "events", "adventures", "islands"},
+                )
+                # Every category is rendered independently, not behind a tree.
+                for category, listing in view.other_category_lists.items():
+                    self.assertGreater(listing.count(), 0, category)
+                    self.assertTrue(listing.isVisibleTo(view), category)
+                self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
+                self.assertTrue(view.featured_cards["dofus_sylvestre"].isVisibleTo(view))
+                requested = []
+                view.guideRequested.connect(requested.append)
+                with patch.object(view, "_open_ganymede_source_item") as source:
+                    view.alignment_buttons["alignement_bonta"].click()
+                    self.assertEqual(
+                        source.call_args.args[0].data(Qt.UserRole), 2249,
+                    )
+                    first = view.other_category_lists["dimensions"].item(0)
+                    view.other_category_lists["dimensions"].itemClicked.emit(first)
+                    self.assertEqual(
+                        source.call_args.args[0].data(Qt.UserRole),
+                        first.data(Qt.UserRole),
+                    )
+                self.assertEqual(requested, [])
+                view.resize(610, 780)
+                self.app.processEvents()
+                self.assertEqual(
+                    view.home_columns.layout().direction(), QBoxLayout.TopToBottom,
+                )
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_home_family_lists_cover_sources_without_duplication(self):
+        from app.modules.encyclopedia.services.guide_ganymede_cutover import (
+            active_manual_catalog_sources,
+        )
+        import json
+
+        root = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        manifest = json.loads((
+            root / "replacement_drafts" / "cutovers" / "cutover_manifest.json"
+        ).read_text(encoding="utf-8"))["guides"]
+        provider = _Provider()
+        provider.guides_dir = root
+        provider.guides.extend(
+            _guide(guide_id, "dofus")
+            for guide_id in manifest
+            if not any(g.id == guide_id for g in provider.guides)
+        )
+        provider._detail_entries = {
+            guide_id: (root / "replacement_drafts" / "cutovers" /
+                       f"{guide_id}.json", i, {})
+            for i, guide_id in enumerate(manifest)
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _text: None, provider=provider,
+                quest_progress_path=Path(directory) / "progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                native = active_manual_catalog_sources(provider, provider.guides)
+                self.assertEqual(len(native), 20)
+                visible_source_ids = {
+                    view.home_metadata_list.item(i).data(Qt.UserRole)
+                    for i in range(view.home_metadata_list.count())
+                }
+                for listing in view.other_category_lists.values():
+                    for i in range(listing.count()):
+                        item = listing.item(i)
+                        if item.data(Qt.UserRole) is not None:
+                            visible_source_ids.add(item.data(Qt.UserRole))
+                # 20 native Dofus + 2 left alignment buttons + 73 source
+                # entries in the home = all 95 with no duplicated route.
+                expected = {entry.source_id for entry in view.ganymede_listings}
+                native_sources = {
+                    row["source_guide_id"] for row in manifest.values()
+                }
+                self.assertEqual(len(visible_source_ids), 73)
+                self.assertEqual(
+                    visible_source_ids | native_sources | {2249, 2263}, expected,
+                )
+                self.assertFalse(visible_source_ids.intersection(native_sources))
+            finally:
+                view.deleteLater()
+                self.app.processEvents()
 
     def test_entire_featured_card_is_clickable_and_keyboard_accessible(self):
         provider = _Provider()
