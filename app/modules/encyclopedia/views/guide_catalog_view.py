@@ -510,6 +510,17 @@ class GuideCatalogView(QWidget):
         matched = list(self.provider.search(self.search_text))
         featured_ids = {guide_id for guide_id, _title in FEATURED}
         catalog_by_id = {str(guide.id): guide for guide in self.guides}
+        native = set(active_manual_catalog_sources(self.provider, self.guides))
+        # If the native cutovers are active, an Atlas Dofus that still only
+        # contains old quests must not duplicate the official source route.
+        # Preserve it in the provider for offline fallback and other consumers.
+        source_only_dofus = {
+            ATLAS_EQUIVALENTS[entry.source_id]
+            for entry in self.ganymede_listings
+            if entry.category == "dofus"
+            and entry.source_id in ATLAS_EQUIVALENTS
+            and ATLAS_EQUIVALENTS[entry.source_id] not in native
+        }
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
@@ -523,6 +534,10 @@ class GuideCatalogView(QWidget):
             shown_guides = [
                 guide for guide in matched
                 if guide.category == category and guide.id not in featured_ids
+                and not (
+                    category == "dofus" and native
+                    and guide.id in source_only_dofus
+                )
             ]
 
         # Read progress only for rendered cards; no eager per-guide widget creation.
@@ -546,7 +561,6 @@ class GuideCatalogView(QWidget):
         # Hide only routes already opened from an Atlas native/source reader.
         # Ganymède's 2-step Sylvan Dofus is distinct from the large preserved
         # Atlas Sylvestre Opti: expose both, not a missing source or fake twin.
-        native = set(active_manual_catalog_sources(self.provider, self.guides))
         linked_alignment_ids = {
             guide_id for guide_id in ("alignement_bonta", "alignement_brakmar")
             if guide_id in catalog_by_id
