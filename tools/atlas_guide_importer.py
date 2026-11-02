@@ -198,6 +198,9 @@ def run_pipeline(
         source_dir, index_path=index_path, target_dir=target_dir,
         strict=strict, expected_routes=expected_routes,
         apply=True, allow_overwrite=allow_overwrite,
+        expected_source_sha256={
+            route["source_id"]: route["sha256"] for route in report["routes"]
+        },
     )
     if {r["source_id"]: r["sha256"] for r in result["routes"]} != {
             r["source_id"]: r["sha256"] for r in report["routes"]}:
