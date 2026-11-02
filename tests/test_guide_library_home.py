@@ -690,12 +690,20 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         "source_step_number": number,
                         "title": f"Instruction {number}",
                         "instructions": "Parcours rédigé pour test hors ligne",
-                        "actions": [{
-                            "kind": "travel" if number == 1 else "talk",
-                            "text": (f"Aller à la destination {number}" if number == 1
-                                     else f"Parler au PNJ numéro {number}"),
-                            **({"coordinates": [24, -3]} if number == 1 else {}),
-                        }],
+                        "actions": (
+                            [
+                                {"kind": "travel", "text": "Premier déplacement",
+                                 "coordinates": [24, -3],
+                                 "copy_values": ["Gros Boulet"]},
+                                {"kind": "travel", "text": "Deuxième déplacement",
+                                 "coordinates": [25, -5]},
+                                {"kind": "talk", "text": "Parler au Capitaine Kradoc",
+                                 "copy_values": ["Capitaine Kradoc"]},
+                            ] if number == 1 else [
+                                {"kind": "talk",
+                                 "text": f"Parler au PNJ numéro {number}"},
+                            ]
+                        ),
                     } for number in range(1, entry.step_count + 1))
 
                 with patch.dict(sys.modules, {
@@ -729,6 +737,25 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertTrue(copy.isEnabled())
                     copy.click()
                     self.assertEqual(QApplication.clipboard().text(), "/travel 24 -3")
+                    copy_links = dialog.findChild(
+                        QLabel, "GanymedeSourceCopyLinks",
+                    )
+                    self.assertIsNotNone(copy_links)
+                    self.assertTrue(copy_links.isVisible())
+                    # Click each explicitly registered target, not just the
+                    # first coordinate; never rewrite guide progression.
+                    for href, expected in (
+                        ("copy:0", "/travel 24,-3"),
+                        ("copy:1", "Gros Boulet"),
+                        ("copy:2", "/travel 25,-5"),
+                        ("copy:3", "Capitaine Kradoc"),
+                    ):
+                        copy_links.linkActivated.emit(href)
+                        self.assertEqual(QApplication.clipboard().text(), expected)
+                    copy_links.linkActivated.emit("https://evil.example")
+                    self.assertEqual(
+                        QApplication.clipboard().text(), "Capitaine Kradoc",
+                    )
                     validate.click()
                     progress = GuideProgressService(progress_path)
                     step_id = f"ganymede_{source.source_id}_step_0001"
@@ -742,6 +769,11 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     ))
                     spinner.setValue(2)
                     self.assertFalse(copy.isEnabled())
+                    self.assertFalse(copy_links.isVisible())
+                    copy_links.linkActivated.emit("copy:0")
+                    self.assertEqual(
+                        QApplication.clipboard().text(), "Capitaine Kradoc",
+                    )
                     self.assertIn("ÉTAPE 2 /", local.toPlainText())
                     self.assertIn("Parler au PNJ numéro 2", local.toPlainText())
                     spinner.setValue(1)
