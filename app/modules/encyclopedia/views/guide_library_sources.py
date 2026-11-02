@@ -118,3 +118,66 @@ def displayable_listings(
         and ATLAS_EQUIVALENTS.get(entry.source_id) not in existing_guide_ids
         and (not query or query in entry.title.casefold())
     ]
+
+# Fourteen sources retain their older descriptive filenames; all others use
+# the numeric source ID. Only factual observations, never editorial guide text.
+_LOCAL_OBSERVATION_ALIASES = {
+    2251: "master", 2204: "ou_sont_les_dofus",
+    2207: "bwork_camps", 2219: "otomai_1",
+    2228: "sufokia", 2206: "valonia_1",
+    2224: "sidimote_1", 2230: "krosmoz",
+    2227: "koalaks", 2237: "enudorado_1",
+    2250: "ecaflipus_1", 2220: "otomai_2",
+    2240: "xelorium_1", 2252: "otomai_3",
+}
+
+
+def load_ganymede_local_observations(
+    entry: GanymedeListing, *, data_dir: Path | None = None,
+) -> tuple[dict, ...]:
+    """Read one source's observed factual steps lazily, without Internet.
+
+    Observations are NOT certified gameplay instructions; never derive an
+    objective from an observed coordinate, linked quest or DofusDB ID.
+    """
+    if (not isinstance(entry, GanymedeListing)
+            or type(entry.source_id) is not int
+            or type(entry.step_count) is not int
+            or entry.step_count <= 0):
+        raise ValueError("Invalid offline source listing")
+    stem = _LOCAL_OBSERVATION_ALIASES.get(entry.source_id, str(entry.source_id))
+    root = Path(data_dir) if data_dir is not None else INDEX_PATH.parent
+    payload = json.loads(
+        (root / f"ganymede_{stem}_observed_links.json").read_text(encoding="utf-8")
+    )
+    source = payload.get("source")
+    steps = payload.get("steps")
+    if (payload.get("schema_version") != 1
+            or not isinstance(source, dict)
+            or source.get("guide_id") != entry.source_id
+            or source.get("editorial_text_imported") is not False
+            or source.get("extraction_scope") != "factual_link_occurrences_only"
+            or not isinstance(steps, list)
+            or len(steps) != entry.step_count):
+        raise ValueError(f"Missing or mismatched offline facts: {entry.source_id}")
+    for number, step in enumerate(steps, 1):
+        if (not isinstance(step, dict)
+                or step.get("source_step_number") != number
+                or not isinstance(step.get("coordinate_mentions"), list)
+                or not isinstance(step.get("linked_guide_ids"), list)
+                or not isinstance(step.get("external_dofusdb_ids"), dict)):
+            raise ValueError(f"Invalid offline source step {entry.source_id}:{number}")
+        if any(
+            not isinstance(pair, list) or len(pair) != 2
+            or any(type(coord) is not int for coord in pair)
+            for pair in step["coordinate_mentions"]
+        ):
+            raise ValueError(f"Invalid coordinates at {entry.source_id}:{number}")
+        facts = step["external_dofusdb_ids"]
+        for ids in (step["linked_guide_ids"], *(facts.get(kind) for kind in (
+            "quest", "dungeon", "object", "monster",
+        ))):
+            if (not isinstance(ids, list)
+                    or any(type(value) is not int or value <= 0 for value in ids)):
+                raise ValueError(f"Invalid links at {entry.source_id}:{number}")
+    return tuple(steps)
