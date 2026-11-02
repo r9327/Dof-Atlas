@@ -130,8 +130,10 @@ déterministe avant de décider d'une intégration. L'outil réutilise la valida
 de consignes locales canonique `load_ganymede_local_instructions`, et ne
 charge pas la bibliothèque entière dans l'accueil PySide6.
 
-- Deux actions à la même carte sont des **opportunités de regroupement à
-  examiner**, pas des doublons d'objectifs ni une autorisation de les réordonner.
+- Deux actions avec les mêmes coordonnées X/Y sont des **collisions à
+  examiner**, pas une preuve de carte identique : l'identifiant de carte et le
+  monde/dimension doivent être recoupés avant de parler de co-localisation,
+  et les prérequis restent bloquants. Aucune validation ni réorganisation.
 - Seuls les identifiants de quêtes Atlas déjà canoniques peuvent prouver une
   identité de quête entre `guide_complet` et `dofus_sylvestre`.
   Les liens Ganymède/DofusDB et les noms ressemblants n'ont pas ce statut.
