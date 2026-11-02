@@ -306,12 +306,28 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     spinner.setValue(1)
                     self.assertEqual(validate.text(), "Annuler la validation")
+                    # A second session clears the step after this dialog
+                    # read it. The first click must reject its stale state.
+                    GuideProgressService(progress_path).set_manual_step_completed(
+                        "character:7", progress_id, step_id, False,
+                    )
+                    validate.click()
+                    self.assertEqual(validate.text(), "Valider l'étape")
+                    self.assertFalse(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", progress_id, step_id,
+                        )
+                    )
+                    validate.click()
+                    self.assertTrue(
+                        GuideProgressService(progress_path).is_manual_step_completed(
+                            "character:7", progress_id, step_id,
+                        )
+                    )
                     validate.click()
                     self.assertFalse(
                         GuideProgressService(progress_path).is_manual_step_completed(
-                            "character:7",
-                            progress_id,
-                            step_id,
+                            "character:7", progress_id, step_id,
                         )
                     )
                     dialog.close()
