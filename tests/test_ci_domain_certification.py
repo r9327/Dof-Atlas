@@ -66,8 +66,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
         # A new executable under tools/ must never inherit Guide ownership
         # just because its name resembles the approved source comparator.
         source = "tools/atlas_guide_conformity.py"
+        creator = "tools/atlas_guide_importer.py"
         self.assertEqual(owners_for(source), frozenset({"guides"}))
-        plan = self.route([source, "tests/test_atlas_guide_conformity.py"])
+        self.assertEqual(owners_for(creator), frozenset({"guides"}))
+        plan = self.route([
+            source, creator, "tests/test_atlas_guide_conformity.py",
+            "tests/test_atlas_guide_importer_preview.py",
+        ])
         self.assertEqual(plan["status"], "READY_TO_EXECUTE")
         self.assertEqual(plan["unknown_paths"], [])
         self.assertIn("guides", plan["domains"])
