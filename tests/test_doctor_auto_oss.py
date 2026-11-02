@@ -60,6 +60,32 @@ class AutomaticDoctorOssTests(unittest.TestCase):
         self.assertEqual(p["oss_dispatch"]["selected_count"], 1)
         self.assertEqual(p["oss_advisory"]["status"], "ADVISORY_ONLY")
 
+    def test_plan_reports_relevant_installed_metadata_without_execution(self):
+        candidates = {"ruff": {"name": "ruff", "available": True, "version": "0.17.3"},
+                      "semgrep": {"name": "semgrep", "available": False, "version": None}}
+        def preflight(*, packages=(), binaries=()):
+            self.assertFalse(binaries)
+            return {"results": [candidates[name] for name in packages]}
+        with patch("tools.tool_catalog.local_candidate_preflight",
+                   side_effect=preflight) as observed:
+            report, route, _ = self._command("plan", "tools/example.py")
+        observed.assert_called_once()
+        route.assert_not_called()
+        self.assertEqual(report["oss_local_preflight"]["status"],
+                         "OBSERVED_NOT_QUALIFIED")
+        self.assertFalse(report["oss_local_preflight"]["network_used"])
+        self.assertEqual({x["id"] for x in report["oss_local_preflight"]["tools"]},
+                         {"ATOSS-20", "ATOSS-19"})
+        self.assertTrue(all(not row["license_verified"] and
+                            not row["execution_verified"]
+                            for row in report["oss_local_preflight"]["tools"]))
+        statuses = {row["tool_id"]: row for row in
+                    report["ai_tool_workflow"]["oss_recommendations"]}
+        self.assertTrue(statuses["ATOSS-20"]["locally_available"])
+        self.assertFalse(statuses["ATOSS-19"]["locally_available"])
+        self.assertEqual(statuses["ATOSS-20"]["installed_version_claim"], "0.17.3")
+        self.assertFalse(statuses["ATOSS-20"]["automatic_execution"])
+
     def test_check_without_test_optin_does_not_run_third_party_tool(self):
         p, route, _ = self._command("check", "tools/example.py")
         route.assert_not_called()
