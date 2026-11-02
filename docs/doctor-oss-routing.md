@@ -141,12 +141,16 @@ L'owner JSON existant peut effectuer des essais ciblés :
 ```powershell
 py -3.13 -m tools.atlas_json_benchmark --compare-parsers
 py -3.13 -m tools.atlas_json_benchmark --compare-streaming
+py -3.13 -m tools.atlas_json_benchmark --compare-compression
 ```
 
-Les deux commandes nécessitent les données locales Quêtes ; elles
-n'installent rien. `orjson`, `msgspec` et `ijson` sont importés
+Les trois commandes nécessitent les données locales Quêtes ; elles
+n'installent rien. `orjson`, `msgspec`, `ijson` et `zstandard` sont importés
 **uniquement pendant le test demandé**, jamais au démarrage d'Atlas.
-La parité des valeurs/IDs est vérifiée. Ces micro-comparaisons ne
+La parité des valeurs/IDs ou la restitution strictement octet par octet
+des données compressées est vérifiée. La troisième compare le ratio et
+les temps zlib/zstandard, sans modifier les formats du Launcher, du pack
+de release ni les installations existantes. Ces micro-comparaisons ne
 prouvent pas la RAM process-tree ni l'intérêt d'une migration runtime.
 
 **État de développement :** brancher une recommandation ou observer un
