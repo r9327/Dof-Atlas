@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools import ai_context
 
@@ -219,6 +220,16 @@ class AiContextTests(unittest.TestCase):
             ROOT, ["tools/atlas_doctor_lib/oss_intelligence.py"])
         self.assertIn("tests.test_doctor_oss_intelligence", intelligent)
         self.assertIn("tests.test_doctor_auto_oss", intelligent)
+
+    def test_hypothesis_uses_existing_test_runner_only_when_installed(self) -> None:
+        source = ["tools/atlas_doctor_lib/oss_router.py"]
+        with patch("tools.ai_context.metadata.version", return_value="6.170.14"):
+            with_plugin = ai_context.recommended_tests(ROOT, source)
+        self.assertIn("tests.test_doctor_oss_hypothesis", with_plugin)
+        with patch("tools.ai_context.metadata.version",
+                   side_effect=ai_context.metadata.PackageNotFoundError()):
+            without_plugin = ai_context.recommended_tests(ROOT, source)
+        self.assertNotIn("tests.test_doctor_oss_hypothesis", without_plugin)
 
     def test_committed_context_index_matches_head(self) -> None:
         index_path = ROOT / ai_context.INDEX_PATH
