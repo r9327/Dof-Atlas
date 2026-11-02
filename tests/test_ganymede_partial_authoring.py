@@ -24,7 +24,8 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
     def test_partial_sources_preserve_catalog_order_and_cannot_be_played(self):
         listings = {entry.source_id: entry for entry in load_ganymede_listings()}
         paths = sorted(AUTHORING_DIR.glob("ganymede_*_partial.json"))
-        self.assertGreaterEqual(len(paths), 3)
+        if not paths:
+            self.skipTest("No incomplete authoring batches remain")
         for path in paths:
             with self.subTest(file=path.name):
                 data = json.loads(path.read_text(encoding="utf-8"))
@@ -80,10 +81,15 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
         for path in sorted(AUTHORING_DIR.glob("ganymede_*_partial.json")):
             guide_id = json.loads(path.read_text(encoding="utf-8"))["source_guide_id"]
             with self.subTest(source_guide_id=guide_id):
-                self.assertFalse(
-                    (INDEX_PATH.parent / f"ganymede_{guide_id}_instructions.json").exists()
-                )
-                self.assertIsNone(load_ganymede_local_instructions(listings[guide_id]))
+                full_path = INDEX_PATH.parent / f"ganymede_{guide_id}_instructions.json"
+                instructions = load_ganymede_local_instructions(listings[guide_id])
+                if full_path.exists():
+                    # A completed route can be published independently of an
+                    # old authoring draft, but only via the strict loader.
+                    self.assertIsNotNone(instructions)
+                    self.assertEqual(len(instructions), listings[guide_id].step_count)
+                else:
+                    self.assertIsNone(instructions)
 
 
 if __name__ == "__main__":
