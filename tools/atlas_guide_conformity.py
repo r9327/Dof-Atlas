@@ -184,6 +184,50 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(reference.get("guides"), list) or not reference["guides"]:
         report("UNVERIFIABLE", "reference.guides", "nonempty complete guide inventory",
                reference.get("guides"))
+    # Report complete inventories even when a whole guide is missing and
+    # fail closed on matching-but-empty source and Atlas documents.
+    def inventory(document: dict[str, Any], side: str) -> None:
+        rows = document.get("guides")
+        inspected[f"{side}_full_guides"] = len(rows) if isinstance(rows, list) else 0
+        inspected[f"{side}_full_steps"] = 0
+        inspected[f"{side}_full_actions"] = 0
+        if not isinstance(rows, list) or not rows:
+            report("UNVERIFIABLE", f"{side}.guides", "nonempty guide inventory", rows)
+            return
+        for gi, guide in enumerate(rows):
+            if not isinstance(guide, dict):
+                report("UNVERIFIABLE", f"{side}.guides[{gi}]", "guide object", guide)
+                continue
+            steps = guide.get("steps")
+            if not isinstance(steps, list) or not steps:
+                report("UNVERIFIABLE", f"{side}.guides[{gi}].steps",
+                       "nonempty ordered steps", steps)
+                continue
+            inspected[f"{side}_full_steps"] += len(steps)
+            for si, step in enumerate(steps):
+                if not isinstance(step, dict):
+                    report("UNVERIFIABLE", f"{side}.guides[{gi}].steps[{si}]",
+                           "step object", step)
+                    continue
+                actions = step.get("actions")
+                if not isinstance(actions, list) or not actions:
+                    report("UNVERIFIABLE",
+                           f"{side}.guides[{gi}].steps[{si}].actions",
+                           "nonempty ordered actions", actions)
+                    continue
+                inspected[f"{side}_full_actions"] += len(actions)
+                for ai, action in enumerate(actions):
+                    if not isinstance(action, dict):
+                        report("UNVERIFIABLE",
+                               f"{side}.guides[{gi}].steps[{si}].actions[{ai}]",
+                               "action object", action)
+                    elif not isinstance(action.get("kind"), str) or not action["kind"]:
+                        report("UNVERIFIABLE",
+                               f"{side}.guides[{gi}].steps[{si}].actions[{ai}].kind",
+                               "nonempty action kind", action.get("kind"))
+
+    inventory(reference, "reference")
+    inventory(atlas, "atlas")
     # Only reference-authorization flags live outside the projected Atlas
     # payload. All other top-level fields, including schema_version and
     # unexpected extras, are part of the diff contract.
