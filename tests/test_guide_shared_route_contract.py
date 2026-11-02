@@ -119,6 +119,28 @@ class TestSharedRouteContract(unittest.TestCase):
             with self.subTest(raw=raw), self.assertRaises(GuideRouteContractError):
                 project_authorized_guide(bad)
 
+    def test_missing_travel_and_combat_evidence_is_blocked(self):
+        missing_position = sample()
+        missing_position["steps"][0].pop("coordinates")
+        missing_position["steps"][0]["actions"][0].pop("coordinates")
+        with self.assertRaisesRegex(GuideRouteContractError, "verified coordinates"):
+            project_authorized_guide(missing_position)
+
+        missing_monster = sample()
+        missing_monster["steps"][0]["actions"][3].pop("monsters")
+        with self.assertRaisesRegex(GuideRouteContractError, "structured monsters"):
+            project_authorized_guide(missing_monster)
+
+    def test_bad_quest_id_and_ambiguous_identity_rejected(self):
+        bad = sample()
+        bad["steps"][0]["quest_ids"] = [True]
+        with self.assertRaisesRegex(GuideRouteContractError, "positive integer IDs"):
+            project_authorized_guide(bad)
+        bad = sample()
+        bad["guide_id"] = "a:b"
+        with self.assertRaisesRegex(GuideRouteContractError, "unsafe"):
+            project_authorized_guide(bad)
+
     def test_invalid_quantity_and_missing_text(self):
         for quantity in (0, -2, True, 1.5, "2", None):
             bad = sample()
@@ -144,7 +166,7 @@ class TestSharedRouteContract(unittest.TestCase):
             "action_id": "prepare", "kind": "prepare",
             "text": "Préparer une ressource sans quantité",
         })
-        with self.assertRaisesRegex(GuideRouteContractError, "explicit item names"):
+        with self.assertRaisesRegex(GuideRouteContractError, "structured items"):
             project_authorized_guide(bad)
 
     def test_late_preparation_is_not_silently_reordered(self):
