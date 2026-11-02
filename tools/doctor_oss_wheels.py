@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import platform
 import re
@@ -18,6 +17,20 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 from urllib.request import urlopen
+
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "doctor_oss_windows_wheels",
+    "role": "explicit Windows x64 dev-only verified OSS wheel installer",
+    "capabilities": ["developer_dependency_installation", "wheel_sha256_validation"],
+    "modes": ["install"],
+    "cost_hint": "expensive",
+    "side_effects": "mutation_unknown",
+    "structured_output": True,
+    "canonical": False,
+    "recommended_tests": ["tests.test_doctor_oss_wheels"],
+    "target_scopes": ["tools/setup_doctor_oss.ps1", "tools/atlas_doctor_lib/oss_router.py"],
+}
 
 PINS = {"ruff": "0.17.3", "zizmor": "1.30.1"}
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -127,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--install", action="store_true", required=True,
                         help="Explicit developer install; not an Atlas runtime action")
+    parser.add_argument("--json", action="store_true",
+                        help="Machine-readable stdout (also the default)")
     args = parser.parse_args(argv)
     try:
         report = install_approved_wheels()
