@@ -164,6 +164,45 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(issue["expected"], original)
         self.assertEqual(issue["actual"], "wrong")
 
+    def test_source_url_and_action_links_never_silently_disappear(self) -> None:
+        self.reference["guides"][0]["steps"][0]["actions"][0]["source_url"] = (
+            "https://example.invalid/verified/action"
+        )
+        result = compare(self.reference, self.atlas)
+        self.assertIn("MISSING_FIELD", result["issue_codes"])
+        self.assertTrue(any(
+            x["field_path"].endswith(".source_url")
+            and x["source_step_id"] == "A" and x["action_id"] == "talk"
+            for x in result["issues"]
+        ))
+
+    def test_root_metadata_and_schema_version_not_silently_ignored(self) -> None:
+        self.reference["schema_version"] = 1
+        self.atlas["schema_version"] = 2
+        result = compare(self.reference, self.atlas)
+        self.assertTrue(any(
+            x["issue_code"] == "VALUE_MISMATCH"
+            and x["field_path"].endswith("schema_version")
+            for x in result["issues"]
+        ))
+        self.atlas["unexpected_root_field"] = "unverified"
+        result = compare(self.reference, self.atlas)
+        self.assertTrue(any(
+            x["issue_code"] == "EXTRA_FIELD"
+            and x["field_path"].endswith("unexpected_root_field")
+            for x in result["issues"]
+        ))
+
+    def test_same_textual_id_with_wrong_type_never_passes(self) -> None:
+        self.atlas["guides"][0]["steps"][0]["source_step_id"] = 123
+        self.reference["guides"][0]["steps"][0]["source_step_id"] = "123"
+        result = compare(self.reference, self.atlas)
+        self.assertIn("TYPE_MISMATCH", result["issue_codes"])
+        self.assertTrue(any(
+            x["field_path"].endswith(".source_step_id")
+            for x in result["issues"]
+        ))
+
     def test_input_unchanged_and_deterministic(self) -> None:
         a = copy.deepcopy(self.reference)
         b = copy.deepcopy(self.atlas)
