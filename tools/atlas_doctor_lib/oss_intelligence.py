@@ -257,15 +257,15 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
     }
     # The status alone is not a witness. Only the canonical adapter can
     # attest execution, and the exact named tools, integrity snapshot and
-    # complete summary must agree. In particular, a mocked CLEAN/partial
-    # report must not become "all_executed" in the agent instructions.
+    # correctly named execution summary must agree. A partial scan retains
+    # individual real witnesses, but never claims ALL tools executed.
     attested = (
         action == "check"
         and (advisory or {}).get("source") == "tools.atlas_doctor_lib.oss_router.route_oss"
         and (advisory or {}).get("status") == "ADVISORY_ONLY"
         and (advisory or {}).get("input_integrity_verified") is True
         and (advisory or {}).get("files_modified") is False
-        and summary.get("status") == "COMPLETE"
+        and summary.get("status") in {"COMPLETE", "INCOMPLETE"}
         and summary.get("expected_tools") == expected
         and len(reported_rows) == len(expected)
         and all(isinstance(row, dict) and row.get("tool") == expected[i]
