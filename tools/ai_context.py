@@ -218,6 +218,18 @@ def recommended_tests(root: Path, paths: Iterable[str]) -> list[str]:
     # Scope-to-test ownership: Doctor's existing targeted unittest runner
     # must reach the OSS adapter tests when those modules change. Do not add
     # another test executor or run a full suite for a small router edit.
+    if any(path in {
+            "app/distribution/disk_space.py",
+            "app/distribution/install_location.py",
+        } for path in normalized_paths):
+        # The launcher owner can exercise the existing stdlib and optional
+        # generative property tests; this never invokes Qt or an installer.
+        try:
+            metadata.version("hypothesis")
+        except metadata.PackageNotFoundError:
+            pass
+        else:
+            modules.append("tests.test_doctor_oss_hypothesis")
     if any(path == "tools/atlas_doctor_lib/oss_router.py"
            for path in normalized_paths):
         modules.extend(("tests.test_doctor_oss_routing",
