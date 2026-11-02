@@ -3,15 +3,15 @@
   "source_guide_id": 2204,
   "source_url": "https://ganymede-app.com/guides/2204",
   "expected_source_step_count": 26,
-  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "authoring_status": "FULL_DRAFT_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    10
+    26
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2204",
-  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "evidence_scope": "first_ten_visible_source_steps_plus_source_step_coordinate_snapshots_and_independently_verified_quest_actions_11_to_26_not_source_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -316,6 +316,539 @@
           ]
         }
       ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Obtenir la Pinte du visionnaire",
+      "instructions": "À la taverne du Fermenthé, Chonayu demande de faire quitter les lieux à un Pandawa éméché avant de céder la boisson nécessaire au rituel du réceptacle.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la taverne de Chonayu à [22,-27].",
+          "coordinates": [
+            22,
+            -27
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Chonayu sur la Pinte du visionnaire."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander au Pandawa éméché de cesser de troubler la taverne."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Pandawa éméché : combat réalisable en groupe."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Chonayu pour recevoir 1 Pinte du visionnaire."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Assistant du chaman près d'Aerdala à [19,-32].",
+          "coordinates": [
+            19,
+            -32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Rejoindre la caverne du réceptacle",
+      "instructions": "L'Assistant du chaman conduit les personnages engagés dans la quête jusqu'au passage de la grotte sous la cascade.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à l'Assistant du chaman à [19,-32].",
+          "coordinates": [
+            19,
+            -32
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander l'accès au passage menant à la caverne du réceptacle."
+        },
+        {
+          "kind": "information",
+          "text": "La progression de la quête doit permettre l'entrée. Le passage caché est à la cascade de [21,-33]."
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Boire la Pinte et ouvrir la vision",
+      "instructions": "Sous la cascade, rejoindre la statue du dragon, utiliser la Pinte depuis les objets de quête puis interagir avec le Feu prophétique. Le combat de la vision se déroule seul.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer derrière la cascade à [21,-33].",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Monter les escaliers et atteindre la statue portant les six Dofus."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser 1 Pinte du visionnaire depuis les objets de quête devant le réceptacle."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au Feu prophétique pour engager l'épreuve."
+        },
+        {
+          "kind": "fight",
+          "text": "Affronter le Feu prophétique seul. Se tenir hors de portée des flammes qu'il invoque."
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Survivre à la vision du réceptacle",
+      "instructions": "Terminer le combat contre le Feu prophétique, sans laisser les flammes rejoindre le personnage. La victoire déclenche la suite de la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Revenir au réceptacle si la tentative précédente a échoué.",
+          "coordinates": [
+            21,
+            -33
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Feu prophétique en solo ; une défaite permet de retenter le combat sans perte d'énergie."
+        },
+        {
+          "kind": "information",
+          "text": "Les flammes invoquées tuent au contact. Rester à distance et concentrer les attaques sur le Feu prophétique."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner chez Surivitna à [20,-27].",
+          "coordinates": [
+            20,
+            -27
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Terminer le réceptacle et ouvrir Un sage parmi les sages",
+      "instructions": "Surivitna explique le lien entre les Dofus primordiaux et Ronald le sage lenald. Achever la quête du réceptacle et accepter la suivante avant de rejoindre la maison des Lenalds.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer chez Surivitna en [20,-27].",
+          "coordinates": [
+            20,
+            -27
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Raconter à Surivitna la vision vécue au réceptacle pour terminer « Le réceptacle des Dofus »."
+        },
+        {
+          "kind": "talk",
+          "text": "Poursuivre le dialogue pour démarrer « Un sage parmi les sages »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la maison des Lenalds à [22,-28].",
+          "coordinates": [
+            22,
+            -28
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Gagner la confiance des Lenalds",
+      "instructions": "Dans la maison des Lenalds, Guipol impose un duel individuel avant de laisser parler à Helmeline. Elle oriente vers Ronald sur l'île des Wabbits.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la maison des Lenalds en [22,-28].",
+          "coordinates": [
+            22,
+            -28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter le défi de Guipol pour pouvoir consulter la doyenne."
+        },
+        {
+          "kind": "fight",
+          "text": "Battre Guipol en solo, même si le personnage suit habituellement une équipe."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Helmeline et demander où se trouve Ronald."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 500 kamas pour le bateau de la Capitaine Lily et vérifier l'accès aux Wabbits."
+        },
+        {
+          "kind": "travel",
+          "text": "Préparer le déplacement depuis le zaap des Plaines des Porkass en [-2,-4] si nécessaire.",
+          "coordinates": [
+            -2,
+            -4
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Capitaine Lily au port de Madrestam à [9,-2].",
+          "coordinates": [
+            9,
+            -2
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Traverser vers l'île des Wabbits",
+      "instructions": "Rejoindre l'île depuis le port puis entrer sur le territoire des Lenalds. L'accès complet peut exiger la quête Intrusion chez les wabbits.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Capitaine Lily à [9,-2].",
+          "coordinates": [
+            9,
+            -2
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Verser 500 kamas à la Capitaine Lily pour prendre le bateau vers l'île des Wabbits."
+        },
+        {
+          "kind": "information",
+          "text": "Si l'accès à toute l'île est bloqué, terminer « Intrusion chez les wabbits » avant de poursuivre."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Wanald sur l'île en [23,-4].",
+          "coordinates": [
+            23,
+            -4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Demander à Wanald où est Ronald",
+      "instructions": "Wanald confirme que Ronald est parti explorer les souterrains et chercher des informations sur le Dofus Cawotte.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Wanald le Sage Lenald en [23,-4].",
+          "coordinates": [
+            23,
+            -4
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui demander où retrouver Ronald dans les souterrains."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre au souterrain en [24,-7].",
+          "coordinates": [
+            24,
+            -7
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Sauver Ronald des Wabbits",
+      "instructions": "Ronald est attaqué par des Wabbits dans un souterrain. Prendre sa défense puis l'escorter jusqu'à Wanald pour continuer la discussion.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre Ronald dans le souterrain wabbit en [24,-7].",
+          "coordinates": [
+            24,
+            -7
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Proposer une solution pacifique et accepter d'aider Ronald."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre les Wabbits aux côtés de Ronald : combat réalisable en groupe."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Ronald après sa libération."
+        },
+        {
+          "kind": "travel",
+          "text": "Ramener Ronald auprès de Wanald en [23,-4].",
+          "coordinates": [
+            23,
+            -4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Lancer Protection divine",
+      "instructions": "De retour chez Wanald, Ronald explique l'histoire des six Dofus, puis oriente vers le maître du temple de classe pour obtenir une bénédiction avant d'entrer dans la Forêt Maléfique.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Ronald et Wanald en [23,-4].",
+          "coordinates": [
+            23,
+            -4
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter Ronald pour achever « Un sage parmi les sages »."
+        },
+        {
+          "kind": "talk",
+          "text": "Poursuivre le dialogue pour accepter « Protection divine »."
+        },
+        {
+          "kind": "information",
+          "text": "Le temple à visiter dépend de la classe du personnage. Ne pas employer un temple universel pour toute l'équipe."
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Obtenir la Bénédiction des Douze",
+      "instructions": "Dans le temple correspondant à votre classe, consulter le maître de temple puis le maître des Dopeuls, vaincre un Dopeul Maléfique seul et prier devant la statue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre dans le temple du personnage actif ; sa position varie selon la classe."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander au maître de temple comment se préparer à la Forêt Maléfique."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au maître des Dopeuls pour déclencher le duel d'entraînement."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre seul le Dopeul Maléfique."
+        },
+        {
+          "kind": "interact",
+          "text": "Prier devant la statue du temple et recevoir la Bénédiction des Douze."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre ensuite à la bibliothèque d'Amakna en [4,1].",
+          "coordinates": [
+            4,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Consulter les notes de Wally Elconom",
+      "instructions": "À l'étage de la bibliothèque d'Amakna, demander à Wally Elconom ce qu'il sait du chemin vers la Forêt Maléfique. Lire ensuite son ouvrage depuis l'inventaire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Monter à l'étage de la bibliothèque d'Amakna en [4,1].",
+          "coordinates": [
+            4,
+            1
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Wally Elconom ses notes sur la Forêt Maléfique."
+        },
+        {
+          "kind": "use_item",
+          "text": "Lire « Routes et chemins de campagne : la Forêt Maléfique (ancienne édition) »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Orée enchantée en [-5,13].",
+          "coordinates": [
+            -5,
+            13
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Terminer Protection divine et ouvrir le Dark Vlad",
+      "instructions": "Rencontrer Lanseuft de Troille devant le labyrinthe. La quête Protection divine se termine et celle du Dark Vlad commence ; le droit d'accès au dédale est à vérifier avant l'entrée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Lanseuft de Troille à l'entrée de la forêt en [-5,13].",
+          "coordinates": [
+            -5,
+            13
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Achever « Protection divine » puis prendre « Voir le Dark Vlad et mourir... ou pas »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Avoir terminé « Un pendule pour guider ses pas », nécessaire pour traverser le dédale du Dark Vlad."
+        },
+        {
+          "kind": "travel",
+          "text": "Traverser le dédale et rejoindre la clairière en [-5,17].",
+          "coordinates": [
+            -5,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Affronter le Dark Vlad et ses chafers",
+      "instructions": "Dans la clairière, interroger le Dark Vlad sur le Dofus qu'il détient. Deux combats successifs en solo sont obligatoires ; le second comporte plusieurs vagues de chafers.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Accéder à la clairière du Dark Vlad en [-5,17].",
+          "coordinates": [
+            -5,
+            17
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander au Dark Vlad quel Dofus il possède."
+        },
+        {
+          "kind": "fight",
+          "text": "Gagner seul le combat contre les monstres maléfiques invoqués par le Dark Vlad."
+        },
+        {
+          "kind": "talk",
+          "text": "Reprendre la conversation avec le Dark Vlad."
+        },
+        {
+          "kind": "fight",
+          "text": "Gagner seul le combat à plusieurs vagues contre les Chafers décatis, Archers décatis et Assassins décatis."
+        },
+        {
+          "kind": "talk",
+          "text": "Insister une dernière fois auprès du Dark Vlad : ce choix facilite la sortie du dédale."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Ronald le sage lenald au port de Madrestam en [10,-5].",
+          "coordinates": [
+            10,
+            -5
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Revenir vers Ronald après le Dark Vlad",
+      "instructions": "Au port, Ronald explique pourquoi le Dofus du Dark Vlad n'est pas le Dofus qu'il gardait et conseille de rencontrer Mériana.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Ronald le sage lenald à [10,-5].",
+          "coordinates": [
+            10,
+            -5
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Terminer « Voir le Dark Vlad et mourir... ou pas » en racontant votre rencontre."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « La magicienne des marécages » auprès de Ronald."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Mériana dans les marécages, en [-6,-3].",
+          "coordinates": [
+            -6,
+            -3
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Rencontrer Mériana et conclure le succès",
+      "instructions": "Dans les marécages, rencontrer Mériana et préciser que Ronald vous a envoyé. La quête se termine et ouvre plusieurs séries des Dofus primordiaux.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la demeure de Mériana en [-6,-3].",
+          "coordinates": [
+            -6,
+            -3
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Informer Mériana que Ronald le sage lenald vous envoie."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier dans le journal la fin de « La magicienne des marécages » et le succès « Mais où sont les Dofus ? »."
+        },
+        {
+          "kind": "information",
+          "text": "Les quêtes Émeraude, Pourpre, Turquoise, Ivoire et Ébène se débloquent ensuite auprès de Mériana ; ne pas les valider automatiquement."
+        }
+      ]
     }
+  ],
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/le-receptacle-des-dofus/",
+    "https://www.dofuserie.com/quetes/un-sage-parmi-les-sages/",
+    "https://www.dofuserie.com/quetes/protection-divine/",
+    "https://www.dofuserie.com/quetes/voir-le-dark-vlad-et-mourir-ou-pas/",
+    "https://www.dofuserie.com/quetes/la-magicienne-des-marecages/"
+  ],
+  "further_review_needed": [
+    "Compare every stage 11-26 against the original Ganymede page before promoting route to complete instructions.",
+    "Confirm French names, optional preparations and solo/group fight mechanics against current DOFUS Unity.",
+    "Verify quest IDs and map/dimension identity in the native Atlas encyclopedia; snapshots are only coordinate mentions.",
+    "Check class-dependent temple stage 21 and dark-forest conditional access per character."
   ]
 }
