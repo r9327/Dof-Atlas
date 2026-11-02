@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2273,
+  "source_url": "https://ganymede-app.com/guides/2273",
+  "expected_source_step_count": 15,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/le-silence-est-d-aure/",
+    "https://www.dofuspourlesnoobs.com/le-silence-est-d-aure.html",
+    "https://www.dofuserie.com/dofus/dofus-argente-scintillant/"
+  ],
+  "completion_note": "Regroupe les objectifs de la quête « Le silence est d'Aure » en quinze étapes de suivi Atlas. La rédaction est originale et les objectifs sont à contrôler en jeu.",
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer la quête et parler à Rathrosk",
+      "instructions": "Prends le Dofus Argenté dans ton inventaire, vérifie la progression « Dans la gueule du Dragon » jusqu'à avoir vaincu Rathrosk et le succès « D'Incarnam à Astrub ». Prévois également l'accès à Enutrosor et le succès « Le pays des Vermeils » pour la suite. Dans sa caverne de la Montagne des Craqueleurs, Rathrosk te charge de retrouver la phénix Aure.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Conserver le Dofus Argenté sur le personnage et vérifier « D'Incarnam à Astrub »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Avoir vaincu Rathrosk dans « Dans la gueule du Dragon » ; préparer « Le pays des Vermeils » pour l'audience à Enutrosor."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller à la caverne de Rathrosk.",
+          "coordinates": [
+            -5,
+            -9
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Rathrosk pour lancer « Le silence est d'Aure »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Consulter la bibliothèque d'Incarnam",
+      "instructions": "À la bibliothèque d'Incarnam, demande à Maître Yakasi ce qu'il sait des phénix et d'Aure. Il t'indique un premier ouvrage à examiner.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Maître Yakasi à la bibliothèque d'Incarnam.",
+          "coordinates": [
+            2,
+            -3
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger sur les phénix et la trace d'Aure."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Lire le premier livre puis aller au château d'Amakna",
+      "instructions": "Examine le livre indiqué sur la table de la bibliothèque d'Incarnam. Il retrace les premiers liens entre Rathrosk et Aure. Poursuis ensuite tes recherches dans la bibliothèque du château d'Amakna.",
+      "actions": [
+        {
+          "kind": "interact",
+          "text": "Lire le premier ouvrage posé à la bibliothèque d'Incarnam."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le château d'Amakna pour retrouver Georges de Segrob.",
+          "coordinates": [
+            4,
+            -6
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Parler à Georges de Segrob et lire le second ouvrage",
+      "instructions": "Entre dans la bibliothèque du château d'Amakna, interroge Georges de Segrob sur la légende des phénix, puis consulte l'ouvrage qu'il te montre. Tu y découvriras le rôle de Thanatena et l'origine de la séparation de Rathrosk et d'Aure.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Demander à Georges de Segrob les autres sources sur les phénix."
+        },
+        {
+          "kind": "interact",
+          "text": "Lire le second livre sur une table de la bibliothèque."
+        },
+        {
+          "kind": "travel",
+          "text": "Partir vers le Temple Enutrof.",
+          "coordinates": [
+            -1,
+            -4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Récupérer la légende au Temple Enutrof",
+      "instructions": "Dans la salle du dopeul du Temple Enutrof, interagis avec les rouleaux de parchemin. Lis « La sorcière et l'oiseau de feu » obtenu dans ton inventaire pour identifier une piste liée à une magicienne et à une pierre d'étoile.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le Temple Enutrof.",
+          "coordinates": [
+            -1,
+            -4
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur les rouleaux dans la salle du dopeul pour obtenir « La sorcière et l'oiseau de feu »."
+        },
+        {
+          "kind": "use_item",
+          "text": "Lire le parchemin depuis l'inventaire."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Demander des renseignements à Mériana",
+      "instructions": "Retrouve Mériana dans les marécages. La sorcière de la légende est sa mère, Barda Yaga : cette nouvelle piste t'emmène au Cirque de Cania.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller chez Mériana.",
+          "coordinates": [
+            -6,
+            -3
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger sur le parchemin et sur Barda Yaga."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Secourir Barda Yaga au Cirque de Cania",
+      "instructions": "Au cirque de Cania, discute avec Barda Yaga puis aide-la contre la Grande truche hystérique. Le combat peut se faire en groupe. Une fois la truche vaincue, reprends le dialogue : elle t'oriente vers les chasseurs d'étoiles qui poursuivent Aure.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre au Cirque de Cania.",
+          "coordinates": [
+            -9,
+            -45
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Barda Yaga et accepter de l'aider."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre la Grande truche hystérique (combat autorisant un groupe)."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Barda Yaga pour obtenir la piste des chasseurs d'étoiles."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Espionner les chasseurs d'étoiles puis chercher Externam",
+      "instructions": "Sur la Presqu'île des Dragoeufs, écoute la conversation d'un chasseur d'étoiles ; tu apprends qu'un certain Lhadr se trouve en Externam. Prépare un Masque mortuaire à équiper à la place de la coiffe, puis gagne le passage du Gardien du Jour sans fin.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les chasseurs d'étoiles de la Presqu'île des Dragoeufs.",
+          "coordinates": [
+            -4,
+            28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter le Chasseur d'étoiles pour repérer le nom de Lhadr."
+        },
+        {
+          "kind": "prepare",
+          "text": "Préparer un Masque mortuaire, à porter à la place de la coiffe pour l'entrée en Externam."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Gardien du Jour sans fin à l'entrée d'Externam.",
+          "coordinates": [
+            -71,
+            -78
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Trouver Lhadr et obtenir une apparence de fantôme",
+      "instructions": "Demande au gardien d'entrer en Externam, équipe le masque et traverse le portail. Cherche Lhadr après les premières cartes ; présente-toi comme une âme fraîchement arrivée et évite la réponse qui déclenche un combat. Demande ensuite l'aide de la Reine Thanatena : elle te donne une apparence de fantôme. Ne combats pas tant que tu en as besoin, sinon il faudra la récupérer.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Demander au Gardien du Jour sans fin le passage vers Externam."
+        },
+        {
+          "kind": "use_item",
+          "text": "Équiper le Masque mortuaire avant de franchir le portail."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Lhadr sans engager de combat et obtenir sa confiance."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à la Reine Thanatena de te transformer en fantôme."
+        },
+        {
+          "kind": "information",
+          "text": "Si un combat annule l'apparence de fantôme, retourner voir Thanatena pour la renouveler."
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Retourner devant les chasseurs avec le déguisement",
+      "instructions": "Sous ton apparence de fantôme, reviens auprès du Chasseur d'étoiles de la Presqu'île des Dragoeufs. Il t'envoie attirer Aure près du phénix d'Astrub. Ne perds pas le déguisement avant ce dialogue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Chasseur d'étoiles dans la Presqu'île des Dragoeufs.",
+          "coordinates": [
+            -4,
+            28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui parler sous l'apparence de fantôme afin d'obtenir le rendez-vous près d'Astrub."
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Prévenir l'Oiseau de feu et vaincre l'embuscade",
+      "instructions": "Passe par le phénix d'Astrub, puis avertis l'Oiseau de feu de l'arrivée des Enutrofors. Le combat qui s'ensuit se joue seul, avec l'Oiseau de feu et Chazatot dans ton équipe. Laisse tes alliés frapper et reste vigilant si le Lévitrof applique un effet qui peut te rendre vulnérable aux attaques alliées.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Passer d'abord sur la carte du phénix d'Astrub.",
+          "coordinates": [
+            2,
+            -14
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Oiseau de feu.",
+          "coordinates": [
+            2,
+            -13
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Prévenir l'Oiseau de feu de l'embuscade."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre les chasseurs d'étoiles en combat seul avec l'aide de l'Oiseau de feu et de Chazatot."
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Convaincre Aure et consulter Barda Yaga",
+      "instructions": "Une fois l'attaque repoussée, parle à Aure qui a pris forme humaine. Explique-lui les intentions de Rathrosk. Puis remercie Barda Yaga pour l'aide de son familier : pour que la phénix accepte de revoir Rathrosk, il faut faire cesser la chasse menée par les Enutrofors.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à Aure près de l'Oiseau de feu pour lui proposer de revoir Rathrosk."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Barda Yaga pour identifier la démarche à faire auprès du Dieu Enutrof."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier le succès « Le pays des Vermeils », indispensable avant l'audience auprès du Dieu Enutrof."
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Obtenir la dissolution de la confrérie en Enutrosor",
+      "instructions": "Rejoins Enutrosor, demande une audience au Héraut d'Enutrof et défends ta demande auprès du Dieu Enutrof. Fais-lui comprendre que la confrérie cherche à accumuler les pierres solaires pour rivaliser avec sa fortune : il consent à dissoudre le groupe.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Héraut d'Enutrof en Enutrosor.",
+          "coordinates": [
+            -5,
+            -5
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander l'audience avec le Dieu Enutrof."
+        },
+        {
+          "kind": "talk",
+          "text": "Convaincre le Dieu Enutrof de dissoudre les chasseurs d'étoiles ; suivre les options qui évoquent leur ambition de richesse."
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Ramener Aure à Rathrosk",
+      "instructions": "Reviens auprès d'Aure, annonce-lui que les chasseurs ne seront plus un danger et invite-la à te suivre. Traverse ensuite la Montagne des Craqueleurs et rejoins la grotte de Rathrosk.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner parler à Aure près du phénix d'Astrub.",
+          "coordinates": [
+            2,
+            -13
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui annoncer la dissolution de la confrérie et lui proposer de rejoindre Rathrosk."
+        },
+        {
+          "kind": "travel",
+          "text": "Ramener Aure dans la grotte de Rathrosk.",
+          "coordinates": [
+            -5,
+            -9
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Achever les retrouvailles et recevoir le Dofus",
+      "instructions": "Dans la grotte, prends le temps de parler à Rathrosk puis à Aure. Le chef des chasseurs d'étoiles interrompt leurs retrouvailles ; rappelle au dragon son engagement à changer et laisse Aure intervenir. Quand Rathrosk épargne son adversaire, vérifie que la quête « Le silence est d'Aure » est terminée et que le Dofus Argenté Scintillant a été remis au personnage.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Parler à Rathrosk, puis à Aure, puis de nouveau au dragon."
+        },
+        {
+          "kind": "talk",
+          "text": "Intervenir pendant l'apparition du Chef des chasseurs d'étoiles et obtenir qu'il soit épargné."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler l'obtention réelle du Dofus Argenté Scintillant avant la validation manuelle Atlas."
+        }
+      ]
+    }
+  ]
+}
