@@ -22,7 +22,7 @@
       "actions": [
         {
           "kind": "prepare",
-          "text": "Avoir achevé « Ne tirez pas sur le messager », quête associée à l'étape 7 du guide Fratrie des Oubliés."
+          "text": "Avoir achevé « Ne tirez pas sur le messager » avant de commencer « Frais de porc inclus »."
         },
         {
           "kind": "prepare",
@@ -87,12 +87,12 @@
     },
     {
       "source_step_number": 3,
-      "title": "Recevoir la première mission de chasse",
-      "instructions": "Ouvrir la quête auprès de Robert Gene, puis consulter les professionnels concernés.",
+      "title": "Ouvrir « Frais de porc inclus » auprès de Robert Gine",
+      "instructions": "Sur la place marchande de Bonta, l'inspecteur Robert Gine lance « Frais de porc inclus » : une enquête sur la viande de gligli vendue dans la cité. Il faut rassembler six témoignages, dans l'ordre de son choix.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Trouver Robert Gene.",
+          "text": "Trouver Robert Gine.",
           "coordinates": [
             -31,
             -55
@@ -100,7 +100,7 @@
         },
         {
           "kind": "talk",
-          "text": "Accepter la demande de Robert Gene liée aux viandes de chasse."
+          "text": "Parler à Robert Gine, remarquer son air soucieux et accepter l'enquête « Frais de porc inclus »."
         },
         {
           "kind": "travel",
@@ -243,7 +243,7 @@
         },
         {
           "kind": "travel",
-          "text": "Retourner auprès de Robert Gene.",
+          "text": "Retourner auprès de Robert Gine.",
           "coordinates": [
             -31,
             -55
@@ -253,12 +253,12 @@
     },
     {
       "source_step_number": 9,
-      "title": "Faire le point avec Robert Gene",
+      "title": "Faire le point avec Robert Gine",
       "instructions": "Revenir voir le commanditaire après les échanges dans les boutiques de Bonta.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retrouver Robert Gene.",
+          "text": "Retrouver Robert Gine.",
           "coordinates": [
             -31,
             -55
@@ -305,5 +305,11 @@
         }
       ]
     }
+  ],
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/frais-de-porc-inclus/",
+    "https://www.dofuserie.com/quetes/nos-amies-les-betes/",
+    "https://www.dofuserie.com/quetes/shyriiwook/",
+    "https://www.dofuserie.com/quetes/a-armes-egales/"
   ]
 }
