@@ -28,6 +28,18 @@ class _Response(io.BytesIO):
 
 
 class DoctorOssWheelsTests(unittest.TestCase):
+    def test_installer_is_discoverable_but_not_auto_executable(self):
+        from tools.tool_catalog import _validated_tool_spec
+        source = Path(wheels.__file__).read_text(encoding="utf-8")
+        contract, errors = _validated_tool_spec(
+            source, "tools/doctor_oss_wheels.py")
+        self.assertEqual(errors, [])
+        self.assertEqual(contract["id"], "doctor_oss_windows_wheels")
+        self.assertEqual(contract["side_effects"], "mutation_unknown")
+        self.assertFalse(contract["canonical"])
+        self.assertIn("tests.test_doctor_oss_wheels",
+                      contract["recommended_tests"])
+
     def test_import_and_non_windows_do_not_download_or_install(self):
         with (patch.object(wheels, "windows_313_x64", return_value=False),
               patch.object(wheels.subprocess, "run") as run,
