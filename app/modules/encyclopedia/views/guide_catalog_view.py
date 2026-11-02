@@ -174,6 +174,7 @@ class GuideCatalogView(QWidget):
         # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
         self.home_metadata_list.setAlternatingRowColors(False)
         self.home_metadata_list.itemClicked.connect(self._open_ganymede_source_item)
+        self.home_metadata_list.itemActivated.connect(self._open_ganymede_source_item)
         self.home_metadata_list.setMaximumHeight(148)
         # Keep the disabled metadata legible; unlike the default opaque Atlas
         # panel, the optional Unity skin leaves some of the sky visible.
@@ -270,6 +271,7 @@ class GuideCatalogView(QWidget):
                 f"QListWidget::item {{ padding: 6px 8px; }}"
             )
             listing.itemClicked.connect(self._open_other_category_item)
+            listing.itemActivated.connect(self._open_other_category_item)
             section_layout.addWidget(listing)
             self.other_category_lists[category] = listing
             group_layout.addWidget(section, index // 2, index % 2)
