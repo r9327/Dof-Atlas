@@ -3,15 +3,15 @@
   "source_guide_id": 2235,
   "source_url": "https://ganymede-app.com/guides/2235",
   "expected_source_step_count": 31,
-  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "authoring_status": "FULL_DRAFT_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    20
+    31
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2235",
-  "evidence_scope": "source_first_ten_steps_and_independently_sourced_quest_actions_11_to_20_local_coordinate_alignment_only",
+  "evidence_scope": "source_stages_1_to_10_visible_plus_independent_Gisgoul_quest_facts_11_to_31_and_same_stage_GPS_unverified_source_parity",
   "fact_sources": [
     "https://ganymede-app.com/guides/2235",
     "https://www.dofuserie.com/quetes/l-entree-des-artistes/",
@@ -25,7 +25,11 @@
     "Verify localized French PNJ and exact quest names in current DOFUS Unity.",
     "Compare source Ganymède stages 11-31 before drafting them; observed GPS and quest IDs alone are not instructions.",
     "Confirm requirements and per-character validations before any runtime promotion.",
-    "Confirm specific source cross-guide ordering of Sidimote3 11-20 (four quests run in parallel); no Ganymède full source proof."
+    "Confirm specific source cross-guide ordering of Sidimote3 11-20 (four quests run in parallel); no Ganymède full source proof.",
+    "Perform 1:1 review of Ganymède 2235 step actions 11–31; four independent quest guides can identify objectives but not optimized source step sequencing.",
+    "Verify names in source French locale including Inspector Gad Jayte, Moctar Chitekt, Gobovette, Mamée Talika and the 4 Brakmar NPCs.",
+    "Check gameplay per-character quest prerequisite: Rituel oblige starts only after Au pied du mur; prevent stage 11 from being treated as ready for all.",
+    "Verify Pwouerk separate fight is present in exact original source stage; stage 25 currently mentions it as a conditional information action, not a completed fight."
   ],
   "steps": [
     {
@@ -645,6 +649,371 @@
             -18,
             18
           ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Présenter le gobelin éméché à Bworkemada",
+      "instructions": "Bworkemada accepte d'écouter le rapport, mais la démonstration avec l'alcool ne suffit pas : il faut conduire un second gobelin vers une épreuve plus risquée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bworkemada en [-18,18].",
+          "coordinates": [
+            -18,
+            18
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Présenter le Gobelin éméché et demander de reconsidérer le salaire des ouvriers."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à la mine chercher un deuxième gobelin en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Escorter le gobelin courageux vers les égouts",
+      "instructions": "À la mine, Gobovette confie un second gobelin. Le conduire vers les souterrains sans valider la quête avant son affrontement.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Gobovette dans la mine de Gisgoul.",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Proposer d'emmener un deuxième gobelin vers les égouts de Gisgoul."
+        },
+        {
+          "kind": "information",
+          "text": "La quête « Un salaire germinable » nécessite une autre épreuve, distincte de la tournée des bières."
+        },
+        {
+          "kind": "travel",
+          "text": "Suivre le chemin vers le passage souterrain en [-16,22].",
+          "coordinates": [
+            -16,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Retrouver la sacoche de l'enquête",
+      "instructions": "Le chemin des égouts recoupe la piste des sectateurs. Examiner la sacoche et poursuivre jusqu'au Bwork mercenaire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver la sacoche de l'enquête en [-16,22].",
+          "coordinates": [
+            -16,
+            22
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner la sacoche posée au sol pour poursuivre « L'entrée des artistes »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Bwork Mercenaire en [-14,22].",
+          "coordinates": [
+            -14,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Vaincre les Bworks élémentaux",
+      "instructions": "Le Bwork mercenaire protège le chemin vers le passage secret. L'affrontement mobilise quatre Bworks élémentaux, un de chaque élément ; plusieurs personnages peuvent participer.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Bwork Mercenaire en [-14,22].",
+          "coordinates": [
+            -14,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger le Bwork Mercenaire et répondre à sa provocation."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre quatre Bworks Élémentaux (Terre, Feu, Eau, Air). Combat réalisable en groupe."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler au Bwork Mercenaire après la victoire."
+        },
+        {
+          "kind": "information",
+          "text": "Pour la quête « Un salaire germinable », garder également l'objectif d'affronter Pwouerk dans les égouts avec le gobelin."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée du passage secret en [-14,21].",
+          "coordinates": [
+            -14,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Passer par le tunnel caché et retrouver la tour",
+      "instructions": "Le tunnel part de la zone sud de Gisgoul et conduit dans la tour. Les objectifs d'enquête et de courage des gobelins restent séparés malgré le même secteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Examiner le tunnel secret de Gisgoul en [-14,21].",
+          "coordinates": [
+            -14,
+            21
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le passage pour accéder à la tour de Gisgoul ; l'issue se situe vers [-19,15]."
+        },
+        {
+          "kind": "information",
+          "text": "Pour le gobelin courageux, vaincre Pwouerk dans les égouts avec son escorte si cette épreuve n'est pas encore validée (combat faisable en groupe)."
+        },
+        {
+          "kind": "travel",
+          "text": "Après l'épreuve des égouts, retrouver Gobovette en [-17,21] si nécessaire.",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Conduire ensuite le gobelin courageux vers Bworkemada en [-18,18].",
+          "coordinates": [
+            -18,
+            18
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Faire reconnaître le courage du gobelin",
+      "instructions": "Bworkemada doit constater la réussite du second gobelin, après l'épreuve contre Pwouerk. Cette validation précède le dialogue final auprès de Gobovette.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Bworkemada en [-18,18].",
+          "coordinates": [
+            -18,
+            18
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Présenter le Gobelin courageux après le combat contre Pwouerk."
+        },
+        {
+          "kind": "information",
+          "text": "La quête du salaire se conclura au retour dans la mine ; ne pas cocher sa réussite à la place du dialogue de Gobovette."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à la tour de Gisgoul pour achever l'enquête de l'inspecteur.",
+          "coordinates": [
+            -16,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "title": "Démasquer les sectateurs et terminer L'entrée des artistes",
+      "instructions": "Après l'enquête des maisons et du passage secret, le levier de la tour ouvre une cache. Un groupe de sectateurs et de Shushus y réalise un rituel dangereux.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la tour de Gisgoul en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Actionner le levier au fond de l'entrée, parler au Sectateur discret, puis entrer par la trappe cachée."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre trois Sectateurs et trois Shushus Rav ; combat réalisable en groupe."
+        },
+        {
+          "kind": "information",
+          "text": "Les Sectateurs possèdent initialement 100 % de résistances : éliminer d'abord les Shushus Rav pour réduire leur résistance."
+        },
+        {
+          "kind": "talk",
+          "text": "Retourner prévenir l'Inspecteur Gad Jayte pour conclure « L'entrée des artistes »."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner terminer la quête du salaire dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "title": "Terminer Un salaire germinable",
+      "instructions": "La démonstration des deux gobelins terminée, Gobovette doit recevoir la confirmation de l'augmentation des salaires.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Gobovette dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Annoncer à Gobovette que Bworkemada accepte de porter le salaire à deux kamas."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la validation de « Un salaire germinable » sur le personnage courant."
+        },
+        {
+          "kind": "travel",
+          "text": "Passer à l'auberge de Gisgoul en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "title": "Interroger Mamée Talika pour le rituel",
+      "instructions": "Dans le cadre de « Rituel oblige », la tavernière donne une nouvelle piste concernant le décès d'un mineur et des chambres cambriolées. L'architecte Moctar doit ensuite être escorté jusqu'à Brâkmar.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer à l'Auberge du Goldeun Ouaive en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Mamée Talika des précisions sur les événements du rituel et les cambriolages."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Moctar Chitekt et accepter de l'accompagner jusqu'à Brâkmar."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la taverne du Chabrûlé à Brâkmar en [-28,38].",
+          "coordinates": [
+            -28,
+            38
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "title": "Payer les renseignements sur le rituel",
+      "instructions": "À la taverne de Brâkmar, les informations sur la femme présente pendant la cérémonie doivent être achetées avant la confrontation finale.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Magali Fujiko à la taverne du Chabrûlé en [-28,38].",
+          "coordinates": [
+            -28,
+            38
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Payer 1 000 kamas à Magali Fujiko en échange de ses informations."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander ce qu'elle sait des personnes liées à Hanounase et au rituel."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre au zaap de Brâkmar en [-26,37].",
+          "coordinates": [
+            -26,
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "title": "Affronter Risa Gregory puis Moctar démoniaque",
+      "instructions": "La quête « Rituel oblige » se termine au zaap de Brâkmar par deux combats successifs en groupe possible. Les deux validations doivent être obtenues sur le personnage actif.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la zone du zaap de Brâkmar en [-26,37].",
+          "coordinates": [
+            -26,
+            37
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Faire face à Risa Gregory près du zaap."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Risa Gregory ; combat en groupe possible."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Moctar Chitekt après le premier affrontement."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Moctar Chitekt sous forme de démon (environ 18 000 PV) ; combat en groupe possible."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler au démon pour clôturer « Rituel oblige »."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la validation du succès « Le double effet Gisgoul » avec ses quatre quêtes : Au pied du mur, Un salaire germinable, L'entrée des artistes et Rituel oblige."
         }
       ]
     }
