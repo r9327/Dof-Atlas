@@ -400,6 +400,19 @@ class GuideCatalogView(QWidget):
                 return True
         if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
             return False
+        # An authored source route takes precedence over an older hint-only
+        # cutover on the *same* Dofus card, keeping its progress namespace.
+        # Never override either of the two optimized Atlas guides.
+        if guide_id not in dict(FEATURED):
+            authored_source = next(
+                (entry for entry in self.ganymede_listings
+                 if ATLAS_EQUIVALENTS.get(entry.source_id) == guide_id
+                 and (INDEX_PATH.parent / f"ganymede_{entry.source_id}_instructions.json").is_file()),
+                None,
+            )
+            if authored_source is not None:
+                self._open_source_by_id(authored_source.source_id)
+                return True
         self.current_guide_id = guide_id
         self.guideRequested.emit(guide_id)
         return True

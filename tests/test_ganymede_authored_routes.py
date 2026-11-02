@@ -62,6 +62,39 @@ class OtomaiAuthoredRouteTests(unittest.TestCase):
                 self.assertTrue(destinations)
                 self.assertTrue(destinations.issubset(observed))
 
+    def test_dolmanax_nine_stages_keep_real_daily_offering_requirements(self):
+        guide_id = 2248
+        index = {entry.source_id: entry for entry in load_ganymede_listings()}
+        source = index[guide_id]
+        self.assertEqual(source.step_count, 9)
+        steps = load_ganymede_local_instructions(source)
+        self.assertIsNotNone(steps)
+        self.assertEqual(len(steps), 9)
+        self.assertEqual(
+            [row["source_step_number"] for row in steps],
+            list(range(1, 10)),
+        )
+        text = " ".join(str(row["instructions"]) for row in steps)
+        self.assertIn("365 Pages de Calendrier", text)
+        self.assertIn("[-4,-24]", text)
+        self.assertTrue(all(
+            row["actions"] and len(row["instructions"]) > 60
+            for row in steps
+        ))
+        self.assertTrue(all(
+            action["kind"] in {
+                "travel", "talk", "interact", "fight", "prepare",
+                "use_item", "deliver", "craft", "information",
+            } and action["text"]
+            for row in steps for action in row["actions"]
+        ))
+        doc = json.loads((
+            INDEX_PATH.parent / "ganymede_2248_instructions.json"
+        ).read_text(encoding="utf-8"))
+        self.assertEqual(doc["rights_basis"], "atlas_original")
+        self.assertIs(doc["editorial_source_text_copied"], False)
+        self.assertGreaterEqual(len(doc["fact_sources"]), 3)
+
     def test_original_prose_has_evidence_metadata_and_no_imported_editorial_text(self):
         for guide_id in (2219, 2220, 2252):
             with self.subTest(guide_id=guide_id):

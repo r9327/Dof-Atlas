@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2248,
+  "source_url": "https://ganymede-app.com/guides/2248",
+  "expected_source_step_count": 9,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "completion_note": "Nine thematic stages, one with 365 recurring daily offerings; no automatic game objective validation.",
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/l-annee-du-dragon/",
+    "https://www.dofuserie.com/dofus/dolmanax/",
+    "https://www.dofutheque.com/l-annee-du-dragon",
+    "https://www.dofuspourlesnoobs.com/calendrier-de-lalmanax.html",
+    "https://www.dofuspourlesnoobs.com/mise-a-jour-271.html",
+    "https://www.dofuserie.com/almanax/"
+  ],
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Débloquer le suivi du Dolmanax",
+      "instructions": "Le Dolmanax demande 365 Pages de Calendrier obtenues sur le personnage qui suivra la quête. Le niveau 20 est le repère à respecter pour les offrandes dans la version actuelle. Commence tôt, car tu ne peux valider qu'une offrande par journée. Prends éventuellement une potion de sanctuaire pour réduire les trajets.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Atteindre au moins le niveau requis pour la quête de l'Almanax (niveau 20 dans les guides DOFUS actuels)."
+        },
+        {
+          "kind": "information",
+          "text": "Prévoir une progression longue : 365 pages, à raison d'une au maximum par jour et par personnage."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver une potion d'accès au sanctuaire si tu veux éviter les trajets quotidiens."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Lancer la quête et répéter l'offrande du jour",
+      "instructions": "Rejoins le Sanctuaire de l'Almanax en [-4,-24]. Parle à Théodoran Ax pour démarrer « L'année du dragon » (Antyklime Ax dans certaines traductions). Ouvre le calendrier du jour pour relever l'objet et la quantité exigés. Procure-toi ces ressources, remets-les au PNJ, puis rends hommage au Méryde de la saison pour obtenir la Page de Calendrier. Reviens chaque jour jusqu'à réunir 365 pages. Lorsque tu possèdes les 365, retourne voir le même PNJ et récupère le Dolmanax via les succès.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Sanctuaire de l'Almanax.",
+          "coordinates": [
+            -4,
+            -24
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Théodoran Ax et accepter « L'année du dragon »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Lire le calendrier du jour pour relever l'offrande exacte et sa quantité, qui changent quotidiennement."
+        },
+        {
+          "kind": "deliver",
+          "text": "Apporter l'offrande demandée, rendre hommage au Méryde et récupérer une Page de Calendrier."
+        },
+        {
+          "kind": "information",
+          "text": "Recommencer sur 365 jours validés ; ne pas cocher cette étape comme achevée tant que les 365 pages ne sont pas réunies et remises."
+        },
+        {
+          "kind": "talk",
+          "text": "Une fois les 365 pages obtenues, les remettre à Théodoran Ax puis récupérer le Dolmanax dans les succès."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Utiliser les Almatons sans bloquer la quête",
+      "instructions": "Les offrandes accordent aussi des Almatons. Tu peux les conserver ou consulter Xanamla dans le sanctuaire pour les échanger contre les objets proposés. Ces échanges ne remplacent pas l'obtention des Pages de Calendrier et ne sont pas un prérequis pour recevoir le Dolmanax.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Consulter Xanamla au sanctuaire pour connaître la boutique d'échange des Almatons."
+        },
+        {
+          "kind": "information",
+          "text": "Évaluer le coût des objets proposés avant de dépenser la monnaie."
+        },
+        {
+          "kind": "information",
+          "text": "Garder la priorité aux 365 Pages de Calendrier nécessaires au Dolmanax."
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Anticiper les prochaines offrandes",
+      "instructions": "Consulte les prochains jours du calendrier de l'Almanax. Prépare uniquement les ressources dont la quantité et la disponibilité sont connues : récolte, fabrication ou achat en hôtel des ventes. Évite de constituer un stock universel, car les offrandes ne demandent pas les mêmes objets toute l'année.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Noter les ressources des prochains jours et les quantités exactes par personnage."
+        },
+        {
+          "kind": "prepare",
+          "text": "Acheter ou fabriquer en avance les offrandes peu coûteuses, sans stocker inutilement des ressources chères."
+        },
+        {
+          "kind": "information",
+          "text": "Comparer le prix de l'offrande aux récompenses du jour avant de lancer une série d'achats."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Profiter des économies d'ingrédients",
+      "instructions": "Le calendrier annonce certains jours une chance d'économiser des ingrédients en fabrication. Quand le bonus concerne le métier que tu comptes utiliser, reporte les recettes coûteuses à cette journée si cela ne t'empêche pas de progresser. Le pourcentage et les métiers éligibles sont variables : lis le libellé exact du bonus.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Repérer les journées « Économie d'ingrédients » dans le calendrier local de l'Almanax."
+        },
+        {
+          "kind": "craft",
+          "text": "Prévoir les fabrications du métier indiqué pendant sa période de bonus."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas appliquer un bonus de métier à tous les métiers : vérifier la restriction du jour."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Optimiser l'expérience des métiers",
+      "instructions": "Certains bonus augmentent l'expérience gagnée par un métier ou une activité particulière. Regroupe les ressources avant la journée concernée, puis effectue les fabrications ou récoltes indiquées pendant sa fenêtre de validité. Ne confonds pas un bonus d'expérience des métiers avec un bonus d'expérience de combat.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Filtrer le calendrier sur les bonus d'expérience des métiers."
+        },
+        {
+          "kind": "prepare",
+          "text": "Réunir les ressources des recettes du métier concerné avant l'activation."
+        },
+        {
+          "kind": "craft",
+          "text": "Effectuer les séries de fabrication éligibles au moment indiqué."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Préparer les séances de forgemagie",
+      "instructions": "Les journées de forgemagie améliorée peuvent faire économiser des runes ou améliorer certaines opérations suivant leur description. Mets de côté les runes et les équipements, puis lis précisément la spécialisation concernée (métier, type d'arme ou objet) avant de les utiliser.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Chercher « Forgemagie améliorée » dans les prochains bonus."
+        },
+        {
+          "kind": "prepare",
+          "text": "Préparer les runes et objets, puis vérifier que le bonus s'applique réellement à ton activité."
+        },
+        {
+          "kind": "interact",
+          "text": "Effectuer la séance de forgemagie pendant la fenêtre de bonus, si elle est compatible."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Choisir les journées de fabrication intensive",
+      "instructions": "Certains jours offrent une probabilité de créer un objet supplémentaire pour chaque fabrication d'un métier ciblé. Prépare une série de recettes avant l'événement puis fabrique les objets pendant cette journée. Ce bonus n'est pas systématique et ne doit pas être compté comme un doublement garanti.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Repérer dans le calendrier les journées « Fabrication intensive » pour ton métier."
+        },
+        {
+          "kind": "prepare",
+          "text": "Rassembler les ingrédients et prévoir la capacité d'inventaire nécessaire."
+        },
+        {
+          "kind": "craft",
+          "text": "Fabriquer les lots pendant le bonus et vérifier les quantités réellement produites."
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Planifier les bonus de qualité et conclure le parcours",
+      "instructions": "Certaines journées d'Almanax proposent des bonus de qualité d'objets liés à des activités ou zones. Consulte le lieu et les conditions avant d'en profiter ; si elles ne correspondent pas à tes besoins, ignore ce bonus. La vraie fin du Dolmanax reste l'achèvement de « L'année du dragon » après 365 pages. Vérifie le succès « Le repos du dragon » et la récompense dans ton interface.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Repérer les journées « Objets de qualité » et vérifier le lieu ou le métier requis."
+        },
+        {
+          "kind": "craft",
+          "text": "Réaliser les fabrications pertinentes dans les conditions spécifiées par le bonus."
+        },
+        {
+          "kind": "information",
+          "text": "Pour clôturer : vérifier les 365 pages remises, la quête « L'année du dragon », le succès « Le repos du dragon » et l'obtention effective du Dolmanax."
+        }
+      ]
+    }
+  ]
+}

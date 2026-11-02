@@ -575,6 +575,53 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_authored_dofus_card_opens_offline_instructions_without_duplicate_source(self):
+        from PySide6.QtWidgets import QPushButton
+
+        provider = _Provider()
+        provider.guides.append(_guide("dolmanax", "dofus"))
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _text: None, provider=provider,
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:23", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                emitted = []
+                view.guideRequested.connect(emitted.append)
+                view.library_category = "dofus"
+                view.refresh_home()
+                self.assertGreaterEqual(
+                    view.home_dofus_model.row_for_guide("dolmanax"), 0,
+                )
+                # No second metadata card for a Dofus already present.
+                self.assertNotIn(2248, {
+                    view.home_metadata_list.item(i).data(Qt.UserRole)
+                    for i in range(view.home_metadata_list.count())
+                })
+                self.assertTrue(view.select_guide("dolmanax"))
+                dialog = view._ganymede_source_dialog
+                self.assertIsNotNone(dialog)
+                self.assertEqual(emitted, [])
+                local = dialog.findChild(QPlainTextEdit, "GanymedeOfflineSourceStep")
+                self.assertIn("ÉTAPE 1 / 9", local.toPlainText())
+                validate = dialog.findChild(
+                    QPushButton, "GanymedeSourceValidateStep",
+                )
+                self.assertTrue(validate.isEnabled())
+                dialog.close()
+                self.app.processEvents()
+
+                # The two protected featured identities retain their rich UI.
+                self.assertTrue(view.select_guide("dofus_sylvestre"))
+                self.assertEqual(emitted, ["dofus_sylvestre"])
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_fact_only_steps_cannot_be_marked_as_completed(self):
         from PySide6.QtWidgets import QPushButton
 
