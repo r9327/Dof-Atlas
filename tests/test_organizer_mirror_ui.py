@@ -395,5 +395,36 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.input_state.end_mouse_block.assert_called_once()
 
 
+    def test_mirror_stop_during_key_hold_still_releases_virtual_key(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        timing = runtime.settings.timings
+        timing.switch_background_pre_click_ms = 0
+        timing.activate_attempts = 1
+        timing.activate_retry_ms = 0
+        timing.switch_click_down_ms = 30
+        timing.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.side_effect = [False, False, False, True]
+        runtime.macro_lock.wait.return_value = True
+        macro = MirrorInputMacro(runtime)
+        events = []
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", return_value=101),
+            patch("app.macros.input_tools.key_down", side_effect=lambda vk: events.append(("down", vk))),
+            patch("app.macros.input_tools.key_up", side_effect=lambda vk: events.append(("up", vk))),
+        ):
+            macro._run("key", 65, 101, (101, 202))
+        self.assertEqual(events, [("down", 65), ("up", 65)])
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+
+
 if __name__ == "__main__":
     unittest.main()

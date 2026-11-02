@@ -34,7 +34,7 @@ class OrganizerHotkeysMixin:
         self.update_switch_buttons()
         self.reload_runtime_callback()
         self.status_callback(
-            "Miroir : clics sur le favori recopiés séquentiellement."
+            "Miroir : clics, touches courtes et molette recopiés séquentiellement."
             if mode == "mirror" else "Macros classiques réactivées."
         )
 

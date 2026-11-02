@@ -486,7 +486,7 @@ class OrganizerUiMixin:
             self.restyle_button(button)
         self.macro_grid_host.setEnabled(not mirror)
         self.mirror_mode_button.setToolTip(
-            "Miroir : source = favori étoilé, cibles = autres sessions détectées."
+            "Miroir : clics, touches courtes, molette. Favori étoilé = source ; pas de glisser ou maintien continu."
         )
 
     def update_switch_buttons(self) -> None:
