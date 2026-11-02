@@ -279,11 +279,8 @@ class CandidateStoreTests(unittest.TestCase):
                         }]}],
         }
         source_preview = prepare_preview(source, expected_guides=1, expected_steps=1)
-        self.assertEqual(
-            publish_candidate(source_preview, root=self.root)["status"],
-            "CANDIDATE_STORED_NOT_ACTIVE",
-        )
-        self.temp.cleanup()
+        accepted = publish_candidate(source_preview, root=self.root)
+        self.assertEqual(accepted["status"], "CANDIDATE_STORED_NOT_ACTIVE")
         # Each alteration must fail without modifying a previous generation.
         for alteration in ("resource_names", "preparation", "travel_position",
                            "wrong_section", "wrong_kind", "step_position"):
@@ -314,6 +311,9 @@ class CandidateStoreTests(unittest.TestCase):
                 ):
                     publish_candidate(bad, root=root)
                 self.assertFalse(root.exists())
+        self.assertEqual(
+            selected_candidate(self.root), accepted["candidate_sha256"]
+        )
 
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
