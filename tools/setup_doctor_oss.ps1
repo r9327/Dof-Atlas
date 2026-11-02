@@ -19,28 +19,10 @@ try {
     }
 
     if ($Install) {
-        # Windows x64-only lock. PyPI wheel checksums verified against the
-        # published per-file SHA256 records on 2026-11-02. Other OS/arch tags
-        # are intentionally refused, never installed with an unchecked hash.
-        $supported = & py -3.13 -c "import platform,sys; print(int(sys.platform == 'win32' and platform.machine().upper() in ('AMD64', 'X86_64') and sys.maxsize > 2**32))"
-        if ($LASTEXITCODE -ne 0 -or ($supported -join "").Trim() -ne "1") {
-            throw "Hashed Doctor OSS installation supports Windows x64 / Python 3.13 only."
-        }
-        $lock = [System.IO.Path]::GetTempFileName()
-        try {
-            $pins = @'
-ruff==0.17.3 --hash=sha256:56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24
-zizmor==1.30.1 --hash=sha256:06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868
-'@
-            Set-Content -LiteralPath $lock -Value $pins -Encoding ascii
-            Write-Host "Developer opt-in: verifying and installing only the two pinned PyPI Windows x64 wheels."
-            & py -3.13 -m pip --isolated install --user --only-binary=:all: --no-deps --no-cache-dir --disable-pip-version-check --require-hashes --index-url "https://pypi.org/simple" -r $lock
-            if ($LASTEXITCODE -ne 0) {
-                throw "Hashed wheel installation failed; do not claim qualification."
-            }
-        }
-        finally {
-            Remove-Item -LiteralPath $lock -Force -ErrorAction SilentlyContinue
+        Write-Host "Developer opt-in: validating Windows x64 wheels against official PyPI metadata and SHA256."
+        & py -3.13 -X utf8 -m tools.doctor_oss_wheels --install
+        if ($LASTEXITCODE -ne 0) {
+            throw "Verified developer tool install failed; no qualification performed."
         }
     }
 
