@@ -6,12 +6,12 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    10
+    20
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2206",
-  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "evidence_scope": "source_visible_first_ten_plus_independently_verified_valonia_quests_11_to_20_source_parity_not_yet_proven",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -316,6 +316,326 @@
           ]
         }
       ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Faire le compte rendu à Thorbjarn",
+      "instructions": "Après avoir repoussé les deux Thomondors de la carrière, retrouver Thorbjarn pour lui confirmer la fin des combats. Il propose de rencontrer les habitants, puis de partager un verre à la taverne.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Thorbjarn en [36,-77] dans la colonie.",
+          "coordinates": [
+            36,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Signaler à Thorbjarn que les deux Thomondors ont été effrayés et que la carrière est sécurisée."
+        },
+        {
+          "kind": "prepare",
+          "text": "Garder 120 kamas pour acheter deux pintes d'hydromiel à la taverne."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller place des Contes et Légendes en [37,-78].",
+          "coordinates": [
+            37,
+            -78
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Écouter Beauraim D’Or-Ange",
+      "instructions": "Sur la place, écouter le barde et lui demander pourquoi son chant évoque des souvenirs étranges. Les différentes réponses ne bloquent pas cette étape.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le barde Beauraim D’Or-Ange en [37,-78].",
+          "coordinates": [
+            37,
+            -78
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lancer un kama aux pieds du ménestrel et écouter son chant."
+        },
+        {
+          "kind": "talk",
+          "text": "Poursuivre les réponses et lui demander de chanter à nouveau pour connaître la suite."
+        },
+        {
+          "kind": "travel",
+          "text": "Se diriger vers la taverne d'Albuera en [38,-78].",
+          "coordinates": [
+            38,
+            -78
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Partager l'hydromiel et terminer Colonie de vaillance",
+      "instructions": "À la taverne d'Albuera, commander deux pintes et retrouver Thorbjarn pour achever la quête de la colonie avant d'ouvrir la mission du trappeur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la taverne d'Albuera.",
+          "coordinates": [
+            38,
+            -78
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Commander deux pintes d'hydromiel auprès d'Arvid Tachöp."
+        },
+        {
+          "kind": "deliver",
+          "text": "Payer 120 kamas au tavernier pour les deux pintes."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Thorbjarn autour des boissons pour terminer « Colonie de vaillance »."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir à la maison du trappeur en [38,-77].",
+          "coordinates": [
+            38,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Accepter Dans la gueule du trankilou",
+      "instructions": "Dans le village, le trappeur Hönger Lébaï demande de contrôler ses pièges dans la forêt. Les deux premiers sont vides et le troisième nécessite une enquête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rencontrer Hönger Lébaï à Nouvelle Albuera en [38,-77].",
+          "coordinates": [
+            38,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Dans la gueule du trankilou » auprès de Hönger Lébaï."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le premier piège en [37,-79].",
+          "coordinates": [
+            37,
+            -79
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Vérifier les deux premiers pièges",
+      "instructions": "Inspecter successivement les pièges placés dans la forêt enneigée. Le deuxième se trouve au pied d'un sapin.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Examiner le premier piège au pied du tronc en [37,-79].",
+          "coordinates": [
+            37,
+            -79
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le piège placé au pied du tronc : constater qu'il est vide."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au deuxième piège en [39,-81].",
+          "coordinates": [
+            39,
+            -81
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Contrôler le second piège et poursuivre les traces",
+      "instructions": "Le deuxième piège est également vide. Le troisième a disparu : aller rechercher les marques de lutte plus loin dans la forêt.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Cliquer sur le piège au pied du sapin en [39,-81].",
+          "coordinates": [
+            39,
+            -81
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier le second piège et valider son état vide."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller examiner les traces du troisième piège en [37,-82].",
+          "coordinates": [
+            37,
+            -82
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Retrouver la trace du piège disparu",
+      "instructions": "En [37,-82], le piège n'est plus là. Examiner les griffures sur l'arbre pour trouver le repaire de la créature qui s'est échappée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rechercher le troisième piège en [37,-82].",
+          "coordinates": [
+            37,
+            -82
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les griffures sur l'arbre pour progresser dans l'enquête."
+        },
+        {
+          "kind": "travel",
+          "text": "Suivre les traces jusqu'en [38,-83].",
+          "coordinates": [
+            38,
+            -83
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Découvrir le repaire du Rakoopeur",
+      "instructions": "Entrer dans le repaire sous la trappe centrale. Rakoopeur y soigne Bentlaitue ; ses alliés refusent votre présence et lancent un combat. Le combat peut se jouer à plusieurs si chaque personnage a atteint le bon stade.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer par la trappe centrale en [38,-83].",
+          "coordinates": [
+            38,
+            -83
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Discuter avec Rakoopeur au sujet de Bentlaitue et des pièges des trappeurs."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au Trankilou furieux pour déclencher l'affrontement."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Trankilou furieux et les animaux alliés ; combat en groupe possible pour les personnages au même stade."
+        },
+        {
+          "kind": "interact",
+          "text": "Après la victoire, fouiller sous la tente et récupérer le plan du barrage."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à Nouvelle Albuera en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Terminer la chasse et ouvrir Association de fureteurs",
+      "instructions": "Le retour avec le plan du barrage révèle une menace contre la colonie. Faire le rapport à Hönger Lébaï et Thorbjarn, puis proposer d'aider les blessés à la digue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Hönger Lébaï et Thorbjarn en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Montrer à Hönger Lébaï le plan découvert sous la tente du Rakoopeur."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler ensuite à Thorbjarn puis à Aster Bou pour terminer « Dans la gueule du trankilou »."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter auprès de Thorbjarn la mission « Association de fureteurs »."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller prévenir Ima Dokter en [36,-78].",
+          "coordinates": [
+            36,
+            -78
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Avertir le médecin du barrage",
+      "instructions": "À Nouvelle Albuera, informer Ima Dokter que les ouvriers du barrage ont été blessés ; il part les rejoindre immédiatement. Le passeur permet d'accélérer le trajet vers la digue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Ima Dokter en [36,-78].",
+          "coordinates": [
+            36,
+            -78
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Prévenir Ima Dokter de l'attaque survenue au barrage."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le passeur Edmön Taägnard en [37,-77] si vous utilisez son raccourci.",
+          "coordinates": [
+            37,
+            -77
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Facultatif : garder 50 kamas pour le voyage en raccourci vers le barrage."
+        }
+      ]
     }
+  ],
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/colonie-de-vaillance/",
+    "https://www.dofuserie.com/quetes/dans-la-gueule-du-trankilou/",
+    "https://www.dofuserie.com/quetes/association-de-fureteurs/"
+  ],
+  "further_review_needed": [
+    "Compare stages 11-20 to original Ganymède GP11 stage sequence and wording of choices.",
+    "Review French NPC names and instanced group fight on Unity.",
+    "Confirm the separate quest transitions and guide-specific manual validation for each character."
   ]
 }
