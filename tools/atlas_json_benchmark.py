@@ -17,6 +17,20 @@ import time
 import zlib
 from pathlib import Path
 
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "quest_json_benchmark",
+    "role": "offline quest JSON comparison and evidence, not a runtime migration",
+    "capabilities": ["json_data", "quest_data", "performance"],
+    "modes": ["bench", "compare_parsers", "compare_streaming", "compare_compression"],
+    "cost_hint": "variable",
+    "side_effects": "artifact_output",
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": ["tests.test_atlas_json_benchmark"],
+    "target_scopes": ["json_data", "quest_data", "quality_ci"],
+}
+
 from app.quest_source_index import QuestSources
 from tools.atlas_json_shards import (
     ROOT, current_directory, read_by_id, verify,
@@ -312,6 +326,8 @@ def main() -> int:
                         help="Explicit offline ijson quest-ID streaming parity trial")
     parser.add_argument("--compare-compression", action="store_true",
                         help="Explicit offline zlib/zstandard lossless compression trial")
+    parser.add_argument("--json", action="store_true",
+                        help="Sortie JSON (déjà la sortie par défaut)")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if sum((args.compare_parsers, args.compare_streaming,
