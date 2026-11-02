@@ -278,3 +278,60 @@ certifié intégralement, 80/95 à achever.** Les quatre brouillons représenten
 40 étapes rédigées en plus, mais ne changent pas le compteur de guides
 livrables. Les deux optimisés actuels restent intacts. **PR Draft /
 CHANGES REQUIRED**, aucune phase CI finale déclenchée.
+
+## GP4 et Valonia 1 — deux brouillons 100 % rédigés (2 novembre)
+
+**Objet exclusif de ce lot : progresser sur les guides manquants.**
+Les données créées restent sous `replacement_drafts/authoring` et ne
+sont pas promues dans le runtime.
+
+- **2204 Mais où sont les Dofus ? : 26/26 étapes écrites, 114 actions,
+  46/46 positions mentionnées dans le relevé de la même étape.** Les
+  étapes 11–26 décrivent l'acquisition de la Pinte du visionnaire,
+  le Feu prophétique en **un** combat solo (réparti sur les étapes
+  éditoriales 13/14 sans double comptage), Guipol en solo, les Wabbits
+  en groupe, le temple de classe, la bénédiction, la Forêt Maléfique,
+  les deux combats solo du Dark Vlad, puis Mériana.
+  Sources indépendantes par quête référencées dans le JSON et dans
+  `docs/guides/GANYMEDE_AUTHORING.md`.
+- **2206 Valonia 1 : 30/30 étapes écrites, 124 actions, 55/55 positions
+  mentionnées dans les relevés correspondants.** La suite documente
+  120 kamas de taverne, la chasse aux pièges et le combat de
+  Trankilou en groupe, la kole pour le barrage, l'option du passeur
+  à 50 kamas, le boss Rakoopeur au Refuge sylvestre, la guérison
+  de Bentlaitue et l'arrestation des P.O.M.S. Les PNJ et objets
+  de Valonia ont été revus en français contre des fiches de quêtes
+  indépendantes : Hönger Lébaï, Bryra Borouié, Judeau Keuter,
+  Leichäf Odäg, Thomondor, Rakoopeur, Balai rudimentaire.
+- **2228 Sufokia : 10/39 étapes** ; **2229 Nimaltopia : 10/67 étapes**.
+  Aucun saut n'est inventé pour ces deux guides.
+
+**Comptes directs au HEAD `f48b0bdce0de6c4644e1719e151b68db29915a17` :**
+76/162 étapes rédigées pour ces quatre sources,
+309 actions typées, 137/137 déplacements concordant avec le relevé
+*documentaire de la même étape* et 0 anomalie structurelle détectée
+par la lecture JS des JSON distants. Ces 137 correspondances ne prouvent
+ni l'identité des cartes et dimensions, ni les conditions d'objectif,
+ni la parité au texte et à l'ordre de la source Ganymède.
+
+Les deux brouillons entiers sont
+`FULL_DRAFT_NOT_PLAYABLE`, `source_parity_certified=false`,
+`gameplay_certified=false`. La promotion au format
+`ganymede_<id>_instructions.json` demeure **interdite** sans la
+confrontation des 26 et 30 étapes à la source exacte et la revue de
+validation par personnage. Le test dédié protège maintenant également
+la distinction groupe/solo, l'absence de doublon du Feu prophétique
+et les noms français des PNJ : **non exécuté dans un checkout Python**.
+
+Les étapes source 11+ des deux guides n'étaient pas lisibles
+intégralement dans l'outil de consultation au moment de cette séance ;
+le contenu des quêtes a été composé à partir de sources indépendantes
+et de relevés Atlas, **pas certifié comme une transcription des
+instructions Ganymède**. Le correctif ne touche pas l'interface,
+le planificateur, les deux guides optimisés, ni la persistance.
+
+**Bilan livraison : 15/95 fichiers complets publiés antérieurement
+(non certifiés), 2 brouillons entiers supplémentaires hors runtime,
+78 autres parcours sans brouillon entier, 0/95 certifié DOFUS/Windows ;
+PR Draft / CHANGES REQUIRED.** Phase CI finale, Doctor Windows,
+benchmark et fusion toujours non lancés.
