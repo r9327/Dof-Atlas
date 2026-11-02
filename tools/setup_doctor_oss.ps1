@@ -28,10 +28,11 @@ try {
         }
         $lock = [System.IO.Path]::GetTempFileName()
         try {
-            @'
+            $pins = @'
 ruff==0.17.3 --hash=sha256:56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24
 zizmor==1.30.1 --hash=sha256:06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868
-'@ | Set-Content -LiteralPath $lock -Encoding ascii
+'@
+            Set-Content -LiteralPath $lock -Value $pins -Encoding ascii
             Write-Host "Developer opt-in: verifying and installing only the two pinned PyPI Windows x64 wheels."
             & py -3.13 -m pip --isolated install --user --only-binary=:all: --no-deps --no-cache-dir --disable-pip-version-check --require-hashes --index-url "https://pypi.org/simple" -r $lock
             if ($LASTEXITCODE -ne 0) {
