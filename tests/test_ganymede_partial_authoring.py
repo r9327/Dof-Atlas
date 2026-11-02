@@ -160,6 +160,68 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
         self.assertTrue(any("L'enfant regardait tomber la neige" in a["text"]
                             for a in steps[29]["actions"]))
 
+    def test_sufokia_full_draft_keeps_all_six_boats_and_six_achievement_quests(self):
+        path = AUTHORING_DIR / "ganymede_2228_partial.json"
+        if not path.is_file():
+            self.skipTest("Sufokia draft archived")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        steps = data["steps"]
+        self.assertEqual(data["authoring_status"], "FULL_DRAFT_NOT_PLAYABLE")
+        self.assertEqual(len(steps), 39)
+        self.assertFalse(data["source_parity_certified"])
+        self.assertFalse(data["gameplay_certified"])
+
+        for position, stage in (
+            ([12, 22], 17), ([8, 22], 18), ([7, 23], 19),
+            ([6, 23], 20), ([4, 24], 21), ([7, 28], 25),
+        ):
+            self.assertTrue(
+                any(a.get("coordinates") == position for a in steps[stage - 1]["actions"]),
+                f"Missing boat position at stage {stage}",
+            )
+
+        self.assertTrue(any("Jemas Kooc" in a["text"] for a in steps[8]["actions"]))
+        self.assertTrue(any("Joëlle Raiebuchon" in a["text"]
+                            for a in steps[8]["actions"]))
+        self.assertTrue(any("Mage Hellan" in a["text"]
+                            for a in steps[2]["actions"]))
+        self.assertTrue(any("Paul Auchon" in a["text"]
+                            for a in steps[5]["actions"]))
+        self.assertTrue(any("Jus Concentrés de Gelée" in a["text"]
+                            for a in steps[38]["actions"]))
+        self.assertTrue(any("5 Ailes intactes" in a["text"]
+                            for a in steps[23]["actions"]))
+        self.assertEqual(
+            [a["coordinates"] for a in steps[30]["actions"]
+             if a.get("coordinates") is not None], [[15, 22], [12, 20]]
+        )
+
+    def test_nimaltopia_parallel_quests_and_character_specific_fights(self):
+        path = AUTHORING_DIR / "ganymede_2229_partial.json"
+        if not path.is_file():
+            self.skipTest("Nimaltopia draft archived")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        steps = data["steps"]
+        self.assertEqual(len(steps), 34)
+        self.assertEqual(data["authoring_status"], "PARTIAL_NOT_PLAYABLE")
+        self.assertFalse(data["source_parity_certified"])
+        self.assertFalse(data["gameplay_certified"])
+        self.assertTrue(any("Robert Gine" in a["text"] for a in steps[2]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "seul" in a["text"]
+                            for a in steps[10]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "seul" in a["text"]
+                            for a in steps[13]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "seul" in a["text"]
+                            for a in steps[29]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "plusieurs" in a["text"]
+                            for a in steps[30]["actions"]))
+        self.assertTrue(any("4 Cages de Transport Occupées" in a["text"]
+                            for a in steps[31]["actions"]))
+        self.assertTrue(any("Brâkmarien" in a["text"]
+                            for a in steps[33]["actions"]))
+        self.assertTrue(any("Bontarien" in a["text"]
+                            for a in steps[33]["actions"]))
+
     def test_opening_source_facts_survive_rewriting(self):
         # Focused editorial guard: these are verified opening-page facts,
         # not certificates for the complete source routes.
