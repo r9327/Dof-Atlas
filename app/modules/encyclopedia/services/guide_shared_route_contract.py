@@ -148,7 +148,18 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 "source_action": copy.deepcopy(action),
             }
             if section == "prepare":
-                preparation.append(row)
+                if not names:
+                    raise GuideRouteContractError(
+                        f"{label}: preparation needs explicit item names and quantities"
+                    )
+                for item in action["items"]:
+                    preparation.append({
+                        "name": item["name"],
+                        "quantity": item["quantity"],
+                        "item_id": item.get("item_id"),
+                        "source_action_id": action_id,
+                    })
+                sections.setdefault("prepare", []).append(row)
             else:
                 sections[section].append(row)
             for name in names:
