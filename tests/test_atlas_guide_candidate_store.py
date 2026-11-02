@@ -17,14 +17,14 @@ from tools.atlas_guide_candidate_store import (
 from tools.atlas_guide_importer import prepare_preview
 
 
-def candidate() -> dict:
+def candidate(*, step_title: str = "Départ") -> dict:
     source = {
         "schema_version": 1, "rights_verified": True,
         "reference_verified": True, "complete": True,
         "guides": [{
             "guide_id": 99, "title": "Guide exemple",
             "steps": [{
-                "source_step_id": "a", "title": "Départ",
+                "source_step_id": "a", "title": step_title,
                 "actions": [{
                     "action_id": "talk", "kind": "talk", "text": "Parler au PNJ",
                 }],
@@ -66,16 +66,14 @@ class CandidateStoreTests(unittest.TestCase):
 
     def test_stale_cas_does_not_override_candidate(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
-        changed = copy.deepcopy(self.preview)
-        changed["routes"][0]["steps"][0]["manual_title"] = "Nouveau texte"
+        changed = candidate(step_title="Nouveau texte")
         with self.assertRaisesRegex(GuideRouteContractError, "stale"):
             publish_candidate(changed, root=self.root)
         self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
 
     def test_rollback_previous_generation_with_cas(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
-        next_preview = copy.deepcopy(self.preview)
-        next_preview["routes"][0]["steps"][0]["manual_title"] = "Modifié"
+        next_preview = candidate(step_title="Modifié")
         second = publish_candidate(
             next_preview, root=self.root, expected_selected=first["candidate_sha256"]
         )
@@ -114,8 +112,7 @@ class CandidateStoreTests(unittest.TestCase):
 
     def test_crash_on_pointer_replace_preserves_previous_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
-        revised = copy.deepcopy(self.preview)
-        revised["routes"][0]["steps"][0]["manual_title"] = "Second version"
+        revised = candidate(step_title="Second version")
         with patch("tools.atlas_guide_candidate_store.os.replace", side_effect=OSError("disk fault")):
             with self.assertRaisesRegex(OSError, "disk fault"):
                 publish_candidate(
@@ -214,6 +211,13 @@ class CandidateStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
             publish_candidate(self.preview, root=self.root)
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_manual_title_cannot_diverge_from_source_title(self) -> None:
+        altered = copy.deepcopy(self.preview)
+        altered["routes"][0]["steps"][0]["manual_title"] = "Falsified UI title"
+        with self.assertRaisesRegex(GuideRouteContractError, "stage title"):
+            publish_candidate(altered, root=self.root)
+        self.assertFalse(self.root.exists())
 
     def test_candidate_stage_identity_must_match_original_source(self) -> None:
         for change in ("stage", "chapter", "source_step", "missing_actions"):
