@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from pathlib import Path
 
-from tools.atlas_json_benchmark import benchmark, compare_json_parsers, compare_json_streaming
+from tools.atlas_json_benchmark import benchmark, compare_json_parsers, compare_json_streaming, compare_json_compression
 from tools.atlas_json_shards import build
 
 
@@ -145,6 +145,51 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                 trial = compare_json_streaming(source)
             self.assertEqual(trial["status"], "ERROR")
             self.assertEqual(trial["error_type"], "RuntimeError")
+
+    def test_lossless_compression_comparison_with_optional_zstandard(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            original = json.dumps({"quests": {"1": {"name": "Émeraude"}}})
+            source.write_text(original, encoding="utf-8")
+            import zlib
+            fake_zstd = SimpleNamespace(
+                ZstdCompressor=lambda level: SimpleNamespace(compress=zlib.compress),
+                ZstdDecompressor=lambda: SimpleNamespace(
+                    decompress=lambda blob, max_output_size: zlib.decompress(blob)),
+            )
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=fake_zstd):
+                trial = compare_json_compression(source)
+            self.assertEqual(trial["status"], "COMPARE_COMPLETE")
+            self.assertEqual([row["name"] for row in trial["results"]],
+                             ["zlib", "zstandard"])
+            self.assertTrue(all(row["status"] == "PARITY_PASS"
+                                for row in trial["results"]))
+            self.assertEqual(source.read_text(encoding="utf-8"), original)
+            self.assertFalse(trial["runtime_consumer_changed"])
+
+    def test_missing_or_corrupt_compression_backend_is_not_success(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.json"
+            path.write_text('{"quests":{}}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=ImportError("no zstd")):
+                trial = compare_json_compression(path)
+            self.assertEqual(trial["status"], "REVIEW")
+            self.assertEqual(trial["results"][1]["status"], "NOT_AVAILABLE")
+            bad = SimpleNamespace(
+                ZstdCompressor=lambda level: SimpleNamespace(
+                    compress=lambda data: b"invalid"),
+                ZstdDecompressor=lambda: SimpleNamespace(
+                    decompress=lambda blob, max_output_size: b"wrong"),
+            )
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=bad):
+                trial = compare_json_compression(path)
+            self.assertEqual(trial["status"], "REVIEW")
+            self.assertEqual(trial["results"][1]["status"], "ERROR")
+            with self.assertRaises(ValueError):
+                compare_json_compression(path, max_bytes=0)
 
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
