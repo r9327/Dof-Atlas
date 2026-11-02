@@ -177,3 +177,66 @@ et son implémentation est la [PR #318](https://github.com/r9327/Dof-Atlas/pull/
   propriétaires. Aucun nouveau registre ou second benchmark n'a été créé.
 
 Ce lien de suivi ne change pas la portée documentaire de la PR #312.
+
+## 9. PR d'intégration globale #357 — installation, invocation et qualification (2 novembre 2026)
+
+**Statut au démarrage : PLANIFIÉ, non installé ni certifié par cette section.**
+La source unique des 29+5 candidats reste le tableau des sections 2 et 7 ci-dessus.
+Le présent plan conserve exactement leurs 34 identifiants sans ajouter de registre parallèle.
+PR de développement **Draft** : pas de Phase Certification tant que le code, les tests,
+l'audit commit par commit et la recette requise ne sont pas terminés.
+
+### Lots d'implémentation, avec tous les IDs couverts
+
+| Lot | IDs du tableau canonique | Décision initiale (à confirmer) | Implémentation / preuve attendue |
+|---|---|---|---|
+| **0 — Réutiliser/qualifier le présent** | `ATOSS-06` `ATOSS-10` `ATOSS-20` `ATOSS-21` `AT-SUP-02` | KEEP_EXISTING ou adaptateur déjà approuvé, qualification encore individuelle | Conserver les owners Doctor/Perf Lab/packaging ; tester réellement Ruff + zizmor, versions et sorties avec --verify-live Windows ; contrôler py-spy/psutil et packager réel. Pas de doublon. |
+| **1 — Tests applicatifs Windows/Qt** | `ATOSS-01` `ATOSS-02` `ATOSS-03` `ATOSS-04` `ATOSS-05` | TRIAL puis ADOPT uniquement si tests additionnels utiles | Intégrer pytest-qt et Hypothesis si les tests d'invariants/signaux manquent ; utiliser pywinauto sur un vrai setup Windows via la PR Launcher ; xdist/microbenchmark seulement avec isolation et pertinence démontrées. |
+| **2 — Analyse de code et sécurité** | `ATOSS-18` `ATOSS-19` `ATOSS-22` `ATOSS-23` `AT-SUP-04` | TRIAL / CHOOSE_ONE pour OSV-Scanner vs pip-audit | Raccorder ast-grep/Semgrep/Gitleaks si leur signal dépasse Doctor/Graphify/CI existants ; pour les dépendances choisir un scanner, tester les faux positifs, fuite de secrets, droits, absence de réseau implicite. |
+| **3 — JSON, Guides, assets et typage** | `ATOSS-11` `ATOSS-12` `ATOSS-13` `ATOSS-14` `ATOSS-15` `ATOSS-16` `ATOSS-17` `AT-SUP-01` `AT-SUP-05` | BENCHMARK / TRIAL ; conserver une seule solution par fonction | Comparer msgspec/orjson/ijson sans remplacer le streaming/index si le gain n'est pas mesuré ; zstandard uniquement après compatibilité launcher ; RapidFuzz/ImageHash/fontTools/jsonschema uniquement en diagnostics de vérification ; Pydantic différé si les contrats natifs suffisent. |
+| **4 — Profiling et télémétrie** | `ATOSS-07` `ATOSS-08` `ATOSS-09` `ATOSS-25` | TRIAL sur cas d'échec réel, sinon REJECT comme redondant | Réutiliser Doctor Perf Lab/Graphify ; capturer overhead, RSS process-tree, CPU, p50/p95/p99, freeze Qt ; ne pas charger d'instrumentation en permanence ni ajouter d'export réseau. |
+| **5 — IA, Holding et exclusions** | `ATOSS-24` `ATOSS-26` `ATOSS-27` `ATOSS-28` `ATOSS-29` `AT-SUP-03` | HOLDING_ONLY / DEFER / REJECT selon source | Pydantic Evals : scénarios agent seulement en dev si mesure utile ; MCP SDK/Inspector : pont Holding existant, pas de service Atlas doublon ; QtAwesome et PyQtDarkTheme : REJECT car thème Unity ; Nuitka : comparaison ponctuelle sans migration du packaging courant. |
+
+### Contrat de preuve par outil retenu
+
+Chaque candidat doit finir avec la décision **KEEP_EXISTING**, **ADOPT**, **TRIAL**,
+**DEFER**, **HOLDING_ONLY** ou **REJECT**, motivée par un résultat observé.
+Un outil adopté doit présenter : (1) la version et l'origine/licence réellement
+vérifiées ; (2) une installation developer/CI reproductible et explicitement
+consentie, avec contrôle des dépendances et sans modification du runtime par
+défaut ; (3) la fonction/module propriétaire existant qui l'invoque ; (4) un
+scénario pertinent déclenchant l'outil, un témoin d'exécution et un cas négatif
+outil absent/timeout/erreur ; (5) une preuve Windows Python 3.13 si pertinente ;
+(6) un rapport au SHA exact, sans faux PASS.
+
+La sélection dans `oss_selection`, un import détecté, ou un paquet mentionné
+ne valent **pas** exécution. Le routeur Doctor doit lire `ai_tool_workflow`,
+exécuter seulement les diagnostics explicitement approuvés avec budget, et
+rapporter `NOT_RUN`/`NOT_AVAILABLE`/`ERROR` plutôt que présumer un succès.
+Chaque propriétaire natif reste responsable de son propre test, benchmark,
+rapport et statut ; aucun nouveau moteur de CI, benchmark, Qt ou launcher.
+
+### Ordre et conditions de fusion
+
+1. **OSR-001/008** : couvrir les 34 candidats par une décision et un owner,
+   rejeter les doublons sans les installer. Prouver que le catalogue canonique
+   ne dérive pas d'une copie manuelle du tableau.
+2. **OSR-002/004/007** : lier puis tester versions, installation volontaire,
+   lancement et évidence des analyseurs sûrs ; les scanners non présents
+   restent non exécutés.
+3. **OSR-003** : tests Qt, propriété et installer dans leurs PR propriétaires,
+   sans réécrire les modules #285, #325, #306 ou #337 en parallèle.
+4. **OSR-005/006** : comparer les alternatives JSON/packaging et le profiling
+   sur le même jeu de données et un même environnement ; conserver le code
+   existant si gains insuffisants ou régressions.
+5. **OSR-009/010** : audit des commits puis audit global, tests ciblés et
+   validation exacte-SHA, RAM stabilisée Home cible <100 Mio et pic process-tree
+   cible <=250 Mio, latences, Qt, installation/rollback Windows, puis Phase
+   Certification unique au candidat final. Tests sur runner GitHub ≠ preuve
+   de la machine personnelle ; conserver le suivi Windows #346.
+
+**Dépendances :** issue de livraison [#357](https://github.com/r9327/Dof-Atlas/issues/357),
+issue programme [#313](https://github.com/r9327/Dof-Atlas/issues/313),
+validation PC réel [#346](https://github.com/r9327/Dof-Atlas/issues/346).
+Tout `NOT_RUN` doit rester visible ; la PR ne doit pas être fusionnée
+par simple inventaire documentaire.
