@@ -1,0 +1,317 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2206,
+  "source_url": "https://ganymede-app.com/guides/2206",
+  "expected_source_step_count": 30,
+  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "reviewed_stage_range": [
+    1,
+    10
+  ],
+  "rights_basis": "atlas_original",
+  "editorial_source_text_copied": false,
+  "source_reference": "https://ganymede-app.com/guides/2206",
+  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer le voyage vers Valonia",
+      "instructions": "Ce début de parcours n'exige pas de collecte préalable. Prévoir le paiement du transport et rejoindre le port de Madrestam. Capturer le Raccooper pour l'Ocre reste facultatif.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Conserver au moins 100 kamas pour la traversée."
+        },
+        {
+          "kind": "information",
+          "text": "La capture du Raccooper pour la quête de l'Ocre est facultative."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le quai de départ au port de Madrestam en [10,-3].",
+          "coordinates": [
+            10,
+            -3
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Prendre le bateau pour Valonia",
+      "instructions": "Au port, payer le capitaine pour rejoindre l'archipel puis avancer vers le village.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le capitaine Isabello Tissier au port.",
+          "coordinates": [
+            10,
+            -3
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Verser 100 kamas à Isabello Tissier pour embarquer."
+        },
+        {
+          "kind": "travel",
+          "text": "Après la traversée, rejoindre [38,-77] sur Valonia.",
+          "coordinates": [
+            38,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Lancer la quête de la scierie",
+      "instructions": "S'adresser au grand personnage présent à l'entrée du village et accepter sa demande concernant la scierie.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Händel Itäll en [38,-77].",
+          "coordinates": [
+            38,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Händel Itäll et accepter la mission de la scierie."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'atelier des bûcherons en [39,-80].",
+          "coordinates": [
+            39,
+            -80
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Nettoyer l'atelier des bûcherons",
+      "instructions": "Parler aux responsables de l'atelier, récupérer le balai puis éliminer les tas de sciure. La finition du combat doit être faite au balai pour chaque personnage qui doit valider la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'atelier des bûcherons.",
+          "coordinates": [
+            39,
+            -80
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Consulter Ima Dokter puis recevoir les consignes de Rustay Planne."
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser le balai simple et l'équiper comme arme."
+        },
+        {
+          "kind": "interact",
+          "text": "Nettoyer les trois tas de saleté signalés dans l'atelier."
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les tas de sciure ; porter le coup final avec le balai. En groupe, chaque personnage doit en achever au moins un."
+        },
+        {
+          "kind": "talk",
+          "text": "Confirmer la fin du travail à Rustay Planne."
+        },
+        {
+          "kind": "interact",
+          "text": "Récupérer les planches déposées près du poste de travail."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre en [36,-77] pour la livraison.",
+          "coordinates": [
+            36,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Livrer les planches à Ragnar",
+      "instructions": "Faire le point sur la livraison auprès de Ragnar Tisan puis revenir à l'entrée du village.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Ragnar Tisan.",
+          "coordinates": [
+            36,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Ragnar Tisan et transmettre les éléments de la livraison."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner en [38,-77].",
+          "coordinates": [
+            38,
+            -77
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Clore la scierie et ouvrir la suite",
+      "instructions": "Valider la quête de scierie auprès de Händel Itäll avant de prendre une nouvelle mission auprès de Thorbjarn.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Händel Itäll.",
+          "coordinates": [
+            38,
+            -77
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Händel Itäll pour terminer la quête de scierie."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter auprès de Thorbjarn la mission sur les créatures du village."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller trouver Skäff Ölding en [34,-81].",
+          "coordinates": [
+            34,
+            -81
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Rencontrer Skäff Ölding",
+      "instructions": "Expliquer la mission donnée par Thorbjarn et récupérer les indications sur les créatures à repousser.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Skäff Ölding.",
+          "coordinates": [
+            34,
+            -81
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui signaler la demande de Thorbjarn concernant les thoronduddleswells."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la première créature en [36,-81].",
+          "coordinates": [
+            36,
+            -81
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Repousser la première créature",
+      "instructions": "Provoquer le combat contre le Thoronduddleswell pâle. Ce combat peut être effectué avec des alliés.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rencontrer le Thoronduddleswell pâle.",
+          "coordinates": [
+            36,
+            -81
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Déclencher l'affrontement en l'effrayant."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Thoronduddleswell pâle."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la seconde créature en [36,-82].",
+          "coordinates": [
+            36,
+            -82
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Repousser la seconde créature",
+      "instructions": "Engager le second combat puis retourner donner les nouvelles de l'opération à Skäff Ölding.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver le Thoronduddleswell blafard.",
+          "coordinates": [
+            36,
+            -82
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lancer le second combat."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Thoronduddleswell blafard."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Skäff Ölding.",
+          "coordinates": [
+            34,
+            -81
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Faire le compte rendu à Skäff",
+      "instructions": "Confirmer que les deux créatures ont été repoussées puis revenir auprès des habitants du village.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Skäff Ölding.",
+          "coordinates": [
+            34,
+            -81
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui annoncer que les deux combats ont été remportés."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir vers Ragnar Tisan en [36,-77].",
+          "coordinates": [
+            36,
+            -77
+          ]
+        }
+      ]
+    }
+  ]
+}
