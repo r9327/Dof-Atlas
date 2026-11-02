@@ -29,6 +29,7 @@ def import_authored_routes(
     apply: bool = False,
     allow_overwrite: bool = False,
     expected_routes: int = 95,
+    expected_source_sha256: dict[int, str] | None = None,
 ) -> dict:
     """Validate *all* offered files before writing any output.
 
@@ -69,6 +70,10 @@ def import_authored_routes(
         if validated is None or len(validated) != entry.step_count:
             raise ValueError(f"Incomplete guide {entry.source_id}")
         blob = path.read_bytes()
+        if (expected_source_sha256 is not None
+                and hashlib.sha256(blob).hexdigest()
+                != expected_source_sha256.get(entry.source_id)):
+            raise ValueError(f"Source differs from approved preflight: {entry.source_id}")
         # Bound the artifact being imported. No HTML, executable or transient
         # data leaves this controlled JSON-only route list.
         if len(blob) > 8_000_000:
@@ -98,6 +103,10 @@ def import_authored_routes(
             "steps": len(validated),
             "state": state,
         })
+
+    if (expected_source_sha256 is not None
+            and set(expected_source_sha256) != {row["source_id"] for row in planned}):
+        raise ValueError("Approved preflight inventory changed")
 
     # Preflight all offered files before touching any published route. Stage
     # *all* changed files, then publish. A recoverable mid-batch failure restores
