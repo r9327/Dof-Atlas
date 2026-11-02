@@ -4,7 +4,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
-    QListWidgetItem, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QListWidgetItem, QPlainTextEdit, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
 from app.ui.theme import PALETTE
@@ -14,6 +14,7 @@ from app.modules.encyclopedia.views.guide_featured_home import (
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
     ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
+    load_ganymede_local_observations,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -735,28 +736,46 @@ class GuideCatalogView(QWidget):
         dialog.resize(950, 700)
         dialog.setMinimumSize(560, 400)
         layout = QVBoxLayout(dialog)
+        try:
+            local_steps = load_ganymede_local_observations(entry)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            local_steps = ()
+            self.status_callback(f"Repères locaux Ganymède indisponibles : {exc}")
         notice = QLabel(
-            "Étapes officielles en ligne : contenu fourni par Ganymède. "
-            "Le suivi manuel des étapes est enregistré uniquement dans Atlas "
-            "pour le personnage actuellement sélectionné.",
+            ("Repères factuels sauvegardés localement (hors ligne). "
+             "Ces relevés ne contiennent pas encore les consignes complètes "
+             "ni les objectifs certifiés de Ganymède. "
+             if local_steps else
+             "Relevés locaux absents : lecteur source en ligne uniquement. ")
+            + "Les étapes cochées sont enregistrées dans Atlas "
+              "pour le personnage sélectionné.",
             dialog,
         )
         notice.setWordWrap(True)
         layout.addWidget(notice)
 
         browser = None
-        try:
-            from PySide6.QtWebEngineWidgets import QWebEngineView
-        except ImportError:
-            fallback = QLabel(
-                "Lecteur web intégré indisponible. "
-                "Le bouton « Navigateur » ouvre l'étape courante.",
-                dialog,
+        if local_steps:
+            fallback = QPlainTextEdit(dialog)
+            fallback.setReadOnly(True)
+            fallback.setObjectName("GanymedeOfflineSourceStep")
+            fallback.setStyleSheet(
+                f"QPlainTextEdit {{ background: {PALETTE['PANEL']}; "
+                f"color: {PALETTE['TEXT']}; border: 1px solid {PALETTE['BORDER']}; }}"
             )
-            fallback.setWordWrap(True)
         else:
-            browser = QWebEngineView(dialog)
-            browser.setObjectName("GanymedeSourceWebView")
+            try:
+                from PySide6.QtWebEngineWidgets import QWebEngineView
+            except ImportError:
+                fallback = QLabel(
+                    "Aucune donnée hors ligne. "
+                    "Le bouton « Navigateur » ouvre l'étape courante.",
+                    dialog,
+                )
+                fallback.setWordWrap(True)
+            else:
+                browser = QWebEngineView(dialog)
+                browser.setObjectName("GanymedeSourceWebView")
 
         count = entry.step_count if type(entry.step_count) is int and entry.step_count > 0 else 0
         selected = str(self.current_character_key or "")
@@ -817,7 +836,11 @@ class GuideCatalogView(QWidget):
                 current_page[0] = page
                 previous_button.setEnabled(page > 1)
                 next_button.setEnabled(page < count)
-                if browser is not None:
+                if local_steps:
+                    fallback.setPlainText(
+                        self._format_offline_observation(local_steps[page - 1], page, count)
+                    )
+                elif browser is not None:
                     browser.setUrl(step_url(page))
                 done = sum(
                     1 for n in range(1, count + 1)
@@ -874,7 +897,10 @@ class GuideCatalogView(QWidget):
         elif browser is not None:
             browser.setUrl(source_url)
 
-        open_browser = QPushButton("Navigateur", dialog)
+        open_browser = QPushButton(
+            "Voir les consignes originales en ligne" if local_steps else "Navigateur",
+            dialog,
+        )
         open_browser.setObjectName("GanymedeSourceExternalButton")
         open_browser.clicked.connect(open_external)
         layout.addWidget(open_browser)
@@ -887,6 +913,37 @@ class GuideCatalogView(QWidget):
             lambda _result, source_dialog=dialog: self._clear_ganymede_source_dialog(source_dialog)
         )
         dialog.show()
+
+    @staticmethod
+    def _format_offline_observation(step: dict, page: int, count: int) -> str:
+        """Show only observed local facts; no generated quest commands."""
+        parts = [f"ÉTAPE {page} / {count} — REPÈRES HORS LIGNE", ""]
+        coords = step["coordinate_mentions"]
+        if coords:
+            parts.append(
+                "Coordonnées mentionnées : "
+                + "  ·  ".join(f"[{x}, {y}]" for x, y in coords)
+            )
+        linked = step["linked_guide_ids"]
+        if linked:
+            parts.append("Guides liés (ID) : " + ", ".join(map(str, linked)))
+        facts = step["external_dofusdb_ids"]
+        for kind, title in (
+            ("quest", "Quêtes référencées (ID DofusDB)"),
+            ("dungeon", "Donjons référencés (ID DofusDB)"),
+            ("object", "Objets référencés (ID DofusDB)"),
+            ("monster", "Monstres référencés (ID DofusDB)"),
+        ):
+            if facts[kind]:
+                parts.append(f"{title} : " + ", ".join(map(str, facts[kind])))
+        if len(parts) == 2:
+            parts.append("Aucun repère factuel disponible pour cette étape.")
+        parts.extend((
+            "",
+            "Ces positions et liens sont des mentions observées, pas une "
+            "consigne de déplacement, une recette ou un objectif vérifié.",
+        ))
+        return "\n".join(parts)
 
     def _clear_ganymede_source_dialog(self, dialog: QDialog) -> None:
         if self._ganymede_source_dialog is dialog:
