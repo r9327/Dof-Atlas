@@ -3,7 +3,8 @@
 Only explicit author-provided JSON files are accepted. No scraping, quest-list
 fallback, guessed instructions or unreviewed facts are promoted to gameplay.
 
-Use --apply to write; dry-run is the default. --strict requires all 95 routes.
+The legacy CLI is diagnostic-only; publication uses the guarded
+tools.atlas_guide_importer orchestrator. --strict requires all 95 routes.
 """
 from __future__ import annotations
 
@@ -195,6 +196,13 @@ def main() -> int:
                         help="Write validated JSON routes; default is dry-run")
     parser.add_argument("--allow-overwrite", action="store_true")
     args = parser.parse_args()
+    if args.apply:
+        print(json.dumps({
+            "status": "BLOCKED",
+            "error": ("Direct CLI publication is disabled; use "
+                      "tools.atlas_guide_importer with independent certification"),
+        }, ensure_ascii=False))
+        return 2
     result = import_authored_routes(
         args.source_dir, index_path=args.index, target_dir=args.target_dir,
         strict=not args.allow_partial, apply=args.apply,
