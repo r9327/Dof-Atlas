@@ -19,11 +19,13 @@ _SCOPES: dict[str, tuple[str, ...]] = {
     "workflow": ("ATOSS-21", "ATOSS-22"),
     "qt": ("ATOSS-01", "ATOSS-02"),
     "guide": ("ATOSS-02", "ATOSS-15"),
-    "launcher": ("ATOSS-03", "ATOSS-02", "ATOSS-14"),
-    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "AT-SUP-01"),
-    "perf": ("ATOSS-06", "ATOSS-10", "ATOSS-07", "ATOSS-08", "ATOSS-09"),
+    "launcher": ("ATOSS-03", "ATOSS-02", "ATOSS-14", "AT-SUP-02", "AT-SUP-03"),
+    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "AT-SUP-01", "AT-SUP-05"),
+    "perf": ("ATOSS-06", "ATOSS-10", "ATOSS-07", "ATOSS-08", "ATOSS-09", "ATOSS-04", "ATOSS-25"),
     "assets": ("ATOSS-16", "ATOSS-17"),
     "dependencies": ("ATOSS-23", "AT-SUP-04"),
+    "test_tools": ("ATOSS-05", "ATOSS-02", "ATOSS-01"),
+    "agent_eval": ("ATOSS-24",),
 }
 # Dedicated adapters, never expanded automatically to other discovered tools.
 _EXECUTABLE = frozenset({"ATOSS-20", "ATOSS-21"})
@@ -48,6 +50,10 @@ def classify_scope(paths: Iterable[str]) -> list[str]:
         domain = classify_path(path)
         if lowered.endswith((".py", ".pyi")):
             scopes.add("python")
+        if lowered.startswith("tests/") and lowered.endswith(".py"):
+            scopes.add("test_tools")
+        if any(token in lowered for token in ("local_ai", "agent_task", "agent_protocol")):
+            scopes.add("agent_eval")
         if lowered.startswith(".github/workflows/") and lowered.endswith((".yaml", ".yml")):
             scopes.add("workflow")
         if domain in {"ui"} or any(token in lowered for token in (
