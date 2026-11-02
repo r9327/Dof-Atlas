@@ -29,6 +29,7 @@ _PER_GUIDE = (
     "ui_common_components", "ui_clicks_and_travel", "guide_specific_validation",
     "character_progression", "doctor_and_unit_tests", "graphify",
     "windows_dofus_manual_review", "independent_human_comparison",
+    "independent_final_certificate",
 )
 # The callback is supplied exclusively by a trusted test/CI/certification host.
 # User-edited JSON claims alone can NEVER satisfy a required witness.
@@ -133,16 +134,22 @@ def assess_next(
             failures.append(f"{label}.missing_source_sha")
             source_sha = ""
         if (
-            type(record.get("certified_steps")) is not int
-            or record["certified_steps"] <= 0
+            type(record.get("total_steps")) is not int
+            or record["total_steps"] <= 0
+            or type(record.get("certified_steps")) is not int
+            or record["certified_steps"] != record["total_steps"]
+            or type(record.get("total_actions")) is not int
+            or record["total_actions"] <= 0
             or type(record.get("certified_actions")) is not int
-            or record["certified_actions"] <= 0
+            or record["certified_actions"] != record["total_actions"]
             or type(record.get("blocking_issues")) is not int
             or record["blocking_issues"] != 0
             or type(record.get("unverified_issues")) is not int
             or record["unverified_issues"] != 0
         ):
             failures.append(f"{label}.incomplete_coverage")
+        if record.get("certification_status") != "CERTIFIED":
+            failures.append(f"{label}.not_certified")
         if record.get("head_sha") != head_sha:
             failures.append(f"{label}.stale_code_sha")
         failures.extend(_gate(
