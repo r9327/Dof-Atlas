@@ -33,6 +33,15 @@ def _digest(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _source_coordinates(value: Any) -> str:
+    if value is None:
+        return ""
+    if (not isinstance(value, (list, tuple)) or len(value) != 2
+            or any(type(number) is not int or abs(number) > 10000 for number in value)):
+        raise GuideRouteContractError("invalid verified source coordinates")
+    return f"{value[0]},{value[1]}"
+
+
 def _validate_candidate(preview: dict[str, Any]) -> None:
     if not isinstance(preview, dict):
         raise GuideRouteContractError("preview must be a JSON object")
@@ -85,6 +94,13 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
             source_step = metadata["source_step"]
             if str(source_step.get("source_step_id")) != source_step_id:
                 raise GuideRouteContractError("stage identity differs from original source")
+            if (step.get("manual_title") != source_step.get("title")
+                    or step.get("manual_route_position")
+                    != _source_coordinates(source_step.get("coordinates"))
+                    or step.get("manual_quest_ids") != source_step.get("quest_ids", [])
+                    or step.get("manual_quest_names") != source_step.get("quest_names", [])
+                    or step.get("hard_runtime_gates") != source_step.get("prerequisites", [])):
+                raise GuideRouteContractError("stage title, position or prerequisites altered")
             actions = source_step.get("actions")
             if not isinstance(actions, list) or not actions or any(
                 not isinstance(item, dict) for item in actions
@@ -96,24 +112,60 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
             order = ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
             if set(sections) - set(order):
                 raise GuideRouteContractError("unexpected projected UI section")
-            presented: list[dict[str, Any]] = []
+            presented: list[tuple[str, dict[str, Any]]] = []
             rendered: list[dict[str, Any]] = []
             for section in order:
                 rows = sections.get(section, [])
                 if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                     raise GuideRouteContractError("invalid projected UI rows")
-                presented.extend(rows)
+                presented.extend((section, row) for row in rows)
                 if section != "prepare":
                     rendered.extend(rows)
             if len(presented) != len(actions):
                 raise GuideRouteContractError("projected UI action coverage mismatch")
             if step.get("manual_lines") != rendered:
                 raise GuideRouteContractError("rendered UI lines differ from projected sections")
-            for row, action in zip(presented, actions):
-                if (row.get("source_action_id") != str(action.get("action_id"))
+            resource_names: list[str] = []
+            preparation: list[dict[str, Any]] = []
+            for (section, row), action in zip(presented, actions):
+                kind = action.get("kind")
+                expected_section = action.get("section", {
+                    "prepare": "prepare", "warning": "before_leave",
+                    "keep": "keep",
+                }.get(kind, "now"))
+                expected_kind = ("combat" if kind in {"fight", "combat"} else
+                                 "warning" if kind == "warning" else "action")
+                position = _source_coordinates(action.get("coordinates")) or (
+                    _source_coordinates(source_step.get("coordinates"))
+                )
+                if (section != expected_section
+                        or row.get("source_action_id") != str(action.get("action_id"))
+                        or row.get("source_action_kind") != kind
                         or row.get("source_action") != action
-                        or row.get("text") != action.get("text")):
+                        or row.get("kind") != expected_kind
+                        or row.get("text") != action.get("text")
+                        or row.get("position") != (f"[{position}]" if position else "")):
                     raise GuideRouteContractError("projected UI action altered or reordered")
+                items = action.get("items")
+                if items is not None:
+                    if not isinstance(items, list) or any(not isinstance(i, dict) for i in items):
+                        raise GuideRouteContractError("invalid original source items")
+                    for item in items:
+                        name = item.get("name")
+                        if not isinstance(name, str) or not name:
+                            raise GuideRouteContractError("invalid source resource")
+                        if name not in resource_names:
+                            resource_names.append(name)
+                        if section == "prepare":
+                            preparation.append({
+                                "name": name, "quantity": item.get("quantity"),
+                                "item_id": item.get("item_id"),
+                                "source_action_id": str(action.get("action_id")),
+                            })
+            if step.get("manual_resource_names") != resource_names:
+                raise GuideRouteContractError("resource copy links missing from UI")
+            if step.get("a_preparer") != preparation:
+                raise GuideRouteContractError("preparation panel differs from source items")
         count += len(steps)
     for label in ("guide_count", "step_count", "action_count",
                   "expected_guide_count", "expected_step_count"):
