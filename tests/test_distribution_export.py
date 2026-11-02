@@ -98,18 +98,18 @@ class ExportTests(unittest.TestCase):
                 source,
             )
 
-    def test_original_offline_routes_are_included_in_app_distribution(self):
-        # Without these data files the local guide reader would appear empty
-        # in Atlas App even though it works in the development checkout.
-        for guide_id in (2219, 2220, 2252, 2248, 2285, 2290, 2273, 2247, 2227, 2590, 2284, 2224, 2259):
-            name = (
-                "data/encyclopedia/guides/"
-                f"ganymede_{guide_id}_instructions.json"
-            )
-            self.assertTrue(selected_runtime_path(name), name)
-            self.assertTrue(
-                (Path(__file__).resolve().parents[1] / name).is_file(), name,
-            )
+    def test_all_authored_offline_routes_are_included_in_app_distribution(self):
+        # Keep this data-driven so adding guides cannot skip the App export test.
+        root = Path(__file__).resolve().parents[1]
+        authored = sorted(
+            (root / "data/encyclopedia/guides").glob("ganymede_*_instructions.json")
+        )
+        self.assertGreaterEqual(len(authored), 15)
+        for path in authored:
+            with self.subTest(path=path.name):
+                relative = path.relative_to(root).as_posix()
+                self.assertTrue(selected_runtime_path(relative), relative)
+                self.assertTrue(path.is_file(), relative)
 
     def test_archived_legacy_data_is_outside_app_export(self):
         self.assertFalse(selected_runtime_path(
