@@ -191,16 +191,17 @@ Ganymède. Les fichiers restent dans
 | 2206 — Valonia 1 | 30 | 30 | Brouillon complet, non certifié |
 | 2228 — Sufokia | 39 | 39 | Brouillon complet, non certifié |
 | 2229 — Nimaltopia | 67 | 67 | Brouillon complet, non certifié |
-| **Total** | **162** | **162** | **Aucun n'est activé** |
+| 2235 — Sidimote 3 | 31 | 31 | Brouillon complet, non certifié |
+| **Total** | **193** | **193** | **Aucun n'est activé** |
 
-Les **162 étapes rédigées** comportent **679 actions typées** et
-**318/318 actions positionnées** mentionnées dans le relevé local de
+Les **193 étapes rédigées** comportent **812 actions typées** et
+**378/378 actions positionnées** mentionnées dans le relevé local de
 **la même étape** (contrôle statique au HEAD
-`d37fc507ede0411be4f81fa6959acb59da1a4b64`).
+`68bbcd3bdfec4b19cc335fd84cd932695f3ecafc`).
 Cette concordance **ne prouve pas** le chemin original, l'identité de
 la carte/dimension, les prérequis réels ou le bon fonctionnement en jeu.
 
-Les quatre guides 2204, 2206, 2228 et 2229 portent explicitement
+Les cinq guides 2204, 2206, 2228, 2229 et 2235 portent explicitement
 `FULL_DRAFT_NOT_PLAYABLE`, `source_parity_certified:false` et
 `gameplay_certified:false`.  La publication stricte sous
 `ganymede_<id>_instructions.json` reste bloquée jusqu'à la
@@ -232,16 +233,26 @@ Sources de contrôle des quêtes :
   informations de quêtes ultérieures. Combats seul / en groupe,
   ressources et branches Bonta/Brâkmar restent explicites par étape.
 
-**Suite prioritaire :** vérifier la parité des quatre parcours maintenant
+- 2235 : https://ganymede-app.com/guides/2235 pour les dix
+  premières étapes, puis les faits de quête indépendants
+  https://www.dofuserie.com/quetes/l-entree-des-artistes/,
+  https://www.dofuserie.com/quetes/un-salaire-germinable/,
+  https://www.dofuserie.com/quetes/au-pied-du-mur/ et
+  https://www.dofuserie.com/quetes/rituel-oblige/ pour les étapes suivantes.
+  **Cinq combats distincts** dans le brouillon, dont Pwouerk, le Bwork
+  mercenaire, les sectateurs, Risa Gregory et Moctar Chitekt démoniaque.
+  La correspondance exacte aux étapes originales 11–31 reste à certifier.
+
+**Suite prioritaire :** vérifier la parité des cinq parcours maintenant
 entièrement rédigés avec les pages Ganymède originales,
 les localisations, les combats et les prérequis ; finaliser ensuite
-les **76 autres routes sans rédaction complète**, et certifier chaque
+les **75 autres routes sans rédaction complète**, et certifier chaque
 parcours correctement avant son activation. **Aucune migration du
 Guide Ultime ni de l'interface en attendant** : les deux optimisés
 actuels restent intacts.
 
 **Avancement réel en bibliothèque :** 15/95 fichiers complets déjà
-présents (non certifiés), auxquels s'ajoutent **4 brouillons complets
+présents (non certifiés), auxquels s'ajoutent **5 brouillons complets
 hors runtime** ; 0/95 certifié en jeu/Windows.
 
 Contrôle de structure ajouté :
