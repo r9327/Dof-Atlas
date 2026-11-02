@@ -292,9 +292,15 @@ def qualify_live(root: Path, paths: Iterable[str], *,
         unchanged = False
     expected = ("ruff", "zizmor")
     results = diagnostic.get("execution_results", [])
-    statuses = [row.get("status") for row in results if isinstance(row, dict)]
+    # Execution counts must match the *named* approved adapters, in order.
+    # An arbitrary successful JSON row cannot impersonate another tool.
+    statuses = [
+        (row.get("status") if isinstance(row, dict) and row.get("tool") == expected[index]
+         else "INVALID_TOOL_ID")
+        for index, row in enumerate(results[:len(expected)])
+    ]
     witnesses = sum(status in {"CLEAN", "FINDINGS"} for status in statuses)
-    all_executed = len(statuses) == len(expected) and witnesses == len(expected)
+    all_executed = len(results) == len(expected) and witnesses == len(expected)
     versions = ({tool: _observed_tool_version(root, tool) for tool in expected}
                 if all_executed else {})
     intact = unchanged and all_executed and all(versions.get(tool) for tool in expected)
