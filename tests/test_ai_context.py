@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools import ai_context
 
@@ -208,6 +209,38 @@ class AiContextTests(unittest.TestCase):
         quality_tests = ai_context.recommended_tests(ROOT, ["tools/ai_context.py"])
         self.assertIn("tests.test_ai_context", quality_tests)
         self.assertIn("tests.test_repository_git_hooks", quality_tests)
+
+    def test_oss_code_routes_to_real_owner_tests(self) -> None:
+        router = ai_context.recommended_tests(
+            ROOT, ["tools/atlas_doctor_lib/oss_router.py"])
+        self.assertIn("tests.test_doctor_oss_routing", router)
+        self.assertIn("tests.test_doctor_oss_live", router)
+        self.assertIn("tests.test_doctor_auto_oss", router)
+        intelligent = ai_context.recommended_tests(
+            ROOT, ["tools/atlas_doctor_lib/oss_intelligence.py"])
+        self.assertIn("tests.test_doctor_oss_intelligence", intelligent)
+        self.assertIn("tests.test_doctor_auto_oss", intelligent)
+
+    def test_hypothesis_uses_existing_test_runner_only_when_installed(self) -> None:
+        source = ["tools/atlas_doctor_lib/oss_router.py"]
+        with patch("tools.ai_context.metadata.version", return_value="6.170.14"):
+            with_plugin = ai_context.recommended_tests(ROOT, source)
+        self.assertIn("tests.test_doctor_oss_hypothesis", with_plugin)
+        with patch("tools.ai_context.metadata.version",
+                   side_effect=ai_context.metadata.PackageNotFoundError()):
+            without_plugin = ai_context.recommended_tests(ROOT, source)
+        self.assertNotIn("tests.test_doctor_oss_hypothesis", without_plugin)
+
+    def test_launcher_hypothesis_uses_owner_test_selection_only_if_installed(self):
+        changed = ["app/distribution/disk_space.py",
+                   "app/distribution/install_location.py"]
+        with patch("tools.ai_context.metadata.version", return_value="6.0"):
+            checks = ai_context.recommended_tests(ROOT, changed)
+        self.assertIn("tests.test_doctor_oss_hypothesis", checks)
+        with patch("tools.ai_context.metadata.version",
+                   side_effect=ai_context.metadata.PackageNotFoundError()):
+            checks = ai_context.recommended_tests(ROOT, changed)
+        self.assertNotIn("tests.test_doctor_oss_hypothesis", checks)
 
     def test_committed_context_index_matches_head(self) -> None:
         index_path = ROOT / ai_context.INDEX_PATH

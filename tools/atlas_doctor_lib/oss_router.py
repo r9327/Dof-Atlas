@@ -60,11 +60,18 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
             candidates.append(row)
         else:
             supplements.append(row)
+    # A count alone can hide a misspelled or substituted ID (29+5 is not
+    # sufficient evidence that the contractual 34 projects are all present).
+    expected = {f"ATOSS-{number:02d}" for number in range(1, 30)}
+    expected.update(f"AT-SUP-{number:02d}" for number in range(1, 6))
+    missing = sorted(expected - seen)
+    unexpected = sorted(seen - expected)
     return {
         "status": ("INVENTORIED_NOT_CERTIFIED"
-                   if len(candidates) == 29 and len(supplements) == 5 else "REVIEW"),
+                   if not missing and not unexpected else "REVIEW"),
         "count": len(candidates), "candidates": candidates,
         "supplemental_count": len(supplements), "supplemental": supplements,
+        "missing_ids": missing, "unexpected_ids": unexpected,
         "execution_witnesses": 0,
         "note": "Static study decisions; execution requires independent exact-SHA evidence.",
     }
@@ -226,12 +233,14 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
     """Capture an actually running local tool version without leaking stdout."""
     if name not in {"ruff", "zizmor"}:
         return None
-    command = ([sys.executable, "-m", "ruff", "--version"]
+    # -P protects against loading a rogue ruff module from the checkout.
+    # Unlike -s/PYTHONNOUSERSITE, it keeps pip --user installations visible.
+    command = ([sys.executable, "-P", "-m", "ruff", "--version"]
                if name == "ruff" else [_zizmor_executable() or "zizmor", "--version"])
     env = {key: value for key, value in os.environ.items()
            if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
     env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
-                "PYTHONNOUSERSITE": "1", "PYTHONPATH": "", "NO_COLOR": "1"})
+                "PYTHONPATH": "", "NO_COLOR": "1"})
     try:
         result = subprocess.run(command, cwd=root, env=env,
                                 capture_output=True, text=True,
@@ -283,9 +292,15 @@ def qualify_live(root: Path, paths: Iterable[str], *,
         unchanged = False
     expected = ("ruff", "zizmor")
     results = diagnostic.get("execution_results", [])
-    statuses = [row.get("status") for row in results if isinstance(row, dict)]
+    # Execution counts must match the *named* approved adapters, in order.
+    # An arbitrary successful JSON row cannot impersonate another tool.
+    statuses = [
+        (row.get("status") if isinstance(row, dict) and row.get("tool") == expected[index]
+         else "INVALID_TOOL_ID")
+        for index, row in enumerate(results[:len(expected)])
+    ]
     witnesses = sum(status in {"CLEAN", "FINDINGS"} for status in statuses)
-    all_executed = len(statuses) == len(expected) and witnesses == len(expected)
+    all_executed = len(results) == len(expected) and witnesses == len(expected)
     versions = ({tool: _observed_tool_version(root, tool) for tool in expected}
                 if all_executed else {})
     intact = unchanged and all_executed and all(versions.get(tool) for tool in expected)
@@ -319,6 +334,142 @@ def qualify_live(root: Path, paths: Iterable[str], *,
     }
 
 
+def trial_fonttools(root: Path, paths: Iterable[str]) -> dict[str, Any]:
+    """Explicit, bounded font metadata review; never modifies/repackages Unity fonts.
+
+    Only read 1..16 validated local TTF/OTF sources. Font names and metadata
+    are untrusted publisher claims, not proof of font license/redistribution.
+    """
+    files = _safe_files(root, paths)
+    if any(not path.casefold().endswith((".ttf", ".otf")) for path in files):
+        raise ValueError("fontTools trial accepts only explicit TTF/OTF sources")
+    try:
+        from fontTools.ttLib import TTFont
+    except ImportError:
+        return {
+            "schema_version": 1, "status": "NOT_AVAILABLE",
+            "tool": "fonttools", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "fontTools is an optional developer-only dependency",
+        }
+    try:
+        before = _file_digests(root, files)
+        rows = []
+        for relative in files:
+            file = root.resolve() / relative
+            font = TTFont(file, lazy=True, recalcBBoxes=False,
+                          recalcTimestamp=False)
+            try:
+                names = font["name"]
+                # Reading a name table is not a proof of glyph/Qt compatibility.
+                family = names.getDebugName(1)
+                style = names.getDebugName(2)
+                claim = names.getDebugName(13)
+                if not isinstance(family, str) or not family.strip():
+                    raise ValueError("Font is missing a display family")
+                rows.append({
+                    "path": relative,
+                    "family": family.strip()[:100],
+                    "style": style.strip()[:100] if isinstance(style, str) else None,
+                    "license_metadata_present": bool(claim),
+                    "license_verified": False,
+                    "qt_rendering_verified": False,
+                })
+            finally:
+                font.close()
+        if before != _file_digests(root, files):
+            raise ValueError("Font inputs changed during inspection")
+    except Exception:
+        # Parser failures are non-authoritative and must not spill untrusted
+        # font strings, paths or exceptions into the Doctor report.
+        return {
+            "schema_version": 1, "status": "ERROR",
+            "tool": "fonttools", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Font metadata could not be verified safely",
+        }
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_doctor_lib.oss_router.trial_fonttools",
+        "status": "TRIAL_COMPLETE", "tool": "fonttools",
+        "requested_files": len(files), "execution_count": 1,
+        "input_integrity_verified": True,
+        "fonts": rows,
+        "license_verified": False,
+        "qt_rendering_verified": False,
+        "runtime_consumers_verified": False,
+        "no_file_mutations": True,
+        "phase_certified": False,
+    }
+
+
+def trial_imagehash(root: Path, paths: Iterable[str], *,
+                    max_pixels: int = 2_000_000,
+                    max_file_bytes: int = 2_000_000) -> dict[str, Any]:
+    """Explicit ImageHash advisory for local assets, never a deletion decision.
+
+    Pixel or image contents never leave memory. ImageHash/Pillow are imported
+    only when this trial is requested. Bounded files and dimensions prevent
+    accidental whole-asset-tree scans or oversized decompression.
+    """
+    files = _safe_files(root, paths)
+    if not files or any(not path.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+                        for path in files):
+        raise ValueError("ImageHash trial requires only explicit image files")
+    if not 1 <= max_pixels <= 2_000_000 or not 1 <= max_file_bytes <= 2_000_000:
+        raise ValueError("Unbounded ImageHash trial rejected")
+    try:
+        from PIL import Image
+        import imagehash
+    except ImportError:
+        return {
+            "schema_version": 1, "status": "NOT_AVAILABLE",
+            "tool": "imagehash", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Pillow/ImageHash unavailable; developer-only optional trial",
+        }
+    try:
+        before = _file_digests(root, files)
+        hashes = []
+        for relative in files:
+            path = root.resolve() / relative
+            if path.stat().st_size > max_file_bytes:
+                raise ValueError("Image file exceeds trial budget")
+            with Image.open(path) as picture:
+                if (picture.width < 1 or picture.height < 1 or
+                        picture.width * picture.height > max_pixels):
+                    raise ValueError("Image dimension exceeds trial budget")
+                hashes.append(imagehash.phash(picture))
+        intact = before == _file_digests(root, files)
+        if not intact:
+            raise ValueError("Image input changed during ImageHash trial")
+        candidates = [
+            {"first": files[i], "second": files[j], "distance": int(hashes[i] - hashes[j])}
+            for i in range(len(files)) for j in range(i + 1, len(files))
+            if int(hashes[i] - hashes[j]) <= 6
+        ]
+    except (OSError, ValueError, TypeError, AttributeError,
+            RuntimeError, Image.DecompressionBombError):
+        return {
+            "schema_version": 1, "status": "ERROR",
+            "tool": "imagehash", "requested_files": len(files),
+            "execution_count": 0, "phase_certified": False,
+            "reason": "Image input or trial could not be safely verified",
+        }
+    return {
+        "schema_version": 1, "status": "TRIAL_COMPLETE",
+        "source": "tools.atlas_doctor_lib.oss_router.trial_imagehash",
+        "tool": "imagehash", "requested_files": len(files),
+        "execution_count": 1, "input_integrity_verified": True,
+        "max_hamming_distance": 6,
+        "possible_visual_duplicates": candidates,
+        "automated_deletion_allowed": False,
+        "runtime_consumers_verified": False,
+        "phase_certified": False, "license_verified": False,
+        "limits": "Potential visual overlaps only; Unity variants and actual runtime consumers need human review.",
+    }
+
+
 def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
               timeout_seconds: int = 20) -> dict[str, Any]:
     """Select useful tools by file type; run only reviewed Ruff on explicit opt-in."""
@@ -327,6 +478,15 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     files = _safe_files(root, paths)
     python_files = [name for name in files if name.endswith((".py", ".pyi"))]
     workflows = [name for name in files if name.endswith((".yml", ".yaml"))]
+    # Snapshot exactly the source files handed to approved external processes.
+    # A tool's "read only" flags are not evidence that it left inputs intact.
+    approved_files = python_files + workflows
+    before_digests = None
+    if run and approved_files:
+        try:
+            before_digests = _file_digests(root, approved_files)
+        except (OSError, ValueError):
+            pass  # Fail closed below; do not launch a scanner without a snapshot.
     capability = "validation" if python_files else "ci_intelligence"
     # The existing catalog is the only source for native Doctor tool readiness.
     native_report = catalog(root)
@@ -334,34 +494,50 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                           safe_only=True, ready_only=True, limit=5)
     study = _open_source_inventory(root)
     selection = intelligent_plan(files, study)
-    probe = local_candidate_preflight(
-        packages=["ruff"] if python_files else [],
-        binaries=["zizmor"] if workflows else [])
-    discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
-                  for row in probe["results"]}
+    # Optional package discovery is untrusted local metadata. A broken
+    # distribution must not terminate the canonical Doctor command or leak
+    # filesystem paths; it also must not silently become NOT_AVAILABLE.
+    preflight_error_type = None
+    try:
+        probe = local_candidate_preflight(
+            packages=["ruff"] if python_files else [],
+            binaries=["zizmor"] if workflows else [])
+        discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
+                      for row in probe["results"]}
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
+        discovered = {}
+        preflight_error_type = type(exc).__name__
     detected = discovered.get(("python_distribution", "ruff"))
     available = bool(detected and detected["available"])
     workflow_candidate = discovered.get(("path_executable", "zizmor"))
     workflow_executable = (
+        None if preflight_error_type else
         "zizmor" if workflow_candidate and workflow_candidate["available"]
         else _zizmor_executable() if workflows else None
     )
     workflow_available = bool(workflow_executable)
     timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))
     execution: dict[str, Any] = {"status": "NOT_RUN", "reason": "Explicit --run required"}
-    if run and not python_files:
+    if run and approved_files and before_digests is None:
+        execution = {"status": "ERROR", "tool": "ruff",
+                     "reason": "Cannot snapshot explicit scanner inputs"}
+    elif run and preflight_error_type:
+        execution = {"status": "ERROR", "tool": "ruff",
+                     "reason": "Optional package discovery failed",
+                     "error_type": preflight_error_type}
+    elif run and not python_files:
         execution = {"status": "NOT_APPLICABLE", "reason": "No approved workflow OSS executor"}
     elif run and not available:
         execution = {"status": "NOT_AVAILABLE", "reason": "Ruff not installed; no auto-install"}
     elif run:
         # Fixed argv and Python interpreter: never evaluate a PATH binary or shell.
         # Ruff's --isolated/--no-cache/--no-fix forbid configuration-driven writes.
-        command = [sys.executable, "-m", "ruff", "check", "--isolated",
+        command = [sys.executable, "-P", "-m", "ruff", "check", "--isolated",
                    "--no-cache", "--no-fix", "--output-format", "json",
                    "--target-version", "py313", "--", *python_files]
         env = {key: value for key, value in os.environ.items()
                if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
-        env.update({"PYTHONNOUSERSITE": "1", "PYTHONPATH": "",
+        env.update({"PYTHONPATH": "",
                     "RUFF_NO_CACHE": "1", "NO_COLOR": "1", "PIP_NO_INDEX": "1"})
         try:
             result = subprocess.run(command, cwd=root, env=env,
@@ -373,9 +549,15 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             execution = {"status": "UNAVAILABLE", "reason": "Cannot start local Ruff module"}
         else:
             try:
+                if len(result.stdout) > 2_000_000:
+                    raise ValueError("Bounded Ruff report limit exceeded")
                 findings = json.loads(result.stdout)
                 if not isinstance(findings, list) or result.returncode not in (0, 1):
                     raise ValueError("unexpected Ruff output")
+                # Ruff exits 0 when clean and 1 when lint findings exist.
+                # A contradictory exit code must not be interpreted as CLEAN.
+                if bool(findings) != (result.returncode == 1):
+                    raise ValueError("Ruff result and exit code disagree")
                 counts: dict[str, int] = {}
                 for item in findings:
                     if not isinstance(item, dict):
@@ -394,12 +576,36 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     if workflows:
         if not run:
             workflow_execution = {"status": "NOT_RUN", "tool": "zizmor"}
+        elif before_digests is None:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Cannot snapshot explicit scanner inputs"}
+        elif preflight_error_type:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Optional package discovery failed",
+                                  "error_type": preflight_error_type}
         elif not workflow_available:
             workflow_execution = {"status": "NOT_AVAILABLE", "tool": "zizmor",
                                   "reason": "Not installed; no installation attempted"}
         else:
             workflow_execution = _execute_zizmor(root, workflows, timeout_each,
                                                  binary=workflow_executable or "zizmor")
+        if not python_files:
+            execution = workflow_execution
+    inputs_modified = None
+    if run and before_digests is not None:
+        try:
+            inputs_modified = before_digests != _file_digests(root, approved_files)
+        except (OSError, ValueError):
+            inputs_modified = True
+    if inputs_modified:
+        # No CLEAN/FINDINGS witness survives a source mutation, even if the
+        # subprocess returned a valid report. Never disclose changed contents.
+        if python_files:
+            execution = {"status": "ERROR", "tool": "ruff",
+                         "reason": "Explicit scan input changed during execution"}
+        if workflows:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Explicit scan input changed during execution"}
         if not python_files:
             execution = workflow_execution
     results = ([execution] if python_files else []) + (
@@ -445,6 +651,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         },
         "open_source_inventory": study,
         "intelligent_selection": selection,
+        "local_preflight_status": "ERROR" if preflight_error_type else "OBSERVED_NOT_QUALIFIED",
+        "local_preflight_error_type": preflight_error_type,
         "oss_candidates": [
             {"id": "ruff", "selected": bool(python_files),
              "available": available, "version_claim": detected["version"] if detected else None,
@@ -463,7 +671,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         "network_requested": False,
         "network_used": None if run and (available or workflow_available) else False,
         "dependencies_installed": False,
-        "files_modified": False,
+        "files_modified": inputs_modified,
+        "input_integrity_verified": inputs_modified is False,
         "phase_certified": False,
         "benchmark_executed": False,
         "note": "Advisory OSS evidence only; Doctor's canonical gates still apply.",

@@ -244,6 +244,48 @@ def command_agent(root: Path, args) -> dict[str, Any]:
     from tools.atlas_doctor_lib.oss_intelligence import intelligent_plan
     report["oss_selection"] = intelligent_plan(
         args.paths, _open_source_inventory(root))
+    # The selected distributions are inspected via installed metadata only.
+    # No import, subprocess, download, installation or licence approval occurs.
+    from tools.tool_catalog import local_candidate_preflight
+    selected_packages = report["oss_selection"].get("local_package_probes", [])
+    selected_binaries = report["oss_selection"].get("local_binary_probes", [])
+    if selected_packages or selected_binaries:
+        # Advisory discovery must never break the canonical Doctor report.
+        # Fail closed and disclose the error type, not installed paths or logs.
+        try:
+            local = local_candidate_preflight(
+                packages=[item["distribution"] for item in selected_packages],
+                binaries=[item["binary"] for item in selected_binaries])
+            found = {(item["kind"], item["name"].casefold()): item
+                     for item in local["results"]}
+            preflight_status = "OBSERVED_NOT_QUALIFIED"
+        except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
+            found = {}
+            preflight_status = "ERROR"
+            report["oss_preflight_error_type"] = type(exc).__name__
+        requests = [
+            {"id": item["id"], "kind": "python_distribution",
+             "name": item["distribution"]}
+            for item in selected_packages
+        ] + [
+            {"id": item["id"], "kind": "path_executable",
+             "name": item["binary"]}
+            for item in selected_binaries
+        ]
+        report["oss_local_preflight"] = {
+            "status": preflight_status, "network_used": False,
+            "tools": [
+                {"id": item["id"], "kind": item["kind"], "distribution": item["name"],
+                 "available": bool(found.get((item["kind"], item["name"].casefold()), {}).get("available")),
+                 "version_claim": found.get((item["kind"], item["name"].casefold()), {}).get("version"),
+                 "license_verified": False, "execution_verified": False}
+                for item in requests
+            ],
+        }
+    else:
+        report["oss_local_preflight"] = {
+            "status": "NOT_APPLICABLE", "tools": [], "network_used": False}
+    report["oss_selection"]["local_preflight"] = report["oss_local_preflight"]
     requested = bool(getattr(args, "run_oss", False) or (
         args.agent_action == "check" and args.run_tests
         and not getattr(args, "no_oss", False)))
@@ -914,13 +956,25 @@ def command_all(root: Path, args) -> dict[str, Any]:
 
 def command_oss(root: Path, args) -> dict[str, Any]:
     """Run safe, opt-in third-party diagnostics without changing Doctor gates."""
-    from tools.atlas_doctor_lib.oss_router import route_oss, qualify_live
+    from tools.atlas_doctor_lib.oss_router import (
+        route_oss, qualify_live, trial_imagehash, trial_fonttools,
+    )
     try:
-        payload = (qualify_live(root, args.paths,
+        asset_trial = bool(getattr(args, "asset_trial", False))
+        font_trial = bool(getattr(args, "font_trial", False))
+        if (int(asset_trial) + int(font_trial)
+                + int(bool(args.run)) + int(bool(args.verify_live)) > 1):
+            raise ValueError("Select exactly one opt-in OSS diagnostic mode")
+        if asset_trial:
+            payload = trial_imagehash(root, args.paths)
+        elif font_trial:
+            payload = trial_fonttools(root, args.paths)
+        elif args.verify_live:
+            payload = qualify_live(root, args.paths,
+                                   timeout_seconds=args.timeout_seconds)
+        else:
+            payload = route_oss(root, args.paths, run=args.run,
                                 timeout_seconds=args.timeout_seconds)
-                   if getattr(args, "verify_live", False)
-                   else route_oss(root, args.paths, run=args.run,
-                                  timeout_seconds=args.timeout_seconds))
     except ValueError as exc:
         payload = {"schema_version": 1, "status": "BLOCKED",
                    "reason": str(exc), "phase_certified": False}
@@ -943,6 +997,10 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Exécuter Ruff/zizmor déjà installés, sans mutation.")
     oss.add_argument("--verify-live", action="store_true",
                      help="Attester l'exécution réelle locale des deux outils et l'intégrité des fichiers.")
+    oss.add_argument("--asset-trial", action="store_true",
+                     help="Essai ImageHash manuel sur images explicites; jamais de suppression.")
+    oss.add_argument("--font-trial", action="store_true",
+                     help="Essai fontTools manuel sur TTF/OTF explicites; aucune mutation.")
     oss.add_argument("--timeout-seconds", type=int, default=20,
                      help="Limite d'exécution de Ruff (1 à 60 secondes).")
     ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
@@ -1365,6 +1423,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
+        if getattr(args, "asset_trial", False) or getattr(args, "font_trial", False):
+            return 0 if payload.get("status") == "TRIAL_COMPLETE" else 1
         if getattr(args, "verify_live", False):
             return 0 if payload.get("status") == "LIVE_PASS" else 2 if payload.get("status") == "FAIL" else 1
         executions = payload.get("execution_results") or [payload.get("execution") or {}]

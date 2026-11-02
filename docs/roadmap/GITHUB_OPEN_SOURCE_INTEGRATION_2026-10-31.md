@@ -177,3 +177,65 @@ et son implémentation est la [PR #318](https://github.com/r9327/Dof-Atlas/pull/
   propriétaires. Aucun nouveau registre ou second benchmark n'a été créé.
 
 Ce lien de suivi ne change pas la portée documentaire de la PR #312.
+
+## 9. Campagne d'intégration et qualification effective (2 novembre 2026, issue #357)
+
+**Intention fixe :** appliquer le contrat [#357](https://github.com/r9327/Dof-Atlas/issues/357) à **chacun des 29 ATOSS et 5 AT-SUP** de la section 2/7 ; #313 reste l'issue parente.
+Cette section est un **plan d'exécution**, et non une nouvelle base de candidats : leurs identités, liens, priorités et décisions d'étude demeurent dans les deux tableaux originaux plus haut, consommés par `tools.atlas_doctor_lib.oss_router`.
+Ne pas répéter ici des lignes commençant par une cellule `ATOSS-`/`AT-SUP-`, pour ne pas modifier l'inventaire que Doctor extrait des tableaux canoniques.
+
+### Résultat attendu, outil par outil
+
+Chaque ID a exactement une décision finale parmi `ADOPTED`, `KEEP_EXISTING`, `REJECTED`, `HOLDING_ONLY` ou `DEFERRED_WITH_REASON`.
+L'état initial ci-dessous est **un état de travail et non une preuve**.
+`PREEXISTING_NOT_RETESTED` signifie que le propriétaire est déjà raccordé, **pas** que l'exécutable a été lancé et qualifié à ce SHA.
+`TRIAL_NOT_RUN` impose essai, version/licence et mesure avant toute adoption.
+`EXCLUDE` interdit l'installation automatique dans Atlas ; `COMPARE` exige de choisir au plus une alternative utile.
+Les pré-requis sont communs à chaque candidat : propriétaire canonique, version Windows/Python 3.13 et licence par version, coût (RAM/CPU/CI), scénario réel de succès **et** d'échec, traces exact-SHA, et absence de mutation automatique non autorisée.
+
+| Référence canonique | Direction de travail | Propriétaire concret et preuve attendue | État à cette étape |
+|---|---|---|---|
+| **ATOSS-01** | TRIAL dev/CI | Tests Qt, signaux clic/validation/fermeture ; comparer PySide6 natif avant ajout | TRIAL_NOT_RUN |
+| **ATOSS-02** | TRIAL dev/CI | Tests de persistance/Guide/rollback à graines reproductibles ; zéro mutation persistante des fixtures | TRIAL_NOT_RUN |
+| **ATOSS-03** | TRIAL Windows | #285 Launcher et #325 Organizer, véritables fenêtres/UAC/installation/rollback sur VM Windows | TRIAL_NOT_RUN |
+| **ATOSS-04** | COMPARE, option | Doctor Perf Lab, microbenchmark **non concurrent** du benchmark process-tree | TRIAL_NOT_RUN |
+| **ATOSS-05** | COMPARE, option | Doctor tests, prouver isolation avant parallélisme ; jamais UI/persistance partagée sans isolation | TRIAL_NOT_RUN |
+| **ATOSS-06** | KEEP_EXISTING | Doctor Perf Lab : option py-spy déjà prévue ; preuve d'appel, overhead et trace à la demande | PREEXISTING_NOT_RETESTED |
+| **ATOSS-07** | COMPARE, option | Doctor Perf Lab : profiler ciblé uniquement sur freeze non expliqué par instrumentation existante | TRIAL_NOT_RUN |
+| **ATOSS-08** | COMPARE, option | Doctor Perf Lab : qualifier explicitement Windows/Python 3.13 et overhead ou rejeter | TRIAL_NOT_RUN |
+| **ATOSS-09** | COMPARE, option | Doctor Perf Lab : écarter si cProfile/py-spy suffisent ; pas de profiler supplémentaire au repos | TRIAL_NOT_RUN |
+| **ATOSS-10** | KEEP_EXISTING | Benchmark Phase 8 : collecteur process-tree existant à rejouer avec PID/RSS et enfants réels | PREEXISTING_NOT_RETESTED |
+| **ATOSS-11** | COMPARE JSON | Quest index/providers ; parité IDs/offsets/Unicode, cold/warm, pic mémoire avant tout runtime | TRIAL_NOT_RUN |
+| **ATOSS-12** | COMPARE JSON | `tools.atlas_json_benchmark` ; comparer même dataset à ATOSS-11 et stdlib, ne pas cumuler par défaut | TRIAL_NOT_RUN |
+| **ATOSS-13** | COMPARE JSON | JSON inventory/shards ; gain streaming sur fichiers réels sans relire intégralement les données | TRIAL_NOT_RUN |
+| **ATOSS-14** | COMPARE Launcher | #285 uniquement : taille/delta, reprise, hash, migration de format, CPU et rollback mesurés | TRIAL_NOT_RUN |
+| **ATOSS-15** | TRIAL audit Guide | Outils Ganymède, rapprochements consultatifs contrôlés par IDs/provenance, aucune validation automatique de quête | TRIAL_NOT_RUN |
+| **ATOSS-16** | TRIAL audit assets | Détection de doublons visuels avec faux positifs ; aucune suppression automatique | TRIAL_NOT_RUN |
+| **ATOSS-17** | TRIAL audit fonts | Couverture glyphes/versions/licences Unity sur Windows ; pas de redistribution de police sans droits | TRIAL_NOT_RUN |
+| **ATOSS-18** | TRIAL diagnostic | Consumer sites/Graphify : recherche AST ciblée, sans autorisation de refactor/suppression automatique | TRIAL_NOT_RUN |
+| **ATOSS-19** | TRIAL sécurité | Doctor/CI : scan borné, faux positifs, rapport expurgé, pas de nouveau gate automatique par défaut | TRIAL_NOT_RUN |
+| **ATOSS-20** | KEEP_EXISTING | Ruff : adapter Doctor approuvé, exécution réelle sous `agent check --run-tests` si installé, preuve par invocation | PREEXISTING_NOT_RETESTED |
+| **ATOSS-21** | KEEP_EXISTING | zizmor : adapter Doctor approuvé et offline, preuve d'exécution réelle/versions sur Windows | PREEXISTING_NOT_RETESTED |
+| **ATOSS-22** | TRIAL sécurité | Hooks/CI secrets : fixture de détection, rapport expurgé, pas de double scan caché | TRIAL_NOT_RUN |
+| **ATOSS-23** | COMPARE vulnérabilités | Lock de dépendances, **choix unique** face à AT-SUP-04, fraîcheur DB et réseau explicites | TRIAL_NOT_RUN |
+| **ATOSS-24** | DEFER | Évaluations d'agents seulement si scénarios concrets supplémentaires au Doctor existant, pas d'IA runtime | TRIAL_NOT_RUN |
+| **ATOSS-25** | DEFER | Télémétrie uniquement sur lacune mesurée, pas de collecte/diffusion ni coût au repos | TRIAL_NOT_RUN |
+| **ATOSS-26** | HOLDING_ONLY | Holding possède le pont Doctor CLI ; ne pas installer de serveur MCP dans l'EXE Atlas | EXCLUDE |
+| **ATOSS-27** | HOLDING_ONLY | Contrat de test du pont MCP à la charge de Holding, sans second orchestrateur Atlas | EXCLUDE |
+| **ATOSS-28** | REJECT | Icônes Unity déjà propriétaires : ne pas ajouter un deuxième thème/iconset | EXCLUDE |
+| **ATOSS-29** | REJECT | Thème Unity canonique : ne pas remplacer par thème générique Qt | EXCLUDE |
+| **AT-SUP-01** | TRIAL schémas | Tests JSON existants, cas invalides démontrant la valeur non couverte par les validateurs actuels | TRIAL_NOT_RUN |
+| **AT-SUP-02** | KEEP_EXISTING | Packager Windows existant : version et vrai build installé testés par #285, sans remplacement | PREEXISTING_NOT_RETESTED |
+| **AT-SUP-03** | REFERENCE_ONLY | Comparaison isolée Nuitka/PyInstaller uniquement si bénéfice réel, licence et antivirus qualifiés | EXCLUDE |
+| **AT-SUP-04** | COMPARE vulnérabilités | Lock de dépendances, **choix unique** face à ATOSS-23 et audit reproductible | TRIAL_NOT_RUN |
+| **AT-SUP-05** | DEFER | Ne pas dupliquer la validation JSON/actions si contrats natifs couvrent les invariants | TRIAL_NOT_RUN |
+
+### Exécution par gros lots (pas de CI FULL entre les commits)
+
+1. **P0 — environnement et preuve :** `Doctor agent plan`, `tools.tool_catalog`, `tools.tool_audit`, Graphify **sur SHA exact avant refactor**, versions/licences/compatibilité ; établir un manifest de *preuves* dérivé du catalogue, jamais un nouveau registre de vérité. Contrôler Ruff/zizmor via `tools/setup_doctor_oss.ps1` (vérification seule) ; l'installation côté développeur n'est permise qu'en opt-in, avec wheels pin et hashes/versions qualifiés.
+2. **P0 — tests utiles :** qualifier ATOSS-01/02/03 dans les suites Qt/Guide et les PR Launcher/Organizer propriétaires ; tout candidat est **NOT_RUN** jusqu'à au moins une exécution réelle sur les runners pertinents. Ne pas modifier leurs branches en parallèle sans accord d'intégration.
+3. **P1 — sécurité et données :** essais séparés des analyseurs (18/19/22/23/SUP-04) sous contrôle Doctor existant, sélection du minimum apportant une détection nouvelle ; comparaison des parseurs 11/12/13 et de la compression 14 sous profils cold/warm/RSS/compatibilité avant adoption. Les outils de recherche Guide/assets/fonts (15/16/17/SUP-01) restent consultatifs.
+4. **P1/P2 — perf et alternatives :** réutiliser 06/10, instrumenter seulement les manques objectivés, conserver une seule mesure Doctor process-tree ; décider explicitement du sort des options 04/05/07/08/09/24/25/SUP-05. Rien ne s'installe au démarrage d'Atlas.
+5. **Final — certification :** confirmer `selected → available → installed → invoked → validated` pour chaque outil effectivement adopté avec version, cible, coût, statut, code retour, test de panne et SHA. Pour les exclus, fournir une raison documentée et l'absence de chemin d'invocation. Audit commit par commit + global, puis certification Phase exacte-SHA **une fois le lot terminé** ; test Windows personnel et benchmark de référence restent à produire séparément (#346).
+
+**Critère de fermeture :** **34/34 décisions documentées et auditées**, **100 % des outils retenus réellement testés et utilisés par leur propriétaire**, **0 faux PASS**, **0 outil rejeté installé**, **0 dépendance runtime non justifiée**. Une réussite CI hébergée n'atteste pas les conditions du PC personnel. Tant qu'une seule preuve obligatoire manque, laisser la PR Draft ou BLOCKED, et ne pas prétendre "tout fonctionne".

@@ -63,6 +63,148 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertIn("tools.atlas_doctor perf (single Perf Lab)",
                       result["native_routes"])
 
+    def test_scope_policy_reaches_all_30_nonexcluded_candidates(self):
+        from tools.atlas_doctor_lib.oss_intelligence import _SCOPES
+        candidates = {key for values in _SCOPES.values() for key in values}
+        expected = {f"ATOSS-{n:02d}" for n in range(1, 26)}
+        expected.update(f"AT-SUP-{n:02d}" for n in range(1, 6))
+        self.assertEqual(expected - candidates, set())
+        self.assertTrue({"ATOSS-26", "ATOSS-27", "ATOSS-28", "ATOSS-29"}.isdisjoint(candidates))
+        self.assertIn("test_tools", classify_scope(["tests/test_doctor_auto_oss.py"]))
+        self.assertIn("agent_eval", classify_scope(["tools/atlas_doctor_lib/agent_protocol.py"]))
+        self.assertIn("perf", classify_scope(["tools/benchmark_phase8_memory.py"]))
+
+    def test_truncated_shortlist_keeps_every_candidate_visible_but_unexecuted(self):
+        paths = [
+            "tools/benchmark_phase8_memory.py",
+            "app/distribution/launcher.py",
+            "tools/atlas_json_benchmark.py",
+            ".github/workflows/check.yml",
+            "tests/test_atlas_doctor_qt_smoke.py",
+        ]
+        plan = intelligent_plan(paths, study())
+        self.assertGreater(plan["omitted_count"], 0)
+        self.assertEqual(len(plan["recommended"]), 8)
+        self.assertEqual(len(plan["evaluated_candidates"]),
+                         len(plan["recommended"]) + plan["omitted_count"])
+        self.assertEqual(plan["omitted_candidates"], plan["evaluated_candidates"][8:])
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        workflow = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1},
+                                    plan)
+        visible = {row["tool_id"]: row for row in workflow["oss_recommendations"]}
+        self.assertEqual(len(visible), len(plan["evaluated_candidates"]))
+        for row in plan["omitted_candidates"]:
+            self.assertFalse(visible[row["id"]]["shortlisted"])
+            self.assertIsNone(visible[row["id"]]["locally_available"])
+            self.assertFalse(visible[row["id"]]["automatic_execution"])
+        self.assertFalse(workflow["may_claim_full_certification"])
+
+    def test_ai_execution_requires_real_named_integrity_witness(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        plan = intelligent_plan(["tools/test_tool.py"], study())
+        core = {"status": "REVIEW", "exit_code": 1}
+        fake = {"execution_results": [{"tool": "ruff", "status": "CLEAN"}],
+                "execution_summary": {"status": "COMPLETE",
+                                      "expected_tools": ["ruff"]},
+                "status": "ADVISORY_ONLY"}
+        result = ai_tool_workflow("check", core, plan, advisory=fake)
+        self.assertFalse(result["approved_oss_execution"]["all_executed"])
+        self.assertEqual(result["approved_oss_execution"]["tools"][0]["status"],
+                         "UNVERIFIED")
+
+        complete = dict(fake,
+            source="tools.atlas_doctor_lib.oss_router.route_oss",
+            input_integrity_verified=True, files_modified=False)
+        result = ai_tool_workflow("check", core, plan, advisory=complete)
+        self.assertTrue(result["approved_oss_execution"]["all_executed"])
+        self.assertTrue(result["approved_oss_execution"]["witness_integrity_verified"])
+        self.assertTrue(result["approved_oss_execution"]["tools"][0]["executed"])
+
+        for bad in (dict(complete, files_modified=True),
+                    dict(complete, input_integrity_verified=False),
+                    dict(complete, execution_results=[
+                        {"tool": "zizmor", "status": "CLEAN"}])):
+            report = ai_tool_workflow("check", core, plan, advisory=bad)
+            self.assertFalse(report["approved_oss_execution"]["all_executed"])
+            self.assertFalse(report["approved_oss_execution"]["witness_integrity_verified"])
+
+    def test_partial_scan_preserves_real_ruff_but_not_zizmor_attestation(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        plan = intelligent_plan(
+            ["tools/test_tool.py", ".github/workflows/check.yml"], study())
+        advisory = {
+            "source": "tools.atlas_doctor_lib.oss_router.route_oss",
+            "status": "ADVISORY_ONLY",
+            "input_integrity_verified": True,
+            "files_modified": False,
+            "execution_results": [
+                {"tool": "ruff", "status": "FINDINGS"},
+                {"tool": "zizmor", "status": "NOT_AVAILABLE"},
+            ],
+            "execution_summary": {
+                "status": "INCOMPLETE",
+                "expected_tools": ["ruff", "zizmor"],
+            },
+        }
+        result = ai_tool_workflow("check", {"status": "REVIEW", "exit_code": 1},
+                                  plan, advisory=advisory)
+        proof = result["approved_oss_execution"]
+        self.assertTrue(proof["witness_integrity_verified"])
+        self.assertTrue(proof["tools"][0]["executed"])
+        self.assertFalse(proof["tools"][1]["executed"])
+        self.assertFalse(proof["all_executed"])
+        self.assertEqual(proof["gaps"], [
+            {"tool": "zizmor", "status": "NOT_AVAILABLE"},
+        ])
+
+    def test_guide_dev_and_json_trials_use_existing_owners_without_certify(self):
+        scope = ["tools/ganymede_guide.py",
+                 "tools/atlas_json_benchmark.py",
+                 "app/distribution/install_location.py",
+                 "data/assets/banner.png"]
+        plan = intelligent_plan(scope, study())
+        routes = plan["native_routes"]
+        self.assertTrue(any("Guide scoped owner" in item for item in routes))
+        self.assertTrue(any("atlas_json_benchmark" in item for item in routes))
+        self.assertTrue(any("Launcher scoped owner" in item for item in routes))
+        self.assertTrue(any("asset review" in item for item in routes))
+        self.assertTrue(any("--asset-trial" in item for item in routes))
+        self.assertTrue(any("--font-trial" in item for item in routes))
+        self.assertFalse(any("certify" in item.casefold() for item in routes))
+        self.assertFalse(plan["certified"])
+
+    def test_real_optional_trials_are_routed_but_never_auto_executed(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        paths = [
+            "tools/atlas_json_benchmark.py",
+            "app/assets/themes/dofus_unity/somefont.ttf",
+            "tests/test_guide_stage.py",
+        ]
+        plan = intelligent_plan(paths, study())
+        observed = {row["id"]: row for row in plan["evaluated_candidates"]}
+        optional = {
+            "ATOSS-02", "ATOSS-11", "ATOSS-12", "ATOSS-13",
+            "ATOSS-14", "ATOSS-16", "ATOSS-17",
+        }
+        self.assertTrue(optional.issubset(observed))
+        for cid in optional:
+            with self.subTest(cid=cid):
+                row = observed[cid]
+                self.assertEqual(row["decision"], "OPT_IN_TRIAL_AVAILABLE")
+                self.assertTrue(row["opt_in_trial_route"])
+                self.assertFalse(row["trial_executed"])
+                self.assertFalse(row["tool_executed"])
+                self.assertFalse(row["adoption_qualified"])
+        summary = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1},
+                                   plan)
+        routed = {row["tool_id"]: row for row in summary["oss_recommendations"]}
+        for cid in optional:
+            self.assertEqual(routed[cid]["opt_in_trial_route"],
+                             observed[cid]["opt_in_trial_route"])
+            self.assertFalse(routed[cid]["adoption_qualified"])
+            self.assertFalse(routed[cid]["trial_executed"])
+        self.assertFalse(summary["may_claim_full_certification"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")

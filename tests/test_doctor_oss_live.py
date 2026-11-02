@@ -72,6 +72,26 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["gaps"][0]["tool"], "zizmor")
         self.assertFalse(report["windows_13_qualified"])
 
+    def test_live_proof_rejects_swapped_or_impersonated_adapter_identity(self):
+        for impostor in (
+            ["zizmor", "ruff"],
+            ["ruff", "ruff"],
+        ):
+            with self.subTest(ids=impostor):
+                result = self._valid()
+                result["execution_results"][0]["tool"] = impostor[0]
+                result["execution_results"][1]["tool"] = impostor[1]
+                with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                            return_value=result),
+                      patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                            as version):
+                    report = qualify_live(self.root, self.files)
+                self.assertEqual(report["status"], "REVIEW")
+                self.assertLess(report["actual_executions"], 2)
+                self.assertFalse(report["windows_13_qualified"])
+                self.assertFalse(report["phase_certified"])
+                version.assert_not_called()
+
     def test_live_scan_with_missing_version_is_not_fully_qualified(self):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()),

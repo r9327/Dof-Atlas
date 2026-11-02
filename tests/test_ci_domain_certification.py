@@ -412,6 +412,39 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for("tools/install_unreviewed.ps1"))
         self.assertFalse(owners_for("tests/test_install_unreviewed.py"))
 
+    def test_doctor_context_and_offline_json_trials_have_narrow_ci_owners(self):
+        paths = [
+            "tools/ai_context.py", "tests/test_ai_context.py",
+            "tools/atlas_json_benchmark.py",
+            "tests/test_atlas_json_benchmark.py",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertEqual(owners_for("tools/atlas_json_unreviewed.py"),
+                         frozenset())
+        self.assertEqual(owners_for("tests/test_json_unreviewed.py"),
+                         frozenset())
+
+    def test_oss_wheel_installer_has_exact_ci_owner_not_general_installers(self):
+        for path in ("tools/doctor_oss_wheels.py",
+                     "tests/test_doctor_oss_wheels.py",
+                     "tools/setup_doctor_oss.ps1"):
+            self.assertEqual(owners_for(path), frozenset({"ci"}), path)
+        self.assertEqual(owners_for("tools/unreviewed_wheels.py"), frozenset())
+        self.assertEqual(owners_for("tests/test_unreviewed_wheels.py"),
+                         frozenset())
+        plan = self.route([
+            "tools/doctor_oss_wheels.py", "tests/test_doctor_oss_wheels.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertFalse(plan["full_suite_executed"])
+
     def test_doctor_ai_workflow_and_explicit_bootstrap_are_ci_owned(self):
         paths = ["AI_CONTEXT.md", "tools/setup_doctor_oss.ps1",
                  "tests/test_doctor_ai_usage.py"]

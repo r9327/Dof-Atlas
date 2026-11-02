@@ -16,6 +16,10 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   `doctor oss --run` explicite, sur au plus 16 fichiers Python explicites.
   Le lancement utilise le Python actif, sans install automatique,
   sans exécution d'un chemin PATH, sans cache, sans correctif et avec timeout.
+  Le drapeau Python `-P` empêche de charger un faux module depuis le dépôt,
+  sans désactiver les installations `pip --user` proposées par
+  `tools/setup_doctor_oss.ps1` ; la découverte et le diagnostic Ruff
+  utilisent donc le même environnement Python utilisateur.
   Les règles sont isolées de la configuration locale. La version observée
   est une simple *déclaration*, pas une qualification Windows/3.13.
 - **pytest-qt, Hypothesis, pywinauto, ast-grep, Semgrep, Gitleaks,
@@ -116,6 +120,88 @@ document d'origine. Aucun outil "évalué" ne devient "exécutable" par sa
 simple présence dans cette matrice ; les intégrations de données/Qt/Windows
 sont encore suivies par #313, et la recette réelle Windows des deux scanners
 par #343.
+
+## Branches de développement désormais reliées (PR #358)
+
+Le plan Doctor choisit parmi les candidats pertinents issus de l'étude
+canonique 29+5 et fournit `oss_local_preflight` : disponibilité déclarée
+en métadonnées Python ou présence d'un exécutable sur PATH, jamais
+preuve d'exécution, de licence, de compatibilité ou d'installation réussie.
+Les candidats non pertinents ne sont pas sondés. Les projets Holding,
+QtAwesome et PyQtDarkTheme ne sont pas exécutés dans Atlas.
+
+Les modifications de `oss_router.py` et `oss_intelligence.py` sont
+reliées aux tests Doctor spécialisés par `tools.ai_context`, dans le
+runner unittest existant. L'ajout d'Hypothesis est optionnel : quand
+installé, ses propriétés de sécurité sur les chemins des scanners sont
+sélectionnées ; sinon elles ne comptent pas comme exécutées.
+
+L'owner JSON existant peut effectuer des essais ciblés :
+
+```powershell
+py -3.13 -m tools.atlas_json_benchmark --compare-parsers
+py -3.13 -m tools.atlas_json_benchmark --compare-streaming
+py -3.13 -m tools.atlas_json_benchmark --compare-compression
+```
+
+Les trois commandes nécessitent les données locales Quêtes ; elles
+n'installent rien. `orjson`, `msgspec`, `ijson` et `zstandard` sont importés
+**uniquement pendant le test demandé**, jamais au démarrage d'Atlas.
+La parité des valeurs/IDs ou la restitution strictement octet par octet
+des données compressées est vérifiée. La troisième compare le ratio et
+les temps zlib/zstandard, sans modifier les formats du Launcher, du pack
+de release ni les installations existantes. Ces micro-comparaisons ne
+prouvent pas la RAM process-tree ni l'intérêt d'une migration runtime.
+
+**État de développement :** brancher une recommandation ou observer un
+paquet disponible ne valide pas OSR-002..010. Les intégrations propres
+au Launcher, à Organizer, aux Guides et à Holding doivent encore avoir
+leurs vrais témoins sur leurs branches propriétaires ; conserver la PR
+Draft jusqu'à la fin du code, puis audit et certification sur le HEAD final.
+
+## Essai ImageHash sur assets choisis
+
+Pour des icônes ou illustrations du même périmètre (jamais un scan
+automatique de tout le bundle Unity), Doctor expose un essai de doublons
+**visuels potentiels** :
+
+```powershell
+py -3.13 -m tools.atlas_doctor oss data/images/items/exemple1.png data/images/items/exemple2.png --asset-trial --json
+```
+
+Remplacer les deux chemins par des assets **réellement présents**. Le mode
+`--asset-trial` valide explicitement les chemins, refuse les symlinks et
+les entrées non-image, limite les images à 2 millions de pixels et 2 Mio
+par fichier, puis importe Pillow/ImageHash uniquement à la demande.
+Il compare les empreintes perceptuelles sous un seuil Hamming de 6,
+revérifie les SHA256 des sources avant/après, et ne publie ni pixels ni
+suppression. Les différences de charte, variantes Unity/DPI et vrais
+consommateurs de chaque image doivent rester examinés séparément.
+Un outil absent donne `NOT_AVAILABLE`, un scan impossible `ERROR`,
+et aucun de ces états n'autorise une suppression ou un PASS CI.
+Le mode `--asset-trial` ne se combine pas avec `--run` ou `--verify-live` ;
+aucun asset n'est analysé par ce spécialiste automatiquement lors
+d'un simple `agent check`.
+
+## Essai fontTools pour les polices Unity
+
+Pour une police TTF/OTF locale précise, le propriétaire Assets peut interroger
+`fontTools` sans modifier la police ou le pack Unity :
+
+```powershell
+py -3.13 -m tools.atlas_doctor oss app/assets/themes/dofus_unity/ma_police.ttf --font-trial --json
+```
+
+Remplacer le chemin par une police **réellement présente**. Le mode
+`--font-trial` lit seulement les TTF/OTF explicitement sélectionnés,
+au maximum 16 fichiers de 2 Mio chacun. Il vérifie les SHA256 avant/après,
+lit les noms de famille/style et la **présence** d'une mention de licence
+sans en déduire des droits de redistribution. Le chargement Qt, le rendu DPI,
+l'intégration aux consommateurs et la provenance des assets restent à vérifier
+séparément. Sans `fontTools`, le rapport indique `NOT_AVAILABLE`; si une
+police est illisible, `ERROR`. Aucun fichier n'est transformé.
+`--font-trial`, `--asset-trial`, `--verify-live` et `--run` sont des
+modes exclusifs ; les deux essais Assets sont toujours manuels.
 
 ## Commandes
 
@@ -222,11 +308,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1 -Install
 ```
 
-Le mode `-Install` utilise la version Python 3.13 active, des wheels PyPI
-précompilées, `ruff==0.17.3` et `zizmor==1.30.1` **uniquement côté développeur**.
-Il ne modifie pas `requirements-pyside.txt`, ni l'EXE Windows ni les paquets
-embarqués. Sous Windows, Doctor peut trouver `zizmor.exe` dans `Scripts` du
-user-site Python, même si son dossier n'est pas inscrit dans PATH.
+Le mode `-Install` exige **Windows x64 et Python 3.13 64 bits** et
+utilise `tools.doctor_oss_wheels`. Il télécharge explicitement les deux
+wheels officiels `ruff==0.17.3` et `zizmor==1.30.1` depuis PyPI, consulte
+le document JSON versionné de **PyPI** pour chaque *nom de fichier exact*,
+compare le SHA-256 des bytes téléchargés, puis fait revérifier ces SHA par
+`pip --isolated --require-hashes --no-index --no-deps` sur les fichiers
+locaux vérifiés. Un digest absent, une redirection de métadonnées, une
+architecture non conforme, une version imprévue ou une divergence bloque
+l'installation. Aucun SHA-256 non vérifié n'est conservé comme une constante.
+
+L'installation n'est **jamais** automatique pendant Doctor `plan/check` ;
+elle ne modifie pas le runtime Atlas, mais peut mettre à jour les deux
+packages du user-site Python du développeur. Les sources, wheels et fichiers
+temporaires sont supprimés après l'opération. L'installation pip n'est pas
+transactionnelle et ne garantit pas le rollback d'un environnement utilisateur
+en cas de panne partielle : préférer un environnement de développement isolé.
+Après installation, Doctor cherche également `zizmor.exe` dans les
+`Scripts` du user-site Windows.
+
+La comparaison des hashes vérifie le téléchargement contre les métadonnées
+PyPI récupérées en HTTPS au moment de la commande, **pas** la licence, la
+chaîne de provenance complète, les dépendances de l'outil, ni le comportement
+réel de ce binaire sur la machine. Ces preuves restent distinctes de
+`LIVE_PASS`, qui nécessite d'exécuter réellement les deux scanners.
 
 Les versions ci-dessus sont les versions de qualification choisies pour ce
 lot ; les mises à jour restent des décisions explicites, avec vérification
