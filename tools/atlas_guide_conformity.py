@@ -141,15 +141,22 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
         else:
             inspected["reference_actions"] += len(lhs)
             inspected["atlas_actions"] += len(rhs)
+        target = _ID_KEYS[kind]
         for identifier in lhs_order:
             if identifier not in rhs:
+                previous_id = context[target]
+                context[target] = identifier
                 report("MISSING_" + kind.upper(), f"{path}[{identifier}]",
                        {"id": identifier, "title": lhs[identifier].get("title")},
                        None, lhs[identifier].get("evidence_ref", parent_evidence))
+                context[target] = previous_id
         for identifier in rhs_order:
             if identifier not in lhs:
+                previous_id = context[target]
+                context[target] = identifier
                 report("EXTRA_" + kind.upper(), f"{path}[{identifier}]", None,
                        {"id": identifier, "title": rhs[identifier].get("title")}, parent_evidence)
+                context[target] = previous_id
         shared_lhs = [x for x in lhs_order if x in rhs]
         shared_rhs = [x for x in rhs_order if x in lhs]
         if shared_lhs != shared_rhs:
