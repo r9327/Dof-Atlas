@@ -86,7 +86,11 @@ def import_authored_routes(
                 state = "update"
         else:
             state = "new"
+        previous_sha256 = (
+            hashlib.sha256(existing).hexdigest() if state == "update" else None
+        )
         planned.append({
+            "previous_sha256": previous_sha256,
             "source_id": entry.source_id,
             "filename": path.name,
             "sha256": hashlib.sha256(blob).hexdigest(),
@@ -121,7 +125,9 @@ def import_authored_routes(
                         raise ValueError(f"Destination changed: {destination}")
                     shutil.copyfile(destination, backup)
                     if (hashlib.sha256(backup.read_bytes()).hexdigest()
-                            != hashlib.sha256(destination.read_bytes()).hexdigest()):
+                            != item["previous_sha256"]
+                            or hashlib.sha256(destination.read_bytes()).hexdigest()
+                            != item["previous_sha256"]):
                         raise ValueError(f"Destination changed during staging: {destination}")
                 elif destination.exists() or destination.is_symlink():
                     raise FileExistsError(f"Unexpected destination: {destination}")
