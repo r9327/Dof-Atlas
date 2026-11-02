@@ -287,7 +287,7 @@ def audit_ganymede_crosswalk(root: Path) -> dict[str, object]:
 def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
     """Read-only intersection report for the future combined Success route.
 
-    Identical coordinates indicate co-location, never equivalent objectives or
+    Identical XY values need world/map corroboration before co-location; never equivalent objectives or
     permission to reorder/complete steps. Source-tree links are documentation,
     not Atlas dependency edges. The two optimized guides remain untouched.
     This is a candidate-input API; GuideRoutePlanner stays the only scheduler.
@@ -319,7 +319,11 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
 
     if index.get("schema_version") != 1:
         issues.append({"code": "unsupported_source_schema", "detail": str(index.get("schema_version"))})
-    declared_total = index.get("snapshot", {}).get("total_main_guides")
+    snapshot = index.get("snapshot", {})
+    if not isinstance(snapshot, dict):
+        issues.append({"code": "invalid_source_snapshot", "detail": "snapshot must be an object"})
+        snapshot = {}
+    declared_total = snapshot.get("total_main_guides")
     if declared_total is not None and declared_total != len(indexed):
         issues.append({"code": "source_index_count_mismatch", "detail": str(declared_total)})
 
@@ -396,7 +400,8 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
             continue
         locations.append({
             "coordinates": [x, y],
-            "candidate_type": "co_location_only",
+            "candidate_type": "same_xy_unverified_world_and_map",
+            "same_game_map_verified": False,
             "objective_equivalence_verified": False,
             "prerequisite_order_verified": False,
             "occurrences": sorted(
