@@ -29,30 +29,40 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
     if not study.is_file():
         return {"status": "NOT_AVAILABLE", "candidates": [], "count": 0}
     candidates: list[dict[str, str]] = []
+    supplements: list[dict[str, str]] = []
+    seen: set[str] = set()
     for line in study.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("| ATOSS-"):
+        if not line.startswith(("| ATOSS-", "| AT-SUP-")):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) < 4 or not re.fullmatch(r"ATOSS-[0-9]{2}", cells[0]):
+        if len(cells) < 4 or not re.fullmatch(r"(ATOSS-[0-9]{2}|AT-SUP-[0-9]{2})", cells[0]):
             continue
         candidate_id, source, decision = cells[:3]
-        if candidate_id in {row["id"] for row in candidates}:
+        if candidate_id in seen:
             return {"status": "REVIEW", "reason": "Duplicate source candidate",
-                    "count": len(candidates), "candidates": candidates}
+                    "count": len(candidates), "candidates": candidates,
+                    "supplemental": supplements}
+        seen.add(candidate_id)
         match = re.search(r"\[([^\]]+)\]\(https://github.com/[^)]+\)", source)
         name = match.group(1) if match else source[:64]
         integration = "NOT_VERIFIED"
         if "REJECT" in decision:
             integration = "REJECTED"
-        elif candidate_id in {"ATOSS-06", "ATOSS-10"}:
+        elif candidate_id in {"ATOSS-06", "ATOSS-10", "AT-SUP-02"}:
             integration = "EXISTING_OWNER_NOT_RETESTED"
-        elif candidate_id == "ATOSS-20":
+        elif candidate_id in {"ATOSS-20", "ATOSS-21"}:
             integration = "DOCTOR_OPT_IN_ONLY"
-        candidates.append({"id": candidate_id, "name": name, "study_decision": decision,
-                           "integration": integration})
+        row = {"id": candidate_id, "name": name, "study_decision": decision,
+               "integration": integration}
+        if candidate_id.startswith("ATOSS-"):
+            candidates.append(row)
+        else:
+            supplements.append(row)
     return {
-        "status": "INVENTORIED_NOT_CERTIFIED" if len(candidates) == 29 else "REVIEW",
+        "status": ("INVENTORIED_NOT_CERTIFIED"
+                   if len(candidates) == 29 and len(supplements) == 5 else "REVIEW"),
         "count": len(candidates), "candidates": candidates,
+        "supplemental_count": len(supplements), "supplemental": supplements,
         "execution_witnesses": 0,
         "note": "Static study decisions; execution requires independent exact-SHA evidence.",
     }
@@ -131,6 +141,53 @@ def _execute_zizmor(root: Path, files: list[str], timeout: int) -> dict[str, Any
     return {"status": "FINDINGS" if findings else "CLEAN", "tool": "zizmor",
             "finding_count": len(findings), "exit_code": completed.returncode,
             "offline_requested": True}
+
+
+def select_eligible_diagnostics(root: Path, paths: Iterable[str], *,
+                                limit: int = MAX_FILES) -> dict[str, Any]:
+    """Bound automatic Doctor checks to explicit, existing and safe input files.
+
+    No directory discovery, globbing, automatic imports or opportunistic
+    execution of new candidates. Unsupported files stay with canonical owners.
+    An invalid candidate is never forwarded to an external scanner.
+    """
+    if not 1 <= limit <= MAX_FILES:
+        raise ValueError("eligible diagnostic limit must be 1..16")
+    eligible: list[str] = []
+    seen: set[str] = set()
+    ignored = 0
+    over_limit = 0
+    for raw in paths:
+        # Only the two audited adapters are automatically executable.
+        if not isinstance(raw, str) or not (
+                raw.endswith((".py", ".pyi"))
+                or (raw.startswith(".github/workflows/")
+                    and raw.endswith((".yml", ".yaml")))):
+            ignored += 1
+            continue
+        try:
+            safe = _safe_files(root, [raw])[0]
+        except ValueError:
+            ignored += 1
+            continue
+        if safe in seen:
+            continue
+        seen.add(safe)
+        if len(eligible) < limit:
+            eligible.append(safe)
+        else:
+            over_limit += 1
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_doctor_lib.oss_router.select_eligible_diagnostics",
+        "files": eligible,
+        "selected_count": len(eligible),
+        "ignored_count": ignored,
+        "truncated_count": over_limit,
+        "coverage_complete": over_limit == 0,
+        "scope": "Only explicit existing Python files and GitHub Actions workflows",
+        "certified": False,
+    }
 
 
 def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,

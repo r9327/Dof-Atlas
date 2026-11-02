@@ -12,6 +12,15 @@ py -3.13 -X utf8 -m tools.atlas_doctor agent check <paths> --base-ref HEAD --run
 py -3.13 -X utf8 -m tools.atlas_doctor agent validate <paths> --base-ref HEAD --json
 ```
 
+Doctor's check is the canonical opt-in execution stage: `--run-tests` now
+also runs approved **local, scoped, read-only** OSS analyzers automatically
+when present (Ruff for Python; zizmor offline for workflows). Absent tools
+are explicitly reported, not installed and not counted as PASS.
+`--run-oss` remains the explicit OSS-only option; `--no-oss` skips
+third-party diagnostics without skipping required Doctor tests. The
+`oss_selection` field in every Agent action describes suggestions but does
+not authorize any other external executable. See `docs/doctor-oss-routing.md`.
+
 Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.

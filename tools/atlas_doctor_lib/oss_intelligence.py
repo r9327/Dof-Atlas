@@ -87,7 +87,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                                          _PRIORITY.get(candidate_id, 10) + position)
             reasons.setdefault(candidate_id, []).append(scope)
 
-    source = inventory.get("candidates", [])
+    source = [*inventory.get("candidates", []), *inventory.get("supplemental", [])]
     source_map = {row["id"]: row for row in source if isinstance(row, dict)
                   and isinstance(row.get("id"), str)}
     rows: list[dict[str, Any]] = []
@@ -126,6 +126,18 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
         native_routes.append("tools.atlas_json_inventory (existing JSON owner)")
     if "python" in scopes:
         native_routes.append("tools.atlas_doctor agent check (existing targeted tests)")
+    complete_inventory = {
+        "canonical_count": inventory.get("count", 0),
+        "supplemental_count": inventory.get("supplemental_count", 0),
+        "candidate_total": len(source),
+        "recommended_total": len(rows),
+        "evaluated_not_executed": sum(row["decision"] == "EVALUATION_REQUIRED"
+                                       for row in rows),
+        "rejected_in_selection": sum(row["decision"] == "REJECTED"
+                                      for row in rows),
+        "execution_evidence_count": 0,
+        "note": "Recommendation does not prove installation or execution",
+    }
     return {
         "schema_version": 1,
         "source": "canonical ATOSS study + ai_context.classify_path",
@@ -135,6 +147,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
         "recommended": included,
         "omitted_count": omitted,
         "native_routes": list(dict.fromkeys(native_routes)),
+        "inventory_coverage": complete_inventory,
         "no_automatic_installation": True,
         "certified": False,
     }
