@@ -71,8 +71,20 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                 raise GuideRouteContractError("missing/duplicate stable stage identity")
             keys.add(key)
         count += len(steps)
-    if preview.get("guide_count") != len(routes) or preview.get("step_count") != count:
+    for label in ("guide_count", "step_count", "action_count",
+                  "expected_guide_count", "expected_step_count"):
+        if type(preview.get(label)) is not int or preview[label] <= 0:
+            raise GuideRouteContractError(f"invalid candidate {label}")
+    if type(preview.get("is_partial")) is not bool:
+        raise GuideRouteContractError("invalid candidate partial marker")
+    if preview["guide_count"] != len(routes) or preview["step_count"] != count:
         raise GuideRouteContractError("preview coverage mismatch")
+    action_count = sum(
+        len(step["manual_runtime_metadata"]["source_step"]["actions"])
+        for route in routes for step in route["steps"]
+    )
+    if preview["action_count"] != action_count:
+        raise GuideRouteContractError("candidate action coverage mismatch")
     if preview.get("is_partial") is not True:
         if preview.get("guide_count") != preview.get("expected_guide_count"):
             raise GuideRouteContractError("incomplete full guide inventory")
@@ -209,9 +221,10 @@ def publish_candidate(
         if target.exists():
             _verify_generation(store, digest)
         else:
-            # An immutable generation is visible before the selection pointer;
-            # a crash leaves an orphan that can be safely resumed/inspected.
-            _sync_file(target, payload)
+            # Never write partial bytes directly to a content-addressed name.
+            # Commit an fsynced temp file atomically; failure leaves either
+            # no generation or a complete one, while selection stays old.
+            _atomic_file(target, payload)
         _atomic_file(store / _SELECTED, _json_bytes({
             "format": _FORMAT, "candidate_sha256": digest,
             "runtime_activation": False,
