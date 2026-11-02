@@ -258,6 +258,63 @@ class CandidateStoreTests(unittest.TestCase):
                 publish_candidate(malformed, root=self.root)
         self.assertFalse(self.root.exists())
 
+    def test_preparation_resources_and_travel_cannot_be_lost_in_projection(self) -> None:
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [{"guide_id": 99, "title": "SYNTHETIC",
+                        "steps": [{
+                            "source_step_id": "s", "title": "Fake scene",
+                            "coordinates": [-1, 2],
+                            "actions": [
+                                {"action_id": "prep", "kind": "prepare",
+                                 "text": "Prepare synthetic item",
+                                 "items": [{"name": "Fake item", "quantity": 2}]},
+                                {"action_id": "go", "kind": "travel",
+                                 "text": "Travel [-1,2]", "coordinates": [-1, 2]},
+                                {"action_id": "battle", "kind": "combat",
+                                 "text": "Fight synthetic monster",
+                                 "monsters": [{"name": "Fake monster", "quantity": 1}]},
+                            ],
+                        }]}],
+        }
+        source_preview = prepare_preview(source, expected_guides=1, expected_steps=1)
+        self.assertEqual(
+            publish_candidate(source_preview, root=self.root)["status"],
+            "CANDIDATE_STORED_NOT_ACTIVE",
+        )
+        self.temp.cleanup()
+        # Each alteration must fail without modifying a previous generation.
+        for alteration in ("resource_names", "preparation", "travel_position",
+                           "wrong_section", "wrong_kind", "step_position"):
+            with tempfile.TemporaryDirectory() as scratch:
+                root = Path(scratch) / "candidates"
+                bad = copy.deepcopy(source_preview)
+                card = bad["routes"][0]["steps"][0]
+                if alteration == "resource_names":
+                    card["manual_resource_names"] = []
+                elif alteration == "preparation":
+                    card["a_preparer"] = []
+                elif alteration == "travel_position":
+                    card["manual_sections"]["now"][0]["position"] = "[9,9]"
+                elif alteration == "wrong_section":
+                    card["manual_sections"]["opportunity"].append(
+                        card["manual_sections"]["now"].pop(0)
+                    )
+                    card["manual_lines"] = [
+                        row for section in ("now", "opportunity", "keep", "boss", "before_leave")
+                        for row in card["manual_sections"][section]
+                    ]
+                elif alteration == "wrong_kind":
+                    card["manual_sections"]["now"][1]["kind"] = "action"
+                else:
+                    card["manual_route_position"] = "9,9"
+                with self.subTest(alteration=alteration), self.assertRaises(
+                    GuideRouteContractError
+                ):
+                    publish_candidate(bad, root=root)
+                self.assertFalse(root.exists())
+
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
         (self.root / "sensitive-user-data.json").write_text("{}")
