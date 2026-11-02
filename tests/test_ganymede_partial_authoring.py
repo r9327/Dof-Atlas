@@ -92,5 +92,43 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
                     self.assertIsNone(instructions)
 
 
+    def test_opening_source_facts_survive_rewriting(self):
+        # Focused editorial guard: these are verified opening-page facts,
+        # not certificates for the complete source routes.
+        def draft(source_id):
+            path = AUTHORING_DIR / f"ganymede_{source_id}_partial.json"
+            if not path.is_file():
+                self.skipTest(f"Draft {source_id} has been archived")
+            return json.loads(path.read_text(encoding="utf-8"))["steps"]
+
+        access = draft(2204)
+        self.assertIn("niveau 50", access[0]["instructions"].casefold())
+        self.assertTrue(any("50 Orties" in x["text"] for x in access[1]["actions"]))
+        self.assertTrue(any(
+            x.get("coordinates") == [12, -21]
+            for x in access[5]["actions"]
+        ))
+
+        valonia = draft(2206)
+        self.assertIn("aucun prérequis", valonia[0]["instructions"].casefold())
+        self.assertTrue(any("100 kamas" in x["text"]
+                            for x in valonia[0]["actions"]))
+        self.assertTrue(any("chaque personnage" in x["text"]
+                            for x in valonia[3]["actions"]))
+
+        sufokia = draft(2228)
+        self.assertIn("niveau 40", sufokia[0]["instructions"].casefold())
+        self.assertTrue(any("Forgerons" in x["text"] for x in sufokia[0]["actions"]))
+        self.assertTrue(any("Brâkmar" in x["text"] for x in sufokia[0]["actions"]))
+
+        nimaltopia = draft(2229)
+        self.assertTrue(any("Aventure miniature" in x["text"]
+                            for x in nimaltopia[0]["actions"]))
+        self.assertTrue(any("Ne tirez pas sur le messager" in x["text"]
+                            for x in nimaltopia[0]["actions"]))
+        self.assertIn("20 Eaux potables", nimaltopia[1]["instructions"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
