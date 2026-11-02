@@ -558,13 +558,14 @@ class AtlasRuntime:
         from app.windows.unity_windows import (
             find_known_client_from_point, foreground_window, is_unity_window,
         )
-        from app.macros.mirror_plan import mirror_delivery_targets
+        from app.macros.mirror_plan import mirror_delivery_targets, is_dofus_unity_process
 
         settings = self.settings
         favorite = settings.client_by_handle(settings.primary_handle) if settings.primary_handle else None
-        if favorite is None or not is_unity_window(favorite.handle):
+        if favorite is None or not is_unity_window(favorite.handle) or not is_dofus_unity_process(favorite.handle):
             return False
-        live_handles = tuple(c.handle for c in settings.clients if is_unity_window(c.handle))
+        live_handles = tuple(c.handle for c in settings.clients
+                             if is_unity_window(c.handle) and is_dofus_unity_process(c.handle))
         destinations = mirror_delivery_targets(
             live_handles, live_handles, favorite.handle, source_was_consumed=True,
         )

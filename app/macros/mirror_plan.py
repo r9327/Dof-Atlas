@@ -7,6 +7,7 @@ establishes that targeted background delivery is supported.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PureWindowsPath
 from typing import Collection, Iterable
 
 
@@ -40,6 +41,28 @@ def _valid_handles(values: Iterable[int]) -> tuple[int, ...]:
             seen.add(hwnd)
             clean.append(hwnd)
     return tuple(clean)
+
+
+def is_dofus_unity_executable(image_path: str) -> bool:
+    """Require an absolute Dofus.exe image, never merely a Unity window."""
+    if not isinstance(image_path, str) or not image_path:
+        return False
+    path = PureWindowsPath(image_path)
+    return path.is_absolute() and path.name.casefold() == "dofus.exe"
+
+
+def is_dofus_unity_process(hwnd: int) -> bool:
+    """Fail closed if the HWND process identity is not independently readable."""
+    if type(hwnd) is not int or hwnd <= 0:
+        return False
+    from app.windows_embed import window_class, window_process_id, process_image_path
+    try:
+        if window_class(hwnd) != "UnityWndClass":
+            return False
+        pid = window_process_id(hwnd)
+        return pid > 0 and is_dofus_unity_executable(process_image_path(pid))
+    except (OSError, ValueError, TypeError, OverflowError):
+        return False
 
 
 def mirror_targets(

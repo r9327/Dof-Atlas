@@ -102,6 +102,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime = self._runtime()
         with (
             patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
             patch("app.windows.unity_windows.foreground_window", return_value=101),
             patch("app.windows.unity_windows.find_known_client_from_point", return_value=101),
         ):
@@ -123,6 +124,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             with self.subTest(primary=runtime.settings.primary_handle, foreground=foreground):
                 with (
                     patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
                     patch("app.windows.unity_windows.foreground_window", return_value=foreground),
                     patch("app.windows.unity_windows.find_known_client_from_point", return_value=under_cursor),
                 ):
@@ -136,6 +138,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.macro_lock.active_label = "Miroir"
         with (
             patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
             patch("app.windows.unity_windows.foreground_window", return_value=101),
             patch("app.windows.unity_windows.find_known_client_from_point", return_value=101),
         ):
@@ -180,6 +183,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.current_cursor_pos", return_value=(100, 200)),
                     patch("app.macros.switch_click.set_cursor_pos"),
                     patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
                     patch("app.macros.switch_click.activate_window", return_value=True),
                     patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
                     patch.object(macro, "_target_point", return_value=(20, 30)),

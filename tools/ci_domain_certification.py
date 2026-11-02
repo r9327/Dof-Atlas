@@ -49,7 +49,6 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
     ".ai/scopes/persistence_identity.yaml",
-    ".ai/scopes/windows_qt_runtime.yaml",
     "tests/test_ai_workflow_skills.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",

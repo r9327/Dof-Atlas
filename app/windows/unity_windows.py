@@ -84,11 +84,7 @@ def is_unity_window(hwnd: int) -> bool:
         return False
     try:
         _win32con, win32gui = _win32()
-        if not win32gui.IsWindow(int(hwnd)) or win32gui.GetClassName(int(hwnd)) != UNITY_CLASS:
-            return False
-        # A Unity window from another game must never enter the macro roster.
-        from app.windows_embed import is_dofus_unity_process
-        return is_dofus_unity_process(int(hwnd))
+        return bool(win32gui.IsWindow(int(hwnd)) and win32gui.GetClassName(int(hwnd)) == UNITY_CLASS)
     except Exception:
         return False
 

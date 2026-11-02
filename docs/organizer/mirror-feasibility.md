@@ -12,11 +12,10 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 - Même ligne de trois cartes, aucun panneau Miroir supplémentaire.
 
 ## Source et destinataires automatiques
-- Filtre de processus : la classe `UnityWndClass` est nécessaire mais
-  insuffisante. Le chemin d'image Windows doit être absolu et désigner
-  exactement `Dofus.exe` (comparaison insensible à la casse) ; un accès
-  refusé ou un exécutable inconnu exclut la fenêtre du scan et de l'envoi.
-  Les autres noms de binaires devront être confirmés par une recette réelle.
+- Filtre de processus Organizer/Miroir : `UnityWndClass` seule ne suffit pas.
+  L'exécutable doit être identifié par un chemin Windows absolu `Dofus.exe`.
+  La détection automatique d'Organizer et chaque destination Miroir refusent
+  les processus inconnus. Les autres noms nécessitent un test Windows réel.
 - Source : exclusivement le favori explicitement étoilé dans Organizer,
   réellement détecté et au premier plan ; jamais le premier slot par défaut.
 - Cibles : toutes les autres fenêtres Unity connues d'Organizer, maximum

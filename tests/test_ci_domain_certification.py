@@ -71,7 +71,6 @@ class ModularDomainRoutingTests(unittest.TestCase):
             ".ai/scopes/organizer.yaml",
             ".ai/scopes/macro_runtime.yaml",
             ".ai/scopes/persistence_identity.yaml",
-            ".ai/scopes/windows_qt_runtime.yaml",
         )
         for path in manifests:
             with self.subTest(path=path):

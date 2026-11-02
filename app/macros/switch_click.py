@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import TYPE_CHECKING
 
+from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.clicks import current_cursor_pos, send_client_click, set_cursor_pos
 from app.windows.focus import activate_window
 from app.windows.unity_windows import (
@@ -223,7 +224,9 @@ class SwitchClickMacro:
                     )
                     return
 
-                if not is_unity_window(client.handle):
+                if (not is_unity_window(client.handle)
+                        or (mirror_target_handles is not None
+                            and not is_dofus_unity_process(client.handle))):
                     self.runtime.logger.info(
                         "%s fenêtre introuvable/non Unity: hwnd=%s",
                         action_label,

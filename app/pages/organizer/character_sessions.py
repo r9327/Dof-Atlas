@@ -105,7 +105,12 @@ class CharacterSessionsMixin:
 
         owner_module = sys.modules.get("app.pages.organizer_page")
         scanner = getattr(owner_module, "scan_unity_sessions", scan_unity_sessions)
-        return scanner()
+        if scanner is not scan_unity_sessions:
+            # Explicit test/integration scanners retain their injection contract.
+            return scanner()
+        from app.macros.mirror_plan import is_dofus_unity_process
+        return [row for row in scanner() if isinstance(row, dict) and
+                is_dofus_unity_process(session_hwnd(row))]
 
     def load_profiles(self) -> dict[str, Any]:
         payload = read_json(self._profile_file(), default_profiles())

@@ -5,11 +5,34 @@ import unittest
 from app.macros.mirror_plan import (
     MirrorCapability, delivery_mode, mirror_delivery_targets, mirror_targets,
     mirror_latency_percentiles_ms,
+    is_dofus_unity_executable, is_dofus_unity_process,
     MirrorHeldKeys, mirror_key_transition, mirror_release_all_keys,
 )
 
 
 class OrganizerMirrorPlanTests(unittest.TestCase):
+    def test_dofus_process_filename_is_not_any_unity_executable(self) -> None:
+        self.assertTrue(is_dofus_unity_executable(r"C:\Ankama\zaap\dofus\DOFUS.EXE"))
+        for name in ("Dofus.exe", r"C:\Other\Unity.exe", r"C:\Other\Dofus.exe.bak", ""):
+            self.assertFalse(is_dofus_unity_executable(name))
+
+    def test_dofus_process_hwnd_rejects_unknown_images_and_other_games(self) -> None:
+        from unittest.mock import patch
+        import app.windows_embed as embed
+        with (
+            patch.object(embed, "window_class", return_value="UnityWndClass"),
+            patch.object(embed, "window_process_id", return_value=42),
+            patch.object(embed, "process_image_path", return_value=r"D:\Games\Dofus.exe"),
+        ):
+            self.assertTrue(is_dofus_unity_process(101))
+        with (
+            patch.object(embed, "window_class", return_value="UnityWndClass"),
+            patch.object(embed, "window_process_id", return_value=42),
+            patch.object(embed, "process_image_path", return_value=r"D:\Games\OtherUnity.exe"),
+        ):
+            self.assertFalse(is_dofus_unity_process(101))
+        self.assertFalse(is_dofus_unity_process(0))
+
     def test_measured_mirror_percentiles_ignore_invalid_samples(self) -> None:
         self.assertEqual(
             mirror_latency_percentiles_ms([8, 12, 20, 17]),
