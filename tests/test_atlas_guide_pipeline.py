@@ -102,6 +102,17 @@ class PipelineSyntheticTests(unittest.TestCase):
             self._run(plan=doc)
         self.assertFalse(self.folder.exists())
 
+    def test_malformed_one_guide_shape_is_rejected_before_disk(self):
+        wrong = copy.deepcopy(self.source)
+        wrong["guides"] = ["not-an-object"]
+        with self.assertRaisesRegex(GuidePipelineBlocked, "source guide must be"):
+            self._run(authorized_source=wrong)
+        wrong_ref = copy.deepcopy(self.ref)
+        wrong_ref["guides"] = [42]
+        with self.assertRaisesRegex(GuidePipelineBlocked, "reference: guide must be"):
+            self._run(independent_reference=wrong_ref)
+        self.assertFalse(self.folder.exists())
+
     def test_missing_source_action_blocks(self):
         incomplete = copy.deepcopy(self.source)
         incomplete["guides"][0]["steps"][0]["actions"].clear()
