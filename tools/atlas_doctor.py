@@ -248,18 +248,30 @@ def command_agent(root: Path, args) -> dict[str, Any]:
     # No import, subprocess, download, installation or licence approval occurs.
     from tools.tool_catalog import local_candidate_preflight
     selected_packages = report["oss_selection"].get("local_package_probes", [])
-    if selected_packages:
+    selected_binaries = report["oss_selection"].get("local_binary_probes", [])
+    if selected_packages or selected_binaries:
         local = local_candidate_preflight(
-            packages=[item["distribution"] for item in selected_packages])
-        found = {item["name"].casefold(): item for item in local["results"]}
+            packages=[item["distribution"] for item in selected_packages],
+            binaries=[item["binary"] for item in selected_binaries])
+        found = {(item["kind"], item["name"].casefold()): item
+                 for item in local["results"]}
+        requests = [
+            {"id": item["id"], "kind": "python_distribution",
+             "name": item["distribution"]}
+            for item in selected_packages
+        ] + [
+            {"id": item["id"], "kind": "path_executable",
+             "name": item["binary"]}
+            for item in selected_binaries
+        ]
         report["oss_local_preflight"] = {
             "status": "OBSERVED_NOT_QUALIFIED", "network_used": False,
             "tools": [
-                {"id": item["id"], "distribution": item["distribution"],
-                 "available": bool(found[item["distribution"].casefold()]["available"]),
-                 "version_claim": found[item["distribution"].casefold()]["version"],
+                {"id": item["id"], "kind": item["kind"], "distribution": item["name"],
+                 "available": bool(found.get((item["kind"], item["name"].casefold()), {}).get("available")),
+                 "version_claim": found.get((item["kind"], item["name"].casefold()), {}).get("version"),
                  "license_verified": False, "execution_verified": False}
-                for item in selected_packages
+                for item in requests
             ],
         }
     else:
