@@ -112,6 +112,8 @@ def _sync_file(path: Path, contents: bytes) -> None:
 
 
 def _atomic_file(path: Path, content: bytes) -> None:
+    if path.is_symlink() or path.parent.is_symlink():
+        raise GuideRouteContractError("symlink in candidate output path")
     # Same directory guarantees a same-volume os.replace on Windows.
     fd, name = tempfile.mkstemp(prefix=".atlas-stage-", suffix=".tmp", dir=path.parent)
     try:
@@ -126,6 +128,8 @@ def _atomic_file(path: Path, content: bytes) -> None:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
+    if path.is_symlink():
+        raise GuideRouteContractError(f"symlinked candidate metadata: {path.name}")
     try:
         result = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, OSError) as exc:
@@ -185,6 +189,8 @@ def _verify_generation(root: Path, digest: str) -> None:
     if digest == _NO_SELECTION:
         return
     path = _candidate_file(root, digest)
+    if path.is_symlink() or path.parent.is_symlink():
+        raise GuideRouteContractError("symlinked candidate generation")
     try:
         payload = path.read_bytes()
     except OSError as exc:
@@ -216,6 +222,8 @@ def publish_candidate(
         if old != expected_selected:
             raise GuideRouteContractError("stale candidate selection; compare-and-swap rejected")
         folder = store / "generations"
+        if folder.is_symlink():
+            raise GuideRouteContractError("symlinked candidate generations directory")
         folder.mkdir(exist_ok=True)
         target = _candidate_file(store, digest)
         if target.exists():
