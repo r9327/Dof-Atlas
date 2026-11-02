@@ -532,6 +532,49 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_authored_guide_does_not_load_duplicate_observation_json(self):
+        # This is a performance contract: a single authored guide JSON is
+        # enough for display; the 95 research snapshots are reference-only.
+        from PySide6.QtWidgets import QPushButton
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:22", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "islands"
+                view.refresh_home()
+                item = next(
+                    view.home_metadata_list.item(i)
+                    for i in range(view.home_metadata_list.count())
+                    if view.home_metadata_list.item(i).data(Qt.UserRole) == 2219
+                )
+                with patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.load_ganymede_local_observations",
+                    side_effect=AssertionError("Authored guide must not read snapshot"),
+                ) as obs_loader:
+                    view._open_ganymede_source_item(item)
+                obs_loader.assert_not_called()
+                dialog = view._ganymede_source_dialog
+                self.assertIsNotNone(dialog)
+                local = dialog.findChild(
+                    QPlainTextEdit, "GanymedeOfflineSourceStep",
+                )
+                self.assertIn("ÉTAPE 1 / 7", local.toPlainText())
+                validate = dialog.findChild(
+                    QPushButton, "GanymedeSourceValidateStep",
+                )
+                self.assertTrue(validate.isEnabled())
+                dialog.close()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_fact_only_steps_cannot_be_marked_as_completed(self):
         from PySide6.QtWidgets import QPushButton
 
@@ -836,6 +879,39 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.app.processEvents()
                     self.assertEqual(view.home_columns.layout().direction(),
                                      QBoxLayout.TopToBottom)
+                finally:
+                    view.close()
+                    view.deleteLater()
+                    self.app.processEvents()
+
+    def test_home_caches_source_manifest_across_navigation_and_character_changes(self):
+        # Catalog identity stays fixed during a view hydration. Opening a
+        # dropdown must not reparse the same cutover manifest twice each time.
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.active_manual_catalog_sources",
+                return_value={"dofus_cawotte": (2205, 64)},
+            ) as detector:
+                view = GuideCatalogView(
+                    lambda _message: None, provider=_Provider(),
+                    quest_progress_path=Path(directory) / "quest_progress.json",
+                    defer_runtime=True,
+                )
+                view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
+                try:
+                    self.assertEqual(detector.call_count, 1)
+                    for category in ("islands", "dimensions", "dofus", "regions"):
+                        view.category_selector.setCurrentIndex(
+                            view.category_selector.findData(category),
+                        )
+                    view.set_character_key("character:22")
+                    view.refresh_external_progress()
+                    view.set_search_text("nonexistent")
+                    self.assertEqual(detector.call_count, 1)
+                    self.assertEqual(
+                        view._manual_catalog_routes, {"dofus_cawotte": (2205, 64)}
+                    )
                 finally:
                     view.close()
                     view.deleteLater()

@@ -88,6 +88,7 @@ class GuideCatalogView(QWidget):
         self.guides = []
         self.visible_guides = []
         self.ganymede_listings = ()
+        self._manual_catalog_routes: dict[str, tuple[int, int]] = {}
         self._ganymede_source_dialog = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
@@ -353,6 +354,11 @@ class GuideCatalogView(QWidget):
             raise RuntimeError("Aucun guide chargé depuis catalog.json")
         self.graph = graph
         self.guides = list(guides)
+        # Manifest/cutover selection is immutable while this catalogue is
+        # hydrated. Avoid repeated filesystem JSON reads on navigation.
+        self._manual_catalog_routes = active_manual_catalog_sources(
+            self.provider, self.guides,
+        )
         # Metadata are deliberately not playable Atlas guides.
         try:
             self.ganymede_listings = load_ganymede_listings()
@@ -445,7 +451,11 @@ class GuideCatalogView(QWidget):
         completed_ids = QuestProgressService(
             self.quest_progress_path
         ).completed_quest_ids(self.current_character_key)
-        manual_routes = active_manual_catalog_sources(self.provider, self.visible_guides)
+        manual_routes = {
+            guide_id: data
+            for guide_id, data in self._manual_catalog_routes.items()
+            if guide_id in visible_ids
+        }
         manual_progress = GuideProgressService(GUIDE_PROGRESS_FILE) if manual_routes else None
         compact_ids = getattr(self.provider, "progress_quest_ids_for", None)
         result: dict[str, tuple[int, int, str]] = {}
@@ -563,7 +573,7 @@ class GuideCatalogView(QWidget):
         matched = list(self.provider.search(self.search_text))
         featured_ids = {guide_id for guide_id, _title in FEATURED}
         catalog_by_id = {str(guide.id): guide for guide in self.guides}
-        native = set(active_manual_catalog_sources(self.provider, self.guides))
+        native = set(self._manual_catalog_routes)
         # If the native cutovers are active, an Atlas Dofus that still only
         # contains old quests must not duplicate the official source route.
         # Preserve it in the provider for offline fallback and other consumers.
@@ -763,11 +773,14 @@ class GuideCatalogView(QWidget):
         except (OSError, ValueError, KeyError, TypeError) as exc:
             instructions = None
             self.status_callback(f"Consignes locales invalides : {exc}")
-        try:
-            local_steps = load_ganymede_local_observations(entry)
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            local_steps = ()
-            self.status_callback(f"Repères locaux indisponibles : {exc}")
+        # An authored route is self-contained; do not load and validate a
+        # second large factual JSON that cannot add actionable instructions.
+        local_steps = ()
+        if not instructions:
+            try:
+                local_steps = load_ganymede_local_observations(entry)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                self.status_callback(f"Repères locaux indisponibles : {exc}")
         notice = QLabel(
             ("Consignes structurées disponibles hors ligne (Atlas). "
              "Progression manuelle du personnage actif. "
@@ -969,7 +982,7 @@ class GuideCatalogView(QWidget):
             browser.setUrl(source_url)
 
         open_browser = QPushButton(
-            "Consulter la source originale" if local_steps else "Consulter la source",
+            "Consulter la source originale" if (local_steps or instructions) else "Consulter la source",
             dialog,
         )
         open_browser.setObjectName("GanymedeSourceExternalButton")
