@@ -31,7 +31,13 @@ def synthetic_plan() -> dict:
     }
 
 
-def fake_trusted_host(_name, digest, head, source) -> bool:
+def fake_trusted_host(name, digest, head, source) -> bool:
+    if name in {"current.source_rights", "current.independent_reference"}:
+        # Explicit TEST-ONLY witness; cannot prove third-party authorization.
+        return (
+            head == HEAD and isinstance(digest, str)
+            and len(digest) == 64 and source == digest
+        )
     return digest == ARTIFACT and head == HEAD and source == "0" * 64
 
 
@@ -132,6 +138,37 @@ class PipelineSyntheticTests(unittest.TestCase):
         ref["guides"][0]["steps"][0]["title"] = "Different source"
         with self.assertRaisesRegex(GuidePipelineBlocked, "source differs"):
             self._run(independent_reference=ref)
+        self.assertFalse(self.folder.exists())
+
+    def test_current_source_and_reference_need_separate_trusted_receipts(self):
+        def source_not_attested(name, digest, head, source):
+            if name == "current.source_rights":
+                return False
+            return fake_trusted_host(name, digest, head, source)
+
+        with self.assertRaisesRegex(GuidePipelineBlocked, "current.source_rights"):
+            self._run(verifier=source_not_attested)
+        self.assertFalse(self.folder.exists())
+
+        def reference_not_attested(name, digest, head, source):
+            if name == "current.independent_reference":
+                return False
+            return fake_trusted_host(name, digest, head, source)
+
+        with self.assertRaisesRegex(
+            GuidePipelineBlocked, "current.independent_reference"
+        ):
+            self._run(verifier=reference_not_attested)
+        self.assertFalse(self.folder.exists())
+
+    def test_current_reference_verifier_exception_blocks(self):
+        def failing_witness(name, digest, head, source):
+            if name.startswith("current."):
+                raise RuntimeError("independent assessor unavailable")
+            return fake_trusted_host(name, digest, head, source)
+
+        with self.assertRaisesRegex(GuidePipelineBlocked, "trusted attestation"):
+            self._run(verifier=failing_witness)
         self.assertFalse(self.folder.exists())
 
     def test_source_completeness_flag_is_required(self):
