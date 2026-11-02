@@ -90,10 +90,11 @@ class GuideImporterPreviewTests(unittest.TestCase):
     def test_cli_no_output_by_default(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "authorized.json"
-            source.write_text(json.dumps(valid_export()), encoding="utf-8")
+            data = valid_export()
+            data["complete"] = False
+            source.write_text(json.dumps(data), encoding="utf-8")
             self.assertEqual(main([
-                "--source", str(source), "--expected-guides", "1",
-                "--expected-steps", "1",
+                "--source", str(source), "--partial",
             ]), 0)
             self.assertEqual([p.name for p in Path(temporary).iterdir()], ["authorized.json"])
 
@@ -102,10 +103,12 @@ class GuideImporterPreviewTests(unittest.TestCase):
             root = Path(temporary)
             source = root / "authorized.json"
             output = root / "preview.json"
-            source.write_text(json.dumps(valid_export()), encoding="utf-8")
+            data = valid_export()
+            data["complete"] = False
+            source.write_text(json.dumps(data), encoding="utf-8")
             args = [
-                "--source", str(source), "--expected-guides", "1",
-                "--expected-steps", "1", "--output", str(output),
+                "--source", str(source), "--partial",
+                "--output", str(output),
             ]
             self.assertEqual(main(args), 0)
             output_data = json.loads(output.read_text(encoding="utf-8"))
@@ -115,6 +118,34 @@ class GuideImporterPreviewTests(unittest.TestCase):
                 main(args)
             self.assertEqual(raised.exception.code, 2)
             self.assertFalse((root / "installed_route.json").exists())
+
+    def test_cli_rejects_custom_full_inventory_counts(self):
+        # The standalone CLI must never redefine "full" as 1/1. Internal
+        # test/pipeline APIs may project a single synthetic guide.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "authorized.json"
+            output = root / "preview.json"
+            source.write_text(json.dumps(valid_export()), encoding="utf-8")
+            with self.assertRaises(SystemExit) as raised:
+                main([
+                    "--source", str(source),
+                    "--expected-guides", "1", "--expected-steps", "1",
+                    "--output", str(output),
+                ])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
+
+    def test_cli_rejects_incomplete_manifest_without_partial(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "authorized.json"
+            output = root / "preview.json"
+            source.write_text(json.dumps(valid_export()), encoding="utf-8")
+            with self.assertRaises(SystemExit) as raised:
+                main(["--source", str(source), "--output", str(output)])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
 
     def test_invalid_numeric_limits_fail_closed(self):
         for count in (0, -1, True, "95"):

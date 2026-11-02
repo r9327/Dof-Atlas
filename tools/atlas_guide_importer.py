@@ -105,14 +105,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="Optional preview JSON outside installed data")
     parser.add_argument("--partial", action="store_true",
                         help="Explicitly plan a non-certified subset only")
-    parser.add_argument("--expected-guides", type=int, default=EXPECTED_GUIDES)
-    parser.add_argument("--expected-steps", type=int, default=EXPECTED_STEPS)
     args = parser.parse_args(argv)
     try:
         source = json.loads(args.source.read_text(encoding="utf-8"))
         result = prepare_preview(
-            source, expected_guides=args.expected_guides,
-            expected_steps=args.expected_steps, partial=args.partial,
+            source, partial=args.partial,
         )
         if args.output is not None:
             output = args.output.resolve()
