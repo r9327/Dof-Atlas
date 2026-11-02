@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
+import io
 import json
 import statistics
 import time
@@ -154,6 +155,52 @@ def compare_json_parsers(
         ],
     }
 
+def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) -> dict:
+    """On-demand ijson trial against the exact existing quests source.
+
+    Compares every quest ID and value, not a fuzzy or partial sample. Reading
+    bytes once is intentional: this is a correctness/time study, not a claim
+    about memory saved by streaming or the application's startup.
+    """
+    if not 1 <= max_bytes <= 256 * 1024 * 1024:
+        raise ValueError("Invalid streaming size budget")
+    path = Path(source).resolve(strict=True)
+    if not path.is_file() or path.is_symlink() or path.stat().st_size > max_bytes:
+        raise ValueError("Invalid or oversized streaming input")
+    raw = path.read_bytes()
+    if len(raw) > max_bytes:
+        raise ValueError("Streaming source grew during read")
+    baseline = json.loads(raw)
+    quests = baseline.get("quests") if isinstance(baseline, dict) else None
+    if not isinstance(quests, dict):
+        raise ValueError("Expected the canonical quests object")
+    try:
+        ijson = importlib.import_module("ijson")
+    except (ImportError, OSError):
+        return {"schema_version": 1, "status": "NOT_AVAILABLE",
+                "tool": "ijson", "executed": False, "runtime_consumer_changed": False}
+    seen = set()
+    started = time.perf_counter_ns()
+    try:
+        for quest_id, quest in ijson.kvitems(io.BytesIO(raw), "quests", use_float=True):
+            if quest_id in seen or quest_id not in quests or quests[quest_id] != quest:
+                raise ValueError("Streaming quest ID/value mismatch")
+            seen.add(quest_id)
+        if len(seen) != len(quests):
+            raise ValueError("Streaming quest coverage incomplete")
+    except (ValueError, TypeError, UnicodeError, OverflowError):
+        return {"schema_version": 1, "status": "PARITY_FAIL", "tool": "ijson",
+                "executed": True, "runtime_consumer_changed": False}
+    return {
+        "schema_version": 1, "status": "PARITY_PASS", "tool": "ijson",
+        "executed": True, "record_count": len(seen),
+        "stream_seconds": round((time.perf_counter_ns() - started) / 1e9, 6),
+        "source_sha256": hashlib.sha256(raw).hexdigest(),
+        "runtime_consumer_changed": False,
+        "limitation": "All source bytes and stdlib baseline remain resident; this is not a streaming RSS benchmark",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Comparer offsets Quêtes existants et shards expérimentaux"
@@ -170,9 +217,14 @@ def main() -> int:
     parser.add_argument("--compare-parsers", action="store_true",
                         help="Explicit opt-in: compare installed stdlib/orjson/msgspec decoders")
     parser.add_argument("--parser-repeats", type=int, default=3)
+    parser.add_argument("--compare-streaming", action="store_true",
+                        help="Explicit offline ijson quest-ID streaming parity trial")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    result = (compare_json_parsers(args.source, repeats=args.parser_repeats)
+    if args.compare_parsers and args.compare_streaming:
+        parser.error("Select only one optional JSON comparison mode")
+    result = (compare_json_streaming(args.source) if args.compare_streaming
+              else compare_json_parsers(args.source, repeats=args.parser_repeats)
               if args.compare_parsers else
               benchmark(args.source, args.shards, sample_count=args.sample_count))
     serialized = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
