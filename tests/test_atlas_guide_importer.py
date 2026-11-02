@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.atlas_guide_importer import _step_hash, run_pipeline
+from tools.import_ganymede_authored_routes import main as legacy_import_main
 
 
 def digest(value: bytes) -> str:
@@ -90,7 +94,7 @@ class GuideImporterTests(unittest.TestCase):
             self.run_import(apply=True)
         self.assertFalse(self.target.exists())
 
-    def test_authorized_manifest_drives_idempotent_publication(self):
+    def test_matching_hashes_cannot_authorize_publication(self):
         self.write_guide(2203)
         self.write_guide(2205)
         self.write_reference((2203, 2205))
@@ -98,13 +102,13 @@ class GuideImporterTests(unittest.TestCase):
         self.assertEqual(preview["status"], "PREFLIGHT_PASS")
         self.assertEqual(preview["validated_steps"], 4)
         self.assertEqual(preview["validated_actions"], 6)
+        self.assertFalse(preview["source_parity_certified"])
+        self.assertFalse(preview["rights_verified"])
+        self.assertFalse(preview["gameplay_certified"])
         self.assertFalse(self.target.exists())
-        result = self.run_import(manifest_path=self.manifest, apply=True)
-        self.assertEqual(result["status"], "IMPORTED_HASH_VERIFIED")
-        self.assertEqual(result["created"], 2)
-        self.assertEqual(self.run_import(
-            manifest_path=self.manifest, apply=True)["unchanged"], 2)
-        self.assertFalse(result["rights_verified"])
+        with self.assertRaisesRegex(ValueError, "independent source parity"):
+            self.run_import(manifest_path=self.manifest, apply=True)
+        self.assertFalse(self.target.exists())
 
     def test_payload_change_after_manifest_is_rejected_before_write(self):
         self.write_guide(2203)
@@ -143,38 +147,49 @@ class GuideImporterTests(unittest.TestCase):
                          items=[{"name": "Ressource précise", "quantity": 2}])
         self.write_guide(2205)
         self.write_reference((2203, 2205))
-        report = self.run_import(manifest_path=self.manifest, apply=True)
-        self.assertEqual(report["status"], "IMPORTED_HASH_VERIFIED")
+        report = self.run_import(manifest_path=self.manifest)
+        self.assertEqual(report["status"], "PREFLIGHT_PASS")
         route = next(r for r in report["routes"] if r["source_id"] == 2203)
         self.assertEqual(route["explicit_copy_targets_preserved"], 1)
         self.assertFalse(report["gameplay_certified"])
 
-    def test_explicit_overwrite_requires_opt_in_and_valid_reference(self):
+    def test_overwrite_does_not_bypass_certification(self):
         self.write_guide(2203)
         self.write_guide(2205)
         self.write_reference((2203, 2205))
-        self.run_import(manifest_path=self.manifest, apply=True)
-        path = self.source / "ganymede_2203_instructions.json"
-        original = json.loads(path.read_text(encoding="utf-8"))
-        original["steps"][0]["instructions"] = "Nouvelle destination vérifiée."
-        path.write_text(json.dumps(original), encoding="utf-8")
-        self.write_reference((2203, 2205))
-        with self.assertRaises(FileExistsError):
-            self.run_import(manifest_path=self.manifest, apply=True)
-        report = self.run_import(manifest_path=self.manifest,
-                                 apply=True, allow_overwrite=True)
-        self.assertEqual(report["updated"], 1)
-        self.assertEqual((self.target / path.name).read_bytes(), path.read_bytes())
+        self.target.mkdir()
+        path = self.target / "ganymede_2203_instructions.json"
+        path.write_text("existing content must be preserved", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "independent source parity"):
+            self.run_import(manifest_path=self.manifest, apply=True,
+                            allow_overwrite=True)
+        self.assertEqual(path.read_text(encoding="utf-8"),
+                         "existing content must be preserved")
 
     def test_strict_full_inventory_and_explicit_partial_mode(self):
         self.write_guide(2203)
         self.write_reference((2203,))
         with self.assertRaisesRegex(ValueError, "Missing 1"):
             self.run_import(manifest_path=self.manifest, apply=True)
-        result = self.run_import(
-            manifest_path=self.manifest, strict=False, apply=True)
-        self.assertEqual(result["created"], 1)
-        self.assertEqual(result["missing_routes"], [2205])
+        preview = self.run_import(
+            manifest_path=self.manifest, strict=False)
+        self.assertEqual(preview["missing_routes"], [2205])
+        with self.assertRaisesRegex(ValueError, "independent source parity"):
+            self.run_import(manifest_path=self.manifest,
+                            strict=False, apply=True)
+        self.assertFalse(self.target.exists())
+
+
+    def test_secondary_cli_cannot_bypass_publication_gate(self):
+        self.write_guide(2203)
+        output = io.StringIO()
+        with patch("sys.argv", ["import_ganymede_authored_routes",
+                                "--source-dir", str(self.source), "--apply"]):
+            with redirect_stdout(output):
+                exit_code = legacy_import_main()
+        self.assertEqual(exit_code, 2)
+        self.assertEqual(json.loads(output.getvalue())["status"], "BLOCKED")
+        self.assertFalse(self.target.exists())
 
 
 if __name__ == "__main__":
