@@ -6,12 +6,12 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    10
+    20
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2235",
-  "evidence_scope": "first_ten_public_source_stages_2026-11-02_and_local_fact_snapshot_not_game_certified",
+  "evidence_scope": "source_first_ten_steps_and_independently_sourced_quest_actions_11_to_20_local_coordinate_alignment_only",
   "fact_sources": [
     "https://ganymede-app.com/guides/2235",
     "https://www.dofuserie.com/quetes/l-entree-des-artistes/",
@@ -24,7 +24,8 @@
   "further_review_needed": [
     "Verify localized French PNJ and exact quest names in current DOFUS Unity.",
     "Compare source Ganymède stages 11-31 before drafting them; observed GPS and quest IDs alone are not instructions.",
-    "Confirm requirements and per-character validations before any runtime promotion."
+    "Confirm requirements and per-character validations before any runtime promotion.",
+    "Confirm specific source cross-guide ordering of Sidimote3 11-20 (four quests run in parallel); no Ganymède full source proof."
   ],
   "steps": [
     {
@@ -341,6 +342,308 @@
           "coordinates": [
             -26,
             39
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Ouvrir Rituel oblige et retourner à Gisgoul",
+      "instructions": "À Brâkmar, les informations sur le rituel se recoupent avec la mort des personnes découvertes dans la tour. La quête « Rituel oblige » est accessible après « Au pied du mur ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rencontrer Edgar Lupin en [-26,39] à Brâkmar.",
+          "coordinates": [
+            -26,
+            39
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Vérifier que « Au pied du mur » est terminé et accepter « Rituel oblige » auprès d'Edgar Lupin."
+        },
+        {
+          "kind": "information",
+          "text": "Si « Au pied du mur » est encore actif, conserver cette étape en attente : le préalable est propre à chaque personnage."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir au quartier des Bworks de Gisgoul en [-18,18].",
+          "coordinates": [
+            -18,
+            18
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Négocier le salaire des gobelins",
+      "instructions": "Bworkemada accepte d'augmenter la solde des mineurs si l'un d'eux fait preuve de courage.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Bworkemada en [-18,18].",
+          "coordinates": [
+            -18,
+            18
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui demander de revaloriser le salaire des gobelins, puis accepter son épreuve."
+        },
+        {
+          "kind": "travel",
+          "text": "Se diriger vers les maisons où se trouvent les premiers indices de l'enquête en [-17,18].",
+          "coordinates": [
+            -17,
+            18
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Fouiller la première maison de Gisgoul",
+      "instructions": "L'inspecteur demande de rassembler plusieurs fragments de message dans les maisons du village ; commencer par l'habitation la plus à l'ouest.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la maison de Gisgoul en [-17,18].",
+          "coordinates": [
+            -17,
+            18
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur les plans présents dans la maison pour obtenir le premier élément de l'enquête."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à la tour de Gisgoul en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Informer l'inspecteur de l'enquête",
+      "instructions": "Revenir voir l'Inspecteur Gad Jayte pour lui donner l'état de la recherche et continuer vers les deux autres maisons.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver l'Inspecteur Gad Jayte devant la tour en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Faire le point sur les indices recueillis pour « L'entrée des artistes »."
+        },
+        {
+          "kind": "information",
+          "text": "Le dialogue ne clôt pas la quête : il reste des plans et la piste du passage secret."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller à la deuxième maison en [-15,18].",
+          "coordinates": [
+            -15,
+            18
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Examiner les plans de la deuxième maison",
+      "instructions": "Inspecter la seconde maison de Gisgoul, récupérer son indice puis partir vers la troisième.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la maison de Gisgoul en [-15,18].",
+          "coordinates": [
+            -15,
+            18
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les plans posés à l'intérieur de la maison."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le troisième bâtiment en [-16,20].",
+          "coordinates": [
+            -16,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Explorer la troisième maison et lire le livre",
+      "instructions": "La troisième maison contient des plans liés aux sectateurs. Un livre disposé au sol dans la zone donne également un indice sur le passage.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la maison du quartier sud en [-16,20].",
+          "coordinates": [
+            -16,
+            20
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Examiner les plans de la maison, troisième fragment de « L'entrée des artistes »."
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier également le livre posé au sol dans la zone, à l'extérieur du bâtiment, si l'objectif de recherche est actif."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner informer l'Inspecteur Gad Jayte en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Présenter les plans trouvés à l'inspecteur",
+      "instructions": "Après les trois maisons, remettre les indices à l'inspecteur. La piste conduit au passage caché vers la tour.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à l'Inspecteur Gad Jayte en [-16,17].",
+          "coordinates": [
+            -16,
+            17
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui rapporter les fragments trouvés dans les trois maisons."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas valider « L'entrée des artistes » : la confrontation des sectateurs n'a pas encore eu lieu."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir sur la carte du livre en [-16,20].",
+          "coordinates": [
+            -16,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Retrouver les traces du passage secret",
+      "instructions": "Repartir du livre situé au sol puis retrouver la sacoche qui jalonne le chemin du passage souterrain.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Examiner le livre au sol en [-16,20] pour la piste des sectateurs.",
+          "coordinates": [
+            -16,
+            20
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le livre à l'extérieur de la maison, si l'étape de quête le demande."
+        },
+        {
+          "kind": "information",
+          "text": "La sacoche à inspecter se trouve plus bas en [-16,22] ; la visite de la mine à [-17,21] est la prochaine halte du parcours combiné."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Gobovette dans la mine en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Remettre les minerais à Gobovette",
+      "instructions": "La mineuse a besoin de la Bauxite et de l'Argent préparés au début du parcours. Le premier gobelin peut ensuite être escorté à l'auberge.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la mine et retrouver Gobovette en [-17,21].",
+          "coordinates": [
+            -17,
+            21
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 30 Bauxite et 60 Argent à Gobovette."
+        },
+        {
+          "kind": "talk",
+          "text": "Proposer d'emmener un premier gobelin à l'auberge de Gisgoul."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'Auberge du Goldeun Ouaive en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Faire boire le gobelin assoiffé",
+      "instructions": "Pour prouver son courage, le premier gobelin doit consommer des bières de Gisgoul, achetées au comptoir de l'auberge.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'auberge de Gisgoul en [-19,21].",
+          "coordinates": [
+            -19,
+            21
+          ]
+        },
+        {
+          "kind": "prepare",
+          "text": "Acheter 4 Bières de Gisgoul (80 kamas au total)."
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner les quatre bières au Gobelin assoiffé selon les étapes de dialogue de la quête."
+        },
+        {
+          "kind": "information",
+          "text": "Garder le gobelin éméché dans le suivi jusqu'à son retour auprès de Bworkemada."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre chez Bworkemada en [-18,18].",
+          "coordinates": [
+            -18,
+            18
           ]
         }
       ]
