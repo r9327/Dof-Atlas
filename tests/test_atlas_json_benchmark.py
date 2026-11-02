@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from pathlib import Path
 
-from tools.atlas_json_benchmark import benchmark, compare_json_parsers
+from tools.atlas_json_benchmark import benchmark, compare_json_parsers, compare_json_streaming
 from tools.atlas_json_shards import build
 
 
@@ -78,6 +78,40 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             compare_json_parsers(Path("missing"), candidates=("stdlib", "stdlib"))
         with self.assertRaises(ValueError):
             compare_json_parsers(Path("missing"), candidates=("ijson",))
+
+    def test_ijson_stream_checks_all_quest_ids_not_only_samples(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "quests.json"
+            path.write_text(json.dumps({"quests": {"1": {"name": "Émeraude"},
+                                                  "2": {"n": 2}}}), encoding="utf-8")
+            def kvitems(stream, prefix, *, use_float):
+                self.assertEqual(prefix, "quests")
+                self.assertTrue(use_float)
+                return iter(json.loads(stream.read())["quests"].items())
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(kvitems=kvitems)):
+                report = compare_json_streaming(path)
+            self.assertEqual(report["status"], "PARITY_PASS")
+            self.assertEqual(report["record_count"], 2)
+            self.assertTrue(report["executed"])
+            def broken(stream, prefix, *, use_float):
+                return iter([("1", {"name": "incorrect"})])
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(kvitems=broken)):
+                failed = compare_json_streaming(path)
+            self.assertEqual(failed["status"], "PARITY_FAIL")
+
+    def test_ijson_missing_reports_not_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "quests.json"
+            path.write_text('{"quests":{"1":{}}}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=ImportError("not installed")):
+                report = compare_json_streaming(path)
+            self.assertEqual(report["status"], "NOT_AVAILABLE")
+            self.assertFalse(report["executed"])
+            with self.assertRaises(ValueError):
+                compare_json_streaming(path, max_bytes=1)
 
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
