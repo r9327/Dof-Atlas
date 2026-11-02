@@ -6,7 +6,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
-    QListWidgetItem, QTextBrowser, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QListWidgetItem, QPlainTextEdit, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
 from app.ui.theme import PALETTE
@@ -814,13 +814,11 @@ class GuideCatalogView(QWidget):
 
         browser = None
         if local_steps or instructions:
-            fallback = QTextBrowser(dialog)
+            fallback = QPlainTextEdit(dialog)
             fallback.setReadOnly(True)
-            fallback.setOpenLinks(False)
-            fallback.setOpenExternalLinks(False)
             fallback.setObjectName("GanymedeOfflineSourceStep")
             fallback.setStyleSheet(
-                f"QTextBrowser {{ background: {PALETTE['PANEL']}; "
+                f"QPlainTextEdit {{ background: {PALETTE['PANEL']}; "
                 f"color: {PALETTE['TEXT']}; border: 1px solid {PALETTE['BORDER']}; }}"
             )
         else:
@@ -862,8 +860,7 @@ class GuideCatalogView(QWidget):
         # copy data from another page or trigger a navigation/game action.
         copy_targets: list[str] = []
 
-        def copy_action_link(url: QUrl) -> None:
-            raw = url.toString()
+        def copy_action_link(raw: str) -> None:
             prefix, separator, index_text = raw.partition(":")
             if (prefix != "copy" or not separator
                     or not index_text.isascii() or not index_text.isdecimal()
@@ -873,9 +870,6 @@ class GuideCatalogView(QWidget):
             if 0 <= index < len(copy_targets):
                 QApplication.clipboard().setText(copy_targets[index])
                 self.status_callback("Texte copié.")
-
-        if instructions:
-            fallback.anchorClicked.connect(copy_action_link)
 
         def step_url(n: int) -> QUrl:
             url = QUrl(source_url)
@@ -912,6 +906,19 @@ class GuideCatalogView(QWidget):
             progress_row.addWidget(progress_label, 1)
             progress_row.addWidget(copy_button)
             layout.addLayout(progress_row)
+            copy_links = QLabel(dialog) if instructions else None
+            if copy_links is not None:
+                copy_links.setObjectName("GanymedeSourceCopyLinks")
+                copy_links.setTextFormat(Qt.RichText)
+                copy_links.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                copy_links.setOpenExternalLinks(False)
+                copy_links.setWordWrap(True)
+                copy_links.setToolTip(
+                    "Cliquer une position, un objet ou un PNJ copie sa valeur. "
+                    "Aucun déplacement ni combat n'est déclenché."
+                )
+                copy_links.linkActivated.connect(copy_action_link)
+                layout.addWidget(copy_links)
 
             def first_unchecked() -> int:
                 return next(
@@ -926,11 +933,17 @@ class GuideCatalogView(QWidget):
                 next_button.setEnabled(page < count)
                 copy_targets.clear()
                 if instructions:
-                    html, targets = self._format_offline_instruction_rich(
-                        instructions[page - 1], page, count,
+                    fallback.setPlainText(
+                        self._format_offline_instruction(
+                            instructions[page - 1], page, count,
+                        )
+                    )
+                    links_html, targets = self._format_offline_instruction_rich(
+                        instructions[page - 1], page, count, links_only=True,
                     )
                     copy_targets.extend(targets)
-                    fallback.setHtml(html)
+                    copy_links.setText(links_html)
+                    copy_links.setVisible(bool(targets))
                 elif local_steps:
                     fallback.setPlainText(
                         self._format_offline_observation(local_steps[page - 1], page, count)
@@ -1038,7 +1051,7 @@ class GuideCatalogView(QWidget):
 
     @staticmethod
     def _format_offline_instruction_rich(
-        step: dict, page: int, count: int,
+        step: dict, page: int, count: int, *, links_only: bool = False,
     ) -> tuple[str, tuple[str, ...]]:
         """Render separately copyable authored facts, never inferred hints.
 
@@ -1069,7 +1082,7 @@ class GuideCatalogView(QWidget):
             "use_item": "Utiliser", "deliver": "Remettre",
             "craft": "Fabriquer", "information": "Information",
         }
-        lines = [
+        lines = [] if links_only else [
             f'<h3 style="color:{PALETTE["TEXT"]}">Étape {page} / {count} '
             f'— {escape(str(step["title"]))}</h3>',
             f'<p>{escape(str(step["instructions"]))}</p>',
@@ -1080,21 +1093,37 @@ class GuideCatalogView(QWidget):
             fragments = [
                 f'<b style="color:{color}">{escape(names[kind])}</b>'
             ]
+            copy_parts: list[str] = []
             coords = action.get("coordinates")
             if (kind == "travel" and isinstance(coords, list)
                     and len(coords) == 2
                     and all(type(value) is int for value in coords)):
                 x, y = coords
-                fragments.append(link(
+                copy_part = link(
                     f"/travel {x},{y}", f"[{x},{y}]", color, bold=True,
-                ))
-            fragments.append(escape(action["text"]))
+                )
+                fragments.append(copy_part)
+                copy_parts.append(copy_part)
+            if not links_only:
+                fragments.append(escape(action["text"]))
             explicit = action.get("copy_values", ())
             if isinstance(explicit, list):
                 for value in explicit:
                     if isinstance(value, str) and value.strip() and len(value) <= 256:
-                        fragments.append(link(value, value, color, bold=True))
-            lines.append("<p>• " + " — ".join(fragments) + "</p>")
+                        copy_part = link(value, value, color, bold=True)
+                        fragments.append(copy_part)
+                        copy_parts.append(copy_part)
+            if links_only:
+                if copy_parts:
+                    lines.append(
+                        f'<span style="color:{color}">{escape(names[kind])}</span> '
+                        + " · ".join(copy_parts)
+                    )
+            else:
+                lines.append("<p>• " + " — ".join(fragments) + "</p>")
+        if links_only:
+            return ("Copier : " + " &nbsp; | &nbsp; ".join(lines)
+                    if lines else ""), tuple(targets)
         return "".join(lines), tuple(targets)
 
     @staticmethod
