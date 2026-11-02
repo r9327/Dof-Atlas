@@ -209,6 +209,17 @@ class AiContextTests(unittest.TestCase):
         self.assertIn("tests.test_ai_context", quality_tests)
         self.assertIn("tests.test_repository_git_hooks", quality_tests)
 
+    def test_oss_code_routes_to_real_owner_tests(self) -> None:
+        router = ai_context.recommended_tests(
+            ROOT, ["tools/atlas_doctor_lib/oss_router.py"])
+        self.assertIn("tests.test_doctor_oss_routing", router)
+        self.assertIn("tests.test_doctor_oss_live", router)
+        self.assertIn("tests.test_doctor_auto_oss", router)
+        intelligent = ai_context.recommended_tests(
+            ROOT, ["tools/atlas_doctor_lib/oss_intelligence.py"])
+        self.assertIn("tests.test_doctor_oss_intelligence", intelligent)
+        self.assertIn("tests.test_doctor_auto_oss", intelligent)
+
     def test_committed_context_index_matches_head(self) -> None:
         index_path = ROOT / ai_context.INDEX_PATH
         self.assertTrue(index_path.is_file(), index_path)
