@@ -3,15 +3,15 @@
   "source_guide_id": 2228,
   "source_url": "https://ganymede-app.com/guides/2228",
   "expected_source_step_count": 39,
-  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "authoring_status": "FULL_DRAFT_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    25
+    39
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2228",
-  "evidence_scope": "source_visible_first_ten_plus_independent_sufokia_quest_guides_11_to_25_no_full_original_source_parity",
+  "evidence_scope": "first_ten_source_visible_plus_local_source_coordinates_and_independent_full_quest_guides_11_to_39_unverified_original_source_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -731,6 +731,468 @@
         {
           "kind": "information",
           "text": "Ne pas marquer « Investigation embarquée » comme terminée avant d'avoir effectivement remis le sac."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Petit Chacha Péron Rose en [6,30] pour une quête de Gelées.",
+          "coordinates": [
+            6,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Lancer la quête des confitures de Gelées",
+      "instructions": "Dans la Péninsule des gelées, trouver le Petit Chacha Péron Rose et accepter de réunir trois parfums de confiture. Les ressources ne s'achètent pas pour valider automatiquement les combats requis.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver le Petit Chacha Péron Rose en [6,30].",
+          "coordinates": [
+            6,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lancer « Moins on en a et plus on l'étale »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir de combattre des Gelées jusqu'à réunir 10 Confitures Bleues, 10 Confitures Fraise et 10 Confitures Menthe."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Paul Auchon en [9,27].",
+          "coordinates": [
+            9,
+            27
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 27,
+      "title": "Rendre le sac de pêche à Paul Auchon",
+      "instructions": "Après la tournée des six barques, terminer l'enquête de Paul Auchon en lui apportant son sac de pêche et les autres objets trouvés.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Revenir voir Paul Auchon en [9,27].",
+          "coordinates": [
+            9,
+            27
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre le Sac de pêche et les objets récupérés dans les six barques."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la fin d'« Investigation embarquée » pour le personnage suivi."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'épicerie de Sufokia en [16,25].",
+          "coordinates": [
+            16,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 28,
+      "title": "Rendre les ressources aux cuisiniers de Sufokia",
+      "instructions": "À l'épicerie, terminer les demandes de Jemas Kooc et Joëlle Raiebuchon lorsque leurs objets sont effectivement rassemblés. Sinon, conserver ces objectifs ouverts et les compléter après la chasse.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'épicerie et retrouver Jemas Kooc et Joëlle Raiebuchon.",
+          "coordinates": [
+            16,
+            25
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre à Jemas Kooc 5 Œufs de Scarafeuille pour « Pattes aux œufs frais »."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre à Jemas Kooc 10 Perles de Sable pour « Collier de perles en vinaigrette »."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre à Joëlle Raiebuchon 5 Pinces de Crabe et 10 Poudres d'étoile de mer d'Asse pour « Des étoiles dans l'estomac »."
+        },
+        {
+          "kind": "information",
+          "text": "Si une ressource manque, ne pas valider sa quête : finir les combats ou récoltes avant de quitter Sufokia."
+        },
+        {
+          "kind": "travel",
+          "text": "Gagner le Territoire des Bandits en [13,21].",
+          "coordinates": [
+            13,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 29,
+      "title": "Combattre les bandits pour les deux enquêtes",
+      "instructions": "Dans le Territoire des Bandits, terminer les combats du Commandant Costaud et récupérer les cinq objets subtilisés pour Edgar Davou. La quête journalière se valide au dernier monstre requis.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les monstres du Territoire des Bandits en [13,21].",
+          "coordinates": [
+            13,
+            21
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Pour « C'est du Costaud » : vaincre 5 Bandits du clan des Roublards, 2 Mineurs Sombres, 2 Forgerons Sombres et 2 Boulangers Sombres."
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les Bandits du clan des Roublards jusqu'à récupérer les cinq objets volés d'Edgar Davou."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver 1 Potion de soif intense, 1 Bougie de plein jour, 1 Crème vieillissante, 1 Sachet d'épice de mauvais goût et 1 Livre brillant."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier séparément les objectifs par personnage : la fin de « C'est du Costaud » n'achève pas « Voleurs en série »."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Edgar Davou en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 30,
+      "title": "Clore Voleurs en série et ouvrir les pains",
+      "instructions": "Donner à Edgar Davou les cinq objets volés puis accepter la quête de distribution. Il faut vingt Pains Sombres, obtenus sur les Boulangers Sombres.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Reparler à Edgar Davou en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre les cinq objets volés et conclure « Voleurs en série »."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter auprès d'Edgar Davou « Distribution de pains zizanesques »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Réunir 20 Pains Sombres en combattant des Boulangers Sombres avant de commencer les quatre distributions."
+        },
+        {
+          "kind": "information",
+          "text": "Chaque collecteur prendra cinq pains : 4 collecteurs × 5 = 20 pains au total."
+        }
+      ]
+    },
+    {
+      "source_step_number": 31,
+      "title": "Distribuer les cinq premiers Pains Sombres",
+      "instructions": "La première livraison se fait auprès du collecteur de pains du Territoire des Bandits. Ne pas utiliser les vingt pains d'un coup.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Partir du donneur de quête Edgar Davou.",
+          "coordinates": [
+            15,
+            22
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le premier collecteur de pains en [12,20].",
+          "coordinates": [
+            12,
+            20
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 5 Pains Sombres au premier Collecteur de pains."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au deuxième collecteur en [15,17].",
+          "coordinates": [
+            15,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 32,
+      "title": "Deuxième collecteur de pains",
+      "instructions": "Remettre le deuxième lot de cinq pains, puis poursuivre la chaîne de distribution en direction du troisième collecteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Vérifier que la livraison précédente est comptée dans le journal.",
+          "coordinates": [
+            12,
+            20
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Se présenter au collecteur de pains en [15,17].",
+          "coordinates": [
+            15,
+            17
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 5 Pains Sombres au deuxième Collecteur de pains."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la troisième livraison en [14,15].",
+          "coordinates": [
+            14,
+            15
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 33,
+      "title": "Troisième collecteur de pains",
+      "instructions": "Le troisième collecteur se trouve au nord de la zone. Livrer la même quantité que précédemment.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Continuer depuis le deuxième collecteur.",
+          "coordinates": [
+            15,
+            17
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Parler au collecteur en [14,15].",
+          "coordinates": [
+            14,
+            15
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 5 Pains Sombres au troisième Collecteur de pains."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller jusqu'au quatrième collecteur en [13,12].",
+          "coordinates": [
+            13,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 34,
+      "title": "Quatrième et dernier collecteur de pains",
+      "instructions": "Remettre le dernier paquet de cinq pains puis retourner vers Edgar Davou pour achever la mission.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Poursuivre la chaîne vers le nord.",
+          "coordinates": [
+            14,
+            15
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le dernier Collecteur de pains en [13,12].",
+          "coordinates": [
+            13,
+            12
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 5 Pains Sombres au quatrième Collecteur de pains."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les quatre livraisons distinctes avant de repartir."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Sufokia en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 35,
+      "title": "Retourner à Sufokia après les livraisons",
+      "instructions": "La distribution s'est déroulée aux quatre collecteurs. Il reste à avertir Edgar Davou de sa réussite.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Quitter la zone du dernier collecteur en [13,12].",
+          "coordinates": [
+            13,
+            12
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler que la quête affiche bien les quatre collecteurs visités."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner auprès d'Edgar Davou en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "title": "Terminer Distribution de pains zizanesques",
+      "instructions": "Informer Edgar Davou de la réussite des quatre livraisons. Il reste à finir les Gelées pour clôturer les deux succès de Sufokia.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Edgar Davou en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Achever « Distribution de pains zizanesques » après les quatre livraisons."
+        },
+        {
+          "kind": "information",
+          "text": "Garder ouvertes « Moins on en a et plus on l'étale » et « Comment se mettre au jus » tant que leurs ressources ne sont pas rendues."
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "title": "Combattre les Gelées et récupérer les quatre ressources",
+      "instructions": "Dans la Péninsule des Gelées, terminer en parallèle les deux quêtes qui demandent des ressources de ces monstres.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les Gelées de la Péninsule en [11,29].",
+          "coordinates": [
+            11,
+            29
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre des Gelées jusqu'à obtenir 10 Jus Concentrés de Gelée pour Mage Hellan."
+        },
+        {
+          "kind": "fight",
+          "text": "Rassembler 10 Confitures Bleues, 10 Confitures Fraise et 10 Confitures Menthe pour le Petit Chacha Péron Rose."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les quantités exactes par personnage avant de quitter la zone ; les ressources sont liées aux quêtes."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Petit Chacha Péron Rose en [6,30].",
+          "coordinates": [
+            6,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "title": "Livrer les confitures au Petit Chacha",
+      "instructions": "Terminer la commande du Petit Chacha Péron Rose, puis retourner vers Mage Hellan pour remettre les jus.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver le Petit Chacha Péron Rose en [6,30].",
+          "coordinates": [
+            6,
+            30
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 10 Confitures Bleues, 10 Confitures Fraise et 10 Confitures Menthe pour terminer « Moins on en a et plus on l'étale »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Mage Hellan en [13,25].",
+          "coordinates": [
+            13,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "title": "Terminer Comment se mettre au jus et vérifier les succès",
+      "instructions": "Rendre à Mage Hellan les dix jus concentrés. Contrôler ensuite que les deux succès de Sufokia sont réellement terminés pour le personnage suivi, sans cocher automatiquement les quêtes éventuellement manquantes.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Mage Hellan en [13,25].",
+          "coordinates": [
+            13,
+            25
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 10 Jus Concentrés de Gelée à Mage Hellan pour terminer « Comment se mettre au jus »."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler « Le bon air de la mer d'Asse » (5 quêtes) et « Sufokons ensemble » (6 quêtes) dans les succès."
+        },
+        {
+          "kind": "information",
+          "text": "Les donjons facultatifs de la route ne sont jamais considérés comme achevés par le seul déplacement dans cette zone."
         }
       ]
     }
@@ -742,10 +1204,17 @@
     "https://www.dofuserie.com/quetes/pattes-aux-oeufs-frais/",
     "https://www.dofuserie.com/quetes/collier-de-perles-en-vinaigrette/",
     "https://www.dofuserie.com/quetes/voleurs-en-serie/",
-    "https://guidedofus.com/v2/sufokons-ensemble"
+    "https://guidedofus.com/v2/sufokons-ensemble",
+    "https://www.dofuserie.com/quetes/distribution-de-pains-zizanesques/",
+    "https://www.dofuserie.com/quetes/moins-on-en-a-et-plus-on-l-etale/",
+    "https://www.dofuserie.com/quetes/comment-se-mettre-au-jus/",
+    "https://www.dofuserie.com/quetes/c-est-du-costaud/",
+    "https://www.dofuserie.com/quetes/des-etoiles-dans-l-estomac/"
   ],
   "further_review_needed": [
     "Compare each authored stage 11-25 with the corresponding original Ganymède page; the independent quest descriptions alone do not prove exact author ordering.",
-    "Verify optional detours, per-character drop counters and all French NPC labels on DOFUS Unity."
+    "Verify optional detours, per-character drop counters and all French NPC labels on DOFUS Unity.",
+    "Compare steps 11-39 with Ganymède GP5 page 2-4 for exact order, quantities and optional dungeons.",
+    "Verify per-quest resource drops and source step locations under current Unity; this draft is not certified."
   ]
 }
