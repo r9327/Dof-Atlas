@@ -64,10 +64,9 @@ redistribution sont établis, un fichier
   anciennes quêtes.
 - `rights_basis` vaut `atlas_original` si rédaction originale, ou
   `redistribution_permission` quand une permission de diffusion existe
-  **et a été vérifiée par le responsable**. En cas de redistribution, les
-  champs `permission_reference` et `attribution` sont obligatoires. Leur
-  présence est une preuve déclarative, pas une vérification juridique
-  automatique. Ne pas importer des textes communautaires sans droits.
+  **et a été vérifiée par le responsable**. Ce champ ne prouve pas à lui
+  seul que l'autorisation existe. Ne pas importer en masse des textes
+  communautaires sans droits.
 - Le lecteur charge une seule route au clic (pas de chargement des 7 705
   étapes en RAM à l'accueil). Sans consignes, les relevés restent
   consultables mais leur case de validation est désactivée.
@@ -87,32 +86,30 @@ des actions/positions, par les tests Qt/Windows, et par le benchmark Doctor au
 HEAD exact. Avoir un JSON valide n'est pas une preuve que les actions sont
 correctes dans le jeu.
 
-## Import contrôlé des 95 routes
+## Importer les 95 parcours avec autorisation
 
-Les textes vérifiés peuvent être préparés hors du dépôt, dans un dossier
-`incoming-guides/` contenant uniquement les fichiers JSON correspondant aux
-95 IDs de l'index. Chaque fichier suit le contrat ci-dessus.
+L'importateur n'aspire pas Ganymède et ne copie aucune œuvre tierce.
+Constituer dans `<dossier>` les 95 JSON rédigés et vérifiés selon le
+contrat ci-dessus, avec une autorisation de redistribution pour chaque
+contenu provenant d'un autre auteur.
 
 ```powershell
-# Analyse sans écrire : vérifie l'intégralité des 95 parcours.
-py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides
+# 1. Prévalidation intégrale sans écriture
+py -3.13 -m tools.import_ganymede_instruction_pack "C:\\mes-guides-autorises"
 
-# Après validation des auteurs et des droits, publication locale.
-py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides --apply
+# 2. Après 95/95 PASS seulement : importer dans Atlas
+py -3.13 -m tools.import_ganymede_instruction_pack "C:\\mes-guides-autorises" --install
 
-# Lot partiel explicitement assumé (ne remplace pas la certification des 95).
-py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides --allow-partial --apply
+# 3. Preuve de disponibilité locale
+py -3.13 -m tools.audit_ganymede_instruction_coverage --strict
 ```
 
-L'import refuse les étapes absentes, les actions inconnues, les liens
-d'identifiants pris pour des objectifs, les fichiers inconnus ou les routes
-déjà présentes et modifiées (sauf `--allow-overwrite`). Il vérifie
-**tout le lot avant écriture** et écrit les JSON via un remplacement
-atomique par fichier. Le rapport contient nombre de guides, d'étapes,
-empreintes SHA-256, nouveaux/identiques/modifiés et IDs manquants.
-
-Le script ne contacte pas Ganymède, n'essaie pas de contourner un accès,
-ne revendique aucune autorisation et ne remplit aucune action manquante.
-Un lot validé reste soumis aux tests Qt/Windows, à la revue des positions
-et au benchmark Doctor. L'importation locale de contenu personnel n'accorde
-pas le droit de redistribuer ce contenu dans Atlas App.
+- La validation se fait sur les 95 fichiers avant écriture ; aucune installation
+  partielle volontaire n'est acceptée.
+- L'import préserve les guides présents : il refuse les remplacements silencieux.
+- En cas d'erreur durant la publication, les fichiers déjà publiés **dans
+  cette même invocation** sont supprimés, sans toucher aux fichiers précédents.
+- Une opération sur des fichiers réellement vérifiés reste nécessaire :
+  **aucune source de texte Ganymède n'est importée automatiquement**.
+- Le contrôle technique de schéma ne remplace ni la permission effective des
+  auteurs, ni la vérification en jeu, ni le benchmark Windows.
