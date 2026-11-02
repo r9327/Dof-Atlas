@@ -254,6 +254,11 @@ class GuideCatalogView(QWidget):
             listing.setAlternatingRowColors(False)
             listing.setMaximumHeight(184)
             listing.setMinimumHeight(56)
+            listing.setStyleSheet(
+                f"QListWidget {{ background: {metadata_background};"
+                f" color: {PALETTE['TEXT']}; border: 1px solid {PALETTE['BORDER']}; }}"
+                f"QListWidget::item {{ padding: 6px 8px; }}"
+            )
             listing.itemClicked.connect(self._open_other_category_item)
             section_layout.addWidget(listing)
             self.other_category_lists[category] = listing
@@ -325,8 +330,6 @@ class GuideCatalogView(QWidget):
         guide_id = str(guide_id or "")
         if not guide_id:
             return False
-        if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
-            return False
         # Bonta/Brâkmar must open their actual Ganymède route instead of
         # displaying the old Atlas quest checklist. Keep the historic JSON
         # untouched until those routes have a verified offline replacement.
@@ -341,6 +344,8 @@ class GuideCatalogView(QWidget):
                 target.setData(Qt.UserRole, source.source_id)
                 self._open_ganymede_source_item(target)
                 return True
+        if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
+            return False
         self.current_guide_id = guide_id
         self.guideRequested.emit(guide_id)
         return True
@@ -552,6 +557,19 @@ class GuideCatalogView(QWidget):
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
 
+        self._refresh_other_groups(matched, native)
+        for guide_id, button in self.alignment_buttons.items():
+            source = next(
+                (entry for entry in self.ganymede_listings
+                 if ATLAS_EQUIVALENTS.get(entry.source_id) == guide_id),
+                None,
+            )
+            button.setEnabled(source is not None or guide_id in catalog_by_id)
+            button.setText(
+                f"{'Bonta' if guide_id.endswith('bonta') else 'Brâkmar'}"
+                + (f" · {source.step_count} étapes" if source and source.step_count else "")
+            )
+
         has_metadata = bool(entries)
         self.metadata_title.setVisible(has_metadata)
         self.home_metadata_list.setVisible(has_metadata)
@@ -562,6 +580,45 @@ class GuideCatalogView(QWidget):
             self.home_empty.setText("Aucun parcours disponible dans cette catégorie.")
             self.home_empty.setVisible(not shown_guides and not has_metadata)
         self._sync_grid_columns()
+
+    def _refresh_other_groups(self, matched, native_ids: set[str]) -> None:
+        """Render each non-Dofus family once, without opening rich readers."""
+        featured = set(dict(FEATURED))
+        for category, listing in self.other_category_lists.items():
+            native_guides = [
+                guide for guide in matched
+                if guide.id not in featured
+                and (
+                    guide.category == category
+                    or category == "adventures" and guide.category == "aventure"
+                )
+            ]
+            source_entries = displayable_listings(
+                self.ganymede_listings,
+                native_ids | {str(guide.id) for guide in native_guides},
+                category, self.search_text,
+            )
+            listing.clear()
+            for guide in native_guides:
+                item = QListWidgetItem(str(guide.title))
+                item.setData(Qt.UserRole + 1, str(guide.id))
+                item.setToolTip("Ouvrir ce guide Atlas")
+                listing.addItem(item)
+            for entry in source_entries:
+                count = f" · {entry.step_count} étapes" if entry.step_count else ""
+                item = QListWidgetItem(f"{entry.title}{count}")
+                item.setData(Qt.UserRole, entry.source_id)
+                item.setToolTip("Parcours Ganymède officiel · suivi manuel Atlas")
+                listing.addItem(item)
+            listing.parentWidget().setVisible(listing.count() > 0)
+            listing.setFixedHeight(min(184, max(56, listing.count() * 35 + 8)))
+
+    def _open_other_category_item(self, item: QListWidgetItem) -> None:
+        guide_id = item.data(Qt.UserRole + 1)
+        if guide_id:
+            self.select_guide(str(guide_id))
+        elif item.data(Qt.UserRole) is not None:
+            self._open_ganymede_source_item(item)
 
     def _open_ganymede_source_item(self, item: QListWidgetItem) -> None:
         """Open public source steps in Atlas; store only user-approved step IDs."""
