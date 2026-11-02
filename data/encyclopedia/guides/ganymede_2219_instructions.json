@@ -22,7 +22,9 @@
     "https://www.dofuserie.com/quetes/un-autre-moyen-de-transport/",
     "https://www.dofuspourlesnoobs.com/haute-voltige.html",
     "https://www.dofuspourlesnoobs.com/le-nouveau-monde.html",
-    "https://www.dofuspourlesnoobs.com/un-autre-moyen-de-transport.html"
+    "https://www.dofuspourlesnoobs.com/un-autre-moyen-de-transport.html",
+    "https://doflex.fr/fr/encyclopedia/items/167-huile-de-sesame",
+    "https://www.dofuspourlesnoobs.com/guide-de-progression-dofus3-p3.html"
   ],
   "steps": [
     {
@@ -80,7 +82,7 @@
         },
         {
           "kind": "prepare",
-          "text": "1 Huile de Sésame : la route source GP6 mentionne 3 Graines de Sésame (fabrication Paysan) ; quantité actuelle à vérifier sous DOFUS Unity avant certification.",
+          "text": "1 Huile de Sésame : fabriquer chez un Paysan à partir de 10 Graines de Sésame (recette de l'objet) ou acheter l'huile directement. Ne pas suivre l'ancien commentaire « 3 graines » de GP6.",
           "copy_values": [
             "Huile de Sésame"
           ]
