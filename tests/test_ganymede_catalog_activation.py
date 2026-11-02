@@ -43,10 +43,11 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
         self.assertEqual(set(counts), set(manifest))
         self.assertEqual(sum(total for _source, total in counts.values()), 1694)
         self.assertEqual(counts["dofus_cawotte"], (2205, 64))
-        # An integrity fallback can still have an old quest guide in the
-        # catalogue, but must never acquire a fake Ganymède progress counter.
+        # Even a stale link explicitly pointing to the archived quest data
+        # cannot become a native Ganymède route or progress source.
+        archive = GUIDES.parents[2] / "archives" / "legacy-guides-2026-11-02"
         provider._detail_entries["dofus_cawotte"] = (
-            GUIDES / "dofus_cawotte.json", 0, {},
+            archive / "dofus_cawotte.json", 0, {},
         )
         self.assertNotIn(
             "dofus_cawotte", active_manual_catalog_sources(provider, guides),
