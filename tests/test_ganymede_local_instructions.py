@@ -170,6 +170,35 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
                     list(range(1, entry.step_count + 1)),
                 )
 
+    def test_otomai_three_fournesol_travel_starts_at_stage_two(self):
+        # Only source stage 2 mentions Fournesol's [-48,19]; stage 1 is
+        # preparatory. Keep an independently corroborated coordinate without
+        # moving the whole quest or changing the later stage 3 dialogue.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings, load_ganymede_local_observations,
+        )
+
+        listing = next(row for row in load_ganymede_listings()
+                       if row.source_id == 2252)
+        steps = load_ganymede_local_instructions(listing)
+        observed = load_ganymede_local_observations(listing)
+        source_coordinate = [-48, 19]
+        self.assertNotIn(
+            source_coordinate,
+            [action["coordinates"] for action in steps[0]["actions"]
+             if "coordinates" in action],
+        )
+        stage_two_travel = [
+            action for action in steps[1]["actions"]
+            if action["kind"] == "travel"
+        ]
+        self.assertEqual(len(stage_two_travel), 1)
+        self.assertEqual(stage_two_travel[0]["coordinates"], source_coordinate)
+        self.assertIn(source_coordinate, observed[1]["coordinate_mentions"])
+        self.assertTrue(any(action["kind"] == "talk"
+                            and "Fournesol" in action["text"]
+                            for action in steps[2]["actions"]))
+
     def test_otomai_one_source_crossing_fights_begin_at_step_four(self):
         # Source GP6/MG6: embark at step 3; the three battles belong to step 4.
         # This narrow regression does not certify the other route objectives.
