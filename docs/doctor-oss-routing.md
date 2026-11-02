@@ -11,13 +11,13 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   et les contrôles JSON gardent leurs propriétaires et leurs gates.
   Le routeur lit les outils `automation_ready` du catalogue canonique
   pour *recommander*, sans jamais les invoquer à leur place.
-- **Ruff (ATOSS-20)** : seul outil tiers exécuté dans ce premier lot,
+- **Ruff (ATOSS-20)** : diagnostic Python sélectionné sur périmètre, exécuté si présent lors des checks autorisés,
   **à la demande uniquement**, sur au plus 16 fichiers Python explicites.
   Le lancement utilise le Python actif, sans install automatique,
   sans exécution d'un chemin PATH, sans cache, sans correctif et avec timeout.
   Les règles sont isolées de la configuration locale. La version observée
   est une simple *déclaration*, pas une qualification Windows/3.13.
-- **pytest-qt, Hypothesis, pywinauto, ast-grep, Semgrep, zizmor, Gitleaks,
+- **pytest-qt, Hypothesis, pywinauto, ast-grep, Semgrep, Gitleaks,
   OSV, ImageHash, RapidFuzz, msgspec, orjson, ijson et autres candidats**
   : non automatiquement exécutés ni embarqués. Ils doivent avoir une
   preuve de version/licence, tests ciblés et intégration chez leur owner.
@@ -42,38 +42,79 @@ Doctor choisit les **capacités utiles** en fonction des fichiers explicites :
 | Launcher | Tests Windows du launcher | pywinauto, zstandard en qualification ciblée |
 | Dépendances | Verrouillage et contrôles CI | OSV ou pip-audit (pas les deux par défaut) |
 
-L'algorithme utilise \`ai_context.classify_path\` et **la même étude
+L'algorithme utilise `ai_context.classify_path` et **la même étude
 ATOSS-01..29**, sans nouvelle base d'inventaire. Il retourne
-\`intelligent_selection\` : \`scopes\`, \`recommended\`,
-\`reason_scopes\`, \`native_routes\` et \`omitted_count\`. Les outils
+`intelligent_selection` : `scopes`, `recommended`,
+`reason_scopes`, `native_routes` et `omitted_count`. Les outils
 non sélectionnés ne s'exécutent pas. Les outils rejetés (#28/#29),
 hébergés dans Holding (#26/#27) ou doublonnant un moteur existant
 restent exclus des nouveaux exécuteurs.
 
-Avec \`--run\` ou \`agent check --run-oss\`, Doctor lance au plus
+Avec `--run` ou `agent check --run-oss`, Doctor lance au plus
 **deux diagnostics explicitement autorisés** selon le scope : Ruff
 pour les fichiers Python, zizmor pour les YAML GitHub Actions.
-Pour zizmor, \`--offline --no-config --no-progress --no-exit-codes
---format=json\` empêche toute collecte GitHub en ligne et interdit le
+Pour zizmor, `--offline --no-config --no-progress --no-exit-codes
+--format=json` empêche toute collecte GitHub en ligne et interdit le
 chargement des configurations locales. L'environnement du processus
 ne transmet ni tokens ni proxy. Les résultats sont des **compteurs**
-(\`CLEAN\`, \`FINDINGS\`, \`NOT_AVAILABLE\`, \`ERROR\`, \`TIMEOUT\`), sans
+(`CLEAN`, `FINDINGS`, `NOT_AVAILABLE`, `ERROR`, `TIMEOUT`), sans
 contenu sensible. Aucune installation ni correction n'est réalisée.
 Un fichier donné explicitement doit exister et être situé sous un
 périmètre autorisé ; max. 16 fichiers, timeout total 1..60 secondes.
 
-Le rapport \`execution_results\` sépare les diagnostics réellement
-lancés. \`execution_count\` compte uniquement les réponses valides
+Le rapport `execution_results` sépare les diagnostics réellement
+lancés. `execution_count` compte uniquement les réponses valides
 CLEAN/FINDINGS, jamais une détection de paquet ; une absence ou un
 timeout d'un spécialiste fait ressortir un code de sortie non nul
-sur la commande \`doctor oss\`. Pour \`agent check\`, les résultats
+sur la commande `doctor oss`. Pour `agent check`, les résultats
 restent **consultatifs** et n'écrasent jamais les tests, les erreurs,
 les preuves de certification ou le verdict Doctor.
 
-Les 29 projets ne sont **pas** tous installés ni adaptés par ce lot.
+Les 29 projets et les cinq outils complémentaires ne sont **pas** tous installés ni adaptés par ce lot.
 Les candidats de niveau P0/P1 restent soumis à la qualification de
 version/licence, aux tests Windows, aux benchmarks de parité et au
 rattachement à leur propriétaire réel avant toute activation.
+
+
+## Utilisation obligatoire avant chaque développement Atlas
+
+La méthode canonique est **Doctor plan → développement → Doctor check →
+Doctor validate → audit de chaque commit → CI adaptée → certification**.
+
+Pour un travail Python ou GitHub Actions, **`agent check --run-tests`**
+déclenche désormais automatiquement les scanners externes déjà approuvés
+et disponibles, en complément des tests ciblés canoniques :
+
+```powershell
+py -3.13 -m tools.atlas_doctor agent plan tools/atlas_doctor.py --json
+# faire la modification prévue
+py -3.13 -m tools.atlas_doctor agent check tools/atlas_doctor.py --run-tests --json
+py -3.13 -m tools.atlas_doctor agent validate tools/atlas_doctor.py --json
+```
+
+Ce choix automatique utilise uniquement les **fichiers explicites et
+existants** du périmètre : Ruff pour les fichiers `.py`, zizmor (offline)
+pour les workflows `.yml/.yaml` sous `.github/workflows/`. Pas de scan
+global de fichiers, de téléchargement de dépendances, de mutation, ni de
+raccourci de CI. La sélection est bornée à 16 fichiers et le budget
+externe automatique à 20 secondes maximum.
+
+Les cas exclus (documentation, assets, fichiers supprimés, chemins non sûrs)
+sont comptés comme ignorés ; un périmètre plus large que 16 fichiers est
+marqué **incomplet** et exige une vérification complémentaire. Un outil absent
+reste `NOT_AVAILABLE`. Ce constat ne transforme jamais un résultat
+de test ou de certification en PASS et ne supprime aucune exigence Doctor.
+
+`--run-oss` conserve le lancement explicite sans tests, et `--no-oss`
+permet de désactiver les outils tiers sans désactiver les tests Doctor.
+Pour lancer un audit des 18 capacités natives, utiliser séparément
+`doctor capabilities --run-tests` lorsque le scope le justifie.
+
+La matrice de recommandation utilise la liste **29 ATOSS + 5 AT-SUP** du
+document d'origine. Aucun outil "évalué" ne devient "exécutable" par sa
+simple présence dans cette matrice ; les intégrations de données/Qt/Windows
+sont encore suivies par #313, et la recette réelle Windows des deux scanners
+par #343.
 
 ## Commandes
 
@@ -106,7 +147,7 @@ Le rapport expose aussi `native_catalog`, calculé **uniquement par
 de chemins. Il s'agit d'un audit de câblage **statique**,
 `execution_witnesses: 0` tant qu'aucun test n'a été exécuté.
 
-Le rapport retourne aussi `open_source_inventory` : les 29 entrées `ATOSS-XX`
+Le rapport retourne aussi `open_source_inventory` : les 29 entrées `ATOSS-XX` et les 5 `AT-SUP-XX`
 lues directement depuis l'étude canonique, sans table de correspondance
 à maintenir séparément. Chaque entrée distingue `NOT_VERIFIED`,
 `EXISTING_OWNER_NOT_RETESTED`, `DOCTOR_OPT_IN_ONLY` ou `REJECTED`.
