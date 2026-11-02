@@ -1,6 +1,7 @@
 """Bulk import refuses incomplete/untrusted routes and never writes on dry run."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -168,6 +169,21 @@ class GanymedeAuthoredImportTests(unittest.TestCase):
             with self.assertRaisesRegex(OSError, "simulated"):
                 self.run_import(apply=True)
         self.assertFalse(list(self.outbox.glob("ganymede_*_instructions.json")))
+
+
+    def test_changed_source_rejected_against_approved_preflight(self):
+        first = self.write(2203, 2)
+        second = self.write(2205, 1)
+        expected = {
+            2203: hashlib.sha256(first.read_bytes()).hexdigest(),
+            2205: hashlib.sha256(second.read_bytes()).hexdigest(),
+        }
+        first.write_text(first.read_text(encoding="utf-8").replace(
+            "Réaliser l'action originale 1", "Action corrigée après revue",
+        ), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Source differs from approved"):
+            self.run_import(apply=True, expected_source_sha256=expected)
+        self.assertFalse(self.outbox.exists())
 
 
 
