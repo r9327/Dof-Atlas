@@ -88,6 +88,26 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Incomplete"):
             load_ganymede_local_instructions(self.entry, data_dir=self.folder)
 
+    def test_authored_copy_labels_are_explicit_and_bounded(self):
+        self.payload["steps"][0]["actions"][0]["copy_values"] = [
+            "Capitaine Kradoc", "Gros Boulet",
+        ]
+        self.save()
+        self.assertEqual(
+            len(load_ganymede_local_instructions(
+                self.entry, data_dir=self.folder,
+            )), 2,
+        )
+        for bad in ([""], [123], "Texte arbitraire", ["x" * 257],
+                    ["x"] * 33):
+            self.payload["steps"][0]["actions"][0]["copy_values"] = bad
+            self.save()
+            with self.subTest(copy_values=str(bad)[:32]):
+                with self.assertRaisesRegex(ValueError, "copy values"):
+                    load_ganymede_local_instructions(
+                        self.entry, data_dir=self.folder,
+                    )
+
     def test_redistribution_requires_reference_and_attribution(self):
         self.payload["rights_basis"] = "redistribution_permission"
         self.save()
