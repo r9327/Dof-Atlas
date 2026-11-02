@@ -63,3 +63,36 @@
 5. **Blocage de production du contenu : pas de nouveaux parcours tant que la conformité des parcours déjà rédigés n'est pas vérifiée**, conformément à la demande du propriétaire de l'application. Conserver PR Draft et ne lancer ni fusion ni release avant résolution.
 
 **Note de méthode :** cette revue est un **audit statique factuel des fichiers réellement présents à GitHub**, et non un audit de contenu complet de Ganymède ou une capture Windows authentique. Elle n'apporte aucune preuve de réussite en jeu.
+
+## Reprise du 2 novembre — contrôle éditorial et parité de rendu (PR #337)
+
+**Règle acceptée :** chacun des 95 parcours doit réutiliser l'expérience de
+`SharedGuideManualView` des deux parcours optimisés (en-tête compact, route /
+préparation / succès, sommaire et personnage, progression, navigation et styles).
+Les positions doivent être **en gras et copiables au clic**, les objets à
+acheter/récolter **copiables avec les mêmes couleurs** que les guides optimisés,
+et les PNJ identifiés par **les mêmes règles de couleur**. Il faut réutiliser les
+règles et composants existants, sans introduire une seconde palette ou altérer
+les deux grands parcours optimisés. L'actuel `QPlainTextEdit` du lecteur local
+ne satisfait pas ces critères : **UI NON CONFORME, non certifiée**.
+
+**Certification obligatoire avant chaque nouveau guide :** confronter dans
+l'ordre chaque étape de la référence Ganymède à la route Atlas (préparation,
+objets et quantités, PNJ/dialogues, coordonnées, combats, interactions,
+bifurcations, renvois et validations) et inscrire les écarts ; vérifier ensuite
+copie des coordonnées/objets, en-tête, progression par personnage, rendu Qt,
+persistance et performances. Aucun statut CERTIFIÉ par simple conformité JSON,
+coordonnées présentes ou tests simulés. Revue en jeu/Windows non exécutée et
+toujours bloquante pour la certification finale. La source sert à contrôler le
+**chemin et les objectifs**, sans recopier le texte éditorial protégé.
+
+**Premier écart revu (Otomaï 1 #2219) :** le guide de référence GP6/MG6 situe
+les trois combats du bateau à l'étape 4, après l'embarquement de l'étape 3.
+Le JSON Atlas les affectait à tort à l'étape 3. **Correctif proposé dans ce
+lot :** déplacer l'action de combat à l'étape 4 et rendre la transition claire,
+avec test de non-régression. Références :
+https://ganymede-app.com/guides/2219 et
+https://ganymede-app.com/guides/183 .
+Ce contrôle **local de deux étapes ne certifie pas** l'intégralité d'Otomaï 1,
+encore moins les 14 autres. Statut inchangé : **0/15 certifié**, PR Draft,
+aucune Phase Certification ni release demandée.
