@@ -215,6 +215,68 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         self.assertIn("trois", fights[0]["text"].casefold())
 
 
+    def test_otomai_one_comprehensive_pre_certification_contract(self):
+        # This is a data regression test, NOT gameplay/source certification.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings, load_ganymede_local_observations,
+        )
+
+        listing = next(row for row in load_ganymede_listings()
+                       if row.source_id == 2219)
+        steps = load_ganymede_local_instructions(listing)
+        observed = load_ganymede_local_observations(listing)
+        self.assertEqual(len(steps), 7)
+        self.assertEqual(len(observed), 7)
+        root = Path(__file__).resolve().parents[1] / "data/encyclopedia/guides"
+        metadata = json.loads(
+            (root / "ganymede_2219_instructions.json").read_text(encoding="utf-8")
+        )
+        self.assertIs(metadata["source_parity_certified"], False)
+        self.assertIs(metadata["gameplay_certified"], False)
+
+        def texts(number):
+            return " ".join(a["text"] for a in steps[number - 1]["actions"])
+
+        self.assertIn("niveau 40", steps[0]["instructions"].casefold())
+        self.assertIn("La grande kradoc", texts(1))
+        self.assertIn("Haute voltige", texts(1))
+        self.assertIn("étape 5", texts(1))
+        self.assertIn("3 Graines de Sésame", texts(2))
+        self.assertIn("Kradoc", texts(3))
+        self.assertTrue(any(a["kind"] == "deliver" for a in steps[2]["actions"]))
+        self.assertFalse(any(a["kind"] == "fight" for a in steps[2]["actions"]))
+        self.assertEqual(
+            len([a for a in steps[3]["actions"] if a["kind"] == "fight"]), 3
+        )
+        self.assertIn("Le secret des Flaqueux", texts(4))
+        self.assertIn("Parchemin des Flaqueux", texts(4))
+        for number, position in (
+            (1, [13, 26]), (2, [15, 28]), (3, [15, 28]),
+            (4, [19, 42]), (4, [-43, -1]), (4, [-46, 18]),
+            (5, [-56, 22]), (6, [-56, 22]), (7, [-54, 19]),
+        ):
+            self.assertTrue(
+                any(a.get("coordinates") == position for a in steps[number-1]["actions"]),
+                f"Missing map {position} at stage {number}",
+            )
+        self.assertIn("certificat de Dragodinde Rousse sauvage", texts(5))
+        self.assertIn("certificat de Dragodinde Amande sauvage", texts(5))
+        self.assertTrue(any(
+            a["kind"] == "deliver" and "certificat" in a["text"]
+            for a in steps[5]["actions"]
+        ))
+        self.assertIn("Le scaéroport de l'Arbre Hakam", texts(6))
+        self.assertIn("1 Ailes en bois améliorées", texts(7))
+        self.assertIn("1 Casque amélioré", texts(7))
+
+        for step, snapshot in zip(steps, observed):
+            known = {tuple(pair) for pair in snapshot["coordinate_mentions"]}
+            for action in step["actions"]:
+                coords = action.get("coordinates")
+                if coords is not None:
+                    self.assertEqual(action["kind"], "travel")
+                    self.assertIn(tuple(coords), known)
+
     def test_positioned_actions_follow_local_step_observations(self):
         # A factual coordinate must belong to its exact step in the local
         # observation file. This does not certify the original guide text.
