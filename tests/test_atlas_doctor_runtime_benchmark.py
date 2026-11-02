@@ -121,6 +121,34 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(startup["delta_percent"], 20.0)
         self.assertEqual(len(comparison["regressions_15pct"]), 1)
 
+    def test_doctor_compares_canonical_guide_interaction_percentiles(self):
+        before = self.sample(head="old", startup_ms=110.0, rss_mb=100.0)
+        after = self.sample(head="new", startup_ms=110.0, rss_mb=100.0)
+        before["metrics"]["guide_catalog_interactions"] = {
+            "status": "MEASURED",
+            "samples": 16,
+            "category_switch_p95_ms": 30.0,
+            "catalog_rss_after_navigation_mb": 108.0,
+        }
+        after["metrics"]["guide_catalog_interactions"] = {
+            "status": "MEASURED",
+            "samples": 16,
+            "category_switch_p95_ms": 12.0,
+            "catalog_rss_after_navigation_mb": 104.0,
+        }
+        report = compare_to_baseline(
+            aggregate_samples([after]), aggregate_samples([before]),
+        )
+        self.assertEqual(report["status"], "PASS")
+        row = next(
+            metric for metric in report["metrics"]
+            if metric["metric"] == "guide_catalog_interactions.category_switch_p95_ms"
+        )
+        self.assertEqual(row["baseline"], 30.0)
+        self.assertEqual(row["current"], 12.0)
+        self.assertEqual(row["delta_percent"], -60.0)
+        self.assertIn(row, report["improvements_15pct"])
+
     def test_environment_mismatch_refuses_false_comparison(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=100.0, rss_mb=100.0)]

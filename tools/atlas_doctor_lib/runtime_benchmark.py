@@ -287,6 +287,11 @@ def measure_sample(root: Path) -> dict[str, Any]:
         QUESTS_TAB,
     )
     from main import AtlasWindow
+    # Reuse the canonical Encyclopedia benchmark's Guide interaction probe.
+    # Do not add a second benchmark engine to Doctor.
+    from app.modules.encyclopedia.tools.benchmark_guides_performance import (
+        measure_guide_catalog_interactions,
+    )
 
     app = QApplication.instance() or QApplication([])
     startup_started = time.perf_counter()
@@ -320,6 +325,7 @@ def measure_sample(root: Path) -> dict[str, Any]:
         guide_open_ms, guide_ui_block_ms = _open_runtime(app, window, GUIDES_TAB)
         _pump_events(app, 0.05)
         rss_after_guide_mb = current_rss_mb()
+        guide_catalog_interactions = measure_guide_catalog_interactions(app, window)
         guide_detail_ms, guide_id, guide_detail_block_ms = _first_guide_detail(
             app, window
         )
@@ -359,6 +365,7 @@ def measure_sample(root: Path) -> dict[str, Any]:
             "achievements_open_max_ui_block_ms": achievements_ui_block_ms,
             "guide_open_ms": guide_open_ms,
             "guide_open_max_ui_block_ms": guide_ui_block_ms,
+            "guide_catalog_interactions": guide_catalog_interactions,
             "first_achievement_detail_ms": achievement_detail_ms,
             "first_achievement_detail_max_ui_block_ms": achievement_detail_block_ms,
             "first_achievement_id": achievement_id,
