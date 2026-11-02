@@ -300,6 +300,10 @@ class GuideCatalogView(QWidget):
         character_key = str(character_key or "")
         if character_key == self.current_character_key:
             return
+        # An already-open source dialog captured the previous character.
+        # Close it before the owner switches to prevent cross-character writes.
+        if self._ganymede_source_dialog is not None:
+            self._ganymede_source_dialog.close()
         self.current_character_key = character_key
         self._initial_progress_by_guide = {}
         self._initial_progress_character_key = ""
@@ -485,7 +489,7 @@ class GuideCatalogView(QWidget):
             item = QListWidgetItem(f"{entry.title}{count} · lire")
             item.setToolTip(
                 "Ouvrir les étapes originales sur Ganymède dans Atlas. "
-                "La progression n'est pas synchronisée avec Atlas."
+                "Les validations manuelles restent enregistrées dans Atlas."
             )
             item.setData(Qt.UserRole, entry.source_id)
             self.home_metadata_list.addItem(item)
