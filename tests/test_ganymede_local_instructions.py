@@ -121,7 +121,7 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         listings = {
             entry.source_id: entry for entry in load_ganymede_listings()
         }
-        for guide_id, count in ((2285, 4), (2290, 2), (2273, 15), (2247, 6)):
+        for guide_id, count in ((2285, 4), (2290, 2), (2273, 15), (2247, 6), (2227, 9)):
             with self.subTest(guide_id=guide_id):
                 entry = listings[guide_id]
                 self.assertEqual(entry.step_count, count)
