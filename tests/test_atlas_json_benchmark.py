@@ -113,6 +113,25 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 compare_json_streaming(path, max_bytes=1)
 
+    def test_third_party_parser_crashes_are_explicit_errors(self) -> None:
+        def crashed(_):
+            raise RuntimeError("simulated third-party parser failure")
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text('{"quests":{"1":{}}}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(loads=crashed)):
+                trial = compare_json_parsers(source, candidates=("orjson",))
+            self.assertEqual(trial["status"], "REVIEW")
+            self.assertEqual(trial["results"][0]["status"], "ERROR")
+            def fail_stream(*_args, **_kwargs):
+                raise RuntimeError("simulated broken backend")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(kvitems=fail_stream)):
+                trial = compare_json_streaming(source)
+            self.assertEqual(trial["status"], "ERROR")
+            self.assertEqual(trial["error_type"], "RuntimeError")
+
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
             benchmark(Path("unused"), Path("unused"), sample_count=0)
