@@ -211,8 +211,11 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         self.assertEqual(len(steps), 7)
         self.assertFalse(any(a["kind"] == "fight" for a in steps[2]["actions"]))
         fights = [a for a in steps[3]["actions"] if a["kind"] == "fight"]
-        self.assertEqual(len(fights), 1)
-        self.assertIn("trois", fights[0]["text"].casefold())
+        self.assertEqual(len(fights), 3)
+        self.assertTrue(all(
+            label in action["text"].casefold()
+            for label, action in zip(("premier", "deuxième", "troisième"), fights)
+        ))
 
 
     def test_otomai_one_comprehensive_pre_certification_contract(self):
