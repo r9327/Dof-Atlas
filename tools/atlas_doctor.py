@@ -957,13 +957,18 @@ def command_all(root: Path, args) -> dict[str, Any]:
 def command_oss(root: Path, args) -> dict[str, Any]:
     """Run safe, opt-in third-party diagnostics without changing Doctor gates."""
     from tools.atlas_doctor_lib.oss_router import (
-        route_oss, qualify_live, trial_imagehash,
+        route_oss, qualify_live, trial_imagehash, trial_fonttools,
     )
     try:
-        if getattr(args, "asset_trial", False):
-            if args.run or args.verify_live:
-                raise ValueError("ImageHash trial is separate from Ruff/zizmor execution")
+        asset_trial = bool(getattr(args, "asset_trial", False))
+        font_trial = bool(getattr(args, "font_trial", False))
+        if (int(asset_trial) + int(font_trial)
+                + int(bool(args.run)) + int(bool(args.verify_live)) > 1):
+            raise ValueError("Select exactly one opt-in OSS diagnostic mode")
+        if asset_trial:
             payload = trial_imagehash(root, args.paths)
+        elif font_trial:
+            payload = trial_fonttools(root, args.paths)
         elif args.verify_live:
             payload = qualify_live(root, args.paths,
                                    timeout_seconds=args.timeout_seconds)
@@ -994,6 +999,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Attester l'exécution réelle locale des deux outils et l'intégrité des fichiers.")
     oss.add_argument("--asset-trial", action="store_true",
                      help="Essai ImageHash manuel sur images explicites; jamais de suppression.")
+    oss.add_argument("--font-trial", action="store_true",
+                     help="Essai fontTools manuel sur TTF/OTF explicites; aucune mutation.")
     oss.add_argument("--timeout-seconds", type=int, default=20,
                      help="Limite d'exécution de Ruff (1 à 60 secondes).")
     ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
@@ -1416,7 +1423,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
-        if getattr(args, "asset_trial", False):
+        if getattr(args, "asset_trial", False) or getattr(args, "font_trial", False):
             return 0 if payload.get("status") == "TRIAL_COMPLETE" else 1
         if getattr(args, "verify_live", False):
             return 0 if payload.get("status") == "LIVE_PASS" else 2 if payload.get("status") == "FAIL" else 1
