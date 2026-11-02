@@ -14,6 +14,7 @@ import io
 import json
 import statistics
 import time
+import zlib
 from pathlib import Path
 
 from app.quest_source_index import QuestSources
@@ -220,6 +221,77 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
     }
 
 
+def compare_json_compression(source: Path, *, max_bytes: int = 128 * 1024 * 1024) -> dict:
+    """Offline JSON compression trial; never changes launcher pack formats.
+
+    Both algorithms operate on exactly the same source bytes and verify a
+    lossless round trip before reporting any size/timing. No network or writes.
+    """
+    if not 1 <= max_bytes <= 256 * 1024 * 1024:
+        raise ValueError("Invalid compression size budget")
+    supplied = Path(source)
+    if supplied.is_symlink():
+        raise ValueError("Compression trial rejects symlinked sources")
+    path = supplied.resolve(strict=True)
+    if not path.is_file() or path.stat().st_size > max_bytes:
+        raise ValueError("Compression input missing or oversized")
+    raw = path.read_bytes()
+    if len(raw) > max_bytes:
+        raise ValueError("Compression input grew during read")
+    reports: list[dict] = []
+    for name in ("zlib", "zstandard"):
+        if name == "zlib":
+            compress = lambda data: zlib.compress(data, level=6)
+            decompress = zlib.decompress
+        else:
+            try:
+                zstd = importlib.import_module("zstandard")
+            except (ImportError, OSError):
+                reports.append({"name": name, "status": "NOT_AVAILABLE",
+                                "executed": False})
+                continue
+            compress = lambda data: zstd.ZstdCompressor(level=3).compress(data)
+            decompress = lambda data: zstd.ZstdDecompressor().decompress(
+                data, max_output_size=len(raw))
+        try:
+            started = time.perf_counter_ns()
+            packed = compress(raw)
+            packed_ms = (time.perf_counter_ns() - started) / 1_000_000
+            if not isinstance(packed, bytes):
+                raise TypeError("Compressor did not return bytes")
+            started = time.perf_counter_ns()
+            decoded = decompress(packed)
+            unpacked_ms = (time.perf_counter_ns() - started) / 1_000_000
+            if decoded != raw:
+                raise ValueError("Compression round trip differs from source")
+        except Exception as exc:
+            reports.append({"name": name, "status": "ERROR",
+                            "executed": True, "error_type": type(exc).__name__})
+            continue
+        reports.append({
+            "name": name, "status": "PARITY_PASS", "executed": True,
+            "compressed_bytes": len(packed),
+            "compression_ratio": round(len(packed) / max(1, len(raw)), 6),
+            "compress_ms": round(packed_ms, 6),
+            "decompress_ms": round(unpacked_ms, 6),
+        })
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_json_benchmark.compare_json_compression",
+        "source_sha256": hashlib.sha256(raw).hexdigest(),
+        "source_bytes": len(raw),
+        "status": ("COMPARE_COMPLETE" if all(row["status"] == "PARITY_PASS"
+                                              for row in reports)
+                   else "REVIEW"),
+        "results": reports, "runtime_consumer_changed": False,
+        "limits": [
+            "Only lossless offline round-trip and compression time/ratio",
+            "Not a measured app install, updater delta or cold-load speedup",
+            "No launcher/release pack format or runtime dependency changed",
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Comparer offsets Quêtes existants et shards expérimentaux"
@@ -238,11 +310,15 @@ def main() -> int:
     parser.add_argument("--parser-repeats", type=int, default=3)
     parser.add_argument("--compare-streaming", action="store_true",
                         help="Explicit offline ijson quest-ID streaming parity trial")
+    parser.add_argument("--compare-compression", action="store_true",
+                        help="Explicit offline zlib/zstandard lossless compression trial")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if args.compare_parsers and args.compare_streaming:
+    if sum((args.compare_parsers, args.compare_streaming,
+            args.compare_compression)) > 1:
         parser.error("Select only one optional JSON comparison mode")
-    result = (compare_json_streaming(args.source) if args.compare_streaming
+    result = (compare_json_compression(args.source) if args.compare_compression
+              else compare_json_streaming(args.source) if args.compare_streaming
               else compare_json_parsers(args.source, repeats=args.parser_repeats)
               if args.compare_parsers else
               benchmark(args.source, args.shards, sample_count=args.sample_count))
