@@ -6,24 +6,29 @@
   "rights_basis": "atlas_original",
   "authored_language": "fr",
   "editorial_source_text_copied": false,
-  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "verification_scope": "seven_step_content_revised_against_public_gp6_parallel_reference_and_independent_quest_facts_not_direct_mg6_or_windows_certified",
   "fact_sources": [
     "https://www.dofuserie.com/quetes/l-ile-des-naufrages/",
     "https://www.dofutheque.com/le-nouveau-monde",
     "https://www.dofuspourlesnoobs.com/licircle-des-naufrageacutes.html",
     "https://www.dofuserie.com/quetes/scaeroplane-a-tres-grande-vitesse/",
     "https://openddb.dev/quests/239-scaeroplane-a-tres-grande-vitesse",
-    "https://dofus-portals.fr/quetes/un-autre-moyen-de-transport/"
+    "https://dofus-portals.fr/quetes/un-autre-moyen-de-transport/",
+    "https://ganymede-app.com/guides/2219?page=1&stepsPerPage=1",
+    "https://ganymede-app.com/guides/183",
+    "https://www.dofuspourlesnoobs.com/le-secret-des-flaqueux.html",
+    "https://www.dofuspourlesnoobs.com/scaeacuteroplane-agrave-tregraves-grande-vitesse.html",
+    "https://papycha.fr/quete-un-autre-moyen-de-transport/"
   ],
   "steps": [
     {
       "source_step_number": 1,
       "title": "Préparer l'accès à l'île d'Otomaï",
-      "instructions": "Commence au zaap de Sufokia en [13,26]. Ce parcours réunit la traversée vers Otomaï, puis deux quêtes qui donnent accès aux scaéroplanes. Si ton personnage possède déjà l'accès à l'île, vérifie le zaap du Village côtier et reprends directement la partie transport, sans refaire la traversée.",
+      "instructions": "Départ au zaap de Sufokia [13,26]. Niveau conseillé : 40 ou plus. Ce parcours comporte deux succès distincts : « La grande kradoc » pour l'accès à Otomaï et « Haute voltige » pour les transports. Si l'île est déjà accessible et ses quêtes d'accès terminées sur ce personnage, passer à l'étape 5 sans rejouer la traversée.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Se placer au zaap de Sufokia, point de départ du parcours.",
+          "text": "Se placer au zaap de Sufokia [13,26] si l'île n'est pas encore débloquée.",
           "coordinates": [
             13,
             26
@@ -31,26 +36,46 @@
         },
         {
           "kind": "information",
-          "text": "Les deux quêtes d'accès sont « Le nouveau monde » et « L'île des naufragés » ; elles ne sont pas à recommencer si déjà terminées."
+          "text": "Niveau conseillé : 40 minimum ; succès prévus : La grande kradoc et Haute voltige."
+        },
+        {
+          "kind": "information",
+          "text": "Si « Le nouveau monde » et « L'île des naufragés » sont déjà validées pour ce personnage, reprendre directement à l'étape 5, sans cocher artificiellement les combats."
         }
       ]
     },
     {
       "source_step_number": 2,
       "title": "Rassembler les ressources avant d'embarquer",
-      "instructions": "Pour « Le nouveau monde », prévois deux Miséricordes du Chafer d'Élite, un Gros Boulet, une Oreille de Foufayteur et une Huile de Sésame. Pour ne pas bloquer sur l'île des Naufragés, garde aussi un Tronc de Kokoko, un Coffret maudit du Flib, une Kokopaille et une Tranche de Nodkoko. Ces quatre derniers objets peuvent aussi être récupérés durant l'escale.",
+      "instructions": "Préparer séparément les fournitures de « Le nouveau monde » et celles de « L'île des naufragés ». L'huile de sésame se fabrique avec 3 Graines de Sésame (Paysan niveau 1). Pour rejoindre Kradoc depuis le zaap de Sufokia, prendre le zaapi « Quai du port » puis aller une carte à gauche.",
       "actions": [
         {
           "kind": "prepare",
-          "text": "Avoir 2 Miséricordes du Chafer d'Élite, 1 Gros Boulet, 1 Oreille de Foufayteur et 1 Huile de Sésame."
+          "text": "Le nouveau monde : 2 Miséricordes du Chafer d'Élite, 1 Gros Boulet, 1 Oreille de Foufayteur et 1 Huile de Sésame."
         },
         {
           "kind": "prepare",
-          "text": "Si possible, préparer 1 Tronc de Kokoko, 1 Coffret maudit du Flib, 1 Kokopaille et 1 Tranche de Nodkoko."
+          "text": "L'île des naufragés : 1 Tronc de Kokoko, 1 Tranche de Nodkoko, 1 Kokopaille et 1 Coffret maudit du Flib (possible à récupérer pendant l'escale)."
+        },
+        {
+          "kind": "craft",
+          "text": "Option : faire 1 Huile de Sésame avec 3 Graines de Sésame (métier Paysan niveau 1)."
         },
         {
           "kind": "travel",
-          "text": "Rejoindre le Capitaine Kradoc à Sufokia.",
+          "text": "Depuis le zaap de Sufokia [13,26], utiliser le zaapi vers le Quai du port, puis avancer d'une carte vers la gauche.",
+          "coordinates": [
+            13,
+            26
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Sans le zaap de Sufokia, rejoindre Sufokia depuis le zaap du Village d'Amakna puis emprunter le portail Éliotrope et le zaapi du port, si ces accès sont disponibles."
+        },
+        {
+          "kind": "travel",
+          "text": "Arriver au Capitaine Kradoc à [15,28].",
           "coordinates": [
             15,
             28
@@ -61,42 +86,98 @@
     {
       "source_step_number": 3,
       "title": "Valider « Le nouveau monde » à Sufokia",
-      "instructions": "Parle au Capitaine Kradoc en [15,28], lance « Le nouveau monde » et remets-lui les fournitures demandées. Après validation, reparle au capitaine pour embarquer. Les trois combats de traversée se déroulent après l'embarquement, à l'étape suivante.",
+      "instructions": "Au port [15,28], commencer « Le nouveau monde » auprès du Capitaine Kradoc. Vérifier les quatre fournitures ; le Gros Boulet peut être obtenu sur les Raul Mops après le lancement de la quête. Remettre les ressources, vérifier la clôture de la quête puis reparler au capitaine pour embarquer. Les trois combats sont à l'étape 4, pas ici.",
       "actions": [
         {
-          "kind": "talk",
-          "text": "Donner au Capitaine Kradoc les objets réclamés par « Le nouveau monde »."
+          "kind": "travel",
+          "text": "Se présenter au Capitaine Kradoc au port [15,28].",
+          "coordinates": [
+            15,
+            28
+          ]
         },
         {
           "kind": "talk",
-          "text": "Lui reparler après validation pour prendre le bateau vers Otomaï."
+          "text": "Demander au Capitaine Kradoc de lancer « Le nouveau monde »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Si nécessaire, combattre des Raul Mops après avoir lancé la quête pour obtenir le Gros Boulet ; compléter aussi les Miséricordes de Chafer d'Élite, l'Oreille de Foufayteur et l'Huile de Sésame."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre au Capitaine Kradoc 2 Miséricordes du Chafer d'Élite, 1 Gros Boulet, 1 Oreille de Foufayteur et 1 Huile de Sésame."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier la fin de « Le nouveau monde » pour le personnage actif."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler au Capitaine Kradoc pour partir vers l'île ; ne pas valider ici les combats maritimes."
         }
       ]
     },
     {
       "source_step_number": 4,
       "title": "Réparer le bateau pendant l'escale et rejoindre Otomaï",
-      "instructions": "Une fois embarqué, remporte les trois combats de traversée (possibles en groupe). Après l'échouage sur l'île des Naufragés, parle de nouveau à Kradoc pour poursuivre la quête. Obtiens les quatre ressources de réparation si tu ne les as pas apportées, puis remets-les au capitaine. Une fois sur Otomaï, enregistre immédiatement le zaap du Village côtier en [-46,18] : il permettra de revenir sans refaire le voyage.",
+      "instructions": "Sur le bateau vers [19,42], gagner les trois affrontements de traversée, puis reparler à Kradoc après l'échouage pour commencer « L'île des naufragés ». Une halte facultative en [-43,-1] permet d'obtenir le Parchemin des Flaqueux en cliquant sur un parasol. Rassembler les quatre fournitures de réparation, les rendre au capitaine et rejoindre Otomaï ; débloquer le zaap du Village côtier [-46,18].",
       "actions": [
         {
+          "kind": "travel",
+          "text": "À bord du navire, se préparer aux affrontements près de [19,42].",
+          "coordinates": [
+            19,
+            42
+          ]
+        },
+        {
           "kind": "fight",
-          "text": "Remporter les trois affrontements du trajet maritime, en groupe si nécessaire."
+          "text": "Vaincre le premier combat de la traversée, pour chaque personnage qui accomplit la quête (groupe possible)."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le deuxième combat de la traversée (groupe possible)."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le troisième combat de la traversée (groupe possible)."
         },
         {
           "kind": "talk",
-          "text": "Lancer la suite de « L'île des naufragés » auprès du Capitaine Kradoc."
-        },
-        {
-          "kind": "prepare",
-          "text": "Réunir et remettre les quatre ressources : Tronc de Kokoko, Coffret maudit du Flib, Kokopaille et Tranche de Nodkoko."
-        },
-        {
-          "kind": "talk",
-          "text": "Demander au capitaine de reprendre la traversée une fois le bateau réparé."
+          "text": "Après l'échouage, parler à Kradoc pour lancer « L'île des naufragés »."
         },
         {
           "kind": "travel",
-          "text": "Activer le zaap du Village côtier dès l'arrivée à Otomaï.",
+          "text": "Détour facultatif : se rendre au parasol de paille en [-43,-1] sur l'île des Naufragés.",
+          "coordinates": [
+            -43,
+            -1
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Facultatif : cliquer sur le parasol pour lancer et terminer « Le secret des Flaqueux » ; obtenir 1 Parchemin des Flaqueux (+20 Prospection pendant 20 combats)."
+        },
+        {
+          "kind": "prepare",
+          "text": "Si nécessaire, obtenir sur l'île 1 Tronc de Kokoko, 1 Tranche de Nodkoko, 1 Kokopaille et 1 Coffret maudit du Flib."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre les quatre fournitures de réparation au Capitaine Kradoc pour terminer « L'île des naufragés »."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier la validation du succès « La grande kradoc » uniquement si les deux quêtes d'accès sont terminées."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Kradoc de reprendre la traversée en direction d'Otomaï."
+        },
+        {
+          "kind": "travel",
+          "text": "À l'arrivée, débloquer le zaap du Village côtier [-46,18].",
           "coordinates": [
             -46,
             18
@@ -107,19 +188,31 @@
     {
       "source_step_number": 5,
       "title": "Organiser les deux quêtes de transport",
-      "instructions": "Après la traversée, prépare le succès « Haute voltige ». Pour Flip Flap, il faut une Dragodinde Rousse et une Dragodinde Amande sous la forme demandée par sa quête. Pour Spitte Fayeur, prépare des Ailes en bois améliorées et un Casque amélioré. Acheter ou fabriquer ces fournitures avant de quitter le village évite plusieurs allers-retours.",
+      "instructions": "Une fois le zaap côtier [-46,18] actif, préparer le succès « Haute voltige ». Flip Flap demande un certificat de Dragodinde Rousse sauvage et un certificat de Dragodinde Amande sauvage (et non des montures génériques). Spitte Fayeur demande des Ailes en bois améliorées et un Casque amélioré ; les deux équipements sont réalisables par un Tailleur de niveau 30.",
       "actions": [
         {
-          "kind": "prepare",
-          "text": "Disposer des montures ou parchemins de Dragodinde Rousse et Amande pour Flip Flap."
+          "kind": "travel",
+          "text": "Partir du zaap du Village côtier [-46,18].",
+          "coordinates": [
+            -46,
+            18
+          ]
         },
         {
           "kind": "prepare",
-          "text": "Prévoir 1 Ailes en bois améliorées et 1 Casque amélioré pour Spitte Fayeur."
+          "text": "Pour « Un autre moyen de transport » : obtenir 1 certificat de Dragodinde Rousse sauvage et 1 certificat de Dragodinde Amande sauvage."
+        },
+        {
+          "kind": "prepare",
+          "text": "Pour « Scaéroplane à très grande vitesse » : 1 Ailes en bois améliorées et 1 Casque amélioré (achat ou fabrication Tailleur niveau 30)."
+        },
+        {
+          "kind": "information",
+          "text": "S'assurer que « L'île des naufragés » est terminée avant de lancer les deux quêtes de transport."
         },
         {
           "kind": "travel",
-          "text": "Partir du Village côtier vers Flip Flap.",
+          "text": "Se rendre chez Flip Flap en [-56,22] depuis le Village côtier.",
           "coordinates": [
             -56,
             22
@@ -130,30 +223,42 @@
     {
       "source_step_number": 6,
       "title": "Débloquer le scaéroplane des Plaines herbeuses",
-      "instructions": "En [-56,22], demande à Flip Flap « Un autre moyen de transport », puis remets-lui les deux dragodindes demandées. Après la validation, utilise son scaéroplane pour rejoindre le secteur de l'Arbre Hakam si cette destination est proposée. Vérifie que le service de transport est désormais accessible.",
+      "instructions": "En [-56,22], accepter « Un autre moyen de transport » auprès de Flip Flap et lui donner les deux certificats de dragodindes sauvages. Après validation de cette quête pour le personnage, parler de nouveau à Flip Flap et choisir explicitement le scaéroport de l'Arbre Hakam pour accéder au dernier pilote.",
       "actions": [
         {
-          "kind": "talk",
-          "text": "Accepter « Un autre moyen de transport » auprès de Flip Flap."
+          "kind": "travel",
+          "text": "Rejoindre Flip Flap en [-56,22].",
+          "coordinates": [
+            -56,
+            22
+          ]
         },
         {
           "kind": "talk",
-          "text": "Remettre une Dragodinde Rousse et une Dragodinde Amande dans le format demandé."
+          "text": "Demander à Flip Flap de commencer « Un autre moyen de transport »."
+        },
+        {
+          "kind": "deliver",
+          "text": "Lui remettre 1 certificat de Dragodinde Rousse sauvage et 1 certificat de Dragodinde Amande sauvage."
         },
         {
           "kind": "information",
-          "text": "Profiter du scaéroplane débloqué pour rejoindre l'Arbre Hakam et réduire les déplacements."
+          "text": "Vérifier la fin de « Un autre moyen de transport » pour le personnage actif."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Flip Flap et choisir le trajet « Le scaéroport de l'Arbre Hakam » ; emprunter le scaéroplane avant de passer à l'étape 7."
         }
       ]
     },
     {
       "source_step_number": 7,
       "title": "Équiper le scaéroplane de l'Arbre Hakam",
-      "instructions": "Au Village de la Canopée en [-54,19], parle à Spitte Fayeur. Lance « Scaéroplane à très grande vitesse », puis remets-lui le casque et les ailes améliorés. Les deux quêtes de transport terminées, contrôle la validation du succès « Haute voltige » dans ton interface de succès.",
+      "instructions": "Dans le Village de la Canopée [-54,19], parler à Spitte Fayeur pour lancer « Scaéroplane à très grande vitesse ». Lui apporter les deux équipements améliorés, puis vérifier la fin de la quête et du succès « Haute voltige » ; ne rien valider automatiquement sur les autres personnages.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre Spitte Fayeur au Village de la Canopée.",
+          "text": "Rejoindre Spitte Fayeur en [-54,19].",
           "coordinates": [
             -54,
             19
@@ -161,13 +266,25 @@
         },
         {
           "kind": "talk",
-          "text": "Prendre « Scaéroplane à très grande vitesse » puis donner les Ailes en bois améliorées et le Casque amélioré."
+          "text": "Accepter auprès de Spitte Fayeur « Scaéroplane à très grande vitesse »."
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 1 Ailes en bois améliorées et 1 Casque amélioré."
         },
         {
           "kind": "information",
-          "text": "Vérifier que le succès « Haute voltige » est validé, sans cocher les objectifs de quête automatiquement."
+          "text": "Vérifier la fin de la quête et du succès « Haute voltige » sur le personnage actif, sans valider les quêtes d'un autre personnage."
         }
       ]
     }
+  ],
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "source_cross_reference": "https://ganymede-app.com/guides/183",
+  "review_pending": [
+    "Compare all 7 steps directly against Ganymede MG6 route 2219 on the same candidate revision; GP6 183 is a similar parallel reference, not proof of MG6 parity.",
+    "Validate combat encounters, quest/achievement completion, wild Dragoturkey certificates, map transitions, and optional parasol under DOFUS Unity.",
+    "Verify the common optimized guide UI and per-character validation/persistence in the Windows app; collect exact-SHA test evidence."
   ]
 }
