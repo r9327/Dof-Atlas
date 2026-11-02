@@ -18,19 +18,31 @@
     {
       "source_step_number": 1,
       "title": "Vérifier l'accès aux chasses de Nimaltopia",
-      "instructions": "Cette série de quêtes prépare le succès lié aux chasseurs et peut contribuer au parcours du Dofus Ivoire. Le personnage doit avoir progressé dans les prérequis de la Fratrie des Oubliés.",
+      "instructions": "Parcours Nimaltopia à entreprendre vers le niveau 190 pour le succès « Chasse à l'homme », nécessaire au Dofus Ivoire. La suite de la Fratrie des Oubliés doit être suffisamment avancée : les étapes 3 et 7 ouvrent des quêtes requises et l'étape 9 concerne le lancement d'un autre succès lié au voyage. Préparer les ressources de l'étape 2 avant de partir évite plusieurs allers-retours.",
       "actions": [
         {
           "kind": "prepare",
-          "text": "Avoir avancé la quête de la Fratrie des Oubliés liée à l'accès aux missions de chasse."
+          "text": "Vérifier la quête « Ne tirez pas sur le messager », liée à l'étape 7 du parcours Fratrie des Oubliés."
+        },
+        {
+          "kind": "prepare",
+          "text": "Avoir terminé « Aventure miniature », requise en amont à l'étape 3 du parcours Fratrie des Oubliés."
         },
         {
           "kind": "information",
-          "text": "Niveau recommandé : 190. Le reste du parcours nécessite plusieurs ressources, à rassembler avant de commencer."
+          "text": "L'étape 9 de la Fratrie des Oubliés contient le début du succès de transport vers Nimaltopia ; ne pas confondre avec le succès de chasse."
+        },
+        {
+          "kind": "information",
+          "text": "Niveau recommandé : 190. La chasse de Nimaltopia fait partie des prérequis à l'obtention du Dofus Ivoire."
+        },
+        {
+          "kind": "information",
+          "text": "Se procurer d'avance toutes les ressources détaillées à l'étape 2 du parcours."
         },
         {
           "kind": "travel",
-          "text": "Prendre ses repères près de Bonta avant la tournée.",
+          "text": "Se repérer à Bonta en [-31,-56] avant de rejoindre les premiers PNJ.",
           "coordinates": [
             -31,
             -56
