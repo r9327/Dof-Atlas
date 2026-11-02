@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
+    QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
     QListWidgetItem, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
@@ -175,7 +175,7 @@ class GuideCatalogView(QWidget):
         self.home_metadata_list.setAlternatingRowColors(False)
         self.home_metadata_list.itemClicked.connect(self._open_ganymede_source_item)
         self.home_metadata_list.itemActivated.connect(self._open_ganymede_source_item)
-        self.home_metadata_list.setMaximumHeight(148)
+        self.home_metadata_list.setMaximumHeight(380)
         # Keep the disabled metadata legible; unlike the default opaque Atlas
         # panel, the optional Unity skin leaves some of the sky visible.
         metadata_background = (
@@ -275,7 +275,34 @@ class GuideCatalogView(QWidget):
             section_layout.addWidget(listing)
             self.other_category_lists[category] = listing
             group_layout.addWidget(section, index // 2, index % 2)
-        root.addWidget(self.other_groups_widget, 0)
+        # Canonical home: two optimized cards above; categories below-left,
+        # selected category guides below-right. Existing controls are retained
+        # hidden for callers that still navigate with the historic Qt tree.
+        root.insertWidget(0, heading("GUIDES OPTIMISÉS"))
+        root.insertWidget(1, self.optimized_pair)
+        for widget in (left_layout.itemAt(0).widget(),
+                       left_layout.itemAt(1).widget(),
+                       *self.alignment_buttons.values(),
+                       self.alignment_shared_button):
+            if widget is not None:
+                widget.hide()
+        left_layout.insertWidget(0, heading("CATÉGORIES"))
+        self.category_selector = QComboBox(self.home_left)
+        self.category_selector.setObjectName("GuidesHomeCategorySelector")
+        self.category_selector.setMinimumHeight(38)
+        for key, title in CATEGORIES:
+            if key != "optimized":
+                self.category_selector.addItem(title, key)
+        self.category_selector.setCurrentIndex(
+            self.category_selector.findData(self.library_category)
+        )
+        self.category_selector.currentIndexChanged.connect(
+            self._on_dropdown_category_changed
+        )
+        left_layout.insertWidget(1, self.category_selector)
+        # Older grouped family widgets stay available to existing tests and
+        # integrations, but the home no longer renders six simultaneous lists.
+        self.other_groups_widget.hide()
         root.addStretch(1)
 
         if defer_runtime:
@@ -492,6 +519,13 @@ class GuideCatalogView(QWidget):
                 parent.addChild(child)
             parent.setExpanded(True)
 
+    def _on_dropdown_category_changed(self, index: int) -> None:
+        """Route the visible selector through the existing catalog state."""
+        key = self.category_selector.itemData(index)
+        node = self._category_nodes.get(key)
+        if node is not None:
+            self.library_categories.setCurrentItem(node)
+
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None:
             return
@@ -503,6 +537,14 @@ class GuideCatalogView(QWidget):
         if not category:
             return
         self.library_category = str(category)
+        if hasattr(self, "category_selector"):
+            index = self.category_selector.findData(self.library_category)
+            if index >= 0 and index != self.category_selector.currentIndex():
+                self.category_selector.blockSignals(True)
+                try:
+                    self.category_selector.setCurrentIndex(index)
+                finally:
+                    self.category_selector.blockSignals(False)
         if self._runtime_ready:
             self.refresh_home()
 
