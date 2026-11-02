@@ -736,7 +736,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertIsNotNone(copy)
                     self.assertTrue(copy.isEnabled())
                     copy.click()
-                    self.assertEqual(QApplication.clipboard().text(), "/travel 24 -3")
+                    self.assertEqual(QApplication.clipboard().text(), "/travel 24,-3")
                     copy_links = dialog.findChild(
                         QLabel, "GanymedeSourceCopyLinks",
                     )
