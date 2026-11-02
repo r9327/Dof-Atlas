@@ -173,3 +173,58 @@ indispensables avant une refonte commune et la certification des 80 suivants.
 CHANGES REQUIRED.** Les tests ajoutés et la commande d'audit restent à
 exécuter dans un environnement de développement complet. Ni la concordance
 GPS ni la présence de 95 snapshots ne suffisent à remplacer le Guide Succès.
+
+## Lot contenu — rédaction effective des guides manquants (PR #337)
+
+**HEAD de contrôle statique sur GitHub :** `98543c85945875749d20a854aab1528b134d2bb8`.
+Quatre fichiers de travail **non jouables** ont été ajoutés sous
+`data/encyclopedia/guides/replacement_drafts/authoring/` : **2204
+(Mais où sont les Dofus ?), 2206 (Valonia 1), 2228 (Sufokia) et 2229
+(Nimaltopia)**. Ils comportent chacun les **10 premières étapes**,
+réécrites en français, avec des actions structurées (préparation, dialogue,
+combat, interaction, trajet et craft selon la source). Chaque étape a été
+rapprochée du relevé factuel portant le même ID de guide et le même numéro
+d'étape, sans recopier le contenu éditorial source.
+
+| Guide | Étapes de travail / total | Actions | Coordonnées recoupées |
+| --- | ---: | ---: | ---: |
+| 2204 | 10 / 26 | 37 | 17 / 17 |
+| 2206 | 10 / 30 | 38 | 19 / 19 |
+| 2228 | 10 / 39 | 31 | 18 / 18 |
+| 2229 | 10 / 67 | 34 | 18 / 18 |
+| **Total** | **40 / 162** | **140** | **72 / 72** |
+
+**Preuve :** fichiers lus à leur HEAD GitHub et contrôlés par parcours :
+ordre strict, types d'action admissibles, statut `PARTIAL_NOT_PLAYABLE`,
+aucune certification déclarée et chaque coordonnée présente dans le
+relevé local de l'étape correspondante. Ce contrôle est **statique** et ne
+certifie ni l'identité des mondes, ni l'objectif de quête, ni les noms
+traduits, ni les combats/quantités dans DOFUS.
+
+Un nouveau module de test `tests.test_ganymede_partial_authoring` vérifie
+la cohérence des brouillons et l'absence d'activation accidentelle par le
+chargeur strict des guides finis. **Tests Python non exécutés** dans cette
+session ; pas de preuve Windows/Qt, de Graphify ni de Doctor associée.
+
+**Avancement métier inchangé :** **15/95 guides complets sur la seule
+structure, 80/95 encore sans fichier de consignes complet, 0 guide certifié
+en source/Windows**. Les 40 étapes nouvelles sont une avancée de rédaction
+à l'intérieur des 7 493 étapes manquantes, **elles ne sont pas comptées
+comme quatre guides terminés**. Il reste respectivement 16, 20, 29 et
+57 étapes à rédiger dans ces quatre parcours. Les deux guides optimisés
+restent intacts, sans changement de validation ni de progression.
+
+### Suite de développement
+
+- Terminer les étapes restantes des quatre parcours **sur une source
+  intégrale réellement consultable** et en respectant les embranchements
+  de chacun ; ne pas remplacer les trous par des positions, liens ou
+  objectifs inventés.
+- Comparer ensuite chaque étape/action à la référence source, confirmer
+  les noms et les actions sous DOFUS Unity, et convertir le fichier partiel
+  en `ganymede_<id>_instructions.json` uniquement lorsque le parcours
+  complet est prouvé et accepté par le chargeur strict.
+- Répéter ce cycle sur les 76 autres guides encore sans rédaction ;
+  ne pas lancer le Guide Ultime, la CI finale ni la fusion prématurément.
+
+**Verdict global maintenu : CHANGES REQUIRED / PR Draft.**
