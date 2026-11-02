@@ -219,6 +219,41 @@ class CandidateStoreTests(unittest.TestCase):
             publish_candidate(altered, root=self.root)
         self.assertFalse(self.root.exists())
 
+    def test_canonical_route_rebuild_blocks_forged_header_index_and_flags(self) -> None:
+        for mutation in ("page_index", "guide_label", "manual_manifest",
+                         "stage_source", "route_model", "extra_route_flag"):
+            bad = copy.deepcopy(self.preview)
+            route = bad["routes"][0]
+            card = route["steps"][0]
+            if mutation == "page_index":
+                card["index"] = 800
+            elif mutation == "guide_label":
+                card["manual_chapter_label"] = "Fake alternate header"
+            elif mutation == "manual_manifest":
+                route["manual_manifest"] = True
+            elif mutation == "stage_source":
+                card["manual_source"] = False
+            elif mutation == "route_model":
+                route["route_model"] = "other_renderer"
+            else:
+                route["certified"] = True
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(
+                GuideRouteContractError, "canonical source-to-UI projection"
+            ):
+                publish_candidate(bad, root=self.root)
+        self.assertFalse(self.root.exists())
+
+    def test_original_guide_metadata_must_remain_consistent(self) -> None:
+        bad = copy.deepcopy(self.preview)
+        bad["routes"][0]["source_guide_metadata"]["title"] = "Other title"
+        with self.assertRaises(GuideRouteContractError):
+            publish_candidate(bad, root=self.root)
+        bad = copy.deepcopy(self.preview)
+        bad["routes"][0]["source_guide_metadata"]["guide_id"] = 123
+        with self.assertRaises(GuideRouteContractError):
+            publish_candidate(bad, root=self.root)
+        self.assertFalse(self.root.exists())
+
     def test_candidate_stage_identity_must_match_original_source(self) -> None:
         for change in ("stage", "chapter", "source_step", "missing_actions"):
             malformed = copy.deepcopy(self.preview)
