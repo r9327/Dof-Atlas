@@ -1,7 +1,8 @@
-"""Authoring batches must never be treated as playable Ganymède routes.
+"""Uncertified draft routes must never be treated as playable Ganymède routes.
 
-The first ten stages are human-written working material, not certified 1:1
-source coverage. Full guide files are accepted by a different strict loader.
+A full independently researched draft is NOT proof of identical Ganymède
+stage actions or in-game certification. Only the strict full-guide loader
+accepts published instructions outside replacement_drafts/authoring.
 """
 from __future__ import annotations
 
@@ -37,12 +38,19 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
                 self.assertEqual(data["source_url"], listing.source_url)
                 self.assertEqual(data["expected_source_step_count"], listing.step_count)
                 self.assertEqual(data["rights_basis"], "atlas_original")
-                self.assertEqual(data["authoring_status"], "PARTIAL_NOT_PLAYABLE")
+                self.assertIn(data["authoring_status"], {
+                    "PARTIAL_NOT_PLAYABLE", "FULL_DRAFT_NOT_PLAYABLE",
+                })
                 self.assertFalse(data["editorial_source_text_copied"])
                 self.assertFalse(data["source_parity_certified"])
                 self.assertFalse(data["gameplay_certified"])
                 steps = data["steps"]
-                self.assertTrue(0 < len(steps) < listing.step_count)
+                if data["authoring_status"] == "FULL_DRAFT_NOT_PLAYABLE":
+                    self.assertEqual(len(steps), listing.step_count)
+                    self.assertTrue(data.get("fact_sources"))
+                    self.assertTrue(data.get("further_review_needed"))
+                else:
+                    self.assertTrue(0 < len(steps) < listing.step_count)
                 self.assertEqual(data["reviewed_stage_range"], [1, len(steps)])
                 self.assertEqual(
                     [step["source_step_number"] for step in steps],
@@ -56,7 +64,7 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
                     for step in steps for action in step["actions"]
                 ))
 
-    def test_partial_coordinates_are_mentioned_in_same_source_step(self):
+    def test_draft_coordinates_are_mentioned_in_same_source_step(self):
         listings = {entry.source_id: entry for entry in load_ganymede_listings()}
         for path in sorted(AUTHORING_DIR.glob("ganymede_*_partial.json")):
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -91,6 +99,32 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
                 else:
                     self.assertIsNone(instructions)
 
+
+    def test_gp4_full_draft_preserves_solo_and_group_fight_boundaries(self):
+        path = AUTHORING_DIR / "ganymede_2204_partial.json"
+        if not path.is_file():
+            self.skipTest("GP4 draft archived")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(data["authoring_status"], "FULL_DRAFT_NOT_PLAYABLE")
+        self.assertEqual(len(data["steps"]), 26)
+        self.assertFalse(data["source_parity_certified"])
+        self.assertFalse(data["gameplay_certified"])
+        s = data["steps"]
+        self.assertTrue(any("Pandawa éméché" in a["text"] and "groupe" in a["text"]
+                            for a in s[10]["actions"] if a["kind"] == "fight"))
+        self.assertTrue(any("Guipol" in a["text"] and "solo" in a["text"]
+                            for a in s[15]["actions"] if a["kind"] == "fight"))
+        self.assertTrue(any("Wabbits" in a["text"] and "groupe" in a["text"]
+                            for a in s[18]["actions"] if a["kind"] == "fight"))
+        self.assertTrue(any("Dopeul Maléfique" in a["text"] and "seul" in a["text"]
+                            for a in s[20]["actions"] if a["kind"] == "fight"))
+        self.assertEqual(
+            len([a for a in s[23]["actions"] if a["kind"] == "fight"]), 2
+        )
+        self.assertTrue(any("classe" in a["text"].casefold()
+                            for a in s[20]["actions"]))
+        self.assertTrue(any("Mériana" in a["text"]
+                            for a in s[25]["actions"]))
 
     def test_opening_source_facts_survive_rewriting(self):
         # Focused editorial guard: these are verified opening-page facts,
