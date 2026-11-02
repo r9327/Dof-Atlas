@@ -110,6 +110,7 @@ class SwitchClickMacro:
                     action_label,
                     context,
                     mouse_block_started=True,
+                    exact_source_handle=exact_source_handle,
                 ),
             )
         except Exception:
@@ -127,6 +128,7 @@ class SwitchClickMacro:
         action_label: str,
         context: SwitchClickContext,
         mouse_block_started: bool = False,
+        exact_source_handle: int | None = None,
     ) -> None:
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
@@ -153,6 +155,17 @@ class SwitchClickMacro:
             )
 
             context = self._validated_context(context, action_label)
+            # Classic SwitchClick may recover another favorite; Mirror must
+            # never silently change its source after a click was consumed.
+            if exact_source_handle is not None and (
+                context is None
+                or context.source_hwnd != exact_source_handle
+                or self.runtime.settings.primary_handle != exact_source_handle
+            ):
+                self.runtime.logger.warning(
+                    "%s annulé: favori source modifié ou déconnecté.", action_label,
+                )
+                return
             if context is None:
                 self.runtime.logger.info(
                     "%s ignore: fenêtre Unity source indisponible.",

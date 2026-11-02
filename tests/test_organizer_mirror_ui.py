@@ -191,5 +191,77 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.switch_character.restore_preferred_client.assert_called_once_with("Miroir")
 
 
+    def test_consumed_physical_down_swallows_matching_up_without_affecting_other_buttons(self):
+        import ctypes
+        import logging
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONUP, LLMHF_INJECTED,
+        )
+        from app.input.input_state import InputState, SyntheticInputGuard
+
+        logger = logging.getLogger("test_mirror_mouse_pair")
+        cb = Mock(return_value=True)
+        hook = MouseHook(InputState(), SyntheticInputGuard(logger), logger, cb)
+        event = MSLLHOOKSTRUCT()
+        event.pt.x, event.pt.y = 50, 80
+        user32 = SimpleNamespace(CallNextHookEx=Mock(return_value=37))
+        with patch.object(ctypes, "windll", SimpleNamespace(user32=user32), create=True):
+            pointer = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, pointer), 1)
+            self.assertEqual(cb.call_count, 1)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            # Synthetic ups do not discharge the user's pending physical up.
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, pointer), 37)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            event.flags = 0
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, pointer), 37)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, pointer), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, pointer), 37)
+            self.assertEqual(hook._consumed_releases, set())
+
+    def test_pending_physical_release_is_consumed_even_during_mouse_block(self):
+        import ctypes
+        import logging
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_RBUTTONDOWN, WM_RBUTTONUP,
+        )
+        from app.input.input_state import InputState, SyntheticInputGuard
+
+        logger = logging.getLogger("test_mirror_release_during_block")
+        state = InputState()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock(return_value=True))
+        event = MSLLHOOKSTRUCT()
+        event.pt.x, event.pt.y = 10, 20
+        user32 = SimpleNamespace(CallNextHookEx=Mock(return_value=37))
+        with patch.object(ctypes, "windll", SimpleNamespace(user32=user32), create=True):
+            pointer = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONDOWN, pointer), 1)
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, pointer), 1)
+            state.end_mouse_block()
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, pointer), 37)
+            self.assertEqual(hook._consumed_releases, set())
+
+    def test_mirror_worker_refuses_source_change_after_click_consumption(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        runtime = Mock()
+        runtime.settings.primary_handle = 202
+        runtime.macro_lock.should_stop.return_value = False
+        macro = SwitchClickMacro(runtime)
+        old = SwitchClickContext(101, 12, 23, 0.4, 0.5, "cursor")
+        recovered = SwitchClickContext(202, 12, 23, 0.4, 0.5, "recovered")
+        with (
+            patch.object(macro, "_validated_context", return_value=recovered),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(40, 50)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.send_client_click") as sender,
+        ):
+            macro._run("Left", 1, "Miroir", old, exact_source_handle=101)
+        sender.assert_not_called()
+        runtime.switch_character.ordered_clients_from_source.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

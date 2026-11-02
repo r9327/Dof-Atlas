@@ -107,6 +107,8 @@ class MouseHook:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._last_block_log = 0.0
+        # A consumed DOWN must always swallow its matching physical UP.
+        self._consumed_releases: set[int] = set()
 
     def start(self) -> bool:
         if os.name != "nt":
@@ -127,6 +129,7 @@ class MouseHook:
         return self._start_ok
 
     def stop(self) -> None:
+        self._consumed_releases.clear()
         stop_message_hook(self)
 
     def _run_hook(self) -> None:
@@ -156,6 +159,7 @@ class MouseHook:
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
+            self._consumed_releases.clear()
             self._hook_thread_id = 0
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -173,6 +177,12 @@ class MouseHook:
                     injected
                     or extra_info == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
+
+                # The worker may finish before the user releases the button.
+                # Suppress that paired UP even after the general block ends.
+                if not atlas_synthetic and w_param in self._consumed_releases:
+                    self._consumed_releases.discard(int(w_param))
+                    return 1
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
                     self._log_blocked_event(w_param, x, y)
@@ -195,6 +205,9 @@ class MouseHook:
                         )
                         consumed = bool(self.callback(button, x, y))
                         if consumed:
+                            self._consumed_releases.add(
+                                WM_LBUTTONUP if w_param == WM_LBUTTONDOWN else WM_RBUTTONUP
+                            )
                             self.logger.debug(
                                 "Clic utilisateur consommé par macro switch: "
                                 "button=%s x=%s y=%s",
