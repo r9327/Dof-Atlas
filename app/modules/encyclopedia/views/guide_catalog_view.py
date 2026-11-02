@@ -173,7 +173,7 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Ganymède — parcours")
+        self.metadata_title = QLabel("PARCOURS LOCAUX")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
@@ -358,7 +358,7 @@ class GuideCatalogView(QWidget):
             self.ganymede_listings = load_ganymede_listings()
         except (OSError, ValueError, KeyError, TypeError) as exc:
             self.ganymede_listings = ()
-            self.status_callback(f"Inventaire Ganymède indisponible : {exc}")
+            self.status_callback(f"Inventaire des parcours indisponible : {exc}")
         if initial_progress_by_guide is not None:
             self._initial_progress_by_guide = dict(initial_progress_by_guide)
         if initial_progress_character_key:
@@ -754,7 +754,7 @@ class GuideCatalogView(QWidget):
         dialog = QDialog(self)
         dialog.setAttribute(Qt.WA_DeleteOnClose, True)
         dialog.setObjectName("GanymedeSourceReader")
-        dialog.setWindowTitle(f"Ganymède — {entry.title}")
+        dialog.setWindowTitle(f"Parcours local — {entry.title}")
         dialog.resize(950, 700)
         dialog.setMinimumSize(560, 400)
         layout = QVBoxLayout(dialog)
@@ -762,12 +762,12 @@ class GuideCatalogView(QWidget):
             instructions = load_ganymede_local_instructions(entry)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             instructions = None
-            self.status_callback(f"Consignes locales Ganymède invalides : {exc}")
+            self.status_callback(f"Consignes locales invalides : {exc}")
         try:
             local_steps = load_ganymede_local_observations(entry)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             local_steps = ()
-            self.status_callback(f"Repères locaux Ganymède indisponibles : {exc}")
+            self.status_callback(f"Repères locaux indisponibles : {exc}")
         notice = QLabel(
             ("Consignes structurées disponibles hors ligne (Atlas). "
              "Progression manuelle du personnage actif. "
@@ -925,10 +925,10 @@ class GuideCatalogView(QWidget):
                         source_step_id(n) in checked for n in range(1, count + 1)
                     )
                     select_page(current_page[0])
-                    self.status_callback(f"Progression Ganymède actualisée : {exc}")
+                    self.status_callback(f"Progression du parcours actualisée : {exc}")
                     return
                 except (OSError, ValueError) as exc:
-                    self.status_callback(f"Progression Ganymède non enregistrée : {exc}")
+                    self.status_callback(f"Progression du parcours non enregistrée : {exc}")
                     return
                 checked.clear()
                 checked.update(progress_service.manual_steps(selected, progress_id))
@@ -969,7 +969,7 @@ class GuideCatalogView(QWidget):
             browser.setUrl(source_url)
 
         open_browser = QPushButton(
-            "Voir les consignes originales en ligne" if local_steps else "Navigateur",
+            "Consulter la source originale" if local_steps else "Consulter la source",
             dialog,
         )
         open_browser.setObjectName("GanymedeSourceExternalButton")

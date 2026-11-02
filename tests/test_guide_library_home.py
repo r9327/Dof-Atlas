@@ -307,6 +307,47 @@ class GuideLibraryHomeTests(unittest.TestCase):
         self.assertEqual(restored, [True])
         self.assertEqual(page._pending_guide_id, "")
 
+    def test_source_reader_uses_neutral_local_titles_without_erasing_provenance(self):
+        from PySide6.QtWidgets import QPushButton
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                self.assertEqual(view.metadata_title.text(), "PARCOURS LOCAUX")
+                view.library_category = "dimensions"
+                view.refresh_home()
+                item = view.home_metadata_list.item(0)
+                source_id = item.data(Qt.UserRole)
+                source = next(
+                    entry for entry in view.ganymede_listings
+                    if entry.source_id == source_id
+                )
+                # Neutral UI never destroys the original source and its URL.
+                self.assertEqual(
+                    source.source_url, f"https://ganymede-app.com/guides/{source_id}"
+                )
+                view._open_ganymede_source_item(item)
+                dialog = view._ganymede_source_dialog
+                self.assertEqual(
+                    dialog.windowTitle(), f"Parcours local — {source.title}",
+                )
+                external = dialog.findChild(
+                    QPushButton, "GanymedeSourceExternalButton",
+                )
+                self.assertEqual(external.text(), "Consulter la source originale")
+                dialog.close()
+                self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_source_guide_click_reads_verified_local_facts_without_network(self):
         import sys
 
