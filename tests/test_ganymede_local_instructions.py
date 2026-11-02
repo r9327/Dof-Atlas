@@ -139,5 +139,33 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
                 ))
 
 
+    def test_sidimote_1_positioned_actions_follow_local_step_observations(self):
+        # Protect the route's ordered positional facts, not editorial parity.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings, load_ganymede_local_observations,
+        )
+
+        listing = next(
+            entry for entry in load_ganymede_listings()
+            if entry.source_id == 2224
+        )
+        instructions = load_ganymede_local_instructions(listing)
+        observations = load_ganymede_local_observations(listing)
+        self.assertEqual(len(instructions), 25)
+        self.assertEqual(len(observations), 25)
+        positioned = 0
+        for number, (step, observed) in enumerate(zip(instructions, observations), 1):
+            with self.subTest(step=number):
+                self.assertEqual(step["source_step_number"], number)
+                self.assertEqual(observed["source_step_number"], number)
+                allowed = {tuple(pair) for pair in observed["coordinate_mentions"]}
+                for action in step["actions"]:
+                    if "coordinates" not in action:
+                        continue
+                    positioned += 1
+                    self.assertIn(tuple(action["coordinates"]), allowed)
+        self.assertGreater(positioned, 20)
+
+
 if __name__ == "__main__":
     unittest.main()
