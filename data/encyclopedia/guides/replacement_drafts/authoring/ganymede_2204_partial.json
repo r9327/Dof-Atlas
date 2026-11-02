@@ -405,8 +405,8 @@
           "text": "Parler au Feu prophétique pour engager l'épreuve."
         },
         {
-          "kind": "fight",
-          "text": "Affronter le Feu prophétique seul. Se tenir hors de portée des flammes qu'il invoque."
+          "kind": "information",
+          "text": "Le dialogue avec le Feu prophétique déclenche un combat solo ; cette épreuve continue à l'étape suivante, elle ne doit pas être comptée comme deux combats distincts."
         }
       ]
     },
