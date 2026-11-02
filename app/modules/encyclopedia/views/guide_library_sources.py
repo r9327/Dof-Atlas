@@ -1,7 +1,8 @@
 """Read-only Ganymède catalogue metadata for the Guides library.
 
-The public index does not contain playable route steps. Never expose a launch
-action for metadata-only entries or infer progress from listed step counts.
+The public index does not contain offline route steps. A metadata-only
+entry may link to its official source page but must never be treated as a
+native playable route or have progress inferred from listed step counts.
 """
 from __future__ import annotations
 
@@ -109,7 +110,7 @@ def displayable_listings(
     category: str,
     search: str = "",
 ) -> list[GanymedeListing]:
-    """No duplicate Atlas equivalent and no clickable metadata-only routes."""
+    """Hide caller-declared native equivalents; keep distinct source links."""
     query = search.casefold().strip()
     return [
         entry for entry in listings
