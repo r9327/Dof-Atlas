@@ -250,11 +250,19 @@ def command_agent(root: Path, args) -> dict[str, Any]:
     selected_packages = report["oss_selection"].get("local_package_probes", [])
     selected_binaries = report["oss_selection"].get("local_binary_probes", [])
     if selected_packages or selected_binaries:
-        local = local_candidate_preflight(
-            packages=[item["distribution"] for item in selected_packages],
-            binaries=[item["binary"] for item in selected_binaries])
-        found = {(item["kind"], item["name"].casefold()): item
-                 for item in local["results"]}
+        # Advisory discovery must never break the canonical Doctor report.
+        # Fail closed and disclose the error type, not installed paths or logs.
+        try:
+            local = local_candidate_preflight(
+                packages=[item["distribution"] for item in selected_packages],
+                binaries=[item["binary"] for item in selected_binaries])
+            found = {(item["kind"], item["name"].casefold()): item
+                     for item in local["results"]}
+            preflight_status = "OBSERVED_NOT_QUALIFIED"
+        except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
+            found = {}
+            preflight_status = "ERROR"
+            report["oss_preflight_error_type"] = type(exc).__name__
         requests = [
             {"id": item["id"], "kind": "python_distribution",
              "name": item["distribution"]}
@@ -265,7 +273,7 @@ def command_agent(root: Path, args) -> dict[str, Any]:
             for item in selected_binaries
         ]
         report["oss_local_preflight"] = {
-            "status": "OBSERVED_NOT_QUALIFIED", "network_used": False,
+            "status": preflight_status, "network_used": False,
             "tools": [
                 {"id": item["id"], "kind": item["kind"], "distribution": item["name"],
                  "available": bool(found.get((item["kind"], item["name"].casefold()), {}).get("available")),
