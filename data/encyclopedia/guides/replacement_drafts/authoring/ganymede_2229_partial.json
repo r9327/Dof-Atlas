@@ -6,7 +6,7 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    34
+    50
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
@@ -1076,19 +1076,551 @@
           ]
         }
       ]
+    },
+    {
+      "source_step_number": 35,
+      "title": "Fabriquer les accessoires préparés avant de repartir",
+      "instructions": "Faire fabriquer les pièces déjà achetées ou collectées. Le Coffre de Pièges à Chasseur nécessite un Bricoleur de niveau 190 ; le Banquier empaillé se fabrique ultérieurement chez Pacyssureur Dellila.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Depuis Bonta en [-32,-54], préparer les fabrications avant le retour à Nimotopia.",
+          "coordinates": [
+            -32,
+            -54
+          ]
+        },
+        {
+          "kind": "craft",
+          "text": "Faire fabriquer 1 Coffre de Pièges à Chasseur avec 1 Plan de Pièges à Chasseur, 7 Bois de Bambou Sacré et 7 Bières d'Amakna par un Bricoleur niveau 190."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le coffre pour le montrer à Chasram et les 4 Sacs de Plumes, 10 Cailloux dorés, 5 Papiers toilette pour le fabricant de l'appât."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Pacyssureur Dellila à Nimotopia en [-64,32].",
+          "coordinates": [
+            -64,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 36,
+      "title": "Recevoir le Banquier empaillé",
+      "instructions": "Les ressources demandées permettent à Pacyssureur Dellila de préparer un leurre pour attirer le prédateur recherché dans Shyriiwook.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Pacyssureur Dellila en [-64,32].",
+          "coordinates": [
+            -64,
+            32
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Apporter 4 Sacs de Plumes, 10 Cailloux dorés et 5 Papiers toilette."
+        },
+        {
+          "kind": "talk",
+          "text": "Suivre les instructions de fabrication du Banquier empaillé et le récupérer."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 37,
+      "title": "Montrer le banquier factice à Armelle",
+      "instructions": "Le leurre est prêt. Armelle indique où le placer pour attirer le prédateur qui peut conduire à l'Épée Vorpale.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui présenter le Banquier empaillé et obtenir le lieu où poser l'appât."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la zone du Kokulte Géant en [-64,30].",
+          "coordinates": [
+            -64,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 38,
+      "title": "Attirer Peter Bankersnatch et retrouver la piste",
+      "instructions": "Poser l'appât sur la carte, puis interroger le Kokulte Géant. Le suivre et parler à Tomtom Abrakleur au nord-est pour rejoindre la vallée du Jabeurwookie.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la zone du Kokulte Géant en [-64,30].",
+          "coordinates": [
+            -64,
+            30
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Placer le Banquier empaillé parmi les plantes, puis interroger le Kokulte Géant qui apparaît."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Peter Bankersnatch s'il a vu un aventurier armé de l'Épée Vorpale."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Tomtom Abrakleur en [-62,29].",
+          "coordinates": [
+            -62,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander comment entrer dans la forêt sombre et accéder au Jabeurwookie."
+        },
+        {
+          "kind": "travel",
+          "text": "Vérifier le passage de retour si la piste demande de reparler à Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 39,
+      "title": "Affronter Seurjone Téniel dans la vallée",
+      "instructions": "La vallée est accessible depuis un passage dissimulé derrière une grande feuille rose. Seurjone Téniel et ses chasseurs gardent l'Épée Vorpale ; le combat peut se jouer en groupe et comporte une mécanique mortelle autour de l'épée invoquée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Chercher la cellule cachée en haut de la carte en [-62,29] pour accéder au Bosquet du Jabeurwookie.",
+          "coordinates": [
+            -62,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Seurjone Téniel et le contraindre à rendre l'Épée Vorpale."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre Seurjone Téniel et ses chasseurs ; combat en groupe possible."
+        },
+        {
+          "kind": "information",
+          "text": "L'Épée Vorpale est invulnérable et tue à une case ; ne pas finir dans le glyphe ni lui retirer des PM. Prioriser Seurjone."
+        },
+        {
+          "kind": "travel",
+          "text": "Après la victoire, rapporter l'épée à Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 40,
+      "title": "Conclure Shyriiwook et revenir chez les chasseurs",
+      "instructions": "L'Épée Vorpale étant récupérée, rendre l'arme à Armelle. Cette mission reste distincte des autres quêtes du succès.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Rendre l'Épée Vorpale à Armelle pour terminer « Shyriiwook »."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Chasram en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 41,
+      "title": "Présenter le coffre de pièges à Chasram",
+      "instructions": "Le plan acheté précédemment a servi à fabriquer un coffre. Le montrer au vendeur puis poursuivre les préparatifs de capture de Jano Wapin.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Chasram en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui montrer le Coffre de Pièges à Chasseur fabriqué pour « À armes égales »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le coffre jusqu'à la pose des pièges devant le terrier."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner vers la zone de Gulli Ver en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 42,
+      "title": "Chercher les preuves contre les chasseurs",
+      "instructions": "L'enquête de Bérénice sur les animaux maltraités conduit au contrat liant les chasseurs à un laboratoire clandestin.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Partir de la zone de Gulli Ver en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Explorer la zone des monstres en [-66,29].",
+          "coordinates": [
+            -66,
+            29
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les monstres pour obtenir 1 Contrat de Travail (taux de base 6 %) ; le drop est possible en [-66,29] ou [-68,29]."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Contrat de Travail pour identifier le laboratoire clandestin."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le laboratoire de Farma Stik en [-68,29].",
+          "coordinates": [
+            -68,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 43,
+      "title": "Découvrir le laboratoire de Farma Stik",
+      "instructions": "Le Contrat de Travail permet d'identifier le laboratoire où des animaux sont manipulés. La quête progresse quelle que soit la décision de détruire, confisquer ou laisser les installations.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Farma Stik et le laboratoire en [-68,29].",
+          "coordinates": [
+            -68,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Farma Stik sur l'origine du comportement des animaux."
+        },
+        {
+          "kind": "interact",
+          "text": "Choisir de détruire, confisquer ou laisser le laboratoire : ce choix ne bloque pas l'étape."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir auprès de Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 44,
+      "title": "Achever Nos amies les bêtes",
+      "instructions": "Bérénice apprend ce que vous avez découvert et peut terminer la quête. Cette conclusion permet d'enchaîner sur la disparition de Xaniel.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui rapporter l'enquête du laboratoire pour conclure « Nos amies les bêtes »."
+        },
+        {
+          "kind": "information",
+          "text": "La quête suivante « Il a fui, il a tout compris » concerne Rod et son familier Xaniel, et n'est pas validée automatiquement."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir au terrier de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 45,
+      "title": "Installer les pièges devant le terrier de Jano Wapin",
+      "instructions": "Reprendre la quête À armes égales. Les pièges fabriqués doivent être posés près des plantes à droite de la carte ; Jano devra ensuite expliquer pourquoi ils ne le rassurent pas.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le terrier de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Placer le Coffre de Pièges à Chasseur sur les plantes en haut à droite du terrier."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Jano après qu'il se prend dans ses propres pièges."
+        },
+        {
+          "kind": "information",
+          "text": "Le piège n'achève pas « À armes égales » ; il faudra encore fabriquer un breuvage, des implants et trouver une arme."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'école de Coqueline en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 46,
+      "title": "Ouvrir La valse des manuels",
+      "instructions": "Un Manuel Scolaire obtenu sur les monstres de Nimotopia déclenche l'enquête sur les livres volés à l'école. Coqueline explique qu'un héros est parti les récupérer au camp du Comte Razof.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Coqueline à l'école en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Si nécessaire, combattre des monstres de Nimotopia jusqu'à obtenir 1 Manuel Scolaire (drop rare, environ 2 %)."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Manuel Scolaire depuis l'inventaire pour lancer « La valse des manuels »."
+        },
+        {
+          "kind": "talk",
+          "text": "Montrer le manuel à Coqueline et demander où ont été emportés les livres."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Rod sur Nimotopia en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 47,
+      "title": "Lancer l'enquête sur Xaniel auprès de Rod",
+      "instructions": "Rod et Rem ont perdu leur gerbouille après une altercation avec des chasseurs. Cette quête a des indices et dialogues variables selon les personnages.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Rod en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Il a fui, il a tout compris » : retrouver Xaniel avant les chasseurs."
+        },
+        {
+          "kind": "information",
+          "text": "Les indices de Xaniel peuvent changer selon le personnage : ne pas appliquer une localisation unique à tous les comptes."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les chasseurs détendus en [-62,31].",
+          "coordinates": [
+            -62,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 48,
+      "title": "Retrouver les restes de Gihaime",
+      "instructions": "Au rendez-vous de l'école, le héros Gihaime a disparu. La Chevrotine Détendue et ses compagnons ont des informations sur ce qui lui est arrivé.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver la Chevrotine Détendue en [-62,31].",
+          "coordinates": [
+            -62,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger sur le héros Gihaime envoyé récupérer les manuels."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre la Chevrotine Détendue et ses chasseurs ; combat en groupe possible."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver les Restes de Gihaime obtenus après le combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à Coqueline en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 49,
+      "title": "Rendre les restes à Coqueline",
+      "instructions": "Coqueline vous envoie affronter le Comte Razof au camp des chasseurs pour récupérer les manuels de l'école.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Revenir voir Coqueline en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Lui remettre les Restes de Gihaime."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter de poursuivre les chasseurs dans le Camp du Comte Razof."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée du Camp du Comte Razof en [-68,30].",
+          "coordinates": [
+            -68,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 50,
+      "title": "Vaincre le Comte Razof sans quitter trop tôt",
+      "instructions": "Le combat de boss doit être effectué dans la cinquième salle du Camp du Comte Razof. Après la victoire, la quête demande de fouiller la salle avant de partir.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le donjon Camp du Comte Razof en [-68,30].",
+          "coordinates": [
+            -68,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à la Minikrone Effrayée dans la salle du boss."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Comte Razof dans la cinquième salle du donjon."
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le tonneau en bas de la salle du boss après le combat."
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger le Comte Razof sur les manuels et le chasseur qui les transporte."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas quitter le donjon avant d'avoir examiné le tonneau et interrogé le boss."
+        }
+      ]
     }
   ],
   "fact_sources": [
     "https://www.dofuserie.com/quetes/frais-de-porc-inclus/",
     "https://www.dofuserie.com/quetes/nos-amies-les-betes/",
     "https://www.dofuserie.com/quetes/shyriiwook/",
-    "https://www.dofuserie.com/quetes/a-armes-egales/"
+    "https://www.dofuserie.com/quetes/a-armes-egales/",
+    "https://www.dofuserie.com/quetes/la-valse-des-manuels/",
+    "https://www.dofuserie.com/quetes/il-a-fui-il-a-tout-compris/",
+    "https://www.dofuserie.com/donjons/camp-du-comte-razof/"
   ],
   "further_review_needed": [
     "Review original Ganymède 2229 stages 11-20 for exact narrative ordering; independent quest guides only prove factual ingredients.",
     "Check whether the Gulli Ver quest starts before or after the solo Léo Truche fight for each character and account for possible quest splits.",
     "Verify Nimotopia map IDs and stage-19 item placement under Unity.",
     "Cross-check source 2229 steps 21-34 for exact order, overlap of parallel Shyriiwook, Nos amies les bêtes, À armes égales and Frais de porc inclus.",
-    "Verify whether the capture cages and disguises appear for every player individually; never globally certify completion."
+    "Verify whether the capture cages and disguises appear for every player individually; never globally certify completion.",
+    "Review Ganymède step 35-50 and parallel quest order before promoting route; expected source narrative and step-local facts need proof."
   ]
 }
