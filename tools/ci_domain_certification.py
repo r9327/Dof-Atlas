@@ -249,6 +249,11 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"organizer", "ui", "identity"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
+    # The independent offline source/Atlas comparator is a Guide tool, not
+    # general CI infrastructure. Exact ownership only: unrelated tools stay
+    # closed-world UNKNOWN until independently reviewed.
+    if path == "tools/atlas_guide_conformity.py":
+        return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
