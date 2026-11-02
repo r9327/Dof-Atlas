@@ -64,8 +64,12 @@ class AutomaticDoctorOssTests(unittest.TestCase):
         candidates = {"ruff": {"name": "ruff", "available": True, "version": "0.17.3"},
                       "semgrep": {"name": "semgrep", "available": False, "version": None}}
         def preflight(*, packages=(), binaries=()):
-            self.assertFalse(binaries)
-            return {"results": [candidates[name] for name in packages]}
+            self.assertEqual(binaries, ["ast-grep"])
+            rows = [{"kind": "python_distribution", **candidates[name]}
+                    for name in packages]
+            rows.append({"kind": "path_executable", "name": "ast-grep",
+                         "available": False, "version": None})
+            return {"results": rows}
         with patch("tools.tool_catalog.local_candidate_preflight",
                    side_effect=preflight) as observed:
             report, route, _ = self._command("plan", "tools/example.py")
@@ -75,7 +79,7 @@ class AutomaticDoctorOssTests(unittest.TestCase):
                          "OBSERVED_NOT_QUALIFIED")
         self.assertFalse(report["oss_local_preflight"]["network_used"])
         self.assertEqual({x["id"] for x in report["oss_local_preflight"]["tools"]},
-                         {"ATOSS-20", "ATOSS-19"})
+                         {"ATOSS-20", "ATOSS-19", "ATOSS-18"})
         self.assertTrue(all(not row["license_verified"] and
                             not row["execution_verified"]
                             for row in report["oss_local_preflight"]["tools"]))
@@ -83,6 +87,8 @@ class AutomaticDoctorOssTests(unittest.TestCase):
                     report["ai_tool_workflow"]["oss_recommendations"]}
         self.assertTrue(statuses["ATOSS-20"]["locally_available"])
         self.assertFalse(statuses["ATOSS-19"]["locally_available"])
+        self.assertFalse(statuses["ATOSS-18"]["locally_available"])
+        self.assertEqual(statuses["ATOSS-18"]["local_binary"], "ast-grep")
         self.assertEqual(statuses["ATOSS-20"]["installed_version_claim"], "0.17.3")
         self.assertFalse(statuses["ATOSS-20"]["automatic_execution"])
 
