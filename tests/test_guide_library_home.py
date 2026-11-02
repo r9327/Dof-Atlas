@@ -550,6 +550,17 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         source.call_args.args[0].data(Qt.UserRole),
                         first.data(Qt.UserRole),
                     )
+                    # Enter/double-click activation uses the same safe route.
+                    source.reset_mock()
+                    view.other_category_lists["dimensions"].itemActivated.emit(first)
+                    source.assert_called_once_with(first)
+                    view.library_categories.setCurrentItem(
+                        view._category_nodes["dofus"]
+                    )
+                    source.reset_mock()
+                    dofus_source = view.home_metadata_list.item(0)
+                    view.home_metadata_list.itemActivated.emit(dofus_source)
+                    source.assert_called_once_with(dofus_source)
                 self.assertEqual(requested, [])
                 view.resize(610, 780)
                 self.app.processEvents()
