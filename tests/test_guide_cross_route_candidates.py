@@ -88,6 +88,80 @@ class CrossGuideCandidatesTests(unittest.TestCase):
             } for index, actions in enumerate(actions_per_step, 1)],
         })
 
+    def _observed(self, gid, steps):
+        self._write(f"ganymede_{gid}_observed_links.json", {
+            "schema_version": 1,
+            "source": {
+                "guide_id": gid,
+                "editorial_text_imported": False,
+                "extraction_scope": "factual_link_occurrences_only",
+            },
+            "steps": [{
+                "source_step_number": number,
+                "coordinate_mentions": coords,
+                "linked_guide_ids": [],
+                "external_dofusdb_ids": {
+                    "quest": quests,
+                    "dungeon": [],
+                    "object": objects,
+                    "monster": [],
+                },
+            } for number, (coords, quests, objects) in enumerate(steps, 1)],
+        })
+
+    def test_external_cross_guide_links_are_candidates_only(self):
+        self._observed(101, [
+            ([[1, 2]], [888], [500, 501]),
+            ([[1, 2]], [], [500]),
+        ])
+        self._observed(102, [
+            ([[3, 4]], [888], [500]),
+        ])
+        report = analyze_cross_guide_candidates(self.root)
+        self.assertEqual(report["status"], "REVIEW_ONLY_NOT_OPTIMIZED")
+        self.assertEqual(report["observed_source_guides"], 2)
+        self.assertEqual(report["observed_source_steps"], 3)
+        self.assertEqual(report["source_guides_missing_observation_snapshot"], [103])
+        matches = report["cross_guide_external_reference_candidates"]
+        self.assertEqual(
+            [(m["reference_kind"], m["external_reference_id"]) for m in matches],
+            [("object", 500), ("quest", 888)],
+        )
+        self.assertTrue(all(not m["canonical_atlas_id_verified"] for m in matches))
+        self.assertTrue(all(not m["shared_action_verified"] for m in matches))
+        self.assertFalse(report["external_references_are_canonical_objectives"])
+        for row in report["authored_route_evidence"]:
+            self.assertFalse(row["source_route_parity_verified"])
+            self.assertFalse(row["windows_game_verified"])
+            self.assertFalse(row["certified"])
+
+    def test_step_coordinate_cross_check_flags_unmatched_without_rewriting(self):
+        self._observed(101, [
+            ([[1, 2]], [], []),
+            ([[5, 6]], [], []),
+        ])
+        report = analyze_cross_guide_candidates(self.root)
+        row = next(row for row in report["authored_route_evidence"]
+                   if row["source_guide_id"] == 101)
+        self.assertEqual(
+            [c["comparison_status"] for c in row["coordinate_comparisons"]],
+            ["COORDINATE_IN_STEP_SNAPSHOT", "COORDINATE_NOT_IN_STEP_SNAPSHOT"],
+        )
+        self.assertTrue(all(not c["game_position_verified"]
+                            for c in row["coordinate_comparisons"]))
+        self.assertFalse(report["route_replacement_ready"])
+
+    def test_malformed_observation_fails_closed(self):
+        self._observed(101, [
+            ([[1, 2]], [888], [500]),
+        ])
+        report = analyze_cross_guide_candidates(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("invalid_observed_snapshot",
+                      {issue["code"] for issue in report["issues"]})
+        self.assertEqual(report["cross_guide_external_reference_candidates"], [])
+        self.assertFalse(report["route_replacement_ready"])
+
     def test_cross_locations_preserve_source_step_and_never_validate(self):
         report = analyze_cross_guide_candidates(self.root)
         self.assertEqual(report["status"], "REVIEW_ONLY_NOT_OPTIMIZED")
