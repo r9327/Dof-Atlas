@@ -126,6 +126,40 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
         self.assertTrue(any("Mériana" in a["text"]
                             for a in s[25]["actions"]))
 
+        self.assertFalse(any(a["kind"] == "fight"
+                             for a in s[12]["actions"]))
+        self.assertEqual(
+            len([a for a in s[13]["actions"] if a["kind"] == "fight"]), 1,
+        )
+
+    def test_valonia_full_draft_preserves_french_game_facts_and_groups(self):
+        path = AUTHORING_DIR / "ganymede_2206_partial.json"
+        if not path.is_file():
+            self.skipTest("Valonia draft archived")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(data["authoring_status"], "FULL_DRAFT_NOT_PLAYABLE")
+        self.assertEqual(len(data["steps"]), 30)
+        self.assertFalse(data["source_parity_certified"])
+        self.assertFalse(data["gameplay_certified"])
+        steps = data["steps"]
+        all_actions = [a for s in steps for a in s["actions"]]
+        self.assertTrue(any("Hönger Lébaï" in a["text"] for a in all_actions))
+        self.assertTrue(any("Bryra Borouié" in a["text"] for a in all_actions))
+        self.assertTrue(any("Judeau Keuter" in a["text"] for a in all_actions))
+        self.assertTrue(any("Leichäf Odäg" in a["text"] for a in all_actions))
+        self.assertTrue(any("120 kamas" in a["text"]
+                            for a in steps[12]["actions"]))
+        self.assertTrue(any("chaque personnage" in a["text"]
+                            for a in steps[3]["actions"]))
+        self.assertTrue(any("50 kamas" in a["text"]
+                            for a in steps[20]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "Rakoopeur" in a["text"]
+                            for a in steps[25]["actions"]))
+        self.assertTrue(any(a["kind"] == "fight" and "groupe" in a["text"]
+                            for a in steps[28]["actions"]))
+        self.assertTrue(any("L'enfant regardait tomber la neige" in a["text"]
+                            for a in steps[29]["actions"]))
+
     def test_opening_source_facts_survive_rewriting(self):
         # Focused editorial guard: these are verified opening-page facts,
         # not certificates for the complete source routes.
