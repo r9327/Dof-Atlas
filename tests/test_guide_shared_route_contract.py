@@ -138,6 +138,22 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaises(GuideRouteContractError):
             project_authorized_guide(bad)
 
+    def test_late_preparation_is_not_silently_reordered(self):
+        bad = sample()
+        bad["steps"][0]["actions"].append({
+            "action_id": "late-prepare", "kind": "prepare",
+            "text": "Préparer ensuite un objet",
+        })
+        with self.assertRaisesRegex(GuideRouteContractError, "preparation would reorder"):
+            project_authorized_guide(bad)
+
+    def test_malformed_optional_collections_are_rejected(self):
+        for field in ("quest_ids", "quest_names", "prerequisites"):
+            bad = sample()
+            bad["steps"][0][field] = "not-a-list"
+            with self.subTest(field=field), self.assertRaises(GuideRouteContractError):
+                project_authorized_guide(bad)
+
     def test_preparation_kept_without_duplicate_card_action(self):
         bad = sample()
         bad["steps"][0]["actions"].insert(0, {
