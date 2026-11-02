@@ -67,7 +67,7 @@ class TestGuideConformity(unittest.TestCase):
     def test_missing_guide(self) -> None:
         self.atlas["guides"].pop()
         result = compare(self.reference, self.atlas)
-        self.assertIn("MISSING", self._codes(self.atlas))
+        self.assertIn("MISSING_GUIDE", self._codes(self.atlas))
         self.assertTrue(any("guides[2220]" in issue["field_path"] for issue in result["issues"]))
         self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
 
@@ -76,7 +76,8 @@ class TestGuideConformity(unittest.TestCase):
         self.atlas["guides"][0]["steps"][0]["actions"].pop(0)
         result = compare(self.reference, self.atlas)
         self.assertGreaterEqual(result["issue_count"], 2)
-        self.assertIn("MISSING", self._codes(self.atlas))
+        self.assertIn("MISSING_STEP", self._codes(self.atlas))
+        self.assertIn("MISSING_ACTION", self._codes(self.atlas))
         self.assertTrue(any("steps[B]" in x["field_path"] for x in result["issues"]))
         self.assertTrue(any("actions[talk]" in x["field_path"] for x in result["issues"]))
 
@@ -105,7 +106,7 @@ class TestGuideConformity(unittest.TestCase):
         steps.append(copy.deepcopy(steps[1]))
         steps[0]["actions"].append({"action_id": "fake", "kind": "invented"})
         self.assertIn("DUPLICATE", self._codes(self.atlas))
-        self.assertIn("EXTRA", self._codes(self.atlas))
+        self.assertIn("EXTRA_ACTION", self._codes(self.atlas))
 
     def test_reference_without_provenance_never_passes(self) -> None:
         self.reference["rights_verified"] = False
