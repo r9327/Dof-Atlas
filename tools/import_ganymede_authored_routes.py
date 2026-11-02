@@ -95,30 +95,66 @@ def import_authored_routes(
             "state": state,
         })
 
-    # No mutation until every supplied document has passed validation.
+    # Preflight all offered files before touching any published route. Stage
+    # *all* changed files, then publish. A recoverable mid-batch failure restores
+    # previously published files; no writes touch user progress or guide UI.
     changed = [item for item in planned if item["state"] != "unchanged"]
     if apply and changed:
-        target.mkdir(parents=True, exist_ok=True)
         if target.is_symlink():
             raise ValueError("Destination cannot be a symlink")
-        for item in changed:
-            src = source / item["filename"]
-            destination = target / item["filename"]
-            # Stage on the same volume and publish each JSON atomically.
-            fd, tmp = tempfile.mkstemp(prefix=".ganymede-", suffix=".json",
-                                       dir=target)
+        target.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".ganymede-stage-", dir=target) as staging:
+            stage = Path(staging)
+            for item in changed:
+                name = item["filename"]
+                incoming = stage / name
+                with (source / name).open("rb") as reader, incoming.open("wb") as writer:
+                    shutil.copyfileobj(reader, writer)
+                    writer.flush()
+                    os.fsync(writer.fileno())
+                if hashlib.sha256(incoming.read_bytes()).hexdigest() != item["sha256"]:
+                    raise ValueError(f"Route changed during import: {source / name}")
+                destination = target / name
+                backup = stage / (name + ".previous")
+                if item["state"] == "update":
+                    if destination.is_symlink() or not destination.is_file():
+                        raise ValueError(f"Destination changed: {destination}")
+                    shutil.copyfile(destination, backup)
+                    if (hashlib.sha256(backup.read_bytes()).hexdigest()
+                            != hashlib.sha256(destination.read_bytes()).hexdigest()):
+                        raise ValueError(f"Destination changed during staging: {destination}")
+                elif destination.exists() or destination.is_symlink():
+                    raise FileExistsError(f"Unexpected destination: {destination}")
+
+            published = []
             try:
-                with os.fdopen(fd, "wb") as handle:
-                    with src.open("rb") as reader:
-                        shutil.copyfileobj(reader, handle)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                if hashlib.sha256(Path(tmp).read_bytes()).hexdigest() != item["sha256"]:
-                    raise ValueError(f"Route changed during import: {src}")
-                os.replace(tmp, destination)
-            finally:
-                if os.path.exists(tmp):
-                    os.unlink(tmp)
+                for item in changed:
+                    name = item["filename"]
+                    destination = target / name
+                    backup = stage / (name + ".previous")
+                    if item["state"] == "new":
+                        if destination.exists() or destination.is_symlink():
+                            raise FileExistsError(f"Unexpected destination: {destination}")
+                    elif (destination.is_symlink() or not destination.is_file()
+                          or hashlib.sha256(destination.read_bytes()).hexdigest()
+                          != hashlib.sha256(backup.read_bytes()).hexdigest()):
+                        raise ValueError(f"Destination modified concurrently: {destination}")
+                    os.replace(stage / name, destination)
+                    published.append(item)
+            except BaseException:
+                rollback_errors = []
+                for item in reversed(published):
+                    dest = target / item["filename"]
+                    try:
+                        if item["state"] == "update":
+                            os.replace(stage / (item["filename"] + ".previous"), dest)
+                        else:
+                            dest.unlink()
+                    except OSError as exc:
+                        rollback_errors.append(f"{dest}: {exc}")
+                if rollback_errors:
+                    raise OSError("Import rollback incomplete: " + "; ".join(rollback_errors))
+                raise
     return {
         "status": "IMPORTED" if apply else "DRY_RUN",
         "strict": strict,
