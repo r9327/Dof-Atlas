@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
+from unittest import mock
 import unittest
 from pathlib import Path
 
@@ -114,6 +116,59 @@ class GanymedeAuthoredImportTests(unittest.TestCase):
         self.assertEqual(report["created"], 1)
         self.assertEqual(report["missing_routes"], [2203])
         self.assertTrue((self.outbox / "ganymede_2205_instructions.json").exists())
+
+    def test_partial_publication_failure_restores_previous_files(self):
+        first = self.write(2203, 2)
+        second = self.write(2205, 1)
+        self.run_import(apply=True)
+        old_first = (self.outbox / first.name).read_bytes()
+        old_second = (self.outbox / second.name).read_bytes()
+        first.write_text(first.read_text(encoding="utf-8").replace(
+            "Réaliser l'action originale 1", "Réaliser la nouvelle action 1",
+        ), encoding="utf-8")
+        second.write_text(second.read_text(encoding="utf-8").replace(
+            "Réaliser l'action originale 1", "Réaliser la nouvelle action 1",
+        ), encoding="utf-8")
+
+        replace = os.replace
+        failures = 0
+
+        def fail_second_publish(src, dst):
+            nonlocal failures
+            if Path(dst).name == second.name and failures == 0:
+                failures += 1
+                raise OSError("simulated second-file write failure")
+            return replace(src, dst)
+
+        with mock.patch(
+            "tools.import_ganymede_authored_routes.os.replace",
+            side_effect=fail_second_publish,
+        ):
+            with self.assertRaisesRegex(OSError, "simulated"):
+                self.run_import(apply=True, allow_overwrite=True)
+        self.assertEqual(failures, 1)
+        self.assertEqual((self.outbox / first.name).read_bytes(), old_first)
+        self.assertEqual((self.outbox / second.name).read_bytes(), old_second)
+        self.assertFalse(list(self.outbox.glob(".ganymede-stage-*")))
+
+    def test_failed_new_batch_leaves_no_half_published_routes(self):
+        self.write(2203, 2)
+        self.write(2205, 1)
+        replace = os.replace
+
+        def fail_second_publish(src, dst):
+            if Path(dst).name == "ganymede_2205_instructions.json":
+                raise OSError("simulated publication failure")
+            return replace(src, dst)
+
+        with mock.patch(
+            "tools.import_ganymede_authored_routes.os.replace",
+            side_effect=fail_second_publish,
+        ):
+            with self.assertRaisesRegex(OSError, "simulated"):
+                self.run_import(apply=True)
+        self.assertFalse(list(self.outbox.glob("ganymede_*_instructions.json")))
+
 
 
 if __name__ == "__main__":
