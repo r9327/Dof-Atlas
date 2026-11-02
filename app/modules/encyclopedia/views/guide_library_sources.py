@@ -261,6 +261,16 @@ def load_ganymede_local_instructions(
                     or not isinstance(text, str)
                     or text.casefold().strip() in _MISSING_INSTRUCTIONS):
                 raise ValueError(f"Unverified Ganymède action {entry.source_id}:{number}")
+            copy_values = action.get("copy_values")
+            if copy_values is not None and (
+                not isinstance(copy_values, list) or len(copy_values) > 32
+                or any(not isinstance(value, str)
+                       or not value.strip() or len(value) > 256
+                       for value in copy_values)
+            ):
+                raise ValueError(
+                    f"Invalid authored copy values {entry.source_id}:{number}"
+                )
             coords = action.get("coordinates")
             if coords is not None and (
                 not isinstance(coords, list) or len(coords) != 2
