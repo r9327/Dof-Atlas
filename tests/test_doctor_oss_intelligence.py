@@ -157,6 +157,20 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             {"tool": "zizmor", "status": "NOT_AVAILABLE"},
         ])
 
+    def test_guide_dev_and_json_trials_use_existing_owners_without_certify(self):
+        scope = ["tools/ganymede_guide.py",
+                 "tools/atlas_json_benchmark.py",
+                 "app/distribution/install_location.py",
+                 "data/assets/banner.png"]
+        plan = intelligent_plan(scope, study())
+        routes = plan["native_routes"]
+        self.assertTrue(any("Guide scoped owner" in item for item in routes))
+        self.assertTrue(any("atlas_json_benchmark" in item for item in routes))
+        self.assertTrue(any("Launcher scoped owner" in item for item in routes))
+        self.assertTrue(any("asset review" in item for item in routes))
+        self.assertFalse(any("certify" in item.casefold() for item in routes))
+        self.assertFalse(plan["certified"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
