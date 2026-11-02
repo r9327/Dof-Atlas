@@ -46,6 +46,15 @@ native owners, approved OSS scanner executions and explicit gaps.
 - **Specialist routes:** `ai_tool_workflow.native_routes` describes
   existing owners to consult; `native_routes_executed_by_selection=false`
   means their **recommendation is never an execution witness**.
+  Before selecting a tool, inspect the canonical `tools.tool_catalog` and
+  `tools/skills/dofus-atlas-tools/SKILL.md`:
+
+  ```powershell
+  py -3.13 -m tools.tool_catalog --preferred-only --safe-only --ready-only --json
+  ```
+
+  A catalog entry or a selected native route is not proof of invocation.
+  Record actual owner/scanner execution evidence and its status separately.
 - **Windows scanner qualification:** `tools/setup_doctor_oss.ps1` checks
   local Ruff/zizmor without installation by default. `-Install` is a
   separate, explicit developer-only step. Neither command is a runtime
