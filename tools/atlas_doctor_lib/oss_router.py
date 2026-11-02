@@ -336,7 +336,7 @@ def qualify_live(root: Path, paths: Iterable[str], *,
 
 def trial_imagehash(root: Path, paths: Iterable[str], *,
                     max_pixels: int = 2_000_000,
-                    max_file_bytes: int = 4 * 1024 * 1024) -> dict[str, Any]:
+                    max_file_bytes: int = 2_000_000) -> dict[str, Any]:
     """Explicit ImageHash advisory for local assets, never a deletion decision.
 
     Pixel or image contents never leave memory. ImageHash/Pillow are imported
@@ -347,7 +347,7 @@ def trial_imagehash(root: Path, paths: Iterable[str], *,
     if not files or any(not path.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
                         for path in files):
         raise ValueError("ImageHash trial requires only explicit image files")
-    if not 1 <= max_pixels <= 2_000_000 or not 1 <= max_file_bytes <= 4 * 1024 * 1024:
+    if not 1 <= max_pixels <= 2_000_000 or not 1 <= max_file_bytes <= 2_000_000:
         raise ValueError("Unbounded ImageHash trial rejected")
     try:
         from PIL import Image
