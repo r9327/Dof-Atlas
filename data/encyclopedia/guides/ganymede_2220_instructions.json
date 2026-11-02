@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2220,
+  "source_url": "https://ganymede-app.com/guides/2220",
+  "expected_source_step_count": 7,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "fact_sources": [
+    "https://www.dofutheque.com/la-vengeance-de-peggy-la-porkass",
+    "https://www.dofutheque.com/le-chevalier-noir-et-rose",
+    "https://www.jeuxend.com/blog/le-gardien-du-pont-de-la-mort-sur-dofus-reponses-pieges-et-solution-complete",
+    "https://guidactik.com/dofus-retro/quetes-otomai-dofus-retro-guide-complet/",
+    "https://www.next-stage.fr/2026/01/quete-nouveau-monde-dofus-guide-complet-dotomai.html"
+  ],
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Rejoindre le point de départ de la tourbière",
+      "instructions": "Depuis le zaap du Village côtier d'Otomaï en [-46,18], prépare les quêtes de la tourbière. Vérifie que l'accès à l'île est débloqué, puis rejoins Kito en [-49,14]. Cette séquence est conseillée aux personnages capables de gérer les combats des Plaines herbeuses et de la tourbière.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Partir du Village côtier vers Kito.",
+          "coordinates": [
+            -49,
+            14
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Garde le même personnage pour les trois quêtes du secteur afin d'éviter les retours inutiles."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Lancer la vengeance de Kito",
+      "instructions": "En [-49,14], parle à Kito pour recevoir sa demande de vengeance. Ne pars pas immédiatement combattre : le passage vers la cale de l'Arche nécessite d'abord de débloquer le pont. Va ensuite voir Peggy la Porkass dans les Plaines herbeuses.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Demander à Kito sa quête « La vengeance du Kito »."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller aux Plaines herbeuses pour retrouver Peggy la Porkass.",
+          "coordinates": [
+            -57,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Prendre la quête de Peggy la Porkass",
+      "instructions": "Parle à Peggy la Porkass en [-57,4] avant de t'approcher du Chevalier Noir et Rose. Les deux quêtes pourront ainsi avancer pendant la même tournée. Rejoins ensuite le pont qui mène à la tourbière.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « La vengeance de Peggy la Porkass »."
+        },
+        {
+          "kind": "travel",
+          "text": "Se diriger vers le pont de la Mort.",
+          "coordinates": [
+            -56,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Répondre aux trois premières questions du pont",
+      "instructions": "Au pont, engage la conversation avec son gardien pour débloquer « Le Gardien du Pont de la Mort ». Choisis une couleur précise (évite la réponse qui esquive le choix), indique le sexe de ton personnage, puis réponds selon que tu connais ou non l'attitude « Croiser les bras ». La suite du dialogue porte sur la capacité de transport.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Lancer le dialogue avec le Gardien du Pont de la Mort."
+        },
+        {
+          "kind": "information",
+          "text": "Première réponse : choisir une couleur, sans répondre que tu préfères une autre couleur."
+        },
+        {
+          "kind": "information",
+          "text": "Deuxième réponse : le sexe de ton personnage."
+        },
+        {
+          "kind": "information",
+          "text": "Troisième réponse : « Oui » seulement si ton personnage possède l'attitude « Croiser les bras »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Terminer l'énigme et passer le pont",
+      "instructions": "Regarde tes pods encore disponibles avant de choisir la quantité de coraux : moins de 500 → 100, de 500 à 1 499 → 200, de 1 500 à 2 499 → 400, et 2 500 ou davantage → 600. Pour la question de couleur, réponds « Blanche ». Pour celle du Corbac, demande de quel type de Corbac il s'agit. Termine l'échange pour franchir le pont, puis progresse jusqu'à l'Arche d'Otomaï.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Calculer la tranche de pods libres : 100 / 200 / 400 / 600 coraux selon les seuils indiqués."
+        },
+        {
+          "kind": "talk",
+          "text": "Répondre « Blanche » puis demander s'il s'agit d'un Corbac normal ou d'un vilain petit Corbac."
+        },
+        {
+          "kind": "travel",
+          "text": "Après validation du gardien, rejoindre l'Arche d'Otomaï.",
+          "coordinates": [
+            -55,
+            -4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Remplir l'objectif de Kito dans la cale",
+      "instructions": "À l'Arche d'Otomaï en [-55,-4], accède à la cale et combats les trois types de pirates réclamés par la quête de Kito : un Barbroussa, un Flib et un Sparo. Le Flib peut gêner les tours de jeu au corps à corps : privilégie la distance si nécessaire. Vérifie dans ton journal que l'objectif de Kito est terminé avant de repartir vers le chevalier.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la zone de la cale de l'Arche d'Otomaï.",
+          "coordinates": [
+            -55,
+            -4
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre au moins un Barbroussa, un Flib et un Sparo pour la quête de Kito."
+        },
+        {
+          "kind": "travel",
+          "text": "Quitter la cale et gagner le Chevalier Noir et Rose.",
+          "coordinates": [
+            -58,
+            -5
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Affronter le Chevalier Noir et Rose",
+      "instructions": "En [-58,-5], parle au Chevalier Noir et Rose et accepte le combat. Il est possible de combattre à plusieurs. Évite d'aligner tes personnages à portée de ses attaques en ligne et de les regrouper inutilement. Après la victoire, vérifie la fin de « Le Chevalier Noir et Rose » et l'avancement de la quête de Peggy ; retourne lui parler si ton journal le demande.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Déclencher la rencontre avec le Chevalier Noir et Rose."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Chevalier Noir et Rose, en groupe si nécessaire."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler dans le journal les validations de Peggy, Kito et du passage de la tourbière."
+        }
+      ]
+    }
+  ]
+}

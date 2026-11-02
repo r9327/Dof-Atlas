@@ -487,6 +487,51 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_real_otomai_original_routes_open_with_actionable_local_steps(self):
+        from PySide6.QtWidgets import QPushButton
+
+        with tempfile.TemporaryDirectory() as directory:
+            progress_path = Path(directory) / "guide_progress.json"
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:22", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "islands"
+                view.refresh_home()
+                with patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
+                    progress_path,
+                ):
+                    for source_id in (2219, 2220):
+                        with self.subTest(source_id=source_id):
+                            item = next(
+                                view.home_metadata_list.item(n)
+                                for n in range(view.home_metadata_list.count())
+                                if view.home_metadata_list.item(n).data(Qt.UserRole) == source_id
+                            )
+                            self.assertIn("consignes à vérifier", item.text())
+                            view._open_ganymede_source_item(item)
+                            dialog = view._ganymede_source_dialog
+                            local = dialog.findChild(
+                                QPlainTextEdit, "GanymedeOfflineSourceStep",
+                            )
+                            validate = dialog.findChild(
+                                QPushButton, "GanymedeSourceValidateStep",
+                            )
+                            self.assertTrue(validate.isEnabled())
+                            self.assertIn("ÉTAPE 1 / 7", local.toPlainText())
+                            self.assertIn("• Aller à", local.toPlainText())
+                            dialog.close()
+                            self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_fact_only_steps_cannot_be_marked_as_completed(self):
         from PySide6.QtWidgets import QPushButton
 
