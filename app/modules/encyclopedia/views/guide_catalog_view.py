@@ -1011,7 +1011,7 @@ class GuideCatalogView(QWidget):
                 if not positions:
                     return
                 x, y = positions[0]
-                QApplication.clipboard().setText(f"/travel {x} {y}")
+                QApplication.clipboard().setText(f"/travel {x},{y}")
                 self.status_callback(f"Position copiée : [{x}, {y}]")
 
             copy_button.clicked.connect(copy_travel)
