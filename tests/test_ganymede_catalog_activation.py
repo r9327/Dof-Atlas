@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import json
 import unittest
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
@@ -172,15 +174,78 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
                     payload["expected_source_step_count"],
                 )
 
-    def test_unmapped_or_disabled_sources_keep_original_atlas_guide(self) -> None:
+    def test_legacy_quest_guides_are_disabled_and_two_optimized_untouched(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
-        for row in catalogue["guides"]:
-            if row["id"] in {"dokille", "dofoozbz"}:
-                with self.subTest(guide=row["id"]):
-                    self.assertIsNone(select_verified_replacement_path(
-                        GUIDES, row, allow_source_manual=True,
-                    ))
-                    self.assertNotIn("ganymede_manual_ui_ready", row)
+        by_id = {row["id"]: row for row in catalogue["guides"]}
+        for guide_id in ("guide_complet", "dofus_sylvestre"):
+            self.assertTrue(by_id[guide_id]["enabled"])
+            self.assertNotIn("ganymede_manual_ui_ready", by_id[guide_id])
+        for guide_id in ("dokille", "dofoozbz", "alignement_bonta", "alignement_brakmar"):
+            with self.subTest(guide=guide_id):
+                self.assertFalse(by_id[guide_id]["enabled"])
+                self.assertNotIn("ganymede_manual_ui_ready", by_id[guide_id])
+        self.assertEqual(
+            {row["id"] for row in catalogue["guides"] if row["enabled"]},
+            {"guide_complet", "dofus_sylvestre", *(
+                row["id"] for row in catalogue["guides"]
+                if row.get("ganymede_manual_ui_ready") is True
+            )},
+        )
+
+    def test_published_catalogue_selects_no_legacy_quest_file(self) -> None:
+        from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+
+        provider = GuideProvider(guides_dir=GUIDES)
+        entries = provider._guide_entries()
+        paths = {row["id"]: path for path, row in entries}
+        self.assertEqual(len(paths), 22)
+        self.assertEqual(
+            {guide_id for guide_id in paths if guide_id not in {
+                "guide_complet", "dofus_sylvestre",
+            }},
+            {row["id"] for row in json.loads(
+                (GUIDES / "catalog.json").read_text(encoding="utf-8")
+            )["guides"] if row.get("ganymede_manual_ui_ready") is True},
+        )
+        for guide_id, path in paths.items():
+            with self.subTest(guide=guide_id):
+                self.assertEqual(
+                    path.parent.name,
+                    "cutovers" if guide_id not in {
+                        "guide_complet", "dofus_sylvestre",
+                    } else "guides",
+                )
+
+    def test_invalid_ganymede_cutover_fails_closed_without_quest_fallback(self) -> None:
+        from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+
+        provider = GuideProvider(guides_dir=GUIDES)
+        # Simulate 20 invalid replacement routes, leaving the two explicitly
+        # preserved optimized guides accessible.
+        with patch(
+            "app.modules.encyclopedia.providers.guide_provider.select_verified_replacement_path",
+            return_value=None,
+        ):
+            entries = provider._guide_entries()
+        self.assertEqual(
+            {row["id"] for _, row in entries},
+            {"guide_complet", "dofus_sylvestre"},
+        )
+        self.assertEqual(len(provider.validation_errors), 20)
+
+    def test_missing_published_catalogue_cannot_rescan_legacy_jsons(self) -> None:
+        from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "dofus_cawotte.json").write_text("{}", encoding="utf-8")
+            with patch(
+                "app.modules.encyclopedia.providers.guide_provider.GUIDES_DIR",
+                root,
+            ):
+                provider = GuideProvider(guides_dir=root)
+                self.assertEqual(provider._guide_entries(), [])
+                self.assertIn("aucun repli legacy", provider.validation_errors[0])
 
 
 if __name__ == "__main__":

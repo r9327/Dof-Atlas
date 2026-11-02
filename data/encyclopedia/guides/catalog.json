@@ -117,7 +117,7 @@
       "file": "dofoozbz.json",
       "category": "dofus",
       "order": 110,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "dofus_des_glaces",
@@ -196,7 +196,7 @@
       "file": "dokille.json",
       "category": "dofus",
       "order": 220,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "dofus_forgelave",
@@ -211,14 +211,14 @@
       "file": "alignement_bonta.json",
       "category": "alignements",
       "order": 10,
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "alignement_brakmar",
       "file": "alignement_brakmar.json",
       "category": "alignements",
       "order": 20,
-      "enabled": true
+      "enabled": false
     }
   ]
 }

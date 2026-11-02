@@ -182,6 +182,14 @@ class GuideProvider:
         catalog_path = self.guides_dir / GUIDE_CATALOG_FILE
         if catalog_path.exists():
             return self._guide_entries_from_catalog(catalog_path)
+        # An installation of the published app must never rediscover the
+        # obsolete quest guides through a manifest or directory scan.
+        # Custom/development guide directories retain their previous contract.
+        if self.guides_dir.resolve(strict=False) == GUIDES_DIR.resolve(strict=False):
+            self.validation_errors.append(
+                "Catalogue Guides absent : parcours indisponibles (aucun repli legacy)"
+            )
+            return []
         manifest_path = self.guides_dir / GUIDE_MANIFEST_FILE
         if manifest_path.exists():
             payload = self._read_json(manifest_path, {})
@@ -229,14 +237,22 @@ class GuideProvider:
                 self.validation_errors.append(f"catalog.json: categorie non autorisee: {row.get('category')}")
             path = self._safe_guide_path(file_name)
             if path is not None:
-                # Preserve legacy quest behavior until a Ganymède manual-step UI
-                # is actually integrated and the catalogue explicitly opts in.
-                # Never add a second route beside the first.
+                # Ganymède cutovers never silently revert to legacy quest
+                # checklists. Missing/corrupt source steps remain unavailable
+                # and visible in diagnostics, without altering user progress.
+                manual_ready = row.get("ganymede_manual_ui_ready") is True
                 replacement = select_verified_replacement_path(
-                    self.guides_dir, row,
-                    allow_source_manual=row.get("ganymede_manual_ui_ready") is True,
+                    self.guides_dir, row, allow_source_manual=manual_ready,
                 )
-                entries.append((replacement or path, dict(row)))
+                if manual_ready and replacement is None:
+                    message = (
+                        f"Parcours Ganymède {row.get('id')} indisponible : "
+                        "remplacement non vérifié, aucune liste de quêtes legacy chargée"
+                    )
+                    self.validation_errors.append(message)
+                    LOGGER.warning(message)
+                    continue
+                entries.append((replacement if manual_ready else path, dict(row)))
         return sorted(entries, key=lambda item: (self._category_sort_key(str(item[1].get("category") or "")), safe_int(item[1].get("order"), 9999) or 9999, item[0].name))
 
     def _load_catalog_categories(self, rows: Any) -> None:
