@@ -67,6 +67,25 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(payload["execution"]["rule_counts"]["F401"], 1)
         self.assertFalse(payload["phase_certified"])
 
+    def test_ruff_inconsistent_exit_and_json_never_claim_clean(self):
+        from types import SimpleNamespace
+        for returncode, findings in ((1, []), (0, [{"code": "F401"}])):
+            with self.subTest(code=returncode):
+                fake = SimpleNamespace(
+                    returncode=returncode, stdout=json.dumps(findings), stderr="")
+                with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                            side_effect=self._native),
+                      patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                            side_effect=self._probe),
+                      patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                            return_value=fake)):
+                    report = route_oss(self.root, ["tools/example.py"], run=True)
+                self.assertEqual(report["execution"]["status"], "ERROR")
+                self.assertEqual(report["execution_count"], 0)
+                self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+
     def test_scanner_mutation_cancels_all_execution_witnesses(self):
         sample = SimpleNamespace(returncode=0, stdout="[]", stderr="")
         def alter_input(*args, **kwargs):
