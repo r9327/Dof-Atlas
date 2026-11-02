@@ -112,5 +112,32 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
             load_ganymede_local_instructions(self.entry, data_dir=self.folder)
 
 
+    def test_real_added_routes_have_full_local_instructions(self):
+        # The short Dofus routes are authored, not observed-link placeholders.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings,
+        )
+
+        listings = {
+            entry.source_id: entry for entry in load_ganymede_listings()
+        }
+        for guide_id, count in ((2285, 4), (2290, 2), (2273, 15)):
+            with self.subTest(guide_id=guide_id):
+                entry = listings[guide_id]
+                self.assertEqual(entry.step_count, count)
+                steps = load_ganymede_local_instructions(entry)
+                self.assertIsNotNone(steps)
+                self.assertEqual(len(steps), count)
+                self.assertEqual(
+                    [step["source_step_number"] for step in steps],
+                    list(range(1, count + 1)),
+                )
+                self.assertTrue(all(step["actions"] for step in steps))
+                self.assertTrue(all(
+                    action["text"].strip()
+                    for step in steps for action in step["actions"]
+                ))
+
+
 if __name__ == "__main__":
     unittest.main()
