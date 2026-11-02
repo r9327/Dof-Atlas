@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2274,
+  "source_url": "https://ganymede-app.com/guides/2274",
+  "expected_source_step_count": 26,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independent_quest_facts_cross_checked_per_step_positions_not_source_parity_or_live_tested",
+  "fact_sources": [
+    "https://www.dofuspourlesnoobs.com/cest-assez.html",
+    "https://www.dofuspourlesnoobs.com/grand-corps-malade.html",
+    "https://www.dofuspourlesnoobs.com/qui-dit-baume.html",
+    "https://www.dofuspourlesnoobs.com/ponctions-leacutetales.html"
+  ],
+  "completion_note": "26 étapes originales de suivi sur les trois quêtes du Roc. Ordre exact de la source tierce non certifié, données de jeu à tester.",
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparation des trois quêtes",
+      "instructions": "Le succès « C'est assez » demande « Grand corps malade », « Qui dit baume » et « Ponctions létales ». Prévois la collecte des krobes, une visite aux Jardins d'Hiver et un passage au Ventre de la Baleine. Ne lance pas le donjon avant d'avoir pris les deux quêtes qui en dépendent.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Prévoir une clef du Ventre de la Baleine et de quoi combattre le Protozorreur."
+        },
+        {
+          "kind": "prepare",
+          "text": "Rassembler Pyrute, 7 Obsidiennes, Vomer d'Apériglours, Écorce d'Abrazif, 7 Bois de Tremble, Perce-Neige et Pain de Frostiz pour les Couteaux sacrés."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Embarquer pour le Roc",
+      "instructions": "Le bateau du Port de givre de Frigost en [-84,-40] conduit au Roc des Salbatroces. Termine tes préparatifs avant l'aller.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Embarquer au Port de givre de Frigost.",
+          "coordinates": [
+            -84,
+            -40
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Prendre le bateau pour le Roc."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Repérer Jangakuq",
+      "instructions": "Une fois sur le Roc, rejoins Jangakuq, qui cherche un moyen de soigner Kidibom. Prends « Qui dit baume » pour permettre de ramasser les déchets toxiques.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Jangakuq sur le Roc.",
+          "coordinates": [
+            -84,
+            -57
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter sa demande pour aider la baleine."
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Prendre Grand corps malade",
+      "instructions": "Le capitaine Pol Ouatnos demande d'enlever les déchets laissés sur le littoral. Écoute sa mission et commence la collecte.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le capitaine Pol Ouatnos.",
+          "coordinates": [
+            -84,
+            -58
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Grand corps malade »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Premier dépôt de déchets",
+      "instructions": "Près de [-83,-59], examine les déchets abandonnés sur la plage. Cet objet de quête est la première étape du nettoyage de Pol Ouatnos.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le premier dépôt.",
+          "coordinates": [
+            -83,
+            -59
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser les déchets de la première carte."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Deuxième dépôt de déchets",
+      "instructions": "En [-84,-59], ramasse le deuxième tas de déchets. Prépare-toi à l'incident qui survient sur la troisième carte.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le deuxième dépôt.",
+          "coordinates": [
+            -84,
+            -59
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser les déchets de la seconde carte."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "La blessure au troisième dépôt",
+      "instructions": "En [-83,-61], le dernier ramassage provoque une blessure. Retourne voir Pol Ouatnos afin de signaler l'infection, puis prévois d'aller chez Ninae Charpe.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le troisième tas de déchets.",
+          "coordinates": [
+            -83,
+            -61
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser le dernier dépôt et constater la blessure."
+        },
+        {
+          "kind": "talk",
+          "text": "Informer Pol Ouatnos de l'incident."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Début du traitement de Kidibom",
+      "instructions": "Rejoins Jangakuq au Roc pour la collecte de « Qui dit baume ». Il souhaite que les déchets toxiques dispersés près de la baleine soient regroupés.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner voir Jangakuq.",
+          "coordinates": [
+            -84,
+            -57
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Confirmer l'objectif des trois déchets toxiques."
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Prélever des déchets toxiques",
+      "instructions": "En [-83,-58], examine les déchets contaminés. Conserve le prélèvement pour Jangakuq et poursuis vers Ninae.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller au premier amas toxique.",
+          "coordinates": [
+            -83,
+            -58
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser l'un des trois déchets toxiques."
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Lancer Ponctions létales",
+      "instructions": "Ninae Charpe se trouve en [-84,-60]. Décris-lui l'infection pour qu'elle réclame l'Herbe Usse et accepte « Ponctions létales » : elle remet alors le Ponctionneur pour les krobes.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Ninae Charpe.",
+          "coordinates": [
+            -84,
+            -60
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Ponctions létales » et obtenir le Ponctionneur de kroboplasme."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler de la blessure pour obtenir la demande d'Herbe Usse."
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Récolter l'Herbe Usse",
+      "instructions": "Dans la première serre des Jardins d'Hiver en [-60,-69], récupère l'Herbe Usse pour Ninae.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la serre des Jardins d'Hiver.",
+          "coordinates": [
+            -60,
+            -69
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cueillir l'Herbe Usse."
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Cueillir la Plante Ureuse",
+      "instructions": "La deuxième serre en [-58,-72] fournit la Plante Ureuse dont Albert Paisse a besoin pour fabriquer un remède.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la deuxième serre.",
+          "coordinates": [
+            -58,
+            -72
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Récupérer la Plante Ureuse."
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Soin chez Albert Paisse",
+      "instructions": "Remets la Plante Ureuse à Albert Paisse en [-80,-45]. Le traitement déclenche un combat seul contre le Pataugerbe : frappe avec quatre éléments trois tours de suite et surveille ses invocations.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Consulter Albert Paisse.",
+          "coordinates": [
+            -80,
+            -45
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui remettre la Plante Ureuse."
+        },
+        {
+          "kind": "fight",
+          "text": "Gérer le Pataugerbe et la Malamibe ; frapper Terre, Feu, Eau et Air sur trois tours consécutifs."
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Forger les Couteaux sacrés",
+      "instructions": "Prépare les Couteaux sacrés avec un forgeron niveau 200 puis présente-les à Otto Ktone en [-61,-58]. Il te confie quatre objets rituels.",
+      "actions": [
+        {
+          "kind": "craft",
+          "text": "Fabriquer les Couteaux sacrés avec les ressources préparées."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Otto Ktone.",
+          "coordinates": [
+            -61,
+            -58
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Recevoir les objets sacrés et l'ordre des lieux d'invocation."
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Appeler l'esprit Mansot",
+      "instructions": "En [-59,-57], utilise le Poisskaille sacré pour invoquer l'esprit Mansot et obtenir sa bénédiction.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller au premier lieu de rituel.",
+          "coordinates": [
+            -59,
+            -57
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser le Poisskaille sacré puis parler au Mansot."
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Bénédiction du Givrefoux",
+      "instructions": "En [-76,-78], la Viande sacrée invoque le Givrefoux. Valide son dialogue avant de partir.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le deuxième site.",
+          "coordinates": [
+            -76,
+            -78
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Employer la Viande sacrée pour la bénédiction du Givrefoux."
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Bénédiction sylvestre",
+      "instructions": "Sur la carte [-79,-68], active l'Engrais sacré et reçois l'aide de l'esprit Sylvain.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Aller au troisième site.",
+          "coordinates": [
+            -79,
+            -68
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Employer l'Engrais sacré et parler à l'esprit Sylvain."
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Bénédiction du Glourson",
+      "instructions": "En [-71,-75], utilise le Miel sacré pour obtenir la quatrième bénédiction auprès de l'esprit Glourson.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le dernier site.",
+          "coordinates": [
+            -71,
+            -75
+          ]
+        },
+        {
+          "kind": "use_item",
+          "text": "Employer le Miel sacré pour le quatrième rituel."
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Livrer les Couteaux sacrés",
+      "instructions": "Retourne voir Jangakuq au Roc et remets-lui les Couteaux sacrés après les quatre bénédictions. Il demande maintenant de vaincre le Protozorreur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner à Jangakuq.",
+          "coordinates": [
+            -84,
+            -57
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre les Couteaux sacrés préparés."
+        },
+        {
+          "kind": "prepare",
+          "text": "Garder l'objectif d'inoculateur en salle 4 avant le boss."
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Rapporter l'Herbe Usse à Ninae",
+      "instructions": "Remets l'Herbe Usse à Ninae. Elle te donne l'Inoculateur à livrer à Disnez Loth. Profite des monstres de la zone pour obtenir cinq kroboplasmes de chaque type si « Ponctions létales » est active.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Ninae Charpe.",
+          "coordinates": [
+            -84,
+            -60
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner l'Herbe Usse et récupérer l'Inoculateur."
+        },
+        {
+          "kind": "fight",
+          "text": "Collecter cinq kroboplasmes de chaque krobe sur les monstres requis."
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Entrer dans le Ventre de la Baleine",
+      "instructions": "L'entrée en [-85,-59] permet d'accomplir deux missions en une seule tournée. Les monstres du donjon utilisent Dislocation et Restauration : prépare la gestion des vulnérabilités.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Ventre de la Baleine.",
+          "coordinates": [
+            -85,
+            -59
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Entrer dans le donjon avec l'Inoculateur."
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Terminer le donjon avec les objectifs actifs",
+      "instructions": "En salle 4, livre l'Inoculateur à Disnez Loth ; poursuis jusqu'au Protozorreur puis parle à Kidibom après la victoire. Sans ces dialogues, les quêtes peuvent rester inachevées.",
+      "actions": [
+        {
+          "kind": "deliver",
+          "text": "Remettre l'Inoculateur en salle 4."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre le Protozorreur en gérant Dislocation et Restauration."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Kidibom avant de quitter le donjon."
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Rendre la preuve à Jangakuq",
+      "instructions": "Retourne auprès de Jangakuq en [-84,-57] pour lui présenter la preuve du Protozorreur et clore « Qui dit baume ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner voir Jangakuq.",
+          "coordinates": [
+            -84,
+            -57
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre la preuve du Protozorreur et confirmer la fin de « Qui dit baume »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Remettre les kroboplasmes",
+      "instructions": "Ninae te demande cinq prélèvements pour chaque type de krobe. Une fois les compteurs remplis, rapporte les lots et reçois sa Solution expérimentale.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner au laboratoire de Ninae.",
+          "coordinates": [
+            -84,
+            -60
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre les prélèvements de kroboplasme complets."
+        },
+        {
+          "kind": "talk",
+          "text": "Obtenir la Solution expérimentale et vérifier la cible indiquée."
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Tester la Solution expérimentale",
+      "instructions": "Le krobe isolé visé par l'expérience dépend de ta quête. Consulte le journal : la zone de test inclut notamment [-83,-61]. Applique la solution à la créature choisie et constate ta transformation.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Chercher le krobe isolé indiqué par la quête."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser la Solution expérimentale sur le bon krobe isolé."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas choisir arbitrairement un autre krobe : la cible peut changer selon le personnage."
+        }
+      ]
+    },
+    {
+      "source_step_number": 26,
+      "title": "Finir C'est assez",
+      "instructions": "Retourne voir Ninae pour retrouver ta forme puis, si nécessaire, rends compte à Pol Ouatnos de la remise de l'Inoculateur. Vérifie les trois quêtes du succès « C'est assez » avant de cocher le parcours Atlas.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Faire dissiper la transformation par Ninae et terminer « Ponctions létales »."
+        },
+        {
+          "kind": "talk",
+          "text": "Finaliser le compte rendu de « Grand corps malade » auprès de Pol Ouatnos."
+        },
+        {
+          "kind": "information",
+          "text": "Confirmer « Grand corps malade », « Qui dit baume » et « Ponctions létales » dans le journal."
+        }
+      ]
+    }
+  ]
+}
