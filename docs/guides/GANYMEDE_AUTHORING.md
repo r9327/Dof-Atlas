@@ -173,3 +173,43 @@ Test ciblé (ne remplace pas les essais Qt/Windows/jeu) :
 ```powershell
 py -3.13 -m unittest tests.test_guide_cross_route_candidates
 ```
+
+## Rédaction incrémentale des 80 guides restants — PR #337
+
+Les premières étapes de quatre parcours ont été **réécrites individuellement**
+d'après les actions et objectifs visibles dans leurs références publiques, puis
+rapprochées des relevés factuels locaux de la même étape. Cette matière est
+stockée sous `replacement_drafts/authoring/ganymede_<id>_partial.json` :
+**ce n'est pas un guide activable**. Le lecteur ne considère que les
+`ganymede_<id>_instructions.json` possédant toutes leurs étapes et une
+validation de schéma intégrale.
+
+| Guide | Étapes rédigées | Étapes source | État |
+| --- | ---: | ---: | --- |
+| 2204 — Mais où sont les Dofus ? | 10 | 26 | Brouillon incomplet |
+| 2206 — Valonia 1 | 10 | 30 | Brouillon incomplet |
+| 2228 — Sufokia | 10 | 39 | Brouillon incomplet |
+| 2229 — Nimaltopia | 10 | 67 | Brouillon incomplet |
+| **Total** | **40** | **162** | **Aucun n'est activé** |
+
+Les 40 étapes couvrent 140 actions typées, dont 72 déplacements avec une
+position également mentionnée dans le relevé de la même étape (contrôle
+statique de données). Les quantités, dialogues, niveaux, identités des cartes,
+branches et combats demandent une vérification en jeu ainsi qu'une comparaison
+intégrale des pages source. Les intitulés d'objets et de PNJ traduits doivent
+aussi être confrontés à la version française effective.
+
+**Suite prioritaire** : rédiger et vérifier les étapes restantes de ces quatre
+parcours dans l'ordre, puis les faire passer **entièrement** par le contrat des
+consignes avant de les ouvrir à la progression manuelle. Poursuivre ensuite
+les autres guides. Aucun travail d'optimisation inter-guides ni remplacement
+des deux guides optimisés existants ne doit prendre cette priorité.
+
+Contrôle de structure ajouté :
+
+```powershell
+py -3.13 -m unittest tests.test_ganymede_partial_authoring
+```
+
+Ce test est distinct de la certification fonctionnelle du guide et de
+l'exécution réelle des parcours sous Windows/DOFUS.
