@@ -62,7 +62,10 @@ class TestSharedRouteContract(unittest.TestCase):
         )
         self.assertEqual(card["manual_sections"]["before_leave"][0]["text"],
                          "Avant de partir, conserver Ressource")
-        self.assertEqual(card["manual_sections"]["now"][0]["position"], "-12,7")
+        # The shared reader only turns bracketed coordinates into clickable
+        # travel-copy:/travel links; the route identity remains raw x,y.
+        self.assertEqual(card["manual_sections"]["now"][0]["position"], "[-12,7]")
+        self.assertEqual(card["manual_route_position"], "-12,7")
         self.assertEqual(card["manual_sections"]["now"][3]["kind"], "combat")
         self.assertEqual(card["manual_sections"]["now"][2]["source_action"]["items"][0]["quantity"], 3)
         self.assertEqual(card["manual_sections"]["now"][1]["source_action"]["dialogue_choice"],
