@@ -82,7 +82,7 @@
         },
         {
           "kind": "prepare",
-          "text": "1 Huile de Sésame : fabriquer chez un Paysan à partir de 10 Graines de Sésame (recette de l'objet) ou acheter l'huile directement. Ne pas suivre l'ancien commentaire « 3 graines » de GP6.",
+          "text": "1 Huile de Sésame : acheter l'huile ou la fabriquer avec 10 Graines de Sésame chez un Paysan.",
           "copy_values": [
             "Huile de Sésame",
             "Graine de Sésame"
