@@ -3,6 +3,7 @@ scope: windows_qt_runtime
 kind: shared_infrastructure
 working_set:
   - app/windows/
+  - app/windows_embed.py
 shared_dependencies: []
 context_entries:
   - main.py

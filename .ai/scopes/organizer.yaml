@@ -7,6 +7,7 @@ working_set:
   - app/pages/organizer/
   - tests/test_organizer_mirror_plan.py
   - tests/test_organizer_mirror_ui.py
+  - tests/test_organizer_unity_process_filter.py
 shared_dependencies:
   - persistence_identity
   - network_capture

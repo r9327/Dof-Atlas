@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import logging
 import os
+from pathlib import PureWindowsPath
 from ctypes import wintypes
 from threading import RLock
 from typing import Any, Callable, Iterable
@@ -297,6 +298,28 @@ def describe_window_row(row: dict[str, Any]) -> str:
     )
 
 
+def is_dofus_unity_executable(image_path: str) -> bool:
+    """Fail closed on unknown image paths; UnityWndClass alone is not DOFUS.
+
+    QueryFullProcessImageNameW supplies an absolute process image path. A
+    missing/inaccessible image is *not* evidence that a Unity window is DOFUS.
+    Verified Windows builds use Dofus.exe; alternate binaries need an audited
+    allowlist change and real Windows proof, not a guessed title substring.
+    """
+    if not isinstance(image_path, str) or not image_path:
+        return False
+    path = PureWindowsPath(image_path)
+    return path.is_absolute() and path.name.casefold() == "dofus.exe"
+
+
+def is_dofus_unity_process(hwnd: int) -> bool:
+    """Shared Organizer and macro executable validation, no window title trust."""
+    if not hwnd or window_class(hwnd) != "UnityWndClass":
+        return False
+    pid = window_process_id(hwnd)
+    return pid > 0 and is_dofus_unity_executable(process_image_path(pid))
+
+
 def scan_unity_sessions() -> list[dict[str, Any]]:
     if not _ensure_windows_api():
         return []
@@ -305,7 +328,7 @@ def scan_unity_sessions() -> list[dict[str, Any]]:
     def callback(hwnd: int, _lparam: int) -> bool:
         if not user32.IsWindowVisible(hwnd):
             return True
-        if window_class(hwnd) != "UnityWndClass":
+        if not is_dofus_unity_process(hwnd):
             return True
         raw_title = window_title(hwnd).strip()
         if not raw_title:
