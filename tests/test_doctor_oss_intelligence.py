@@ -128,6 +128,35 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             self.assertFalse(report["approved_oss_execution"]["all_executed"])
             self.assertFalse(report["approved_oss_execution"]["witness_integrity_verified"])
 
+    def test_partial_scan_preserves_real_ruff_but_not_zizmor_attestation(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        plan = intelligent_plan(
+            ["tools/test_tool.py", ".github/workflows/check.yml"], study())
+        advisory = {
+            "source": "tools.atlas_doctor_lib.oss_router.route_oss",
+            "status": "ADVISORY_ONLY",
+            "input_integrity_verified": True,
+            "files_modified": False,
+            "execution_results": [
+                {"tool": "ruff", "status": "FINDINGS"},
+                {"tool": "zizmor", "status": "NOT_AVAILABLE"},
+            ],
+            "execution_summary": {
+                "status": "INCOMPLETE",
+                "expected_tools": ["ruff", "zizmor"],
+            },
+        }
+        result = ai_tool_workflow("check", {"status": "REVIEW", "exit_code": 1},
+                                  plan, advisory=advisory)
+        proof = result["approved_oss_execution"]
+        self.assertTrue(proof["witness_integrity_verified"])
+        self.assertTrue(proof["tools"][0]["executed"])
+        self.assertFalse(proof["tools"][1]["executed"])
+        self.assertFalse(proof["all_executed"])
+        self.assertEqual(proof["gaps"], [
+            {"tool": "zizmor", "status": "NOT_AVAILABLE"},
+        ])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
