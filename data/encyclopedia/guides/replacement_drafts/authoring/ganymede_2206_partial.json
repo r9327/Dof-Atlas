@@ -18,7 +18,7 @@
     {
       "source_step_number": 1,
       "title": "Préparer le voyage vers Valonia",
-      "instructions": "Départ du parcours Valonia 1, à partir du niveau 60 environ, pour un succès portant sur la découverte de l'archipel. Aucun prérequis ni ressource à collecter n'est exigé au lancement. Seul le prix du bateau doit être disponible au moment de l'embarquement ; la capture du Raccooper pour le Dofus Ocre reste entièrement facultative.",
+      "instructions": "Départ du parcours Valonia 1, à partir du niveau 60 environ, pour un succès portant sur la découverte de l'archipel. Aucun prérequis ni ressource à collecter n'est exigé au lancement. Seul le prix du bateau doit être disponible au moment de l'embarquement ; la capture du Rakoopeur pour le Dofus Ocre reste entièrement facultative.",
       "actions": [
         {
           "kind": "information",
@@ -30,7 +30,7 @@
         },
         {
           "kind": "information",
-          "text": "Facultatif : emporter une pierre d'âme pour capturer le Raccooper dans le cadre du Dofus Ocre."
+          "text": "Facultatif : emporter une pierre d'âme pour capturer le Rakoopeur dans le cadre du Dofus Ocre."
         },
         {
           "kind": "travel",
@@ -76,7 +76,7 @@
       "actions": [
         {
           "kind": "travel",
-          "text": "Trouver Händel Itäll en [38,-77].",
+          "text": "Trouver Hönger Lébaï en [38,-77].",
           "coordinates": [
             38,
             -77
@@ -84,7 +84,7 @@
         },
         {
           "kind": "talk",
-          "text": "Parler à Händel Itäll et accepter la mission de la scierie."
+          "text": "Parler à Hönger Lébaï et accepter la mission de la scierie."
         },
         {
           "kind": "travel",
@@ -111,11 +111,11 @@
         },
         {
           "kind": "talk",
-          "text": "Consulter Ima Dokter puis recevoir les consignes de Rustay Planne."
+          "text": "Consulter Judeau Keuter puis recevoir les consignes de Bryra Borouié."
         },
         {
           "kind": "interact",
-          "text": "Ramasser le balai simple et l'équiper comme arme."
+          "text": "Ramasser le balai rudimentaire et l'équiper comme arme."
         },
         {
           "kind": "interact",
@@ -123,11 +123,11 @@
         },
         {
           "kind": "fight",
-          "text": "Combattre les tas de sciure ; porter le coup final avec le balai. En groupe, chaque personnage doit en achever au moins un."
+          "text": "Vaincre les trois Tas de sciure : lorsqu'ils restent à 1 PV, finir chaque tas avec une arme (le Balai rudimentaire convient). En équipe, faire achever au moins un tas par chaque personnage concerné avant validation."
         },
         {
           "kind": "talk",
-          "text": "Confirmer la fin du travail à Rustay Planne."
+          "text": "Confirmer la fin du travail à Bryra Borouié."
         },
         {
           "kind": "interact",
@@ -173,11 +173,11 @@
     {
       "source_step_number": 6,
       "title": "Clore la scierie et ouvrir la suite",
-      "instructions": "Valider la quête de scierie auprès de Händel Itäll avant de prendre une nouvelle mission auprès de Thorbjarn.",
+      "instructions": "Valider la quête de scierie auprès de Hönger Lébaï avant de prendre une nouvelle mission auprès de Thorbjarn.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre Händel Itäll.",
+          "text": "Rejoindre Hönger Lébaï.",
           "coordinates": [
             38,
             -77
@@ -185,7 +185,7 @@
         },
         {
           "kind": "talk",
-          "text": "Reparler à Händel Itäll pour terminer la quête de scierie."
+          "text": "Reparler à Hönger Lébaï pour terminer la quête de scierie."
         },
         {
           "kind": "talk",
@@ -193,7 +193,7 @@
         },
         {
           "kind": "travel",
-          "text": "Aller trouver Skäff Ölding en [34,-81].",
+          "text": "Aller trouver Leichäf Odäg en [34,-81].",
           "coordinates": [
             34,
             -81
@@ -203,12 +203,12 @@
     },
     {
       "source_step_number": 7,
-      "title": "Rencontrer Skäff Ölding",
+      "title": "Rencontrer Leichäf Odäg",
       "instructions": "Expliquer la mission donnée par Thorbjarn et récupérer les indications sur les créatures à repousser.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Parler à Skäff Ölding.",
+          "text": "Parler à Leichäf Odäg.",
           "coordinates": [
             34,
             -81
@@ -216,7 +216,7 @@
         },
         {
           "kind": "talk",
-          "text": "Lui signaler la demande de Thorbjarn concernant les thoronduddleswells."
+          "text": "Lui signaler la demande de Thorbjarn concernant les thomondors."
         },
         {
           "kind": "travel",
@@ -231,11 +231,11 @@
     {
       "source_step_number": 8,
       "title": "Repousser la première créature",
-      "instructions": "Provoquer le combat contre le Thoronduddleswell pâle. Ce combat peut être effectué avec des alliés.",
+      "instructions": "Provoquer le combat contre le Thomondor pâle. Ce combat peut être effectué avec des alliés.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Rencontrer le Thoronduddleswell pâle.",
+          "text": "Rencontrer le Thomondor pâle.",
           "coordinates": [
             36,
             -81
@@ -247,7 +247,7 @@
         },
         {
           "kind": "fight",
-          "text": "Vaincre le Thoronduddleswell pâle."
+          "text": "Vaincre le Thomondor pâle."
         },
         {
           "kind": "travel",
@@ -262,11 +262,11 @@
     {
       "source_step_number": 9,
       "title": "Repousser la seconde créature",
-      "instructions": "Engager le second combat puis retourner donner les nouvelles de l'opération à Skäff Ölding.",
+      "instructions": "Engager le second combat puis retourner donner les nouvelles de l'opération à Leichäf Odäg.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retrouver le Thoronduddleswell blafard.",
+          "text": "Retrouver le Thomondor blafard.",
           "coordinates": [
             36,
             -82
@@ -278,11 +278,11 @@
         },
         {
           "kind": "fight",
-          "text": "Vaincre le Thoronduddleswell blafard."
+          "text": "Vaincre le Thomondor blafard."
         },
         {
           "kind": "travel",
-          "text": "Retourner voir Skäff Ölding.",
+          "text": "Retourner voir Leichäf Odäg.",
           "coordinates": [
             34,
             -81
@@ -297,7 +297,7 @@
       "actions": [
         {
           "kind": "travel",
-          "text": "Rejoindre Skäff Ölding.",
+          "text": "Rejoindre Leichäf Odäg.",
           "coordinates": [
             34,
             -81
@@ -588,7 +588,7 @@
         },
         {
           "kind": "travel",
-          "text": "Aller prévenir Ima Dokter en [36,-78].",
+          "text": "Aller prévenir Judeau Keuter en [36,-78].",
           "coordinates": [
             36,
             -78
@@ -599,11 +599,11 @@
     {
       "source_step_number": 20,
       "title": "Avertir le médecin du barrage",
-      "instructions": "À Nouvelle Albuera, informer Ima Dokter que les ouvriers du barrage ont été blessés ; il part les rejoindre immédiatement. Le passeur permet d'accélérer le trajet vers la digue.",
+      "instructions": "À Nouvelle Albuera, informer Judeau Keuter que les ouvriers du barrage ont été blessés ; il part les rejoindre immédiatement. Le passeur permet d'accélérer le trajet vers la digue.",
       "actions": [
         {
           "kind": "travel",
-          "text": "Retrouver Ima Dokter en [36,-78].",
+          "text": "Retrouver Judeau Keuter en [36,-78].",
           "coordinates": [
             36,
             -78
@@ -611,7 +611,7 @@
         },
         {
           "kind": "talk",
-          "text": "Prévenir Ima Dokter de l'attaque survenue au barrage."
+          "text": "Prévenir Judeau Keuter de l'attaque survenue au barrage."
         },
         {
           "kind": "travel",
@@ -946,11 +946,13 @@
     "https://www.dofuserie.com/quetes/colonie-de-vaillance/",
     "https://www.dofuserie.com/quetes/dans-la-gueule-du-trankilou/",
     "https://www.dofuserie.com/quetes/association-de-fureteurs/",
-    "https://www.dofuserie.com/quetes/la-complote-des-p-o-m-s/"
+    "https://www.dofuserie.com/quetes/la-complote-des-p-o-m-s/",
+    "https://www.dofuserie.com/quetes/dis-scierie/"
   ],
   "further_review_needed": [
     "Compare every stage 11-30 against the original GP11 Ganymède page for 1:1 order and prerequisites.",
     "Verify French localizations and native map IDs/dimensions, including optional ferry, dungeon return and quest completion.",
-    "Check independent progress for each character, mandatory fights and user validation in DOFUS Unity."
+    "Check independent progress for each character, mandatory fights and user validation in DOFUS Unity.",
+    "Map every localized NPC/item name against current DOFUS French assets and branch-specific quests."
   ]
 }
