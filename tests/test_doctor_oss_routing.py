@@ -57,6 +57,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertIn("--no-fix", args)
         self.assertIn("--no-cache", args)
         self.assertIn("--isolated", args)
+        self.assertEqual(args[1:4], ["-P", "-m", "ruff"])
+        self.assertNotIn("PYTHONNOUSERSITE", run.call_args.kwargs["env"])
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"], "")
         self.assertEqual(args[-2:], ["--", "tools/example.py"])
         self.assertNotIn("private source content", json.dumps(payload))
         self.assertNotIn("secret", json.dumps(payload))
@@ -98,6 +101,17 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(payload["execution_count"], 0)
         self.assertIsNone(payload["files_modified"])
         self.assertFalse(payload["input_integrity_verified"])
+
+    def test_ruff_version_probe_uses_user_site_but_not_project_cwd(self):
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        sample = SimpleNamespace(returncode=0, stdout="ruff 0.17.3\n", stderr="")
+        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                   return_value=sample) as run:
+            version = _observed_tool_version(self.root, "ruff")
+        self.assertEqual(version, "0.17.3")
+        self.assertEqual(run.call_args.args[0][1:4], ["-P", "-m", "ruff"])
+        self.assertNotIn("PYTHONNOUSERSITE", run.call_args.kwargs["env"])
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"], "")
 
     def test_missing_package_does_not_execute_or_install(self):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),

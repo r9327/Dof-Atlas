@@ -16,6 +16,10 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   `doctor oss --run` explicite, sur au plus 16 fichiers Python explicites.
   Le lancement utilise le Python actif, sans install automatique,
   sans exécution d'un chemin PATH, sans cache, sans correctif et avec timeout.
+  Le drapeau Python `-P` empêche de charger un faux module depuis le dépôt,
+  sans désactiver les installations `pip --user` proposées par
+  `tools/setup_doctor_oss.ps1` ; la découverte et le diagnostic Ruff
+  utilisent donc le même environnement Python utilisateur.
   Les règles sont isolées de la configuration locale. La version observée
   est une simple *déclaration*, pas une qualification Windows/3.13.
 - **pytest-qt, Hypothesis, pywinauto, ast-grep, Semgrep, Gitleaks,

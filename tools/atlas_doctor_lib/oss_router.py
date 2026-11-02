@@ -233,12 +233,14 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
     """Capture an actually running local tool version without leaking stdout."""
     if name not in {"ruff", "zizmor"}:
         return None
-    command = ([sys.executable, "-m", "ruff", "--version"]
+    # -P protects against loading a rogue ruff module from the checkout.
+    # Unlike -s/PYTHONNOUSERSITE, it keeps pip --user installations visible.
+    command = ([sys.executable, "-P", "-m", "ruff", "--version"]
                if name == "ruff" else [_zizmor_executable() or "zizmor", "--version"])
     env = {key: value for key, value in os.environ.items()
            if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
     env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
-                "PYTHONNOUSERSITE": "1", "PYTHONPATH": "", "NO_COLOR": "1"})
+                "PYTHONPATH": "", "NO_COLOR": "1"})
     try:
         result = subprocess.run(command, cwd=root, env=env,
                                 capture_output=True, text=True,
@@ -375,12 +377,12 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     elif run:
         # Fixed argv and Python interpreter: never evaluate a PATH binary or shell.
         # Ruff's --isolated/--no-cache/--no-fix forbid configuration-driven writes.
-        command = [sys.executable, "-m", "ruff", "check", "--isolated",
+        command = [sys.executable, "-P", "-m", "ruff", "check", "--isolated",
                    "--no-cache", "--no-fix", "--output-format", "json",
                    "--target-version", "py313", "--", *python_files]
         env = {key: value for key, value in os.environ.items()
                if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
-        env.update({"PYTHONNOUSERSITE": "1", "PYTHONPATH": "",
+        env.update({"PYTHONPATH": "",
                     "RUFF_NO_CACHE": "1", "NO_COLOR": "1", "PIP_NO_INDEX": "1"})
         try:
             result = subprocess.run(command, cwd=root, env=env,
