@@ -80,7 +80,7 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
             report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
-        self.assertEqual(report["execution"]["status"], "NOT_APPLICABLE")
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
         self.assertEqual(sel.call_args.kwargs["capability"], "ci_intelligence")
         run.assert_not_called()
 

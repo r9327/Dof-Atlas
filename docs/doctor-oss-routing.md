@@ -26,6 +26,55 @@ L'étude des 29 projets (+ 5 annexes) reste dans
 - **QtAwesome et PyQtDarkTheme** : rejetés comme remplacements du thème
   Unity. Les SDK MCP sont à évaluer côté Holding, pas dans l'EXE Atlas.
 
+
+## Sélection contextuelle : même Doctor, pas un second orchestrateur
+
+Doctor choisit les **capacités utiles** en fonction des fichiers explicites :
+
+| Périmètre | Propriétaire existant prioritaire | Spécialiste OSS |
+|---|---|---|
+| Python | Agent check, tests ciblés | Ruff installé (opt-in), ast-grep/Semgrep en évaluation |
+| Workflows GitHub Actions | Doctor CI, Delivery Guard | **zizmor** hors ligne (opt-in), Gitleaks en évaluation |
+| Guide / progression | Certification Guide + tests de parcours | Hypothesis / RapidFuzz en évaluation |
+| Qt / Unity | Scénarios Qt existants | pytest-qt, ImageHash / fontTools à qualifier |
+| JSON / Quêtes | Index JSON / benchmark canonique | msgspec vs orjson vs ijson : comparer avant choix |
+| RAM / freeze | Doctor Perf Lab / benchmark Phase 8 | py-spy et psutil propriétaires existants ; pas de profiler double |
+| Launcher | Tests Windows du launcher | pywinauto, zstandard en qualification ciblée |
+| Dépendances | Verrouillage et contrôles CI | OSV ou pip-audit (pas les deux par défaut) |
+
+L'algorithme utilise \`ai_context.classify_path\` et **la même étude
+ATOSS-01..29**, sans nouvelle base d'inventaire. Il retourne
+\`intelligent_selection\` : \`scopes\`, \`recommended\`,
+\`reason_scopes\`, \`native_routes\` et \`omitted_count\`. Les outils
+non sélectionnés ne s'exécutent pas. Les outils rejetés (#28/#29),
+hébergés dans Holding (#26/#27) ou doublonnant un moteur existant
+restent exclus des nouveaux exécuteurs.
+
+Avec \`--run\` ou \`agent check --run-oss\`, Doctor lance au plus
+**deux diagnostics explicitement autorisés** selon le scope : Ruff
+pour les fichiers Python, zizmor pour les YAML GitHub Actions.
+Pour zizmor, \`--offline --no-config --no-progress --no-exit-codes
+--format=json\` empêche toute collecte GitHub en ligne et interdit le
+chargement des configurations locales. L'environnement du processus
+ne transmet ni tokens ni proxy. Les résultats sont des **compteurs**
+(\`CLEAN\`, \`FINDINGS\`, \`NOT_AVAILABLE\`, \`ERROR\`, \`TIMEOUT\`), sans
+contenu sensible. Aucune installation ni correction n'est réalisée.
+Un fichier donné explicitement doit exister et être situé sous un
+périmètre autorisé ; max. 16 fichiers, timeout total 1..60 secondes.
+
+Le rapport \`execution_results\` sépare les diagnostics réellement
+lancés. \`execution_count\` compte uniquement les réponses valides
+CLEAN/FINDINGS, jamais une détection de paquet ; une absence ou un
+timeout d'un spécialiste fait ressortir un code de sortie non nul
+sur la commande \`doctor oss\`. Pour \`agent check\`, les résultats
+restent **consultatifs** et n'écrasent jamais les tests, les erreurs,
+les preuves de certification ou le verdict Doctor.
+
+Les 29 projets ne sont **pas** tous installés ni adaptés par ce lot.
+Les candidats de niveau P0/P1 restent soumis à la qualification de
+version/licence, aux tests Windows, aux benchmarks de parité et au
+rattachement à leur propriétaire réel avant toute activation.
+
 ## Commandes
 
 Plan consultatif sans processus tiers :

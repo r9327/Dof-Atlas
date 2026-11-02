@@ -15,6 +15,7 @@ import sys
 from typing import Any, Iterable
 
 from tools.tool_catalog import catalog, local_candidate_preflight, select_tools
+from tools.atlas_doctor_lib.oss_intelligence import intelligent_plan
 
 MAX_FILES = 16
 MAX_TIMEOUT = 60
@@ -70,15 +71,17 @@ def _safe_files(root: Path, paths: Iterable[str]) -> list[str]:
         rel = PurePosixPath(value)
         if (value.startswith("/") or "\\" in value
                 or any(part in {".", ".."} for part in rel.parts)
-                or len(rel.parts) < 2):
+                or (len(rel.parts) < 2
+                    and value not in {"requirements-pyside.txt", "pyproject.toml"})):
             raise ValueError("Unsafe repository-relative file")
-        if rel.parts[0] in _CODE_ROOTS:
-            if rel.suffix not in {".py", ".pyi"}:
-                raise ValueError("Only Python source files can be analyzed here")
+        if rel.parts[0] in _CODE_ROOTS or rel.parts[0] == "data":
+            if rel.suffix not in {".py", ".pyi", ".json", ".png", ".jpg",
+                                  ".jpeg", ".webp", ".ttf", ".otf"}:
+                raise ValueError("Unsupported scoped source or asset file")
         elif rel.parts[:2] == (".github", "workflows"):
             if rel.suffix not in {".yml", ".yaml"}:
                 raise ValueError("Only workflow YAML files can be analyzed here")
-        else:
+        elif value not in {"requirements-pyside.txt", "pyproject.toml"}:
             raise ValueError("Scope is not owned by this advisory diagnostic")
         target = base.joinpath(*rel.parts)
         if not target.is_file() or target.is_symlink() or not target.resolve().is_relative_to(base):
@@ -86,6 +89,48 @@ def _safe_files(root: Path, paths: Iterable[str]) -> list[str]:
         if value not in clean:
             clean.append(value)
     return clean
+
+
+
+def _execute_zizmor(root: Path, files: list[str], timeout: int) -> dict[str, Any]:
+    """Run an installed workflow scanner, explicitly offline, without changes."""
+    # Strictly bound input volume; inputs are pre-validated regular files.
+    if any((root / file).stat().st_size > 1024 * 1024 for file in files):
+        return {"status": "NOT_APPLICABLE", "tool": "zizmor",
+                "reason": "Workflow exceeds bounded scan size"}
+    command = ["zizmor", "--offline", "--no-config", "--no-progress",
+               "--no-exit-codes", "--format=json", "--", *files]
+    # No GitHub token or proxy environment is inherited. --offline is mandatory
+    # even if zizmor happens to be configured with credentials elsewhere.
+    env = {key: value for key, value in os.environ.items()
+           if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
+    env.update({"ZIZMOR_OFFLINE": "1", "NO_COLOR": "1"})
+    try:
+        completed = subprocess.run(command, cwd=root, env=env,
+                                   capture_output=True, text=True,
+                                   timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return {"status": "TIMEOUT", "tool": "zizmor"}
+    except OSError:
+        return {"status": "UNAVAILABLE", "tool": "zizmor"}
+    if completed.returncode != 0:
+        return {"status": "ERROR", "tool": "zizmor",
+                "reason": "Tool failed or incompatible CLI"}
+    if len(completed.stdout) > 2_000_000:
+        return {"status": "ERROR", "tool": "zizmor",
+                "reason": "Bounded report limit exceeded"}
+    try:
+        findings = json.loads(completed.stdout)
+        if not isinstance(findings, list) or not all(
+                isinstance(row, dict) for row in findings):
+            raise ValueError("unexpected zizmor JSON")
+    except (ValueError, TypeError):
+        return {"status": "ERROR", "tool": "zizmor",
+                "reason": "Invalid scanner response"}
+    # Never return excerpts of source, secrets, host paths or arbitrary messages.
+    return {"status": "FINDINGS" if findings else "CLEAN", "tool": "zizmor",
+            "finding_count": len(findings), "exit_code": completed.returncode,
+            "offline_requested": True}
 
 
 def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
@@ -101,9 +146,18 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     native_report = catalog(root)
     native = select_tools(native_report, capability=capability,
                           safe_only=True, ready_only=True, limit=5)
-    probe = local_candidate_preflight(packages=["ruff"] if python_files else [])
-    detected = next(iter(probe["results"]), None)
+    study = _open_source_inventory(root)
+    selection = intelligent_plan(files, study)
+    probe = local_candidate_preflight(
+        packages=["ruff"] if python_files else [],
+        binaries=["zizmor"] if workflows else [])
+    discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
+                  for row in probe["results"]}
+    detected = discovered.get(("python_distribution", "ruff"))
     available = bool(detected and detected["available"])
+    workflow_candidate = discovered.get(("path_executable", "zizmor"))
+    workflow_available = bool(workflow_candidate and workflow_candidate["available"])
+    timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))
     execution: dict[str, Any] = {"status": "NOT_RUN", "reason": "Explicit --run required"}
     if run and not python_files:
         execution = {"status": "NOT_APPLICABLE", "reason": "No approved workflow OSS executor"}
@@ -122,7 +176,7 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         try:
             result = subprocess.run(command, cwd=root, env=env,
                                     capture_output=True, text=True,
-                                    timeout=timeout_seconds, check=False)
+                                    timeout=timeout_each, check=False)
         except subprocess.TimeoutExpired:
             execution = {"status": "TIMEOUT", "reason": "Bounded OSS diagnostic timed out"}
         except OSError:
@@ -146,6 +200,19 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                              "tool": "ruff"}
             except (ValueError, TypeError, json.JSONDecodeError):
                 execution = {"status": "ERROR", "reason": "Unexpected Ruff response"}
+    workflow_execution = None
+    if workflows:
+        if not run:
+            workflow_execution = {"status": "NOT_RUN", "tool": "zizmor"}
+        elif not workflow_available:
+            workflow_execution = {"status": "NOT_AVAILABLE", "tool": "zizmor",
+                                  "reason": "Not installed; no installation attempted"}
+        else:
+            workflow_execution = _execute_zizmor(root, workflows, timeout_each)
+        if not python_files:
+            execution = workflow_execution
+    results = ([execution] if python_files else []) + (
+        [workflow_execution] if workflow_execution is not None else [])
     return {
         "schema_version": 1,
         "source": "tools.atlas_doctor_lib.oss_router.route_oss",
@@ -170,16 +237,24 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             ][:25],
             "execution_witnesses": 0,
         },
-        "open_source_inventory": _open_source_inventory(root),
-        "oss_candidates": [{
-            "id": "ruff", "selected": bool(python_files),
-            "available": available, "version_claim": detected["version"] if detected else None,
-            "license_verified": False, "platform_verified": False,
-            "automation_ready": False,
-        }],
+        "open_source_inventory": study,
+        "intelligent_selection": selection,
+        "oss_candidates": [
+            {"id": "ruff", "selected": bool(python_files),
+             "available": available, "version_claim": detected["version"] if detected else None,
+             "license_verified": False, "platform_verified": False,
+             "automation_ready": False},
+            {"id": "zizmor", "selected": bool(workflows),
+             "available": workflow_available,
+             "version_claim": None, "license_verified": False,
+             "platform_verified": False, "automation_ready": False},
+        ],
+        "execution_results": results,
+        "execution_count": sum(result["status"] in {"CLEAN", "FINDINGS"}
+                               for result in results),
         "execution": execution,
         "network_requested": False,
-        "network_used": None if run and available else False,
+        "network_used": None if run and (available or workflow_available) else False,
         "dependencies_installed": False,
         "files_modified": False,
         "phase_certified": False,
