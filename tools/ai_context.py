@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import metadata
 import json
 import subprocess
 from pathlib import Path
@@ -222,6 +223,14 @@ def recommended_tests(root: Path, paths: Iterable[str]) -> list[str]:
         modules.extend(("tests.test_doctor_oss_routing",
                         "tests.test_doctor_oss_live",
                         "tests.test_doctor_auto_oss"))
+        # Run real generative route checks only in an environment where the
+        # optional dev dependency is installed; absent is not a hidden PASS.
+        try:
+            metadata.version("hypothesis")
+        except metadata.PackageNotFoundError:
+            pass
+        else:
+            modules.append("tests.test_doctor_oss_hypothesis")
     if any(path == "tools/atlas_doctor_lib/oss_intelligence.py"
            for path in normalized_paths):
         modules.extend(("tests.test_doctor_oss_intelligence",
