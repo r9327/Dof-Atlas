@@ -113,3 +113,47 @@ py -3.13 -m tools.audit_ganymede_instruction_coverage --strict
   **aucune source de texte Ganymède n'est importée automatiquement**.
 - Le contrôle technique de schéma ne remplace ni la permission effective des
   auteurs, ni la vérification en jeu, ni le benchmark Windows.
+
+
+## Préparer le croisement des guides — PR #337 / issue #360
+
+Diagnostic offline **en lecture seule** pour préparer le prochain Guide Succès,
+sans remplacer le Guide optimisé existant :
+
+```powershell
+py -3.13 -m tools.audit_ganymede_crosswalk --cross-guide-candidates
+```
+
+API Python : `tools.audit_ganymede_crosswalk.analyze_cross_guide_candidates(root)`.
+Les outils Atlas/Doctor peuvent appeler cette API pour obtenir un JSON
+déterministe avant de décider d'une intégration. L'outil réutilise la validation
+de consignes locales canonique `load_ganymede_local_instructions`, et ne
+charge pas la bibliothèque entière dans l'accueil PySide6.
+
+- Deux actions à la même carte sont des **opportunités de regroupement à
+  examiner**, pas des doublons d'objectifs ni une autorisation de les réordonner.
+- Seuls les identifiants de quêtes Atlas déjà canoniques peuvent prouver une
+  identité de quête entre `guide_complet` et `dofus_sylvestre`.
+  Les liens Ganymède/DofusDB et les noms ressemblants n'ont pas ce statut.
+- Les relations `public_tree_prerequisite_guide_ids` sont des indices
+  documentaires. Les dépendances réelles (AND/OR, prérequis, niveaux,
+  conditions et branches d'alignement/classe), ressources, quêtes accessibles,
+  inventaires et progressions par `character:<id_dofus>` doivent être
+  validées par le moteur canonique avant toute fusion d'activités.
+- Les sorties `REVIEW_ONLY_NOT_OPTIMIZED` sont des **candidats**,
+  jamais des parcours certifiés ou des instructions de macro. Toute donnée
+  absente ou invalide est signalée ; elle n'est pas reconstruite depuis une
+  ancienne liste de quêtes.
+- Le planificateur final reste
+  `GuideRoutePlanner` / `AdventureRouteEngine`.
+  L'adaptation runtime et la substitution future de `guide_complet`
+  exigent d'abord la certification réelle 95/95, une preuve d'absence de
+  régression de sauvegarde/validation propre à chaque guide et un Graphify
+  exact-SHA avant le changement structurel. Les deux guides optimisés
+  restent intacts pendant cette préparation.
+
+Test ciblé (ne remplace pas les essais Qt/Windows/jeu) :
+
+```powershell
+py -3.13 -m unittest tests.test_guide_cross_route_candidates
+```
