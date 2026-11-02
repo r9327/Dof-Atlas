@@ -121,6 +121,40 @@ simple présence dans cette matrice ; les intégrations de données/Qt/Windows
 sont encore suivies par #313, et la recette réelle Windows des deux scanners
 par #343.
 
+## Branches de développement désormais reliées (PR #358)
+
+Le plan Doctor choisit parmi les candidats pertinents issus de l'étude
+canonique 29+5 et fournit `oss_local_preflight` : disponibilité déclarée
+en métadonnées Python ou présence d'un exécutable sur PATH, jamais
+preuve d'exécution, de licence, de compatibilité ou d'installation réussie.
+Les candidats non pertinents ne sont pas sondés. Les projets Holding,
+QtAwesome et PyQtDarkTheme ne sont pas exécutés dans Atlas.
+
+Les modifications de `oss_router.py` et `oss_intelligence.py` sont
+reliées aux tests Doctor spécialisés par `tools.ai_context`, dans le
+runner unittest existant. L'ajout d'Hypothesis est optionnel : quand
+installé, ses propriétés de sécurité sur les chemins des scanners sont
+sélectionnées ; sinon elles ne comptent pas comme exécutées.
+
+L'owner JSON existant peut effectuer des essais ciblés :
+
+```powershell
+py -3.13 -m tools.atlas_json_benchmark --compare-parsers
+py -3.13 -m tools.atlas_json_benchmark --compare-streaming
+```
+
+Les deux commandes nécessitent les données locales Quêtes ; elles
+n'installent rien. `orjson`, `msgspec` et `ijson` sont importés
+**uniquement pendant le test demandé**, jamais au démarrage d'Atlas.
+La parité des valeurs/IDs est vérifiée. Ces micro-comparaisons ne
+prouvent pas la RAM process-tree ni l'intérêt d'une migration runtime.
+
+**État de développement :** brancher une recommandation ou observer un
+paquet disponible ne valide pas OSR-002..010. Les intégrations propres
+au Launcher, à Organizer, aux Guides et à Holding doivent encore avoir
+leurs vrais témoins sur leurs branches propriétaires ; conserver la PR
+Draft jusqu'à la fin du code, puis audit et certification sur le HEAD final.
+
 ## Commandes
 
 Plan consultatif sans processus tiers :
