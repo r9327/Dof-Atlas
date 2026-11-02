@@ -69,16 +69,19 @@ class ModularDomainRoutingTests(unittest.TestCase):
         creator = "tools/atlas_guide_importer.py"
         publisher = "tools/atlas_guide_candidate_store.py"
         sequence_gate = "tools/atlas_guide_sequence_gate.py"
+        pipeline = "tools/atlas_guide_pipeline.py"
         self.assertEqual(owners_for(source), frozenset({"guides"}))
         self.assertEqual(owners_for(creator), frozenset({"guides"}))
         self.assertEqual(owners_for(publisher), frozenset({"guides"}))
         self.assertEqual(owners_for(sequence_gate), frozenset({"guides"}))
+        self.assertEqual(owners_for(pipeline), frozenset({"guides"}))
         plan = self.route([
-            source, creator, publisher, sequence_gate,
+            source, creator, publisher, sequence_gate, pipeline,
             "tests/test_atlas_guide_conformity.py",
             "tests/test_atlas_guide_importer_preview.py",
             "tests/test_atlas_guide_candidate_store.py",
             "tests/test_atlas_guide_sequence_gate.py",
+            "tests/test_atlas_guide_pipeline.py",
         ])
         self.assertEqual(plan["status"], "READY_TO_EXECUTE")
         self.assertEqual(plan["unknown_paths"], [])
