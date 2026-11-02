@@ -68,6 +68,19 @@ class GanymedeAuthoredImportTests(unittest.TestCase):
             self.run_import(apply=True)
         self.assertFalse(self.outbox.exists())
 
+    def test_symlink_destination_is_rejected_before_resolution(self):
+        self.write(2203, 2)
+        self.write(2205, 1)
+        # Mocking avoids requiring Windows Developer Mode or admin symlinks.
+        destination = self.outbox
+        original = Path.is_symlink
+        def fake_symlink(path):
+            return path == destination or original(path)
+        with mock.patch.object(Path, "is_symlink", fake_symlink):
+            with self.assertRaisesRegex(ValueError, "Destination cannot be a symlink"):
+                self.run_import(apply=False)
+        self.assertFalse(self.outbox.exists())
+
     def test_dry_run_verifies_but_writes_nothing(self):
         self.write(2203, 2)
         self.write(2205, 1)
