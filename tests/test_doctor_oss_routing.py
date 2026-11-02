@@ -219,6 +219,24 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertFalse(parsed.run)
         self.assertFalse(parsed.verify_live)
 
+    def test_imagehash_cli_errors_are_nonzero_not_fake_success(self):
+        import contextlib
+        import io
+        from tools import atlas_doctor
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "NOT_AVAILABLE"}) as command,
+              contextlib.redirect_stdout(io.StringIO())):
+            result = atlas_doctor.main([
+                "oss", "tests/first.png", "--asset-trial"])
+        self.assertEqual(result, 1)
+        command.assert_called_once()
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "TRIAL_COMPLETE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            result = atlas_doctor.main([
+                "oss", "tests/first.png", "--asset-trial"])
+        self.assertEqual(result, 0)
+
     def test_bad_paths_rejected_before_discovery_and_execution(self):
         for bad in ("../secret.py", "tools/../secret.py", "tools/@options.py",
                     "tools/example.py;touch", "/tools/example.py", "tools/missing.py"):
