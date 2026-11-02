@@ -58,6 +58,31 @@ An absent scanner remains a reported gap. Local Windows readiness uses
 `tools/setup_doctor_oss.ps1` in check-only mode by default; installation
 requires the explicit `-Install` switch. Follow #346 for real-PC proof.
 
+### Integration paths actually implemented
+
+The Doctor agent result now exposes `oss_local_preflight` and
+`oss_selection.local_package_probes/local_binary_probes` for *relevant*
+candidate IDs. These read installed package metadata or PATH only. They do not
+install, import, execute, license, or qualify the detected candidates.
+
+- Python or workflow edits: the existing `agent check --run-tests` owns scoped
+  unit tests and the already approved Ruff/zizmor subprocesses. Keep their
+  individual `CLEAN/FINDINGS/NOT_AVAILABLE/ERROR` states intact.
+- Changes to the OSS router: the canonical `tools.ai_context.recommended_tests`
+  now routes its actual Doctor OSS tests into the **existing** unittest runner.
+  When Hypothesis is locally installed, the same selector additionally runs
+  `tests.test_doctor_oss_hypothesis`. A missing dependency is not PASS.
+- Quest JSON parser performance work: use the existing owner
+  `py -3.13 -m tools.atlas_json_benchmark --compare-parsers` to try
+  stdlib/orjson/msgspec on identical source bytes, or `--compare-streaming`
+  for ijson quest-ID/value parity. Both are opt-in **developer experiments**;
+  neither selects or imports a runtime parser, proves a cold-load/RSS gain, or
+  makes an installation decision.
+- Launcher, Organizer, UI, Guide, security and asset candidates: use the
+  contextual recommendation plus the established owner in the original study;
+  `locally_available=true` is never authorization to run a new binary.
+  Preserve the respective branch ownership and Windows-only proof boundary.
+
 ## Routing rules
 
 - Broad repository health or post-change verification: select the current Doctor contract through `tools.tool_catalog` and follow its declared modes/costs.
