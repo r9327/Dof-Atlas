@@ -176,65 +176,74 @@ py -3.13 -m unittest tests.test_guide_cross_route_candidates
 
 ## Rédaction incrémentale des 80 guides restants — PR #337
 
-Les parcours sont rédigés avec des actions originales, fondées sur les
-premières étapes Ganymède visibles, les observations locales par numéro
-d'étape et des fiches de quêtes indépendantes. **Les observations de positions
-et de liens ne suffisent pas à prouver la parité intégrale de la source.**
-Les fichiers de travail restent sous
-`replacement_drafts/authoring/ganymede_<id>_partial.json` et ne sont
-**jamais chargés dans l'application**. Même un fichier qui possède toutes
-ses étapes ne devient pas jouable automatiquement.
+La priorité est de terminer **tous les guides**, non de développer
+davantage le Guide Ultime. Les données de travail sont rédigées avec
+des actions originales d'après les pages sources accessibles, des
+observations locales et les quêtes indépendamment documentées. Les
+observations de coordonnées ne sont **pas** une preuve de parité
+Ganymède. Les fichiers restent dans
+`replacement_drafts/authoring/ganymede_<id>_partial.json` :
+**ils ne sont pas chargés dans l'application**, même complets.
 
 | Guide | Étapes rédigées | Étapes attendues | État |
 | --- | ---: | ---: | --- |
-| 2204 — Mais où sont les Dofus ? | 26 | 26 | Brouillon entier, non certifié |
-| 2206 — Valonia 1 | 30 | 30 | Brouillon entier, non certifié |
-| 2228 — Sufokia | 10 | 39 | Brouillon partiel |
-| 2229 — Nimaltopia | 10 | 67 | Brouillon partiel |
-| **Total** | **76** | **162** | **Aucun n'est activé** |
+| 2204 — Mais où sont les Dofus ? | 26 | 26 | Brouillon complet, non certifié |
+| 2206 — Valonia 1 | 30 | 30 | Brouillon complet, non certifié |
+| 2228 — Sufokia | 39 | 39 | Brouillon complet, non certifié |
+| 2229 — Nimaltopia | 34 | 67 | Brouillon partiel |
+| **Total** | **129** | **162** | **Aucun n'est activé** |
 
-Les **76 étapes rédigées** contiennent **309 actions typées**, avec
-**137/137 déplacements dont les coordonnées sont mentionnées dans le
-relevé local de la même étape** (lecture statique des quatre fichiers
-au HEAD `f48b0bdce0de6c4644e1719e151b68db29915a17`).
-Cela vérifie le positionnement documentaire, **pas** le caractère juste
-de la carte, du trajet, du combat ou de l'ordre original de Ganymède.
+Les **129 étapes rédigées** comportent **525 actions typées** et
+**239/239 actions positionnées** présentes dans les relevés locaux de
+**la même étape** (contrôle statique au HEAD
+`b11d2bd6a745077014f9a2e70f2ac53256f37de2`).
+Cette concordance **ne prouve pas** le chemin original, l'identité de
+la carte/dimension, les prérequis réels ou le bon fonctionnement en jeu.
 
-2204 et 2206 portent explicitement
-`authoring_status: FULL_DRAFT_NOT_PLAYABLE`,
-`source_parity_certified: false` et `gameplay_certified: false`.
-Les guides ont été recomposés à partir d'informations de quêtes
-indépendantes ; la comparaison 1:1 avec **toutes** les pages de la route
-source, les noms français, les embranchements, les combats en groupe/solo
-et la persistance par personnage doivent encore être validés.
-Le lecteur strict `load_ganymede_local_instructions` n'utilise **aucun**
-de ces deux brouillons.
+2204, 2206 et 2228 portent explicitement
+`FULL_DRAFT_NOT_PLAYABLE`, `source_parity_certified:false` et
+`gameplay_certified:false`. Nimaltopia est
+`PARTIAL_NOT_PLAYABLE`. La publication stricte sous
+`ganymede_<id>_instructions.json` reste bloquée jusqu'à la
+comparaison 1:1 des **étapes Ganymède d'origine**, aux essais du
+lecteur et aux vérifications propres à chaque personnage.
 
-Pour 2204, les fiches de contrôle des quêtes sont :
-- https://www.dofuserie.com/quetes/le-receptacle-des-dofus/
-- https://www.dofuserie.com/quetes/un-sage-parmi-les-sages/
-- https://www.dofuserie.com/quetes/protection-divine/
-- https://www.dofuserie.com/quetes/voir-le-dark-vlad-et-mourir-ou-pas/
-- https://www.dofuserie.com/quetes/la-magicienne-des-marecages/
+Sources de contrôle des quêtes :
 
-Pour 2206 :
-- https://www.dofuserie.com/quetes/dis-scierie/
-- https://www.dofuserie.com/quetes/colonie-de-vaillance/
-- https://www.dofuserie.com/quetes/dans-la-gueule-du-trankilou/
-- https://www.dofuserie.com/quetes/association-de-fureteurs/
-- https://www.dofuserie.com/quetes/la-complote-des-p-o-m-s/
+- 2204 : https://www.dofuserie.com/quetes/le-receptacle-des-dofus/
+  et les autres liens présents dans le brouillon (Guipol, Dark Vlad,
+  Mériana, etc.).
+- 2206 : https://www.dofuserie.com/quetes/colonie-de-vaillance/
+  et les autres quêtes de Valonia, référencées dans le JSON.
+- 2228 : https://ganymede-app.com/guides/2228 et
+  https://ganymede-app.com/guides/310 pour le début de route et les
+  noms français, puis
+  https://www.dofuserie.com/quetes/promenade-sur-les-quais/,
+  https://www.dofuserie.com/quetes/investigation-embarquee/,
+  https://www.dofuserie.com/quetes/voleurs-en-serie/,
+  https://www.dofuserie.com/quetes/distribution-de-pains-zizanesques/
+  et les autres quêtes du succès. Six barques et quatre collecteurs
+  sont inscrits dans l'ordre du relevé local ; les deux succès restent
+  deux validations distinctes.
+- 2229 : https://ganymede-app.com/guides/2229 pour les étapes 1–10,
+  https://www.dofuserie.com/quetes/frais-de-porc-inclus/,
+  https://www.dofuserie.com/quetes/nos-amies-les-betes/,
+  https://www.dofuserie.com/quetes/shyriiwook/ et
+  https://www.dofuserie.com/quetes/a-armes-egales/ pour les
+  informations de quêtes ultérieures. Combats seul / en groupe,
+  ressources et branches Bonta/Brâkmar restent explicites par étape.
 
-**Suite prioritaire :** confronter chaque étape des 2 brouillons entiers
-au parcours source exact, corriger les différences, vérifier sous DOFUS Unity
-et publier ensuite seulement des consignes complètes. Parallèlement,
-rédiger les **29 étapes restantes de Sufokia** et les **57 étapes restantes
-de Nimaltopia**, puis continuer les autres guides. Ne pas relancer de
-travail du Guide Ultime avant la fin des 95 parcours.
+**Suite prioritaire :** terminer les **33 étapes restantes de Nimaltopia**
+puis vérifier la parité de ces quatre parcours avec les pages originales,
+les localisations, les combats et les prérequis ; finaliser ensuite
+les **76 autres routes sans rédaction complète**, et certifier chaque
+parcours correctement avant son activation. **Aucune migration du
+Guide Ultime ni de l'interface en attendant** : les deux optimisés
+actuels restent intacts.
 
-**État métier inchangé : 15/95 guides publiés dans la bibliothèque locale
-avec consignes structurellement complètes, 2 brouillons entiers en
-pré-certification, 0 guide certifié en jeu/Windows.** Les deux grands
-guides optimisés restent intacts.
+**Avancement réel en bibliothèque :** 15/95 fichiers complets déjà
+présents (non certifiés), auxquels s'ajoutent **3 brouillons complets
+hors runtime** et 1 brouillon partiel ; 0/95 certifié en jeu/Windows.
 
 Contrôle de structure ajouté :
 
