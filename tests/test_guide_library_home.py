@@ -233,7 +233,9 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         f"https://ganymede-app.com/guides/{source_id}?page=1&stepsPerPage=1",
                     )
                     self.assertEqual(dialog.objectName(), "GanymedeSourceReader")
-                    dialog.close()
+                    view.set_character_key("character:12")
+                    self.assertIsNone(view._ganymede_source_dialog)
+                    self.assertEqual(view.current_character_key, "character:12")
                     self.app.processEvents()
             finally:
                 view.close()
