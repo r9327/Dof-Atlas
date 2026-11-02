@@ -132,6 +132,33 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertNotIn("PYTHONNOUSERSITE", run.call_args.kwargs["env"])
         self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"], "")
 
+    def test_windows_developer_install_is_opt_in_and_hash_locked(self):
+        from pathlib import Path
+        import re
+        script = (Path(__file__).resolve().parents[1] /
+                  "tools/setup_doctor_oss.ps1").read_text(encoding="utf-8")
+        self.assertIn("param([switch]$Install)", script)
+        self.assertIn("if ($Install)", script)
+        for flag in ("--require-hashes", "--only-binary=:all:", "--no-deps",
+                     "--isolated", "--no-cache-dir"):
+            self.assertIn(flag, script)
+        self.assertIn("sys.maxsize > 2**32", script)
+        lock_rows = re.findall(
+            r"(?m)^(ruff|zizmor)==([\\d.]+) --hash=sha256:([a-f0-9]{64})$",
+            script,
+        )
+        self.assertEqual(
+            {(name, version) for name, version, _ in lock_rows},
+            {("ruff", "0.17.3"), ("zizmor", "1.30.1")},
+        )
+        self.assertEqual(len(lock_rows), 2)
+        self.assertEqual(
+            {name: digest for name, _, digest in lock_rows},
+            {"ruff": "56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24",
+             "zizmor": "06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868"},
+        )
+        self.assertNotIn("pip install --user", script)
+
     def test_missing_package_does_not_execute_or_install(self):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
