@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2227,
+  "source_url": "https://ganymede-app.com/guides/2227",
+  "expected_source_step_count": 9,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "fact_sources": [
+    "https://www.dofuserie.com/succes/convoyeur-de-fond-en-comble/",
+    "https://www.dofuserie.com/quetes/le-cimetiere-primitif/",
+    "https://www.dofuspourlesnoobs.com/le-cimetiegravere-primitif.html",
+    "https://www.dofuserie.com/quetes/course-polaire/",
+    "https://www.dofuserie.com/quetes/epicerie-fine/",
+    "https://www.dofuserie.com/quetes/charger-la-mule/",
+    "https://www.dofuspourlesnoobs.com/course-polaire.html",
+    "https://www.dofuspourlesnoobs.com/eacutepicerie-fine.html",
+    "https://www.dofuspourlesnoobs.com/charger-la-mule.html"
+  ],
+  "completion_note": "Tournée de neuf étapes avec les trois livraisons de Koka et le cimetière. Validation humaine du chemin optimisé en jeu encore nécessaire.",
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer la tournée des Koalaks",
+      "instructions": "Ce parcours regroupe les livraisons de Koka Dekolak et l'accès au Cimetière primitif. Avant de partir, rassemble au moins 5 Queues de dragodinde sauvage, 5 Pics de dragodinde et 10 Dents de dragodinde pour « Course polaire ». Pour « Épicerie fine », prévois 2 Fleurs de Kaliptus ; conserve-en cinq autres pour Warko Linch si tu veux ouvrir le cimetière pendant cette tournée. Les objets de quête à faible taux de butin ne tombent que lorsque la quête correspondante est active.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Préparer 5 Queues de dragodinde sauvage, 5 Pics de dragodinde et 10 Dents de dragodinde."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 2 Fleurs de Kaliptus pour « Épicerie fine » et 5 supplémentaires pour « Le cimetière primitif » : 7 au total si les deux étapes sont à faire."
+        },
+        {
+          "kind": "prepare",
+          "text": "Équiper autant de prospection que raisonnablement possible ; certaines ressources de quête ont seulement 5 à 15 % de chance de base."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Lancer les livraisons au Village des Éleveurs",
+      "instructions": "Va en [-15,-1] et rencontre Koka Dekolak. Selon le niveau et les quêtes déjà terminées aujourd'hui, prends « Course polaire », « Épicerie fine » et « Charger la mule ». Les deux premières sont accessibles à partir du niveau 50 ; la dernière demande au moins le niveau 70. Les objets de quête spécifiques ne seront récupérables qu'une fois leur mission acceptée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Koka Dekolak au Village des Éleveurs.",
+          "coordinates": [
+            -15,
+            -1
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Course polaire » pour les dragodindes, si elle n'est pas déjà terminée aujourd'hui."
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Épicerie fine » pour les fleurs et les peaux de Koalak Immature."
+        },
+        {
+          "kind": "talk",
+          "text": "Au niveau requis, accepter « Charger la mule » pour les objets des Koalaks Forestier, Mama Koalak et Warko Marron."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Récupérer les ressources des dragodindes",
+      "instructions": "Dans le territoire des dragodindes sauvages, combats les Dragodindes rousses et amandes. Pour « Course polaire », il faut obtenir trois Ailes parfaites de dragodinde rousse sauvage et trois Ailes parfaites de dragodinde, en plus des Queues, Pics et Dents préparés. Ce sont des objets de quête ; contrôle leur compteur après les combats. Conserve les butins pour la livraison finale à Koka.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Quitter le Village des Éleveurs vers le territoire des dragodindes sauvages, en suivant les passages de la région.",
+          "coordinates": [
+            -15,
+            -2
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les Dragodindes rousses sauvages jusqu'à 3 Ailes parfaites de dragodinde rousse sauvage."
+        },
+        {
+          "kind": "fight",
+          "text": "Combattre les Dragodindes amandes sauvages jusqu'à 3 Ailes parfaites de dragodinde."
+        },
+        {
+          "kind": "prepare",
+          "text": "Vérifier les 5 Queues, 5 Pics et 10 Dents de dragodinde exigés par Koka Dekolak."
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Traverser la Montagne des Koalaks et préparer les butins",
+      "instructions": "Poursuis vers la Forêt de Kaliptus. Sur le chemin, élimine des Koalaks Immatures pour récupérer deux Peaux parfaites, uniquement lorsque « Épicerie fine » est active. Si « Charger la mule » est acceptée, commence également les combats contre les Koalaks Forestiers. Ne confonds pas les drops de quête avec le butin ordinaire : vérifie les quantités dans ton inventaire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Traverser la Montagne des Koalaks en direction de la Forêt de Kaliptus ; passage local relevé sur la route.",
+          "coordinates": [
+            -11,
+            2
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Obtenir 2 Peaux parfaites de Koalak Immature en combattant des Koalaks Immatures, quête « Épicerie fine » active."
+        },
+        {
+          "kind": "fight",
+          "text": "Commencer le butin « Charger la mule » sur les Koalaks Forestiers : cible finale 2 Poils irritants de Koalak Forestier."
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Ouvrir le Cimetière primitif auprès de Warko Linch",
+      "instructions": "En [-11,12], parle à Warko Linch pour commencer « Le cimetière primitif ». Il demande cinq Fleurs de Kaliptus et te soumet ensuite à une expérience qui provoque la mort de ton personnage. Ne remets les fleurs que lorsque tu es prêt à quitter la zone vivant pour revenir sous forme d'âme : c'est le mécanisme normal de cette quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Warko Linch dans la Forêt de Kaliptus.",
+          "coordinates": [
+            -11,
+            12
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Le cimetière primitif » et confirmer la demande de Warko Linch."
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner 5 Fleurs de Kaliptus à Warko Linch pour son expérience."
+        },
+        {
+          "kind": "information",
+          "text": "L'expérience entraîne une mort de quête. Prévoir de rejoindre immédiatement le Phénix du cimetière."
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Ressusciter auprès du Phénix",
+      "instructions": "Après l'expérience, retrouve-toi dans le Cimetière primitif sous forme de fantôme. Marche jusqu'au Phénix le plus proche en [-10,13] et ressuscite. La quête de Warko Linch doit alors être validée et la Potion primitive obtenue. Ne confonds pas cette étape avec une défaite de combat contre les Koalaks.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Sous forme de fantôme, gagner le Phénix du Cimetière primitif.",
+          "coordinates": [
+            -10,
+            13
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Utiliser le Phénix pour ressusciter et achever « Le cimetière primitif »."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier dans le journal que la quête a été validée et que la Potion primitive a été reçue."
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Finir la collecte des Koalaks de la montagne",
+      "instructions": "Après la résurrection, complète les ressources des missions de Koka restées ouvertes. « Charger la mule » demande deux Poils irritants de Koalak Forestier, un Os magique de Mama Koalak et deux Poils de Barbe urticants du Warko Marron. Les trois types tombent pendant la quête, avec un faible taux de base. Explore les secteurs de Koalaks du trajet en adaptant le passage aux groupes réellement présents.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Reprendre la tournée des Koalaks par les secteurs de la montagne ; premier repère de trajet.",
+          "coordinates": [
+            -11,
+            17
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Poursuivre le trajet vers les prochains groupes utiles.",
+          "coordinates": [
+            -12,
+            19
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Compléter 2 Poils irritants de Koalak Forestier sur les Koalaks Forestiers."
+        },
+        {
+          "kind": "fight",
+          "text": "Obtenir 1 Os magique de Mama Koalak et 2 Poils de Barbe urticants du Warko Marron sur les monstres correspondants."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir vers le chemin du Village des Éleveurs ; dernier repère local de tournée.",
+          "coordinates": [
+            -17,
+            8
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Rentrer au Village des Éleveurs",
+      "instructions": "Vérifie tous les lots avant de rentrer : ailes de dragodinde, trois ressources classiques de dragodinde, deux peaux parfaites, deux Fleurs de Kaliptus pour Koka, et les cinq objets rares de « Charger la mule ». Regagne le Village des Éleveurs. Si un lot manque, retourne combattre le monstre associé tant que la mission reste active, plutôt que de valider prématurément.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier les 3+3 Ailes parfaites, les 5+5+10 ressources classiques de dragodinde, les 2 Peaux parfaites, les 2 Fleurs de Kaliptus et les 2+1+2 objets de « Charger la mule »."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Koka Dekolak au Village des Éleveurs.",
+          "coordinates": [
+            -15,
+            -1
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Livrer les trois missions et vérifier le succès",
+      "instructions": "Parle à Koka Dekolak et remets chaque paquet complet à la quête correspondante : les cinq ressources de « Course polaire », les deux Fleurs et deux Peaux pour « Épicerie fine », puis les cinq objets de « Charger la mule ». Ces missions sont journalières. Contrôle leur statut dans le journal et, si tu as achevé les trois, le succès « Convoyeur de fond en comble ». Valide manuellement l'étape Atlas uniquement après les confirmations en jeu.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Reparler à Koka Dekolak pour effectuer les remises de quêtes.",
+          "coordinates": [
+            -15,
+            -1
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Terminer « Course polaire » avec 5 Queues, 5 Pics, 10 Dents et les 3+3 Ailes parfaites."
+        },
+        {
+          "kind": "deliver",
+          "text": "Terminer « Épicerie fine » avec 2 Fleurs de Kaliptus et 2 Peaux parfaites de Koalak Immature."
+        },
+        {
+          "kind": "deliver",
+          "text": "Terminer « Charger la mule » avec 2 Poils irritants, 1 Os magique et 2 Poils de Barbe urticants."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les quêtes terminées et le succès « Convoyeur de fond en comble » ; aucune validation automatique n'est faite par Atlas."
+        }
+      ]
+    }
+  ]
+}
