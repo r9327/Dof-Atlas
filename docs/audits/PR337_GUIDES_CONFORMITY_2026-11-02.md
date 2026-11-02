@@ -335,3 +335,87 @@ le planificateur, les deux guides optimisés, ni la persistance.
 78 autres parcours sans brouillon entier, 0/95 certifié DOFUS/Windows ;
 PR Draft / CHANGES REQUIRED.** Phase CI finale, Doctor Windows,
 benchmark et fusion toujours non lancés.
+
+## Quatre brouillons complets — lot Sufokia/Nimaltopia du 2 novembre
+
+**Portée : contenu et tests éditoriaux exclusivement.** L'objectif reste
+95 parcours complets et certifiés individuellement avant tout nouveau Guide
+Succès croisé. Aucun brouillon non certifié n'est activé dans l'application.
+
+Les étapes **11–39 de Sufokia** (#2228) ont été rédigées dans l'ordre
+des observations locales, avec un suivi original des douze quais,
+des six barques d'« Investigation embarquée », des combats contre les
+Scarafeuilles et les bandits, des cinq objets volés, des vingt pains
+distribués à quatre collecteurs et des confitures/jus de Gelées.
+Correction ciblée : les coordonnées correspondant à l'étape *suivante*
+avaient été insérées quatre fois dans l'étape précédente (31–34) ;
+elles ont été retirées, pas déplacées ou inventées. Les noms de PNJ
+français (Océane, Mage Hellan, Paul Auchon, Jemas Kooc et Joëlle
+Raiebuchon) sont relus contre les fiches de quêtes indépendantes.
+**État final du brouillon : 39/39 étapes, 146 actions, 73/73 positions.**
+
+Les étapes **11–67 de Nimaltopia** (#2229) ont été rédigées à partir de
+quêtes indépendamment documentées et des références de positions source.
+Elles distinguent les combats individuels et de groupe, les quatre
+quêtes parallèles (« Frais de porc inclus », « Nos amies les bêtes »,
+« Shyriiwook », « À armes égales »), puis « La valse des manuels »
+et « Il a fui, il a tout compris » ; elles conservent explicitement
+les dialogues Bonta/Brâkmar, la poursuite chronométrée, les indices
+de classe de Rem, les variantes de bouteille dépendantes de l'heure
+et les lieux possibles de Xaniel. L'objet « Viande Noire » a été
+corrigé après contrôle du nom français.
+**État final du brouillon : 67/67 étapes, 295 actions, 144/144 positions.**
+
+### Contrôle statique exact du contenu
+
+Vérification par lecture GitHub des quatre JSON de brouillons et de leurs
+quatre relevés d'observations au SHA
+`d37fc507ede0411be4f81fa6959acb59da1a4b64`.
+Contrôles explicites : ID source et longueur conformes au catalogue,
+étapes consécutives 1..N, titres et consignes non vides,
+actions typées et non vides, comparaison GPS à la *même* étape,
+et `source_parity_certified=false` /
+`gameplay_certified=false` sur les quatre parcours.
+
+| Parcours | Étapes rédigées | Actions | GPS présents au relevé |
+| --- | ---: | ---: | ---: |
+| 2204 — Mais où sont les Dofus ? | 26/26 | 114 | 46/46 |
+| 2206 — Valonia 1 | 30/30 | 124 | 55/55 |
+| 2228 — Sufokia | 39/39 | 146 | 73/73 |
+| 2229 — Nimaltopia | 67/67 | 295 | 144/144 |
+| **Total** | **162/162** | **679** | **318/318** |
+
+Résultat : **aucune anomalie détectée par ce contrôle documentaire**
+dans les 4 JSON. Cela n'est **pas** un test Python, une certification
+source ou une preuve de la bonne carte, de l'identité du monde et
+des objectifs réels en jeu. Les pages originales Ganymède 11+
+n'étaient pas intégralement disponibles : les consignes ont été
+*recomposées*, non recopiées ou certifiées 1:1. Les dialogues,
+quantités, possibilités de combat et branches doivent être vérifiés
+avec la version Unity et la validation par personnage. L'ordre des
+quêtes parallèles n'est pas encore une preuve de correspondance
+éditoriale à la route Ganymède.
+
+Le fichier `tests/test_ganymede_partial_authoring.py` inclut maintenant
+8 méthodes de test, dont des protections des six barques, des quatre
+livraisons, des noms français, des combats solo/en groupe, des
+bouteilles et des trois positions possibles de Xaniel. Ces tests
+et les tests Doctor/Qt/Windows **NOT_RUN** ; seuls les JSON/snapshots
+ont été évalués statiquement. Les routes n'ont pas été publiées à la
+racine des consignes `ganymede_<id>_instructions.json` :
+leurs statuts restent `FULL_DRAFT_NOT_PLAYABLE`.
+
+**Résumé de couverture :** 15/95 routes structurellement complètes
+dans le lecteur existant (non certifiées), 4 brouillons supplémentaires
+entièrement rédigés **hors runtime**, 76 parcours supplémentaires
+sans fichier complet et **0/95 certifié en DOFUS/Windows**.
+Les deux grands guides optimisés sont inchangés, tout comme leur
+sauvegarde, leur validation et l'architecture de l'UI.
+
+**Prochain passage obligatoire :** comparaison étape par étape
+aux routes Ganymède exactes pour les 4 brouillons ; correction
+des différences, contrôle du rendu et de la progression par
+`character:<id_dofus>`, puis validation et publication par le
+chargeur strict. Continuer ensuite la rédaction des 76 autres,
+sans extrapoler leurs actions depuis de simples relevés GPS/liens.
+Phase CI finale **non lancée** ; PR Draft, **CHANGES REQUIRED**.
