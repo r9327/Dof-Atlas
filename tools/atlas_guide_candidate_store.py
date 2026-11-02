@@ -16,6 +16,7 @@ from typing import Any, Iterator
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
     GuideRouteContractError,
+    project_authorized_guide,
 )
 
 _FORMAT = "atlas-guide-candidate-store/v1"
@@ -168,6 +169,26 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                 raise GuideRouteContractError("resource copy links missing from UI")
             if step.get("a_preparer") != preparation:
                 raise GuideRouteContractError("preparation panel differs from source items")
+        # No alternate rendering fields can sneak into a candidate bundle:
+        # round-trip the original authorized step documents through the one
+        # canonical adapter and demand identical UI data, including header,
+        # page indexes, source flags, and any future schema extension.
+        source_meta = steps[0]["manual_runtime_metadata"]
+        raw_guide_id = source_meta.get("source_guide_id")
+        title = steps[0].get("manual_chapter_label")
+        if not isinstance(title, str) or not title:
+            raise GuideRouteContractError("missing canonical guide title")
+        reconstructed = project_authorized_guide({
+            "guide_id": raw_guide_id,
+            "title": title,
+            "steps": [
+                card["manual_runtime_metadata"]["source_step"] for card in steps
+            ],
+        })
+        if reconstructed != route:
+            raise GuideRouteContractError(
+                "candidate route differs from canonical source-to-UI projection"
+            )
         count += len(steps)
     for label in ("guide_count", "step_count", "action_count",
                   "expected_guide_count", "expected_step_count"):
