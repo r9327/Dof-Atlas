@@ -77,3 +77,52 @@ Commandes de test ciblé :
 L'extracteur de source externe, le publieur protégé/transactionnel,
 la preuve Graphify exact-SHA et la recette Windows/DOFUS ne sont pas livrés :
 **tous les guides restent NOT_CERTIFIED**.
+
+## Ordre obligatoire de livraison — zéro guide réel avant qualification
+
+**Phase 0 (en cours) : architecture et outils uniquement.** À ce stade,
+AUCUNE route réelle n'est extraite, prévisualisée, importée, publiée ni certifiée.
+Les fixtures entièrement synthétiques sont permises pour les tests. La mise en
+place de scripts capables de traiter les 95/7705 ne donne aucune permission
+de les exécuter sur des guides réels maintenant.
+
+Avant de toucher au premier vrai guide, certifier **chaque composant concerné** :
+lecteur et cartes `SharedGuideManualView/Card` existants, en-tête commun,
+navigation, couleurs et clics NPC/objets/positions, copie `/travel`,
+préparation/combats, progression et validation par personnage, adaptateur,
+outils de création/import, comparaison et certification, publi­eur atomique,
+régression des deux grands guides, RAM/lazy loading et tests Windows/DOFUS.
+Doctor et Graphify doivent fournir des preuves **au SHA exact** ; un
+`NOT_RUN` ou une fonctionnalité uniquement documentée ne vaut pas `PASS`.
+Tous les critères GIMP-001…016 concernés restent bloquants.
+
+**Phase 1 : pilote UNIQUE, après qualification technique.** Choisir
+`Dofus Cawotte` ; ne choisir `Dokoko` qu'en cas d'indisponibilité
+de référence Cawotte (pas pour masquer une anomalie). Obtenir une référence
+Ganymède **autorisée et indépendante de l'export Atlas**. Construire ce seul
+guide de bout en bout, passer les outils de certification, puis réaliser
+une **contre-comparaison manuelle indépendante** Atlas vs référence,
+étape par étape et action par action : textes/ordre/positions/quantités/PNJ,
+choix/dialogues, objets, prérequis, combats, liens, classes UI,
+copie `/travel`, progression, persistance et validation sous Windows/DOFUS.
+
+**Phase 2 : boucle de correction sans changer de guide.** Au moindre écart
+ou contrôle non exécuté, bloquer et améliorer les outils/l'architecture ;
+repasser **toute** la recette sur le même pilote. Le comparateur ne peut
+ni se certifier lui-même ni remplacer l'observation humaine. Seules des
+preuves indépendantes concordantes peuvent autoriser la certification
+à 100 % de ce pilote ; aucun marqueur JSON auto-déclaré n'est suffisant.
+
+**Phase 3 : extraction unitaire seulement.** Après pilote certifié,
+extraire **un** nouveau guide, le rendre dans l'UI commune, comparer toute
+son information à une référence indépendante, vérifier et certifier
+ses classes UI et services utilisés, puis **seulement** commencer le
+suivant. Aucun import en masse, aucune certification automatique des
+autres 94 guides par simple extrapolation. Chaque dossier comporte
+SHA du code, SHA des sources, rapports avant/après/delta, témoins
+Doctor/Graphify/tests, recette réelle Windows/DOFUS, résultat final
+par guide. Si une preuve manque : `NOT_CERTIFIED`.
+
+Le protocole et les critères GIMP-016…018 sont conservés dans
+l'issue #361 ; la recette Windows et le pilote sont détaillés
+dans #362. Cette documentation ne constitue **aucune certification**.
