@@ -294,6 +294,7 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
     """
     from app.modules.encyclopedia.views.guide_library_sources import (
         GanymedeListing, load_ganymede_local_instructions,
+        load_ganymede_local_observations,
     )
 
     root = Path(root)
@@ -328,7 +329,12 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
         issues.append({"code": "source_index_count_mismatch", "detail": str(declared_total)})
 
     by_map: dict[tuple[int, int], list[dict[str, object]]] = defaultdict(list)
+    by_external_ref: dict[tuple[str, int], list[dict[str, object]]] = defaultdict(list)
     by_id: dict[int, dict[str, object]] = {}
+    snapshot_missing_ids: list[int] = []
+    observed_guide_count = 0
+    observed_step_count = 0
+    authored_route_evidence: list[dict[str, object]] = []
     authored_ids: list[int] = []
     missing_ids: list[int] = []
     reviewed_actions = 0
@@ -354,18 +360,41 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
             "source_guide_id": gid, "predecessor_guide_id": p,
             "confidence": "SOURCE_METADATA_ONLY",
         } for p in predecessors)
+        entry = GanymedeListing(
+            source_id=gid, title=str(row.get("title") or gid),
+            category="", level=None, step_count=count, source_url=url,
+        )
+        # This is a source-link inventory, not a certified list of objectives.
+        # Reuse its validator (including older filename aliases).
+        try:
+            observed = load_ganymede_local_observations(entry, data_dir=guide_dir)
+        except FileNotFoundError:
+            snapshot_missing_ids.append(gid)
+            observed = ()
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            issues.append({
+                "code": "invalid_observed_snapshot",
+                "detail": f"{gid}: {exc}",
+            })
+            observed = ()
+        if observed:
+            observed_guide_count += 1
+            observed_step_count += len(observed)
+            for source_step in observed:
+                references = source_step["external_dofusdb_ids"]
+                for kind in ("quest", "dungeon", "object", "monster"):
+                    for identifier in sorted(set(references[kind])):
+                        by_external_ref[(kind, identifier)].append({
+                            "source_guide_id": gid,
+                            "source_step_number": source_step["source_step_number"],
+                            "evidence": "observed_external_link_only",
+                        })
         authored_path = guide_dir / f"ganymede_{gid}_instructions.json"
         if not authored_path.exists():
             missing_ids.append(gid)
             continue
         try:
-            steps = load_ganymede_local_instructions(
-                GanymedeListing(
-                    source_id=gid, title=str(row.get("title") or gid),
-                    category="", level=None, step_count=count, source_url=url,
-                ),
-                data_dir=guide_dir,
-            )
+            steps = load_ganymede_local_instructions(entry, data_dir=guide_dir)
         except (OSError, ValueError, TypeError) as exc:
             issues.append({
                 "code": "invalid_authored_route",
@@ -378,13 +407,35 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
         authored_ids.append(gid)
         authored_steps += len(steps)
         file_sha = hashlib.sha256(authored_path.read_bytes()).hexdigest()
+        observed_per_step = {
+            source_step["source_step_number"]: {
+                tuple(coords) for coords in source_step["coordinate_mentions"]
+            }
+            for source_step in observed
+        }
+        coord_checks: list[dict[str, object]] = []
+        route_actions = 0
         for step in steps:
             for action_index, action in enumerate(step["actions"]):
+                route_actions += 1
                 reviewed_actions += 1
                 coords = action.get("coordinates")
                 if coords is None:
                     continue
                 key = tuple(coords)
+                status = (
+                    "NO_OBSERVATION_FOR_STEP" if step["source_step_number"] not in observed_per_step
+                    else "COORDINATE_IN_STEP_SNAPSHOT"
+                    if key in observed_per_step[step["source_step_number"]]
+                    else "COORDINATE_NOT_IN_STEP_SNAPSHOT"
+                )
+                coord_checks.append({
+                    "source_step_number": step["source_step_number"],
+                    "action_index": action_index,
+                    "coordinates": coords,
+                    "comparison_status": status,
+                    "game_position_verified": False,
+                })
                 by_map[key].append({
                     "source_guide_id": gid,
                     "source_step_number": step["source_step_number"],
@@ -393,6 +444,33 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
                     "source_file_sha256": file_sha,
                     "source_evidence": "authored_instruction_not_game_certified",
                 })
+        authored_route_evidence.append({
+            "source_guide_id": gid,
+            "source_file_sha256": file_sha,
+            "authored_step_count": len(steps),
+            "authored_action_count": route_actions,
+            "coordinate_comparisons": coord_checks,
+            "source_route_parity_verified": False,
+            "windows_game_verified": False,
+            "certified": False,
+        })
+
+    shared_external_refs = []
+    for (kind, identifier), occurrences in sorted(by_external_ref.items()):
+        if len({row["source_guide_id"] for row in occurrences}) < 2:
+            continue
+        shared_external_refs.append({
+            "external_namespace": "dofusdb",
+            "reference_kind": kind,
+            "external_reference_id": identifier,
+            "candidate_type": "same_external_link_not_same_game_objective",
+            "canonical_atlas_id_verified": False,
+            "shared_action_verified": False,
+            "occurrences": sorted(
+                occurrences,
+                key=lambda row: (row["source_guide_id"], row["source_step_number"]),
+            ),
+        })
 
     locations = []
     for (x, y), occurrences in sorted(by_map.items()):
@@ -471,6 +549,14 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
         "authored_source_guide_ids": sorted(authored_ids),
         "authored_source_steps": authored_steps,
         "authored_actions": reviewed_actions,
+        "authored_route_evidence": sorted(
+            authored_route_evidence, key=lambda row: row["source_guide_id"],
+        ),
+        "observed_source_guides": observed_guide_count,
+        "observed_source_steps": observed_step_count,
+        "source_guides_missing_observation_snapshot": sorted(snapshot_missing_ids),
+        "cross_guide_external_reference_candidates": shared_external_refs,
+        "external_references_are_canonical_objectives": False,
         "co_location_candidates": locations,
         "same_canonical_quest_candidates": common_quests,
         "public_tree_hints": sorted(
