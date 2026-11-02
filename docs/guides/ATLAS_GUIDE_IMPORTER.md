@@ -50,14 +50,15 @@ Ne pas construire la référence automatiquement depuis les fichiers **que l'on 
 # Revue sans écriture : la référence est obligatoire pour un verdict PREFLIGHT_PASS
 py -3.13 -m tools.atlas_guide_importer --source-dir "C:\guides-autorises" --reference-manifest "C:\preuves\reference.json"
 
-# Publication après vérification indépendante ; 95/95 requis par défaut
-py -3.13 -m tools.atlas_guide_importer --source-dir "C:\guides-autorises" --reference-manifest "C:\preuves\reference.json" --apply
+# Publication future : commande actuellement BLOQUÉE (sans preuves sémantiques,
+# autorisations et recette métier indépendante, aucun --apply n'est autorisé).
+# py -3.13 -m tools.atlas_guide_importer --source-dir "C:\guides-autorises" --reference-manifest "C:\preuves\reference.json" --apply
 
 # Sous-lot autorisé explicitement, sans masquer les guides absents
 py -3.13 -m tools.atlas_guide_importer --source-dir "C:\guides-autorises" --reference-manifest "C:\preuves\reference.json" --allow-partial --apply
 ```
 
-Le CLI renvoie un rapport JSON avec ID, SHA, nombre d'étapes/actions, fiches projetées et état de comparaison. `--allow-overwrite` est une décision explicite, jamais implicite. Le mode normal reste **lecture seule** et signale `REFERENCE_REQUIRED` en absence de manifeste.
+Le CLI renvoie un rapport JSON avec ID, SHA, nombre d'étapes/actions, fiches projetées et état de comparaison. `--allow-overwrite` ne contourne pas les preuves obligatoires. Le mode normal reste **lecture seule** et signale `REFERENCE_REQUIRED` en absence de manifeste. **Le mode `--apply` est actuellement fail-closed**, même si le hash correspond : la chaîne de preuves sémantiques, droits et recette métier n'est pas encore intégrée. La CLI basse couche `tools.import_ganymede_authored_routes --apply` retourne `BLOCKED` (diagnostic seul). Aucune route ne peut être déclarée certifiée sur cette base.
 
 ## Contrôles et limites
 
