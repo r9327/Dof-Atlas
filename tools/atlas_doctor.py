@@ -236,6 +236,12 @@ def command_agent(root: Path, args) -> dict[str, Any]:
         level=args.level, run_tests=args.run_tests,
         max_tests=args.max_tests, timeout_seconds=args.timeout_seconds,
     )
+    # Cheap, read-only specialist selection for every normal Agent action.
+    # The existing Agent/Doctor owner retains all verdict and execution authority.
+    from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+    from tools.atlas_doctor_lib.oss_intelligence import intelligent_plan
+    report["oss_selection"] = intelligent_plan(
+        args.paths, _open_source_inventory(root))
     # Optional evidence only; never override Doctor's status or exit_code.
     if getattr(args, "run_oss", False):
         if args.agent_action != "check" or report.get("status") in {"BLOCKED", "FAIL"}:

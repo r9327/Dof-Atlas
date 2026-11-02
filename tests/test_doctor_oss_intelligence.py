@@ -168,5 +168,25 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             code = main(["oss", "tools/test_tool.py", "--run", "--json"])
         self.assertEqual(code, 1)
 
+
+    def test_agent_plan_exposes_selection_without_triggering_external_tools(self):
+        from tools.atlas_doctor import build_parser, command_agent
+        args = build_parser().parse_args(
+            ["agent", "plan", "tools/test_tool.py"])
+        core = {"status": "REVIEW", "exit_code": 1,
+                "certification": {"full_certified": False}}
+        with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
+                    return_value=core),
+              patch("tools.atlas_doctor_lib.oss_router._open_source_inventory",
+                    return_value=study()),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as subprocess_run):
+            result = command_agent(self.root, args)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["exit_code"], 1)
+        self.assertIn("ATOSS-20",
+                      [row["id"] for row in result["oss_selection"]["recommended"]])
+        self.assertFalse(result["oss_selection"]["certified"])
+        subprocess_run.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
