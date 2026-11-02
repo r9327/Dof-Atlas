@@ -63,6 +63,110 @@ def _position_key_uncached(text: str) -> str:
 
 
 
+
+# Data-only bridge for the existing shared Guide renderer. Do not instantiate
+# the heavy runtime on the catalogue/home path. No validation logic lives here.
+_GANYMEDE_ACTION_LABELS = {
+    "travel": "Aller à",
+    "talk": "Parler",
+    "interact": "Interagir",
+    "fight": "Combattre",
+    "prepare": "Préparer",
+    "use_item": "Utiliser",
+    "deliver": "Remettre",
+    "craft": "Fabriquer",
+    "information": "Information",
+}
+
+
+def project_ganymede_authored_cards(
+    source_id: int, guide_title: str, authored_steps: tuple[dict, ...],
+) -> list[dict[str, Any]]:
+    """Project vetted, ordered Ganymède steps to the canonical Guide card data.
+
+    This is a pure data projection, NOT a second widget or completion engine.
+    The eventual runtime service must keep source-specific, manual-only
+    validation and progress identity distinct from the optimized guides.
+    """
+    if (type(source_id) is not int or source_id <= 0
+            or not isinstance(guide_title, str) or not guide_title.strip()
+            or not isinstance(authored_steps, tuple) or not authored_steps):
+        raise ValueError("Invalid authored guide projection")
+    cards: list[dict[str, Any]] = []
+    for number, step in enumerate(authored_steps, 1):
+        if (not isinstance(step, dict)
+                or step.get("source_step_number") != number
+                or not isinstance(step.get("title"), str)
+                or not step["title"].strip()
+                or not isinstance(step.get("instructions"), str)
+                or not step["instructions"].strip()
+                or not isinstance(step.get("actions"), list)
+                or not step["actions"]):
+            raise ValueError(f"Invalid authored step {source_id}:{number}")
+        # Keep every source action in exact order; splitting by section would
+        # silently reorder preparation, NPC dialogue and combat dependencies.
+        rows = [{
+            "kind": "action",
+            "position": "",
+            "text": step["instructions"].strip(),
+        }]
+        positions = []
+        resource_names: list[str] = []
+        for action in step["actions"]:
+            if not isinstance(action, dict):
+                raise ValueError(f"Invalid authored action {source_id}:{number}")
+            kind = action.get("kind")
+            text = action.get("text")
+            if (kind not in _GANYMEDE_ACTION_LABELS
+                    or not isinstance(text, str) or not text.strip()):
+                raise ValueError(f"Invalid authored action {source_id}:{number}")
+            coords = action.get("coordinates")
+            if coords is not None:
+                if (not isinstance(coords, list) or len(coords) != 2
+                        or any(type(value) is not int for value in coords)):
+                    raise ValueError(f"Invalid position {source_id}:{number}")
+                position = f"[{coords[0]},{coords[1]}]"
+                positions.append(position)
+            else:
+                position = ""
+            # Canonical HTML/copy/color rules are applied by SharedGuideManualCard.
+            rows.append({
+                "kind": "combat" if kind == "fight" else "action",
+                "position": position,
+                "text": f"{_GANYMEDE_ACTION_LABELS[kind]} : {text.strip()}",
+            })
+            # Do not guess purchasable object names from free-form prose.
+            for item in action.get("items", ()):
+                if not isinstance(item, dict):
+                    raise ValueError(f"Invalid structured item {source_id}:{number}")
+                name = item.get("name")
+                if not isinstance(name, str) or not name.strip():
+                    raise ValueError(f"Invalid structured item name {source_id}:{number}")
+                if name not in resource_names:
+                    resource_names.append(name)
+        first_position = positions[0] if positions else ""
+        cards.append({
+            "index": number,
+            "manual_source": True,
+            "manual_chapter_id": f"ganymede_source_{source_id}",
+            "manual_chapter_label": guide_title.strip(),
+            "manual_stage_id": f"ganymede_{source_id}_step_{number:04d}",
+            "manual_title": step["title"].strip(),
+            "manual_route_position": first_position,
+            "destination": step["title"].strip(),
+            "manual_lines": rows,
+            "manual_sections": {"now": rows},
+            "manual_quest_ids": [],
+            "manual_quest_names": [],
+            "manual_resource_names": resource_names,
+            "manual_success_names": [],
+            "manual_stage_data": {"waypoints": []},
+            "auto_completion_allowed": False,
+            "a_preparer": [],
+        })
+    return cards
+
+
 _CATALOG_ROUTE_CACHE_DIR = (USER_DATA_ROOT or ROOT_DIR) / ".cache" / "dofus_atlas" / "catalog_routes_v1"
 _CATALOG_ROUTE_CACHE_SCHEMA = 1
 _LOGGER = logging.getLogger(__name__)
