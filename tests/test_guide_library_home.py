@@ -290,6 +290,49 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_bonta_and_brakmar_open_long_offline_source_without_webengine(self):
+        import sys
+        from PySide6.QtWidgets import QSpinBox
+
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _text: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quest_progress.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                with patch.dict(sys.modules, {"PySide6.QtWebEngineWidgets": None}):
+                    for guide_id, count in (
+                        ("alignement_bonta", 774),
+                        ("alignement_brakmar", 696),
+                    ):
+                        with self.subTest(guide_id=guide_id):
+                            self.assertTrue(view.select_guide(guide_id))
+                            dialog = view._ganymede_source_dialog
+                            self.assertIsNotNone(dialog)
+                            local = dialog.findChild(
+                                QPlainTextEdit, "GanymedeOfflineSourceStep"
+                            )
+                            self.assertIsNotNone(local)
+                            spinner = dialog.findChild(
+                                QSpinBox, "GanymedeSourceStepNumber"
+                            )
+                            self.assertEqual(spinner.maximum(), count)
+                            self.assertIn("ÉTAPE 1 /", local.toPlainText())
+                            spinner.setValue(count)
+                            self.assertIn(
+                                f"ÉTAPE {count} / {count}",
+                                local.toPlainText(),
+                            )
+                            dialog.close()
+                            self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_source_offline_reader_step_navigation_and_character_progress(self):
         import sys
         from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
