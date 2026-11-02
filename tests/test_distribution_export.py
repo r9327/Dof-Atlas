@@ -98,6 +98,19 @@ class ExportTests(unittest.TestCase):
                 source,
             )
 
+    def test_original_offline_otomai_routes_are_included_in_app_distribution(self):
+        # Without these data files the local guide reader would appear empty
+        # in Atlas App even though it works in the development checkout.
+        for guide_id in (2219, 2220, 2252):
+            name = (
+                "data/encyclopedia/guides/"
+                f"ganymede_{guide_id}_instructions.json"
+            )
+            self.assertTrue(selected_runtime_path(name), name)
+            self.assertTrue(
+                (Path(__file__).resolve().parents[1] / name).is_file(), name,
+            )
+
     def test_archived_legacy_data_is_outside_app_export(self):
         self.assertFalse(selected_runtime_path(
             "archives/legacy-guides-2026-11-02/dofus_cawotte.json",
