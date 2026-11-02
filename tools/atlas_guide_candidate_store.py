@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -244,6 +243,7 @@ def rollback_candidate(
     """CAS rollback of the candidate selection only, never character progress."""
     with _locked(root) as store:
         actual = _selection(store)
+        _verify_generation(store, actual)
         if actual != expected_selected:
             raise GuideRouteContractError("stale rollback; selection changed")
         if restore_sha256 != _NO_SELECTION:
