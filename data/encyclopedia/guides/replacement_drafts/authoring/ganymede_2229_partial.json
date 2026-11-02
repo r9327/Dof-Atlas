@@ -6,12 +6,12 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    10
+    20
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2229",
-  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "evidence_scope": "source_visible_1_to_10_plus_independently_sourced_nimotopia_quest_facts_11_to_20_source_parity_unverified",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -304,6 +304,328 @@
           ]
         }
       ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Espionner les marins puis vaincre les chasseurs",
+      "instructions": "Au port de Bonta, se cacher pour surprendre la conversation des marins au sujet de la viande. Ils découvrent votre présence et déclenchent un combat obligatoire à effectuer seul.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le port de Bonta en [-36,-54].",
+          "coordinates": [
+            -36,
+            -54
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Se dissimuler derrière le pilier droit du panneau de bienvenue pour observer les marins."
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter Petri Kocheur et les marins sur l'origine des gliglis."
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre seul le Brokouillon Bontarien et ses chasseurs après avoir été repéré."
+        },
+        {
+          "kind": "information",
+          "text": "Cette bataille doit être validée individuellement par chaque personnage qui suit la quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner auprès de Robert Gine en [-31,-55].",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Faire le rapport et préparer le navire",
+      "instructions": "L'inspecteur décide d'envoyer le personnage infiltrer le bateau. Lui montrer les provisions réunies à l'étape 2 avant de partir.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Robert Gine à Bonta en [-31,-55].",
+          "coordinates": [
+            -31,
+            -55
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Rapporter les propos des marins et l'agression subie au port."
+        },
+        {
+          "kind": "deliver",
+          "text": "Présenter 10 Eaux potables, 5 Brioches dorées, 5 Espadons poêlés et 5 Andouillettes de gibier."
+        },
+        {
+          "kind": "talk",
+          "text": "Recevoir la caisse destinée aux provisions et l'autorisation d'embarquer."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'embarcation au port de Bonta en [-36,-54].",
+          "coordinates": [
+            -36,
+            -54
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Prendre clandestinement le bateau vers Nimotopia",
+      "instructions": "L'inspecteur vous a autorisé à suivre les livraisons de viande. Utiliser l'embarcation du port pour atteindre Nimotopia puis rester discret à l'arrivée.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'embarcation au port en [-36,-54].",
+          "coordinates": [
+            -36,
+            -54
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le bateau pour embarquer en direction de Nimotopia."
+        },
+        {
+          "kind": "information",
+          "text": "La suite de « Frais de porc inclus » impose de se déguiser en Crâmbo pour interroger les chasseurs. Ne pas considérer la quête terminée à l'accostage."
+        },
+        {
+          "kind": "travel",
+          "text": "Prendre ses repères sur Nimotopia en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Secourir Gulli Ver du Léo Truche",
+      "instructions": "À l'arrivée sur Nimotopia, un animal agresse Gulli Ver. Le combat doit être gagné sans allié ; il ouvre l'enquête sur le comportement des animaux de l'île.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Gulli Ver en [-66,30].",
+          "coordinates": [
+            -66,
+            30
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Porter secours à Gulli Ver en battant seul Léo Truche."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Gulli Ver après le combat pour ouvrir « Nos amies les bêtes »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Consulter Bérénice Corny",
+      "instructions": "L'éthologue Bérénice Corny souhaite comprendre les agressions inexpliquées des animaux. Elle demande du matériel de capture et des fléchettes tranquillisantes.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Bérénice Corny en [-66,31].",
+          "coordinates": [
+            -66,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Lui expliquer l'agression de Léo Truche et accepter d'enquêter sur le comportement des animaux."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir 8 Fléchettes tranquillisantes, obtenues en combattant des monstres de Nimotopia."
+        },
+        {
+          "kind": "prepare",
+          "text": "Pour les cages, conserver 32 Bois d'Orme et 16 Dolomites ; prévoir aussi 20 kamas pour un flacon de gaz soporifique."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les herbes suspectes en [-64,29].",
+          "coordinates": [
+            -64,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Découvrir le cadavre et commencer Shyriiwook",
+      "instructions": "Un corps décapité se trouve près des herbes suspectes. Examiner la scène permet de démarrer une autre quête du succès sans renoncer à l'enquête de Bérénice.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Examiner les Herbes Suspectes en [-64,29].",
+          "coordinates": [
+            -64,
+            29
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Inspecter le corps décapité pour lancer « Shyriiwook »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver la Tête sans corps trouvée sur place afin d'interroger les habitants."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller à la rencontre de Mama Wawa en [-63,28].",
+          "coordinates": [
+            -63,
+            28
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Demander à Mama Wawa ce qu'elle a vu",
+      "instructions": "La témoin reconnaît le personnage décapité et évoque un chasseur armé d'une étrange épée. Cette information doit être portée à Armelle.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Mama Wawa en [-63,28].",
+          "coordinates": [
+            -63,
+            28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "L'interroger à propos du corps sans tête et du chasseur qui possédait l'épée."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Présenter la tête à Armelle",
+      "instructions": "Armelle reconnaît le marchand Hills Antère. Elle évoque l'Épée Vorpale volée à la Mage Dekkak, le Jabeurwookie et une piste menant vers Dentel Castor.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Armelle en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Présenter la Tête sans corps pour identification."
+        },
+        {
+          "kind": "talk",
+          "text": "Demander comment retrouver l'épée et son porteur."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le camp de chasseurs en [-63,32].",
+          "coordinates": [
+            -63,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Récupérer le papier pour la suite de Shyriiwook",
+      "instructions": "Dans le camp, une des ressources du futur Banquier empaillé se trouve au sol. La récupérer avant de partir vers le wabbit.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les débris et les tentes en [-63,32].",
+          "coordinates": [
+            -63,
+            32
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Ramasser 5 Papiers toilette au sol ; ils seront utiles pour fabriquer le Banquier empaillé."
+        },
+        {
+          "kind": "information",
+          "text": "Ces papiers ne suffisent pas à fabriquer le leurre : il faudra aussi 4 Sacs de plumes et 10 Cailloux dorés."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller vers le terrier de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Lancer À armes égales avec Jano Wapin",
+      "instructions": "Le wabbit demande à être protégé des chasseurs. Une cawotte permet de gagner sa confiance et d'ouvrir la série de fabrications requises pour l'aider.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Jano Wapin près de son terrier en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Offrir 1 Cawotte à Jano Wapin pour lancer « À armes égales »."
+        },
+        {
+          "kind": "talk",
+          "text": "Écouter sa demande d'aide concernant les chasseurs qui l'effraient."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver 1 Cawotte supplémentaire, 7 Bois de Bambou Sacré et 7 Bières d'Amakna pour les recettes à venir."
+        },
+        {
+          "kind": "information",
+          "text": "Les trois métiers Bricoleur, Alchimiste et Forgeron de niveau 190 sont nécessaires pour les fabrications suivantes ; on peut faire appel à des artisans."
+        }
+      ]
     }
   ],
   "fact_sources": [
@@ -311,5 +633,10 @@
     "https://www.dofuserie.com/quetes/nos-amies-les-betes/",
     "https://www.dofuserie.com/quetes/shyriiwook/",
     "https://www.dofuserie.com/quetes/a-armes-egales/"
+  ],
+  "further_review_needed": [
+    "Review original Ganymède 2229 stages 11-20 for exact narrative ordering; independent quest guides only prove factual ingredients.",
+    "Check whether the Gulli Ver quest starts before or after the solo Léo Truche fight for each character and account for possible quest splits.",
+    "Verify Nimotopia map IDs and stage-19 item placement under Unity."
   ]
 }
