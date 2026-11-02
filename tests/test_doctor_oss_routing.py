@@ -143,8 +143,10 @@ class DoctorOssRoutingTests(unittest.TestCase):
                      "--isolated", "--no-cache-dir"):
             self.assertIn(flag, script)
         self.assertIn("sys.maxsize > 2**32", script)
+        self.assertIn("Set-Content -LiteralPath $lock -Value $pins", script)
+        self.assertNotIn("'@ |", script)
         lock_rows = re.findall(
-            r"(?m)^(ruff|zizmor)==([\\d.]+) --hash=sha256:([a-f0-9]{64})$",
+            r"(?m)^(ruff|zizmor)==([0-9.]+) --hash=sha256:([a-f0-9]{64})$",
             script,
         )
         self.assertEqual(
