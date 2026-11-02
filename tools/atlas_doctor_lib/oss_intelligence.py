@@ -56,6 +56,13 @@ _DISTRIBUTIONS = {
     "AT-SUP-01": "jsonschema", "AT-SUP-02": "pyinstaller",
     "AT-SUP-04": "pip-audit", "AT-SUP-05": "pydantic",
 }
+# Executable aliases are only probed on PATH. Neither provenance nor CLI
+# compatibility is implied by a positive result.
+_BINARIES = {
+    "ATOSS-18": "ast-grep",
+    "ATOSS-22": "gitleaks",
+    "ATOSS-23": "osv-scanner",
+}
 _MAX_RECOMMENDATIONS = 8
 
 
@@ -132,6 +139,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
             "tool_executed": False,
             "licensed_for_automation": False,
             "local_distribution": _DISTRIBUTIONS.get(cid),
+            "local_binary": _BINARIES.get(cid),
         })
     # Never truncate executable recommendations behind multiple optional
     # alternatives; the full inventory remains accessible separately.
@@ -178,6 +186,12 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
             if row["decision"] not in {"REJECTED", "EXTERNAL_OWNER"}
             and row["local_distribution"]
         ],
+        "local_binary_probes": [
+            {"id": row["id"], "binary": row["local_binary"]}
+            for row in included
+            if row["decision"] not in {"REJECTED", "EXTERNAL_OWNER"}
+            and row["local_binary"]
+        ],
         "no_automatic_installation": True,
         "certified": False,
     }
@@ -215,6 +229,7 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
          "decision": row.get("decision"),
          "reason_scopes": list(row.get("reason_scopes") or []),
          "local_distribution": row.get("local_distribution"),
+         "local_binary": row.get("local_binary"),
          "locally_available": observed_packages.get(row.get("id"), {}).get("available"),
          "installed_version_claim": observed_packages.get(row.get("id"), {}).get("version_claim"),
          "automatic_execution": False}
