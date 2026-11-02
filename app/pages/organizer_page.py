@@ -156,7 +156,9 @@ class OrganizerPage(
         self.profile_file = PROFILE_FILE
         self.client_index_json = CLIENT_INDEX_JSON
         self.client_index_ini = CLIENT_INDEX_INI
-        self.scan_unity_sessions_callback = lambda: scan_unity_sessions()
+        # None uses the canonical native scanner + DOFUS image filter.
+        # Explicit injections remain available for controlled tests/tools.
+        self.scan_unity_sessions_callback = None
 
         self.character_order_service = CharacterOrderService(self.profile_file)
         self.profiles = self.load_profiles()

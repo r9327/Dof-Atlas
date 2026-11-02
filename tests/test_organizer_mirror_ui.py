@@ -47,6 +47,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             ):
                 page = OrganizerPage(Mock(), on_reload, stop_runtime_callback=on_stop)
                 try:
+                    self.assertIsNone(page.scan_unity_sessions_callback)
                     self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
                     self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
                     self.assertTrue(page.macro_panel.isAncestorOf(page.switch_click))
@@ -296,6 +297,24 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         focus.assert_not_called()
         sender.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
+
+
+    def test_native_organizer_scanner_rejects_unrelated_unity_processes(self):
+        import app.pages.organizer_page as organizer
+        import app.pages.organizer.character_sessions as sessions
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        rows = [{"nom": "Player 1", "hwnd": 101}, {"nom": "Other Unity", "hwnd": 202}]
+        def fake_native_scan():
+            return list(rows)
+        dummy = SimpleNamespace(scan_unity_sessions_callback=None)
+        with (
+            patch.object(organizer, "scan_unity_sessions", new=fake_native_scan),
+            patch.object(sessions, "scan_unity_sessions", new=fake_native_scan),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  side_effect=lambda hwnd: hwnd == 101),
+        ):
+            result = CharacterSessionsMixin._scan_unity_sessions(dummy)
+        self.assertEqual([item["hwnd"] for item in result], [101])
 
 
 if __name__ == "__main__":
