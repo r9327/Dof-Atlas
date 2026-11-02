@@ -130,11 +130,19 @@ def project_ganymede_authored_cards(
             else:
                 position = ""
             # Canonical HTML/copy/color rules are applied by SharedGuideManualCard.
-            rows.append({
+            row = {
                 "kind": "combat" if kind == "fight" else "action",
                 "position": position,
                 "text": f"{_GANYMEDE_ACTION_LABELS[kind]} : {text.strip()}",
-            })
+            }
+            # Carry structured author-supplied click targets through the shared
+            # card bridge. Rendering/copy policy still belongs to the canonical
+            # SharedGuideManualCard (never a second HTML formatter).
+            if action.get("copy_values"):
+                row["copy_values"] = list(action["copy_values"])
+            if action.get("items"):
+                row["items"] = copy.deepcopy(action["items"])
+            rows.append(row)
             # Do not guess purchasable object names from free-form prose.
             for item in action.get("items", ()):
                 if not isinstance(item, dict):
