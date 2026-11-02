@@ -86,6 +86,61 @@ des actions/positions, par les tests Qt/Windows, et par le benchmark Doctor au
 HEAD exact. Avoir un JSON valide n'est pas une preuve que les actions sont
 correctes dans le jeu.
 
+## Règle obligatoire : un guide rédigé doit être certifié avant le suivant
+
+**Décision de développement pour la PR #337 : 1 guide fait = 1 guide
+certifié à 100 %, AVANT de commencer le guide suivant.** Le compteur
+« fait / terminé / validé » recense uniquement des guides possédant
+une **preuve individuelle de certification complète**.
+Ne pas confondre :
+- `ganymede_<id>_instructions.json` complet = **structure rédigée**,
+  pas certificat ;
+- `replacement_drafts/authoring/ganymede_<id>_partial.json`, même
+  à 100 % des étapes = **brouillon non jouable** ;
+- `FULL_DRAFT_NOT_PLAYABLE`, action typée, GPS concordant, tests
+  statiques ou audit de code = **NON CERTIFIÉ**, même si tout est vert.
+
+Pour chaque parcours, avant de déclarer `CERTIFIED` et d'en commencer
+un autre, réunir et enregistrer **sur son SHA exact** dans la PR :
+
+1. **Parité source 100 %** : chaque étape et sa séquence comparées à
+   la route originale, aucune instruction, interaction, quête, objet,
+   ressource, PNJ, combat ou transition oubliée ; textes originaux et
+   droits d'utilisation vérifiés.
+2. **Contrat commun / contenu propre** : entête et structure des
+   guides optimisés réutilisés sans copie divergente ; positions en
+   gras copiables, objets récoltables/achetables copiables et colorés
+   comme sur l'optimisé, PNJ selon le code couleur commun ; validation,
+   prérequis et combats propres à ce guide et à **chaque personnage**.
+3. **Tests ciblés réels PASS** : contrat JSON, absence d'actions
+   inventées ou de duplication, UI/rendu, navigation et copier-coller,
+   progression, sauvegarde/reprise et absence de régression des deux
+   grands guides. Une assertion écrite mais non exécutée est NOT_RUN.
+4. **Vérification fonctionnelle sous Windows/DOFUS Unity PASS** :
+   enchaînement complet, combats et objectifs, embranchements,
+   transitions, validations individuelles, retour/reprise et
+   fonctionnement hors ligne. Si la machine de test est indisponible,
+   **le guide reste NON CERTIFIÉ**.
+5. **Preuves datées et audit du SHA** : relevé par guide avec
+   `source_guide_id`, nombre d'étapes et actions, SHA, tests exécutés,
+   résultat Windows/jeu, écarts corrigés et verdict final.
+   Tout `NOT_RUN`, `BLOCKED` ou écart non résolu interdit le verdict
+   `CERTIFIED`.
+
+**Ordre de reprise :** stopper la rédaction des 75 autres parcours.
+Reprendre les 15 fichiers complets déjà présents et les 5 brouillons
+rédigés, **un parcours à la fois**, corriger les défauts, fournir les
+preuves ci-dessus puis certifier individuellement. Aucun « 20 terminés »
+ne doit être déclaré sur la seule base des 20 contenus rédigés.
+
+Cette certification métier *par parcours* **n'est pas** un substitut
+à la `Phase Certification / Full Validation` de la PR : conformément
+à `AGENTS.md` et `PHASE_CERTIFICATION.md`, les tests locaux ciblés
+sont autorisés pendant la Draft, tandis que le gate de certification
+globale s'exécute sur le candidat final au moment prévu. Ne pas lancer
+une FULL GitHub CI à chaque commit ou maquiller une validation manuelle
+manquante en PASS.
+
 ## Importer les 95 parcours avec autorisation
 
 L'importateur n'aspire pas Ganymède et ne copie aucune œuvre tierce.
