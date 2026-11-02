@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2204,
+  "source_url": "https://ganymede-app.com/guides/2204",
+  "expected_source_step_count": 26,
+  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "reviewed_stage_range": [
+    1,
+    10
+  ],
+  "rights_basis": "atlas_original",
+  "editorial_source_text_copied": false,
+  "source_reference": "https://ganymede-app.com/guides/2204",
+  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Retrouver le Réceptacle des Dofus",
+      "instructions": "Reprendre la quête lancée auprès de Fallanster, à la tour du Conseil d'Astrub. Le parcours exige un personnage capable d'accéder à Pandala.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Fallanster à la tour du Conseil d'Astrub.",
+          "coordinates": [
+            4,
+            -19
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier dans le journal que Le Réceptacle des Dofus est bien actif."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Préparer l'accès à Pandala",
+      "instructions": "Rassembler les ressources de la traversée. Selon les accès déjà déverrouillés, préparer également les ressources nécessaires à l'île des Wabbits et à la forêt Maléfique ; si Pandala est déjà accessible, reprendre à l'étape 9.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Prévoir 50 Orties et 5 Laines de Boufton Noir pour l'ouverture de Pandala."
+        },
+        {
+          "kind": "prepare",
+          "text": "Si l'accès à l'île des Wabbits manque : préparer une aile de Scarafeuille de chacune des quatre couleurs."
+        },
+        {
+          "kind": "prepare",
+          "text": "Si la forêt Maléfique reste verrouillée : prévoir Chaînes Brisées, Ébonite et Scalp de Bwork Archer."
+        },
+        {
+          "kind": "travel",
+          "text": "En l'absence d'accès à Pandala, rejoindre le pont en [12,-21].",
+          "coordinates": [
+            12,
+            -21
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Si l'accès à Pandala a déjà été obtenu, ignorer les étapes 3 à 8 et reprendre à l'étape 9."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Ouvrir la quête d'accès à Pandala",
+      "instructions": "Au pont, accepter la mission de Moku puis vaincre les quatre types de monstres demandés. Lui rendre compte avant de repartir vers Astrub.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre Moku à l'entrée du pont.",
+          "coordinates": [
+            12,
+            -21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Moku pour démarrer Le Réveil de Pandala."
+        },
+        {
+          "kind": "fight",
+          "text": "Éliminer 5 Hameres, 5 Sherperes, 5 Twelve Fingeres et 5 Spaderes."
+        },
+        {
+          "kind": "talk",
+          "text": "Revenir voir Moku après les combats."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre à Astrub en [3,-21].",
+          "coordinates": [
+            3,
+            -21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Consulter les alchimistes",
+      "instructions": "Faire avancer l'enquête en parlant à Ma Cléopâtre dans sa maison puis à Dragonsly dans l'atelier des alchimistes.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la maison de Ma Cléopâtre en [3,-21].",
+          "coordinates": [
+            3,
+            -21
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Ma Cléopâtre sur la demande en cours."
+        },
+        {
+          "kind": "talk",
+          "text": "Rejoindre l'atelier d'alchimie et consulter Dragonsly."
+        },
+        {
+          "kind": "travel",
+          "text": "Retrouver Het Dawa en [6,-18].",
+          "coordinates": [
+            6,
+            -18
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Récupérer l'échantillon de Het Dawa",
+      "instructions": "Demander le prélèvement requis à Het Dawa puis s'assurer que les ressources de la préparation sont dans l'inventaire avant de retourner à l'atelier.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Het Dawa en [6,-18].",
+          "coordinates": [
+            6,
+            -18
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Obtenir de Het Dawa le prélèvement nécessaire à la préparation."
+        },
+        {
+          "kind": "prepare",
+          "text": "Contrôler la possession de 50 Orties et 5 Laines de Boufton Noir."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner à l'atelier des alchimistes en [3,-21].",
+          "coordinates": [
+            3,
+            -21
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Fabriquer le sérum et traverser le pont",
+      "instructions": "Fabriquer le sérum demandé, informer Ma Cléopâtre puis gagner l'entrée de Pandala en passant par le pont.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'atelier d'alchimie en [3,-21].",
+          "coordinates": [
+            3,
+            -21
+          ]
+        },
+        {
+          "kind": "craft",
+          "text": "Fabriquer le sérum de quête Anti-McSheth."
+        },
+        {
+          "kind": "talk",
+          "text": "Signaler à Ma Cléopâtre que Dragonsly a été consulté."
+        },
+        {
+          "kind": "travel",
+          "text": "Traverser le pont jusqu'au garde à l'entrée de Pandala en [19,-28].",
+          "coordinates": [
+            19,
+            -28
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Passer le contrôle de Pandala",
+      "instructions": "Présenter la progression de quête au garde puis utiliser la boisson de quête obtenue afin de rejoindre la suite du parcours.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se présenter au garde de Pandala en [19,-28].",
+          "coordinates": [
+            19,
+            -28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Échanger avec le garde Gillpyjiu."
+        },
+        {
+          "kind": "use_item",
+          "text": "Utiliser la Pinte de lait de bambou fermenté depuis les objets de quête."
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Achever le Réveil de Pandala",
+      "instructions": "Après la téléportation, terminer le dialogue prévu avec Doukwang et sortir de la salle pour achever l'accès.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Doukwang à l'issue du transport.",
+          "coordinates": [
+            20,
+            -29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Répondre à Doukwang pour poursuivre la scène de quête."
+        },
+        {
+          "kind": "interact",
+          "text": "Quitter la salle afin de finaliser Le Réveil de Pandala."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le palais de bambou en [22,-29].",
+          "coordinates": [
+            22,
+            -29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Présenter la lettre de Fallanster",
+      "instructions": "Au Palais de Bambou, rencontrer le représentant de Pandala et lui annoncer que l'on apporte la lettre de Fallanster à la Daimya.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le Palais de Bambou.",
+          "coordinates": [
+            22,
+            -29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler au Pandarin Sudopong et présenter la lettre de Fallanster."
+        },
+        {
+          "kind": "travel",
+          "text": "Se rendre chez Surivitna en [20,-27].",
+          "coordinates": [
+            20,
+            -27
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Demander des nouvelles des six Dofus",
+      "instructions": "Interroger Surivitna sur la recherche des Dofus primordiaux, puis poursuivre vers le prochain interlocuteur.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la maison de Surivitna.",
+          "coordinates": [
+            20,
+            -27
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander à Surivitna des informations sur les six Dofus."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller en [22,-27] pour continuer l'enquête.",
+          "coordinates": [
+            22,
+            -27
+          ]
+        }
+      ]
+    }
+  ]
+}
