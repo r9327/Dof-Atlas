@@ -73,7 +73,7 @@
         },
         {
           "kind": "prepare",
-          "text": "Prévoir 2 Cawottes, 1 Pyrute et 1 Viande de minuit."
+          "text": "Prévoir 2 Cawottes, 1 Pyrute et 1 Viande Noire."
         },
         {
           "kind": "travel",
@@ -1880,7 +1880,7 @@
         },
         {
           "kind": "information",
-          "text": "Pour « Il a fui, il a tout compris », inspecter les traces variables : piège en [-67,-29] n'est PAS la bonne coordonnée de Nimotopia."
+          "text": "Pour l'enquête de Xaniel, l'indice dépend du personnage. Essayer le piège, les débris ou l'interlocuteur Misha Braque selon la progression personnelle."
         },
         {
           "kind": "travel",
