@@ -64,9 +64,10 @@ redistribution sont établis, un fichier
   anciennes quêtes.
 - `rights_basis` vaut `atlas_original` si rédaction originale, ou
   `redistribution_permission` quand une permission de diffusion existe
-  **et a été vérifiée par le responsable**. Ce champ ne prouve pas à lui
-  seul que l'autorisation existe. Ne pas importer en masse des textes
-  communautaires sans droits.
+  **et a été vérifiée par le responsable**. En cas de redistribution, les
+  champs `permission_reference` et `attribution` sont obligatoires. Leur
+  présence est une preuve déclarative, pas une vérification juridique
+  automatique. Ne pas importer des textes communautaires sans droits.
 - Le lecteur charge une seule route au clic (pas de chargement des 7 705
   étapes en RAM à l'accueil). Sans consignes, les relevés restent
   consultables mais leur case de validation est désactivée.
@@ -85,3 +86,33 @@ Le premier contrôle ne passe **que si les 95 guides possèdent toutes leurs
 des actions/positions, par les tests Qt/Windows, et par le benchmark Doctor au
 HEAD exact. Avoir un JSON valide n'est pas une preuve que les actions sont
 correctes dans le jeu.
+
+## Import contrôlé des 95 routes
+
+Les textes vérifiés peuvent être préparés hors du dépôt, dans un dossier
+`incoming-guides/` contenant uniquement les fichiers JSON correspondant aux
+95 IDs de l'index. Chaque fichier suit le contrat ci-dessus.
+
+```powershell
+# Analyse sans écrire : vérifie l'intégralité des 95 parcours.
+py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides
+
+# Après validation des auteurs et des droits, publication locale.
+py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides --apply
+
+# Lot partiel explicitement assumé (ne remplace pas la certification des 95).
+py -3.13 -m tools.import_ganymede_authored_routes --source-dir incoming-guides --allow-partial --apply
+```
+
+L'import refuse les étapes absentes, les actions inconnues, les liens
+d'identifiants pris pour des objectifs, les fichiers inconnus ou les routes
+déjà présentes et modifiées (sauf `--allow-overwrite`). Il vérifie
+**tout le lot avant écriture** et écrit les JSON via un remplacement
+atomique par fichier. Le rapport contient nombre de guides, d'étapes,
+empreintes SHA-256, nouveaux/identiques/modifiés et IDs manquants.
+
+Le script ne contacte pas Ganymède, n'essaie pas de contourner un accès,
+ne revendique aucune autorisation et ne remplit aucune action manquante.
+Un lot validé reste soumis aux tests Qt/Windows, à la revue des positions
+et au benchmark Doctor. L'importation locale de contenu personnel n'accorde
+pas le droit de redistribuer ce contenu dans Atlas App.

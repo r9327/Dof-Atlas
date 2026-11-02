@@ -213,6 +213,8 @@ def load_ganymede_local_instructions(
     file = root / f"ganymede_{entry.source_id}_instructions.json"
     if not file.exists():
         return None
+    if not file.is_file() or file.is_symlink() or file.stat().st_size > 8_000_000:
+        raise ValueError(f"Unsafe/oversized Ganymède instructions {entry.source_id}")
     payload = json.loads(file.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Invalid Ganymède instructions {entry.source_id}")
@@ -227,6 +229,12 @@ def load_ganymede_local_instructions(
             or not isinstance(steps, list)
             or len(steps) != entry.step_count):
         raise ValueError(f"Unverified/partial Ganymède instructions {entry.source_id}")
+    if payload["rights_basis"] == "redistribution_permission":
+        evidence = payload.get("permission_reference")
+        attribution = payload.get("attribution")
+        if (not isinstance(evidence, str) or not evidence.strip()
+                or not isinstance(attribution, str) or not attribution.strip()):
+            raise ValueError(f"Missing redistribution permission evidence {entry.source_id}")
     for number, step in enumerate(steps, 1):
         if not isinstance(step, dict):
             raise ValueError(f"Invalid Ganymède instruction step {entry.source_id}:{number}")

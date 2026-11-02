@@ -88,6 +88,18 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Incomplete"):
             load_ganymede_local_instructions(self.entry, data_dir=self.folder)
 
+    def test_redistribution_requires_reference_and_attribution(self):
+        self.payload["rights_basis"] = "redistribution_permission"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "permission evidence"):
+            load_ganymede_local_instructions(self.entry, data_dir=self.folder)
+        self.payload["permission_reference"] = "Written permission ID: fixture"
+        self.payload["attribution"] = "Fixture author"
+        self.save()
+        self.assertEqual(
+            len(load_ganymede_local_instructions(self.entry, data_dir=self.folder)), 2,
+        )
+
     def test_actions_must_be_meaningful_and_typed(self):
         self.payload["steps"][0]["actions"][0]["kind"] = "quest_link"
         self.save()
