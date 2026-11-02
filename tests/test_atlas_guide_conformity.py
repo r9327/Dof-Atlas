@@ -139,6 +139,31 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(delta["status"], "PARITY_CHECK_BLOCKED")
         self.assertFalse(delta["certified"])
 
+    def test_persistent_mismatch_preserves_both_old_and_new_values(self) -> None:
+        old = copy.deepcopy(self.atlas)
+        new = copy.deepcopy(self.atlas)
+        old["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = 8
+        new["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = 9
+        delta = before_after(self.reference, old, new)
+        self.assertEqual(len(delta["persistent"]), 1)
+        entry = delta["persistent"][0]
+        self.assertTrue(entry["changed"])
+        self.assertEqual(entry["before"]["expected"], 10)
+        self.assertEqual(entry["before"]["actual"], 8)
+        self.assertEqual(entry["after"]["actual"], 9)
+        self.assertEqual(len(delta["introduced"]), 0)
+        self.assertEqual(len(delta["resolved"]), 0)
+
+    def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
+        old = copy.deepcopy(self.atlas)
+        original = "x" * 1000
+        self.reference["guides"][0]["steps"][0]["title"] = original
+        old["guides"][0]["steps"][0]["title"] = "wrong"
+        result = compare(self.reference, old)
+        issue = next(x for x in result["issues"] if x["field_path"].endswith(".title"))
+        self.assertEqual(issue["expected"], original)
+        self.assertEqual(issue["actual"], "wrong")
+
     def test_input_unchanged_and_deterministic(self) -> None:
         a = copy.deepcopy(self.reference)
         b = copy.deepcopy(self.atlas)
