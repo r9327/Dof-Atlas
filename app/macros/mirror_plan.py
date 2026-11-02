@@ -126,3 +126,41 @@ def mirror_latency_percentiles_ms(samples_ms: Iterable[float]) -> dict[str, floa
         "p95": value(0.95),
         "p99": value(0.99),
     }
+
+
+@dataclass(frozen=True)
+class MirrorHeldKeys:
+    """Observed physical key-downs, in order, for later safe release."""
+    pressed: tuple[int, ...] = ()
+
+
+def mirror_key_transition(
+    state: MirrorHeldKeys,
+    vk_code: int,
+    is_down: bool,
+) -> tuple[MirrorHeldKeys, tuple[str, int] | None]:
+    """Pure pairing state; does not send a key to any client.
+
+    Repeated downs and unmatched ups are ignored. No key is injected until
+    the platform adapter supports balanced, cancellable replay.
+    """
+    if not isinstance(state, MirrorHeldKeys):
+        raise TypeError("MirrorHeldKeys state required")
+    if type(vk_code) is not int or not (1 <= vk_code <= 254) or type(is_down) is not bool:
+        return state, None
+    if is_down:
+        if vk_code in state.pressed:
+            return state, None
+        return MirrorHeldKeys(state.pressed + (vk_code,)), ("down", vk_code)
+    if vk_code not in state.pressed:
+        return state, None
+    return MirrorHeldKeys(tuple(key for key in state.pressed if key != vk_code)), ("up", vk_code)
+
+
+def mirror_release_all_keys(
+    state: MirrorHeldKeys,
+) -> tuple[MirrorHeldKeys, tuple[tuple[str, int], ...]]:
+    """Emergency-stop release plan in reverse press order, no OS injection."""
+    if not isinstance(state, MirrorHeldKeys):
+        raise TypeError("MirrorHeldKeys state required")
+    return MirrorHeldKeys(), tuple(("up", vk) for vk in reversed(state.pressed))

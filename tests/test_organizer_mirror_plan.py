@@ -5,6 +5,7 @@ import unittest
 from app.macros.mirror_plan import (
     MirrorCapability, delivery_mode, mirror_delivery_targets, mirror_targets,
     mirror_latency_percentiles_ms,
+    MirrorHeldKeys, mirror_key_transition, mirror_release_all_keys,
 )
 
 
@@ -80,6 +81,44 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
             mirror_targets(range(1, 9), set(range(2, 9)), 1),
             tuple(range(2, 9)),
         )
+
+
+    def test_balanced_key_and_suppressed_autorepeat(self) -> None:
+        state = MirrorHeldKeys()
+        state, event = mirror_key_transition(state, 65, True)
+        self.assertEqual(event, ("down", 65))
+        same, event = mirror_key_transition(state, 65, True)
+        self.assertEqual(same, state)
+        self.assertIsNone(event)
+        state, event = mirror_key_transition(state, 65, False)
+        self.assertEqual((state.pressed, event), ((), ("up", 65)))
+        state, event = mirror_key_transition(state, 65, False)
+        self.assertIsNone(event)
+
+    def test_modifier_release_order_and_emergency_stop(self) -> None:
+        state = MirrorHeldKeys()
+        for vk in (17, 16, 65):
+            state, _ = mirror_key_transition(state, vk, True)
+        state, events = mirror_release_all_keys(state)
+        self.assertEqual(events, (("up", 65), ("up", 16), ("up", 17)))
+        self.assertEqual(state, MirrorHeldKeys())
+
+    def test_invalid_key_events_fail_closed(self) -> None:
+        state = MirrorHeldKeys()
+        for vk, press in (
+            (True, True), (0, True), (255, True), (-1, True),
+            (65.0, True), (65, 1), ("A", True),
+        ):
+            same, event = mirror_key_transition(state, vk, press)
+            self.assertEqual(same, state)
+            self.assertIsNone(event)
+
+    def test_unmatched_release_does_not_discard_other_hold(self) -> None:
+        state, _ = mirror_key_transition(MirrorHeldKeys(), 65, True)
+        same, event = mirror_key_transition(state, 66, False)
+        self.assertEqual(state, same)
+        self.assertIsNone(event)
+
 
 
 if __name__ == "__main__":

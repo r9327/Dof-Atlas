@@ -29,6 +29,9 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
   les préférences restent intactes et Stop urgence reste actif.
 
 ## Manques et preuves obligatoires
+- Gestion pure du cycle clavier : `MirrorHeldKeys`, `mirror_key_transition` et
+  `mirror_release_all_keys` sont testés contre répétitions, relâchements orphelins
+  et arrêt d'urgence. **Non raccordés au hook ni à l'injection Windows.**
 - Clavier, touches maintenues, molette et mouvement continu ne sont PAS encore
   reproduits. Le repli séquentiel sur ces gestes risquerait de perdre les
   événements de relâchement et de bloquer des touches.
