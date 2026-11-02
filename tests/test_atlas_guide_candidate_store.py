@@ -177,6 +177,44 @@ class CandidateStoreTests(unittest.TestCase):
         result = publish_candidate(self.preview, root=self.root)
         self.assertEqual(selected_candidate(self.root), result["candidate_sha256"])
 
+    def test_selected_metadata_symlink_cannot_escape_store(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        selected = self.root / "selected.json"
+        saved_content = selected.read_text(encoding="utf-8")
+        outside = Path(self.temp.name) / "outside-sensitive.json"
+        outside.write_text(saved_content, encoding="utf-8")
+        selected.unlink()
+        try:
+            selected.symlink_to(outside)
+        except OSError:
+            self.skipTest("Windows symlinks unavailable to this test user")
+        with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+            publish_candidate(
+                self.preview, root=self.root,
+                expected_selected=first["candidate_sha256"],
+            )
+        self.assertEqual(outside.read_text(encoding="utf-8"), saved_content)
+
+    def test_generation_directory_symlink_cannot_write_outside(self) -> None:
+        self.root.mkdir()
+        marker = self.root / ".atlas-guide-candidates-v1.json"
+        marker.write_text(
+            json.dumps({"format": "atlas-guide-candidate-store/v1",
+                        "runtime_activation": False}),
+            encoding="utf-8",
+        )
+        outside = Path(self.temp.name) / "unrelated-user-folder"
+        outside.mkdir()
+        try:
+            (self.root / "generations").symlink_to(
+                outside, target_is_directory=True
+            )
+        except OSError:
+            self.skipTest("Windows directory symlinks unavailable to test user")
+        with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+            publish_candidate(self.preview, root=self.root)
+        self.assertEqual(list(outside.iterdir()), [])
+
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
         (self.root / "sensitive-user-data.json").write_text("{}")
