@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
-from tools.atlas_json_benchmark import benchmark
+from tools.atlas_json_benchmark import benchmark, compare_json_parsers
 from tools.atlas_json_shards import build
 
 
@@ -36,6 +38,46 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertGreaterEqual(result["source_offset_lookup_seconds"], 0)
             self.assertGreaterEqual(result["derived_shard_lookup_seconds"], 0)
             self.assertEqual(source.read_text(encoding="utf-8"), original)
+
+    def test_optional_parser_comparison_reuses_bytes_and_preserves_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            original = '{"quests":{"7":{"name":"Étoile","n":8},"12":{"s":"\\\\u00e9"}}}'
+            source.write_text(original, encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(loads=json.loads)):
+                result = compare_json_parsers(source, repeats=2)
+            self.assertEqual(result["status"], "COMPARE_COMPLETE")
+            self.assertEqual([x["name"] for x in result["results"]],
+                             ["stdlib", "orjson", "msgspec"])
+            self.assertTrue(all(x["status"] == "PARITY_PASS" for x in result["results"]))
+            self.assertTrue(all(len(x["measurements_ms"]) == 2 for x in result["results"]))
+            self.assertFalse(result["runtime_consumer_changed"])
+            self.assertEqual(source.read_text(encoding="utf-8"), original)
+
+    def test_missing_and_incorrect_parser_cannot_claim_parity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "s.json"
+            source.write_text('{"id":7}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=ImportError("not installed")):
+                result = compare_json_parsers(source, candidates=("stdlib", "orjson"))
+            self.assertEqual([x["status"] for x in result["results"]],
+                             ["PARITY_PASS", "NOT_AVAILABLE"])
+            self.assertEqual(result["status"], "REVIEW")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(loads=lambda _: {"id": 8})):
+                result = compare_json_parsers(source, candidates=("msgspec",))
+            self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
+            self.assertEqual(result["status"], "REVIEW")
+
+    def test_parser_trial_rejects_unbounded_or_unknown_configuration(self) -> None:
+        with self.assertRaises(ValueError):
+            compare_json_parsers(Path("missing"), repeats=0)
+        with self.assertRaises(ValueError):
+            compare_json_parsers(Path("missing"), candidates=("stdlib", "stdlib"))
+        with self.assertRaises(ValueError):
+            compare_json_parsers(Path("missing"), candidates=("ijson",))
 
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
