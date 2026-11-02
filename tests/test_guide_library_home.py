@@ -527,7 +527,22 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 self.assertEqual(view.library_results_title.text(), "DOFUS")
                 self.assertTrue(view.home_dofus_list.isVisibleTo(view))
                 self.assertEqual(
-                    view.category_selector.count(), len(CATEGORIES) - 1,
+                    [
+                        view.category_selector.itemData(i)
+                        for i in range(view.category_selector.count())
+                    ],
+                    [
+                        "dofus", "alignements", "islands", "dimensions",
+                        "eliocalypse", "regions", "adventures", "events",
+                    ],
+                )
+                self.assertEqual(
+                    view.category_selector.itemText(2), "Îles et territoires",
+                )
+                self.assertEqual(
+                    view.category_selector.itemText(
+                        view.category_selector.count() - 1
+                    ), "Événements",
                 )
 
                 # Only the right side switches when a category is selected.
@@ -542,8 +557,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     for i in range(view.home_metadata_list.count())
                 ))
                 self.assertTrue(view.optimized_pair.isVisibleTo(view))
-                for key in ("dimensions", "eliocalypse", "regions",
-                            "events", "islands", "adventures"):
+                for key in ("islands", "dimensions", "eliocalypse",
+                            "regions", "adventures", "events"):
                     view.category_selector.setCurrentIndex(
                         view.category_selector.findData(key),
                     )
