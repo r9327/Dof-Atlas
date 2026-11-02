@@ -259,12 +259,13 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
                 any(a.get("coordinates") == position for a in steps[number-1]["actions"]),
                 f"Missing map {position} at stage {number}",
             )
-        self.assertIn("certificat de Dragodinde Rousse sauvage", texts(5))
-        self.assertIn("certificat de Dragodinde Amande sauvage", texts(5))
+        self.assertIn("1 Dragodinde Rousse", texts(5))
+        self.assertIn("1 Dragodinde Amande", texts(5))
         self.assertTrue(any(
-            a["kind"] == "deliver" and "certificat" in a["text"]
+            a["kind"] == "deliver" and "format du journal" in a["text"]
             for a in steps[5]["actions"]
         ))
+        self.assertIn("version du jeu", steps[4]["instructions"])
         self.assertIn("Le scaéroport de l'Arbre Hakam", texts(6))
         self.assertIn("1 Ailes en bois améliorées", texts(7))
         self.assertIn("1 Casque amélioré", texts(7))
