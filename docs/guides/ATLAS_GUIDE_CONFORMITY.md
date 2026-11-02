@@ -221,3 +221,22 @@ progressions de personnages.
 Ces modifications sont du **code présent mais NON_VALIDÉ** tant que
 l'exécution des tests sur un checkout du SHA courant n'est pas attestée.
 Elles ne permettent en aucun cas de passer à la phase pilote.
+
+
+### Conservation intégrale des données dans les cartes UI
+
+Avant de stocker un candidat, le contrôleur vérifie également que
+**chaque action source** figure **une seule fois et dans le même ordre**
+dans les sections du lecteur commun, qu'aucune ligne rendue ne manque
+et qu'aucun texte/titre/identifiant n'a été substitué. Il recoupe les
+positions `[x,y]` copiables, le type et la catégorie d'action
+(combats et avertissements inclus), les noms d'objets nécessaires
+aux liens de copie, leurs quantités dans le panneau de préparation,
+les prérequis, les noms/IDs de quêtes et les métadonnées source.
+
+Une divergence de projection est bloquante même lorsque la comparaison
+des JSON source/Atlas est verte : **deux exports identiques ne prouvent
+pas que l'UI affiche fidèlement toutes leurs actions**. Les tests de
+mutation correspondants utilisent exclusivement des objets imaginaires.
+La certification finale des couleurs/clics effectifs attend toujours
+la vérification réelle du lecteur sous Windows/DOFUS.
