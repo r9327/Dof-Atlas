@@ -260,11 +260,33 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1 -Install
 ```
 
-Le mode `-Install` utilise la version Python 3.13 active, des wheels PyPI
-précompilées, `ruff==0.17.3` et `zizmor==1.30.1` **uniquement côté développeur**.
-Il ne modifie pas `requirements-pyside.txt`, ni l'EXE Windows ni les paquets
-embarqués. Sous Windows, Doctor peut trouver `zizmor.exe` dans `Scripts` du
-user-site Python, même si son dossier n'est pas inscrit dans PATH.
+Le mode `-Install` exige désormais **Windows x64 et Python 3.13 64 bits**.
+Il n'accepte que les deux wheels PyPI choisies et les hachages SHA-256
+exactement publiés sur [Ruff 0.17.3](https://pypi.org/project/ruff/0.17.3/)
+et [zizmor 1.30.1](https://pypi.org/project/zizmor/1.30.1/) :
+`ruff==0.17.3` (Windows AMD64, SHA-256
+`56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24`) et
+`zizmor==1.30.1` (Windows AMD64, SHA-256
+`06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868`).
+L'installation volontaire impose `pip --isolated --require-hashes`,
+`--only-binary=:all:`, `--no-deps` et une source PyPI explicite. Les
+wheels d'une autre architecture ou toute divergence d'empreinte sont rejetées.
+La liste temporaire de pins est supprimée dans un bloc `finally`.
+
+Cette installation est **côté développeur, dans son user-site Python** :
+elle ne modifie pas `requirements-pyside.txt`, ni l'EXE Windows ni les
+paquets embarqués, mais peut mettre à jour les deux packages de son
+environnement utilisateur. Pip ne garantit pas un rollback transactionnel
+en cas de panne partielle ; sur une machine critique, utiliser un Python
+développeur isolé et vérifier l'état initial avant `-Install`.
+Doctor peut ensuite trouver `zizmor.exe` dans le dossier `Scripts`
+du user-site Windows, même s'il n'est pas inscrit dans PATH.
+
+Les empreintes publiées protègent le téléchargement des **wheels ciblées** ;
+elles ne remplacent ni la vérification complète des licences/dépendances,
+ni une exécution réelle attestée, ni une revue de la provenance des builds.
+Ruff et zizmor déclarent MIT sur PyPI ; aucune licence n'est réputée
+auditée simplement par le préflight local.
 
 Les versions ci-dessus sont les versions de qualification choisies pour ce
 lot ; les mises à jour restent des décisions explicites, avec vérification
