@@ -82,6 +82,7 @@ class GuideCatalogView(QWidget):
         self.achievement_provider = achievement_provider
         self.quest_provider = quest_provider
         self._runtime_ready = False
+        self._other_groups_signature = None
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
@@ -670,7 +671,15 @@ class GuideCatalogView(QWidget):
         self._sync_grid_columns()
 
     def _refresh_other_groups(self, matched, native_ids: set[str]) -> None:
-        """Render each non-Dofus family once, without opening rich readers."""
+        """Update hidden legacy groups only when their catalogue actually changes."""
+        signature = (
+            self.search_text,
+            tuple((str(g.id), str(g.category), str(g.title)) for g in matched),
+            frozenset(native_ids),
+            id(self.ganymede_listings),
+        )
+        if signature == self._other_groups_signature:
+            return
         featured = set(dict(FEATURED))
         for category, listing in self.other_category_lists.items():
             native_guides = [
@@ -703,6 +712,7 @@ class GuideCatalogView(QWidget):
                 listing.addItem(item)
             listing.parentWidget().setVisible(listing.count() > 0)
             listing.setFixedHeight(min(184, max(56, listing.count() * 35 + 8)))
+        self._other_groups_signature = signature
 
     def _open_source_by_id(self, source_id: int) -> None:
         item = QListWidgetItem()
@@ -797,6 +807,10 @@ class GuideCatalogView(QWidget):
             if progress_service is not None else set()
         )
         source_step_id = lambda n: f"ganymede_{entry.source_id}_step_{n:04d}"
+        # The step count changes on writes, not on page navigation.
+        completed_count = [
+            sum(source_step_id(n) in checked for n in range(1, count + 1))
+        ]
         current_page = [1]
 
         def step_url(n: int) -> QUrl:
@@ -846,16 +860,12 @@ class GuideCatalogView(QWidget):
                     )
                 elif browser is not None:
                     browser.setUrl(step_url(page))
-                done = sum(
-                    1 for n in range(1, count + 1)
-                    if source_step_id(n) in checked
-                )
                 is_done = source_step_id(page) in checked
                 validate_button.setText(
                     "Annuler la validation" if is_done else "Valider l'étape"
                 )
                 progress_label.setText(
-                    f"{done} / {count} étapes validées"
+                    f"{completed_count[0]} / {count} étapes validées"
                     if can_record else
                     "Choisir un personnage Atlas pour enregistrer la progression."
                 )
@@ -876,6 +886,9 @@ class GuideCatalogView(QWidget):
                     progress_service.reload()
                     checked.clear()
                     checked.update(progress_service.manual_steps(selected, progress_id))
+                    completed_count[0] = sum(
+                        source_step_id(n) in checked for n in range(1, count + 1)
+                    )
                     select_page(current_page[0])
                     self.status_callback(f"Progression Ganymède actualisée : {exc}")
                     return
@@ -884,6 +897,9 @@ class GuideCatalogView(QWidget):
                     return
                 checked.clear()
                 checked.update(progress_service.manual_steps(selected, progress_id))
+                completed_count[0] = sum(
+                    source_step_id(n) in checked for n in range(1, count + 1)
+                )
                 select_page(current_page[0])
 
             number.valueChanged.connect(select_page)
@@ -896,8 +912,10 @@ class GuideCatalogView(QWidget):
             current_button.clicked.connect(lambda: number.setValue(first_unchecked()))
             validate_button.clicked.connect(toggle_step)
             start = first_unchecked()
-            number.setValue(start)
-            select_page(start)
+            if number.value() != start:
+                number.setValue(start)  # valueChanged renders the initial step.
+            else:
+                select_page(start)
         elif browser is not None:
             browser.setUrl(source_url)
 

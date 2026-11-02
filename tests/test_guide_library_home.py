@@ -290,6 +290,50 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
+    def test_offline_reader_renders_initial_nonfirst_step_once(self):
+        from PySide6.QtWidgets import QSpinBox, QLabel
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+
+        with tempfile.TemporaryDirectory() as directory:
+            progress_path = Path(directory) / "progress.json"
+            GuideProgressService(progress_path).set_manual_step_completed(
+                "character:88", "ganymede_source_2290",
+                "ganymede_2290_step_0001", True,
+            )
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                character_key="character:88", defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                item = QListWidgetItem()
+                item.setData(Qt.UserRole, 2290)
+                with patch(
+                    "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
+                    progress_path,
+                ), patch.object(
+                    GuideCatalogView, "_format_offline_observation",
+                    wraps=GuideCatalogView._format_offline_observation,
+                ) as render:
+                    view._open_ganymede_source_item(item)
+                    dialog = view._ganymede_source_dialog
+                    spinner = dialog.findChild(QSpinBox, "GanymedeSourceStepNumber")
+                    label = dialog.findChild(QLabel, "GanymedeSourceProgress")
+                    self.assertEqual(spinner.value(), 2)
+                    self.assertEqual(render.call_count, 1)
+                    self.assertIn("1 / 2 étapes validées", label.text())
+                    spinner.setValue(1)
+                    self.assertEqual(render.call_count, 2)
+                    self.assertIn("1 / 2 étapes validées", label.text())
+                    dialog.close()
+                    self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_bonta_and_brakmar_open_long_offline_source_without_webengine(self):
         import sys
         from PySide6.QtWidgets import QSpinBox
@@ -587,6 +631,33 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.close()
                     view.deleteLater()
                     self.app.processEvents()
+
+    def test_hidden_legacy_families_do_not_rebuild_on_category_switch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=_Provider(),
+                quest_progress_path=Path(directory) / "quests.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                listing = next(
+                    group for group in view.other_category_lists.values()
+                    if group.count()
+                )
+                old_item = listing.item(0)
+                view.category_selector.setCurrentIndex(
+                    view.category_selector.findData("regions")
+                )
+                self.assertIs(listing.item(0), old_item)
+                # A genuinely changed search must invalidate the cached lists.
+                view.set_search_text("no-such-route-anywhere")
+                self.assertEqual(listing.count(), 0)
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
 
     def test_home_shows_two_optimized_cards_above_dropdown_and_selected_content(self):
         with tempfile.TemporaryDirectory() as directory:
