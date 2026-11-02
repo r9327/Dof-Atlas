@@ -177,6 +177,42 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["candidates"][19]["integration"], "DOCTOR_OPT_IN_ONLY")
         self.assertEqual(report["candidates"][-1]["integration"], "REJECTED")
 
+    def test_substituted_candidate_id_is_review_even_when_counts_match(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study = self.root / "docs" / "roadmap"
+        study.mkdir(parents=True)
+        lines = [
+            f"| ATOSS-{number:02d} | [tool](https://github.com/org/tool) | ASSESS | Owner |"
+            for number in range(1, 30)
+        ]
+        lines.extend(
+            f"| AT-SUP-{number:02d} | [extra](https://github.com/org/extra) | ASSESS | Owner |"
+            for number in range(1, 6)
+        )
+        lines[28] = lines[28].replace("ATOSS-29", "ATOSS-30")
+        (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            "\n".join(lines) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["count"], 29)
+        self.assertEqual(report["supplemental_count"], 5)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["missing_ids"], ["ATOSS-29"])
+        self.assertEqual(report["unexpected_ids"], ["ATOSS-30"])
+        self.assertEqual(report["execution_witnesses"], 0)
+
+    def test_repository_study_covers_all_34_exact_ids(self):
+        from tools.tool_audit import ROOT
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        report = _open_source_inventory(ROOT)
+        expected = {f"ATOSS-{number:02d}" for number in range(1, 30)}
+        expected.update(f"AT-SUP-{number:02d}" for number in range(1, 6))
+        actual = {row["id"] for row in report["candidates"] + report["supplemental"]}
+        self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
+        self.assertEqual(actual, expected)
+        self.assertEqual(report["missing_ids"], [])
+        self.assertEqual(report["unexpected_ids"], [])
+        self.assertEqual(report["execution_witnesses"], 0)
+
     def test_catalog_reports_unready_tools_without_running_them(self):
         catalog = {"tool_count": 2, "agent_ready_count": 1,
                    "automation_ready_count": 1, "unguarded_mutator_count": 1,

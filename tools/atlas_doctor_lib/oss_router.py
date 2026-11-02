@@ -60,11 +60,18 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
             candidates.append(row)
         else:
             supplements.append(row)
+    # A count alone can hide a misspelled or substituted ID (29+5 is not
+    # sufficient evidence that the contractual 34 projects are all present).
+    expected = {f"ATOSS-{number:02d}" for number in range(1, 30)}
+    expected.update(f"AT-SUP-{number:02d}" for number in range(1, 6))
+    missing = sorted(expected - seen)
+    unexpected = sorted(seen - expected)
     return {
         "status": ("INVENTORIED_NOT_CERTIFIED"
-                   if len(candidates) == 29 and len(supplements) == 5 else "REVIEW"),
+                   if not missing and not unexpected else "REVIEW"),
         "count": len(candidates), "candidates": candidates,
         "supplemental_count": len(supplements), "supplemental": supplements,
+        "missing_ids": missing, "unexpected_ids": unexpected,
         "execution_witnesses": 0,
         "note": "Static study decisions; execution requires independent exact-SHA evidence.",
     }
