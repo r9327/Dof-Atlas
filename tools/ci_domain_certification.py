@@ -94,6 +94,13 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tests/test_pr303_commit_audit.py",
 })
 
+# New developer-only wheel verification has one explicit source and test
+# owner. Unknown installers remain unowned and fail closed.
+DOCTOR_OSS_INSTALL_PATHS = frozenset({
+    "tools/doctor_oss_wheels.py",
+    "tests/test_doctor_oss_wheels.py",
+})
+
 # Reviewed Organizer ownership, restricted to concrete paths. Unknown input
 # backends or other application modules must continue to block certification.
 ORGANIZER_MACRO_PATHS = frozenset({
@@ -159,7 +166,7 @@ def owners_for(path: str) -> frozenset[str]:
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
             or path in {".github/pull_request_template.md", "AGENTS.md"}):
         return frozenset({"ci"})
-    if path in DOCTOR_PERF_TOOLS:
+    if path in DOCTOR_PERF_TOOLS or path in DOCTOR_OSS_INSTALL_PATHS:
         return frozenset({"ci"})
     if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
