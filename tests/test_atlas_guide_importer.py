@@ -31,7 +31,8 @@ class GuideImporterTests(unittest.TestCase):
         ]}), encoding="utf-8")
         self.manifest = self.root / "reference.json"
 
-    def write_guide(self, gid: int, *, copy_values: list[str] | None = None) -> dict:
+    def write_guide(self, gid: int, *, copy_values: list[str] | None = None,
+                    items: list[dict] | None = None) -> dict:
         steps = [
             {"source_step_number": 1, "title": "Départ",
              "instructions": "Rejoindre le point de départ.",
@@ -44,6 +45,8 @@ class GuideImporterTests(unittest.TestCase):
         ]
         if copy_values:
             steps[1]["actions"][0]["copy_values"] = copy_values
+        if items:
+            steps[1]["actions"][0]["items"] = items
         payload = {
             "schema_version": 1, "source_guide_id": gid,
             "source_url": f"https://ganymede-app.com/guides/{gid}",
@@ -135,13 +138,33 @@ class GuideImporterTests(unittest.TestCase):
             self.run_import(manifest_path=self.manifest, apply=True)
         self.assertFalse(self.target.exists())
 
-    def test_explicit_copy_target_needs_canonical_bridge_support(self):
-        self.write_guide(2203, copy_values=["Nom précis à copier"])
+    def test_explicit_copy_target_and_item_survive_canonical_bridge(self):
+        self.write_guide(2203, copy_values=["Nom précis à copier"],
+                         items=[{"name": "Ressource précise", "quantity": 2}])
         self.write_guide(2205)
         self.write_reference((2203, 2205))
-        with self.assertRaisesRegex(ValueError, "copy target not projected"):
+        report = self.run_import(manifest_path=self.manifest, apply=True)
+        self.assertEqual(report["status"], "IMPORTED_HASH_VERIFIED")
+        route = next(r for r in report["routes"] if r["source_id"] == 2203)
+        self.assertEqual(route["explicit_copy_targets_preserved"], 1)
+        self.assertFalse(report["gameplay_certified"])
+
+    def test_explicit_overwrite_requires_opt_in_and_valid_reference(self):
+        self.write_guide(2203)
+        self.write_guide(2205)
+        self.write_reference((2203, 2205))
+        self.run_import(manifest_path=self.manifest, apply=True)
+        path = self.source / "ganymede_2203_instructions.json"
+        original = json.loads(path.read_text(encoding="utf-8"))
+        original["steps"][0]["instructions"] = "Nouvelle destination vérifiée."
+        path.write_text(json.dumps(original), encoding="utf-8")
+        self.write_reference((2203, 2205))
+        with self.assertRaises(FileExistsError):
             self.run_import(manifest_path=self.manifest, apply=True)
-        self.assertFalse(self.target.exists())
+        report = self.run_import(manifest_path=self.manifest,
+                                 apply=True, allow_overwrite=True)
+        self.assertEqual(report["updated"], 1)
+        self.assertEqual((self.target / path.name).read_bytes(), path.read_bytes())
 
     def test_strict_full_inventory_and_explicit_partial_mode(self):
         self.write_guide(2203)
