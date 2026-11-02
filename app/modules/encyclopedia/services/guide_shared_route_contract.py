@@ -148,7 +148,9 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 "kind": "combat" if kind in {"fight", "combat"} else
                         "warning" if kind == "warning" else "action",
                 "text": text,
-                "position": position,
+                # The shared renderer recognizes [x,y] for clickable
+                # travel-copy links. Keep the raw source coordinates separately.
+                "position": f"[{position}]" if position else "",
                 "source_action_id": action_id,
                 "source_action_kind": kind,
                 "source_action": copy.deepcopy(action),
