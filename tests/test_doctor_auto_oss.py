@@ -92,6 +92,25 @@ class AutomaticDoctorOssTests(unittest.TestCase):
         self.assertEqual(statuses["ATOSS-20"]["installed_version_claim"], "0.17.3")
         self.assertFalse(statuses["ATOSS-20"]["automatic_execution"])
 
+    def test_optional_scanner_probe_crash_does_not_break_doctor(self):
+        from tools.atlas_doctor import build_parser
+        from tools.atlas_doctor_lib import agent_protocol
+        args = build_parser().parse_args(["agent", "plan", "tools/example.py"])
+        core = {"status": "READY", "exit_code": 0,
+                "certification": {"full_certified": False}}
+        with (patch.object(agent_protocol, "run_agent_action", return_value=core),
+              patch("tools.tool_catalog.local_candidate_preflight",
+                    side_effect=OSError("sensitive local path"))):
+            result = command_agent(self.root, args)
+        self.assertEqual(result["status"], "READY")
+        self.assertEqual(result["exit_code"], 0)
+        self.assertEqual(result["oss_local_preflight"]["status"], "ERROR")
+        self.assertEqual(result["oss_preflight_error_type"], "OSError")
+        self.assertTrue(all(row["available"] is False
+                            and row["execution_verified"] is False
+                            for row in result["oss_local_preflight"]["tools"]))
+        self.assertNotIn("sensitive local path", str(result))
+
     def test_check_without_test_optin_does_not_run_third_party_tool(self):
         p, route, _ = self._command("check", "tools/example.py")
         route.assert_not_called()
