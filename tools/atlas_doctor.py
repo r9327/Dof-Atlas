@@ -236,21 +236,64 @@ def command_agent(root: Path, args) -> dict[str, Any]:
         level=args.level, run_tests=args.run_tests,
         max_tests=args.max_tests, timeout_seconds=args.timeout_seconds,
     )
-    # Optional evidence only; never override Doctor's status or exit_code.
-    if getattr(args, "run_oss", False):
+    # The canonical Doctor verdict and selected test evidence never change
+    # because of a third-party advisory. The planning view is always cheap.
+    from tools.atlas_doctor_lib.oss_router import (
+        _open_source_inventory, route_oss, select_eligible_diagnostics,
+    )
+    from tools.atlas_doctor_lib.oss_intelligence import intelligent_plan
+    report["oss_selection"] = intelligent_plan(
+        args.paths, _open_source_inventory(root))
+    requested = bool(getattr(args, "run_oss", False) or (
+        args.agent_action == "check" and args.run_tests
+        and not getattr(args, "no_oss", False)))
+    if getattr(args, "no_oss", False):
+        report["oss_advisory"] = {
+            "status": "NOT_RUN", "reason": "Disabled by --no-oss",
+            "phase_certified": False,
+        }
+    elif requested:
         if args.agent_action != "check" or report.get("status") in {"BLOCKED", "FAIL"}:
-            report["oss_advisory"] = {"status": "NOT_RUN",
-                                      "reason": "Only an unblocked agent check can run OSS"}
+            report["oss_advisory"] = {
+                "status": "NOT_RUN",
+                "reason": "Only an unblocked agent check may run OSS",
+                "phase_certified": False,
+            }
         else:
-            from tools.atlas_doctor_lib.oss_router import route_oss
-            try:
-                report["oss_advisory"] = route_oss(
-                    root, args.paths, run=True,
-                    timeout_seconds=min(args.timeout_seconds, 60))
-            except ValueError as exc:
-                report["oss_advisory"] = {"status": "NOT_APPLICABLE",
-                                          "reason": str(exc),
-                                          "phase_certified": False}
+            dispatch = select_eligible_diagnostics(root, args.paths)
+            report["oss_dispatch"] = dispatch
+            if not dispatch["files"]:
+                report["oss_advisory"] = {
+                    "status": "NOT_APPLICABLE",
+                    "reason": "No scoped Python or GitHub Actions source eligible",
+                    "phase_certified": False,
+                }
+            else:
+                # Keep a separate small budget for external diagnostics. Running
+                # Doctor's targeted tests remains the existing check owner's job.
+                budget = (min(args.timeout_seconds, 60)
+                          if getattr(args, "run_oss", False)
+                          else min(20, max(1, args.timeout_seconds // 4)))
+                try:
+                    report["oss_advisory"] = route_oss(
+                        root, dispatch["files"], run=True,
+                        timeout_seconds=budget)
+                except ValueError as exc:
+                    report["oss_advisory"] = {
+                        "status": "NOT_APPLICABLE",
+                        "reason": str(exc),
+                        "phase_certified": False,
+                    }
+            if dispatch["truncated_count"]:
+                report["oss_advisory"]["scope_incomplete"] = True
+                report["oss_advisory"]["reason"] = (
+                    "Only the first 16 eligible files were scanned; review remainder")
+    elif args.agent_action == "check":
+        report["oss_advisory"] = {
+            "status": "NOT_RUN",
+            "reason": "Use --run-tests for automatic approved OSS checks or --run-oss",
+            "phase_certified": False,
+        }
     return report
 
 
@@ -914,6 +957,8 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument('--run-tests', action='store_true', help='Autoriser les tests cibles pour check.')
     agent.add_argument('--run-oss', action='store_true',
                        help='Lancer le diagnostic OSS approuvé pour un check, consultatif uniquement.')
+    agent.add_argument('--no-oss', action='store_true',
+                       help='Désactiver les diagnostics OSS lors de check --run-tests.')
     agent.add_argument('--max-tests', type=int, choices=range(1, 9), default=8)
     agent.add_argument('--timeout-seconds', type=int, choices=range(10, 181), default=90)
     advisory = sub.add_parser('local-ai', help='Diagnostic IA locale facultatif, sans certification ni modification.')
@@ -1307,8 +1352,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
-        return 1 if (payload.get("execution") or {}).get("status") in (
-            "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") else 0
+        executions = payload.get("execution_results") or [payload.get("execution") or {}]
+        return 1 if any(row.get("status") in (
+            "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") for row in executions) else 0
     if args.command == 'agent':
         return int(payload.get('exit_code', 2))
     if args.command == 'evidence-hub':

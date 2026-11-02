@@ -80,7 +80,7 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
             report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
-        self.assertEqual(report["execution"]["status"], "NOT_APPLICABLE")
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
         self.assertEqual(sel.call_args.kwargs["capability"], "ci_intelligence")
         run.assert_not_called()
 
@@ -161,11 +161,18 @@ class DoctorOssRoutingTests(unittest.TestCase):
             rows.append(
                 f"| ATOSS-{number:02d} | [tool{number}](https://github.com/org/tool{number}) "
                 f"| {decision} | Owner |\n")
+        for number in range(1, 6):
+            rows.append(
+                f"| AT-SUP-{number:02d} | [extra{number}](https://github.com/org/extra{number}) "
+                f"| ASSESS | Owner |\n")
         (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
             "".join(rows), encoding="utf-8")
         report = _open_source_inventory(self.root)
         self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
         self.assertEqual(report["count"], 29)
+        self.assertEqual(report["supplemental_count"], 5)
+        self.assertEqual(len(report["supplemental"]), 5)
+        self.assertEqual(report["candidates"][20]["integration"], "DOCTOR_OPT_IN_ONLY")
         self.assertEqual(report["execution_witnesses"], 0)
         self.assertEqual(report["candidates"][19]["integration"], "DOCTOR_OPT_IN_ONLY")
         self.assertEqual(report["candidates"][-1]["integration"], "REJECTED")
