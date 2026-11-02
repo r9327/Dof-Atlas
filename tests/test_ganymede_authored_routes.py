@@ -1,4 +1,4 @@
-"""Two original, cross-checked Otomaï itineraries must be truly usable offline.
+"""Three original, cross-checked Otomaï itineraries must be truly usable offline.
 
 These tests guard against replacing the authored steps with raw IDs or a
 non-operational list of observed coordinate occurrences.
@@ -16,19 +16,19 @@ from app.modules.encyclopedia.views.guide_library_sources import (
 
 
 class OtomaiAuthoredRouteTests(unittest.TestCase):
-    def test_both_offline_itineraries_have_real_actions_and_correct_source_order(self):
+    def test_three_offline_itineraries_have_real_actions_and_correct_source_order(self):
         listings = {entry.source_id: entry for entry in load_ganymede_listings()}
-        self.assertEqual({2219, 2220}.intersection(listings), {2219, 2220})
-        for guide_id in (2219, 2220):
+        self.assertEqual({2219, 2220, 2252}.intersection(listings), {2219, 2220, 2252})
+        for guide_id in (2219, 2220, 2252):
             with self.subTest(guide_id=guide_id):
                 entry = listings[guide_id]
-                self.assertEqual(entry.step_count, 7)
+                self.assertEqual(entry.step_count, 13 if guide_id == 2252 else 7)
                 instructions = load_ganymede_local_instructions(entry)
                 self.assertIsNotNone(instructions)
-                self.assertEqual(len(instructions), 7)
+                self.assertEqual(len(instructions), entry.step_count)
                 self.assertEqual(
                     [step["source_step_number"] for step in instructions],
-                    list(range(1, 8)),
+                    list(range(1, entry.step_count + 1)),
                 )
                 self.assertTrue(all(
                     step["actions"] and len(step["instructions"]) >= 30
@@ -45,7 +45,7 @@ class OtomaiAuthoredRouteTests(unittest.TestCase):
 
     def test_author_written_travel_positions_are_supported_by_factual_snapshot(self):
         listings = {entry.source_id: entry for entry in load_ganymede_listings()}
-        for guide_id in (2219, 2220):
+        for guide_id in (2219, 2220, 2252):
             with self.subTest(guide_id=guide_id):
                 entry = listings[guide_id]
                 local = load_ganymede_local_observations(entry)
@@ -63,7 +63,7 @@ class OtomaiAuthoredRouteTests(unittest.TestCase):
                 self.assertTrue(destinations.issubset(observed))
 
     def test_original_prose_has_evidence_metadata_and_no_imported_editorial_text(self):
-        for guide_id in (2219, 2220):
+        for guide_id in (2219, 2220, 2252):
             with self.subTest(guide_id=guide_id):
                 path = INDEX_PATH.parent / f"ganymede_{guide_id}_instructions.json"
                 payload = json.loads(path.read_text(encoding="utf-8"))

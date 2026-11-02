@@ -506,7 +506,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     "app.modules.encyclopedia.views.guide_catalog_view.GUIDE_PROGRESS_FILE",
                     progress_path,
                 ):
-                    for source_id in (2219, 2220):
+                    for source_id in (2219, 2220, 2252):
                         with self.subTest(source_id=source_id):
                             item = next(
                                 view.home_metadata_list.item(n)
@@ -523,7 +523,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                                 QPushButton, "GanymedeSourceValidateStep",
                             )
                             self.assertTrue(validate.isEnabled())
-                            self.assertIn("ÉTAPE 1 / 7", local.toPlainText())
+                            self.assertIn(f"ÉTAPE 1 / {13 if source_id == 2252 else 7}", local.toPlainText())
                             self.assertIn("• Aller à", local.toPlainText())
                             dialog.close()
                             self.app.processEvents()

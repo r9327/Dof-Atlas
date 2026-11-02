@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2252,
+  "source_url": "https://ganymede-app.com/guides/2252",
+  "expected_source_step_count": 13,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "fact_sources": [
+    "https://www.dofuserie.com/quetes/les-chasses-de-crocodaille-dandi/",
+    "https://openddb.dev/quests/241-les-chasses-de-crocodaille-dandi",
+    "https://www.dofuserie.com/quetes/polka-merer-a-besoin-de-vous/",
+    "https://www.dofuserie.com/quetes/la-femme-perdue/",
+    "https://www.dofutheque.com/le-fils-cache",
+    "https://www.tofus.fr/quete/quetes-otomai",
+    "https://www.dofuserie.com/zone/ile-dotomai/"
+  ],
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Préparer les six quêtes du Service de dépannage",
+      "instructions": "Ce parcours prolonge Otomaï 1 et Otomaï 2. Vérifie que « L'île des naufragés » est terminée et prépare de quoi faire deux mini-donjons, plusieurs livraisons et les cinq séries de chasses de Crocodaille Dandi. Commence par les quêtes sans combat de la côte, puis remonte vers les plaines et la canopée.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Objectif : compléter les quêtes Paulette Pain-bèche, Potion Bulbique, Polka Merer, Le fils caché, La femme perdue et les chasses de Crocodaille Dandi."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au Professeur Fournesol près de la côte.",
+          "coordinates": [
+            -48,
+            19
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Préparer les livraisons pour le littoral",
+      "instructions": "Réunis une Potion Bulbique pour le Professeur Fournesol. Prépare également les différentes farines que Paulette Pain-bèche réclame ; vérifie la liste exacte dans ton journal avant l'achat, car les noms de recettes ont évolué. Tu peux acheter les objets en hôtel des ventes ou les fabriquer avec les métiers adaptés.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Réunir 1 Potion Bulbique pour la quête du professeur."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir les farines demandées par Paulette : blé, orge, avoine, seigle, malt, lin, houblon, riz et les variantes indiquées dans la quête."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier les recettes et les noms exacts dans la version du jeu utilisée ; ne pas remplacer un objet de quête par un homonyme."
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Remettre la potion au Professeur Fournesol",
+      "instructions": "En [-48,19], parle au Professeur Fournesol pour lancer « La Potion Bulbique » et remets-lui l'objet préparé. Assure-toi que la quête est validée. Passe ensuite à la boulangère, à quelques cartes de là.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Prendre puis terminer « La Potion Bulbique » avec le Professeur Fournesol."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Paulette Pain-bèche.",
+          "coordinates": [
+            -50,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Aider Paulette Pain-bèche",
+      "instructions": "En [-50,20], lance la quête de Paulette Pain-bèche puis remets-lui les farines demandées. Si une farine manque, contrôle son nom dans le journal avant d'aller la fabriquer ou l'acheter. Une fois sa quête terminée, rejoins le village des éleveurs.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « Paulette Pain-bèche la boulangère » et lui apporter ses farines."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le village des éleveurs.",
+          "coordinates": [
+            -54,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Apporter le matériel d'élevage à Polka Merer",
+      "instructions": "En [-54,5], Polka Merer demande du matériel pour ses enclos. Prépare quatre types de petits extraits d'élevage, cinq de chaque, ainsi que dix Planches agglomérées. Compare précisément les noms avec ton journal : la terminologie de ces extraits varie suivant les versions. Remets tous les objets au même PNJ puis rejoins le Docteur Nauh.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Démarrer « Polka Merer a besoin de vous » et relever la liste exacte."
+        },
+        {
+          "kind": "prepare",
+          "text": "Réunir 5 exemplaires de chacun des quatre petits extraits demandés et 10 Planches agglomérées."
+        },
+        {
+          "kind": "talk",
+          "text": "Donner le matériel à Polka Merer et vérifier la validation."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller voir le Docteur Nauh.",
+          "coordinates": [
+            -55,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Retrouver le fils du Docteur Nauh",
+      "instructions": "En [-55,4], parle au Docteur Nauh et lance « Le fils caché ». Traverse son mini-donjon en remportant les combats successifs. À la sortie, parle à son fils Jean Nauh, puis au docteur pour conclure la mission. Rejoins ensuite l'Arbre Hakam pour la quête du Docteur Morose.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « Le fils caché » chez le Docteur Nauh."
+        },
+        {
+          "kind": "fight",
+          "text": "Terminer les quatre combats du mini-donjon contre les créatures des Plaines herbeuses."
+        },
+        {
+          "kind": "talk",
+          "text": "Retrouver Jean Nauh, puis annoncer son sort à son père."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Docteur Morose dans le feuillage de l'Arbre Hakam.",
+          "coordinates": [
+            -52,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Retrouver Jeanne Morose",
+      "instructions": "En [-52,16], demande au Docteur Morose la quête « La femme perdue ». Le mini-donjon de cette mission comprend six combats : ils peuvent être réalisés en groupe. Parle à Jeanne Morose à la fin, puis retourne voir son mari. La dernière grande partie du parcours correspond aux chasses du Crocodaille.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « La femme perdue » auprès du Docteur Morose."
+        },
+        {
+          "kind": "fight",
+          "text": "Remporter les six combats du mini-donjon et rejoindre Jeanne Morose."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Jeanne puis revenir terminer la quête auprès du docteur."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Crocodaille Dandi dans le Village de la Canopée.",
+          "coordinates": [
+            -52,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Commencer la tournée de Crocodaille Dandi",
+      "instructions": "En [-52,17], parle à Crocodaille Dandi pour recevoir « Les Chasses de Crocodaille Dandi ». La quête demande d'éliminer successivement des espèces de cinq zones différentes : plage, plaines, tourbière, jungle sombre puis Arbre Hakam. Consulte la section active du journal à chaque changement de zone.",
+      "actions": [
+        {
+          "kind": "talk",
+          "text": "Accepter « Les Chasses de Crocodaille Dandi » ; garder la quête ouverte pendant les cinq séries."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la Plage de Corail pour commencer la première liste.",
+          "coordinates": [
+            -47,
+            14
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Chasser les neuf espèces de la Plage de Corail",
+      "instructions": "Dans la Plage de Corail, vaincs une fois chacune des neuf espèces indiquées ci-dessous. Ce ne sont pas nécessairement neuf combats distincts : plusieurs objectifs peuvent progresser dans un même groupe. Consulte le journal avant de passer aux Plaines herbeuses.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre : Corailleur ; Crustorail Kouraçao, Malibout, Morito, Passaoh ; Palmifleur Kouraçao, Malibout, Morito et Passaoh."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler que les neuf lignes de la section « Plage » sont validées dans le journal."
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Chasser les six espèces des Plaines herbeuses",
+      "instructions": "Après la plage, retourne dans les Plaines herbeuses. Termine la série de six monstres en évitant de quitter la zone avant de vérifier le journal. Prépare ensuite l'accès à la tourbière : le pont doit être déverrouillé.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre les Plaines herbeuses.",
+          "coordinates": [
+            -49,
+            14
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre : Bitouf des Plaines, Craqueboule Poli, Craqueleur Poli, Kido, Kilibriss et Mufafah."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'entrée de la tourbière après avoir débloqué le pont.",
+          "coordinates": [
+            -56,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Chasser les trois monstres de la Tourbière",
+      "instructions": "Dans la Tourbière sans fond, chasse les trois espèces requises. Tu dois avoir terminé la quête du Gardien du Pont de la Mort pour circuler normalement dans cette zone. Vérifie les objectifs en cours avant de poursuivre la tournée dans la jungle.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Accéder à la Tourbière sans fond.",
+          "coordinates": [
+            -57,
+            -1
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre : Bourbassingue, Roissingue et Tourbassingue."
+        },
+        {
+          "kind": "information",
+          "text": "Ne passer à la jungle qu'une fois les trois objectifs marqués terminés dans le journal."
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Chasser les sept monstres de la Jungle sombre",
+      "instructions": "Dans la Jungle sombre, rassemble les objectifs des sept espèces en les éliminant au fil de ton trajet. Évite de confondre Abrakleur sombre et Abrakleur clair : ce dernier appartient à la prochaine série, celle de l'Arbre Hakam.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Gagner la Jungle sombre sur l'île d'Otomaï.",
+          "coordinates": [
+            -51,
+            12
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre : Abrakleur sombre, Bitouf sombre, Brouture, Chiendent, Floribonde, Fécorce et Nerbe."
+        },
+        {
+          "kind": "travel",
+          "text": "Remonter vers l'Arbre Hakam pour la dernière série.",
+          "coordinates": [
+            -53,
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Terminer les cinq chasses de l'Arbre Hakam",
+      "instructions": "Dans l'Arbre Hakam, vaincs les cinq derniers monstres. Vérifie que la quête de Crocodaille Dandi est terminée puis contrôle le succès « Service de dépannage », qui dépend aussi des cinq quêtes de livraison et de sauvetage réalisées plus tôt.",
+      "actions": [
+        {
+          "kind": "fight",
+          "text": "Vaincre : Abrakleur clair, Bitouf aérien, Kaskargo, Meupette et Poolay."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier la clôture des cinq chasses et des six quêtes du succès « Service de dépannage »."
+        },
+        {
+          "kind": "information",
+          "text": "En cas de validation absente, consulter les objectifs précis du journal plutôt que cocher automatiquement le parcours."
+        }
+      ]
+    }
+  ]
+}
