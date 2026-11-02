@@ -203,3 +203,41 @@ que lorsque chaque outil sélectionné a retourné un JSON valide.
 **Sans exécution native sur le PC de l'utilisateur, l'issue #346 reste ouverte.**
 Une éventuelle qualification Windows GitHub prouverait ce runner et non
 la machine personnelle. Ne pas relancer de CI pour masquer cette lacune.
+
+
+## Installation reproductible (uniquement outils de développeur Windows)
+
+`tools/setup_doctor_oss.ps1` est le point d'entrée Windows pour qualifier
+les deux **seuls** adaptateurs tiers approuvés dans Doctor. Par défaut, il
+**ne fait aucune installation** : il exécute la qualification réelle.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1
+# Uniquement si Ruff ou zizmor manque, installation volontaire des deux wheels:
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup_doctor_oss.ps1 -Install
+```
+
+Le mode `-Install` utilise la version Python 3.13 active, des wheels PyPI
+précompilées, `ruff==0.17.3` et `zizmor==1.30.1` **uniquement côté développeur**.
+Il ne modifie pas `requirements-pyside.txt`, ni l'EXE Windows ni les paquets
+embarqués. Sous Windows, Doctor peut trouver `zizmor.exe` dans `Scripts` du
+user-site Python, même si son dossier n'est pas inscrit dans PATH.
+
+Les versions ci-dessus sont les versions de qualification choisies pour ce
+lot ; les mises à jour restent des décisions explicites, avec vérification
+compatibilité/licence/CPython et tests. Installation réseau par pip uniquement
+si l'opérateur choisit le switch `-Install` ; aucun installation silencieuse
+lors de `agent plan/check/validate`.
+
+Le contrat **réellement consommable par les agents IA** est
+`ai_tool_workflow` dans le JSON renvoyé par chaque commande
+`tools.atlas_doctor agent plan/check/validate` : étapes avant/après code,
+propriétaires natifs recommandés, outils tiers attendus, exécutés ou absents,
+couverture incomplète et interdiction de se déclarer certifié par sélection.
+Cette description ne remplace jamais le statut Doctor, les tests spécialisés
+ou la Phase Certification au SHA exact. Lire `AI_ENTRYPOINT.md` et
+`tools/skills/dofus-atlas-tools/SKILL.md` pour l'utilisation obligatoire.
+
+Les candidats optionnels/rejetés de l'inventaire 29+5 ne sont pas installés
+par ce script. Les travaux de qualification restent #313 ; la preuve
+de fonctionnement sur le PC personnel doit toujours être attestée dans #346.

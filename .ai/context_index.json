@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
+      "sha": "e20c3281fb8199fc820a45b600831819ed7fa324",
       "type": "tree"
     },
     ".codex": {
@@ -47,12 +47,12 @@
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "sha": "43066d0f9d407ecaa56641c8dd2f17517399529d",
       "type": "blob"
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "3aaa63f0c3ae90fbeb478cc7bf75c5ee76710c4e",
+      "sha": "45b9c17f907005fa86a76d17a90089fd44a4c020",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "e5331881b497bb54b8a6cfff45ce4bfebe39640b",
+      "sha": "393446b938f12fd050aaebeef11e408123669a21",
       "type": "tree"
     },
     "launch.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "9a5fdf6368c9f5554e0c22b4ca3113169d8c8e0d",
+      "sha": "ead02dad7adf4723c924fd3f1458de17f03979e2",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "611b80b2b771b79537a8fe6211ad97fa1f848a20",
+      "sha": "edf64b6f4cd3d0ed863e96f8be14b04288f37f3b",
       "type": "tree"
     }
   },

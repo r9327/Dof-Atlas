@@ -42,6 +42,22 @@ py -3.13 -m tools.tool_catalog --capability validation --safe-only --json
 
 Use `--max-cost` and `--limit` when the task calls for a bounded/cheap discovery pass.
 
+## Mandatory Doctor/AI execution loop
+
+When coding, **consume** the `ai_tool_workflow` object returned by
+`py -3.13 -m tools.atlas_doctor agent plan <paths> --json` before edits.
+After edits, use the same paths with `agent check --run-tests --json`,
+inspect the individual `approved_oss_execution.tools` statuses, then
+`agent validate`. If scope expands, replan.
+
+The `native_routes` are recommendations for calling the existing owners;
+they are not proof that a tool ran. `oss_recommendations` may contain
+evaluated or rejected projects that must **not** be launched. Only the
+approved, already-installed Ruff and zizmor adapters may run automatically.
+An absent scanner remains a reported gap. Local Windows readiness uses
+`tools/setup_doctor_oss.ps1` in check-only mode by default; installation
+requires the explicit `-Install` switch. Follow #346 for real-PC proof.
+
 ## Routing rules
 
 - Broad repository health or post-change verification: select the current Doctor contract through `tools.tool_catalog` and follow its declared modes/costs.

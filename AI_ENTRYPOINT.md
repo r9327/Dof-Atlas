@@ -25,6 +25,36 @@ Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.
 
+## Machine-readable tool execution contract
+
+Every non-trivial coding agent **must consume** `ai_tool_workflow` in
+`tools.atlas_doctor agent plan/check/validate --json`, not merely skim the
+project documentation. This object names the required phases, relevant
+native owners, approved OSS scanner executions and explicit gaps.
+
+- **Before editing:** run `agent plan <paths> --json` and inspect
+  `status`, `edit_contract`, `selected_checks`, `ai_tool_workflow` and
+  `oss_selection`. If status is REVIEW/BLOCKED, resolve the reason.
+  Use exact-SHA Graphify before structural edits.
+- **After editing:** run `agent check <paths> --run-tests --json`. Read
+  `execution` and `ai_tool_workflow.approved_oss_execution.tools`.
+  `CLEAN` and `FINDINGS` are actual scanner responses; `NOT_RUN`,
+  `NOT_AVAILABLE`, `TIMEOUT`, `ERROR` are not PASS.
+- **Before proposing fusion:** run `agent validate`, then audit each
+  commit and the integrated PR. Only the existing exact-SHA Phase
+  Certification provides phase certification.
+- **Specialist routes:** `ai_tool_workflow.native_routes` describes
+  existing owners to consult; `native_routes_executed_by_selection=false`
+  means their **recommendation is never an execution witness**.
+- **Windows scanner qualification:** `tools/setup_doctor_oss.ps1` checks
+  local Ruff/zizmor without installation by default. `-Install` is a
+  separate, explicit developer-only step. Neither command is a runtime
+  dependency. `docs/doctor-oss-routing.md` has the full procedure.
+
+34 catalogued third-party candidates do **not** mean 34 installed tools.
+Only approved adapters may run automatically. Keep open #313 for selective
+tool integrations and #346 for the user's real-PC Windows evidence.
+
 ## Required PR review
 
 For every PR, apply the commit-by-commit logic audit defined in `AGENTS.md`

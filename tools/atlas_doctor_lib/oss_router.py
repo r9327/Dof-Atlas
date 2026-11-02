@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import site
 import subprocess
 import sys
 from typing import Any, Iterable
@@ -103,13 +104,30 @@ def _safe_files(root: Path, paths: Iterable[str]) -> list[str]:
 
 
 
-def _execute_zizmor(root: Path, files: list[str], timeout: int) -> dict[str, Any]:
+def _zizmor_executable() -> str | None:
+    """Resolve the approved executable, including Windows pip --user Scripts.
+
+    A Windows Python user installation may not be included in PATH. Do not
+    probe arbitrary directories or run an unverified symlink.
+    """
+    from shutil import which
+    if which("zizmor"):
+        return "zizmor"
+    if sys.platform == "win32":
+        candidate = Path(site.getuserbase()) / "Scripts" / "zizmor.exe"
+        if candidate.is_file() and not candidate.is_symlink():
+            return str(candidate)
+    return None
+
+
+def _execute_zizmor(root: Path, files: list[str], timeout: int,
+                    *, binary: str = "zizmor") -> dict[str, Any]:
     """Run an installed workflow scanner, explicitly offline, without changes."""
     # Strictly bound input volume; inputs are pre-validated regular files.
     if any((root / file).stat().st_size > 1024 * 1024 for file in files):
         return {"status": "NOT_APPLICABLE", "tool": "zizmor",
                 "reason": "Workflow exceeds bounded scan size"}
-    command = ["zizmor", "--offline", "--no-config", "--no-progress",
+    command = [binary, "--offline", "--no-config", "--no-progress",
                "--no-exit-codes", "--format=json", "--", *files]
     # No GitHub token or proxy environment is inherited. --offline is mandatory
     # even if zizmor happens to be configured with credentials elsewhere.
@@ -209,7 +227,7 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
     if name not in {"ruff", "zizmor"}:
         return None
     command = ([sys.executable, "-m", "ruff", "--version"]
-               if name == "ruff" else ["zizmor", "--version"])
+               if name == "ruff" else [_zizmor_executable() or "zizmor", "--version"])
     env = {key: value for key, value in os.environ.items()
            if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
     env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
@@ -324,7 +342,11 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     detected = discovered.get(("python_distribution", "ruff"))
     available = bool(detected and detected["available"])
     workflow_candidate = discovered.get(("path_executable", "zizmor"))
-    workflow_available = bool(workflow_candidate and workflow_candidate["available"])
+    workflow_executable = (
+        "zizmor" if workflow_candidate and workflow_candidate["available"]
+        else _zizmor_executable() if workflows else None
+    )
+    workflow_available = bool(workflow_executable)
     timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))
     execution: dict[str, Any] = {"status": "NOT_RUN", "reason": "Explicit --run required"}
     if run and not python_files:
@@ -376,7 +398,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             workflow_execution = {"status": "NOT_AVAILABLE", "tool": "zizmor",
                                   "reason": "Not installed; no installation attempted"}
         else:
-            workflow_execution = _execute_zizmor(root, workflows, timeout_each)
+            workflow_execution = _execute_zizmor(root, workflows, timeout_each,
+                                                 binary=workflow_executable or "zizmor")
         if not python_files:
             execution = workflow_execution
     results = ([execution] if python_files else []) + (

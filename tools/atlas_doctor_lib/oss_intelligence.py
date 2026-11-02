@@ -151,3 +151,89 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
         "no_automatic_installation": True,
         "certified": False,
     }
+
+
+def ai_tool_workflow(action: str, core_report: dict[str, Any],
+                     selection: dict[str, Any], *,
+                     advisory: dict[str, Any] | None = None,
+                     dispatch: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Expose the *actual* Doctor-driven agent workflow, not a new runner.
+
+    Native routes are suggestions until their canonical owner is invoked.
+    Only explicit Ruff/zizmor adapters can have external execution witnesses.
+    This is an explanation contract; it never alters Doctor verdicts.
+    """
+    phases = (
+        {"id": "doctor_plan", "when": "BEFORE_CODE", "required": True,
+         "command": "py -3.13 -m tools.atlas_doctor agent plan <paths> --json"},
+        {"id": "targeted_code_change", "when": "DEVELOPMENT", "required": True,
+         "command": None},
+        {"id": "doctor_check", "when": "AFTER_CODE", "required": True,
+         "command": "py -3.13 -m tools.atlas_doctor agent check <paths> --run-tests --json"},
+        {"id": "doctor_validate", "when": "BEFORE_PR_READY", "required": True,
+         "command": "py -3.13 -m tools.atlas_doctor agent validate <paths> --json"},
+        {"id": "commit_audit_and_phase_certification", "when": "PR_READY", "required": True,
+         "command": None},
+    )
+    selection_rows = selection.get("recommended") or []
+    special = [
+        {"tool_id": row.get("id"), "name": row.get("name"),
+         "decision": row.get("decision"),
+         "reason_scopes": list(row.get("reason_scopes") or []),
+         "automatic_execution": False}
+        for row in selection_rows if isinstance(row, dict)
+    ]
+    expected = (["ruff"] if "python" in (selection.get("scopes") or []) else []) + (
+        ["zizmor"] if "workflow" in (selection.get("scopes") or []) else [])
+    summary = (advisory or {}).get("execution_summary") or {}
+    witnessed = {
+        row.get("tool"): row.get("status")
+        for row in (advisory or {}).get("execution_results", [])
+        if isinstance(row, dict) and isinstance(row.get("tool"), str)
+    }
+    tools = []
+    for name in expected:
+        observed = witnessed.get(name)
+        tools.append({
+            "name": name,
+            "selected": True,
+            "status": observed if observed else "NOT_RUN",
+            "executed": observed in {"CLEAN", "FINDINGS"},
+            "missing_or_incomplete": observed not in {"CLEAN", "FINDINGS"},
+        })
+    blockers = [
+        {"tool": row["name"], "status": row["status"]}
+        for row in tools if row["missing_or_incomplete"]
+    ]
+    truncated = bool((dispatch or {}).get("truncated_count"))
+    if truncated:
+        blockers.append({"tool": "scope", "status": "TRUNCATED"})
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_doctor_lib.oss_intelligence.ai_tool_workflow",
+        "action": action,
+        "doctor_status": core_report.get("status", "BLOCKED"),
+        "doctor_exit_code": core_report.get("exit_code", 2),
+        "required_phases": list(phases),
+        "native_routes": list(selection.get("native_routes") or []),
+        "native_routes_executed_by_selection": False,
+        "oss_recommendations": special,
+        "approved_oss_execution": {
+            "expected_tools": expected,
+            "tools": tools,
+            "all_executed": bool(expected) and not blockers,
+            "coverage_incomplete": truncated,
+            "reported_execution_summary_status": summary.get("status", "NOT_RUN"),
+            "gaps": blockers,
+        },
+        "may_claim_full_certification": False,
+        "phase_certification_authority": "exact-SHA Phase Certification workflow",
+        "agent_instructions": [
+            "Read AI_ENTRYPOINT.md, AGENTS.md and required nested rules first.",
+            "Do not edit a non-trivial scope without an actual Doctor plan.",
+            "Inspect the source and exact-SHA Graphify before structural edits.",
+            "Invoke selected native owners separately when relevant; selection is not execution.",
+            "Do not claim a recommended, unavailable or mocked OSS tool was executed.",
+            "Audit each commit and the full PR before exact-SHA Phase Certification.",
+        ],
+    }
