@@ -14,7 +14,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-_SHA = re.compile(r"[0-9a-f]{64}\Z")
+_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+_GIT_SHA = re.compile(r"[0-9a-f]{40}\Z")
 _PILOT = "dofus_cawotte"
 _FALLBACK = "dokoko"
 _PHASE0 = (
@@ -35,7 +36,11 @@ WitnessVerifier = Callable[[str, str, str, str], bool]
 
 
 def _sha(value: Any) -> bool:
-    return isinstance(value, str) and bool(_SHA.fullmatch(value))
+    return isinstance(value, str) and bool(_SHA256.fullmatch(value))
+
+
+def _git_sha(value: Any) -> bool:
+    return isinstance(value, str) and bool(_GIT_SHA.fullmatch(value))
 
 
 def _verify(
@@ -85,8 +90,8 @@ def assess_next(
     No side effects. It NEVER infers 95 certified guides from one pilot.
     A human/host must independently validate source, Windows and each receipt.
     """
-    if not _sha(head_sha):
-        raise ValueError("head_sha must be the exact 40/64? repository SHA-256 witness")
+    if not _git_sha(head_sha):
+        raise ValueError("head_sha must be the exact 40-character Git commit SHA")
     if not isinstance(plan, Mapping) or plan.get("schema_version") != 1:
         raise ValueError("unsupported sequencing plan")
     failures: list[str] = []
@@ -116,6 +121,11 @@ def assess_next(
             seen.add(guide_id)
         if index == 0 and guide_id not in {_PILOT, _FALLBACK}:
             failures.append(f"{label}.pilot_must_be_first")
+        if index == 0 and guide_id == _FALLBACK and not _verify(
+            "pilot.cawotte_unavailable", plan.get("fallback_evidence"),
+            head_sha, "0" * 64, verifier
+        ):
+            failures.append("pilot.cawotte_source_unavailability_not_proven")
         if index > 0 and record.get("predecessor_id") != prior:
             failures.append(f"{label}.broken_chain")
         prior = guide_id if isinstance(guide_id, str) else ""
@@ -123,10 +133,14 @@ def assess_next(
             failures.append(f"{label}.missing_source_sha")
             source_sha = ""
         if (
-            record.get("certified_steps", 0) <= 0
-            or record.get("certified_actions", 0) <= 0
-            or record.get("blocking_issues") != 0
-            or record.get("unverified_issues") != 0
+            type(record.get("certified_steps")) is not int
+            or record["certified_steps"] <= 0
+            or type(record.get("certified_actions")) is not int
+            or record["certified_actions"] <= 0
+            or type(record.get("blocking_issues")) is not int
+            or record["blocking_issues"] != 0
+            or type(record.get("unverified_issues")) is not int
+            or record["unverified_issues"] != 0
         ):
             failures.append(f"{label}.incomplete_coverage")
         if record.get("head_sha") != head_sha:
