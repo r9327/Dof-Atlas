@@ -186,6 +186,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("validator-smoke/manual-restore", smoke)
         self.assertNotIn("validator-smoke/combat-restore", smoke)
         self.assertIn("validator-smoke/manual-persist", smoke)
+        self.assertIn("validator-smoke/participant-empty-blocked", smoke)
+        self.assertIn("validator-smoke/participant-explicit-selection", smoke)
 
     def test_timeout_or_native_crash_without_report_is_blocked_with_manifest_and_log(self):
         for effect in (subprocess.TimeoutExpired("worker", 1), subprocess.CompletedProcess([], -11)):

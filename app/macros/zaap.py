@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from app.macros.input_tools import send_chat_command
 from app.windows.focus import activate_window
-from app.windows.unity_windows import is_unity_window
+from app.windows.unity_windows import foreground_window, is_unity_window
 
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
@@ -18,8 +18,13 @@ def parse_zaap_command(value: str) -> tuple[int, int] | None:
     match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
     if match is None:
         return None
-    coords = int(match.group(1)), int(match.group(2))
-    if -(2**31) in coords:
+    try:
+        coords = int(match.group(1)), int(match.group(2))
+    except ValueError:
+        # Python can refuse huge integer strings; clipboard commands are
+        # untrusted text and must never crash the UI event handler.
+        return None
+    if any(not -(2**31) < value < 2**31 for value in coords):
         return None
     return coords
 
@@ -35,6 +40,9 @@ class ZaapMacro:
     def run_async(self, text: str, click_position=None, click_ratios=None) -> bool:
         del click_position, click_ratios  # Legacy callback compatibility only.
         command = str(text or "").replace("\r", " ").replace("\n", " ").strip()
+        if parse_zaap_command(command) is None:
+            self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
+            return False
         return self.runtime._spawn_macro("Auto zaap", lambda: self._run(command))
 
     def _run(self, command: str) -> None:
@@ -54,35 +62,62 @@ class ZaapMacro:
             command,
         )
         sent = 0
-        for client in clients:
-            if self.runtime.macro_lock.should_stop():
-                return
-            if not is_unity_window(client.handle):
-                self.runtime.logger.info("Auto zaap fenetre introuvable/non Unity: hwnd=%s", client.handle)
-                continue
-            if not activate_window(
-                client.handle,
-                timings.travel_focus_settle_ms,
-                timings.activate_attempts,
-                timings.activate_retry_ms,
-                self.runtime.logger,
-                "Auto zaap",
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
-                self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
-                continue
-            if not send_chat_command(
-                command,
-                self.runtime.logger,
-                submit_twice=True,
-                chat_open_ms=timings.auto_group_chat_open_ms,
-                key_step_ms=timings.auto_group_key_step_ms,
-                paste_settle_ms=timings.auto_group_paste_settle_ms,
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
+        focus_lost = False
+        try:
+            for client in clients:
                 if self.runtime.macro_lock.should_stop():
                     return
-                continue
-            sent += 1
-        self.runtime.switch_character.restore_preferred_client("Auto zaap")
-        self.runtime.logger.info("Auto zaap termine: envoyes=%s/%s", sent, len(clients))
+                if not is_unity_window(client.handle):
+                    self.runtime.logger.info("Auto zaap fenetre introuvable/non Unity: hwnd=%s", client.handle)
+                    continue
+                if not activate_window(
+                    client.handle,
+                    timings.travel_focus_settle_ms,
+                    timings.activate_attempts,
+                    timings.activate_retry_ms,
+                    self.runtime.logger,
+                    "Auto zaap",
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
+                    continue
+                # A focus change after activation must not send the chat
+                # command to Organizer, another game window, or a browser.
+                if foreground_window() != int(client.handle):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: focus perdu avant commande hwnd=%s", client.handle
+                    )
+                    return
+                if not send_chat_command(
+                    command,
+                    self.runtime.logger,
+                    submit_twice=True,
+                    chat_open_ms=timings.auto_group_chat_open_ms,
+                    key_step_ms=timings.auto_group_key_step_ms,
+                    paste_settle_ms=timings.auto_group_paste_settle_ms,
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    if self.runtime.macro_lock.should_stop():
+                        return
+                    continue
+                sent += 1
+        finally:
+            # Restituer le favori même si un client ou le chat échoue, mais ne
+            # jamais réactiver une fenêtre après un stop d'urgence.
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+                try:
+                    self.runtime.switch_character.restore_preferred_client("Auto zaap")
+                except Exception:
+                    self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
+            state = (
+                "interrompu" if self.runtime.macro_lock.should_stop() or focus_lost
+                else "termine" if sent == len(clients)
+                else "partiel"
+            )
+            self.runtime.logger.info(
+                "Auto zaap %s: envoyes=%s/%s",
+                state,
+                sent,
+                len(clients),
+            )

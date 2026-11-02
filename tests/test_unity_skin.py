@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtGui import QImage
+from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication
 
 from app.ui import unity_skin
@@ -52,6 +52,25 @@ class UnitySkinTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_atlas_brand_icon_uses_splash_transparency(self) -> None:
+        from app.ui import components
+
+        with tempfile.TemporaryDirectory() as directory:
+            logo = Path(directory) / "brand.png"
+            image = QImage(9, 9, QImage.Format_RGBA8888)
+            image.fill(QColor(18, 18, 18, 255))
+            image.setPixelColor(4, 4, QColor(255, 180, 30, 255))
+            self.assertTrue(image.save(str(logo)))
+            old = components._APPLICATION_ICON
+            try:
+                with patch.object(components, "APP_ICON_PATH", logo):
+                    components._APPLICATION_ICON = None
+                    pixmap = components.atlas_application_icon().pixmap(9, 9).toImage()
+                    self.assertEqual(pixmap.pixelColor(0, 0).alpha(), 0)
+                    self.assertEqual(pixmap.pixelColor(4, 4).alpha(), 255)
+            finally:
+                components._APPLICATION_ICON = old
 
     def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
@@ -144,6 +163,14 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('("Succès", "success", ACHIEVEMENTS_TAB)', main_source)
         self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
+
+    def test_home_uses_canonical_transparent_logo_not_raw_png(self) -> None:
+        home_source = (Path(__file__).resolve().parents[1] / "app/pages/home_page.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("self.almanax_icon.setIcon(atlas_application_icon())", home_source)
+        self.assertIn("atlas_application_icon() if selected == fallback", home_source)
+        self.assertNotIn("self.almanax_icon.setIcon(QIcon(str(LOGO_PATH)))", home_source)
 
     def test_application_has_only_unity_palette(self) -> None:
         from app.ui import theme
