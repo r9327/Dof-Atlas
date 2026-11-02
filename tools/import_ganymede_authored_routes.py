@@ -39,8 +39,12 @@ def import_authored_routes(
     Existing files require an opt-in to overwrite (no silent replacement).
     """
     source = Path(source_dir).resolve(strict=True)
-    target = (Path(target_dir) if target_dir is not None
-              else Path(index_path).parent).resolve(strict=False)
+    # Resolve only after checking the originally supplied path: a symlink
+    # becomes indistinguishable from its target after Path.resolve().
+    target_input = Path(target_dir) if target_dir is not None else Path(index_path).parent
+    if target_input.is_symlink():
+        raise ValueError("Destination cannot be a symlink")
+    target = target_input.resolve(strict=False)
     listings = load_ganymede_listings(index_path)
     if len(listings) != expected_routes:
         raise ValueError("Unexpected source index size")
