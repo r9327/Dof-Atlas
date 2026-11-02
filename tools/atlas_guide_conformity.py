@@ -57,8 +57,14 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             "action_id": context["action_id"], "expected": _preview(expected),
             "actual": _preview(actual), "source_evidence_ref": evidence,
             "proposed_fix": {
-                "MISSING": "Ajouter l'élément vérifié à cet emplacement",
-                "EXTRA": "Vérifier et retirer l'ajout non justifié",
+                "MISSING_GUIDE": "Ajouter le guide vérifié manquant",
+                "MISSING_STEP": "Ajouter l'étape vérifiée dans l'ordre",
+                "MISSING_ACTION": "Ajouter l'action vérifiée dans l'ordre",
+                "MISSING_FIELD": "Ajouter l'élément vérifié à cet emplacement",
+                "EXTRA_GUIDE": "Examiner et retirer le guide non justifié",
+                "EXTRA_STEP": "Examiner et retirer l'étape non justifiée",
+                "EXTRA_ACTION": "Examiner et retirer l'action non justifiée",
+                "EXTRA_FIELD": "Vérifier et retirer l'ajout non justifié",
                 "VALUE_MISMATCH": "Corriger la valeur après examen de la preuve",
                 "TYPE_MISMATCH": "Corriger le type selon le schéma source",
                 "ORDER_CHANGED": "Rétablir l'ordre confirmé par la source",
@@ -79,9 +85,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             ref_fields = set(expected) - _IGNORED_REFERENCE_KEYS
             atlas_fields = set(actual) - _IGNORED_REFERENCE_KEYS
             for key in sorted(ref_fields - atlas_fields):
-                report("MISSING", f"{path}.{key}", expected[key], None, evidence)
+                report("MISSING_FIELD", f"{path}.{key}", expected[key], None, evidence)
             for key in sorted(atlas_fields - ref_fields):
-                report("EXTRA", f"{path}.{key}", None, actual[key], evidence)
+                report("EXTRA_FIELD", f"{path}.{key}", None, actual[key], evidence)
             for key in sorted(ref_fields & atlas_fields):
                 if key in _COLLECTIONS:
                     collection(expected[key], actual[key], f"{path}.{key}",
@@ -95,9 +101,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             for i in range(min(len(expected), len(actual))):
                 walk(expected[i], actual[i], f"{path}[{i}]", evidence)
             for i in range(len(actual), len(expected)):
-                report("MISSING", f"{path}[{i}]", expected[i], None, evidence)
+                report("MISSING_FIELD", f"{path}[{i}]", expected[i], None, evidence)
             for i in range(len(expected), len(actual)):
-                report("EXTRA", f"{path}[{i}]", None, actual[i], evidence)
+                report("EXTRA_FIELD", f"{path}[{i}]", None, actual[i], evidence)
         elif expected != actual:
             report("VALUE_MISMATCH", path, expected, actual, evidence)
 
@@ -137,12 +143,12 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             inspected["atlas_actions"] += len(rhs)
         for identifier in lhs_order:
             if identifier not in rhs:
-                report("MISSING", f"{path}[{identifier}]",
+                report("MISSING_" + kind.upper(), f"{path}[{identifier}]",
                        {"id": identifier, "title": lhs[identifier].get("title")},
                        None, lhs[identifier].get("evidence_ref", parent_evidence))
         for identifier in rhs_order:
             if identifier not in lhs:
-                report("EXTRA", f"{path}[{identifier}]", None,
+                report("EXTRA_" + kind.upper(), f"{path}[{identifier}]", None,
                        {"id": identifier, "title": rhs[identifier].get("title")}, parent_evidence)
         shared_lhs = [x for x in lhs_order if x in rhs]
         shared_rhs = [x for x in rhs_order if x in lhs]
@@ -163,6 +169,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                "independent source and rights evidence", "not verified")
     if reference.get("complete") is not True:
         report("UNVERIFIABLE", "reference.complete", True, reference.get("complete"))
+    if not isinstance(reference.get("guides"), list) or not reference["guides"]:
+        report("UNVERIFIABLE", "reference.guides", "nonempty complete guide inventory",
+               reference.get("guides"))
     collection(reference.get("guides"), atlas.get("guides"), "guides", "guide", None)
     issues.sort(key=lambda x: (str(x["guide_id"]), str(x["source_step_id"]),
                                str(x["action_id"]), x["field_path"], x["issue_code"]))
