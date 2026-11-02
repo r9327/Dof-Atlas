@@ -126,9 +126,14 @@ py -3.13 -m tools.audit_ganymede_crosswalk --cross-guide-candidates
 
 API Python : `tools.audit_ganymede_crosswalk.analyze_cross_guide_candidates(root)`.
 Les outils Atlas/Doctor peuvent appeler cette API pour obtenir un JSON
-déterministe avant de décider d'une intégration. L'outil réutilise la validation
-de consignes locales canonique `load_ganymede_local_instructions`, et ne
-charge pas la bibliothèque entière dans l'accueil PySide6.
+déterministe avant de décider d'une intégration. L'outil réutilise les validateurs canoniques
+`load_ganymede_local_instructions` et `load_ganymede_local_observations`
+(y compris les noms historiques de snapshots). Le scan des 95 guides ne
+s'effectue que lors de la commande explicite, jamais au chargement de l'accueil
+PySide6. Il retourne les références externes communes entre les guides,
+leur type (quête, objet, monstre, donjon), leur ID, chaque guide et numéro
+d'étape source : une référence répétée **ne signifie pas** une action en
+commun. Les données externes n'acquièrent pas le statut d'ID Atlas canonique.
 
 - Deux actions avec les mêmes coordonnées X/Y sont des **collisions à
   examiner**, pas une preuve de carte identique : l'identifiant de carte et le
@@ -142,6 +147,15 @@ charge pas la bibliothèque entière dans l'accueil PySide6.
   conditions et branches d'alignement/classe), ressources, quêtes accessibles,
   inventaires et progressions par `character:<id_dofus>` doivent être
   validées par le moteur canonique avant toute fusion d'activités.
+- `authored_route_evidence` indique pour chaque guide rédigé son SHA,
+  le nombre d'étapes/actions et les comparaisons de coordonnées **à la même
+  étape** : `COORDINATE_IN_STEP_SNAPSHOT`,
+  `COORDINATE_NOT_IN_STEP_SNAPSHOT` ou `NO_OBSERVATION_FOR_STEP`.
+  Ces relevés sont utiles à l'audit individuel, sans affirmer que le jeu ou
+  le chemin source complet ont été vérifiés.
+- `cross_guide_external_reference_candidates` croise même les sources qui
+  n'ont pas encore leurs consignes rédigées, mais conserve l'espace de noms
+  `dofusdb`, séparé des IDs de quêtes Atlas.
 - Les sorties `REVIEW_ONLY_NOT_OPTIMIZED` sont des **candidats**,
   jamais des parcours certifiés ou des instructions de macro. Toute donnée
   absente ou invalide est signalée ; elle n'est pas reconstruite depuis une
