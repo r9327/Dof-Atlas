@@ -3,15 +3,15 @@
   "source_guide_id": 2229,
   "source_url": "https://ganymede-app.com/guides/2229",
   "expected_source_step_count": 67,
-  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "authoring_status": "FULL_DRAFT_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    50
+    67
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2229",
-  "evidence_scope": "first_ten_source_visible_plus_independently_sourced_quest_facts_11_to_34_unverified_ganymede_step_parity",
+  "evidence_scope": "first_ten_original_visible_with_independently_sourced_quest_actions_and_same_step_local_observations_11_to_67_not_original_ganymede_route_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -1604,6 +1604,641 @@
           "text": "Ne pas quitter le donjon avant d'avoir examiné le tonneau et interrogé le boss."
         }
       ]
+    },
+    {
+      "source_step_number": 51,
+      "title": "Suivre le chasseur après le Comte Razof",
+      "instructions": "Après avoir obtenu les renseignements du Comte, quitter le camp en suivant la piste du chasseur qui transporte les manuels. La prochaine interaction est chronométrée, mais un retard ne rend pas la quête impossible.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Quitter le Camp du Comte Razof en [-68,29].",
+          "coordinates": [
+            -68,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander aux chasseurs qui a emporté la caisse des manuels scolaires."
+        },
+        {
+          "kind": "information",
+          "text": "La course jusqu'au bateau est chronométrée : un retard change la conversation finale, pas la possibilité de terminer la quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le débarcadère en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 52,
+      "title": "Rattraper les manuels puis préparer le breuvage",
+      "instructions": "Sur le débarcadère, tenter de récupérer la Caisse de Manuels Scolaires avant le départ du chasseur. En parallèle, poursuivre À armes égales auprès de Wogew l'hewmite sur le continent.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Chercher le Brokouillon Pressé près du débarcadère en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "S'il est présent, parler au Brokouillon Pressé et reprendre la Caisse de Manuels Scolaires ; s'il est parti, conserver la progression alternative."
+        },
+        {
+          "kind": "information",
+          "text": "La branche tardive de « La valse des manuels » n'est pas un échec : Coqueline acceptera également le compte rendu."
+        },
+        {
+          "kind": "craft",
+          "text": "Préparer la fabrication du Breuvage Musculaire : 8 Mandragores, 10 Eaux potables, 1 Cawotte et la formule achetée auprès de Wogew."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le terrier de Wogew l'hewmite en [-1,-39].",
+          "coordinates": [
+            -1,
+            -39
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 53,
+      "title": "Acheter la formule de Wogew l'hewmite",
+      "instructions": "Le vieux wabbit vend la formule qui permet de renforcer Jano. Son terrier se trouve derrière un passage caché sous les arbres.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer par le passage caché derrière le feuillage, en haut à gauche de la carte [-1,-39].",
+          "coordinates": [
+            -1,
+            -39
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Wogew l'hewmite et expliquer les craintes de Jano Wapin."
+        },
+        {
+          "kind": "deliver",
+          "text": "Payer 100 kamas pour recevoir 1 Formule de Breuvage Musculaire."
+        },
+        {
+          "kind": "craft",
+          "text": "Faire fabriquer 1 Breuvage Musculaire par un Alchimiste niveau 190 avec la formule, 8 Mandragores, 10 Eaux potables et 1 Cawotte."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner sur Nimotopia auprès de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 54,
+      "title": "Faire boire le breuvage à Jano",
+      "instructions": "Le breuvage change l'apparence de Jano mais ne le rend pas courageux. Il faut poursuivre chez Stinn Watson plutôt que de terminer la quête ici.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le terrier de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Faire boire à Jano Wapin 1 Breuvage Musculaire."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Jano pour constater que son apparence et sa peur ont changé."
+        },
+        {
+          "kind": "travel",
+          "text": "Demander une nouvelle solution à Stinn Watson en [-65,30].",
+          "coordinates": [
+            -65,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 55,
+      "title": "Demander les implants à Stinn Watson",
+      "instructions": "L'alchimiste propose d'attribuer à Jano des traits de prédateur. Il remet le schéma des implants nécessaires à une nouvelle transformation.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Stinn Watson en [-65,30].",
+          "coordinates": [
+            -65,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Décrire le problème de Jano et demander un autre moyen de dissuader les chasseurs."
+        },
+        {
+          "kind": "prepare",
+          "text": "Recevoir 1 Schéma d'Implants Rustiques et conserver 1 Pyrute et 1 Viande Noire pour la fabrication."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner chercher Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 56,
+      "title": "Faire venir Jano chez le médecin",
+      "instructions": "Jano accepte de rejoindre Stinn Watson pour tenter une nouvelle solution. Garder son suivi actif jusqu'à l'intervention.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Inviter Jano à vous suivre jusqu'à Stinn Watson."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le médecin avec Jano en [-65,30].",
+          "coordinates": [
+            -65,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 57,
+      "title": "Fabriquer les implants et présenter Jano",
+      "instructions": "La transformation nécessite un Forgeron de niveau 190, le schéma de Stinn Watson, une Pyrute et une Viande Noire. Vérifier que le craft est bien terminé avant l'opération.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Stinn Watson en [-65,30].",
+          "coordinates": [
+            -65,
+            30
+          ]
+        },
+        {
+          "kind": "craft",
+          "text": "Faire fabriquer 1 Implants Rustiques avec le schéma, 1 Pyrute et 1 Viande Noire par un Forgeron niveau 190."
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner les Implants Rustiques à Stinn Watson pour qu'il opère Jano Wapin."
+        },
+        {
+          "kind": "talk",
+          "text": "Consulter le médecin après l'opération : Jano doit encore trouver un moyen de se défendre."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller chercher le fusil des chasseurs en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 58,
+      "title": "Prendre le fusil des chasseurs",
+      "instructions": "L'arme est accessible sur la carte du camp, près d'un tonneau. La remettre ensuite à Jano pour finir la quête À armes égales.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Repérer le fusil accoudé à un tonneau en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur le fusil et prendre le Fusil et Munitions."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner vers Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Donner le fusil à Jano Wapin pour lui permettre de tenir tête aux chasseurs."
+        },
+        {
+          "kind": "information",
+          "text": "Reparler à Jano pour vérifier la fin d'« À armes égales »."
+        }
+      ]
+    },
+    {
+      "source_step_number": 59,
+      "title": "Chercher les premiers indices de Xaniel",
+      "instructions": "L'enquête de Rod a plusieurs déclencheurs selon le personnage actif. Ne pas utiliser l'indice d'un autre personnage pour valider cette étape.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Quitter le terrier de Jano Wapin en [-65,33].",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Pour « Il a fui, il a tout compris », inspecter les traces variables : piège en [-67,-29] n'est PAS la bonne coordonnée de Nimotopia."
+        },
+        {
+          "kind": "travel",
+          "text": "Examiner les débris en [-67,30] si la quête le demande.",
+          "coordinates": [
+            -67,
+            30
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Examiner le piège en [-67,29] pour un autre personnage.",
+          "coordinates": [
+            -67,
+            29
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Parler à Misha Braque en [-68,30] si les autres indices ne réagissent pas.",
+          "coordinates": [
+            -68,
+            30
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Interroger ensuite les chasseurs du camp en [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 60,
+      "title": "Interroger les chasseurs du camp",
+      "instructions": "Selon le chemin de quête, l'interlocuteur peut changer. La piste retrouvée oriente vers le sud de l'île.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Narco Leptik ou Chasram sur la carte [-67,31].",
+          "coordinates": [
+            -67,
+            31
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger l'un de ces deux PNJ selon la variante de l'enquête sur Xaniel."
+        },
+        {
+          "kind": "travel",
+          "text": "Si le parcours a pris la branche Misha Braque, demander plutôt des nouvelles au Marin bougon en [-68,31].",
+          "coordinates": [
+            -68,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Examiner les troncs abattus en [-67,32].",
+          "coordinates": [
+            -67,
+            32
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur les troncs cassés pour inspecter la piste laissée par les chasseurs."
+        }
+      ]
+    },
+    {
+      "source_step_number": 61,
+      "title": "Reprendre l'enquête après les troncs cassés",
+      "instructions": "Les traces sont trop nombreuses près du camp. Il faudra retourner vers Rod, mais d'abord achever la quête des manuels auprès de Coqueline.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Vérifier la piste à droite de la carte en [-67,32].",
+          "coordinates": [
+            -67,
+            32
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "La quête sur Xaniel demande désormais de revenir voir Rod : ne pas prendre les traces de tous les personnages pour identiques."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Coqueline à l'école en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 62,
+      "title": "Terminer La valse des manuels",
+      "instructions": "Le résultat de la poursuite du chasseur détermine seulement le dialogue final. Coqueline conclut la quête même si la caisse n'a pas été récupérée à temps.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Coqueline en [-63,29].",
+          "coordinates": [
+            -63,
+            29
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Expliquer l'issue de la poursuite des manuels et remettre la caisse si elle a été récupérée."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la clôture de « La valse des manuels » quelle que soit la branche du chasseur."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner voir Rod et Rem en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 63,
+      "title": "Déjouer les faux aventuriers de Rod et Rem",
+      "instructions": "Rod suggère de chercher les aventuriers, mais deux d'entre eux sont des chasseurs déguisés. Rem annonce les classes à éviter, qui varient selon le personnage.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Rod et Rem en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander la suite de l'enquête et écouter Rem nommer les deux classes de faux aventuriers."
+        },
+        {
+          "kind": "information",
+          "text": "Interroger uniquement le véritable aventurier : les deux classes citées par Rem sont des pièges et peuvent déclencher un combat."
+        },
+        {
+          "kind": "travel",
+          "text": "Vérifier l'aventurier Crâ en [-65,31] s'il n'est pas un faux.",
+          "coordinates": [
+            -65,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Vérifier l'aventurier Sram en [-66,31] s'il n'est pas un faux.",
+          "coordinates": [
+            -66,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Vérifier l'aventurier Pandawa en [-66,32] s'il n'est pas un faux.",
+          "coordinates": [
+            -66,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 64,
+      "title": "Masquer son odeur pour suivre Xaniel",
+      "instructions": "Le véritable aventurier révèle que les chasseurs suivent les odeurs. Se couvrir de boue permettra de les semer.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'emplacement de la crotte en [-66,32].",
+          "coordinates": [
+            -66,
+            32
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Cliquer sur la crotte pour masquer l'odeur du personnage."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas partager cette validation avec les autres personnages : chacun doit appliquer le déguisement olfactif requis."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner demander conseil à Rod et Rem en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 65,
+      "title": "Choisir la bonne bouteille de Bouchonnois",
+      "instructions": "Rem indique le type de bouteille qui attire les chasseurs à cet instant. La bonne variante dépend de l'heure : vérifier son dialogue avant de récupérer un objet.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Rod puis à Rem en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander quel Bouchonnois soporifique fonctionne en ce moment."
+        },
+        {
+          "kind": "information",
+          "text": "Si Rem dit « Éventé », prendre la bouteille en [-62,31]. Si « Poussiéreuse », en [-68,30]. Si « Débouchonnée », en [-63,32]."
+        },
+        {
+          "kind": "travel",
+          "text": "Premier point possible : Bouchonnois Éventé en [-62,31].",
+          "coordinates": [
+            -62,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Deuxième point possible : Bouchonnois Poussiéreuse en [-68,30].",
+          "coordinates": [
+            -68,
+            30
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Troisième point possible : Bouchonnois Débouchonnée en [-63,32].",
+          "coordinates": [
+            -63,
+            32
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "N'en ramasser qu'une variante, celle confirmée par Rem ; si la quête dépasse une journée, lui redemander."
+        }
+      ]
+    },
+    {
+      "source_step_number": 66,
+      "title": "Poser la bouteille et retrouver Xaniel",
+      "instructions": "La bonne boîte et la position du familier dépendent de la bouteille et du personnage. Utiliser les variantes compatibles plutôt que marquer automatiquement tous les lieux comme visités.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Boîte possible en [-66,33] pour le Bouchonnois Éventé.",
+          "coordinates": [
+            -66,
+            33
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Boîte possible en [-65,32] pour le Bouchonnois Poussiéreuse.",
+          "coordinates": [
+            -65,
+            32
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Boîte possible en [-65,33] pour le Bouchonnois Débouchonnée.",
+          "coordinates": [
+            -65,
+            33
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Parler à la Boîte Libre correspondant au type de bouteille choisi pour y placer la diversion."
+        },
+        {
+          "kind": "travel",
+          "text": "Premier lieu possible de Xaniel en [-64,31].",
+          "coordinates": [
+            -64,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Deuxième lieu possible de Xaniel en [-63,31].",
+          "coordinates": [
+            -63,
+            31
+          ]
+        },
+        {
+          "kind": "travel",
+          "text": "Troisième lieu possible de Xaniel en [-63,30].",
+          "coordinates": [
+            -63,
+            30
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Retrouver Xaniel à l'un de ces trois lieux et l'inviter à vous accompagner."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir auprès de Rod en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 67,
+      "title": "Rendre Xaniel à Rod et conclure le parcours",
+      "instructions": "La gerbouille est en sécurité. Rendre Xaniel puis vérifier séparément que les sept quêtes du succès « La chasse aux chasseurs » sont finies sur le personnage actif.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Rod et Rem en [-62,30].",
+          "coordinates": [
+            -62,
+            30
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre Xaniel à Rod pour conclure « Il a fui, il a tout compris »."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier dans le journal la clôture du succès « La chasse aux chasseurs » et des quêtes parallèles : Frais de porc inclus, Nos amies les bêtes, Shyriiwook, À armes égales, La valse des manuels, Il a fui, il a tout compris et À plus dans l'muldobus."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas valider automatiquement les quêtes ou combats encore manquants sur un personnage différent."
+        }
+      ]
     }
   ],
   "fact_sources": [
@@ -1621,6 +2256,10 @@
     "Verify Nimotopia map IDs and stage-19 item placement under Unity.",
     "Cross-check source 2229 steps 21-34 for exact order, overlap of parallel Shyriiwook, Nos amies les bêtes, À armes égales and Frais de porc inclus.",
     "Verify whether the capture cages and disguises appear for every player individually; never globally certify completion.",
-    "Review Ganymède step 35-50 and parallel quest order before promoting route; expected source narrative and step-local facts need proof."
+    "Review Ganymède step 35-50 and parallel quest order before promoting route; expected source narrative and step-local facts need proof.",
+    "Compare stages 51-67 directly to the original Ganymède 2229 pages, especially the exact optional branches, timed chase and quest sequencing.",
+    "Validate dynamic quest branches per character: Rem's class hints, time-dependent Bouchonnois, Xaniel random location and Bonta/Brâkmar dialogue.",
+    "Verify manual progression is not shared across characters and no optional branch can trigger false completion.",
+    "Check inconsistent labels and item translations (Eau Potable, Viande Noire, Pyrute) against Unity game data."
   ]
 }
