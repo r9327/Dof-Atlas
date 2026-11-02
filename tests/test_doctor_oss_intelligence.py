@@ -74,6 +74,31 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertIn("agent_eval", classify_scope(["tools/atlas_doctor_lib/agent_protocol.py"]))
         self.assertIn("perf", classify_scope(["tools/benchmark_phase8_memory.py"]))
 
+    def test_truncated_shortlist_keeps_every_candidate_visible_but_unexecuted(self):
+        paths = [
+            "tools/benchmark_phase8_memory.py",
+            "app/distribution/launcher.py",
+            "tools/atlas_json_benchmark.py",
+            ".github/workflows/check.yml",
+            "tests/test_atlas_doctor_qt_smoke.py",
+        ]
+        plan = intelligent_plan(paths, study())
+        self.assertGreater(plan["omitted_count"], 0)
+        self.assertEqual(len(plan["recommended"]), 8)
+        self.assertEqual(len(plan["evaluated_candidates"]),
+                         len(plan["recommended"]) + plan["omitted_count"])
+        self.assertEqual(plan["omitted_candidates"], plan["evaluated_candidates"][8:])
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        workflow = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1},
+                                    plan)
+        visible = {row["tool_id"]: row for row in workflow["oss_recommendations"]}
+        self.assertEqual(len(visible), len(plan["evaluated_candidates"]))
+        for row in plan["omitted_candidates"]:
+            self.assertFalse(visible[row["id"]]["shortlisted"])
+            self.assertIsNone(visible[row["id"]]["locally_available"])
+            self.assertFalse(visible[row["id"]]["automatic_execution"])
+        self.assertFalse(workflow["may_claim_full_certification"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
