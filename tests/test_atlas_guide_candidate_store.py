@@ -215,6 +215,24 @@ class CandidateStoreTests(unittest.TestCase):
             publish_candidate(self.preview, root=self.root)
         self.assertEqual(list(outside.iterdir()), [])
 
+    def test_candidate_stage_identity_must_match_original_source(self) -> None:
+        for change in ("stage", "chapter", "source_step", "missing_actions"):
+            malformed = copy.deepcopy(self.preview)
+            stage = malformed["routes"][0]["steps"][0]
+            if change == "stage":
+                stage["manual_stage_id"] = "source:99:wrong"
+            elif change == "chapter":
+                stage["manual_chapter_id"] = "different-route"
+            elif change == "source_step":
+                stage["manual_runtime_metadata"]["source_step"]["source_step_id"] = "wrong"
+            else:
+                stage["manual_runtime_metadata"]["source_step"]["actions"] = None
+            with self.subTest(change=change), self.assertRaises(
+                GuideRouteContractError
+            ):
+                publish_candidate(malformed, root=self.root)
+        self.assertFalse(self.root.exists())
+
     def test_foreign_existing_folder_is_not_adopted(self) -> None:
         self.root.mkdir()
         (self.root / "sensitive-user-data.json").write_text("{}")
