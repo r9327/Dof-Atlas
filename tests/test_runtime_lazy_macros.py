@@ -5,6 +5,8 @@ import subprocess
 import sys
 import threading
 import types
+import unittest
+from unittest.mock import Mock, patch
 
 import app.core.runtime_state as runtime_module
 from app.core.runtime_state import AtlasRuntime
@@ -164,3 +166,35 @@ def test_emergency_stop_resets_only_materialized_macros(monkeypatch) -> None:
     runtime.emergency_stop("test")
 
     assert resets == ["click", "direction"]
+
+
+
+class MacroWorkerStartupTests(unittest.TestCase):
+    def _runtime_for_failure(self) -> AtlasRuntime:
+        runtime = _bare_runtime()
+        runtime.logger = logging.getLogger("test-organizer-macro-worker-start")
+        runtime._threads = []
+        runtime.macro_lock = Mock()
+        runtime.macro_lock.try_begin.return_value = True
+        runtime._emit_status = Mock()
+        return runtime
+
+    def test_thread_start_failure_releases_exclusive_lease(self) -> None:
+        runtime = self._runtime_for_failure()
+        fake_thread = Mock()
+        fake_thread.start.side_effect = RuntimeError("thread unavailable")
+        with patch.object(runtime_module.threading, "Thread", return_value=fake_thread):
+            self.assertFalse(runtime._spawn_macro("Auto zaap", lambda: None))
+        runtime.macro_lock.end.assert_called_once_with("Auto zaap")
+        runtime._emit_status.assert_called_once_with("Auto zaap: lancement impossible.")
+        self.assertEqual(runtime._threads, [])
+
+    def test_thread_construction_failure_releases_exclusive_lease(self) -> None:
+        runtime = self._runtime_for_failure()
+        with patch.object(
+            runtime_module.threading, "Thread",
+            side_effect=RuntimeError("thread constructor unavailable"),
+        ):
+            self.assertFalse(runtime._spawn_macro("Activation client", lambda: None))
+        runtime.macro_lock.end.assert_called_once_with("Activation client")
+        self.assertEqual(runtime._threads, [])

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes
 import os
+import sys
 import time
 from contextlib import contextmanager
 from logging import Logger
@@ -25,6 +26,10 @@ EXTENDED_VKS = {
     0x2D,  # Insert
     0x2E,  # Delete
     0x5B,  # Left Windows key
+    0x5C,  # Right Windows key
+    0x6F,  # Numpad divide
+    0xA3,  # Right Ctrl
+    0xA5,  # Right Alt
 }
 
 
@@ -34,13 +39,11 @@ def _configure_keyboard_api() -> None:
     user32 = ctypes.windll.user32
     user32.MapVirtualKeyW.argtypes = (ctypes.wintypes.UINT, ctypes.wintypes.UINT)
     user32.MapVirtualKeyW.restype = ctypes.wintypes.UINT
-    user32.keybd_event.argtypes = (
-        ctypes.c_ubyte,
-        ctypes.c_ubyte,
-        ctypes.wintypes.DWORD,
-        ctypes.c_void_p,
-    )
-    user32.keybd_event.restype = None
+    # Keep SendInput setup adjacent to first real use, not at import-time.
+    # Its INPUT pointer uses the shared native layout from app.windows.clicks.
+    from app.windows.clicks import INPUT
+    user32.SendInput.argtypes = (ctypes.wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
+    user32.SendInput.restype = ctypes.wintypes.UINT
 
 
 def _vk(key_name: str) -> int:
@@ -63,32 +66,45 @@ def _vk(key_name: str) -> int:
     return int(NAMED_KEYS.get(key, 0))
 
 
-def key_down(vk_code: int) -> None:
-    if os.name == "nt" and vk_code:
-        _configure_keyboard_api()
-        vk = int(vk_code)
-        scan = int(ctypes.windll.user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC))
-        flags = KEYEVENTF_EXTENDEDKEY if vk in EXTENDED_VKS else 0
-        ctypes.windll.user32.keybd_event(
-            vk,
-            scan,
-            flags,
+def _send_keyboard(vk_code: int, *, up: bool) -> None:
+    if os.name != "nt" or not vk_code:
+        return
+    from app.windows.clicks import INPUT, INPUT_UNION, KEYBDINPUT
+
+    _configure_keyboard_api()
+    vk = int(vk_code)
+    user32 = ctypes.windll.user32
+    scan = int(user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC))
+    flags = (KEYEVENTF_KEYUP if up else 0) | (
+        KEYEVENTF_EXTENDEDKEY if vk in EXTENDED_VKS else 0
+    )
+    event = INPUT(
+        type=1,  # INPUT_KEYBOARD
+        union=INPUT_UNION(ki=KEYBDINPUT(
+            vk, scan, flags, 0,
             ctypes.c_void_p(ATLAS_SYNTHETIC_KEYBOARD_EXTRA_INFO),
+        )),
+    )
+    sent = int(user32.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT)))
+    if sent != 1:
+        # Preserve the immediate Win32 diagnostic when available. UIPI is not
+        # identified by SendInput's return value or GetLastError alone.
+        try:
+            win32_error = int(ctypes.windll.kernel32.GetLastError())
+        except (AttributeError, OSError, ValueError):
+            win32_error = 0
+        raise OSError(
+            f"Windows SendInput refused a keyboard event (sent={sent}/1, "
+            f"win32_error={win32_error}; check integrity and focus)"
         )
+
+
+def key_down(vk_code: int) -> None:
+    _send_keyboard(vk_code, up=False)
 
 
 def key_up(vk_code: int) -> None:
-    if os.name == "nt" and vk_code:
-        _configure_keyboard_api()
-        vk = int(vk_code)
-        scan = int(ctypes.windll.user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC))
-        flags = KEYEVENTF_KEYUP | (KEYEVENTF_EXTENDEDKEY if vk in EXTENDED_VKS else 0)
-        ctypes.windll.user32.keybd_event(
-            vk,
-            scan,
-            flags,
-            ctypes.c_void_p(ATLAS_SYNTHETIC_KEYBOARD_EXTRA_INFO),
-        )
+    _send_keyboard(vk_code, up=True)
 
 
 def press_key(key_name: str, hold_ms: int = 0) -> None:
@@ -96,31 +112,80 @@ def press_key(key_name: str, hold_ms: int = 0) -> None:
     if not vk_code:
         return
     key_down(vk_code)
-    if hold_ms > 0:
-        time.sleep(hold_ms / 1000.0)
-    key_up(vk_code)
+    try:
+        if hold_ms > 0:
+            time.sleep(hold_ms / 1000.0)
+    finally:
+        original_error = sys.exc_info()[1]
+        try:
+            key_up(vk_code)
+        except Exception:
+            if original_error is None:
+                raise
+            # Preserve the initial failure; an unsuccessful release must still
+            # be visible to diagnostics and the emergency-stop mechanism.
+            import logging
+            logging.getLogger(__name__).exception(
+                "Relachement touche impossible apres une erreur d'entree"
+            )
 
 
 def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
-    vk_codes = [_vk(name) if len(str(name)) > 1 else _vk(str(name)) for name in key_names]
-    vk_codes = [code for code in vk_codes if code]
-    for code in vk_codes:
-        key_down(code)
-    if hold_ms > 0:
-        time.sleep(hold_ms / 1000.0)
-    for code in reversed(vk_codes):
-        key_up(code)
+    vk_codes = [_vk(str(name)) for name in key_names]
+    held: list[int] = []
+    try:
+        for code in vk_codes:
+            if not code:
+                continue
+            key_down(code)
+            held.append(code)
+        if hold_ms > 0:
+            time.sleep(hold_ms / 1000.0)
+    finally:
+        original_error = sys.exc_info()[1]
+        errors: list[Exception] = []
+        for code in reversed(held):
+            try:
+                key_up(code)
+            except Exception as exc:
+                errors.append(exc)
+        if errors:
+            if original_error is not None:
+                # Preserve the original SendInput/key-down failure. The
+                # release problem is still recorded for troubleshooting.
+                import logging
+                logging.getLogger(__name__).error(
+                    "Relachement clavier incomplet apres erreur: %s",
+                    errors[0],
+                )
+            else:
+                raise errors[0]
 
 
 def release_common_inputs() -> None:
-    if os.name == "nt":
-        ctypes.windll.user32.mouse_event(0x0004, 0, 0, 0, 0)
-        ctypes.windll.user32.mouse_event(0x0010, 0, 0, 0, 0)
-        ctypes.windll.user32.mouse_event(0x0040, 0, 0, 0, 0)
+    # Emergency stop must continue releasing *all* buttons/modifiers even
+    # when Windows refuses an individual input.
+    import logging
     from app.input.hotkeys import VK_CONTROL, VK_MENU, VK_SHIFT
-
+    if os.name == "nt":
+        from app.windows.clicks import _send_mouse_flag
+        for flag in (0x0004, 0x0010, 0x0040):  # left/right/middle UP
+            try:
+                if not _send_mouse_flag(flag):
+                    logging.getLogger(__name__).warning(
+                        "Stop urgence: SendInput souris refuse le relachement flag=%s", flag
+                    )
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "Stop urgence: erreur relachement souris flag=%s", flag
+                )
     for vk_code in (VK_SHIFT, VK_CONTROL, VK_MENU):
-        key_up(vk_code)
+        try:
+            key_up(vk_code)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Stop urgence: relachement touche refuse vk=%s", vk_code
+            )
 
 
 @contextmanager
