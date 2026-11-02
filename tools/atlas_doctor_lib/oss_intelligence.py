@@ -39,6 +39,23 @@ _PRIORITY = {
     "ATOSS-06": 1, "ATOSS-10": 1, "ATOSS-11": 1,
     "ATOSS-15": 2, "ATOSS-16": 2,
 }
+# Only lookup aliases for read-only local package metadata (never imports or installs).
+# Candidate names, IDs and acceptance decisions still come from the study.
+_DISTRIBUTIONS = {
+    "ATOSS-01": "pytest-qt", "ATOSS-02": "hypothesis",
+    "ATOSS-03": "pywinauto", "ATOSS-04": "pytest-benchmark",
+    "ATOSS-05": "pytest-xdist", "ATOSS-06": "py-spy",
+    "ATOSS-07": "viztracer", "ATOSS-08": "scalene",
+    "ATOSS-09": "pyinstrument", "ATOSS-10": "psutil",
+    "ATOSS-11": "msgspec", "ATOSS-12": "orjson",
+    "ATOSS-13": "ijson", "ATOSS-14": "zstandard",
+    "ATOSS-15": "rapidfuzz", "ATOSS-16": "ImageHash",
+    "ATOSS-17": "fonttools", "ATOSS-19": "semgrep",
+    "ATOSS-20": "ruff", "ATOSS-21": "zizmor",
+    "ATOSS-25": "opentelemetry-api",
+    "AT-SUP-01": "jsonschema", "AT-SUP-02": "pyinstaller",
+    "AT-SUP-04": "pip-audit", "AT-SUP-05": "pydantic",
+}
 _MAX_RECOMMENDATIONS = 8
 
 
@@ -114,6 +131,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
             "priority": priority[cid],
             "tool_executed": False,
             "licensed_for_automation": False,
+            "local_distribution": _DISTRIBUTIONS.get(cid),
         })
     # Never truncate executable recommendations behind multiple optional
     # alternatives; the full inventory remains accessible separately.
@@ -154,6 +172,12 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
         "omitted_count": omitted,
         "native_routes": list(dict.fromkeys(native_routes)),
         "inventory_coverage": complete_inventory,
+        "local_package_probes": [
+            {"id": row["id"], "distribution": row["local_distribution"]}
+            for row in included
+            if row["decision"] not in {"REJECTED", "EXTERNAL_OWNER"}
+            and row["local_distribution"]
+        ],
         "no_automatic_installation": True,
         "certified": False,
     }
