@@ -72,6 +72,21 @@ class TestSharedRouteContract(unittest.TestCase):
                          "Réponse B")
         self.assertEqual(card["manual_runtime_metadata"]["source_step"], step)
 
+    def test_original_guide_metadata_survives_projection_once_per_route(self):
+        document = sample()
+        document["category"] = "synthetic"
+        document["authoritative_source_label"] = "fixture-only"
+        document["extra_annotations"] = {"branch": "B", "unlock": ["fiction"]}
+        before = copy.deepcopy(document)
+        route = project_authorized_guide(document)
+        self.assertEqual(document, before)
+        self.assertEqual(
+            route["source_guide_metadata"],
+            {key: value for key, value in document.items() if key != "steps"},
+        )
+        self.assertNotIn("steps", route["source_guide_metadata"])
+        self.assertNotIn("source_guide_metadata", route["steps"][0])
+
     def test_stage_identity_does_not_shift_when_step_inserted(self):
         initial = sample()
         before = project_authorized_guide(initial)["steps"][1]["manual_stage_id"]
