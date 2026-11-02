@@ -273,6 +273,9 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         )
         self.assertIn("Le secret des Flaqueux", texts(4))
         self.assertIn("Parchemin des Flaqueux", texts(4))
+        self.assertIn("[-43,2]", texts(4))
+        self.assertIn("10 Graines de Sésame", texts(2))
+        self.assertNotIn("3 Graines de Sésame (fabrication", texts(2))
         for number, position in (
             (1, [13, 26]), (2, [15, 28]), (3, [15, 28]),
             (4, [19, 42]), (4, [-43, -1]), (4, [-46, 18]),
