@@ -124,8 +124,12 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             if monsters is not None:
                 _items(monsters, f"{label}.monsters")
             section = action.get("section", _SECTION_BY_KIND.get(kind, "now"))
-            if section not in _UI_SECTIONS:
+            if not isinstance(section, str) or section not in _UI_SECTIONS:
                 raise GuideRouteContractError(f"{label}.section: unknown section {section!r}")
+            if section == "prepare" and last_rank >= 0:
+                raise GuideRouteContractError(
+                    f"{label}: preparation would reorder source actions"
+                )
             # Existing SharedGuideManualCard renders sections in a fixed order.
             # Reject source order incompatible with that UI instead of silently
             # rearranging an action. Preparation is a separate shared panel.
@@ -150,6 +154,10 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             for name in names:
                 if name not in resource_names:
                     resource_names.append(name)
+        for field in ("quest_ids", "quest_names", "prerequisites"):
+            value = step.get(field, [])
+            if not isinstance(value, list):
+                raise GuideRouteContractError(f"{prefix}.{field}: list required")
         card = {
             "index": step_index + 1,
             "manual_source": True,
