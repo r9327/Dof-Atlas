@@ -228,3 +228,53 @@ restent intacts, sans changement de validation ni de progression.
   ne pas lancer le Guide Ultime, la CI finale ni la fusion prématurément.
 
 **Verdict global maintenu : CHANGES REQUIRED / PR Draft.**
+
+## Relecture des quatre premières séquences — second lot (#337)
+
+**SHA de l'examen des données :** `7f281184644f5f1d3a703f616fe80c81b69e69c5`.
+
+Les dix premières étapes des quatre guides de travail (2204, 2206, 2228,
+2229) ont été confrontées aux informations de leurs pages Ganymède publiques
+accessibles pour ce segment. Les données ont été améliorées **sans inventer
+les étapes 11+**, qui n'étaient pas intégralement accessibles depuis les
+sources consultées dans cette session.
+
+- **2204**, *Mais où sont les Dofus ?* : prérequis du Réceptacle des Dofus
+  (Fallanster, parcours Argenté), niveau conseillé 50 ; rétablissement du
+  **passage intermédiaire par le pont de Pandala [12,-21]** à l'étape 6,
+  avant [19,-28], avec l'action de trajet typée.
+- **2206**, *Valonia 1* : niveau conseillé 60, absence de ressources ou
+  quêtes préalables obligatoires, **100 kamas** de traversée et capture
+  facultative du Raccooper pour le Dofus Ocre.
+- **2228**, *Sufokia* : niveau conseillé 40, deux succès distincts,
+  ainsi que les connexions optionnelles avec le tour des donjons et les
+  alignements Bonta/Brâkmar, sans rendre ces détours obligatoires.
+- **2229**, *Nimaltopia* : niveaux et prérequis explicites, dont
+  « Aventure miniature » et « Ne tirez pas sur le messager », et ressources
+  réparties entre « Frais de porc inclus », « Nos amies les bêtes »,
+  « À armes égales ». **20 Eaux potables au total, pas deux fois 20.**
+  Ces libellés de quêtes françaises ont été rapprochés d'une table de
+  traduction externe ; les conditions de jeu restent à valider en runtime.
+
+**Recomptage des quatre JSON sur GitHub après modifications :**
+`40 étapes / 162 attendues`, **150 actions structurées** et
+**73/73 actions positionnées présentes parmi les coordonnées mentionnées
+dans le relevé de même étape** ; aucune incohérence d'ordre, de type
+d'action ou de statut détectée par le contrôle statique.
+Leur état reste `PARTIAL_NOT_PLAYABLE`, avec
+`source_parity_certified=false` et `gameplay_certified=false`.
+Le module de test dédié couvre désormais **4 méthodes**, dont une
+sur les prérequis d'ouverture ; **tests Python NOT_RUN**, sans preuve
+de certification DOFUS/Qt/Windows.
+
+**Source des points factuels de ce lot :**
+- https://ganymede-app.com/guides/2204
+- https://ganymede-app.com/guides/2206
+- https://ganymede-app.com/guides/2228
+- https://ganymede-app.com/guides/2229
+
+**Reste inchangé : 15/95 parcours complets structurellement, 0/95
+certifié intégralement, 80/95 à achever.** Les quatre brouillons représentent
+40 étapes rédigées en plus, mais ne changent pas le compteur de guides
+livrables. Les deux optimisés actuels restent intacts. **PR Draft /
+CHANGES REQUIRED**, aucune phase CI finale déclenchée.
