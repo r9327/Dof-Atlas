@@ -798,6 +798,10 @@
           "text": "Pour le gobelin courageux, vaincre Pwouerk dans les égouts avec son escorte si cette épreuve n'est pas encore validée (combat faisable en groupe)."
         },
         {
+          "kind": "fight",
+          "text": "Si l'objectif est actif, vaincre Pwouerk avec le Gobelin courageux dans les égouts de Gisgoul ; combat réalisable à plusieurs et validation à constater sur chaque personnage."
+        },
+        {
           "kind": "travel",
           "text": "Après l'épreuve des égouts, retrouver Gobovette en [-17,21] si nécessaire.",
           "coordinates": [
