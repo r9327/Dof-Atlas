@@ -53,6 +53,8 @@ def stage_checked_candidate(
     guides = authorized_source.get("guides")
     if not isinstance(guides, list) or len(guides) != 1:
         raise GuidePipelineBlocked("one and only one guide is permitted per transaction")
+    if not isinstance(guides[0], dict):
+        raise GuidePipelineBlocked("source guide must be an object")
     if guides[0].get("guide_id") != next_id:
         raise GuidePipelineBlocked("source guide ID differs from authorized next ID")
     for name, doc in (("reference", independent_reference),
@@ -60,6 +62,8 @@ def stage_checked_candidate(
         rows = doc.get("guides")
         if not isinstance(rows, list) or len(rows) != 1:
             raise GuidePipelineBlocked(f"{name}: exactly one guide required")
+        if not isinstance(rows[0], dict):
+            raise GuidePipelineBlocked(f"{name}: guide must be an object")
         if rows[0].get("guide_id") != next_id:
             raise GuidePipelineBlocked(f"{name}: guide ID mismatch")
     source_parity = compare(independent_reference, authorized_source)
