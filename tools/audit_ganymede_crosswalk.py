@@ -317,6 +317,12 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
             "route_replacement_ready": False,
         }
 
+    if index.get("schema_version") != 1:
+        issues.append({"code": "unsupported_source_schema", "detail": str(index.get("schema_version"))})
+    declared_total = index.get("snapshot", {}).get("total_main_guides")
+    if declared_total is not None and declared_total != len(indexed):
+        issues.append({"code": "source_index_count_mismatch", "detail": str(declared_total)})
+
     by_map: dict[tuple[int, int], list[dict[str, object]]] = defaultdict(list)
     by_id: dict[int, dict[str, object]] = {}
     authored_ids: list[int] = []
@@ -330,7 +336,8 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
         url = row.get("source_url") if isinstance(row, dict) else None
         if (type(gid) is not int or gid <= 0 or gid in by_id
                 or type(count) is not int or count <= 0
-                or url != f"https://ganymede-app.com/guides/{gid}"):
+                or url != f"https://ganymede-app.com/guides/{gid}"
+                or row.get("status") != "metadata_only"):
             issues.append({"code": "invalid_source_entry", "detail": str(gid)})
             continue
         by_id[gid] = row
