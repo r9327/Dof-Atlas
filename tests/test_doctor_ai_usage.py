@@ -134,7 +134,9 @@ class DoctorAiUsageContractTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         names = ["AI_ENTRYPOINT.md", "AI_CONTEXT.md",
                  "tools/skills/dofus-atlas-tools/SKILL.md",
-                 ".agents/skills/evidence-driven-validation/SKILL.md"]
+                 ".agents/skills/evidence-driven-validation/SKILL.md",
+                 "CLAUDE.md", ".github/copilot-instructions.md",
+                 ".cursor/rules/atlas-doctor.mdc"]
         for name in names:
             with self.subTest(name=name):
                 content = (root / name).read_text(encoding="utf-8")

@@ -37,7 +37,7 @@ BASELINE_GROUPS = {
 # metadata. This ownership does NOT waive the independent root-of-trust/FULL
 # decision for PHASE_CERTIFICATION.md or any executable policy change.
 REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
-    "AGENTS.md", "AI_ENTRYPOINT.md", "CLAUDE.md",
+    "AGENTS.md", "AI_ENTRYPOINT.md", "AI_CONTEXT.md", "CLAUDE.md",
     ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
@@ -162,6 +162,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path in DOCTOR_PERF_TOOLS:
         return frozenset({"ci"})
     if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
+        return frozenset({"ci"})
+    if path == "tools/setup_doctor_oss.ps1":
+        # Explicitly reviewed, opt-in developer-only Ruff/zizmor bootstrap.
+        # No tools/*.ps1 wildcard: future installers remain unknown until audited.
         return frozenset({"ci"})
     if path in {"tools/install_rtk.ps1", "tests/test_install_rtk.py"}:
         # Manual developer/Codex bootstrap tooling. Keep the pair exact so an
