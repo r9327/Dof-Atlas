@@ -67,9 +67,29 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
             if not isinstance(step, dict):
                 raise GuideRouteContractError("invalid projected step")
             key = step.get("manual_stage_id")
-            if not isinstance(key, str) or not key.startswith("source:") or key in keys:
-                raise GuideRouteContractError("missing/duplicate stable stage identity")
+            source_step_id = step.get("source_step_id")
+            chapter = step.get("manual_chapter_id")
+            if (not isinstance(source_step_id, str)
+                    or not isinstance(chapter, str)
+                    or not isinstance(key, str)
+                    or key != f"source:{chapter}:{source_step_id}"
+                    or identifier != f"source_guide:{chapter}"
+                    or key in keys):
+                raise GuideRouteContractError("invalid/duplicate canonical stage identity")
             keys.add(key)
+            metadata = step.get("manual_runtime_metadata")
+            if not isinstance(metadata, dict) or not isinstance(
+                metadata.get("source_step"), dict
+            ):
+                raise GuideRouteContractError("missing original source step")
+            source_step = metadata["source_step"]
+            if str(source_step.get("source_step_id")) != source_step_id:
+                raise GuideRouteContractError("stage identity differs from original source")
+            actions = source_step.get("actions")
+            if not isinstance(actions, list) or not actions or any(
+                not isinstance(item, dict) for item in actions
+            ):
+                raise GuideRouteContractError("invalid original source actions")
         count += len(steps)
     for label in ("guide_count", "step_count", "action_count",
                   "expected_guide_count", "expected_step_count"):
