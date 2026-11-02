@@ -334,6 +334,15 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     files = _safe_files(root, paths)
     python_files = [name for name in files if name.endswith((".py", ".pyi"))]
     workflows = [name for name in files if name.endswith((".yml", ".yaml"))]
+    # Snapshot exactly the source files handed to approved external processes.
+    # A tool's "read only" flags are not evidence that it left inputs intact.
+    approved_files = python_files + workflows
+    before_digests = None
+    if run and approved_files:
+        try:
+            before_digests = _file_digests(root, approved_files)
+        except (OSError, ValueError):
+            pass  # Fail closed below; do not launch a scanner without a snapshot.
     capability = "validation" if python_files else "ci_intelligence"
     # The existing catalog is the only source for native Doctor tool readiness.
     native_report = catalog(root)
@@ -356,7 +365,10 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     workflow_available = bool(workflow_executable)
     timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))
     execution: dict[str, Any] = {"status": "NOT_RUN", "reason": "Explicit --run required"}
-    if run and not python_files:
+    if run and approved_files and before_digests is None:
+        execution = {"status": "ERROR", "tool": "ruff",
+                     "reason": "Cannot snapshot explicit scanner inputs"}
+    elif run and not python_files:
         execution = {"status": "NOT_APPLICABLE", "reason": "No approved workflow OSS executor"}
     elif run and not available:
         execution = {"status": "NOT_AVAILABLE", "reason": "Ruff not installed; no auto-install"}
@@ -380,6 +392,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             execution = {"status": "UNAVAILABLE", "reason": "Cannot start local Ruff module"}
         else:
             try:
+                if len(result.stdout) > 2_000_000:
+                    raise ValueError("Bounded Ruff report limit exceeded")
                 findings = json.loads(result.stdout)
                 if not isinstance(findings, list) or result.returncode not in (0, 1):
                     raise ValueError("unexpected Ruff output")
@@ -401,12 +415,32 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     if workflows:
         if not run:
             workflow_execution = {"status": "NOT_RUN", "tool": "zizmor"}
+        elif before_digests is None:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Cannot snapshot explicit scanner inputs"}
         elif not workflow_available:
             workflow_execution = {"status": "NOT_AVAILABLE", "tool": "zizmor",
                                   "reason": "Not installed; no installation attempted"}
         else:
             workflow_execution = _execute_zizmor(root, workflows, timeout_each,
                                                  binary=workflow_executable or "zizmor")
+        if not python_files:
+            execution = workflow_execution
+    inputs_modified = None
+    if run and before_digests is not None:
+        try:
+            inputs_modified = before_digests != _file_digests(root, approved_files)
+        except (OSError, ValueError):
+            inputs_modified = True
+    if inputs_modified:
+        # No CLEAN/FINDINGS witness survives a source mutation, even if the
+        # subprocess returned a valid report. Never disclose changed contents.
+        if python_files:
+            execution = {"status": "ERROR", "tool": "ruff",
+                         "reason": "Explicit scan input changed during execution"}
+        if workflows:
+            workflow_execution = {"status": "ERROR", "tool": "zizmor",
+                                  "reason": "Explicit scan input changed during execution"}
         if not python_files:
             execution = workflow_execution
     results = ([execution] if python_files else []) + (
@@ -470,7 +504,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         "network_requested": False,
         "network_used": None if run and (available or workflow_available) else False,
         "dependencies_installed": False,
-        "files_modified": False,
+        "files_modified": inputs_modified,
+        "input_integrity_verified": inputs_modified is False,
         "phase_certified": False,
         "benchmark_executed": False,
         "note": "Advisory OSS evidence only; Doctor's canonical gates still apply.",

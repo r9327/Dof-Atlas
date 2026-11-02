@@ -64,6 +64,41 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(payload["execution"]["rule_counts"]["F401"], 1)
         self.assertFalse(payload["phase_certified"])
 
+    def test_scanner_mutation_cancels_all_execution_witnesses(self):
+        sample = SimpleNamespace(returncode=0, stdout="[]", stderr="")
+        def alter_input(*args, **kwargs):
+            (self.root / "tools/example.py").write_text("x = 42\n", encoding="utf-8")
+            return sample
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    side_effect=alter_input)):
+            payload = route_oss(self.root, ["tools/example.py"], run=True)
+        self.assertEqual(payload["execution"]["status"], "ERROR")
+        self.assertTrue(payload["files_modified"])
+        self.assertFalse(payload["input_integrity_verified"])
+        self.assertEqual(payload["execution_count"], 0)
+        self.assertEqual(payload["execution_summary"]["status"], "INCOMPLETE")
+        self.assertNotIn("x = 42", json.dumps(payload))
+
+    def test_unverifiable_large_input_never_reaches_third_party(self):
+        (self.root / "tools/example.py").write_bytes(b"#" * 2_000_001)
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            payload = route_oss(self.root, ["tools/example.py"], run=True)
+        run.assert_not_called()
+        self.assertEqual(payload["execution"]["status"], "ERROR")
+        self.assertEqual(payload["execution_count"], 0)
+        self.assertIsNone(payload["files_modified"])
+        self.assertFalse(payload["input_integrity_verified"])
+
     def test_missing_package_does_not_execute_or_install(self):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
