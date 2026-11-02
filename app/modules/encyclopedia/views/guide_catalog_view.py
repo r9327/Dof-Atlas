@@ -171,13 +171,13 @@ class GuideCatalogView(QWidget):
         result_layout.addWidget(self.library_results_title)
 
         result_layout.addWidget(self.home_dofus_list, 1)
-        self.metadata_title = QLabel("Parcours Ganymède en ligne")
+        self.metadata_title = QLabel("Ganymède — repères locaux")
         self.metadata_title.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']}; font-weight: 600;")
         result_layout.addWidget(self.metadata_title)
         self.home_metadata_list = QListWidget(self)
         self.home_metadata_list.setObjectName("GuideLibraryUnavailableList")
-        # Public source guides are readable on Ganymède, but their manual
-        # steps are not imported and must never affect Atlas progress.
+        # Ganymède source observations are factual and offline, not verified
+        # complete game instructions or native quest-objective mappings.
         # Avoid Qt's white alternating rows / faint disabled foreground on dark UI.
         self.home_metadata_list.setAlternatingRowColors(False)
         self.home_metadata_list.itemClicked.connect(self._open_ganymede_source_item)
@@ -624,9 +624,10 @@ class GuideCatalogView(QWidget):
         self.home_metadata_list.clear()
         for entry in entries:
             count = f" · {entry.step_count} étapes" if entry.step_count is not None else ""
-            item = QListWidgetItem(f"{entry.title}{count} · lire")
+            item = QListWidgetItem(f"{entry.title}{count} · repères locaux")
             item.setToolTip(
-                "Ouvrir les étapes originales sur Ganymède dans Atlas. "
+                "Ouvrir les repères d'étapes locaux dans Atlas, même hors ligne. "
+                "Les consignes complètes ne sont pas encore importées. "
                 "Les validations manuelles restent enregistrées dans Atlas."
             )
             item.setData(Qt.UserRole, entry.source_id)
@@ -695,7 +696,10 @@ class GuideCatalogView(QWidget):
                 count = f" · {entry.step_count} étapes" if entry.step_count else ""
                 item = QListWidgetItem(f"{entry.title}{count}")
                 item.setData(Qt.UserRole, entry.source_id)
-                item.setToolTip("Parcours Ganymède officiel · suivi manuel Atlas")
+                item.setToolTip(
+                    "Repères factuels Ganymède disponibles hors ligne ; "
+                    "consignes complètes non importées · suivi manuel Atlas"
+                )
                 listing.addItem(item)
             listing.parentWidget().setVisible(listing.count() > 0)
             listing.setFixedHeight(min(184, max(56, listing.count() * 35 + 8)))
