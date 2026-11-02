@@ -908,16 +908,20 @@ def command_all(root: Path, args) -> dict[str, Any]:
 
 def command_oss(root: Path, args) -> dict[str, Any]:
     """Run safe, opt-in third-party diagnostics without changing Doctor gates."""
-    from tools.atlas_doctor_lib.oss_router import route_oss
+    from tools.atlas_doctor_lib.oss_router import route_oss, qualify_live
     try:
-        payload = route_oss(root, args.paths, run=args.run,
-                            timeout_seconds=args.timeout_seconds)
+        payload = (qualify_live(root, args.paths,
+                                timeout_seconds=args.timeout_seconds)
+                   if getattr(args, "verify_live", False)
+                   else route_oss(root, args.paths, run=args.run,
+                                  timeout_seconds=args.timeout_seconds))
     except ValueError as exc:
         payload = {"schema_version": 1, "status": "BLOCKED",
                    "reason": str(exc), "phase_certified": False}
     if not args.json:
         print("Doctor OSS : " + payload.get("status", "BLOCKED"))
-        print("Execution : " + (payload.get("execution") or {}).get("status", "NOT_RUN"))
+        print("Execution : " + ((payload.get("execution") or {}).get("status")
+                                 or payload.get("status", "NOT_RUN")))
     return payload
 
 
@@ -929,7 +933,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser('quick', help='Diagnostic statique rapide; aucun scan Graphify ni gate.')
     oss = sub.add_parser("oss", help="Routage OSS consultatif, opt-in, sans installation.")
     oss.add_argument("paths", nargs="+", help="Fichiers Python ou workflows explicites.")
-    oss.add_argument("--run", action="store_true", help="Lancer Ruff déjà installé, sans correction.")
+    oss.add_argument("--run", action="store_true",
+                     help="Exécuter Ruff/zizmor déjà installés, sans mutation.")
+    oss.add_argument("--verify-live", action="store_true",
+                     help="Attester l'exécution réelle locale des deux outils et l'intégrité des fichiers.")
     oss.add_argument("--timeout-seconds", type=int, default=20,
                      help="Limite d'exécution de Ruff (1 à 60 secondes).")
     ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
@@ -1352,6 +1359,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
+        if getattr(args, "verify_live", False):
+            return 0 if payload.get("status") == "LIVE_PASS" else 2 if payload.get("status") == "FAIL" else 1
         executions = payload.get("execution_results") or [payload.get("execution") or {}]
         return 1 if any(row.get("status") in (
             "ERROR", "TIMEOUT", "UNAVAILABLE", "NOT_AVAILABLE") for row in executions) else 0

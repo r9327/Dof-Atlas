@@ -166,3 +166,40 @@ L'intégration du reste des candidats appartient à l'[issue #313](https://githu
 et à des PR ciblées dans les propriétaires existants. Le développement
 de nouveaux runners tiers doit comparer risque, coût, faux positifs et
 effet sur la RAM, sans modifier le runtime de base.
+
+
+## Preuve réelle avant certification (Ruff + zizmor)
+
+La Phase Certification valide les **contrats** à l'aide de tests Python
+simulés. Elle ne prouve pas que les deux exécutables tiers sont présents
+sur le PC de l'utilisateur. Depuis la racine du dépôt, sous Windows :
+
+```powershell
+py -3.13 -X utf8 -m tools.atlas_doctor oss tools/atlas_doctor_lib/oss_router.py .github/workflows/phase-certification.yml --verify-live --timeout-seconds 45 --json
+```
+
+Cette commande ne télécharge et n'installe **rien**. Elle exige Ruff
+installé dans le Python actif et zizmor accessible dans PATH ; un outil
+manquant reste `REVIEW` avec un code retour non nul. Elle exécute les
+deux diagnostics en lecture seule, constate leurs réponses JSON, interroge
+leur version réelle et compare les empreintes SHA-256 des fichiers
+analysés avant/après. `LIVE_PASS` signifie seulement que ces deux outils
+ont réellement fonctionné pour ces fichiers sur **cette machine**, sans
+modifier ces fichiers. `windows_13_qualified` ne devient vrai que sur
+Windows et Python 3.13 avec ce constat.
+
+Cette qualification ne certifie pas l'absence de modifications d'autres
+fichiers, ni l'absence de trafic réseau mesuré par capture, ni la licence,
+ni l'exactitude de toutes les règles, ni la Phase Certification, ni le
+fonctionnement des 29 + 5 candidats. zizmor garde son mode `--offline`
+et aucun jeton GitHub n'est transmis à son processus.
+
+Les rapports ordinaires `doctor oss --run` et `agent check --run-tests`
+exposent désormais `execution_summary` (`expected_tools`,
+`confirmed_executions`, `gaps`). La valeur `COMPLETE` n'est attribuée
+que lorsque chaque outil sélectionné a retourné un JSON valide.
+`ADVISORY_ONLY` reste le statut global, sans remplacer les preuves Doctor.
+
+**Sans exécution native sur le PC de l'utilisateur, l'issue #346 reste ouverte.**
+Une éventuelle qualification Windows GitHub prouverait ce runner et non
+la machine personnelle. Ne pas relancer de CI pour masquer cette lacune.

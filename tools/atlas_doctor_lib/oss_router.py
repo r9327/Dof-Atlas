@@ -6,6 +6,7 @@ The canonical Doctor and tool_catalog remain responsible for planning and
 certification. This module never installs, updates or silently runs candidates.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -190,6 +191,116 @@ def select_eligible_diagnostics(root: Path, paths: Iterable[str], *,
     }
 
 
+
+def _file_digests(root: Path, files: list[str]) -> dict[str, str]:
+    """Bound input-file integrity evidence; no writes or recursive discovery."""
+    digests: dict[str, str] = {}
+    for name in files:
+        target = root / name
+        if target.is_symlink() or not target.is_file() or target.stat().st_size > 2_000_000:
+            raise ValueError("Unverifiable or oversized diagnostic input")
+        digests[name] = hashlib.sha256(target.read_bytes()).hexdigest()
+    return digests
+
+
+
+def _observed_tool_version(root: Path, name: str) -> str | None:
+    """Capture an actually running local tool version without leaking stdout."""
+    if name not in {"ruff", "zizmor"}:
+        return None
+    command = ([sys.executable, "-m", "ruff", "--version"]
+               if name == "ruff" else ["zizmor", "--version"])
+    env = {key: value for key, value in os.environ.items()
+           if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
+    env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
+                "PYTHONNOUSERSITE": "1", "PYTHONPATH": "", "NO_COLOR": "1"})
+    try:
+        result = subprocess.run(command, cwd=root, env=env,
+                                capture_output=True, text=True,
+                                timeout=5, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    match = re.fullmatch(
+        rf"{name}\s+v?([0-9]+(?:\.[0-9]+){{1,3}}(?:[-+][a-zA-Z0-9.-]+)?)",
+        result.stdout.strip(), re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def qualify_live(root: Path, paths: Iterable[str], *,
+                 timeout_seconds: int = 30) -> dict[str, Any]:
+    """Attest actual local subprocess execution, never Windows or phase certification.
+
+    This explicit check is separate from mocked unit tests and only speaks about
+    the inspected input files on the runner where the command was executed.
+    """
+    files = _safe_files(root, paths)
+    python_files = [name for name in files if name.endswith((".py", ".pyi"))]
+    workflows = [name for name in files if name.startswith(".github/workflows/")
+                 and name.endswith((".yml", ".yaml"))]
+    if not python_files or not workflows:
+        return {
+            "schema_version": 1, "status": "REVIEW",
+            "reason": "Live qualification requires both Python and workflow inputs",
+            "requested_tools": ["ruff", "zizmor"],
+            "actual_executions": 0, "input_files_unchanged": None,
+            "windows_13_qualified": False, "phase_certified": False,
+        }
+    try:
+        before = _file_digests(root, files)
+    except (OSError, ValueError):
+        return {
+            "schema_version": 1, "status": "BLOCKED",
+            "reason": "Cannot snapshot explicit inputs",
+            "requested_tools": ["ruff", "zizmor"],
+            "actual_executions": 0, "input_files_unchanged": None,
+            "windows_13_qualified": False, "phase_certified": False,
+        }
+    diagnostic = route_oss(root, files, run=True, timeout_seconds=timeout_seconds)
+    try:
+        after = _file_digests(root, files)
+        unchanged = before == after
+    except (OSError, ValueError):
+        unchanged = False
+    expected = ("ruff", "zizmor")
+    results = diagnostic.get("execution_results", [])
+    statuses = [row.get("status") for row in results if isinstance(row, dict)]
+    witnesses = sum(status in {"CLEAN", "FINDINGS"} for status in statuses)
+    all_executed = len(statuses) == len(expected) and witnesses == len(expected)
+    versions = ({tool: _observed_tool_version(root, tool) for tool in expected}
+                if all_executed else {})
+    intact = unchanged and all_executed and all(versions.get(tool) for tool in expected)
+    # A local test on Linux/macOS is not a native Windows qualification.
+    windows_13 = sys.platform == "win32" and sys.version_info[:2] == (3, 13)
+    return {
+        "schema_version": 1,
+        "source": "tools.atlas_doctor_lib.oss_router.qualify_live",
+        "status": "LIVE_PASS" if intact else "REVIEW" if unchanged else "FAIL",
+        "reason": ("All approved tools returned valid JSON on actual local inputs"
+                   if intact else "Input was modified or scanner execution incomplete"),
+        "requested_tools": list(expected),
+        "actual_executions": witnesses,
+        "tool_statuses": [{"tool": name,
+                           "status": statuses[index] if index < len(statuses) else "NOT_RUN"}
+                          for index, name in enumerate(expected)],
+        "input_files_unchanged": unchanged,
+        "input_sha256": before if unchanged else {},
+        "python_version": ".".join(map(str, sys.version_info[:3])),
+        "platform": sys.platform,
+        "windows_13_qualified": bool(intact and windows_13),
+        "version_claims": {row.get("id"): row.get("version_claim")
+                           for row in diagnostic.get("oss_candidates", [])
+                           if isinstance(row, dict)},
+        "versions_observed": versions,
+        "version_proof": "Actual --version subprocesses; not license attestation",
+        "gaps": diagnostic.get("execution_summary", {}).get("gaps", []),
+        "phase_certified": False,
+        "network_verified_by_traffic_capture": False,
+        "scope_limit": "Source-file hashes only; no proof of unrelated file or network effects",
+    }
+
+
 def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
               timeout_seconds: int = 20) -> dict[str, Any]:
     """Select useful tools by file type; run only reviewed Ruff on explicit opt-in."""
@@ -270,6 +381,21 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             execution = workflow_execution
     results = ([execution] if python_files else []) + (
         [workflow_execution] if workflow_execution is not None else [])
+    expected_tools = (["ruff"] if python_files else []) + (
+        ["zizmor"] if workflows else [])
+    summarized = [
+        {"tool": tool, "status": results[index].get("status", "ERROR")}
+        for index, tool in enumerate(expected_tools)
+    ]
+    gaps = [row for row in summarized if row["status"] not in {"CLEAN", "FINDINGS"}]
+    execution_summary = {
+        "status": ("NOT_RUN" if not run else "NOT_APPLICABLE"
+                   if not expected_tools else "COMPLETE" if not gaps else "INCOMPLETE"),
+        "expected_tools": expected_tools,
+        "confirmed_executions": len(expected_tools) - len(gaps) if run else 0,
+        "gaps": gaps,
+        "does_not_override_doctor": True,
+    }
     return {
         "schema_version": 1,
         "source": "tools.atlas_doctor_lib.oss_router.route_oss",
@@ -307,6 +433,7 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
              "platform_verified": False, "automation_ready": False},
         ],
         "execution_results": results,
+        "execution_summary": execution_summary,
         "execution_count": sum(result["status"] in {"CLEAN", "FINDINGS"}
                                for result in results),
         "execution": execution,
