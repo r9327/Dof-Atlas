@@ -1446,13 +1446,20 @@ class EncyclopediaPage(QWidget):
 
         self._pending_lazy_tab = ""
         if label == GUIDES_TAB:
+            # The historical alignment IDs now resolve to the Ganymède
+            # source reader. Never recreate the legacy quest detail screen.
+            source_alignment = self._pending_guide_id in {
+                "alignement_bonta", "alignement_brakmar",
+            }
             needs_detail = bool(self._pending_guide_id) or (
                 self._pending_achievement_context_id is not None
                 and self._achievement_ready
             )
+            if source_alignment:
+                self._restore_guides_catalog_home()
             view = (
                 self.ensure_full_guides_view()
-                if needs_detail
+                if needs_detail and not source_alignment
                 else self.ensure_guides_view()
             )
             if self._pending_guide_id:

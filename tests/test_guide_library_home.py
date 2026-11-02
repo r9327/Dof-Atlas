@@ -238,6 +238,75 @@ class GuideLibraryHomeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid offline source step"):
                 load_ganymede_local_observations(entry, data_dir=folder)
 
+    def test_source_alignments_remain_visible_without_legacy_quest_guides(self):
+        provider = _Provider()
+        provider.guides = [
+            guide for guide in provider.guides
+            if guide.id not in {"alignement_bonta", "alignement_brakmar"}
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            view = GuideCatalogView(
+                lambda _message: None, provider=provider,
+                quest_progress_path=Path(directory) / "quests.json",
+                defer_runtime=True,
+            )
+            view._progress_snapshot = lambda: {}
+            view.hydrate_runtime()
+            try:
+                view.library_category = "alignements"
+                view.refresh_home()
+                self.assertEqual(view.home_dofus_model.rowCount(), 0)
+                source_ids = {
+                    view.home_metadata_list.item(i).data(Qt.UserRole)
+                    for i in range(view.home_metadata_list.count())
+                }
+                self.assertEqual(source_ids, {2226, 2249, 2263})
+                requested = []
+                view.guideRequested.connect(requested.append)
+                self.assertTrue(view.select_guide("alignement_bonta"))
+                dialog = view._ganymede_source_dialog
+                self.assertIsNotNone(dialog)
+                self.assertEqual(requested, [])
+                dialog.close()
+                self.app.processEvents()
+            finally:
+                view.close()
+                view.deleteLater()
+                self.app.processEvents()
+
+    def test_alignment_deep_link_never_requests_legacy_rich_guide(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            EncyclopediaPage, GUIDES_TAB,
+        )
+
+        requested = []
+        restored = []
+        catalog = SimpleNamespace(select_guide=requested.append)
+        tab = SimpleNamespace(
+            setCurrentIndex=lambda i: None,
+            currentIndex=lambda: 0,
+        )
+        page = SimpleNamespace(
+            _pending_lazy_tab=GUIDES_TAB,
+            _pending_guide_id="alignement_bonta",
+            _pending_achievement_context_id=None,
+            _guide_runtime_ready=True,
+            _achievement_ready=False,
+            tab_labels=lambda: [GUIDES_TAB],
+            _restore_guides_catalog_home=lambda: restored.append(True),
+            ensure_guides_view=lambda: catalog,
+            ensure_full_guides_view=lambda: self.fail("Legacy rich guide opened"),
+            tabs=tab,
+            sync_tab_accent=lambda label: None,
+            sync_search_visibility=lambda: None,
+            sync_character_to_children=lambda: None,
+            status_callback=lambda message: None,
+        )
+        EncyclopediaPage.open_pending_lazy_tab(page)
+        self.assertEqual(requested, ["alignement_bonta"])
+        self.assertEqual(restored, [True])
+        self.assertEqual(page._pending_guide_id, "")
+
     def test_source_guide_click_reads_verified_local_facts_without_network(self):
         import sys
 
