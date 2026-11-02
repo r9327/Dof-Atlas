@@ -133,6 +133,11 @@ def compare_json_parsers(
             reports.append({"name": name, "status": "PARITY_FAIL",
                             "executed": True, "measurements_ms": samples})
             continue
+        except Exception as exc:
+            reports.append({"name": name, "status": "ERROR",
+                            "error_type": type(exc).__name__,
+                            "executed": True, "measurements_ms": samples})
+            continue
         reports.append({
             "name": name, "status": "PARITY_PASS", "executed": True,
             "repeats": len(samples), "median_ms": round(statistics.median(samples), 6),
@@ -190,6 +195,10 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
             raise ValueError("Streaming quest coverage incomplete")
     except (ValueError, TypeError, UnicodeError, OverflowError):
         return {"schema_version": 1, "status": "PARITY_FAIL", "tool": "ijson",
+                "executed": True, "runtime_consumer_changed": False}
+    except Exception as exc:
+        return {"schema_version": 1, "status": "ERROR", "tool": "ijson",
+                "error_type": type(exc).__name__,
                 "executed": True, "runtime_consumer_changed": False}
     return {
         "schema_version": 1, "status": "PARITY_PASS", "tool": "ijson",
