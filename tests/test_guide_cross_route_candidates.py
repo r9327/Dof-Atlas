@@ -149,6 +149,19 @@ class CrossGuideCandidatesTests(unittest.TestCase):
         )
         self.assertTrue(all(not c["game_position_verified"]
                             for c in row["coordinate_comparisons"]))
+        self.assertEqual(report["coordinate_comparison_counts"], {
+            "COORDINATE_IN_STEP_SNAPSHOT": 1,
+            "COORDINATE_NOT_IN_STEP_SNAPSHOT": 1,
+            "NO_OBSERVATION_FOR_STEP": 1,
+        })
+        queue = report["coordinate_review_queue"]
+        self.assertEqual(
+            [(r["source_guide_id"], r["source_step_number"], r["action_index"])
+             for r in queue],
+            [(101, 2, 0), (102, 1, 0)],
+        )
+        self.assertTrue(all(r["candidate_only_not_verified_error"] for r in queue))
+        self.assertEqual(row["coordinate_review_needed"], 1)
         self.assertFalse(report["route_replacement_ready"])
 
     def test_malformed_observation_fails_closed(self):
