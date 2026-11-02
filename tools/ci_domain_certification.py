@@ -256,6 +256,7 @@ def owners_for(path: str) -> frozenset[str]:
         "tools/atlas_guide_conformity.py",
         "tools/atlas_guide_importer.py",
         "tools/atlas_guide_candidate_store.py",
+        "tools/atlas_guide_sequence_gate.py",
     }:
         return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
