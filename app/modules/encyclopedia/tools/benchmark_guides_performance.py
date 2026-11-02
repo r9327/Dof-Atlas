@@ -329,6 +329,77 @@ def summarize_samples(samples: list[float]) -> dict[str, float]:
     }
 
 
+def measure_guide_catalog_interactions(
+    app: QApplication, window: AtlasWindow,
+) -> dict[str, object]:
+    """Real Qt category-navigation and offline route timings, on the same host.
+
+    Independent of progress disk writes. Keep the samples in the canonical
+    guide benchmark so Doctor can compare candidate and baseline at same SHA.
+    """
+    page = current_encyclopedia_page(window)
+    view = getattr(page, "guides_view", None) if page is not None else None
+    selector = getattr(view, "category_selector", None)
+    if selector is None or not bool(getattr(view, "_runtime_ready", False)):
+        return {"status": "NOT_AVAILABLE"}
+    names = ("islands", "dimensions", "dofus", "alignements")
+    destinations = [
+        selector.findData(name) for name in names
+    ]
+    if any(index < 0 for index in destinations):
+        return {"status": "NOT_AVAILABLE", "reason": "missing category"}
+    initial_index = selector.currentIndex()
+    rss_before = current_rss_mb()
+    samples: list[float] = []
+    try:
+        for _ in range(4):
+            for index in destinations:
+                started = time.perf_counter()
+                selector.setCurrentIndex(index)
+                app.processEvents()
+                samples.append(milliseconds(started))
+    finally:
+        selector.setCurrentIndex(initial_index)
+        app.processEvents()
+    sorted_samples = sorted(samples)
+    n = len(sorted_samples)
+    rss_after_navigation = current_rss_mb()
+
+    route_open_ms: float | None = None
+    route_closed_rss_mb: float | None = None
+    if callable(getattr(view, "_open_source_by_id", None)) and any(
+        entry.source_id == 2219 for entry in getattr(view, "ganymede_listings", ())
+    ):
+        started = time.perf_counter()
+        view._open_source_by_id(2219)
+        app.processEvents()
+        dialog = getattr(view, "_ganymede_source_dialog", None)
+        if dialog is not None:
+            route_open_ms = milliseconds(started)
+            try:
+                dialog.close()
+            finally:
+                app.processEvents()
+                route_closed_rss_mb = current_rss_mb()
+
+    return {
+        "status": "MEASURED",
+        "samples": n,
+        "category_switch_p50_ms": sorted_samples[(n - 1) // 2],
+        "category_switch_p95_ms": sorted_samples[(n * 95 + 99) // 100 - 1],
+        "category_switch_max_ms": sorted_samples[-1],
+        "catalog_rss_before_mb": rss_before,
+        "catalog_rss_after_navigation_mb": rss_after_navigation,
+        "catalog_rss_delta_mb": (
+            round(rss_after_navigation - rss_before, 2)
+            if rss_before is not None and rss_after_navigation is not None
+            else None
+        ),
+        "otomai1_offline_route_open_ms": route_open_ms,
+        "rss_after_offline_route_close_mb": route_closed_rss_mb,
+    }
+
+
 def measure() -> dict[str, object]:
     app = QApplication.instance() or QApplication([])
 
@@ -364,6 +435,7 @@ def measure() -> dict[str, object]:
     guide_open_ms, guide_open_ui_block_ms = open_runtime(app, window, GUIDES_TAB)
     pump_events(app, 0.05)
     rss_after_guide_mb = current_rss_mb()
+    guide_catalog_interactions = measure_guide_catalog_interactions(app, window)
 
     guide_detail_ms, guide_id, guide_ui_block_ms = first_guide_detail(app, window)
     pump_events(app, 0.05)
@@ -395,6 +467,7 @@ def measure() -> dict[str, object]:
         "achievements_open_max_ui_block_ms": achievements_open_ui_block_ms,
         "guide_open_ms": guide_open_ms,
         "guide_open_max_ui_block_ms": guide_open_ui_block_ms,
+        "guide_catalog_interactions": guide_catalog_interactions,
         "first_achievement_detail_ms": achievement_detail_ms,
         "first_achievement_detail_max_ui_block_ms": achievement_ui_block_ms,
         "first_achievement_id": achievement_id,
