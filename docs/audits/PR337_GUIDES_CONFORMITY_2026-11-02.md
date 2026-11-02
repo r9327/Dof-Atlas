@@ -419,3 +419,59 @@ des différences, contrôle du rendu et de la progression par
 chargeur strict. Continuer ensuite la rédaction des 76 autres,
 sans extrapoler leurs actions depuis de simples relevés GPS/liens.
 Phase CI finale **non lancée** ; PR Draft, **CHANGES REQUIRED**.
+
+## Sidimote 3 — cinquième brouillon rédigé (2 novembre, nouveau lot)
+
+La priorité de la PR reste **faire les 95 guides**, avant le Guide Ultime.
+
+**2235 — Sidimote 3 : 31/31 étapes rédigées avec 133 actions
+structurées, 60/60 déplacements présents dans les relevés locaux de
+la même étape**, en conservant le statut `FULL_DRAFT_NOT_PLAYABLE`.
+Ce fichier n'est **pas** utilisé par le lecteur runtime.
+
+Sources de rédaction factuelle :
+- https://ganymede-app.com/guides/2235 : les **dix premières étapes**,
+  noms de PNJ, déplacements, choix et objets.
+- https://www.dofuserie.com/quetes/l-entree-des-artistes/
+- https://www.dofuserie.com/quetes/un-salaire-germinable/
+- https://www.dofuserie.com/quetes/au-pied-du-mur/
+- https://www.dofuserie.com/quetes/rituel-oblige/
+
+Les 21 étapes suivantes ont été rédigées de manière originale à partir
+de ces quatre fiches de quêtes et de leur recoupement avec les relevés
+`ganymede_2235_observed_links.json` ; elles **n'ont pas encore fait
+l'objet d'une comparaison intégrale à la route Ganymède exacte**.
+La condition `Au pied du mur` avant `Rituel oblige` reste
+explicite, et non présumée remplie pour chaque personnage.
+
+Faits de gameplay conservés et à revoir sous Unity : 5 combats
+distincts (Pwouerk avec le gobelin, 4 Bworks élémentaux, 3 Sectateurs
+avec 3 Shushus Rav, Risa Gregory, Moctar Chitekt en démon), dont les
+combats de groupe possibles. Les quêtes, interactions, ressources
+(60 Argent, 30 Bauxite, 5 Shigekax Menthe), dialogues et parcours
+font l'objet d'actions séparées. La traduction des noms de PNJ est
+rapprochée d'une source française indépendante, sans déclarer les
+noms certifiés dans la version de jeu.
+
+Un test ciblé a été ajouté à
+`tests.test_ganymede_partial_authoring` pour contrôler le guide
+de 31 étapes, les 4 quêtes, les ressources et les 5 combats,
+ainsi que le statut de non-certification.
+
+**Contrôle documentaire direct au SHA
+`68bbcd3bdfec4b19cc335fd84cd932695f3ecafc` :**
+5 brouillons complets, **193/193 étapes, 812 actions et 378/378
+positions correspondant au relevé de la même étape**, aucune erreur
+de structure, de type d'action ou de numérotation dans le contrôle
+statique des dix JSON (5 brouillons + 5 snapshots).
+Ces correspondances de coordonnées ne prouvent pas la parité
+Ganymède ni l'identité des mondes/cartes.
+
+**Tests Python, DOFUS Unity, Qt/Windows, Doctor et bench NOT_RUN.**
+Aucun brouillon nouvellement activé, aucun changement des deux
+grands guides optimisés ni du moteur de validation.
+
+**Bilan global : 15/95 guides à consignes complètes existants mais non
+certifiés, 5/95 brouillons entiers non activés, 75/95 guides à
+rédiger encore intégralement, 0/95 certifié en jeu/Windows.**
+PR Draft, `CHANGES REQUIRED`, aucune CI finale ou fusion lancée.
