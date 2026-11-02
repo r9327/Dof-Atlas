@@ -243,11 +243,23 @@ def main(argv: list[str] | None = None) -> int:
     ref, old, new = read(args.reference), read(args.before), read(args.after)
     prior, current = compare(ref, old), compare(ref, new)
     delta = before_after(ref, old, new)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    # Reports must never overwrite any Atlas data, guide, user state or
+    # prior audit evidence. A fresh output directory is mandatory.
+    output = args.output_dir.absolute()
+    if any(part in {"data", ".git", "saves", "profiles", "user_data"}
+           for part in output.parts):
+        parser.error("output directory must be outside Atlas data and saves")
+    if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
+        parser.error("symlinked output directories are forbidden")
+    try:
+        output.mkdir(parents=True, exist_ok=False)
+    except OSError as exc:
+        parser.error(f"output directory must be new: {exc}")
     for filename, payload in (("before.json", prior), ("after.json", current),
                               ("before_after.json", delta)):
-        (args.output_dir / filename).write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        with (output / filename).open("x", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=2, ensure_ascii=False)
+            stream.write("\n")
     print(json.dumps({"status": current["status"], "issues": current["issue_count"],
                       "output_dir": str(args.output_dir)}, ensure_ascii=False))
     return 0 if not current["issues"] else 1
