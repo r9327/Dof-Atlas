@@ -12,14 +12,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QComboBox, QLabel, QListView, QLineEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QComboBox, QLabel, QListView, QLineEdit, QPlainTextEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
 from app.modules.encyclopedia.views.encyclopedia_page import _has_embedded_search
 from app.modules.encyclopedia.views.guide_library_sources import (
     ATLAS_EQUIVALENTS, CATEGORIES, classify_title, displayable_listings,
-    load_ganymede_listings,
+    load_ganymede_listings, load_ganymede_local_observations,
 )
 from app.modules.encyclopedia.widgets.guide_card import GUIDE_ID_ROLE
 from app.modules.encyclopedia.widgets.guide_card import GuideCardDelegate
@@ -193,7 +193,52 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
-    def test_source_guide_click_opens_embedded_reader_without_network_during_test(self):
+    def test_all_75_non_native_source_routes_have_complete_local_fact_rows(self):
+        import json
+
+        root = Path(__file__).resolve().parents[1] / "data" / "encyclopedia" / "guides"
+        cutovers = json.loads((
+            root / "replacement_drafts" / "cutovers" / "cutover_manifest.json"
+        ).read_text(encoding="utf-8"))["guides"]
+        native_source_ids = {entry["source_guide_id"] for entry in cutovers.values()}
+        listings = load_ganymede_listings()
+        missing_native = [
+            entry for entry in listings if entry.source_id not in native_source_ids
+        ]
+        self.assertEqual(len(native_source_ids), 20)
+        self.assertEqual(len(missing_native), 75)
+        total_steps = 0
+        for entry in missing_native:
+            with self.subTest(source_id=entry.source_id):
+                steps = load_ganymede_local_observations(entry)
+                self.assertEqual(len(steps), entry.step_count)
+                self.assertEqual(steps[0]["source_step_number"], 1)
+                self.assertEqual(
+                    steps[-1]["source_step_number"], entry.step_count,
+                )
+                total_steps += len(steps)
+        self.assertGreater(total_steps, 5000)
+
+    def test_corrupt_local_source_data_fails_closed(self):
+        import json
+
+        entry = next(
+            entry for entry in load_ganymede_listings()
+            if entry.source_id == 2290
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            path = folder / "ganymede_2290_observed_links.json"
+            source = json.loads((
+                Path(__file__).resolve().parents[1] / "data" / "encyclopedia"
+                / "guides" / "ganymede_2290_observed_links.json"
+            ).read_text(encoding="utf-8"))
+            source["steps"][0]["source_step_number"] = 2
+            path.write_text(json.dumps(source), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Invalid offline source step"):
+                load_ganymede_local_observations(entry, data_dir=folder)
+
+    def test_source_guide_click_reads_verified_local_facts_without_network(self):
         import sys
 
         class FakeWebView(QLabel):
@@ -226,12 +271,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view._open_ganymede_source_item(item)
                     dialog = view._ganymede_source_dialog
                     self.assertIsNotNone(dialog)
-                    web = dialog.findChild(FakeWebView, "GanymedeSourceWebView")
-                    self.assertIsNotNone(web)
-                    self.assertEqual(
-                        web.visited_url.toString(),
-                        f"https://ganymede-app.com/guides/{source_id}?page=1&stepsPerPage=1",
+                    self.assertIsNone(
+                        dialog.findChild(FakeWebView, "GanymedeSourceWebView")
                     )
+                    local = dialog.findChild(
+                        QPlainTextEdit, "GanymedeOfflineSourceStep"
+                    )
+                    self.assertIsNotNone(local)
+                    self.assertIn("ÉTAPE 1", local.toPlainText())
+                    self.assertIn("REPÈRES HORS LIGNE", local.toPlainText())
                     self.assertEqual(dialog.objectName(), "GanymedeSourceReader")
                     view.set_character_key("character:12")
                     self.assertIsNone(view._ganymede_source_dialog)
@@ -242,7 +290,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 view.deleteLater()
                 self.app.processEvents()
 
-    def test_source_online_reader_step_navigation_and_character_progress(self):
+    def test_source_offline_reader_step_navigation_and_character_progress(self):
         import sys
         from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
         from PySide6.QtWidgets import QSpinBox, QPushButton
@@ -283,7 +331,13 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 ):
                     view._open_ganymede_source_item(item)
                     dialog = view._ganymede_source_dialog
-                    web = dialog.findChild(OfflineWeb, "GanymedeSourceWebView")
+                    self.assertIsNone(
+                        dialog.findChild(OfflineWeb, "GanymedeSourceWebView")
+                    )
+                    local = dialog.findChild(
+                        QPlainTextEdit, "GanymedeOfflineSourceStep"
+                    )
+                    self.assertIsNotNone(local)
                     spinner = dialog.findChild(QSpinBox, "GanymedeSourceStepNumber")
                     validate = dialog.findChild(
                         QPushButton, "GanymedeSourceValidateStep"
@@ -302,10 +356,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         "character:7", progress_id, step_id,
                     ))
                     spinner.setValue(2)
-                    self.assertEqual(
-                        web.visited_url.toString(),
-                        f"https://ganymede-app.com/guides/{source.source_id}?page=2&stepsPerPage=1",
-                    )
+                    self.assertIn("ÉTAPE 2 /", local.toPlainText())
+                    self.assertIn("REPÈRES HORS LIGNE", local.toPlainText())
                     spinner.setValue(1)
                     self.assertEqual(validate.text(), "Annuler la validation")
                     # A second session clears the step after this dialog
