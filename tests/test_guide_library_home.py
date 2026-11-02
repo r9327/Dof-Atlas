@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QLabel, QListView, QLineEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QComboBox, QLabel, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -452,10 +452,9 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(set(view.featured_cards), {
                         "guide_complet", "dofus_sylvestre",
                     })
-                    # The optimized cards stack inside the narrower left
-                    # panel instead of forcing a wide third column.
+                    # The two optimized cards now span the whole top row.
                     self.assertEqual(view.optimized_pair.pair_layout.direction(),
-                                     QBoxLayout.TopToBottom)
+                                     QBoxLayout.LeftToRight)
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
                     self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
@@ -494,7 +493,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.deleteLater()
                     self.app.processEvents()
 
-    def test_home_shows_optimized_alignments_and_dofus_then_other_families(self):
+    def test_home_shows_two_optimized_cards_above_dropdown_and_selected_content(self):
         with tempfile.TemporaryDirectory() as directory:
             view = GuideCatalogView(
                 lambda _text: None, provider=_Provider(),
@@ -510,58 +509,56 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 self.assertEqual(
                     view.home_columns.layout().direction(), QBoxLayout.LeftToRight,
                 )
-                self.assertTrue(view.home_left.isVisibleTo(view))
-                self.assertTrue(view.library_right.isVisibleTo(view))
-                self.assertEqual(
-                    set(view.alignment_buttons),
-                    {"alignement_bonta", "alignement_brakmar"},
-                )
-                self.assertTrue(view.alignment_buttons["alignement_bonta"].isEnabled())
-                self.assertIn("774", view.alignment_buttons["alignement_bonta"].text())
-                self.assertIn("696", view.alignment_buttons["alignement_brakmar"].text())
-                self.assertTrue(view.alignment_shared_button.isVisibleTo(view))
-                self.assertIn("54", view.alignment_shared_button.text())
-                self.assertEqual(view.library_results_title.text(), "DOFUS")
-                self.assertFalse(view.library_categories.isVisibleTo(view))
-                self.assertEqual(
-                    set(view.other_category_lists),
-                    {"dimensions", "eliocalypse", "regions", "events", "adventures", "islands"},
-                )
-                # Every category is rendered independently, not behind a tree.
-                for category, listing in view.other_category_lists.items():
-                    self.assertGreater(listing.count(), 0, category)
-                    self.assertTrue(listing.isVisibleTo(view), category)
+                self.assertEqual(view.optimized_pair.pair_layout.direction(),
+                                 QBoxLayout.LeftToRight)
+                self.assertTrue(view.optimized_pair.isVisibleTo(view))
                 self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                 self.assertTrue(view.featured_cards["dofus_sylvestre"].isVisibleTo(view))
-                requested = []
-                view.guideRequested.connect(requested.append)
-                with patch.object(view, "_open_ganymede_source_item") as source:
-                    view.alignment_buttons["alignement_bonta"].click()
+                self.assertTrue(view.category_selector.isVisibleTo(view))
+                self.assertIsInstance(view.category_selector, QComboBox)
+                self.assertEqual(view.category_selector.currentData(), "dofus")
+                self.assertFalse(view.library_categories.isVisibleTo(view))
+                self.assertFalse(view.other_groups_widget.isVisibleTo(view))
+                self.assertFalse(any(
+                    button.isVisibleTo(view)
+                    for button in view.alignment_buttons.values()
+                ))
+                self.assertFalse(view.alignment_shared_button.isVisibleTo(view))
+                self.assertEqual(view.library_results_title.text(), "DOFUS")
+                self.assertTrue(view.home_dofus_list.isVisibleTo(view))
+                self.assertEqual(
+                    view.category_selector.count(), len(CATEGORIES) - 1,
+                )
+
+                # Only the right side switches when a category is selected.
+                view.category_selector.setCurrentIndex(
+                    view.category_selector.findData("alignements"),
+                )
+                self.assertEqual(view.library_category, "alignements")
+                self.assertEqual(view.library_results_title.text(), "ALIGNEMENTS")
+                self.assertEqual(view.home_dofus_model.rowCount(), 2)
+                self.assertTrue(any(
+                    view.home_metadata_list.item(i).data(Qt.UserRole) == 2226
+                    for i in range(view.home_metadata_list.count())
+                ))
+                self.assertTrue(view.optimized_pair.isVisibleTo(view))
+                for key in ("dimensions", "eliocalypse", "regions",
+                            "events", "islands", "adventures"):
+                    view.category_selector.setCurrentIndex(
+                        view.category_selector.findData(key),
+                    )
+                    self.assertEqual(view.library_category, key)
                     self.assertEqual(
-                        source.call_args.args[0].data(Qt.UserRole), 2249,
+                        view.library_results_title.text(),
+                        dict(CATEGORIES)[key].upper(),
                     )
-                    view.alignment_shared_button.click()
-                    self.assertEqual(
-                        source.call_args.args[0].data(Qt.UserRole), 2226,
-                    )
-                    first = view.other_category_lists["dimensions"].item(0)
-                    view.other_category_lists["dimensions"].itemClicked.emit(first)
-                    self.assertEqual(
-                        source.call_args.args[0].data(Qt.UserRole),
-                        first.data(Qt.UserRole),
-                    )
-                    # Enter/double-click activation uses the same safe route.
-                    source.reset_mock()
-                    view.other_category_lists["dimensions"].itemActivated.emit(first)
-                    source.assert_called_once_with(first)
-                    view.library_categories.setCurrentItem(
-                        view._category_nodes["dofus"]
-                    )
-                    source.reset_mock()
-                    dofus_source = view.home_metadata_list.item(0)
-                    view.home_metadata_list.itemActivated.emit(dofus_source)
-                    source.assert_called_once_with(dofus_source)
-                self.assertEqual(requested, [])
+                    self.assertGreater(view.home_metadata_list.count(), 0, key)
+                    self.assertFalse(view.other_groups_widget.isVisibleTo(view))
+
+                # Existing programmatic navigation still synchronizes the menu.
+                view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+                self.assertEqual(view.category_selector.currentData(), "dofus")
+                self.assertEqual(view.library_results_title.text(), "DOFUS")
                 view.resize(610, 780)
                 self.app.processEvents()
                 self.assertEqual(
