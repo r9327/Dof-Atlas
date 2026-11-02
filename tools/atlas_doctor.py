@@ -956,13 +956,20 @@ def command_all(root: Path, args) -> dict[str, Any]:
 
 def command_oss(root: Path, args) -> dict[str, Any]:
     """Run safe, opt-in third-party diagnostics without changing Doctor gates."""
-    from tools.atlas_doctor_lib.oss_router import route_oss, qualify_live
+    from tools.atlas_doctor_lib.oss_router import (
+        route_oss, qualify_live, trial_imagehash,
+    )
     try:
-        payload = (qualify_live(root, args.paths,
+        if getattr(args, "asset_trial", False):
+            if args.run or args.verify_live:
+                raise ValueError("ImageHash trial is separate from Ruff/zizmor execution")
+            payload = trial_imagehash(root, args.paths)
+        elif args.verify_live:
+            payload = qualify_live(root, args.paths,
+                                   timeout_seconds=args.timeout_seconds)
+        else:
+            payload = route_oss(root, args.paths, run=args.run,
                                 timeout_seconds=args.timeout_seconds)
-                   if getattr(args, "verify_live", False)
-                   else route_oss(root, args.paths, run=args.run,
-                                  timeout_seconds=args.timeout_seconds))
     except ValueError as exc:
         payload = {"schema_version": 1, "status": "BLOCKED",
                    "reason": str(exc), "phase_certified": False}
@@ -985,6 +992,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Exécuter Ruff/zizmor déjà installés, sans mutation.")
     oss.add_argument("--verify-live", action="store_true",
                      help="Attester l'exécution réelle locale des deux outils et l'intégrité des fichiers.")
+    oss.add_argument("--asset-trial", action="store_true",
+                     help="Essai ImageHash manuel sur images explicites; jamais de suppression.")
     oss.add_argument("--timeout-seconds", type=int, default=20,
                      help="Limite d'exécution de Ruff (1 à 60 secondes).")
     ci_plan = sub.add_parser('ci', help='Plan CI GitHub exact-SHA sans Qt ni execution de tests.')
@@ -1407,6 +1416,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oss':
         if payload.get("status") == "BLOCKED":
             return 2
+        if getattr(args, "asset_trial", False):
+            return 0 if payload.get("status") == "TRIAL_COMPLETE" else 1
         if getattr(args, "verify_live", False):
             return 0 if payload.get("status") == "LIVE_PASS" else 2 if payload.get("status") == "FAIL" else 1
         executions = payload.get("execution_results") or [payload.get("execution") or {}]
