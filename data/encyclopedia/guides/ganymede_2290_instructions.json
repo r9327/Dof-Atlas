@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2290,
+  "source_url": "https://ganymede-app.com/guides/2290",
+  "expected_source_step_count": 2,
+  "rights_basis": "atlas_original",
+  "authored_language": "fr",
+  "editorial_source_text_copied": false,
+  "verification_scope": "independently_cross_checked_gameplay_facts_not_live_player_certified",
+  "fact_sources": [
+    "https://www.dofuspourlesnoobs.com/quetes-du-dofus-sylvestre.html",
+    "https://www.dofuserie.com/dofus/dofus-sylvestre/",
+    "https://www.dofuserie.com/quetes/flovoraison/"
+  ],
+  "completion_note": "Deux étapes de clôture du succès En attendant le printemps. Cette route Ganymède est indépendante du grand guide optimisé Atlas Dofus Sylvestre.",
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Valider les conditions d'En attendant le printemps",
+      "instructions": "Avant de revenir auprès de Silvosse, assure-toi que tous les éléments du succès « En attendant le printemps » sont terminés sur le personnage actif : « Le secret des Dofus : Prologue », l'obtention du Dom de Pin, « L'arbre qui cache la forêt » et « Flovoraison ». Cette dernière se conclut avec « Qui nous protège du Protecteur ? » après avoir rendu le Dofus Verdoyant à Silvosse. Réunis ensuite les six Dofus primordiaux pour le rituel final.",
+      "actions": [
+        {
+          "kind": "prepare",
+          "text": "Vérifier dans les succès que « Le secret des Dofus : Prologue » est achevé."
+        },
+        {
+          "kind": "prepare",
+          "text": "Avoir terminé l'obtention du Dom de Pin et la série de quêtes « L'arbre qui cache la forêt »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Terminer « Flovoraison » et « Qui nous protège du Protecteur ? », en ayant soigné Silvosse avec le Dofus de quête approprié."
+        },
+        {
+          "kind": "prepare",
+          "text": "Emporter les six Dofus primordiaux : Émeraude, Pourpre, Turquoise, Ocre, Ivoire et Ébène."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas confondre le Dofus Sylvestre de quête, utilisé pour soigner Silvosse, avec la récompense définitive du succès."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Parler à Silvosse et planter la graine du renouveau",
+      "instructions": "Lorsque toutes les cases préalables du succès sont validées, retourne voir Silvosse pour la dernière étape « En attendant le printemps ». Il te confie le véritable Dofus Sylvestre et te demande d'utiliser son pouvoir avec celui des six Dofus primordiaux afin de planter une nouvelle graine à l'endroit où Magni a abattu le Grand Arbre d'Albuera. Accomplis l'interaction indiquée par la quête, puis contrôle l'apparition du jeune pin, la validation du succès et la présence du Dofus Sylvestre de récompense dans ton inventaire.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retourner sur l'archipel de Valonia, dans le secteur du Grand Arbre d'Albuera. Le relevé de route local mentionne la position [40,-84] ; vérifier la cible active en jeu.",
+          "coordinates": [
+            40,
+            -84
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Silvosse une fois toutes les conditions d'« En attendant le printemps » accomplies."
+        },
+        {
+          "kind": "interact",
+          "text": "Planter la nouvelle graine à l'emplacement du Grand Arbre abattu, avec les six Dofus primordiaux sur le personnage."
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la récompense Dofus Sylvestre et le succès terminé, puis valider manuellement cette étape dans Atlas."
+        }
+      ]
+    }
+  ]
+}
