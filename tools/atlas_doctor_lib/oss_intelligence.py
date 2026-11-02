@@ -206,10 +206,17 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
          "command": None},
     )
     selection_rows = selection.get("recommended") or []
+    observed_packages = {
+        row["id"]: row for row in (selection.get("local_preflight") or {}).get("tools", [])
+        if isinstance(row, dict) and isinstance(row.get("id"), str)
+    }
     special = [
         {"tool_id": row.get("id"), "name": row.get("name"),
          "decision": row.get("decision"),
          "reason_scopes": list(row.get("reason_scopes") or []),
+         "local_distribution": row.get("local_distribution"),
+         "locally_available": observed_packages.get(row.get("id"), {}).get("available"),
+         "installed_version_claim": observed_packages.get(row.get("id"), {}).get("version_claim"),
          "automatic_execution": False}
         for row in selection_rows if isinstance(row, dict)
     ]
