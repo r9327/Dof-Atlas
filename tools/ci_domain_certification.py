@@ -105,6 +105,7 @@ ORGANIZER_MACRO_PATHS = frozenset({
     "app/macros/input_tools.py", "app/macros/switch_character.py",
     "app/macros/switch_click.py", "app/macros/travel.py",
     "app/macros/zaap.py", "app/macros/mirror_plan.py",
+    "app/macros/mirror_input.py",
 })
 ORGANIZER_UI_PATHS = frozenset({
     "app/pages/organizer_page.py", "app/pages/organizer/__init__.py",

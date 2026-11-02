@@ -14,6 +14,7 @@ from app.input.hook_lifecycle import current_native_thread_id, stop_message_hook
 from app.input.input_state import InputState
 
 HotkeyCallback = Callable[[str, dict[str, object]], None]
+PhysicalKeyCallback = Callable[[int, bool], bool]
 
 WH_KEYBOARD_LL = 13
 WM_KEYDOWN = 0x0100
@@ -329,6 +330,8 @@ class HotkeyRegistry:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._suppressed_until_release: set[str] = set()
+        self.physical_key_callback: PhysicalKeyCallback | None = None
+        self._mirrored_key_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
         parsed: list[HotkeyAction] = []
@@ -432,6 +435,7 @@ class HotkeyRegistry:
 
     def stop(self) -> None:
         stop_message_hook(self)
+        self._mirrored_key_ups.clear()
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
@@ -476,6 +480,32 @@ class HotkeyRegistry:
                     if self._dispatch_priority_stop(vk_code, pressed):
                         return 1
                     self._dispatch_matching_hotkeys()
+                    # A mirrored physical DOWN is a short, balanced injected
+                    # tap; swallow its original UP even after the worker ends.
+                    if released and vk_code in self._mirrored_key_ups:
+                        self._mirrored_key_ups.discard(vk_code)
+                        return 1
+                    if pressed and vk_code in self._mirrored_key_ups:
+                        return 1  # physical autorepeat, never a second tap
+                    # Never intercept global combinations, modifiers, or the
+                    # emergency-stop key. In particular preserve Alt+Tab.
+                    reserved = any(
+                        action.spec and vk_code in action.spec.keys
+                        for action in self._stop_actions
+                    )
+                    modifier_down = bool(
+                        self.input_state.snapshot().intersection(MODIFIER_VKS)
+                    )
+                    permitted = (
+                        (0x30 <= vk_code <= 0x5A and vk_code not in MODIFIER_VKS)
+                        or (0x70 <= vk_code <= 0x87)
+                        or vk_code in (0x08, 0x0D, 0x1B, 0x20, 0x25, 0x26, 0x27, 0x28)
+                    )
+                    if (pressed and permitted and not reserved and not modifier_down
+                            and self.physical_key_callback is not None):
+                        if self.physical_key_callback(vk_code, True):
+                            self._mirrored_key_ups.add(vk_code)
+                            return 1
         except Exception:
             self.logger.exception("Hook clavier: erreur callback.")
         return ctypes.windll.user32.CallNextHookEx(self._hook, n_code, w_param, l_param)

@@ -44,3 +44,25 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 - Scénarios 1/2/4/8 fenêtres en jeu et mesures p50/p95/p99 : NOT_RUN (#322).
 - Exigences MIRR-001/002/003/004/005 et certification indépendante non
   closes : PR Draft. Ne pas fusionner avant implémentation et preuves finales.
+
+
+## Raccordement incrémental des entrées discrètes (PR #325)
+
+- Le hook clavier existant route les **touches brèves sans modificateur**
+  seulement si le favori DOFUS Unity est au premier plan. Il exclut les
+  raccourcis système (Ctrl/Alt/Win/Shift), le Stop urgence, les répétitions
+  et les événements synthétiques. Une touche physique interceptée est
+  rejouée comme un appui + relâchement, jamais comme une touche maintenue.
+- Le hook souris existant route les crans de molette verticaux et horizontaux,
+  avec signe et position relative du curseur. L'envoi utilise SendInput,
+  pas PostMessage ni un deuxième injecteur.
+- Le moteur MirrorInputMacro utilise le verrou de macro, le favori exact,
+  la liste figée des clients DOFUS, la validation avant chaque activation,
+  l'arrêt d'urgence, la libération des touches dans finally et le retour
+  au favori après une diffusion. Les clics gardent le moteur existant.
+- **Toujours non supportés :** touches maintenues répliquées comme un maintien
+  continu, raccourcis combinés, glisser-déposer, mouvements de souris en
+  continu, diffusion réellement simultanée/en arrière-plan. Le mode
+  séquentiel avec changements de focus ne peut garantir ces comportements.
+- **Statut de validation** : tests de simulation ajoutés, pas encore exécutés
+  au HEAD final ; recette Windows / DOFUS Unity #322 : NOT_RUN.

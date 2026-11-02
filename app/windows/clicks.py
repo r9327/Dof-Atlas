@@ -246,3 +246,24 @@ def send_client_click(
         logger,
         should_stop=should_stop,
     )
+
+
+MOUSEEVENTF_WHEEL = 0x0800
+MOUSEEVENTF_HWHEEL = 0x1000
+
+
+def send_screen_wheel(delta: int, *, horizontal: bool = False) -> bool:
+    """One SendInput wheel gesture with native signed high-word delta."""
+    if os.name != "nt" or type(delta) is not int or delta == 0 or abs(delta) > 32767:
+        return False
+    flag = MOUSEEVENTF_HWHEEL if horizontal else MOUSEEVENTF_WHEEL
+    event = INPUT(
+        type=INPUT_MOUSE,
+        union=INPUT_UNION(mi=MOUSEINPUT(
+            0, 0, delta & 0xFFFFFFFF, flag, 0,
+            ctypes.c_void_p(ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO),
+        )),
+    )
+    return int(ctypes.windll.user32.SendInput(
+        1, ctypes.byref(event), ctypes.sizeof(INPUT),
+    )) == 1

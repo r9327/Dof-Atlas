@@ -28,6 +28,7 @@ HOOK_START_TIMEOUT_SECONDS = 2.0
 BLOCK_LOG_INTERVAL_SECONDS = 0.4
 
 MouseCallback = Callable[[str, int, int], bool]
+WheelCallback = Callable[[int, int, int, bool], bool]
 
 
 class POINT(ctypes.Structure):
@@ -94,11 +95,13 @@ class MouseHook:
         synthetic_guard: SyntheticInputGuard,
         logger: Logger,
         callback: MouseCallback,
+        wheel_callback: WheelCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
         self.logger = logger
         self.callback = callback
+        self.wheel_callback = wheel_callback
         self._hook = None
         self._callback_ref = None
         self._thread: threading.Thread | None = None
@@ -187,6 +190,15 @@ class MouseHook:
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
                     self._log_blocked_event(w_param, x, y)
                     return 1
+
+                if w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
+                    if (not atlas_synthetic and not self.synthetic_guard.is_synthetic_window()
+                            and self.wheel_callback is not None):
+                        delta = ctypes.c_short((int(event.mouseData) >> 16) & 0xFFFF).value
+                        if delta and self.wheel_callback(
+                            delta, x, y, w_param == WM_MOUSEHWHEEL,
+                        ):
+                            return 1
 
                 if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
                     button = "Left" if w_param == WM_LBUTTONDOWN else "Right"

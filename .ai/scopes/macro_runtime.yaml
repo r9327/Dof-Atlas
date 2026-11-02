@@ -8,6 +8,7 @@ working_set:
   - app/macros/direction.py
   - app/macros/auto_group.py
   - app/macros/mirror_plan.py
+  - app/macros/mirror_input.py
   - app/core/runtime_state.py
   - app/core/settings.py
   - app/constants.py

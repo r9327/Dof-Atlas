@@ -317,5 +317,83 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         self.assertEqual([item["hwnd"] for item in result], [101])
 
 
+    def test_native_wheel_hook_preserves_signed_delta_and_ignores_synthetic(self):
+        import ctypes
+        import logging
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_MOUSEWHEEL, LLMHF_INJECTED
+        from app.input.input_state import InputState, SyntheticInputGuard
+
+        logger = logging.getLogger("mirror_wheel_hook")
+        wheel = Mock(return_value=True)
+        hook = MouseHook(InputState(), SyntheticInputGuard(logger), logger, Mock(), wheel_callback=wheel)
+        event = MSLLHOOKSTRUCT()
+        event.mouseData = (0xFF88 << 16)  # signed -120
+        event.pt.x = 15
+        event.pt.y = 25
+        user32 = SimpleNamespace(CallNextHookEx=Mock(return_value=37))
+        with patch.object(ctypes, "windll", SimpleNamespace(user32=user32), create=True):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, ptr), 1)
+            wheel.assert_called_once_with(-120, 15, 25, False)
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, ptr), 37)
+            wheel.assert_called_once()
+
+    def test_sequential_mirror_keyboard_balances_down_up_on_each_client(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        runtime.settings.timings.switch_background_pre_click_ms = 0
+        runtime.settings.timings.activate_attempts = 1
+        runtime.settings.timings.activate_retry_ms = 0
+        runtime.settings.timings.switch_click_down_ms = 10
+        runtime.settings.timings.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        macro = MirrorInputMacro(runtime)
+        events = []
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", side_effect=[101, 202]),
+            patch("app.macros.input_tools.key_down", side_effect=lambda vk: events.append(("down", vk))),
+            patch("app.macros.input_tools.key_up", side_effect=lambda vk: events.append(("up", vk))),
+        ):
+            macro._run("key", 65, 101, (101, 202))
+        self.assertEqual(events, [("down", 65), ("up", 65)] * 2)
+        runtime.input_state.begin_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_called_once()
+
+    def test_wheel_executor_cancels_on_foreign_process(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        macro = MirrorInputMacro(runtime)
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  side_effect=lambda hwnd: hwnd != 202),
+            patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window") as activate,
+            patch("app.macros.mirror_input.send_screen_wheel") as send,
+            patch("app.macros.mirror_input.set_cursor_pos"),
+        ):
+            macro._run("wheel", (120, False, 0.4, 0.5), 101, (101, 202))
+        activate.assert_not_called()
+        send.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

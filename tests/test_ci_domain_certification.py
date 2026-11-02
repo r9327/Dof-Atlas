@@ -29,6 +29,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/macros/zaap.py": {"organizer", "ui", "identity"},
             "app/macros/direction.py": {"organizer", "ui", "identity"},
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
+            "app/macros/mirror_input.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_overlay.py": {"organizer", "ui", "identity"},
             "app/core/runtime_state.py": {"organizer", "ui", "startup", "identity"},

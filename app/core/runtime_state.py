@@ -107,12 +107,19 @@ class AtlasRuntime:
         self._macro_init_lock = threading.RLock()
         self._switch_character = None
         self._switch_click = None
+        self._mirror_input = None
         self._direction = None
         self._travel = None
         self._zaap = None
         self._auto_group = None
-        self.registry = ManagedHotkeyRegistry(self.input_state, self.logger, self._handle_hotkey)
-        self.mouse_hook = ManagedMouseHook(self.input_state, self.synthetic_guard, self.logger, self._handle_mouse_click)
+        self.registry = ManagedHotkeyRegistry(
+            self.input_state, self.logger, self._handle_hotkey,
+            physical_key_callback=self._handle_mirror_key,
+        )
+        self.mouse_hook = ManagedMouseHook(
+            self.input_state, self.synthetic_guard, self.logger,
+            self._handle_mouse_click, wheel_callback=self._handle_mirror_wheel,
+        )
         self.last_client_point = LastClientPoint()
         self.active_client_handle = 0
         self._running = False
@@ -170,6 +177,14 @@ class AtlasRuntime:
     def switch_click(self, value) -> None:
         with self._macro_init_lock:
             self._switch_click = value
+
+    @property
+    def mirror_input(self):
+        with self._macro_init_lock:
+            if self._mirror_input is None:
+                from app.macros.mirror_input import MirrorInputMacro
+                self._mirror_input = MirrorInputMacro(self)
+            return self._mirror_input
 
     @property
     def direction(self):
@@ -548,6 +563,86 @@ class AtlasRuntime:
                 return
             self.direction.run_async(key_name)
             return
+
+    def _mirror_gesture_targets(self) -> tuple[int, tuple[int, ...]] | None:
+        """Snapshot one real starred Unity DOFUS source and its session roster."""
+        from app.macros.mirror_plan import (
+            is_dofus_unity_process, mirror_delivery_targets,
+        )
+        from app.windows.unity_windows import is_unity_window
+
+        if (not self._running or not self._admin_ok
+                or self.settings.macro_mode != "mirror"):
+            return None
+        settings = self.settings
+        source = settings.primary_handle
+        favorite = settings.client_by_handle(source) if source else None
+        if favorite is None or not is_unity_window(source):
+            return None
+        if not is_dofus_unity_process(source):
+            return None
+        live = tuple(
+            c.handle for c in settings.clients
+            if is_unity_window(c.handle) and is_dofus_unity_process(c.handle)
+        )
+        targets = mirror_delivery_targets(
+            live, live, source, source_was_consumed=True,
+        )
+        return (source, targets) if len(targets) >= 2 else None
+
+    def _handle_mirror_key(self, vk_code: int, pressed: bool) -> bool:
+        """Forward only short standalone keystrokes; never modifier/OS chords."""
+        from app.windows.unity_windows import foreground_window
+
+        if not pressed:
+            return False
+        snapshot = self._mirror_gesture_targets()
+        if snapshot is None:
+            return False
+        source, targets = snapshot
+        foreground = foreground_window()
+        if self.macro_lock.active_label:
+            # During a sequential replay another tracked client may have
+            # focus. Suppress accidental keystrokes into that client only.
+            return foreground in targets
+        if foreground != source:
+            return False
+        try:
+            return bool(self.mirror_input.run_key(vk_code, source, targets))
+        except Exception:
+            self.logger.exception("Miroir clavier: lancement impossible.")
+            return False
+
+    def _handle_mirror_wheel(
+        self, delta: int, screen_x: int, screen_y: int, horizontal: bool,
+    ) -> bool:
+        from app.windows.unity_windows import (
+            client_point_ratio, find_known_client_from_point,
+            foreground_window, screen_to_client,
+        )
+
+        snapshot = self._mirror_gesture_targets()
+        if snapshot is None:
+            return False
+        source, targets = snapshot
+        foreground = foreground_window()
+        if self.macro_lock.active_label:
+            return foreground in targets
+        if foreground != source:
+            return False
+        if find_known_client_from_point(screen_x, screen_y, (source,)) != source:
+            return False
+        point = screen_to_client(source, screen_x, screen_y)
+        ratio = client_point_ratio(source, *point) if point is not None else None
+        if ratio is None:
+            return False
+        try:
+            return bool(self.mirror_input.run_wheel(
+                delta, horizontal, ratio[0], ratio[1], source, targets,
+            ))
+        except Exception:
+            self.logger.exception("Miroir molette: lancement impossible.")
+            return False
 
     def _handle_mirror_click(self, button: str, screen_x: int, screen_y: int) -> bool:
         """Replay a consumed favorite-window click through the existing sender.
