@@ -118,6 +118,43 @@ class TestGuideConformity(unittest.TestCase):
         self.reference["complete"] = False
         self.assertIn("UNVERIFIABLE", self._codes(self.atlas))
 
+    def test_matching_empty_steps_and_actions_can_never_pass(self) -> None:
+        reference = reference()
+        atlas = imported(reference)
+        reference["guides"][0]["steps"] = []
+        atlas["guides"][0]["steps"] = []
+        report = compare(reference, atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", report["issue_codes"])
+
+        reference = reference()
+        atlas = imported(reference)
+        reference["guides"][0]["steps"][0]["actions"] = []
+        atlas["guides"][0]["steps"][0]["actions"] = []
+        report = compare(reference, atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", report["issue_codes"])
+
+    def test_inventory_counts_missing_guide_contents(self) -> None:
+        self.atlas["guides"].pop()
+        report = compare(self.reference, self.atlas)
+        self.assertEqual(report["coverage"]["reference_full_guides"], 2)
+        self.assertEqual(report["coverage"]["atlas_full_guides"], 1)
+        self.assertEqual(report["coverage"]["reference_full_steps"], 3)
+        self.assertEqual(report["coverage"]["atlas_full_steps"], 2)
+        self.assertEqual(report["coverage"]["reference_full_actions"], 4)
+        self.assertEqual(report["coverage"]["atlas_full_actions"], 3)
+        self.assertIn("MISSING_GUIDE", report["issue_codes"])
+
+    def test_matching_invalid_action_kind_is_not_validated(self) -> None:
+        reference = reference()
+        atlas = imported(reference)
+        reference["guides"][0]["steps"][0]["actions"][0].pop("kind")
+        atlas["guides"][0]["steps"][0]["actions"][0].pop("kind")
+        report = compare(reference, atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", report["issue_codes"])
+
     def test_wrong_type_never_passes(self) -> None:
         self.atlas["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = "10"
         self.assertIn("TYPE_MISMATCH", self._codes(self.atlas))
