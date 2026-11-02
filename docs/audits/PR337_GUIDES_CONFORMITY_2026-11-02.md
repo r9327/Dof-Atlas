@@ -136,3 +136,40 @@ déclarer le Guide Succès remplacé.
 **0/15**. Révision de la route originale étape par étape, correction des
 divergences, tests UI/Windows/DOFUS, Doctor et Graphify exact-SHA restent
 indispensables avant une refonte commune et la certification des 80 suivants.
+
+## Correctif incrémental Otomaï 3 et revue GPS (2 novembre — reprise)
+
+- `ganymede_2252_instructions.json` : l'action de déplacement vers le
+  Professeur Fournesol **[-48,19]** a été déplacée de l'étape 1 vers
+  l'étape 2, **sans supprimer l'action**, sans changer la carte et sans
+  toucher au dialogue/à la validation de l'étape 3. Le relevé local
+  `ganymede_otomai_3_observed_links.json` ne contient aucune coordonnée
+  à l'étape 1 et mentionne [-48,19] à l'étape 2. Cette destination est
+  aussi décrite par
+  https://www.dofuserie.com/quetes/la-potion-bulbique/
+  et https://doflex.fr/fr/encyclopedia/quests/118-la-potion-bulbique .
+  **Contrôle de placement réalisé, pas preuve de l'intégralité de la route Ganymède.**
+- Un test ciblé verrouille le positionnement étape 2 et le dialogue
+  Fournesol à l'étape 3. **NOT_RUN** (pas de checkout Python/Windows).
+- L'outil `audit_ganymede_crosswalk --cross-guide-candidates` expose désormais
+  `coordinate_comparison_counts` et `coordinate_review_queue`. Il distingue
+  les positions mentionnées dans le relevé de **la même étape**, celles
+  absentes et les relevés manquants. Il ne transforme jamais un constat
+  en validation de carte, de quête ou de personnage.
+- Conséquence arithmétique de ce déplacement sur les données contrôlées :
+  **230/231** actions positionnées correspondant au relevé de leur étape
+  (contre 229/231 avant correction). Un seul écart documentaire connu
+  reste à investiguer, **#2273 étape 8**.
+- **Argenté Scintillant #2273** : la source indépendante
+  https://www.dofuserie.com/quetes/le-silence-est-d-aure/
+  situe le Gardien du Jour sans fin à **[-71,-78]**. Le relevé factuel
+  Ganymède local de l'étape 8 mentionne **[-74,-83]** tandis que la route
+  Atlas affiche [-71,-78] à cette même étape. Ces coordonnées ne
+  sont pas interchangeables sans vérification du chemin spécifique et
+  de la transition entre les étapes. **Aucune substitution automatique** :
+  position conservée et anomalie tracée pour revue source/jeu.
+
+**Statut : 15/95 rédigés ; 0/15 certifiés en source/Windows ; PR Draft /
+CHANGES REQUIRED.** Les tests ajoutés et la commande d'audit restent à
+exécuter dans un environnement de développement complet. Ni la concordance
+GPS ni la présence de 95 snapshots ne suffisent à remplacer le Guide Succès.
