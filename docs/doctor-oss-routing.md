@@ -51,6 +51,12 @@ Le résultat figure sous `oss_advisory` ; il ne change jamais le
 `status`, `exit_code` ou la décision de certification Doctor.
 Un agent bloqué ne lance pas Ruff, et un outil absent n'est jamais installé.
 
+Le rapport expose aussi `native_catalog`, calculé **uniquement par
+`tools.tool_catalog`** : nombre d'outils internes inventoriés,
+`automation_ready`, outils à revoir, mutateurs non gardés et échantillon
+de chemins. Il s'agit d'un audit de câblage **statique**,
+`execution_witnesses: 0` tant qu'aucun test n'a été exécuté.
+
 Le rapport retourne aussi `open_source_inventory` : les 29 entrées `ATOSS-XX`
 lues directement depuis l'étude canonique, sans table de correspondance
 à maintenir séparément. Chaque entrée distingue `NOT_VERIFIED`,

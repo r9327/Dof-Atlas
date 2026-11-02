@@ -98,7 +98,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     workflows = [name for name in files if name.endswith((".yml", ".yaml"))]
     capability = "validation" if python_files else "ci_intelligence"
     # The existing catalog is the only source for native Doctor tool readiness.
-    native = select_tools(catalog(root), capability=capability,
+    native_report = catalog(root)
+    native = select_tools(native_report, capability=capability,
                           safe_only=True, ready_only=True, limit=5)
     probe = local_candidate_preflight(packages=["ruff"] if python_files else [])
     detected = next(iter(probe["results"]), None)
@@ -154,6 +155,21 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         "native_tools": [{"path": item["path"], "capabilities": item["capabilities"]}
                          for item in native["tools"]],
         "native_tools_executed": False,
+        "native_catalog": {
+            "source": "tools.tool_catalog.catalog",
+            "tool_count": native_report.get("tool_count"),
+            "agent_ready_count": native_report.get("agent_ready_count"),
+            "automation_ready_count": native_report.get("automation_ready_count"),
+            "unguarded_mutator_count": native_report.get("unguarded_mutator_count"),
+            "unready_total": sum(not item.get("automation_ready", False)
+                                 for item in native_report.get("tools", [])),
+            "unready_sample": [
+                {"path": item.get("path"), "readiness": item.get("readiness")}
+                for item in native_report.get("tools", [])
+                if not item.get("automation_ready", False)
+            ][:25],
+            "execution_witnesses": 0,
+        },
         "open_source_inventory": _open_source_inventory(root),
         "oss_candidates": [{
             "id": "ruff", "selected": bool(python_files),

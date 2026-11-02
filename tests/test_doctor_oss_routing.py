@@ -171,5 +171,25 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["candidates"][19]["integration"], "DOCTOR_OPT_IN_ONLY")
         self.assertEqual(report["candidates"][-1]["integration"], "REJECTED")
 
+    def test_catalog_reports_unready_tools_without_running_them(self):
+        catalog = {"tool_count": 2, "agent_ready_count": 1,
+                   "automation_ready_count": 1, "unguarded_mutator_count": 1,
+                   "tools": [
+                       {"path": "tools/atlas_doctor.py", "automation_ready": True},
+                       {"path": "tools/legacy.py", "automation_ready": False,
+                        "readiness": "review_before_agent_use"},
+                   ]}
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value=catalog),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            result = route_oss(self.root, ["tools/example.py"])
+        self.assertEqual(result["native_catalog"]["tool_count"], 2)
+        self.assertEqual(result["native_catalog"]["automation_ready_count"], 1)
+        self.assertEqual(result["native_catalog"]["unready_total"], 1)
+        self.assertFalse(result["native_tools_executed"])
+        run.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
