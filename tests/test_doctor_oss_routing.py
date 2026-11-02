@@ -251,6 +251,30 @@ class DoctorOssRoutingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             route_oss(self.root, ["tools/example.py"] * 17, run=True)
 
+    def test_optional_preflight_exception_blocks_both_scanners_without_exception_leak(self):
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=OSError("sensitive local package path")),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable") as fallback,
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            report = route_oss(self.root, [
+                "tools/example.py", ".github/workflows/ci.yml"], run=True)
+        run.assert_not_called()
+        fallback.assert_not_called()
+        self.assertEqual(report["local_preflight_status"], "ERROR")
+        self.assertEqual(report["local_preflight_error_type"], "OSError")
+        self.assertEqual([row["tool"] for row in report["execution_results"]],
+                         ["ruff", "zizmor"])
+        self.assertEqual([row["status"] for row in report["execution_results"]],
+                         ["ERROR", "ERROR"])
+        self.assertEqual(report["execution_count"], 0)
+        self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+        self.assertFalse(report["phase_certified"])
+        self.assertNotIn("sensitive local package path", json.dumps(report))
+
     def test_timeout_is_not_a_fake_success(self):
         from subprocess import TimeoutExpired
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
