@@ -28,9 +28,20 @@ def delivery_mode(capability: MirrorCapability) -> str:
 
 
 def _valid_handles(values: Iterable[int]) -> tuple[int, ...]:
+    # Never iterate a scalar/string as a sequence of window IDs.  A bare
+    # "202" previously became handles (2, 0), which could target the wrong
+    # window. Native session indexes provide a genuine iterable instead.
+    if values is None or isinstance(values, (str, bytes, bytearray)):
+        return ()
+    try:
+        iterator = iter(values)
+    except TypeError:
+        return ()
     clean: list[int] = []
     seen: set[int] = set()
-    for raw in values:
+    for raw in iterator:
+        if isinstance(raw, float):
+            continue
         if isinstance(raw, bool):
             continue
         try:
@@ -108,12 +119,17 @@ def mirror_delivery_targets(
     """
     if not isinstance(source_was_consumed, bool):
         return ()
+    # An invalid/missing selection must not cause even the favorite to be
+    # replayed: no gesture can be safely planned without real recipients.
+    selected = _valid_handles(explicitly_selected_handles)
+    if not selected:
+        return ()
     configured = _valid_handles(configured_handles)
     source = _valid_handles((source_handle,))
     if len(configured) > 8 or len(source) != 1 or source[0] not in configured:
         return ()
     other_targets = set(
-        mirror_targets(configured, explicitly_selected_handles, source[0])
+        mirror_targets(configured, selected, source[0])
     )
     if source_was_consumed:
         other_targets.add(source[0])

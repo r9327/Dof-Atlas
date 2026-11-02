@@ -51,6 +51,31 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
         self.assertEqual(mirror_targets([101, 202, 303], {202, 303, 999}, 101), (202, 303))
         self.assertEqual(mirror_targets([101, 202], {202}, 999), ())
 
+
+    def test_scalar_roster_and_selection_fail_closed(self) -> None:
+        for roster in (None, 101, "101", b"101", True):
+            with self.subTest(roster=roster):
+                self.assertEqual(mirror_targets(roster, [202], 101), ())
+                self.assertEqual(mirror_delivery_targets(
+                    roster, [202], 101, source_was_consumed=True,
+                ), ())
+        for selection in (None, 202, "202", b"202", True):
+            with self.subTest(selection=selection):
+                self.assertEqual(mirror_targets([101, 202], selection, 101), ())
+                self.assertEqual(mirror_delivery_targets(
+                    [101, 202], selection, 101, source_was_consumed=True,
+                ), ())
+
+    def test_fractional_window_handles_must_not_be_coerced(self) -> None:
+        self.assertEqual(mirror_targets([101.9, 202], [202], 101), ())
+        self.assertEqual(mirror_targets([101, 202.3], [202], 101), ())
+        self.assertEqual(mirror_delivery_targets(
+            [101, 202], [202], 101.5, source_was_consumed=True,
+        ), ())
+        # Numeric strings inside genuine iterable lists remain supported
+        # for persisted JSON indexes.
+        self.assertEqual(mirror_targets(["101", "202"], ["202"], 101), (202,))
+
     def test_source_click_is_never_duplicated(self) -> None:
         self.assertEqual(mirror_targets([101, 202, 202, 303], {101, 202, 303}, 101), (202, 303))
         self.assertEqual(mirror_targets([101], {101}, 101), ())
