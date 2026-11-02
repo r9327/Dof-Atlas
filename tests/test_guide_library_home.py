@@ -519,6 +519,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 self.assertTrue(view.alignment_buttons["alignement_bonta"].isEnabled())
                 self.assertIn("774", view.alignment_buttons["alignement_bonta"].text())
                 self.assertIn("696", view.alignment_buttons["alignement_brakmar"].text())
+                self.assertTrue(view.alignment_shared_button.isVisibleTo(view))
+                self.assertIn("54", view.alignment_shared_button.text())
                 self.assertEqual(view.library_results_title.text(), "DOFUS")
                 self.assertFalse(view.library_categories.isVisibleTo(view))
                 self.assertEqual(
@@ -537,6 +539,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.alignment_buttons["alignement_bonta"].click()
                     self.assertEqual(
                         source.call_args.args[0].data(Qt.UserRole), 2249,
+                    )
+                    view.alignment_shared_button.click()
+                    self.assertEqual(
+                        source.call_args.args[0].data(Qt.UserRole), 2226,
                     )
                     first = view.other_category_lists["dimensions"].item(0)
                     view.other_category_lists["dimensions"].itemClicked.emit(first)
@@ -597,15 +603,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         item = listing.item(i)
                         if item.data(Qt.UserRole) is not None:
                             visible_source_ids.add(item.data(Qt.UserRole))
-                # 20 native Dofus + 2 left alignment buttons + 73 source
+                # 20 native Dofus + 3 left alignment buttons + 72 source
                 # entries in the home = all 95 with no duplicated route.
                 expected = {entry.source_id for entry in view.ganymede_listings}
                 native_sources = {
                     row["source_guide_id"] for row in manifest.values()
                 }
-                self.assertEqual(len(visible_source_ids), 73)
+                self.assertEqual(len(visible_source_ids), 72)
                 self.assertEqual(
-                    visible_source_ids | native_sources | {2249, 2263}, expected,
+                    visible_source_ids | native_sources | {2226, 2249, 2263}, expected,
                 )
                 self.assertFalse(visible_source_ids.intersection(native_sources))
             finally:
