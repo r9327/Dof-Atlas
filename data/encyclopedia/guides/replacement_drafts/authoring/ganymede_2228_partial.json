@@ -6,12 +6,12 @@
   "authoring_status": "PARTIAL_NOT_PLAYABLE",
   "reviewed_stage_range": [
     1,
-    10
+    25
   ],
   "rights_basis": "atlas_original",
   "editorial_source_text_copied": false,
   "source_reference": "https://ganymede-app.com/guides/2228",
-  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "evidence_scope": "source_visible_first_ten_plus_independent_sufokia_quest_guides_11_to_25_no_full_original_source_parity",
   "source_parity_certified": false,
   "gameplay_certified": false,
   "steps": [
@@ -292,6 +292,447 @@
           ]
         }
       ]
+    },
+    {
+      "source_step_number": 11,
+      "title": "Lancer la mission du Commandant Costaud",
+      "instructions": "Rejoindre le quai de la Capitainerie. L'officier propose de s'occuper des bandits qui sévissent au nord de Sufokia ; ouvrir cette mission avant de poursuivre la visite des quais.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver le Commandant Costaud au quai de la Capitainerie en [17,28].",
+          "coordinates": [
+            17,
+            28
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Proposer son aide au Commandant Costaud pour lancer « C'est du Costaud »."
+        },
+        {
+          "kind": "information",
+          "text": "Garder cette quête ouverte : les combats contre les bandits sont à réaliser plus loin dans le parcours."
+        },
+        {
+          "kind": "travel",
+          "text": "Passer par la place de la Fontaine en [19,24].",
+          "coordinates": [
+            19,
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 12,
+      "title": "Découvrir la place de la Fontaine",
+      "instructions": "Le passage sur cette carte enregistre un arrêt de « Promenade sur les quais ». Continuer vers la bibliothèque sans confondre la visite avec une validation manuelle de toute la quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre sur la place de la Fontaine en [19,24].",
+          "coordinates": [
+            19,
+            24
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier que « Promenade sur les quais » progresse à l'arrivée sur la carte."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller à la bibliothèque de Sufokia en [20,25].",
+          "coordinates": [
+            20,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 13,
+      "title": "Visiter la bibliothèque de Sufokia",
+      "instructions": "La bibliothèque est l'une des douze cartes exigées par Océane. La visiter puis se diriger vers les installations des marins.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans le secteur de la bibliothèque en [20,25].",
+          "coordinates": [
+            20,
+            25
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Faire enregistrer cette carte par « Promenade sur les quais »."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre le site des quais en [22,22].",
+          "coordinates": [
+            22,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 14,
+      "title": "Visiter le quai des fouilles",
+      "instructions": "Continuer la promenade et faire enregistrer le passage avant de partir vers le temple d'Oktapodas.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se présenter au quai en [22,22].",
+          "coordinates": [
+            22,
+            22
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier l'avancement de la tournée des quais sur cette carte."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au Sanctuaire d'Oktapodas en [26,22].",
+          "coordinates": [
+            26,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 15,
+      "title": "Achever la tournée au sanctuaire",
+      "instructions": "Atteindre le Sanctuaire d'Oktapodas. Si toutes les douze cartes ont été visitées, « Promenade sur les quais » se clôt automatiquement ; aucun retour auprès d'Océane n'est requis.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre le Sanctuaire d'Oktapodas en [26,22].",
+          "coordinates": [
+            26,
+            22
+          ]
+        },
+        {
+          "kind": "information",
+          "text": "Contrôler la fin automatique de « Promenade sur les quais » ; si elle reste ouverte, vérifier les quais manquants."
+        },
+        {
+          "kind": "travel",
+          "text": "Revenir en [15,22] pour la suite des quêtes de Sufokia.",
+          "coordinates": [
+            15,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 16,
+      "title": "Ouvrir Voleurs en série et récolter les premières ressources",
+      "instructions": "Auprès d'Edgar Davou, accepter d'enquêter sur les bandits. Pour « Collier de perles en vinaigrette », fouiller les coquillages de la côte jusqu'à réunir les perles nécessaires ; un coquillage peut donner du sel au lieu d'une perle.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Edgar Davou en [15,22].",
+          "coordinates": [
+            15,
+            22
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander son chemin à Edgar Davou pour lancer « Voleurs en série »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir la collecte de 10 Perles de Sable en ouvrant des coquillages du rivage pour la quête de Jemas Kooc."
+        },
+        {
+          "kind": "information",
+          "text": "Les coquillages peuvent fournir un Agrégat de Sel Marin au lieu d'une Perle de Sable ; poursuivre les récoltes jusqu'à avoir les dix."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la première barque à explorer en [12,22].",
+          "coordinates": [
+            12,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 17,
+      "title": "Fouiller la première barque d'Investigation embarquée",
+      "instructions": "Le sac de Paul Auchon se trouve dans une des six barques du rivage. Commencer la tournée sans prétendre qu'il est forcément dans la première.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre la barque en [12,22].",
+          "coordinates": [
+            12,
+            22
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Fouiller la première barque pour « Investigation embarquée » ; conserver les objets de quête trouvés."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la barque suivante en [8,22].",
+          "coordinates": [
+            8,
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 18,
+      "title": "Fouiller la deuxième barque",
+      "instructions": "Examiner le bateau situé sur le rivage, puis se déplacer jusqu'à la troisième barque.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la seconde barque en [8,22].",
+          "coordinates": [
+            8,
+            22
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Inspecter la barque dans le cadre d'« Investigation embarquée »."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller en [7,23] pour chercher la suivante.",
+          "coordinates": [
+            7,
+            23
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 19,
+      "title": "Fouiller la troisième barque",
+      "instructions": "Poursuivre l'enquête de Paul Auchon. Le contenu d'une barque n'est pas forcément le sac de pêche.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre à la barque en [7,23].",
+          "coordinates": [
+            7,
+            23
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Fouiller la troisième barque et conserver les éventuels objets de quête."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la quatrième barque en [6,23].",
+          "coordinates": [
+            6,
+            23
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 20,
+      "title": "Fouiller la quatrième barque",
+      "instructions": "Explorer ce point du rivage avant de se rendre à la cinquième barque.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la barque en [6,23].",
+          "coordinates": [
+            6,
+            23
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier la quatrième barque dans le suivi d'« Investigation embarquée »."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller en [4,24] pour la dernière barque de cette séquence.",
+          "coordinates": [
+            4,
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 21,
+      "title": "Fouiller la cinquième barque",
+      "instructions": "Il restera une sixième barque à examiner plus tard dans le parcours, en [7,28] : ne pas déclarer la quête terminée avant d'avoir cherché le sac partout.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre la cinquième barque en [4,24].",
+          "coordinates": [
+            4,
+            24
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Fouiller cette barque pour la quête de Paul Auchon."
+        },
+        {
+          "kind": "information",
+          "text": "La sixième barque est située en [7,28] : garder « Investigation embarquée » ouverte."
+        },
+        {
+          "kind": "travel",
+          "text": "Partir à la rencontre d'Icar Mélite en [0,24].",
+          "coordinates": [
+            0,
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 22,
+      "title": "Lancer Vol au-dessus d'un coucou",
+      "instructions": "Icar Mélite veut confectionner des ailes pour voler. Accepter sa demande puis prévoir les quatre sortes d'ailes de Scarafeuille, qui sont des ressources de quête et non de simples achats en hôtel de vente.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Icar Mélite à l'extrémité du rivage en [0,24].",
+          "coordinates": [
+            0,
+            24
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter « Vol au-dessus d'un coucou » auprès d'Icar Mélite."
+        },
+        {
+          "kind": "prepare",
+          "text": "Préparer une récolte en combat de 5 Ailes intactes de Scarafeuille Blanc, 5 Bleu, 5 Vert et 5 Rouge."
+        },
+        {
+          "kind": "information",
+          "text": "Les ailes intactes sont des objets obtenus sur les monstres ; vérifier les quatre couleurs séparément."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre les Scarafeuilles en [1,26].",
+          "coordinates": [
+            1,
+            26
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 23,
+      "title": "Combattre les quatre couleurs de Scarafeuilles",
+      "instructions": "Dans la Plaine des Scarafeuilles, compléter la collecte des ailes demandées par Icar Mélite. Les combats peuvent aussi fournir les Œufs de Scarafeuille pour la quête journalière de Jemas Kooc.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Combattre les Scarafeuilles dans la Plaine en [1,26].",
+          "coordinates": [
+            1,
+            26
+          ]
+        },
+        {
+          "kind": "fight",
+          "text": "Vaincre des Scarafeuilles Blancs, Bleus, Verts et Rouges jusqu'à posséder 5 Ailes intactes de chaque couleur."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver également 5 Œufs de Scarafeuille pour « Pattes aux œufs frais » si la quête est active."
+        },
+        {
+          "kind": "information",
+          "text": "Les ailes et œufs sont obtenus en combat ; vérifier séparément la progression par couleur avant de quitter la zone."
+        },
+        {
+          "kind": "travel",
+          "text": "Retourner auprès d'Icar Mélite en [0,24].",
+          "coordinates": [
+            0,
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 24,
+      "title": "Remettre les ailes à Icar Mélite",
+      "instructions": "Rapporter les vingt ailes intactes au PNJ pour terminer la quête et faire progresser le succès « Sufokons ensemble ».",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Parler à Icar Mélite en [0,24].",
+          "coordinates": [
+            0,
+            24
+          ]
+        },
+        {
+          "kind": "deliver",
+          "text": "Remettre 5 Ailes intactes de Scarafeuille Blanc, 5 Bleu, 5 Vert et 5 Rouge à Icar Mélite."
+        },
+        {
+          "kind": "information",
+          "text": "Vérifier la validation de « Vol au-dessus d'un coucou » dans le journal."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la dernière barque de Paul Auchon en [7,28].",
+          "coordinates": [
+            7,
+            28
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 25,
+      "title": "Retrouver la dernière barque et conserver le sac de pêche",
+      "instructions": "Explorer la sixième barque en [7,28]. Lorsque toutes les barques ont été fouillées, conserver le Sac de pêche obtenu afin de le rapporter à Paul Auchon plus loin dans le guide.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rejoindre la sixième barque en [7,28].",
+          "coordinates": [
+            7,
+            28
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Fouiller la sixième barque pour achever la tournée d'« Investigation embarquée »."
+        },
+        {
+          "kind": "prepare",
+          "text": "Conserver le Sac de pêche et les autres objets de quête recueillis pour les rendre à Paul Auchon."
+        },
+        {
+          "kind": "information",
+          "text": "Ne pas marquer « Investigation embarquée » comme terminée avant d'avoir effectivement remis le sac."
+        }
+      ]
     }
   ],
   "fact_sources": [
@@ -299,6 +740,12 @@
     "https://www.dofuserie.com/quetes/promenade-sur-les-quais/",
     "https://www.dofuserie.com/quetes/investigation-embarquee/",
     "https://www.dofuserie.com/quetes/pattes-aux-oeufs-frais/",
-    "https://www.dofuserie.com/quetes/collier-de-perles-en-vinaigrette/"
+    "https://www.dofuserie.com/quetes/collier-de-perles-en-vinaigrette/",
+    "https://www.dofuserie.com/quetes/voleurs-en-serie/",
+    "https://guidedofus.com/v2/sufokons-ensemble"
+  ],
+  "further_review_needed": [
+    "Compare each authored stage 11-25 with the corresponding original Ganymède page; the independent quest descriptions alone do not prove exact author ordering.",
+    "Verify optional detours, per-character drop counters and all French NPC labels on DOFUS Unity."
   ]
 }
