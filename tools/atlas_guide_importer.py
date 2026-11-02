@@ -194,6 +194,15 @@ def run_pipeline(
         return report
     if manifest_path is None:
         raise ValueError("Publication blocked: independent reference required")
+    # A matching JSON/hash manifest is integrity evidence, NOT an authorization
+    # to activate an unreviewed guide. The complete independent certification
+    # protocol is not implemented yet: fail closed instead of guessing PASS.
+    if not (report["source_parity_certified"] and report["rights_verified"]
+            and report["gameplay_certified"]):
+        raise ValueError(
+            "Publication blocked: independent source parity, rights and gameplay "
+            "evidence is required; matching hashes is not certification"
+        )
     result = import_authored_routes(
         source_dir, index_path=index_path, target_dir=target_dir,
         strict=strict, expected_routes=expected_routes,
