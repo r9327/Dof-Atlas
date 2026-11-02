@@ -193,7 +193,7 @@ def main() -> int:
     parser.add_argument("--allow-partial", action="store_true",
                         help="Import reviewed subset; default requires all 95")
     parser.add_argument("--apply", action="store_true",
-                        help="Write validated JSON routes; default is dry-run")
+                        help="Deprecated: direct publication is blocked; use the guarded importer")
     parser.add_argument("--allow-overwrite", action="store_true")
     args = parser.parse_args()
     if args.apply:
