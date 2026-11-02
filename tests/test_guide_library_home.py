@@ -573,6 +573,7 @@ class GuideLibraryHomeTests(unittest.TestCase):
         ).read_text(encoding="utf-8"))["guides"]
         provider = _Provider()
         provider.guides_dir = root
+        provider.guides.append(_guide("dofus_ocre", "dofus"))
         provider.guides.extend(
             _guide(guide_id, "dofus")
             for guide_id in manifest
@@ -594,6 +595,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
             try:
                 native = active_manual_catalog_sources(provider, provider.guides)
                 self.assertEqual(len(native), 20)
+                self.assertEqual(
+                    view.home_dofus_model.row_for_guide("dofus_ocre"), -1,
+                )
+                self.assertIn(
+                    2218, {
+                        view.home_metadata_list.item(i).data(Qt.UserRole)
+                        for i in range(view.home_metadata_list.count())
+                    },
+                )
                 visible_source_ids = {
                     view.home_metadata_list.item(i).data(Qt.UserRole)
                     for i in range(view.home_metadata_list.count())
