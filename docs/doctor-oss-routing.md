@@ -137,6 +137,8 @@ explicite pour un check sans exécution des tests :
 
 ```powershell
 py -3.13 -m tools.atlas_doctor agent check tools/tool_catalog.py --run-tests --json
+# Sans tests, forcer uniquement le diagnostic tiers déjà approuvé :
+py -3.13 -m tools.atlas_doctor agent check tools/tool_catalog.py --run-oss --json
 ```
 
 Le résultat figure sous `oss_advisory` ; il ne change jamais le

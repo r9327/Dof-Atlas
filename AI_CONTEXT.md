@@ -54,8 +54,9 @@ py -3.13 -m tools.tool_catalog --preferred-only --safe-only --ready-only --json
 
 Lire `tools/skills/dofus-atlas-tools/SKILL.md` et les `TOOL_SPEC` des outils
 réellement retenus. `automation_ready` autorise leur candidature, pas une
-attestation d'exécution ; seules les preuves de l'owner comptent. Le champ `ai_tool_workflow` indique le circuit obligatoire,
-les spécialistes natifs pertinents, les résultats OSS prouvés et les lacunes.
+attestation d'exécution ; seules les preuves de l'owner comptent.
+Le champ `ai_tool_workflow` indique le circuit obligatoire, les spécialistes
+natifs pertinents, les résultats OSS prouvés et les lacunes.
 `oss_selection` reste une recommandation : elle ne prouve aucune exécution.
 Ne jamais confondre `ai_tool_workflow` et un certificat de Phase.
 Lire `AI_ENTRYPOINT.md` pour les règles d'autorité et
