@@ -35,7 +35,9 @@ def record(guide_id: str, predecessor: str = "", source_sha: str = SOURCE) -> di
     return {
         "guide_id": guide_id, "predecessor_id": predecessor,
         "head_sha": HEAD, "source_sha": source_sha,
-        "certified_steps": 5, "certified_actions": 14,
+        "total_steps": 5, "certified_steps": 5,
+        "total_actions": 14, "certified_actions": 14,
+        "certification_status": "CERTIFIED",
         "blocking_issues": 0, "unverified_issues": 0,
         "receipts": {key: receipt(source_sha) for key in _PER_GUIDE},
     }
@@ -108,6 +110,33 @@ class TestSequenceGateSynthetic(unittest.TestCase):
         self.assertTrue(outcome["may_prepare_next"])
         self.assertEqual(outcome["verified_completed_count"], 2)
         self.assertFalse(outcome["certified"])
+
+    def test_certificate_and_exact_full_coverage_required_before_next(self):
+        for mutation in (
+            {"certification_status": "PENDING"},
+            {"certified_steps": 4},
+            {"certified_actions": 13},
+            {"total_steps": 0},
+            {"total_actions": True},
+        ):
+            with self.subTest(mutation=mutation):
+                prev = record("dofus_cawotte")
+                prev.update(mutation)
+                decision = assess_next(
+                    plan("synthetic-next", [prev]),
+                    head_sha=HEAD, verifier=trusted_fake_verifier
+                )
+                self.assertFalse(decision["may_prepare_next"])
+        prev = record("dofus_cawotte")
+        prev["receipts"].pop("independent_final_certificate")
+        decision = assess_next(
+            plan("synthetic-next", [prev]),
+            head_sha=HEAD, verifier=trusted_fake_verifier
+        )
+        self.assertIn(
+            "completed[0].independent_final_certificate",
+            decision["missing_proofs"]
+        )
 
     def test_missing_or_corrupt_comparator_evidence_blocks(self):
         request = plan("synthetic-next", [record("dofus_cawotte")])
