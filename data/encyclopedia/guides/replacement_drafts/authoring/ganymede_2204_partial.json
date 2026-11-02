@@ -18,7 +18,7 @@
     {
       "source_step_number": 1,
       "title": "Retrouver le Réceptacle des Dofus",
-      "instructions": "Reprendre la quête lancée auprès de Fallanster, à la tour du Conseil d'Astrub. Le parcours exige un personnage capable d'accéder à Pandala.",
+      "instructions": "Cette route poursuit « Le Réceptacle des Dofus », quête obtenue auprès de Fallanster à la tour du Conseil d'Astrub pendant le parcours du Dofus Argenté. Il est conseillé d'être au moins niveau 50 et de porter un équipement adapté, par exemple une panoplie Kwak.",
       "actions": [
         {
           "kind": "travel",
@@ -31,6 +31,14 @@
         {
           "kind": "information",
           "text": "Vérifier dans le journal que Le Réceptacle des Dofus est bien actif."
+        },
+        {
+          "kind": "prepare",
+          "text": "Prévoir un personnage d'environ niveau 50 ou davantage, équipé pour les combats du parcours."
+        },
+        {
+          "kind": "information",
+          "text": "Le Réceptacle des Dofus doit être dans le journal : cette quête est récupérée lors du parcours du Dofus Argenté."
         }
       ]
     },
@@ -182,6 +190,14 @@
         {
           "kind": "talk",
           "text": "Signaler à Ma Cléopâtre que Dragonsly a été consulté."
+        },
+        {
+          "kind": "travel",
+          "text": "Repassez d'abord par le pont de Pandala en [12,-21] avant de rejoindre la zone d'entrée.",
+          "coordinates": [
+            12,
+            -21
+          ]
         },
         {
           "kind": "travel",
