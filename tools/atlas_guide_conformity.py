@@ -168,6 +168,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
         for identifier in shared_lhs:
             context[target] = identifier
             evidence = lhs[identifier].get("evidence_ref", parent_evidence)
+            if type(lhs[identifier][key]) is not type(rhs[identifier][key]):
+                report("TYPE_MISMATCH", f"{path}[{identifier}].{key}",
+                       lhs[identifier][key], rhs[identifier][key], evidence)
             walk({k: v for k, v in lhs[identifier].items() if k != key},
                  {k: v for k, v in rhs[identifier].items() if k != key},
                  f"{path}[{identifier}]", evidence)
@@ -181,7 +184,13 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(reference.get("guides"), list) or not reference["guides"]:
         report("UNVERIFIABLE", "reference.guides", "nonempty complete guide inventory",
                reference.get("guides"))
-    collection(reference.get("guides"), atlas.get("guides"), "guides", "guide", None)
+    # Only reference-authorization flags live outside the projected Atlas
+    # payload. All other top-level fields, including schema_version and
+    # unexpected extras, are part of the diff contract.
+    provenance = frozenset({"reference_verified", "rights_verified", "complete"})
+    walk({key: value for key, value in reference.items() if key not in provenance},
+         {key: value for key, value in atlas.items() if key not in provenance},
+         "", None)
     issues.sort(key=lambda x: (str(x["guide_id"]), str(x["source_step_id"]),
                                str(x["action_id"]), x["field_path"], x["issue_code"]))
     return {
