@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from html import escape
+
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl, QUrlQuery, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QListWidget, QPushButton,
-    QListWidgetItem, QPlainTextEdit, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QListWidgetItem, QTextBrowser, QScrollArea, QSpinBox, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.core.character_identity import is_character_key
 from app.ui.theme import PALETTE
@@ -812,11 +814,13 @@ class GuideCatalogView(QWidget):
 
         browser = None
         if local_steps or instructions:
-            fallback = QPlainTextEdit(dialog)
+            fallback = QTextBrowser(dialog)
             fallback.setReadOnly(True)
+            fallback.setOpenLinks(False)
+            fallback.setOpenExternalLinks(False)
             fallback.setObjectName("GanymedeOfflineSourceStep")
             fallback.setStyleSheet(
-                f"QPlainTextEdit {{ background: {PALETTE['PANEL']}; "
+                f"QTextBrowser {{ background: {PALETTE['PANEL']}; "
                 f"color: {PALETTE['TEXT']}; border: 1px solid {PALETTE['BORDER']}; }}"
             )
         else:
@@ -854,6 +858,24 @@ class GuideCatalogView(QWidget):
             sum(source_step_id(n) in checked for n in range(1, count + 1))
         ]
         current_page = [1]
+        # Copy targets only for the displayed step. A stale hyperlink cannot
+        # copy data from another page or trigger a navigation/game action.
+        copy_targets: list[str] = []
+
+        def copy_action_link(url: QUrl) -> None:
+            raw = url.toString()
+            prefix, separator, index_text = raw.partition(":")
+            if (prefix != "copy" or not separator
+                    or not index_text.isascii() or not index_text.isdecimal()
+                    or len(index_text) > 7):
+                return
+            index = int(index_text)
+            if 0 <= index < len(copy_targets):
+                QApplication.clipboard().setText(copy_targets[index])
+                self.status_callback("Texte copié.")
+
+        if instructions:
+            fallback.anchorClicked.connect(copy_action_link)
 
         def step_url(n: int) -> QUrl:
             url = QUrl(source_url)
@@ -902,10 +924,13 @@ class GuideCatalogView(QWidget):
                 current_page[0] = page
                 previous_button.setEnabled(page > 1)
                 next_button.setEnabled(page < count)
+                copy_targets.clear()
                 if instructions:
-                    fallback.setPlainText(
-                        self._format_offline_instruction(instructions[page - 1], page, count)
+                    html, targets = self._format_offline_instruction_rich(
+                        instructions[page - 1], page, count,
                     )
+                    copy_targets.extend(targets)
+                    fallback.setHtml(html)
                 elif local_steps:
                     fallback.setPlainText(
                         self._format_offline_observation(local_steps[page - 1], page, count)
@@ -1010,6 +1035,67 @@ class GuideCatalogView(QWidget):
             lambda _result, source_dialog=dialog: self._clear_ganymede_source_dialog(source_dialog)
         )
         dialog.show()
+
+    @staticmethod
+    def _format_offline_instruction_rich(
+        step: dict, page: int, count: int,
+    ) -> tuple[str, tuple[str, ...]]:
+        """Render separately copyable authored facts, never inferred hints.
+
+        Coordinates and explicit copy_values are the only clipboard targets.
+        All source text is escaped and the caller handles copy: links locally.
+        """
+        targets: list[str] = []
+
+        def link(value: str, label: str, color: str, *, bold: bool = False) -> str:
+            index = len(targets)
+            targets.append(value)
+            weight = "font-weight:700;" if bold else ""
+            return (
+                f'<a href="copy:{index}" style="color:{color};'
+                f'text-decoration:underline;{weight}">{escape(label)}</a>'
+            )
+
+        colors = {
+            "travel": PALETTE["TEXT_SOFT"],
+            "talk": PALETTE["YELLOW"],
+            "prepare": PALETTE["BADGE_TEXT"],
+            "deliver": PALETTE["BADGE_TEXT"],
+            "fight": PALETTE["RED_HOVER"],
+        }
+        names = {
+            "travel": "Aller à", "talk": "Parler", "interact": "Interagir",
+            "fight": "Combattre", "prepare": "Préparer",
+            "use_item": "Utiliser", "deliver": "Remettre",
+            "craft": "Fabriquer", "information": "Information",
+        }
+        lines = [
+            f'<h3 style="color:{PALETTE["TEXT"]}">Étape {page} / {count} '
+            f'— {escape(str(step["title"]))}</h3>',
+            f'<p>{escape(str(step["instructions"]))}</p>',
+        ]
+        for action in step["actions"]:
+            kind = action["kind"]
+            color = colors.get(kind, PALETTE["TEXT"])
+            fragments = [
+                f'<b style="color:{color}">{escape(names[kind])}</b>'
+            ]
+            coords = action.get("coordinates")
+            if (kind == "travel" and isinstance(coords, list)
+                    and len(coords) == 2
+                    and all(type(value) is int for value in coords)):
+                x, y = coords
+                fragments.append(link(
+                    f"/travel {x},{y}", f"[{x},{y}]", color, bold=True,
+                ))
+            fragments.append(escape(action["text"]))
+            explicit = action.get("copy_values", ())
+            if isinstance(explicit, list):
+                for value in explicit:
+                    if isinstance(value, str) and value.strip() and len(value) <= 256:
+                        fragments.append(link(value, value, color, bold=True))
+            lines.append("<p>• " + " — ".join(fragments) + "</p>")
+        return "".join(lines), tuple(targets)
 
     @staticmethod
     def _format_offline_instruction(step: dict, page: int, count: int) -> str:
