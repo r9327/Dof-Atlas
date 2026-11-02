@@ -211,6 +211,31 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(a, self.reference)
         self.assertEqual(b, self.atlas)
 
+    def test_cli_never_overwrites_existing_audit_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, data in (
+                ("reference", self.reference),
+                ("before", self.atlas),
+                ("after", self.atlas),
+            ):
+                (root / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+            output = root / "reports"
+            output.mkdir()
+            retained = output / "before.json"
+            retained.write_text("PREVIOUS AUDIT", encoding="utf-8")
+            argv = [
+                "--reference", str(root / "reference.json"),
+                "--before", str(root / "before.json"),
+                "--after", str(root / "after.json"),
+                "--output-dir", str(output),
+            ]
+            with self.assertRaises(SystemExit) as exc:
+                main(argv)
+            self.assertEqual(exc.exception.code, 2)
+            self.assertEqual(retained.read_text(encoding="utf-8"), "PREVIOUS AUDIT")
+            self.assertFalse((output / "after.json").exists())
+
     def test_cli_exports_all_three_reports(self) -> None:
         before = copy.deepcopy(self.atlas)
         before["guides"][0]["steps"].pop()
