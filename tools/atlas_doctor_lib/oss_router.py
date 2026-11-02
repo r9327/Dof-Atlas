@@ -22,6 +22,41 @@ _ALLOWED = re.compile(r"^[A-Za-z0-9_./-]{1,240}$")
 _CODE_ROOTS = frozenset({"app", "tools", "tests", "scripts"})
 
 
+def _open_source_inventory(root: Path) -> dict[str, Any]:
+    """Reflect the 29 candidates from the existing study, not a second registry."""
+    study = root / "docs" / "roadmap" / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md"
+    if not study.is_file():
+        return {"status": "NOT_AVAILABLE", "candidates": [], "count": 0}
+    candidates: list[dict[str, str]] = []
+    for line in study.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("| ATOSS-"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 4 or not re.fullmatch(r"ATOSS-[0-9]{2}", cells[0]):
+            continue
+        candidate_id, source, decision = cells[:3]
+        if candidate_id in {row["id"] for row in candidates}:
+            return {"status": "REVIEW", "reason": "Duplicate source candidate",
+                    "count": len(candidates), "candidates": candidates}
+        match = re.search(r"\[([^\]]+)\]\(https://github.com/[^)]+\)", source)
+        name = match.group(1) if match else source[:64]
+        integration = "NOT_VERIFIED"
+        if "REJECT" in decision:
+            integration = "REJECTED"
+        elif candidate_id in {"ATOSS-06", "ATOSS-10"}:
+            integration = "EXISTING_OWNER_NOT_RETESTED"
+        elif candidate_id == "ATOSS-20":
+            integration = "DOCTOR_OPT_IN_ONLY"
+        candidates.append({"id": candidate_id, "name": name, "study_decision": decision,
+                           "integration": integration})
+    return {
+        "status": "INVENTORIED_NOT_CERTIFIED" if len(candidates) == 29 else "REVIEW",
+        "count": len(candidates), "candidates": candidates,
+        "execution_witnesses": 0,
+        "note": "Static study decisions; execution requires independent exact-SHA evidence.",
+    }
+
+
 def _safe_files(root: Path, paths: Iterable[str]) -> list[str]:
     """Validate all paths before any discovery or subprocess invocation."""
     given = list(paths)
@@ -119,6 +154,7 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         "native_tools": [{"path": item["path"], "capabilities": item["capabilities"]}
                          for item in native["tools"]],
         "native_tools_executed": False,
+        "open_source_inventory": _open_source_inventory(root),
         "oss_candidates": [{
             "id": "ruff", "selected": bool(python_files),
             "available": available, "version_claim": detected["version"] if detected else None,

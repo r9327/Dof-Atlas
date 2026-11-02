@@ -51,6 +51,14 @@ Le résultat figure sous `oss_advisory` ; il ne change jamais le
 `status`, `exit_code` ou la décision de certification Doctor.
 Un agent bloqué ne lance pas Ruff, et un outil absent n'est jamais installé.
 
+Le rapport retourne aussi `open_source_inventory` : les 29 entrées `ATOSS-XX`
+lues directement depuis l'étude canonique, sans table de correspondance
+à maintenir séparément. Chaque entrée distingue `NOT_VERIFIED`,
+`EXISTING_OWNER_NOT_RETESTED`, `DOCTOR_OPT_IN_ONLY` ou `REJECTED`.
+`execution_witnesses: 0` signifie qu'aucune exécution des 29 candidats
+n'est certifiée par ce simple inventaire. Les données observées lors de
+`--run` sont fournies séparément dans `execution`.
+
 Pour un fichier de workflow, Doctor recommande les outils canoniques
 de CI, sans lancer de scanner tiers non approuvé.
 

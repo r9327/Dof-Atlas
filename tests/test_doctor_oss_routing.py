@@ -152,5 +152,24 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(result["oss_advisory"]["status"], "NOT_RUN")
         oss.assert_not_called()
 
+    def test_inventory_has_29_study_rows_without_claiming_installation(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study = self.root / "docs" / "roadmap"
+        study.mkdir(parents=True)
+        rows = []
+        for number in range(1, 30):
+            decision = "REJECT" if number in {28, 29} else "ASSESS"
+            rows.append(
+                f"| ATOSS-{number:02d} | [tool{number}](https://github.com/org/tool{number}) "
+                f"| {decision} | Owner |\n")
+        (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            "".join(rows), encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
+        self.assertEqual(report["count"], 29)
+        self.assertEqual(report["execution_witnesses"], 0)
+        self.assertEqual(report["candidates"][19]["integration"], "DOCTOR_OPT_IN_ONLY")
+        self.assertEqual(report["candidates"][-1]["integration"], "REJECTED")
+
 if __name__ == "__main__":
     unittest.main()
