@@ -335,6 +335,12 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
     observed_guide_count = 0
     observed_step_count = 0
     authored_route_evidence: list[dict[str, object]] = []
+    coordinate_review_queue: list[dict[str, object]] = []
+    coordinate_comparison_counts = {
+        "COORDINATE_IN_STEP_SNAPSHOT": 0,
+        "COORDINATE_NOT_IN_STEP_SNAPSHOT": 0,
+        "NO_OBSERVATION_FOR_STEP": 0,
+    }
     authored_ids: list[int] = []
     missing_ids: list[int] = []
     reviewed_actions = 0
@@ -429,13 +435,22 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
                     if key in observed_per_step[step["source_step_number"]]
                     else "COORDINATE_NOT_IN_STEP_SNAPSHOT"
                 )
-                coord_checks.append({
+                coordinate_comparison_counts[status] += 1
+                check = {
                     "source_step_number": step["source_step_number"],
                     "action_index": action_index,
                     "coordinates": coords,
                     "comparison_status": status,
                     "game_position_verified": False,
-                })
+                }
+                coord_checks.append(check)
+                if status != "COORDINATE_IN_STEP_SNAPSHOT":
+                    coordinate_review_queue.append({
+                        "source_guide_id": gid,
+                        "source_file_sha256": file_sha,
+                        **check,
+                        "candidate_only_not_verified_error": True,
+                    })
                 by_map[key].append({
                     "source_guide_id": gid,
                     "source_step_number": step["source_step_number"],
@@ -450,6 +465,10 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
             "authored_step_count": len(steps),
             "authored_action_count": route_actions,
             "coordinate_comparisons": coord_checks,
+            "coordinate_review_needed": sum(
+                item["comparison_status"] != "COORDINATE_IN_STEP_SNAPSHOT"
+                for item in coord_checks
+            ),
             "source_route_parity_verified": False,
             "windows_game_verified": False,
             "certified": False,
@@ -549,6 +568,15 @@ def analyze_cross_guide_candidates(root: Path) -> dict[str, object]:
         "authored_source_guide_ids": sorted(authored_ids),
         "authored_source_steps": authored_steps,
         "authored_actions": reviewed_actions,
+        "coordinate_comparison_counts": coordinate_comparison_counts,
+        "coordinate_review_queue": sorted(
+            coordinate_review_queue,
+            key=lambda row: (
+                row["source_guide_id"],
+                row["source_step_number"],
+                row["action_index"],
+            ),
+        ),
         "authored_route_evidence": sorted(
             authored_route_evidence, key=lambda row: row["source_guide_id"],
         ),
