@@ -24,6 +24,7 @@ class CrossGuideCandidatesTests(unittest.TestCase):
                     "title": "Route A",
                     "source_url": "https://ganymede-app.com/guides/101",
                     "listed_step_count": 2,
+                    "status": "metadata_only",
                     "public_tree_prerequisite_guide_ids": [],
                 },
                 {
@@ -31,6 +32,7 @@ class CrossGuideCandidatesTests(unittest.TestCase):
                     "title": "Route B",
                     "source_url": "https://ganymede-app.com/guides/102",
                     "listed_step_count": 1,
+                    "status": "metadata_only",
                     "public_tree_prerequisite_guide_ids": [101],
                 },
                 {
@@ -38,6 +40,7 @@ class CrossGuideCandidatesTests(unittest.TestCase):
                     "title": "Route not written yet",
                     "source_url": "https://ganymede-app.com/guides/103",
                     "listed_step_count": 25,
+                    "status": "metadata_only",
                     "public_tree_prerequisite_guide_ids": [],
                 },
             ],
@@ -135,6 +138,16 @@ class CrossGuideCandidatesTests(unittest.TestCase):
         self.assertEqual(report["co_location_candidates"], [])
         self.assertEqual(report["source_guides_missing_authored_steps"], [102, 103])
         self.assertEqual(report["status"], "REVIEW_ONLY_NOT_OPTIMIZED")
+
+    def test_invalid_index_schema_or_false_certification_fails_closed(self):
+        self.index["schema_version"] = 2
+        self.index["guides"][0]["status"] = "certified"
+        self._write("ganymede_main_index.json", self.index)
+        report = analyze_cross_guide_candidates(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue({"unsupported_source_schema", "invalid_source_entry"}
+                        .issubset({issue["code"] for issue in report["issues"]}))
+        self.assertFalse(report["route_replacement_ready"])
 
     def test_optimized_inputs_are_never_modified(self):
         paths = [self.guides / f"{name}.json"
