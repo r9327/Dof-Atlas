@@ -188,3 +188,36 @@ Cawotte réelle, aucune donnée de guide réelle n'a été utilisée.
 l'architecture UI et les outils ne sont pas réellement qualifiés.
 L'activation en production, la certification indépendante et la
 vérification Windows/DOFUS restent des étapes futures obligatoires.
+
+## Correctifs de sûreté du comparateur et du stockage candidat
+
+Le comparateur n'ignore plus les `source_url` et champs métier/média
+au niveau des actions, et vérifie désormais les champs racine du schéma,
+les champs supplémentaires, ainsi que le **type** des identifiants.
+Seul `evidence_ref` est exclu du rendu fonctionnel ; sa présence
+dans la source n'établit pas à elle seule une vérification indépendante.
+
+Le CLI de conformité exige un **dossier de rapports neuf**, hors des
+répertoires de données et sauvegardes, sans lien symbolique. Il refuse
+d'écraser un précédent `before.json`, `after.json` ou
+`before_after.json`. Réexécuter un audit dans un **autre** dossier.
+
+Le pipeline exige **deux attestations de source distinctes**,
+`current.source_rights` et `current.independent_reference`,
+sur les hachages réels des deux JSON et le SHA du code. Leur validité
+doit être contrôlée par un hôte de confiance ; deux copies identiques
+ne sont **pas** une preuve d'indépendance. Sans ce vérificateur,
+le staging reste bloqué. Le callback fictif dans les tests ne
+vaut jamais preuve réelle.
+
+Le magasin de candidats est **hors runtime et jamais activant** :
+chaque génération est créée via fichier temporaire synchronisé puis
+renommage atomique, avec couverture `guide_count/step_count/action_count`
+vérifiée et refus des liens symboliques pointant hors du stockage.
+Le choix d'une génération utilise le contrôle compare-and-swap,
+la reprise et le rollback de *candidats seulement*, jamais les
+progressions de personnages.
+
+Ces modifications sont du **code présent mais NON_VALIDÉ** tant que
+l'exécution des tests sur un checkout du SHA courant n'est pas attestée.
+Elles ne permettent en aucun cas de passer à la phase pilote.
