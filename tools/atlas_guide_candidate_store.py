@@ -129,6 +129,8 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
             preparation: list[dict[str, Any]] = []
             for (section, row), action in zip(presented, actions):
                 kind = action.get("kind")
+                if not isinstance(kind, str):
+                    raise GuideRouteContractError("invalid source action kind")
                 expected_section = action.get("section", {
                     "prepare": "prepare", "warning": "before_leave",
                     "keep": "keep",
