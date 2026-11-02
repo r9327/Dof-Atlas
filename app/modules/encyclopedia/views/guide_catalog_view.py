@@ -37,6 +37,12 @@ GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
 GUIDE_ULTIME_TITLE = "Guide Ultime"
 CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
 
+# Visible home navigation order, independent from the source catalog taxonomy.
+HOME_CATEGORY_ORDER = (
+    "dofus", "alignements", "islands", "dimensions",
+    "eliocalypse", "regions", "adventures", "events",
+)
+
 
 class GuideCatalogView(QWidget):
     """Small Guide catalogue surface; rich Guide UI is imported on selection only."""
@@ -290,9 +296,9 @@ class GuideCatalogView(QWidget):
         self.category_selector = QComboBox(self.home_left)
         self.category_selector.setObjectName("GuidesHomeCategorySelector")
         self.category_selector.setMinimumHeight(38)
-        for key, title in CATEGORIES:
-            if key != "optimized":
-                self.category_selector.addItem(title, key)
+        category_titles = dict(CATEGORIES)
+        for key in HOME_CATEGORY_ORDER:
+            self.category_selector.addItem(category_titles[key], key)
         self.category_selector.setCurrentIndex(
             self.category_selector.findData(self.library_category)
         )
