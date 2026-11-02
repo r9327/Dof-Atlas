@@ -54,7 +54,14 @@ class MirrorInputMacro:
         settings = self.runtime.settings
         if settings.macro_mode != "mirror" or settings.primary_handle != source:
             return False
-        if len(handles) < 2 or len(handles) > 8 or len(set(handles)) != len(handles):
+        if (
+            type(source) is not int
+            or not isinstance(handles, tuple)
+            or not 2 <= len(handles) <= 8
+            or any(type(hwnd) is not int or hwnd <= 0 for hwnd in handles)
+            or len(set(handles)) != len(handles)
+            or handles[0] != source
+        ):
             return False
         # Reject roster drift between hook and worker, not merely stale HWNDs.
         live = tuple(c.handle for c in settings.clients if is_dofus_unity_process(c.handle))
@@ -147,7 +154,16 @@ class MirrorInputMacro:
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
             runtime.logger.info(
-                "Miroir %s: envoyés=%s/%s total_ms=%.2f SendInput_ms=%s",
+                "Miroir %s: envoyés=%s/%s total_ms=%.2f delivery_step_ms=%s",
                 kind, delivered, len(handles), (perf_counter() - start) * 1000.0,
                 latency if latency is not None else "NOT_MEASURED",
             )
+            label = "Clavier" if kind == "key" else "Molette"
+            if delivered != len(handles) or runtime.macro_lock.should_stop():
+                runtime._emit_status(
+                    f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
+                )
+            else:
+                runtime._emit_status(
+                    f"Miroir {label} : {delivered}/{len(handles)} fenêtres."
+                )

@@ -69,3 +69,8 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
   restaurés après audit ; aucune exécution Python/Windows certifiée au HEAD final.
   Recette Windows / DOFUS Unity #322 : NOT_RUN. Les p50/p95/p99 de SendInput
   par geste sont journalisés, pas des mesures de rendu Unity.
+
+- La télémétrie `delivery_step_ms` mesure chaque étape d'envoi (incluant
+  les durées d'appui et positionnements), et non le temps brut de `SendInput`
+  ni la latence de rendu Unity. Le statut distingue une diffusion complète
+  d'une diffusion interrompue.

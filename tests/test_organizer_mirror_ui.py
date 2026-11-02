@@ -527,5 +527,35 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._spawn_macro.assert_not_called()
 
 
+    def test_mirror_rejects_unregistered_numeric_vk_codes(self):
+        from app.input.hotkeys import MIRROR_DISCRETE_KEYS
+        from app.macros.mirror_input import MirrorInputMacro
+
+        self.assertTrue({ord("A"), ord("Z"), ord("0"), ord("9")} <= MIRROR_DISCRETE_KEYS)
+        self.assertFalse(MIRROR_DISCRETE_KEYS.intersection(range(0x3A, 0x41)))
+        mirror = MirrorInputMacro(Mock())
+        for vk_code in range(0x3A, 0x41):
+            with self.subTest(vk=vk_code):
+                self.assertFalse(mirror.run_key(vk_code, 101, (101, 202)))
+
+    def test_mirror_worker_requires_source_first_and_valid_hwnds(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        mirror = MirrorInputMacro(runtime)
+        with patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True):
+            for handles in ((202, 101), (101, 101), (101, -1),
+                            (101, True), (101, 202.0), (101,), ()):
+                with self.subTest(handles=handles):
+                    self.assertFalse(mirror._still_current(101, handles))
+            self.assertTrue(mirror._still_current(101, (101, 202)))
+
+
+
 if __name__ == "__main__":
     unittest.main()
