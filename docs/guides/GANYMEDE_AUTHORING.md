@@ -190,20 +190,19 @@ Ganymède. Les fichiers restent dans
 | 2204 — Mais où sont les Dofus ? | 26 | 26 | Brouillon complet, non certifié |
 | 2206 — Valonia 1 | 30 | 30 | Brouillon complet, non certifié |
 | 2228 — Sufokia | 39 | 39 | Brouillon complet, non certifié |
-| 2229 — Nimaltopia | 34 | 67 | Brouillon partiel |
-| **Total** | **129** | **162** | **Aucun n'est activé** |
+| 2229 — Nimaltopia | 67 | 67 | Brouillon complet, non certifié |
+| **Total** | **162** | **162** | **Aucun n'est activé** |
 
-Les **129 étapes rédigées** comportent **525 actions typées** et
-**239/239 actions positionnées** présentes dans les relevés locaux de
+Les **162 étapes rédigées** comportent **679 actions typées** et
+**318/318 actions positionnées** mentionnées dans le relevé local de
 **la même étape** (contrôle statique au HEAD
-`b11d2bd6a745077014f9a2e70f2ac53256f37de2`).
+`d37fc507ede0411be4f81fa6959acb59da1a4b64`).
 Cette concordance **ne prouve pas** le chemin original, l'identité de
 la carte/dimension, les prérequis réels ou le bon fonctionnement en jeu.
 
-2204, 2206 et 2228 portent explicitement
+Les quatre guides 2204, 2206, 2228 et 2229 portent explicitement
 `FULL_DRAFT_NOT_PLAYABLE`, `source_parity_certified:false` et
-`gameplay_certified:false`. Nimaltopia est
-`PARTIAL_NOT_PLAYABLE`. La publication stricte sous
+`gameplay_certified:false`.  La publication stricte sous
 `ganymede_<id>_instructions.json` reste bloquée jusqu'à la
 comparaison 1:1 des **étapes Ganymède d'origine**, aux essais du
 lecteur et aux vérifications propres à chaque personnage.
@@ -233,8 +232,8 @@ Sources de contrôle des quêtes :
   informations de quêtes ultérieures. Combats seul / en groupe,
   ressources et branches Bonta/Brâkmar restent explicites par étape.
 
-**Suite prioritaire :** terminer les **33 étapes restantes de Nimaltopia**
-puis vérifier la parité de ces quatre parcours avec les pages originales,
+**Suite prioritaire :** vérifier la parité des quatre parcours maintenant
+entièrement rédigés avec les pages Ganymède originales,
 les localisations, les combats et les prérequis ; finaliser ensuite
 les **76 autres routes sans rédaction complète**, et certifier chaque
 parcours correctement avant son activation. **Aucune migration du
@@ -242,8 +241,8 @@ Guide Ultime ni de l'interface en attendant** : les deux optimisés
 actuels restent intacts.
 
 **Avancement réel en bibliothèque :** 15/95 fichiers complets déjà
-présents (non certifiés), auxquels s'ajoutent **3 brouillons complets
-hors runtime** et 1 brouillon partiel ; 0/95 certifié en jeu/Windows.
+présents (non certifiés), auxquels s'ajoutent **4 brouillons complets
+hors runtime** ; 0/95 certifié en jeu/Windows.
 
 Contrôle de structure ajouté :
 
