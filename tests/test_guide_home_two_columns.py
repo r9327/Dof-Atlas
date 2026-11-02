@@ -133,12 +133,22 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements are available without featured-card duplication.
-                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
+                    # The visible dropdown and legacy programmatic tree share
+                    # one selected category without touching the featured row.
+                    self.assertEqual(view.category_selector.currentData(), "dofus")
+                    self.assertTrue(view.optimized_pair.isVisibleTo(view))
+                    self.assertFalse(view.library_categories.isVisibleTo(view))
+                    view.category_selector.setCurrentIndex(
+                        view.category_selector.findData("alignements")
+                    )
+                    self.assertEqual(view.library_category, "alignements")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
                         ["alignement_bonta", "alignement_brakmar"],
                     )
+                    view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+                    self.assertEqual(view.category_selector.currentData(), "dofus")
+                    view.library_categories.setCurrentItem(view._category_nodes["alignements"])
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
                     self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
