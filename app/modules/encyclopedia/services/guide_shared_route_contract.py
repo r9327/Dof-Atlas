@@ -207,6 +207,9 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         "schema_version": 5,
         "id": f"source_guide:{guide_id}",
         "source": "authorized_import",
+        "source_guide_metadata": copy.deepcopy({
+            key: value for key, value in guide.items() if key != "steps"
+        }),
         "route_model": "authored_step_actions",
         "manual_manifest": False,
         "manual_preview": False,
