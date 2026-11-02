@@ -102,8 +102,13 @@ def compare_json_parsers(
         name not in {"stdlib", "orjson", "msgspec"} for name in candidates
     ):
         raise ValueError("Unsupported or duplicate parser candidate")
-    path = Path(source).resolve(strict=True)
-    if not path.is_file() or path.is_symlink() or path.stat().st_size > max_bytes:
+    supplied = Path(source)
+    # Resolve only after rejecting a link: the resolved target is never a
+    # symlink, so checking is_symlink() *after* resolve would silently bypass it.
+    if supplied.is_symlink():
+        raise ValueError("Parser source must be a regular file, not a symlink")
+    path = supplied.resolve(strict=True)
+    if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Parser source missing, linked or exceeds size budget")
     raw = path.read_bytes()
     if len(raw) > max_bytes:
@@ -169,8 +174,13 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
     """
     if not 1 <= max_bytes <= 256 * 1024 * 1024:
         raise ValueError("Invalid streaming size budget")
-    path = Path(source).resolve(strict=True)
-    if not path.is_file() or path.is_symlink() or path.stat().st_size > max_bytes:
+    supplied = Path(source)
+    # Resolve only after rejecting a link: the resolved target is never a
+    # symlink, so checking is_symlink() *after* resolve would silently bypass it.
+    if supplied.is_symlink():
+        raise ValueError("Parser source must be a regular file, not a symlink")
+    path = supplied.resolve(strict=True)
+    if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Invalid or oversized streaming input")
     raw = path.read_bytes()
     if len(raw) > max_bytes:
