@@ -237,6 +237,38 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
         self.assertTrue(any("Viande Noire" in a["text"]
                             for a in steps[1]["actions"]))
 
+    def test_sidimote_three_full_draft_preserves_four_quests_and_five_fights(self):
+        path = AUTHORING_DIR / "ganymede_2235_partial.json"
+        if not path.is_file():
+            self.skipTest("Sidimote 3 authoring draft archived")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(data["source_guide_id"], 2235)
+        self.assertEqual(data["expected_source_step_count"], 31)
+        self.assertEqual(len(data["steps"]), 31)
+        self.assertEqual(data["authoring_status"], "FULL_DRAFT_NOT_PLAYABLE")
+        self.assertFalse(data["source_parity_certified"])
+        self.assertFalse(data["gameplay_certified"])
+        steps = data["steps"]
+        actions = [action for step in steps for action in step["actions"]]
+        self.assertEqual(sum(action["kind"] == "fight" for action in actions), 5)
+        self.assertTrue(any("Gad Jayte" in action["text"] for action in actions))
+        self.assertTrue(any("Moctar Chitekt" in action["text"] for action in actions))
+        self.assertTrue(any("Gobovette" in action["text"] for action in actions))
+        self.assertTrue(any("Mamée Talika" in action["text"] for action in actions))
+        self.assertTrue(any("30 Bauxite" in action["text"] and "60 Argent" in action["text"]
+                            for action in actions))
+        self.assertTrue(any("Pwouerk" in action["text"] and action["kind"] == "fight"
+                            for action in steps[24]["actions"]))
+        self.assertTrue(any("trois Sectateurs" in action["text"]
+                            for action in steps[26]["actions"]))
+        self.assertTrue(any("Risa Gregory" in action["text"] and action["kind"] == "fight"
+                            for action in steps[30]["actions"]))
+        self.assertTrue(any("Moctar Chitekt" in action["text"] and action["kind"] == "fight"
+                            for action in steps[30]["actions"]))
+        self.assertTrue(any("Au pied du mur" in action["text"]
+                            for action in steps[10]["actions"]))
+        self.assertGreaterEqual(len(data["further_review_needed"]), 3)
+
     def test_opening_source_facts_survive_rewriting(self):
         # Focused editorial guard: these are verified opening-page facts,
         # not certificates for the complete source routes.
