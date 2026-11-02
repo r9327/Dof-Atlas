@@ -152,6 +152,22 @@ class AuthoredGanymedeInstructionTests(unittest.TestCase):
         self.assertTrue(expected.issubset(found))
 
 
+    def test_otomai_one_source_crossing_fights_begin_at_step_four(self):
+        # Source GP6/MG6: embark at step 3; the three battles belong to step 4.
+        # This narrow regression does not certify the other route objectives.
+        from app.modules.encyclopedia.views.guide_library_sources import (
+            load_ganymede_listings,
+        )
+
+        entry = next(row for row in load_ganymede_listings() if row.source_id == 2219)
+        steps = load_ganymede_local_instructions(entry)
+        self.assertEqual(len(steps), 7)
+        self.assertFalse(any(a["kind"] == "fight" for a in steps[2]["actions"]))
+        fights = [a for a in steps[3]["actions"] if a["kind"] == "fight"]
+        self.assertEqual(len(fights), 1)
+        self.assertIn("trois", fights[0]["text"].casefold())
+
+
     def test_positioned_actions_follow_local_step_observations(self):
         # A factual coordinate must belong to its exact step in the local
         # observation file. This does not certify the original guide text.
