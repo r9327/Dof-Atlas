@@ -7,6 +7,7 @@ library API, after tools/UI have independently passed qualification.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -66,6 +67,25 @@ def stage_checked_candidate(
             raise GuidePipelineBlocked(f"{name}: guide must be an object")
         if rows[0].get("guide_id") != next_id:
             raise GuidePipelineBlocked(f"{name}: guide ID mismatch")
+    # Semantic equality cannot establish independent provenance: a caller
+    # might submit the same export as both 'source' and 'reference'. Demand
+    # two independent, exact-SHA attestations before the first side effect.
+    def _source_digest(document: dict[str, Any]) -> str:
+        raw = json.dumps(document, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+
+    source_digest = _source_digest(authorized_source)
+    reference_digest = _source_digest(independent_reference)
+    for label, digest in (("current.source_rights", source_digest),
+                          ("current.independent_reference", reference_digest)):
+        try:
+            trusted = (verifier is not None
+                       and verifier(label, digest, head_sha, source_digest) is True)
+        except Exception:
+            trusted = False
+        if not trusted:
+            raise GuidePipelineBlocked(f"{label}: missing independent trusted attestation")
     source_parity = compare(independent_reference, authorized_source)
     if source_parity["issue_count"] or source_parity["status"] != "PARITY_CHECK_PASS":
         raise GuidePipelineBlocked("source differs from independently reviewed reference")
