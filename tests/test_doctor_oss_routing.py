@@ -119,14 +119,13 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(parsed.paths, ["tools/example.py"])
         self.assertEqual(parsed.timeout_seconds, 10)
         parsed_agent = build_parser().parse_args(["agent", "check", "tools/example.py", "--run-oss"])
-        self.assertTrue(parsed_agent.oss_run)
+        self.assertTrue(parsed_agent.run_oss)
 
     def test_agent_check_can_invoke_advisor_without_modifying_doctor_verdict(self):
         from tools.atlas_doctor import command_agent
-        args = SimpleNamespace(agent_action="check", paths=["tools/example.py"],
-                               base_ref="HEAD", structural=False, level=None,
-                               run_tests=False, max_tests=4, timeout_seconds=30,
-                               oss_run=True)
+        from tools.atlas_doctor import build_parser
+        args = build_parser().parse_args(
+            ["agent", "check", "tools/example.py", "--run-oss"])
         core = {"status": "REVIEW", "exit_code": 1, "phase_certified": False}
         with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
                     return_value=core) as agent,
@@ -144,7 +143,7 @@ class DoctorOssRoutingTests(unittest.TestCase):
         args = SimpleNamespace(agent_action="check", paths=["tools/example.py"],
                                base_ref="HEAD", structural=False, level=None,
                                run_tests=False, max_tests=4, timeout_seconds=30,
-                               oss_run=True)
+                               run_oss=True)
         with (patch("tools.atlas_doctor_lib.agent_protocol.run_agent_action",
                     return_value={"status": "BLOCKED", "exit_code": 2}),
               patch("tools.atlas_doctor_lib.oss_router.route_oss") as oss):

@@ -237,7 +237,7 @@ def command_agent(root: Path, args) -> dict[str, Any]:
         max_tests=args.max_tests, timeout_seconds=args.timeout_seconds,
     )
     # Optional evidence only; never override Doctor's status or exit_code.
-    if getattr(args, "oss_run", False):
+    if getattr(args, "run_oss", False):
         if args.agent_action != "check" or report.get("status") in {"BLOCKED", "FAIL"}:
             report["oss_advisory"] = {"status": "NOT_RUN",
                                       "reason": "Only an unblocked agent check can run OSS"}
