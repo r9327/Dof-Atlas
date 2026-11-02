@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import APP_ICON_PATH
+from app.ui.splash_image import clear_connected_dark_background
 
 
 BUTTON_OBJECT_NAMES = {
@@ -28,7 +29,18 @@ def atlas_application_icon() -> QIcon:
 
     global _APPLICATION_ICON
     if _APPLICATION_ICON is None:
-        _APPLICATION_ICON = QIcon(str(APP_ICON_PATH)) if APP_ICON_PATH.exists() else QIcon()
+        if APP_ICON_PATH.exists():
+            source = QImage(str(APP_ICON_PATH))
+            if source.isNull():
+                _APPLICATION_ICON = QIcon(str(APP_ICON_PATH))
+            else:
+                # The splash already removes the edge-connected dark square
+                # from this exact artwork. Do the same for the brand, tray,
+                # dialogs and taskbar instead of showing a black tile.
+                image = clear_connected_dark_background(source)
+                _APPLICATION_ICON = QIcon(QPixmap.fromImage(image))
+        else:
+            _APPLICATION_ICON = QIcon()
     # QIcon is implicitly shared; copying preserves caller value semantics while
     # avoiding repeated file-backed icon construction during shell/dialog setup.
     return QIcon(_APPLICATION_ICON)

@@ -629,18 +629,44 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view._render_window()
         settle()
         initial_button = view.findChild(QPushButton, "GuideManualPageCheck")
+        # The UX deliberately keeps Valider clickable with no selected identity:
+        # its first click must open the portrait picker, NEVER write anonymous
+        # progress or silently use the browsing character. This is the actual
+        # product contract, not the obsolete disabled-button expectation.
         empty_blocked = (
             view.selected_participant_keys() == ()
-            and initial_button is not None and not initial_button.isEnabled()
+            and initial_button is not None and initial_button.isEnabled()
+            and initial_button.text() == "Valider"
+            and not view.participants_button.isChecked()
+        )
+        # Compare both verified identities before and after the click. A prior
+        # completed step is legal; only an unrequested mutation is forbidden.
+        progress_keys = ("character:990000001", "character:990000002")
+        before_progress = tuple(view.service.page_checked(key, view.service.cards[0], 0)
+                                for key in progress_keys)
+        initial_enabled = initial_button.isEnabled() if initial_button is not None else None
+        picker_click = (
+            click_target(page, initial_button, view.scroll)
+            if initial_button is not None else {"accessible": False}
+        )
+        after_progress = tuple(view.service.page_checked(key, view.service.cards[0], 0)
+                               for key in progress_keys)
+        no_anonymous_write = (
+            not view._progress_participant_keys()
+            and before_progress == after_progress
         )
         session.check(
-            "participant-empty-blocked", "Open Guide without explicitly selected characters",
-            "Valider disabled with no explicit recipient",
+            "participant-empty-blocked", "Click Valider with no explicitly selected characters",
+            "Valider opens the portrait picker without saving progress to any character",
             {"selected": list(view.selected_participant_keys()),
-             "validation_enabled": initial_button.isEnabled() if initial_button else None},
-            empty_blocked, page,
+             "validation_enabled": initial_enabled,
+             "picker_open": view.participants_button.isChecked(),
+             "click": picker_click, "anonymous_write": not no_anonymous_write},
+            empty_blocked and picker_click["accessible"]
+            and view.participants_button.isChecked() and no_anonymous_write, page,
         )
-        view.participants_button.setChecked(True)
+        if not view.participants_button.isChecked():
+            view.participants_button.setChecked(True)
         settle()
         portrait = view._participant_buttons.get(primary_key)
         selection_click = (
@@ -1879,8 +1905,17 @@ def worker(folder: Path) -> int:
                 catalog.hydrate_runtime(graph=page._quest_graph)
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
             settle()
+            # Count playable routes, not reference-only Ganymède records:
+            # the new expandable catalog can show disabled metadata children.
+            from PySide6.QtCore import Qt
+            alignments = catalog._category_nodes["alignements"]
+            playable_alignments = {
+                str(alignments.child(i).data(0, Qt.UserRole + 1))
+                for i in range(alignments.childCount())
+                if alignments.child(i).data(0, Qt.UserRole + 1)
+            }
             if (set(catalog.featured_cards) != {"guide_complet", "dofus_sylvestre"}
-                    or catalog._category_nodes["alignements"].childCount() != 2
+                    or playable_alignments != {"alignement_bonta", "alignement_brakmar"}
                     or page.findChild(QLineEdit, "EncyclopediaSearch") is not None):
                 raise RuntimeError("Catalog PR254 visible-contract mismatch")
             for label, width, height in (
@@ -1893,6 +1928,20 @@ def worker(folder: Path) -> int:
                 session.scenario = "guides-catalog-" + label
                 session.card_id = "catalog"
                 session.snapshot(page)
+            # Capture real expansion states as well as the compact default;
+            # otherwise a visually broken dropdown can pass as invisible.
+            if any(card.maximumHeight() > 100 or
+                   card.open_button.isVisibleTo(catalog)
+                   for card in catalog.featured_cards.values()):
+                raise RuntimeError("Optimized Guide cards are not compact/click-only")
+            page.resize(1200, 800)
+            for category in ("alignements", "dimensions"):
+                node = catalog._category_nodes[category]
+                node.setExpanded(True)
+                settle()
+                session.scenario = "guides-catalog-" + category + "-open"
+                session.snapshot(page)
+                node.setExpanded(False)
             # Restore the canonical rich owner for the existing Guide scenarios.
             owner = page.ensure_full_guides_view()
             if not owner._runtime_ready:
