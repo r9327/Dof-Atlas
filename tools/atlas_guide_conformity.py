@@ -13,10 +13,12 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-_IGNORED_REFERENCE_KEYS = frozenset({
-    "evidence_ref", "source_sha", "rights_verified", "reference_verified",
-    "complete", "capture_date", "source_url",
-})
+# Evidence locators document how to verify a source and do not need to
+# appear as displayed Atlas gameplay fields. Every other field, including
+# source_url, coordinates, media links, complete and capture metadata on
+# individual actions, MUST be compared; otherwise missing information can
+# falsely yield PARITY_CHECK_PASS.
+_IGNORED_REFERENCE_KEYS = frozenset({"evidence_ref"})
 _ID_KEYS = {"guide": "guide_id", "step": "source_step_id", "action": "action_id"}
 _COLLECTIONS = {"guides": "guide", "steps": "step", "actions": "action"}
 
