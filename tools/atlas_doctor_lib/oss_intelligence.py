@@ -166,6 +166,7 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
     if "assets" in scopes:
         native_routes.append("tools.atlas_doctor file-audit (asset review, no deletion)")
         native_routes.append("tools.atlas_doctor oss --asset-trial (explicit ImageHash comparison, no deletion)")
+        native_routes.append("tools.atlas_doctor oss --font-trial (explicit fontTools metadata, no font mutation)")
     if "dependencies" in scopes:
         native_routes.append("tools.tool_catalog (local package metadata only)")
     if "python" in scopes:
