@@ -222,6 +222,16 @@ class GuideCatalogView(QWidget):
             )
             left_layout.addWidget(button)
             self.alignment_buttons[guide_id] = button
+        # One additional shared alignment story has no legacy Atlas guide ID.
+        # It still belongs to Alignements, not the miscellaneous families.
+        self.alignment_shared_button = QPushButton("Bonta / Brâkmar", self.home_left)
+        self.alignment_shared_button.setObjectName("GuidesHomeAlignmentShared")
+        self.alignment_shared_button.setMinimumHeight(38)
+        self.alignment_shared_button.setCursor(Qt.PointingHandCursor)
+        self.alignment_shared_button.clicked.connect(
+            lambda checked=False: self._open_source_by_id(2226)
+        )
+        left_layout.addWidget(self.alignment_shared_button)
         left_layout.addStretch(1)
         self.library_categories.setVisible(False)
         self.home_columns = GuideHomeColumns(
@@ -570,6 +580,18 @@ class GuideCatalogView(QWidget):
                 + (f" · {source.step_count} étapes" if source and source.step_count else "")
             )
 
+        shared = next(
+            (entry for entry in self.ganymede_listings if entry.source_id == 2226),
+            None,
+        )
+        self.alignment_shared_button.setVisible(shared is not None)
+        self.alignment_shared_button.setEnabled(shared is not None)
+        if shared is not None:
+            self.alignment_shared_button.setText(
+                f"Bonta / Brâkmar · {shared.step_count} étapes"
+                if shared.step_count else "Bonta / Brâkmar"
+            )
+
         has_metadata = bool(entries)
         self.metadata_title.setVisible(has_metadata)
         self.home_metadata_list.setVisible(has_metadata)
@@ -612,6 +634,11 @@ class GuideCatalogView(QWidget):
                 listing.addItem(item)
             listing.parentWidget().setVisible(listing.count() > 0)
             listing.setFixedHeight(min(184, max(56, listing.count() * 35 + 8)))
+
+    def _open_source_by_id(self, source_id: int) -> None:
+        item = QListWidgetItem()
+        item.setData(Qt.UserRole, source_id)
+        self._open_ganymede_source_item(item)
 
     def _open_other_category_item(self, item: QListWidgetItem) -> None:
         guide_id = item.data(Qt.UserRole + 1)
