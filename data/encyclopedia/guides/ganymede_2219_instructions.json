@@ -84,7 +84,8 @@
           "kind": "prepare",
           "text": "1 Huile de Sésame : fabriquer chez un Paysan à partir de 10 Graines de Sésame (recette de l'objet) ou acheter l'huile directement. Ne pas suivre l'ancien commentaire « 3 graines » de GP6.",
           "copy_values": [
-            "Huile de Sésame"
+            "Huile de Sésame",
+            "Graine de Sésame"
           ]
         },
         {
@@ -133,15 +134,27 @@
         },
         {
           "kind": "prepare",
-          "text": "Vérifier les 2 Miséricordes du Chafer d'Élite, 1 Gros Boulet, 1 Oreille de Foufayteur et 1 Huile de Sésame ; le Gros Boulet est à obtenir sur Raul Mops après lancement de la quête."
+          "text": "Vérifier les 2 Miséricordes du Chafer d'Élite, 1 Gros Boulet, 1 Oreille de Foufayteur et 1 Huile de Sésame ; le Gros Boulet est à obtenir sur Raul Mops après lancement de la quête.",
+          "copy_values": [
+            "Miséricorde du Chafer d'Élite",
+            "Gros Boulet",
+            "Oreille de Foufayteur",
+            "Huile de Sésame"
+          ]
         },
         {
           "kind": "deliver",
-          "text": "Remettre les quatre ressources au Capitaine Kradoc pour terminer « Le nouveau monde »."
+          "text": "Remettre les quatre ressources au Capitaine Kradoc pour terminer « Le nouveau monde ».",
+          "copy_values": [
+            "Capitaine Kradoc"
+          ]
         },
         {
           "kind": "talk",
-          "text": "Reparler au Capitaine Kradoc et choisir de partir vers l'île."
+          "text": "Reparler au Capitaine Kradoc et choisir de partir vers l'île.",
+          "copy_values": [
+            "Capitaine Kradoc"
+          ]
         }
       ]
     },
@@ -172,7 +185,7 @@
         },
         {
           "kind": "talk",
-          "text": "Après les trois combats, parler au Capitaine Kradoc sur l'île échouée en [19,42] et accepter « L'île des naufragés ».",
+          "text": "Après les trois combats, reparler au Capitaine Kradoc sur le navire, puis une fois échoué sur l'île des Naufragés retrouver le capitaine en [-43,2] pour lancer « L'île des naufragés ». Ne pas confondre la carte maritime de l'étape avec la position du capitaine sur l'île.",
           "copy_values": [
             "Capitaine Kradoc"
           ]
@@ -187,19 +200,38 @@
         },
         {
           "kind": "interact",
-          "text": "Optionnel : cliquer sur le parasol en paille en [-43,-1] pour lancer et terminer « Le secret des Flaqueux » ; récompense : 1 Parchemin des Flaqueux (+20 prospection pendant 20 combats)."
+          "text": "Optionnel : cliquer sur le parasol en paille en [-43,-1] pour lancer et terminer « Le secret des Flaqueux » ; récompense : 1 Parchemin des Flaqueux (+20 prospection pendant 20 combats).",
+          "copy_values": [
+            "Parchemin des Flaqueux"
+          ]
         },
         {
           "kind": "prepare",
-          "text": "Rassembler 1 Tronc de Kokoko, 1 Tranche de Nodkoko, 1 Kokopaille et 1 Coffret maudit du Flib. Les obtenir en combat sur les monstres de l'île si non préparés."
+          "text": "Rassembler 1 Tronc de Kokoko, 1 Tranche de Nodkoko, 1 Kokopaille et 1 Coffret maudit du Flib. Les obtenir en combat sur les monstres de l'île si non préparés.",
+          "copy_values": [
+            "Tronc de Kokoko",
+            "Tranche de Nodkoko",
+            "Kokopaille",
+            "Coffret maudit du Flib"
+          ]
         },
         {
           "kind": "deliver",
-          "text": "Remettre ces quatre ressources au Capitaine Kradoc pour réparer le navire et achever « L'île des naufragés »."
+          "text": "Remettre ces quatre ressources au Capitaine Kradoc pour réparer le navire et achever « L'île des naufragés ».",
+          "copy_values": [
+            "Tronc de Kokoko",
+            "Tranche de Nodkoko",
+            "Kokopaille",
+            "Coffret maudit du Flib",
+            "Capitaine Kradoc"
+          ]
         },
         {
           "kind": "talk",
-          "text": "Parler de nouveau au Capitaine Kradoc pour quitter l'île des Naufragés et rejoindre Otomaï."
+          "text": "Parler de nouveau au Capitaine Kradoc pour quitter l'île des Naufragés et rejoindre Otomaï.",
+          "copy_values": [
+            "Capitaine Kradoc"
+          ]
         },
         {
           "kind": "travel",
@@ -276,7 +308,10 @@
         },
         {
           "kind": "talk",
-          "text": "Reparler à Flip Flap et sélectionner « Le scaéroport de l'Arbre Hakam »."
+          "text": "Reparler à Flip Flap et sélectionner « Le scaéroport de l'Arbre Hakam ».",
+          "copy_values": [
+            "Flip Flap"
+          ]
         },
         {
           "kind": "information",
@@ -309,7 +344,8 @@
           "text": "Remettre 1 Ailes en bois améliorées et 1 Casque amélioré à Spitte Fayeur pour terminer la quête.",
           "copy_values": [
             "Ailes en bois améliorées",
-            "Casque amélioré"
+            "Casque amélioré",
+            "Spitte Fayeur"
           ]
         },
         {
