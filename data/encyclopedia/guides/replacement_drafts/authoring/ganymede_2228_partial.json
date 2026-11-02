@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "source_guide_id": 2228,
+  "source_url": "https://ganymede-app.com/guides/2228",
+  "expected_source_step_count": 39,
+  "authoring_status": "PARTIAL_NOT_PLAYABLE",
+  "reviewed_stage_range": [
+    1,
+    10
+  ],
+  "rights_basis": "atlas_original",
+  "editorial_source_text_copied": false,
+  "source_reference": "https://ganymede-app.com/guides/2228",
+  "evidence_scope": "manually_rewritten_first_ten_visible_source_steps_and_matched_local_coordinates_only",
+  "source_parity_certified": false,
+  "gameplay_certified": false,
+  "steps": [
+    {
+      "source_step_number": 1,
+      "title": "Repérer les quêtes de Sufokia",
+      "instructions": "Le parcours commence par les succès d'introduction des quais et des habitants de Sufokia. Les donjons des Scarafeuilles, Forgerons et Gelées sont des détours facultatifs à combiner avec d'autres quêtes si nécessaire.",
+      "actions": [
+        {
+          "kind": "information",
+          "text": "Prévoir de suivre deux séries de quêtes à Sufokia, avec plusieurs enquêtes ouvertes en parallèle."
+        },
+        {
+          "kind": "information",
+          "text": "Garder en option les donjons Scarafeuilles, Forgerons et Gelées selon les quêtes de tour du monde et d'alignement du personnage."
+        }
+      ]
+    },
+    {
+      "source_step_number": 2,
+      "title": "Commencer l'enquête sur les quais",
+      "instructions": "Depuis le zaap de Sufokia, parler à Océana pour démarrer la visite des quais puis continuer vers le nord.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Retrouver Océana à proximité du zaap de Sufokia.",
+          "coordinates": [
+            13,
+            26
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Accepter auprès d'Océana la quête de visite des quais."
+        },
+        {
+          "kind": "travel",
+          "text": "Monter d'une carte en [13,25].",
+          "coordinates": [
+            13,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 3,
+      "title": "Ouvrir la quête des Gelées",
+      "instructions": "Rencontrer Ferdi McGellan et accepter son travail lié aux Gelées avant de rejoindre la taverne.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Trouver Ferdi McGellan au nord du zaap.",
+          "coordinates": [
+            13,
+            25
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Demander du travail à Ferdi McGellan et démarrer sa quête concernant les Gelées."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la taverne en [12,24].",
+          "coordinates": [
+            12,
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 4,
+      "title": "Passer à la taverne Ripate",
+      "instructions": "La visite de la taverne sert à faire progresser la tournée des quais ; aucune validation de combat n'est demandée à cette étape.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans la taverne Ripate.",
+          "coordinates": [
+            12,
+            24
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Passer dans la taverne pour actualiser la quête de découverte des quais."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'atelier des bricoleurs en [7,25].",
+          "coordinates": [
+            7,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 5,
+      "title": "Visiter l'atelier des bricoleurs",
+      "instructions": "Entrer dans l'atelier pour enregistrer la prochaine étape de la visite, puis repartir vers le sud de Sufokia.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'atelier des bricoleurs.",
+          "coordinates": [
+            7,
+            25
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Valider le passage par l'atelier dans la quête des quais."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre Fouln Dayre en [9,27].",
+          "coordinates": [
+            9,
+            27
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 6,
+      "title": "Commencer l'enquête de Fouln Dayre",
+      "instructions": "Proposer son aide à Fouln Dayre pour ouvrir la quête d'enquête locale avant de revenir aux quais.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Rencontrer Fouln Dayre.",
+          "coordinates": [
+            9,
+            27
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Questionner Fouln Dayre sur son activité et accepter de mener l'enquête."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre [14,25] pour la prochaine halte de la tournée.",
+          "coordinates": [
+            14,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 7,
+      "title": "Explorer les quais de l'est",
+      "instructions": "Le passage sur cette carte met à jour la quête de découverte. Continuer vers le quai suivant sans inventer de dialogue.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre le quai en [14,25].",
+          "coordinates": [
+            14,
+            25
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Vérifier la mise à jour automatique de la tournée des quais sur la carte."
+        },
+        {
+          "kind": "travel",
+          "text": "Aller au quai suivant en [15,26].",
+          "coordinates": [
+            15,
+            26
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 8,
+      "title": "Poursuivre la tournée des quais",
+      "instructions": "Se présenter sur le quai suivant et vérifier le progrès dans le journal de quête.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Atteindre le quai en [15,26].",
+          "coordinates": [
+            15,
+            26
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Faire progresser la quête par la visite de la carte."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre l'épicerie en [16,25].",
+          "coordinates": [
+            16,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 9,
+      "title": "Ouvrir trois quêtes à l'épicerie",
+      "instructions": "À l'épicerie, parler aux deux PNJ afin de déclencher leurs trois demandes, sans considérer qu'elles sont déjà terminées.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Entrer dans l'épicerie.",
+          "coordinates": [
+            16,
+            25
+          ]
+        },
+        {
+          "kind": "talk",
+          "text": "Interroger Jo Raybuchon sur ses produits pour ouvrir sa quête culinaire."
+        },
+        {
+          "kind": "talk",
+          "text": "Parler à Jake Combes et accepter la mission de chasse aux Scarafeuilles."
+        },
+        {
+          "kind": "talk",
+          "text": "Reparler à Jake Combes pour ouvrir également la quête de collecte des perles."
+        },
+        {
+          "kind": "travel",
+          "text": "Continuer la visite en [17,26].",
+          "coordinates": [
+            17,
+            26
+          ]
+        }
+      ]
+    },
+    {
+      "source_step_number": 10,
+      "title": "Terminer cette séquence de quais",
+      "instructions": "L'arrivée sur la carte valide un nouveau repère de la quête de découverte. Partir ensuite vers le point suivant du parcours.",
+      "actions": [
+        {
+          "kind": "travel",
+          "text": "Se rendre au quai en [17,26].",
+          "coordinates": [
+            17,
+            26
+          ]
+        },
+        {
+          "kind": "interact",
+          "text": "Attendre la mise à jour du journal de quête liée à cette carte."
+        },
+        {
+          "kind": "travel",
+          "text": "Rejoindre la destination suivante en [17,28].",
+          "coordinates": [
+            17,
+            28
+          ]
+        }
+      ]
+    }
+  ]
+}
