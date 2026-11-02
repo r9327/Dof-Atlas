@@ -202,8 +202,8 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
             self.skipTest("Nimaltopia draft archived")
         data = json.loads(path.read_text(encoding="utf-8"))
         steps = data["steps"]
-        self.assertEqual(len(steps), 34)
-        self.assertEqual(data["authoring_status"], "PARTIAL_NOT_PLAYABLE")
+        self.assertEqual(len(steps), 67)
+        self.assertEqual(data["authoring_status"], "FULL_DRAFT_NOT_PLAYABLE")
         self.assertFalse(data["source_parity_certified"])
         self.assertFalse(data["gameplay_certified"])
         self.assertTrue(any("Robert Gine" in a["text"] for a in steps[2]["actions"]))
@@ -221,6 +221,21 @@ class GanymedePartialAuthoringTests(unittest.TestCase):
                             for a in steps[33]["actions"]))
         self.assertTrue(any("Bontarien" in a["text"]
                             for a in steps[33]["actions"]))
+        self.assertTrue(any("Bouchonnois" in a["text"]
+                            and "selon" in a["text"] for a in steps[64]["actions"]))
+        self.assertTrue(any("l'heure" in a["text"].casefold()
+                            for a in steps[64]["actions"]))
+        boxes = [a.get("coordinates") for a in steps[65]["actions"]
+                 if a.get("coordinates") is not None]
+        self.assertIn([-66, 33], boxes)
+        self.assertIn([-65, 32], boxes)
+        self.assertIn([-65, 33], boxes)
+        for position in ([-64, 31], [-63, 31], [-63, 30]):
+            self.assertIn(position, boxes)
+        self.assertTrue(any("Xaniel" in a["text"]
+                            for a in steps[66]["actions"]))
+        self.assertTrue(any("Viande Noire" in a["text"]
+                            for a in steps[1]["actions"]))
 
     def test_opening_source_facts_survive_rewriting(self):
         # Focused editorial guard: these are verified opening-page facts,
