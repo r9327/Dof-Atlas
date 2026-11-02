@@ -10,7 +10,7 @@ import copy
 import re
 from typing import Any
 
-_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}\Z")
+_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 _SECTIONS = ("now", "opportunity", "keep", "boss", "before_leave")
 _KINDS = frozenset({
     "travel", "talk", "item", "collect", "craft", "interact", "fight",
@@ -117,12 +117,18 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             text = _text(action.get("text"), f"{label}.text")
             position = _position(action.get("coordinates"), f"{label}.coordinates") or step_position
             names = _items(action.get("items"), f"{label}.items")
+            if kind == "travel" and not position:
+                raise GuideRouteContractError(f"{label}: travel requires verified coordinates")
+            if kind in {"item", "collect", "craft", "keep", "prepare"} and not names:
+                raise GuideRouteContractError(f"{label}: item action requires structured items")
             npc = action.get("npc")
             if npc is not None:
                 _text(npc, f"{label}.npc")
             monsters = action.get("monsters")
             if monsters is not None:
                 _items(monsters, f"{label}.monsters")
+            if kind in {"fight", "combat"} and not monsters:
+                raise GuideRouteContractError(f"{label}: combat requires structured monsters")
             section = action.get("section", _SECTION_BY_KIND.get(kind, "now"))
             if not isinstance(section, str) or section not in _UI_SECTIONS:
                 raise GuideRouteContractError(f"{label}.section: unknown section {section!r}")
@@ -169,6 +175,9 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             value = step.get(field, [])
             if not isinstance(value, list):
                 raise GuideRouteContractError(f"{prefix}.{field}: list required")
+        for quest_id in step.get("quest_ids", []):
+            if type(quest_id) is not int or quest_id <= 0:
+                raise GuideRouteContractError(f"{prefix}.quest_ids: positive integer IDs required")
         card = {
             "index": step_index + 1,
             "manual_source": True,
