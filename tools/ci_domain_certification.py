@@ -249,6 +249,17 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"organizer", "ui", "identity"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
+    # The independent offline source/Atlas comparator is a Guide tool, not
+    # general CI infrastructure. Exact ownership only: unrelated tools stay
+    # closed-world UNKNOWN until independently reviewed.
+    if path in {
+        "tools/atlas_guide_conformity.py",
+        "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_candidate_store.py",
+        "tools/atlas_guide_sequence_gate.py",
+        "tools/atlas_guide_pipeline.py",
+    }:
+        return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
@@ -261,11 +272,12 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
     }:
-        # All four concrete guide readers have both Guide logic and Qt clients.
+        # The five reviewed Guide/router views have Guide and Qt consumers.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
     if path in {

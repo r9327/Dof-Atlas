@@ -62,6 +62,33 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
+    def test_guide_conformity_tool_has_exact_guide_owner_without_wildcard(self):
+        # A new executable under tools/ must never inherit Guide ownership
+        # just because its name resembles the approved source comparator.
+        source = "tools/atlas_guide_conformity.py"
+        creator = "tools/atlas_guide_importer.py"
+        publisher = "tools/atlas_guide_candidate_store.py"
+        sequence_gate = "tools/atlas_guide_sequence_gate.py"
+        pipeline = "tools/atlas_guide_pipeline.py"
+        self.assertEqual(owners_for(source), frozenset({"guides"}))
+        self.assertEqual(owners_for(creator), frozenset({"guides"}))
+        self.assertEqual(owners_for(publisher), frozenset({"guides"}))
+        self.assertEqual(owners_for(sequence_gate), frozenset({"guides"}))
+        self.assertEqual(owners_for(pipeline), frozenset({"guides"}))
+        plan = self.route([
+            source, creator, publisher, sequence_gate, pipeline,
+            "tests/test_atlas_guide_conformity.py",
+            "tests/test_atlas_guide_importer_preview.py",
+            "tests/test_atlas_guide_candidate_store.py",
+            "tests/test_atlas_guide_sequence_gate.py",
+            "tests/test_atlas_guide_pipeline.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertIn("guides", plan["domains"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(owners_for("tools/atlas_guide_conformity_unreviewed.py"))
+
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
                      ".github/pull_request_template.md", "AGENTS.md",
@@ -466,6 +493,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
             "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
             "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+            "app/modules/encyclopedia/views/manual_route_guides_view.py",
         ]
         for path in paths:
             self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))

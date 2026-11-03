@@ -164,13 +164,8 @@ class GuideUltimeManualCard(QFrame):
         )
         layout.addWidget(details)
 
-        travel_action = (
-            "déplace les participants sélectionnés"
-            if callable(getattr(self, "travel_command_callback", None))
-            else "copie la commande /travel x,y"
-        )
         rows = (
-            f"Coordonnée en gras : cliquer {travel_action}.",
+            "Coordonnée en gras : cliquer copie /travel x,y. Icône Zaap : trajet optimisé facultatif.",
             "Objet en vert : cliquer copie son nom. PNJ en jaune : interlocuteur à trouver.",
             "Case de combat : objectif partagé avec l’onglet Quêtes, avec monstre et quantité.",
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
@@ -304,7 +299,7 @@ class GuideUltimeManualCard(QFrame):
 
     def _add_inline_quest_links(
         self, row_layout: QHBoxLayout, row: dict[str, Any],
-        *, quest_ids: list[int] | None = None,
+        *, quest_ids: list[int] | None = None, allow_repeat: bool = False,
     ) -> None:
         if not self._quest_rows:
             return
@@ -315,7 +310,10 @@ class GuideUltimeManualCard(QFrame):
         if quest_ids is None:
             quest_ids = self._quest_ids_for_row(row)
         for quest_id in quest_ids:
-            if int(quest_id) in self._shown_quest_ids:
+            # Historical guides keep one shortcut per Quest and sheet.
+            # Explicit source-action attribution can repeat the same Quest
+            # where the authored route links it to several distinct actions.
+            if not allow_repeat and int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))
             if not name:
@@ -482,7 +480,11 @@ class GuideUltimeManualCard(QFrame):
         ]
         provider = getattr(service, "quest_provider", None)
         evidence = getattr(provider, "guide_evidence", None)
-        if callable(evidence):
+        # Imported source resources are exhaustive; do not hydrate unrelated
+        # legacy Quest evidence or add items absent from the source route.
+        if callable(evidence) and not (
+            card.get("manual_source") is True and "source_step_id" in card
+        ):
             for raw in card.get("manual_quest_ids", []) or []:
                 try:
                     payload = evidence(int(raw))
@@ -529,16 +531,8 @@ class GuideUltimeManualCard(QFrame):
         value = self._copy_text_for_link(href)
         if not value:
             return
-        travel_callback = getattr(self, "travel_command_callback", None)
-        if value.startswith("/travel ") and callable(travel_callback):
-            launched = bool(travel_callback(value))
-            QToolTip.showText(
-                QCursor.pos(),
-                "Déplacement demandé" if launched else "Commande copiée",
-                self,
-            )
-            QTimer.singleShot(800, QToolTip.hideText)
-            return
+        # A classic coordinate is ALWAYS a clipboard shortcut. Macro dispatch
+        # belongs to the separate explicit Zaap button, never to this link.
         QApplication.clipboard().setText(value)
         QToolTip.showText(QCursor.pos(), "Copié", self)
         QTimer.singleShot(800, QToolTip.hideText)
