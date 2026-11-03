@@ -185,9 +185,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._spawn_macro.assert_not_called()
         runtime.input_state.begin_mouse_block.assert_not_called()
 
-    def test_sequential_sender_visits_2_4_8_clients_exactly_once(self):
+    def test_sequential_sender_visits_2_4_6_8_clients_exactly_once(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
-        for count in (2, 4, 8):
+        for count in (2, 4, 6, 8):
             with self.subTest(count=count):
                 handles = tuple(range(101, 101 + count))
                 clients = [SimpleNamespace(handle=h, display_name=str(h)) for h in handles]
