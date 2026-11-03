@@ -430,6 +430,77 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 20, 40))
                 runtime.switch_click.run_async.assert_not_called()
 
+    def test_native_source_replay_refusal_is_visible_but_up_passes_through(self) -> None:
+        from time import monotonic
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.macro_lock.active_label = ""
+        runtime.switch_click.run_async.return_value = False
+        context = SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor")
+        runtime._pending_physical_switch = (
+            "Left", 20, 40, 1, "Switch clique", context, monotonic(),
+        )
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 20, 40))
+        runtime.logger.warning.assert_any_call(
+            "Clic natif non recopié: cause=dispatch_refused button=%s", "Left",
+        )
+        self.assertIsNone(runtime._pending_physical_switch)
+
+    def test_native_source_skipped_replays_have_distinct_safe_reasons(self) -> None:
+        from time import monotonic
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        for reason in (
+            "emergency_stop", "worker_busy", "expired",
+            "drag_or_moved", "focus_changed", "source_untrusted",
+            "mode_changed",
+        ):
+            with self.subTest(reason=reason):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = (
+                    "mirror" if reason == "mode_changed" else "macro"
+                )
+                runtime.macro_lock.active_label = (
+                    "Miroir" if reason == "worker_busy" else ""
+                )
+                runtime.macro_lock.should_stop.return_value = (
+                    reason == "emergency_stop"
+                )
+                captured = monotonic() - (5 if reason == "expired" else 0)
+                runtime._pending_physical_switch = (
+                    "Left", 20, 40, 1, "Switch clique",
+                    SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor"),
+                    captured,
+                )
+                x, y = (150, 180) if reason == "drag_or_moved" else (20, 40)
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=999 if reason == "focus_changed" else 101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=reason != "source_untrusted"),
+                ):
+                    self.assertTrue(
+                        AtlasRuntime._handle_mouse_release(runtime, "Left", x, y)
+                    )
+                runtime.switch_click.run_async.assert_not_called()
+                runtime.logger.debug.assert_any_call(
+                    "Clic natif non recopié: cause=%s button=%s",
+                    reason, "Left",
+                )
+                self.assertIsNone(runtime._pending_physical_switch)
+
     def test_native_source_click_skips_source_in_secondary_replay(self) -> None:
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
 
