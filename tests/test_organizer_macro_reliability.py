@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.macros.auto_group import AutoGroupMacro
+from app.macros.switch_character import SwitchCharacterMacro
 from app.macros.direction import DirectionMacro
 from app.macros.zaap import ZaapMacro
 
@@ -140,6 +141,67 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
                     "termine", count - 1, count - 1, count - 1, 101,
                 )
+
+    def test_switch_character_confirms_foreground_before_reporting_success(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=0, handle=101, display_name="Leader"),
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window", return_value=202),
+        ):
+            self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+            runtime._spawn_macro.call_args.args[1]()
+        self.assertEqual(runtime.active_client_handle, 202)
+
+    def test_switch_character_rejects_stolen_focus_without_false_success(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=0, handle=101, display_name="Leader"),
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window", return_value=999),
+        ):
+            self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+            runtime._spawn_macro.call_args.args[1]()
+        self.assertEqual(runtime.active_client_handle, 101)
+        runtime.logger.warning.assert_any_call(
+            "Activation client ignoree: focus non confirme hwnd=%s", 202,
+        )
+        self.assertFalse(
+            any(
+                "Activation par raccourci client" in str(call.args[0])
+                for call in runtime.logger.info.call_args_list
+            )
+        )
+
+    def test_switch_character_does_not_mark_success_after_emergency_stop(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime.macro_lock.should_stop.return_value = True
+        runtime._spawn_macro.return_value = True
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+            runtime._spawn_macro.call_args.args[1]()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
 
     def test_invalid_zaap_does_not_start_or_reserve_macro(self) -> None:
         runtime = _runtime()
