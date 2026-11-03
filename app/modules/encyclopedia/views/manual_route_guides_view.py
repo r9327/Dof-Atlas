@@ -51,6 +51,9 @@ class ManualRouteGuidesView(_BaseGuidesView):
                 raise ValueError("Mismatched or non-canonical imported Guide service")
         self._imported_source_services = sources
         self._imported_source_authorizer = imported_source_authorizer
+        if imported_source_authorizer is not None:
+            for service in sources.values():
+                service.set_authorization_guard(imported_source_authorizer)
         self._catalog_manual_services: dict[str, GuideCatalogManualRuntimeService | ImportedSourceManualRuntimeService] = {}
         self._catalog_manual_views: dict[str, SharedGuideManualView] = {}
         self._catalog_route_map_counts: dict[str, int] = {}
@@ -194,13 +197,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
     def _imported_source_authorized(self, guide_id: str) -> bool:
         """Fail closed on absent, revoked or failing independent approval."""
         service = self._imported_source_services.get(guide_id)
-        authorizer = self._imported_source_authorizer
-        if service is None or not callable(authorizer):
-            return False
-        try:
-            return bool(authorizer(guide_id, service.route))
-        except Exception:
-            return False
+        return bool(service is not None and service.can_write_progress())
 
     def ensure_imported_source_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         """Open one explicitly authorized route in the sole shared renderer."""
