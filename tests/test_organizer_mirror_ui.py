@@ -404,6 +404,46 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(focus_logs[0].args[1]["n"], count)
 
 
+    def test_switch_click_sender_refusal_after_focus_theft_never_restores(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+            SimpleNamespace(handle=202, display_name="next"),
+        ]
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0,
+            activate_attempts=1, activate_retry_ms=0,
+            input_double_gap_ms=5, switch_click_down_ms=1,
+            switch_background_post_up_ms=0, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        macro = SwitchClickMacro(runtime)
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch.object(macro, "_target_point", return_value=(20, 30)),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.switch_click.set_cursor_pos") as move,
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.activate_window", return_value=True),
+            patch("app.macros.switch_click.foreground_window",
+                  side_effect=[101, 999]),
+            patch("app.macros.switch_click.send_client_click",
+                  return_value=False) as send,
+        ):
+            macro._run("Left", 1, "Miroir", context)
+        send.assert_called_once()
+        move.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir interrompu : 0/2 fenêtres."
+        )
+
     def test_switch_click_aborts_when_focus_stolen_before_input(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
