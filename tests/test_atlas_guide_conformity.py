@@ -334,7 +334,12 @@ class TestGuideConformity(unittest.TestCase):
             },
         )
         self.assertTrue(all(x["changed"] for x in positions))
-        self.assertFalse(delta["resolved"])
+        # "invalid" -> [1] fixes the scalar/list TYPE_MISMATCH,
+        # while both independent semantic coordinate failures persist.
+        self.assertEqual(
+            [issue["issue_code"] for issue in delta["resolved"]],
+            ["TYPE_MISMATCH"],
+        )
         self.assertFalse(delta["introduced"])
 
     def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
