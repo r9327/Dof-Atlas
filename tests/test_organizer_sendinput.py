@@ -152,5 +152,48 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_unity_hover_settle_follows_pointer_move_before_mouse_down(self) -> None:
+        events = []
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos",
+                         side_effect=lambda *_: events.append("move")),
+            patch.object(clicks, "wait_ms",
+                         side_effect=lambda ms, _: events.append(("hover", ms)) or False),
+            patch.object(clicks, "_send_mouse_flag",
+                         side_effect=lambda flag: events.append(("input", flag)) or True),
+        ):
+            self.assertTrue(clicks.send_screen_click(
+                320, 240, "Left", 1, 40, 0, 45, 0, guard, Mock(),
+            ))
+        self.assertEqual(events, [
+            "move", ("hover", 45),
+            ("input", clicks.MOUSEEVENTF_LEFTDOWN),
+            ("hover", 40),
+            ("input", clicks.MOUSEEVENTF_LEFTUP),
+        ])
+        guard.end.assert_called_once_with(120)
+
+    def test_unity_hover_stop_after_move_sends_no_down(self) -> None:
+        events = []
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos",
+                         side_effect=lambda *_: events.append("move")),
+            patch.object(clicks, "wait_ms",
+                         side_effect=lambda *_: events.append("stop") or True),
+            patch.object(clicks, "_send_mouse_flag",
+                         side_effect=AssertionError("clicked after stop")),
+        ):
+            self.assertFalse(clicks.send_screen_click(
+                320, 240, "Left", 1, 40, 0, 45, 0,
+                guard, Mock(), should_stop=lambda: False,
+            ))
+        self.assertEqual(events, ["move", "stop"])
+        guard.end.assert_called_once_with(120)
+
+
 if __name__ == "__main__":
     unittest.main()
