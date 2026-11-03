@@ -29,6 +29,7 @@ BLOCK_LOG_INTERVAL_SECONDS = 0.4
 
 MouseCallback = Callable[[str, int, int], bool]
 WheelCallback = Callable[[int, int, int, bool], bool]
+MouseReleaseCallback = Callable[[str, int, int], bool]
 
 
 class POINT(ctypes.Structure):
@@ -96,12 +97,14 @@ class MouseHook:
         logger: Logger,
         callback: MouseCallback,
         wheel_callback: WheelCallback | None = None,
+        release_callback: MouseReleaseCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
         self.logger = logger
         self.callback = callback
         self.wheel_callback = wheel_callback
+        self.release_callback = release_callback
         self._hook = None
         self._callback_ref = None
         self._thread: threading.Thread | None = None
@@ -180,6 +183,21 @@ class MouseHook:
                     injected
                     or extra_info == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
+
+                # A native source DOWN that was not intercepted must keep its
+                # matching UP. The release callback may start a replay worker,
+                # which will block subsequent mouse events; never swallow the
+                # UP that completes the user's real click in Unity.
+                if (
+                    not atlas_synthetic
+                    and w_param in (WM_LBUTTONUP, WM_RBUTTONUP)
+                    and self.release_callback is not None
+                ):
+                    button = "Left" if w_param == WM_LBUTTONUP else "Right"
+                    if self.release_callback(button, x, y):
+                        return ctypes.windll.user32.CallNextHookEx(
+                            self._hook, n_code, w_param, l_param,
+                        )
 
                 # The worker may finish before the user releases the button.
                 # Suppress that paired UP even after the general block ends.
