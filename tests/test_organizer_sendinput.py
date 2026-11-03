@@ -378,6 +378,83 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
             self.assertEqual(len(calls), 1)
 
+    def test_busy_down_keeps_matching_up_consumed_after_worker_finishes(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP,
+            WM_MBUTTONDOWN, WM_MBUTTONUP,
+            WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+
+        for down, up in (
+            (WM_LBUTTONDOWN, WM_LBUTTONUP),
+            (WM_RBUTTONDOWN, WM_RBUTTONUP),
+            (WM_MBUTTONDOWN, WM_MBUTTONUP),
+            (WM_XBUTTONDOWN, WM_XBUTTONUP),
+        ):
+            with self.subTest(down=down):
+                logger = logging.getLogger("test_busy_mouse_pairs")
+                state = InputState()
+                click = Mock(return_value=False)
+                released = Mock(return_value=False)
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger, click,
+                    release_callback=released,
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 30, 40
+                user32 = Mock()
+                user32.CallNextHookEx.return_value = 51
+                with patch.object(
+                    ctypes, "windll",
+                    SimpleNamespace(user32=user32), create=True,
+                ):
+                    state.begin_mouse_block("Miroir")
+                    addr = ctypes.addressof(event)
+                    self.assertEqual(hook._mouse_proc(0, down, addr), 1)
+                    self.assertEqual(hook._consumed_releases, {up})
+                    state.end_mouse_block()
+                    # The worker is gone, but the physical UP still belongs
+                    # to the swallowed DOWN, not to the active Unity window.
+                    self.assertEqual(hook._mouse_proc(0, up, addr), 1)
+                    self.assertEqual(hook._consumed_releases, set())
+                    self.assertEqual(hook._mouse_proc(0, up, addr), 51)
+                click.assert_not_called()
+                released.assert_not_called()
+
+    def test_synthetic_up_cannot_unlock_busy_physical_down(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = logging.getLogger("test_synthetic_up_busy_pair")
+        state = InputState()
+        hook = MouseHook(
+            state, SyntheticInputGuard(logger), logger, Mock(),
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            state.begin_mouse_block("Miroir")
+            addr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            state.end_mouse_block()
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            event.flags = 0
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+            self.assertEqual(hook._consumed_releases, set())
+
     def test_native_release_callback_keeps_consumed_pairs_balanced(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
