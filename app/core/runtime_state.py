@@ -697,19 +697,28 @@ class AtlasRuntime:
         from app.macros.mirror_plan import mirror_delivery_targets, is_dofus_unity_process
 
         settings = self.settings
-        favorite = settings.client_by_handle(settings.primary_handle) if settings.primary_handle else None
-        if favorite is None or not is_unity_window(favorite.handle) or not is_dofus_unity_process(favorite.handle):
+        if not settings.primary_handle:
             return False
-        live_handles = tuple(c.handle for c in settings.clients
-                             if is_unity_window(c.handle) and is_dofus_unity_process(c.handle))
+        # Check the focused/pointed window BEFORE scanning the roster.
+        # Physical mouse hooks run globally, including over other apps.
+        if foreground_window() != settings.primary_handle:
+            return False
+        if find_known_client_from_point(
+            screen_x, screen_y, (settings.primary_handle,),
+        ) != settings.primary_handle:
+            return False
+        favorite = settings.client_by_handle(settings.primary_handle)
+        if (favorite is None or not is_unity_window(favorite.handle)
+                or not is_dofus_unity_process(favorite.handle)):
+            return False
+        live_handles = tuple(
+            c.handle for c in settings.clients
+            if is_unity_window(c.handle) and is_dofus_unity_process(c.handle)
+        )
         destinations = mirror_delivery_targets(
             live_handles, live_handles, favorite.handle, source_was_consumed=True,
         )
         if len(destinations) < 2:
-            return False
-        if foreground_window() != favorite.handle:
-            return False
-        if find_known_client_from_point(screen_x, screen_y, (favorite.handle,)) != favorite.handle:
             return False
         if self.macro_lock.active_label:
             self.logger.debug("Miroir: clic ignoré, macro déjà active.")
