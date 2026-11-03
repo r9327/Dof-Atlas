@@ -149,10 +149,14 @@ class MirrorInputMacro:
                     if kind == "key":
                         from app.macros.input_tools import key_down, key_up
                         vk = int(payload)
-                        # Never leave a held key behind, including on stop or SendInput error.
+                        # Only a successful DOWN owns a matching synthetic
+                        # UP. If Windows refused DOWN, an orphaned UP could
+                        # affect a different foreground application.
+                        key_down(vk)
                         try:
-                            key_down(vk)
-                            runtime.macro_lock.wait(min(40, max(10, timings.switch_click_down_ms)))
+                            runtime.macro_lock.wait(
+                                min(40, max(10, timings.switch_click_down_ms))
+                            )
                         finally:
                             key_up(vk)
                     else:
