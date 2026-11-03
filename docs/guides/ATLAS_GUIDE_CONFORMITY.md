@@ -388,3 +388,15 @@ volontairement aucun export de guide réel. Cela ne certifie rien par soi-même.
 - La lecture des JSON par des API Python recevant déjà des dictionnaires
   impose toujours au producteur de valider l'authenticité/provenance ;
   ces contrôles CLI ne constituent pas une certification ni une extraction.
+
+### Rapport AVANT/APRÈS : conservation de la multiplicité
+
+Les anomalies sont maintenant rapprochées par identité **et occurrence**.
+Deux validations indépendantes peuvent diagnostiquer le même champ
+avec le même code `UNVERIFIABLE` (ex. coordonnées malformées et absence
+de position de déplacement vérifiée). L'ancien dictionnaire de
+rapprochement écrasait une des observations ; le rapport
+`before_after.json` conserve toutes les anomalies résolues,
+persistantes ou introduites. Les compteurs sont testés contre
+`compare(...).issue_count` avant et après, sans prétendre certifier
+un guide ou une source.

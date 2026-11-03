@@ -496,25 +496,39 @@ def before_after(reference: dict[str, Any], before: dict[str, Any],
                  after: dict[str, Any]) -> dict[str, Any]:
     """Compare two snapshots against ONE pinned reference; expose all regressions."""
     a, b = compare(reference, before), compare(reference, after)
-    def keyed(report: dict[str, Any]) -> dict[str, dict]:
-        return {
-            _digest([v["issue_code"], v["field_path"], v["guide_id"],
-                     v["source_step_id"], v["action_id"]]): v
-            for v in report["issues"]
-        }
-    old, new = keyed(a), keyed(b)
+    def grouped(report: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        result: dict[str, list[dict[str, Any]]] = {}
+        for issue in report["issues"]:
+            identity = _digest([
+                issue["issue_code"], issue["field_path"], issue["guide_id"],
+                issue["source_step_id"], issue["action_id"],
+            ])
+            # A single field can have multiple independent failures, such as
+            # malformed coordinates AND missing required travel coordinates.
+            # An identity->object dict silently erased all but the last.
+            result.setdefault(identity, []).append(issue)
+        return result
+
+    old, new = grouped(a), grouped(b)
+    resolved: list[dict[str, Any]] = []
+    introduced: list[dict[str, Any]] = []
+    persistent: list[dict[str, Any]] = []
+    for identity in sorted(old.keys() | new.keys()):
+        previous, current = old.get(identity, []), new.get(identity, [])
+        shared = min(len(previous), len(current))
+        persistent.extend({
+            "before": previous[i], "after": current[i],
+            "changed": previous[i] != current[i],
+        } for i in range(shared))
+        resolved.extend(previous[shared:])
+        introduced.extend(current[shared:])
     return {
         "schema_version": 1, "reference_sha256": a["reference_sha256"],
         "before_sha256": a["atlas_sha256"], "after_sha256": b["atlas_sha256"],
         "before_status": a["status"], "after_status": b["status"],
-        "resolved": [old[k] for k in sorted(old.keys() - new.keys())],
-        # Preserve both observations. A quantity changing 8 -> 9 is still the
-        # same unresolved field, but the evolution must not disappear.
-        "persistent": [
-            {"before": old[k], "after": new[k], "changed": old[k] != new[k]}
-            for k in sorted(old.keys() & new.keys())
-        ],
-        "introduced": [new[k] for k in sorted(new.keys() - old.keys())],
+        "resolved": resolved,
+        "persistent": persistent,
+        "introduced": introduced,
         "certified": False, "status": b["status"],
     }
 

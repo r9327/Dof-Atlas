@@ -234,6 +234,48 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(len(delta["introduced"]), 0)
         self.assertEqual(len(delta["resolved"]), 0)
 
+    def test_before_after_preserves_two_independent_errors_same_field(self) -> None:
+        old = imported(reference())
+        new = imported(reference())
+        # A coordinate value with the wrong shape is independently
+        # unrenderable AND leaves this travel action without a position.
+        old["guides"][0]["steps"][1]["actions"][0]["coordinates"] = "invalid"
+        prior = compare(reference(), old)
+        overlapping = [
+            issue for issue in prior["issues"]
+            if issue["issue_code"] == "UNVERIFIABLE"
+            and issue["field_path"].endswith(".actions[0].coordinates")
+        ]
+        self.assertEqual(len(overlapping), 2)
+        delta = before_after(reference(), old, new)
+        resolved = [
+            issue for issue in delta["resolved"]
+            if issue["issue_code"] == "UNVERIFIABLE"
+            and issue["field_path"].endswith(".actions[0].coordinates")
+        ]
+        self.assertEqual(len(resolved), 2)
+        self.assertEqual(len(delta["resolved"]), prior["issue_count"])
+        self.assertEqual(delta["persistent"], [])
+        self.assertEqual(delta["introduced"], [])
+        self.assertEqual(delta["status"], "PARITY_CHECK_PASS")
+
+    def test_before_after_balances_duplicate_issue_multiplicity(self) -> None:
+        before = imported(reference())
+        after = imported(reference())
+        before["guides"][0]["steps"][1]["actions"][0]["coordinates"] = "invalid"
+        after["guides"][0]["steps"][1]["actions"][0]["coordinates"] = None
+        prior = compare(reference(), before)
+        current = compare(reference(), after)
+        delta = before_after(reference(), before, after)
+        self.assertEqual(
+            len(delta["resolved"]) + len(delta["persistent"]),
+            prior["issue_count"],
+        )
+        self.assertEqual(
+            len(delta["introduced"]) + len(delta["persistent"]),
+            current["issue_count"],
+        )
+
     def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
         old = copy.deepcopy(self.atlas)
         original = "x" * 1000
