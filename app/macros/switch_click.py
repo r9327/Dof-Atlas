@@ -359,19 +359,32 @@ class SwitchClickMacro:
                     )
                 else:
                     self.runtime.logger.info(
-                        "Miroir mesures sendinput: n=%s p50_ms=%s p95_ms=%s "
+                        "Miroir mesures delivery_step: n=%s p50_ms=%s p95_ms=%s "
                         "p99_ms=%s total_ms=%s envoyés=%s/%s",
                         quantiles["n"], quantiles["p50"], quantiles["p95"],
                         quantiles["p99"], elapsed_ms, sent_count, target_total,
                     )
 
             if target_total > 0:
-                self.runtime.logger.info(
-                    "%s terminé: envoyés=%s/%s",
-                    action_label,
-                    sent_count,
-                    target_total,
+                stopped = self.runtime.macro_lock.should_stop()
+                state = (
+                    "interrompu" if stopped or focus_lost
+                    else "terminé" if sent_count == target_total
+                    else "partiel"
                 )
+                self.runtime.logger.info(
+                    "%s %s: envoyés=%s/%s",
+                    action_label, state, sent_count, target_total,
+                )
+                if mirror_started_at is not None:
+                    label = (
+                        "Miroir interrompu" if state == "interrompu"
+                        else "Miroir incomplet" if state == "partiel"
+                        else "Miroir"
+                    )
+                    self.runtime._emit_status(
+                        f"{label} : {sent_count}/{target_total} fenêtres."
+                    )
 
     def _capture_trigger_context(
         self,
