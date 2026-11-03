@@ -20,6 +20,21 @@ from tools.atlas_guide_sequence_gate import (
     WitnessVerifier, assess_next,
 )
 
+# Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "atlas-guide-pipeline",
+    "role": "guide_candidate_control_plane",
+    "capabilities": ["guide","validation"],
+    "modes": ["readonly_sequence_cli","trusted_host_stage_api"],
+    "cost_hint": "variable",
+    "side_effects": "repo_mutation_explicit",
+    "structured_output": True,
+    "canonical": True,
+    "recommended_tests": ["tests.test_atlas_guide_pipeline"],
+    "target_scopes": ["encyclopedia_guide"],
+}
+
 
 class GuidePipelineBlocked(ValueError):
     """Refuse to prepare an uncertified or unverified candidate."""

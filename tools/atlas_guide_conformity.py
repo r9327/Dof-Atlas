@@ -15,6 +15,21 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+# Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "atlas-guide-conformity",
+    "role": "guide_independent_parity",
+    "capabilities": ["guide","validation"],
+    "modes": ["before_after_reports","explicit_output_directory"],
+    "cost_hint": "variable",
+    "side_effects": "repo_mutation_explicit",
+    "structured_output": True,
+    "canonical": False,
+    "recommended_tests": ["tests.test_atlas_guide_conformity"],
+    "target_scopes": ["encyclopedia_guide"],
+}
+
 # Evidence locators document how to verify a source and do not need to
 # appear as displayed Atlas gameplay fields. Every other field, including
 # source_url, coordinates, media links, complete and capture metadata on

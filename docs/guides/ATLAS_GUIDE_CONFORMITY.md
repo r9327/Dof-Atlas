@@ -409,3 +409,27 @@ Les deux CLI vérifient donc également `math.isfinite` pour chaque flottant
 avec `parse_float`. Ce débordement est bloqué au même stade que les clés
 dupliquées et `NaN`, sans écrire de sortie. Les tests utilisent uniquement
 des nombres et des parcours fictifs.
+
+### Découverte des outils par Doctor / catalogue IA — Phase 0
+
+Les cinq moteurs `tools.atlas_guide_*` exposent désormais des
+`TOOL_SPEC` statiques, lisibles par `tools.tool_catalog` sans import ni
+exécution des moteurs. Leur rôle, coût, modes, périmètre `encyclopedia_guide`
+et tests recommandés sont déclarés à la même source que le code.
+
+- **Point d'entrée préféré :** `tools.atlas_guide_pipeline` pour l'avis
+  de séquence en lecture seule via sa CLI. La fonction Python
+  `stage_checked_candidate` reste réservée à un hôte de certification
+  équipé d'un vérificateur de preuves indépendant.
+- **Utilitaires spécialisés :** aperçu source, comparateur AVANT/APRÈS,
+  interverrouillage séquentiel et magasin de candidats. La
+  qualification `repo_mutation_explicit` des composants comportant une
+  fonction d'écriture empêche de les traiter comme de simples
+  diagnostics automatiques, même si leur CLI usuelle est plus restreinte.
+  Le gate séquentiel seul est `read_only`.
+- Une régression automatisée vérifie la reconnaissance par le parseur
+  réel du catalogue et l'existence des tests déclarés. **La présence
+  dans le catalogue n'est pas une preuve que Doctor exécute
+  automatiquement ces fonctions**, ni une autorisation de publication,
+  ni une validation Qt/Windows/DOFUS. L'intégration structurelle au lecteur
+  reste soumise au Graphify du SHA exact et au cycle Doctor complet.

@@ -91,6 +91,41 @@ class PipelineSyntheticTests(unittest.TestCase):
         self.assertEqual(result["resolved_issue_count"], 1)
         self.assertEqual(selected_candidate(self.folder), result["candidate_sha256"])
 
+    def test_phase0_tools_are_discoverable_and_never_claim_implicit_publication(self):
+        # Use exactly the catalog's static AST parser. This is intentionally
+        # cheaper than a full-repository tool audit on every scoped Guide test.
+        from tools.tool_catalog import _validated_tool_spec
+
+        root = Path(__file__).resolve().parents[1]
+        expected = {
+            "tools/atlas_guide_pipeline.py": ("atlas-guide-pipeline", True),
+            "tools/atlas_guide_importer.py": ("atlas-guide-importer", False),
+            "tools/atlas_guide_conformity.py": ("atlas-guide-conformity", False),
+            "tools/atlas_guide_sequence_gate.py": ("atlas-guide-sequence", False),
+            "tools/atlas_guide_candidate_store.py": ("atlas-guide-candidate-store", False),
+        }
+        for path, (tool_id, canonical) in expected.items():
+            with self.subTest(tool=path):
+                source = (root / path).read_text(encoding="utf-8")
+                spec, errors = _validated_tool_spec(source, path)
+                self.assertEqual(errors, [])
+                self.assertIsNotNone(spec)
+                self.assertEqual(spec["id"], tool_id)
+                self.assertEqual(spec["canonical"], canonical)
+                self.assertIn("guide", spec["capabilities"])
+                self.assertEqual(spec["target_scopes"], ["encyclopedia_guide"])
+                self.assertTrue(spec["recommended_tests"])
+                for module in spec["recommended_tests"]:
+                    path_on_disk = root / (module.replace(".", "/") + ".py")
+                    self.assertTrue(path_on_disk.is_file(), module)
+                if path.endswith("sequence_gate.py"):
+                    self.assertEqual(spec["side_effects"], "read_only")
+                else:
+                    # All other modules expose an output/write entry point
+                    # somewhere in the CLI or trusted API; don't auto-publish.
+                    self.assertEqual(spec["side_effects"],
+                                     "repo_mutation_explicit")
+
     def test_missing_trusted_host_blocks_before_filesystem_writes(self):
         with self.assertRaisesRegex(GuidePipelineBlocked, "missing trusted evidence"):
             self._run(verifier=None)

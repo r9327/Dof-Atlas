@@ -17,6 +17,21 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
     project_authorized_guide,
 )
 
+# Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "atlas-guide-importer",
+    "role": "guide_authorized_preview",
+    "capabilities": ["guide","generation"],
+    "modes": ["dry_run","explicit_preview_output","partial_uncertified"],
+    "cost_hint": "variable",
+    "side_effects": "repo_mutation_explicit",
+    "structured_output": True,
+    "canonical": False,
+    "recommended_tests": ["tests.test_atlas_guide_importer_preview"],
+    "target_scopes": ["encyclopedia_guide"],
+}
+
 EXPECTED_GUIDES = 95
 EXPECTED_STEPS = 7705
 

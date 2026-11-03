@@ -14,6 +14,21 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+# Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
+TOOL_SPEC = {
+    "schema_version": 1,
+    "id": "atlas-guide-sequence",
+    "role": "guide_sequential_interlock",
+    "capabilities": ["guide","validation"],
+    "modes": ["read_only_advisory_cli","trusted_witness_api"],
+    "cost_hint": "cheap",
+    "side_effects": "read_only",
+    "structured_output": True,
+    "canonical": False,
+    "recommended_tests": ["tests.test_atlas_guide_sequence_gate"],
+    "target_scopes": ["encyclopedia_guide"],
+}
+
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _GIT_SHA = re.compile(r"[0-9a-f]{40}\Z")
 _ZERO_SOURCE = "0" * 64
