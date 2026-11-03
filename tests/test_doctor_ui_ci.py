@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Stdlib discovery: intentionally runnable without importing tests or Qt."""
 
+import ast
 import json
 import subprocess
 import sys
@@ -146,6 +147,24 @@ class DoctorUiSelectionTests(unittest.TestCase):
             "      - name: Run one session", 1
         )[0]
         self.assertIn("python -X faulthandler -m unittest -v", selected)
+        self.assertIn(
+            "tests.test_guide_manual_selected_validation."
+            "ImportedSourceSharedManualUiTests", selected
+        )
+        # Resolve the class and methods from source using stdlib AST; do not
+        # import Qt in the lightweight Doctor CI planning job.
+        tree = ast.parse((root / "tests/test_guide_manual_selected_validation.py")
+                         .read_text(encoding="utf-8"))
+        cases = [
+            node for node in tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "ImportedSourceSharedManualUiTests"
+        ]
+        self.assertEqual(len(cases), 1)
+        methods = {
+            node.name for node in cases[0].body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+        }
         for required in (
             "test_staged_candidate_previews_through_existing_shared_reader",
             "test_reordered_staged_route_keeps_per_character_progress_identity",
@@ -155,7 +174,7 @@ class DoctorUiSelectionTests(unittest.TestCase):
             "test_imported_source_preparation_uses_own_sections_with_selected_character",
             "test_view_validation_uses_per_character_stable_source_step_identity",
         ):
-            self.assertIn(required, selected)
+            self.assertIn(required, methods)
         self.assertNotIn("--apply", selected)
         self.assertNotIn("--publish", selected)
         self.assertNotIn("requirements-pyside.txt", selected)
