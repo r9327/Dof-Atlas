@@ -13,7 +13,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from tools.atlas_guide_candidate_store import publish_candidate
+from tools.atlas_guide_candidate_store import (
+    publish_candidate, read_selected_route,
+)
 from tools.atlas_guide_conformity import before_after, compare
 from tools.atlas_guide_importer import prepare_preview
 from tools.atlas_guide_sequence_gate import (
@@ -26,7 +28,10 @@ TOOL_SPEC = {
     "id": "atlas-guide-pipeline",
     "role": "guide_candidate_control_plane",
     "capabilities": ["guide","validation"],
-    "modes": ["readonly_sequence_cli","trusted_host_stage_api"],
+    "modes": [
+        "readonly_sequence_cli", "trusted_host_stage_api",
+        "staged_readonly_preview_api",
+    ],
     "cost_hint": "variable",
     "side_effects": "repo_mutation_explicit",
     "structured_output": True,
@@ -167,6 +172,29 @@ def stage_checked_candidate(
         "resolved_issue_count": len(delta["resolved"]),
         "candidate_sha256": receipt["candidate_sha256"],
         "next_selected_sha256": receipt["candidate_sha256"],
+    }
+
+
+def preview_staged_guide(
+    *, candidate_root: Path, expected_selected: str, route_id: str,
+) -> dict[str, Any]:
+    """Connect the canonical staging tool to the existing UI-card contract.
+
+    Explicit, SHA-pinned preview ONLY: this function must never publish
+    into the application catalog, unlock gameplay or modify any progress.
+    Production activation requires a separate trusted certification gate.
+    """
+    route = read_selected_route(
+        root=candidate_root,
+        expected_selected=expected_selected,
+        route_id=route_id,
+    )
+    return {
+        "status": "STAGED_PREVIEW_ONLY",
+        "candidate_sha256": expected_selected,
+        "route": route,
+        "certified": False,
+        "runtime_activation": False,
     }
 
 
