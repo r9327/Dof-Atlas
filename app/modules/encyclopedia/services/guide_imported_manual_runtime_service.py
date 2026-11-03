@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import Any, Callable
 
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
@@ -73,6 +73,25 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
             self.route.get("source_guide_metadata", {}).get("title") or source_id
         )
         self._known_stage_ids = frozenset(known)
+        self._authorization_guard: Callable[[str, dict], bool] | None = None
+
+    def set_authorization_guard(
+        self, guard: Callable[[str, dict], bool],
+    ) -> None:
+        if not callable(guard):
+            raise TypeError("A source authorization guard must be callable")
+        self._authorization_guard = guard
+
+    def can_write_progress(self) -> bool:
+        guard = self._authorization_guard
+        if guard is None:
+            return False
+        try:
+            return bool(guard(self.guide_id, self.route))
+        except Exception:
+            # Authorization can be revoked while a Guide is visible. Never
+            # allow a stale page to write just because it was opened earlier.
+            return False
 
     def load(self) -> None:
         """No implicit disk discovery or fallback to the generated V5 route."""
@@ -98,6 +117,8 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
     def set_manual_checked(
         self, character_key: str, key: str, checked: bool,
     ) -> None:
+        if not self.can_write_progress():
+            return
         self.guide_progress.set_manual_step_completed(
             character_key, self.progress_id, key, bool(checked),
         )
