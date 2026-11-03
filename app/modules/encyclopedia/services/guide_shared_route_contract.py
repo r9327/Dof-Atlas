@@ -20,6 +20,19 @@ _KINDS = frozenset({
 })
 _SECTION_BY_KIND = {"warning": "before_leave", "keep": "keep", "prepare": "prepare"}
 _UI_SECTIONS = frozenset((*_SECTIONS, "prepare"))
+# These fields can carry actions that the shared card currently keeps only
+# as opaque source metadata. Keeping bytes is not equivalent to displaying
+# or making a user choice actionable. Block before a guide can be staged.
+_UNRENDERED_ACTION_FIELDS = frozenset({
+    "dialogue_options", "choices", "branches", "branching",
+    "alternative_routes", "subactions", "substeps", "interactions",
+    "achievement_ids", "success_ids", "images", "image", "media",
+    "attachments", "links", "commands",
+})
+_UNRENDERED_STEP_FIELDS = frozenset({
+    "choices", "branches", "branching", "alternative_routes",
+    "images", "image", "media", "attachments", "links",
+})
 
 
 class GuideRouteContractError(ValueError):
@@ -101,6 +114,11 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             raise GuideRouteContractError(f"{prefix}: duplicate source_step_id {source_id}")
         seen_steps.add(source_id)
         step_title = _text(step.get("title"), f"{prefix}.title")
+        for field in sorted(_UNRENDERED_STEP_FIELDS & step.keys()):
+            if step[field] not in (None, [], {}, ""):
+                raise GuideRouteContractError(
+                    f"{prefix}.{field}: unsupported authored UI content"
+                )
         step_position = _position(step.get("coordinates"), f"{prefix}.coordinates")
         actions = step.get("actions")
         if not isinstance(actions, list) or not actions:
@@ -121,6 +139,11 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             kind = _text(action.get("kind"), f"{label}.kind")
             if kind not in _KINDS:
                 raise GuideRouteContractError(f"{label}: unsupported action kind {kind!r}")
+            for field in sorted(_UNRENDERED_ACTION_FIELDS & action.keys()):
+                if action[field] not in (None, [], {}, ""):
+                    raise GuideRouteContractError(
+                        f"{label}.{field}: unsupported authored UI content"
+                    )
             text = _text(action.get("text"), f"{label}.text")
             position = _position(action.get("coordinates"), f"{label}.coordinates") or step_position
             names = _items(action.get("items"), f"{label}.items")
