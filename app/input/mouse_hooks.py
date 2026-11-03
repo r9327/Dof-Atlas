@@ -28,6 +28,7 @@ HOOK_START_TIMEOUT_SECONDS = 2.0
 BLOCK_LOG_INTERVAL_SECONDS = 0.4
 
 MouseCallback = Callable[[str, int, int], bool]
+MouseReleaseCallback = Callable[[str, int, int], bool]
 
 
 class POINT(ctypes.Structure):
@@ -94,11 +95,13 @@ class MouseHook:
         synthetic_guard: SyntheticInputGuard,
         logger: Logger,
         callback: MouseCallback,
+        release_callback: MouseReleaseCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
         self.logger = logger
         self.callback = callback
+        self.release_callback = release_callback
         self._hook = None
         self._callback_ref = None
         self._thread: threading.Thread | None = None
@@ -173,6 +176,20 @@ class MouseHook:
                     injected
                     or extra_info == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
+
+                # A real source click is allowed through on DOWN. Its paired
+                # physical UP must also reach Unity even if the replay worker
+                # starts blocking new mouse gestures in this callback.
+                if (
+                    not atlas_synthetic
+                    and w_param in (WM_LBUTTONUP, WM_RBUTTONUP)
+                    and self.release_callback is not None
+                ):
+                    button = "Left" if w_param == WM_LBUTTONUP else "Right"
+                    if self.release_callback(button, x, y):
+                        return ctypes.windll.user32.CallNextHookEx(
+                            self._hook, n_code, w_param, l_param,
+                        )
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
                     self._log_blocked_event(w_param, x, y)
