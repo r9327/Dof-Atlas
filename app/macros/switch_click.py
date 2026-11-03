@@ -13,6 +13,7 @@ from app.windows.unity_windows import (
     client_point_from_ratio,
     client_point_ratio,
     find_known_client_from_point,
+    foreground_window,
     is_unity_window,
     screen_to_client,
 )
@@ -140,6 +141,7 @@ class SwitchClickMacro:
         target_total = 0
         mouse_blocked = mouse_block_started
         should_restore_preferred = False
+        focus_lost = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
         mirror_send_samples: list[float] = []
 
@@ -250,6 +252,16 @@ class SwitchClickMacro:
                     )
                     continue
 
+                # A successful SetForegroundWindow attempt can become stale
+                # before SendInput. Never click another application or client.
+                if foreground_window() != int(client.handle):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: focus perdu avant clic hwnd=%s",
+                        action_label, client.handle,
+                    )
+                    return
+
                 target = self._target_point(client.handle, context)
                 if target is None:
                     self.runtime.logger.info(
@@ -314,7 +326,9 @@ class SwitchClickMacro:
                         action_label,
                     )
 
-            if should_restore_preferred:
+            # The user may have deliberately changed foreground window.
+            # Never steal it back during an aborted gesture.
+            if should_restore_preferred and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client(
                         action_label
