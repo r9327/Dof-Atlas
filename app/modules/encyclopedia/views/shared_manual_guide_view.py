@@ -305,7 +305,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # On an imported step, explicit per-action Quest attribution owns
         # ALL shortcuts. Earlier untagged rows must not steal one through
         # a name match or the legacy single-Quest heuristic.
-        source_step = card.get("manual_runtime_metadata", {}).get("source_step")
+        source_metadata = card.get("manual_runtime_metadata")
+        source_step = (
+            source_metadata.get("source_step")
+            if isinstance(source_metadata, dict)
+            else None
+        )
         self._source_quest_links_explicit = (
             card.get("manual_source") is True
             and "source_step_id" in card
