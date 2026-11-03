@@ -285,7 +285,7 @@ class GuidePreparationModelTests(unittest.TestCase):
         prereqs = [row for row in claims if row.category == "Prérequis"]
         self.assertEqual(
             [row.name for row in prereqs],
-            ["Avoir terminé la quête d'accès", "Niveau 100 requis"],
+            ["Quête : Avoir terminé la quête d'accès", "Niveau 100 requis"],
         )
         self.assertTrue(all(row.quantity is None for row in prereqs))
         self.assertEqual({row.identity for row in prereqs}, {

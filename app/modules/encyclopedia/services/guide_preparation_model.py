@@ -325,6 +325,13 @@ def card_claims(
     # separate prose gates. Typed quest/success identities trump display names.
     if not isinstance(gates, (list, tuple)):
         gates = (gates,)
+    typed_labels = {
+        normalized_name(title)
+        for raw in gates if isinstance(raw, dict)
+        and (_positive_int(raw.get("quest_id")) is not None
+             or _positive_int(raw.get("achievement_id")) is not None)
+        for title in _gate_labels(raw)
+    }
     for index, raw in enumerate(gates):
         typed: list[tuple[str, str]] = []
         if isinstance(raw, dict):
@@ -346,7 +353,9 @@ def card_claims(
             entries = [(f"gate:{normalized_name(label)}", label)
                        for label in _gate_labels(raw)]
         for identity, name in entries:
-            if identity in seen_gates or identity == "gate:":
+            if (identity in seen_gates or identity == "gate:"
+                    or (identity.startswith("gate:")
+                        and normalized_name(name) in typed_labels)):
                 continue
             seen_gates.add(identity)
             claims.append(PreparationClaim(
