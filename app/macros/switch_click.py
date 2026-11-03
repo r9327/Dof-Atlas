@@ -210,6 +210,14 @@ class SwitchClickMacro:
                 if click_count == 2:
                     double_gap_ms = max(double_gap_ms, 60)
 
+                # Unity world interactions sample the hovered target and
+                # pressed mouse state on render/update frames. A 1 ms click
+                # after an immediate cursor warp can miss both observations.
+                # Keep these bounded minimums specific to Switch clic: other
+                # fast UI actions retain their existing timings.
+                hover_settle_ms = max(50, timings.switch_background_pre_click_ms)
+                press_hold_ms = max(35, timings.switch_click_down_ms)
+
                 self.runtime.logger.debug(
                     "%s envoi clic: label=%s hwnd=%s button=%s "
                     "count=%s x=%s y=%s reason=%s",
@@ -229,9 +237,9 @@ class SwitchClickMacro:
                     target[1],
                     button,
                     click_count,
-                    timings.switch_click_down_ms,
+                    press_hold_ms,
                     double_gap_ms,
-                    0,
+                    hover_settle_ms,
                     timings.switch_background_post_up_ms,
                     self.runtime.synthetic_guard,
                     self.runtime.logger,
