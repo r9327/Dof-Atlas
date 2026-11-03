@@ -13,7 +13,7 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 )
 from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
-    read_selected_preview, read_selected_route,
+    read_selected_preview, read_selected_route, list_selected_preview_routes,
 )
 from tools.atlas_guide_importer import prepare_preview
 
@@ -120,6 +120,73 @@ class CandidateStoreTests(unittest.TestCase):
                         route_id=route_id,
                     )
         self.assertEqual(selected_candidate(self.root), digest)
+
+    def test_staged_catalogue_summary_is_minimal_and_non_active(self) -> None:
+        published = publish_candidate(self.preview, root=self.root)
+        digest = published["candidate_sha256"]
+        summary = list_selected_preview_routes(
+            root=self.root, expected_selected=digest
+        )
+        self.assertEqual(summary["status"], "STAGED_PREVIEW_ONLY")
+        self.assertFalse(summary["certified"])
+        self.assertFalse(summary["runtime_activation"])
+        self.assertEqual(summary["candidate_sha256"], digest)
+        self.assertEqual(summary["source_sha256"], self.preview["source_sha256"])
+        self.assertEqual(summary["route_count"], 1)
+        self.assertEqual(summary["routes"], [{
+            "id": "source_guide:99", "title": "Guide exemple",
+            "step_count": 1, "action_count": 1,
+        }])
+        self.assertNotIn("manual_sections", str(summary))
+        self.assertEqual(selected_candidate(self.root), digest)
+
+    def test_staged_catalogue_preserves_full_95_guide_order(self) -> None:
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [
+                {
+                    "guide_id": f"fictional-{number:03}",
+                    "title": f"Fictitious route {number:03}",
+                    "steps": [{
+                        "source_step_id": "entry", "title": "Départ",
+                        "actions": [{
+                            "action_id": "talk", "kind": "talk",
+                            "text": "Parler au PNJ fictif",
+                        }],
+                    }],
+                }
+                for number in range(1, 96)
+            ],
+        }
+        preview = prepare_preview(
+            source, expected_guides=95, expected_steps=95,
+        )
+        published = publish_candidate(preview, root=self.root)
+        digest = published["candidate_sha256"]
+        summary = list_selected_preview_routes(
+            root=self.root, expected_selected=digest
+        )
+        self.assertEqual(summary["route_count"], 95)
+        self.assertEqual(
+            [row["id"] for row in summary["routes"]],
+            [f"source_guide:fictional-{number:03}"
+             for number in range(1, 96)],
+        )
+        self.assertTrue(all(
+            row["step_count"] == 1 and row["action_count"] == 1
+            for row in summary["routes"]
+        ))
+        last = read_selected_route(
+            root=self.root, expected_selected=digest,
+            route_id="source_guide:fictional-095",
+        )
+        self.assertEqual(last["steps"][0]["source_step_id"], "entry")
+        self.assertEqual(last["steps"][0]["manual_title"], "Départ")
+        self.assertEqual(
+            len(last["steps"][0]["manual_sections"]["now"]), 1,
+        )
+        self.assertFalse((self.root / "data").exists())
 
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
