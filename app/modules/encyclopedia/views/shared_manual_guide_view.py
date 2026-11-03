@@ -643,7 +643,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     "}"
                 )
             else:
-                line.setObjectName(self._line_object_name(kind, text))
+                source_kind = (
+                    row.get("source_action_kind")
+                    if self.card.get("manual_source") is True
+                    and "source_step_id" in self.card else None
+                )
+                # Imported source semantics take precedence over prose
+                # heuristics, using the existing global Guide styles.
+                if source_kind == "choice":
+                    line.setObjectName("GuideManualSpecial")
+                elif source_kind == "dungeon":
+                    line.setObjectName("GuideManualCombat")
+                else:
+                    line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
             # Imported actions may identify their own Quest precisely.
             # An explicit empty list means no shortcut on this action; never
