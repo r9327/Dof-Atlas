@@ -105,6 +105,53 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         ))
         runtime._spawn_macro.assert_not_called()
 
+    def test_switch_click_native_source_down_and_up_are_forwarded(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.active_label = ""
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+            action_id="switch_click",
+            payload={"click_count": 1, "label": "Switch clique"},
+        )
+        runtime.settings.clients = [SimpleNamespace(handle=101)]
+        context = SwitchClickContext(101, 25, 30, 0.2, 0.3, "cursor")
+        runtime.switch_click._capture_trigger_context.return_value = context
+
+        with (
+            patch("app.windows.unity_windows.find_known_client_from_point", return_value=101),
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+        ):
+            # False means pass-through, not "macro unavailable".
+            self.assertFalse(AtlasRuntime._handle_mouse_click(runtime, "Left", 150, 160))
+            runtime.switch_click.run_async.assert_not_called()
+            self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 150, 160))
+
+        runtime.switch_click.run_async.assert_called_once_with(
+            "Left", 150, 160, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        )
+        self.assertIsNone(runtime._pending_physical_switch)
+
+    def test_physical_mouse_drag_keeps_source_release_without_replay(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime._pending_physical_switch = (
+            "Left", 20, 40, 1, "Switch clique",
+            SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor"),
+        )
+        self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 130, 180))
+        self.assertIsNone(runtime._pending_physical_switch)
+        runtime.switch_click.run_async.assert_not_called()
+
     def test_invalid_zaap_does_not_start_or_reserve_macro(self) -> None:
         runtime = _runtime()
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap fake"))
