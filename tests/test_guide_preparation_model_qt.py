@@ -375,13 +375,8 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.participants.save_selected_keys(("character:1",))
         self.service.cards[0]["profession_gates"] = [
             {"profession_id": 24, "name": "Alchimiste", "level": 40},
+            {"profession_id": 24, "name": "Alchimiste", "level": 100},
         ]
-        self.service.cards.append({
-            "manual_stage_id": "profession-stage-2",
-            "profession_gates": [
-                {"profession_id": 24, "name": "Alchimiste", "level": 100},
-            ],
-        })
         view = self._view()
         rows = [r for r in view._preparation_needs if r.category == "Métiers"]
         self.assertEqual(len(rows), 1)
