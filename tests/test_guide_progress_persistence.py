@@ -126,5 +126,89 @@ class GuideProgressPersistenceTests(unittest.TestCase):
         self.assertIn("stage:external", reader.manual_steps("character:1", "guide_a"))
 
 
+    def test_preparation_quantities_are_isolated_and_survive_reopen(self) -> None:
+        first = GuideProgressService(self.path)
+        first.set_preparation_quantity(
+            "character:1", "source_guide:test", "item:123", 3, required=8,
+        )
+        first.set_preparation_quantity(
+            "character:2", "source_guide:test", "item:123", 5, required=8,
+        )
+        self.assertEqual(
+            GuideProgressService(self.path).preparation_quantity(
+                "character:1", "source_guide:test", "item:123"
+            ), 3,
+        )
+        self.assertEqual(first.preparation_quantity(
+            "character:2", "source_guide:test", "item:123"
+        ), 5)
+        self.assertEqual(first.preparation_quantity(
+            "character:1", "source_guide:other", "item:123"
+        ), 0)
+
+    def test_preparation_bounds_and_identity_reject_without_writes(self) -> None:
+        service = GuideProgressService(self.path)
+        for value in (-1, 9, True, 1.5):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                service.set_preparation_quantity(
+                    "character:1", "guide_a", "item:123", value, required=8,
+                )
+        for resource in ("item:0", "item:01", "name:unsigned", "monster:123"):
+            with self.subTest(resource=resource), self.assertRaises(ValueError):
+                service.set_preparation_quantity(
+                    "character:1", "guide_a", resource, 1, required=8,
+                )
+        with self.assertRaises(ValueError):
+            service.set_preparation_quantity(
+                "slot:1", "guide_a", "item:123", 1, required=8,
+            )
+        self.assertFalse(self.path.exists())
+
+    def test_preparation_cas_rejects_stale_and_preserves_manual_steps(self) -> None:
+        first = GuideProgressService(self.path)
+        second = GuideProgressService(self.path)
+        first.set_manual_step_completed("character:1", "guide_a", "stage:a", True)
+        first.set_preparation_quantity(
+            "character:1", "guide_a", "item:123", 2, required=8,
+        )
+        with self.assertRaisesRegex(RuntimeError, "changed since reading"):
+            second.set_preparation_quantity(
+                "character:1", "guide_a", "item:123", 7,
+                required=8, expected_quantity=0,
+            )
+        self.assertTrue(second.set_preparation_quantity(
+            "character:1", "guide_a", "item:123", 4,
+            required=8, expected_quantity=2,
+        ))
+        fresh = GuideProgressService(self.path)
+        self.assertEqual(fresh.preparation_quantity(
+            "character:1", "guide_a", "item:123"
+        ), 4)
+        self.assertEqual(fresh.manual_steps("character:1", "guide_a"), {"stage:a"})
+        self.assertTrue(fresh.set_preparation_quantity(
+            "character:1", "guide_a", "item:123", 0,
+            required=8, expected_quantity=4,
+        ))
+        self.assertEqual(fresh.preparation_quantity(
+            "character:1", "guide_a", "item:123"
+        ), 0)
+
+    def test_preparation_legacy_progress_remains_readable_and_corrupt_counts_rejected(self):
+        legacy = {
+            "version": 1,
+            "characters": {"character:1": {"manual_steps": {"guide_a": ["stage:a"]}}},
+        }
+        self.path.write_text(json.dumps(legacy), encoding="utf-8")
+        service = GuideProgressService(self.path)
+        self.assertEqual(service.preparation_quantity(
+            "character:1", "guide_a", "item:123"
+        ), 0)
+        legacy["characters"]["character:1"]["preparation_counts"] = {
+            "guide_a": {"item:123": True},
+        }
+        self.path.write_text(json.dumps(legacy), encoding="utf-8")
+        with self.assertRaises(InvalidPersistentJsonError):
+            GuideProgressService(self.path)
+
 if __name__ == "__main__":
     unittest.main()
