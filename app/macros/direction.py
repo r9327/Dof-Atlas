@@ -52,9 +52,10 @@ class DirectionMacro:
                         )
                         return
                     press_key(key_name, timings.movement_key_hold_ms)
+                    # Count an input that completed before Stop was observed.
+                    sent += 1
                     if self.runtime.macro_lock.should_stop():
                         return
-                    sent += 1
                 else:
                     self.runtime.logger.info(
                         "Switch deplacement: activation echec hwnd=%s",
@@ -69,6 +70,7 @@ class DirectionMacro:
             stopped = self.runtime.macro_lock.should_stop()
             state = (
                 "interrompu" if stopped or focus_lost
+                else "ignore" if not targets
                 else "termine" if sent == len(targets)
                 else "partiel"
             )
