@@ -195,6 +195,36 @@ class OrganizerSendInputTests(unittest.TestCase):
         guard.end.assert_called_once_with(120)
 
 
+    def test_failed_mouse_up_retries_and_reports_final_failure(self) -> None:
+        for retry_works in (True, False):
+            with self.subTest(retry_works=retry_works):
+                guard = Mock()
+                logger = Mock()
+                with (
+                    patch.object(clicks.os, "name", "nt"),
+                    patch.object(clicks, "set_cursor_pos"),
+                    patch.object(clicks, "_send_mouse_flag",
+                                 side_effect=[True, False, retry_works]) as sender,
+                ):
+                    result = clicks.send_screen_click(
+                        300, 200, "Left", 1, 0, 0, 0, 0, guard, logger,
+                    )
+                self.assertFalse(result)
+                self.assertEqual(
+                    [c.args[0] for c in sender.call_args_list],
+                    [clicks.MOUSEEVENTF_LEFTDOWN,
+                     clicks.MOUSEEVENTF_LEFTUP,
+                     clicks.MOUSEEVENTF_LEFTUP],
+                )
+                guard.end.assert_called_once_with(120)
+                if retry_works:
+                    logger.warning.assert_not_called()
+                else:
+                    logger.warning.assert_called_once_with(
+                        "Relachement souris de secours refuse: button=%s",
+                        "Left",
+                    )
+
     def test_refused_mouse_down_does_not_send_unpaired_up(self) -> None:
         sent = []
         with (
