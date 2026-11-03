@@ -16,6 +16,7 @@ HotkeyCallback = Callable[[str, dict[str, object]], None]
 MouseCallback = Callable[[str, int, int], bool]
 PhysicalKeyCallback = Callable[[int, bool], bool]
 WheelCallback = Callable[[int, int, int, bool], bool]
+MouseReleaseCallback = Callable[[str, int, int], bool]
 
 
 def build_runtime_hotkey_actions(settings):
@@ -110,12 +111,14 @@ class ManagedMouseHook:
         logger: Logger,
         callback: MouseCallback,
         wheel_callback: WheelCallback | None = None,
+        release_callback: MouseReleaseCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
         self.logger = logger
         self.callback = callback
         self.wheel_callback = wheel_callback
+        self.release_callback = release_callback
         self._backend: MouseHook | None = None
         self._backend_lock = threading.Lock()
 
@@ -134,6 +137,7 @@ class ManagedMouseHook:
                     self.logger,
                     self.callback,
                     wheel_callback=self.wheel_callback,
+                    release_callback=self.release_callback,
                 )
                 self._backend = backend
         return backend
