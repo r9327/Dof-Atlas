@@ -1841,6 +1841,18 @@ class SharedGuideManualView(GuideUltimeManualView):
         expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
         if all(value == bool(checked) for value in expected.values()):
             return
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            # Source routes may be revoked after a preparation row was painted.
+            # Never bypass the independent authorization through the raw
+            # multi-character GuideProgressService batch API.
+            checked_button = self.preparation_filter_group.checkedButton()
+            selected_filter = str(
+                checked_button.property("filterKey") if checked_button is not None else "Tout"
+            )
+            self._render_preparation(selected_filter)
+            self._update_preparation_progress()
+            return
         if callable(batcher):
             from app.modules.encyclopedia.services.guide_ultime_generated_service import (
                 GUIDE_ULTIME_PROGRESS_ID,
@@ -2041,6 +2053,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
         ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            ready_button.setEnabled(False)
+            ready_button.setToolTip("Parcours source non autorisé : préparation désactivée.")
         if len(need.required_by_character) > 1 and not callable(
             getattr(getattr(self.service, "guide_progress", None),
                     "set_manual_steps_for_characters", None)
