@@ -280,5 +280,57 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertIsNone(row.findChild(QSpinBox, "GuidePreparationQuantity"))
         self.assertIsNotNone(row.findChild(QToolButton, "GuidePreparationReady"))
 
+    def test_party_shared_editor_counts_once_with_atomic_team_allocation(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertIsNotNone(editor)
+        self.assertEqual((editor.value(), editor.maximum()), (0, 2))
+        editor.setValue(2)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        stored = GuideProgressService(self.path)
+        by_character = [
+            stored.preparation_quantity(f"character:{n}", self.service.progress_id, "item:123")
+            for n in (1, 2, 3)
+        ]
+        self.assertEqual(sum(by_character), 2)
+        self.assertTrue(view._need_ready(view._preparation_needs[0]))
+        updated = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((updated.value(), updated.maximum()), (2, 2))
+        updated.setValue(0)
+        updated.editingFinished.emit()
+        QApplication.processEvents()
+        stored.reload()
+        self.assertEqual(sum(
+            stored.preparation_quantity(f"character:{n}", self.service.progress_id, "item:123")
+            for n in (1, 2, 3)
+        ), 0)
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+
+    def test_party_shared_editor_clamps_excess_after_team_selection_change(self):
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        progress = GuideProgressService(self.path)
+        for key in ("character:1", "character:2"):
+            progress.set_preparation_quantity(
+                key, self.service.progress_id, "item:123", 2, required=2,
+            )
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((editor.value(), editor.maximum()), (2, 2))
+        editor.setValue(1)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        stored = GuideProgressService(self.path)
+        self.assertEqual(sum(
+            stored.preparation_quantity(key, self.service.progress_id, "item:123")
+            for key in ("character:1", "character:2")
+        ), 1)
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+
 if __name__ == "__main__":
     unittest.main()

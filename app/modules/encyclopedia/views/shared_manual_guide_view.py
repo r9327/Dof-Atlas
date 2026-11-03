@@ -1833,7 +1833,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             return False
         # A fully counted material preparation is ready even without the
         # historical binary checkbox. Keep old manual Ready marks readable.
-        if (need.scope == "per_character" and need.required_total is not None
+        if (need.scope in {"per_character", "party_shared"}
+                and need.required_total is not None
                 and need.item_key == self._preparation_item_key(
                     need.item_id, need.name
                 )):
@@ -1841,9 +1842,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             quantity_getter = getattr(progress, "preparation_quantity", None)
             if callable(quantity_getter):
                 guide = str(getattr(self.service, "progress_id", "") or "")
-                if all(
-                    quantity_getter(character_key, guide, need.item_key) >= required
-                    for character_key, required in need.required_by_character
+                amounts = [
+                    min(quantity_getter(key, guide, need.item_key), required)
+                    for key, required in need.required_by_character
+                ]
+                if need.scope == "party_shared":
+                    if sum(amounts) >= need.required_total:
+                        return True
+                elif all(
+                    amount >= required
+                    for amount, (_key, required) in zip(
+                        amounts, need.required_by_character
+                    )
                 ):
                     return True
         getter = getattr(self.service, "manual_checked", None)
@@ -1912,7 +1922,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self, need: _PreparationNeed, target: int,
     ) -> None:
         """Allocate a team total deterministically without losing individual stock."""
-        if (need.scope != "per_character" or need.required_total is None
+        if (need.scope not in {"per_character", "party_shared"}
+                or need.required_total is None
                 or need.item_key != self._preparation_item_key(
                     need.item_id, need.name
                 )):
@@ -2133,21 +2144,25 @@ class SharedGuideManualView(GuideUltimeManualView):
         progress = getattr(self.service, "guide_progress", None)
         getter = getattr(progress, "preparation_quantity", None)
         batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
-        if (need.scope == "per_character" and quantity is not None
+        if (need.scope in {"per_character", "party_shared"} and quantity is not None
                 and need.item_key == self._preparation_item_key(
                     need.item_id, need.name
                 ) and callable(getter) and callable(batcher)):
             guide = str(getattr(self.service, "progress_id", "") or "")
-            acquired = sum(
+            acquired = min(quantity, sum(
                 min(getter(key, guide, need.item_key), required)
                 for key, required in need.required_by_character
-            )
+            ))
             editor = QSpinBox(frame)
             editor.setObjectName("GuidePreparationQuantity")
             editor.setRange(0, quantity)
             editor.setValue(acquired)
             editor.setSuffix(f" / {quantity}")
-            editor.setToolTip("Quantité préparée pour les personnages sélectionnés")
+            editor.setToolTip(
+                "Total commun préparé par les personnages sélectionnés"
+                if need.scope == "party_shared"
+                else "Quantité préparée pour les personnages sélectionnés"
+            )
             authorized = getattr(self.service, "can_write_progress", None)
             if callable(authorized) and not authorized():
                 editor.setEnabled(False)
