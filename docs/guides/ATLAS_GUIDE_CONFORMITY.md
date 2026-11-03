@@ -300,3 +300,9 @@ normalisation silencieuse. Deux exports qui contiennent tous les deux un ID
 avec espaces de début/fin sont `UNVERIFIABLE` et non `PARITY_CHECK_PASS`.
 Ces vérifications protègent le comparateur hors runtime ; elles ne prouvent
 pas la conformité du lecteur Qt ni une certification de guide.
+
+Le schéma des IDs reste celui de l'adaptateur canonique : caractères ASCII
+alphanumériques suivis de caractères alphanumériques, points, tirets ou
+soulignés, longueur maximale 120. Les IDs comportant espaces internes,
+segments de chemin, Unicode hors contrat, booléens ou entiers négatifs
+sont `UNVERIFIABLE`, même s'ils sont identiques dans les deux exports.

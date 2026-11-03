@@ -353,6 +353,27 @@ class TestGuideConformity(unittest.TestCase):
         self.assertIn("UNVERIFIABLE", result["issue_codes"])
         self.assertIn("MISSING_STEP", result["issue_codes"])
 
+    def test_invalid_id_grammar_blocks_identical_source_and_atlas(self) -> None:
+        # Parity cannot pass a pair of unusable IDs just because both match.
+        invalid_ids = ("bad id", "bad/id", "bad\\\\id", "é", "a" * 121, -1, True)
+        for level in ("guide", "step", "action"):
+            for invalid in invalid_ids:
+                with self.subTest(level=level, invalid=invalid):
+                    original = reference()
+                    atlas = imported(original)
+                    if level == "guide":
+                        original["guides"][0]["guide_id"] = invalid
+                        atlas["guides"][0]["guide_id"] = invalid
+                    elif level == "step":
+                        original["guides"][0]["steps"][0]["source_step_id"] = invalid
+                        atlas["guides"][0]["steps"][0]["source_step_id"] = invalid
+                    else:
+                        original["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
+                        atlas["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
+                    result = compare(original, atlas)
+                    self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                    self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
 
 if __name__ == "__main__":
     unittest.main()

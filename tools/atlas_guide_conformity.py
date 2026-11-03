@@ -9,6 +9,7 @@ import argparse
 import copy
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,8 @@ from typing import Any
 _IGNORED_REFERENCE_KEYS = frozenset({"evidence_ref"})
 _ID_KEYS = {"guide": "guide_id", "step": "source_step_id", "action": "action_id"}
 _COLLECTIONS = {"guides": "guide", "steps": "step", "actions": "action"}
+# Match the Qt-free adapter identity grammar independently at the diff boundary.
+_STABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 
 
 def _digest(payload: Any) -> str:
@@ -40,7 +43,7 @@ def _identifier(value: Any) -> str | None:
     result = str(value)
     # Never normalize a source ID before comparing inventories. Stripping
     # whitespace here can turn two malformed exports into a false parity PASS.
-    return result if result and result == result.strip() else None
+    return result if _STABLE_ID.fullmatch(result) else None
 
 
 def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
