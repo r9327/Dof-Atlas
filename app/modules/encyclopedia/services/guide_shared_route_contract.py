@@ -130,6 +130,10 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             npc = action.get("npc")
             if npc is not None:
                 _text(npc, f"{label}.npc")
+            # Dialogue choices are shown in the shared source detail. An
+            # invalid value would be silently dropped by the Qt renderer.
+            if "dialogue_choice" in action:
+                _text(action["dialogue_choice"], f"{label}.dialogue_choice")
             monsters = action.get("monsters")
             if monsters is not None:
                 _items(monsters, f"{label}.monsters")
