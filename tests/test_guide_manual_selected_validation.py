@@ -502,6 +502,39 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 legacy_requirements[0][:3], (None, "Composant fictif", 2)
             )
 
+    def test_imported_source_preparation_uses_own_sections_with_selected_character(self) -> None:
+        # The real global panel must never hydrate a legacy catalog when
+        # one or more characters are explicitly selected for a source route.
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1", "character:2"))
+
+            def forbidden_provider(*_args):
+                raise AssertionError("source preparation must not query legacy guides")
+
+            service.manual_sections_for_card = forbidden_provider
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+            )
+            try:
+                view._load_preparation_needs()
+                self.assertTrue(view._preparation_loaded)
+                items = {need.name: need for need in view._preparation_needs}
+                self.assertIn("Ressource fictive", items)
+                self.assertEqual(
+                    {key for key, _quantity in
+                     items["Ressource fictive"].required_by_character},
+                    {"character:1", "character:2"},
+                )
+                self.assertEqual(items["Ressource fictive"].required_total, 4)
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
     def test_source_resources_skip_legacy_quest_evidence(self) -> None:
         from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
 
