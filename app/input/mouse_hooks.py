@@ -144,8 +144,11 @@ class MouseHook:
         return self._start_ok
 
     def stop(self) -> None:
-        self._consumed_releases.clear()
+        # Keep ownership of consumed physical DOWN/UP pairs until Windows
+        # actually unhooks us. Clearing first can leak an orphaned UP during
+        # the shutdown race while the hook callback is still active.
         stop_message_hook(self)
+        self._consumed_releases.clear()
         if self._blocked_click_count or self._blocked_wheel_count:
             # Final totals include the suppressed events that did not survive
             # the 400ms warning throttle just before the hook stopped.
@@ -155,6 +158,7 @@ class MouseHook:
             )
         self._blocked_click_count = 0
         self._blocked_wheel_count = 0
+        self._last_block_log = 0.0
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
