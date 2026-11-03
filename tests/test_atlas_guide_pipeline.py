@@ -179,6 +179,43 @@ class PipelineSyntheticTests(unittest.TestCase):
                     )
         self.assertEqual(selected_candidate(self.folder), digest)
 
+    def test_unrendered_source_actions_never_write_or_replace_staged_candidate(self):
+        baseline = self._run()
+        selected = baseline["candidate_sha256"]
+        before_files = sorted(str(p.relative_to(self.folder))
+                              for p in self.folder.rglob("*"))
+        for kind, change in (
+            ("action_branch", {"choices": ["yes", "no"]}),
+            ("action_validation", {"completion_rule": {"quest": 321}}),
+            ("action_success", {"dungeon_successes": ["Premier", "Nomade"]}),
+            ("action_media", {"media": [{"path": "fictional.png"}]}),
+            ("nested_resource", {"items": [{
+                "name": "Ressource fictive", "quantity": 2,
+                "condition": {"alignment": "bonta"},
+            }]}),
+        ):
+            with self.subTest(kind=kind):
+                source = synthetic_source()
+                source["guides"][0]["steps"][0]["actions"][0].update(change)
+                with self.assertRaisesRegex(
+                    GuidePipelineBlocked,
+                    "source differs from independently reviewed reference",
+                ):
+                    self._run(
+                        authorized_source=source,
+                        independent_reference=copy.deepcopy(source),
+                        atlas_after=copy.deepcopy(source),
+                        expected_selected=selected,
+                    )
+                self.assertEqual(selected_candidate(self.folder), selected)
+                self.assertEqual(
+                    sorted(str(p.relative_to(self.folder))
+                           for p in self.folder.rglob("*")),
+                    before_files,
+                )
+        self.assertFalse((self.folder / "data").exists())
+        self.assertFalse((self.folder / ".writer.lock").exists())
+
     def test_95_sequential_synthetic_stagings_are_isolated_and_never_active(self):
         # Complete-capacity exercise: 95 entirely fabricated single-step
         # routes, not a copy of or a certificate for the 95 real guide routes.
