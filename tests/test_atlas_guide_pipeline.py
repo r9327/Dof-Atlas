@@ -157,8 +157,11 @@ class PipelineSyntheticTests(unittest.TestCase):
             ):
                 destination = scratch / "tests" / relative
                 destination.parent.mkdir(parents=True, exist_ok=True)
+                module = relative.removeprefix("test_").removesuffix(".py")
+                symbol = ("publish_candidate" if module == "atlas_guide_candidate_store"
+                          else "main")
                 destination.write_text(
-                    "from tools.atlas_guide_pipeline import main\n",
+                    f"from tools.{module} import {symbol}\n",
                     encoding="utf-8",
                 )
             report = catalog(scratch)
