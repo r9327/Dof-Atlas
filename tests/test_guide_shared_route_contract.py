@@ -61,6 +61,26 @@ class TestSharedRouteContract(unittest.TestCase):
                 [item["action_id"] for item in actions if item["kind"] != "prepare"],
             )
 
+    def test_source_actions_keep_precise_npc_dialogue_item_and_combat_fields(self):
+        source = sample()
+        source["steps"][0]["actions"][1]["dialogue_choice"] = "Réponse exacte"
+        source["steps"][0]["actions"][2]["items"][0]["item_id"] = 123
+        route = project_authorized_guide(source)
+        card = route["steps"][0]
+        actions = card["manual_sections"]["now"]
+        self.assertEqual(actions[1]["source_action"]["dialogue_choice"], "Réponse exacte")
+        self.assertEqual(actions[2]["source_action"]["items"], [
+            {"name": "Ressource", "quantity": 3, "item_id": 123}
+        ])
+        self.assertEqual(actions[3]["source_action"]["monsters"], [
+            {"name": "Monstre", "quantity": 2}
+        ])
+        self.assertEqual(actions[0]["position"], "[-12,7]")
+        self.assertEqual(
+            [entry["source_action_id"] for entry in actions],
+            ["a", "b", "c", "d"],
+        )
+
     def test_shared_renderer_source_section_precedence_is_local_not_a_fork(self):
         file = (
             Path(__file__).resolve().parents[1]

@@ -647,6 +647,59 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 layout.addWidget(row_widget)
             target_layout = group_layout if adjacent else layout
 
+            # Typed data from the authorized source must remain visible even
+            # when the author omitted a quantity, NPC or dialogue choice in
+            # the free-text instruction. These labels are informational only:
+            # no invented quest completion/monster objective is written.
+            # Legacy Guide Succès and catalogue rows are untouched.
+            if self.card.get("manual_source") is True:
+                source_action = row.get("source_action")
+                if isinstance(source_action, dict):
+                    details: list[str] = []
+                    npc = source_action.get("npc")
+                    if isinstance(npc, str) and npc.strip() and (
+                        normalize_text(npc) not in normalize_text(text)
+                    ):
+                        details.append(f"PNJ : {npc.strip()}")
+                    choice = source_action.get("dialogue_choice")
+                    if isinstance(choice, str) and choice.strip() and (
+                        normalize_text(choice) not in normalize_text(text)
+                    ):
+                        details.append(f"Réponse : {choice.strip()}")
+                    for field, caption in (("items", "Objets"), ("monsters", "Combats")):
+                        entries = source_action.get(field)
+                        if not isinstance(entries, list) or not entries:
+                            continue
+                        missing = [
+                            f"×{entry['quantity']} {entry['name']}"
+                            for entry in entries
+                            if isinstance(entry, dict)
+                            and isinstance(entry.get("name"), str)
+                            and type(entry.get("quantity")) is int
+                            and entry["quantity"] > 0
+                            and (
+                                normalize_text(entry["name"]) not in normalize_text(text)
+                                or not re.search(
+                                    rf"(?<!\d){entry['quantity']}(?!\d)", text
+                                )
+                            )
+                        ]
+                        if missing:
+                            details.append(f"{caption} : " + " · ".join(missing))
+                    if details:
+                        detail_label = QLabel()
+                        detail_label.setObjectName("GuideManualSourceActionDetail")
+                        self._set_clickable_text(
+                            detail_label,
+                            self._format_line_html(
+                                "", "", " — ".join(details),
+                                self._npc_names(" ".join(details)),
+                                self._resource_names,
+                            ),
+                        )
+                        detail_label.setWordWrap(True)
+                        target_layout.addWidget(detail_label)
+
             combat_targets = self._combat_targets_for_row(row, section_key)
             if combat_targets and not combat_heading_added:
                 combat_heading = QLabel("Faire les combats :")

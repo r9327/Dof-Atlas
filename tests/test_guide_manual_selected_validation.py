@@ -314,6 +314,12 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                         {
                             "action_id": "npc", "kind": "talk",
                             "text": "Parler au PNJ fictif", "npc": "PNJ fictif",
+                            "dialogue_choice": "Réponse B fictive",
+                        },
+                        {
+                            "action_id": "item", "kind": "item",
+                            "text": "Acheter Ressource fictive",
+                            "items": [{"name": "Ressource fictive", "quantity": 3}],
                         },
                         {
                             "action_id": "fight", "kind": "combat",
@@ -369,6 +375,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 for expected in (
                     "Aller en [-5,2]", "PNJ fictif", "Monstre fictif",
                     "Conserver Ressource fictive", "Avant de partir",
+                    "Réponse B fictive", "×3 Ressource fictive",
+                    "×2 Monstre fictif",
                 ):
                     self.assertIn(expected, visible)
                 self.assertIn("travel-copy:-5,2", visible)
@@ -376,6 +384,12 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 self.assertNotIn("Préparer 2 Ressource fictive", visible)
                 self.assertIsNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
                 self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
+                self.assertTrue(sheet.findChildren(QLabel, "GuideManualSourceActionDetail"))
+                # Check source evidence is retained alongside visible values.
+                self.assertEqual(
+                    sheet.card["manual_sections"]["now"][2]["source_action"]["items"][0]["quantity"],
+                    3,
+                )
             finally:
                 if sheet is not None:
                     sheet.close()
