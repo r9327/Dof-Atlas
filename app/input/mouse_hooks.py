@@ -139,6 +139,13 @@ class MouseHook:
     def stop(self) -> None:
         self._consumed_releases.clear()
         stop_message_hook(self)
+        if self._blocked_click_count or self._blocked_wheel_count:
+            # Final totals include the suppressed events that did not survive
+            # the 400ms warning throttle just before the hook stopped.
+            self.logger.info(
+                "Organizer hooks arrêtés: clics bloqués=%s molettes bloquées=%s",
+                self._blocked_click_count, self._blocked_wheel_count,
+            )
         self._blocked_click_count = 0
         self._blocked_wheel_count = 0
 
