@@ -393,6 +393,86 @@ class TestGuideConformity(unittest.TestCase):
             for issue in result["issues"]
         ))
 
+    def test_matching_invalid_section_cannot_pass(self) -> None:
+        for section in ("unknown", "", None, 7):
+            with self.subTest(section=section):
+                original = reference()
+                atlas = imported(original)
+                for data in (original, atlas):
+                    data["guides"][0]["steps"][0]["actions"][0]["section"] = section
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(".section")
+                    for issue in result["issues"]
+                ))
+
+    def test_matching_out_of_order_sections_cannot_pass(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        for data in (original, atlas):
+            actions = data["guides"][0]["steps"][0]["actions"]
+            actions[0]["section"] = "boss"
+            actions[1]["section"] = "now"
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_matching_late_preparation_cannot_pass(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        for data in (original, atlas):
+            data["guides"][0]["steps"][0]["actions"][1]["section"] = "prepare"
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertTrue(any(
+            issue["field_path"].endswith(".section") and
+            issue["issue_code"] == "UNVERIFIABLE"
+            for issue in result["issues"]
+        ))
+
+    def test_matching_invalid_quest_collections_cannot_pass(self) -> None:
+        for field in ("quest_ids", "quest_names", "prerequisites"):
+            with self.subTest(field=field):
+                original = reference()
+                atlas = imported(original)
+                for data in (original, atlas):
+                    data["guides"][0]["steps"][0][field] = "not a list"
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["field_path"].endswith("." + field)
+                    and issue["issue_code"] == "UNVERIFIABLE"
+                    for issue in result["issues"]
+                ))
+
+    def test_matching_invalid_quest_id_cannot_pass(self) -> None:
+        for bad in (True, 0, -1, "42", None):
+            with self.subTest(quest_id=bad):
+                original = reference()
+                atlas = imported(original)
+                for data in (original, atlas):
+                    data["guides"][0]["steps"][0]["quest_ids"] = [bad]
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_valid_section_order_and_quest_metadata_still_pass(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        for data in (original, atlas):
+            step = data["guides"][0]["steps"][0]
+            step["quest_ids"] = [42]
+            step["quest_names"] = ["Quête fictive"]
+            step["prerequisites"] = [{"value": "Test"}]
+            step["actions"][0]["section"] = "now"
+            step["actions"][1]["section"] = "opportunity"
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_PASS")
+        self.assertEqual(result["issue_count"], 0)
+        self.assertFalse(result["certified"])
+
     def test_identical_unsupported_action_kind_is_not_parity(self) -> None:
         original = reference()
         atlas = imported(original)

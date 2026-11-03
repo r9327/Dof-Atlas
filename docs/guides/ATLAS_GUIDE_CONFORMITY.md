@@ -323,3 +323,15 @@ sont `UNVERIFIABLE`, même s'ils sont identiques dans les deux exports.
 - Tests adversariaux synthétiques ajoutés ; ils ne constituent pas encore une
   preuve d'exécution sur le SHA final. Doctor, Graphify, Windows/DOFUS et la
   certification des guides restent indépendants et `NOT_RUN`.
+
+### Compatibilité des routes affichées — preuve synthétique
+
+Le comparateur vérifie aussi l'ordre des rubriques partagées
+(`now → opportunity → keep → boss → before_leave`), l'antériorité de la
+préparation et les listes typées de quêtes/prérequis. Deux exports identiques
+avec un rang de rubrique inversé, une rubrique inconnue ou des identifiants
+de quête non entiers sont **bloqués** avant leur présentation comme parité.
+
+Le contrôle Draft utilise les tests des modules Guide (stdlib, sans Qt)
+uniquement lorsque leurs chemins changent ; une réussite certifie leur
+exécution à un SHA donné, **pas** un guide réel ou la conformité Windows.

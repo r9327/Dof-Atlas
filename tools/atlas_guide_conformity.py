@@ -35,6 +35,11 @@ _KNOWN_ACTION_KINDS = frozenset({
     "prepare", "keep", "optional",
 })
 _ITEM_ACTION_KINDS = frozenset({"item", "collect", "craft", "keep", "prepare"})
+# Match the independent reference against the canonical rendering order too:
+# two identical unsupported sections or reversed rows cannot constitute parity.
+_RENDER_ORDER = ("now", "opportunity", "keep", "boss", "before_leave")
+_VALID_SECTIONS = frozenset((*_RENDER_ORDER, "prepare"))
+_DEFAULT_SECTION = {"warning": "before_leave", "keep": "keep", "prepare": "prepare"}
 
 
 def _valid_position(value: Any) -> bool:
@@ -310,6 +315,18 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     report("UNVERIFIABLE", f"{prefix}.coordinates",
                            "[integer x, integer y] in verified bounds",
                            step["coordinates"])
+                for field in ("quest_ids", "quest_names", "prerequisites"):
+                    values = step.get(field, [])
+                    if not isinstance(values, list):
+                        report("UNVERIFIABLE", f"{prefix}.{field}",
+                               "structured list", values)
+                for quest_idx, quest_id in enumerate(
+                    step.get("quest_ids", []) if isinstance(step.get("quest_ids", []), list)
+                    else []
+                ):
+                    if type(quest_id) is not int or quest_id <= 0:
+                        report("UNVERIFIABLE", f"{prefix}.quest_ids[{quest_idx}]",
+                               "positive integer quest ID", quest_id)
                 actions = step.get("actions")
                 if not isinstance(actions, list) or not actions:
                     report("UNVERIFIABLE",
@@ -317,6 +334,7 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                            "nonempty ordered actions", actions)
                     continue
                 inspected[f"{side}_full_actions"] += len(actions)
+                previous_rank = -1
                 for ai, action in enumerate(actions):
                     action_path = f"{prefix}.actions[{ai}]"
                     if not isinstance(action, dict):
@@ -326,6 +344,21 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
                         report("UNVERIFIABLE", f"{action_path}.kind",
                                "supported action kind", kind)
+                    section = action.get("section", _DEFAULT_SECTION.get(kind, "now"))
+                    if not isinstance(section, str) or section not in _VALID_SECTIONS:
+                        report("UNVERIFIABLE", f"{action_path}.section",
+                               "supported shared UI section", section)
+                    elif section == "prepare":
+                        if previous_rank >= 0:
+                            report("UNVERIFIABLE", f"{action_path}.section",
+                                   "preparation before all other visible actions",
+                                   section)
+                    else:
+                        rank = _RENDER_ORDER.index(section)
+                        if rank < previous_rank:
+                            report("UNVERIFIABLE", f"{action_path}.section",
+                                   "monotonic shared UI section order", section)
+                        previous_rank = max(previous_rank, rank)
                     text = action.get("text")
                     if not isinstance(text, str) or not text.strip():
                         report("UNVERIFIABLE", f"{action_path}.text",
