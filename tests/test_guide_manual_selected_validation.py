@@ -456,6 +456,38 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
         names = GuideUltimeManualCard._clickable_resource_names(service, legacy)
         self.assertIn("Objet historique fictif", names)
 
+    def test_source_npc_uses_explicit_name_color_in_action_and_details(self) -> None:
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import NPC_COLOR
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+
+        source = self._source()
+        actions = source["steps"][0]["actions"]
+        actions[2]["text"] = "Interagir avec le veilleur fictif"
+        actions[2]["npc"] = "le veilleur fictif"
+        actions.insert(3, {
+            "action_id": "other-npc", "kind": "talk",
+            "text": "Choisir une option au dialogue",
+            "npc": "guide fictif", "dialogue_choice": "Option B fictive",
+        })
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(source)
+            service = self._service(Path(temp) / "progress.json", route)
+            sheet = SharedGuideManualCard(
+                service, "character:1", service.cards[0], 0
+            )
+            try:
+                rich = "\\n".join(label.text() for label in sheet.findChildren(QLabel))
+                for npc in ("le veilleur fictif", "guide fictif"):
+                    self.assertIn(
+                        f'<span style="color:{NPC_COLOR};"><b>{npc}</b></span>',
+                        rich,
+                    )
+                self.assertIn("Option B fictive", rich)
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
     def test_empty_source_sections_never_fall_back_to_legacy_lines(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())

@@ -583,6 +583,21 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(7)
 
+            # Use the exact typed NPC on imported source actions. The
+            # heuristic for legacy prose cannot recognize every capitalization
+            # or dialogue phrasing; source identity must win for these cards.
+            source_action = (
+                row.get("source_action")
+                if self.card.get("manual_source") is True else None
+            )
+            source_npc = (
+                source_action.get("npc")
+                if isinstance(source_action, dict) else None
+            )
+            npc_names = self._npc_names(text)
+            if isinstance(source_npc, str) and source_npc.strip():
+                npc_names.append(source_npc.strip())
+
             line = QLabel()
             self._set_clickable_text(
                 line,
@@ -590,7 +605,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     prefix,
                     position,
                     text,
-                    self._npc_names(text),
+                    npc_names,
                     self._resource_names,
                 ),
             )
@@ -693,7 +708,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                             detail_label,
                             self._format_line_html(
                                 "", "", " — ".join(details),
-                                self._npc_names(" ".join(details)),
+                                self._npc_names(" ".join(details)) + (
+                                    [source_npc.strip()]
+                                    if isinstance(source_npc, str) and source_npc.strip()
+                                    else []
+                                ),
                                 self._resource_names,
                             ),
                         )
