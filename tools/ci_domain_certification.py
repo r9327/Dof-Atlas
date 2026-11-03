@@ -272,11 +272,12 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
     }:
-        # All four concrete guide readers have both Guide logic and Qt clients.
+        # The five reviewed Guide/router views have Guide and Qt consumers.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
     if path in {
