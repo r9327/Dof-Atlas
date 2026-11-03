@@ -41,6 +41,21 @@ _UNRENDERED_STEP_FIELDS = frozenset({
     "choices", "branches", "branching", "alternative_routes",
     "images", "image", "media", "attachments", "links",
 })
+# Non-gameplay capture/provenance metadata remains verbatim in source_step
+# and source_action; novel gameplay keys must receive an explicit projection
+# instead of being quietly buried in that opaque metadata.
+_EVIDENCE_ONLY_FIELDS = frozenset({
+    "evidence_ref", "source_url", "source_hash", "source_revision",
+    "capture_id", "capture_timestamp", "author", "metadata",
+})
+_SUPPORTED_ACTION_FIELDS = frozenset({
+    "action_id", "kind", "text", "coordinates", "items", "monsters",
+    "npc", "dialogue_choice", "section", "quest_ids",
+}) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_ACTION_FIELDS
+_SUPPORTED_STEP_FIELDS = frozenset({
+    "source_step_id", "title", "coordinates", "actions",
+    "quest_ids", "quest_names", "prerequisites",
+}) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_STEP_FIELDS
 
 
 class GuideRouteContractError(ValueError):
@@ -127,6 +142,11 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             raise GuideRouteContractError(f"{prefix}: duplicate source_step_id {source_id}")
         seen_steps.add(source_id)
         step_title = _text(step.get("title"), f"{prefix}.title")
+        for field in sorted(step.keys() - _SUPPORTED_STEP_FIELDS):
+            if step[field] not in (None, [], {}, ""):
+                raise GuideRouteContractError(
+                    f"{prefix}.{field}: unrecognized authored step field"
+                )
         for field in sorted(_UNRENDERED_STEP_FIELDS & step.keys()):
             if step[field] not in (None, [], {}, ""):
                 raise GuideRouteContractError(
@@ -152,6 +172,11 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             kind = _text(action.get("kind"), f"{label}.kind")
             if kind not in _KINDS:
                 raise GuideRouteContractError(f"{label}: unsupported action kind {kind!r}")
+            for field in sorted(action.keys() - _SUPPORTED_ACTION_FIELDS):
+                if action[field] not in (None, [], {}, ""):
+                    raise GuideRouteContractError(
+                        f"{label}.{field}: unrecognized authored action field"
+                    )
             for field in sorted(_UNRENDERED_ACTION_FIELDS & action.keys()):
                 if action[field] not in (None, [], {}, ""):
                     raise GuideRouteContractError(
