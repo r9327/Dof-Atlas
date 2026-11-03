@@ -183,6 +183,14 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
         painter.drawEllipse(QPointF(9, 6.5), 1.2, 1.2)
         painter.drawLine(QPointF(6.2, 9.7), QPointF(9, 16))
         painter.drawLine(QPointF(11.8, 9.7), QPointF(9, 16))
+    elif symbol == "zaap":
+        # Small cached portal/stone pictogram, drawn locally with the shared
+        # theme palette. No remote image, file scan or per-row paint job.
+        painter.drawEllipse(QRectF(3, 2, 12, 13))
+        painter.drawArc(QRectF(5.5, 4.5, 7, 8), 45 * 16, 270 * 16)
+        painter.drawLine(QPointF(5, 16), QPointF(13, 16))
+        painter.drawLine(QPointF(7, 12.5), QPointF(9, 7))
+        painter.drawLine(QPointF(9, 7), QPointF(11, 12.5))
     elif symbol == "clipboard":
         painter.drawRoundedRect(QRectF(3, 3, 12, 13), 1.5, 1.5)
         painter.drawRoundedRect(QRectF(6, 1.5, 6, 4), 1.2, 1.2)
@@ -323,6 +331,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         parent=None,
         *,
         travel_command_callback=None,
+        zaap_travel_callback=None,
         show_header_title: bool = True,
         page_validation_callback=None,
     ) -> None:
@@ -332,6 +341,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.card = card
         self.index = index
         self.travel_command_callback = travel_command_callback
+        self.zaap_travel_callback = zaap_travel_callback
         self._quest_rows = self._canonical_quest_rows()
         self._quest_row_names_by_id = dict(self._quest_rows)
         # On an imported step, explicit per-action Quest attribution owns
@@ -543,6 +553,23 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 return True
         return False
 
+    def _zaap_shortcut_clicked(self, destination: str) -> None:
+        """An explicit Zaap click may launch only an independently planned route.
+
+        A missing or rejected verified planner never invents a Zaap. Instead,
+        retain the classic destination on the clipboard without touching
+        another application or character.
+        """
+        callback = getattr(self, "zaap_travel_callback", None)
+        if callable(callback) and bool(callback(destination)):
+            QToolTip.showText(QCursor.pos(), "Trajet Zaap demandé", self)
+        else:
+            QApplication.clipboard().setText(f"/travel {destination}")
+            QToolTip.showText(
+                QCursor.pos(), "Zaap indisponible : /travel copié", self
+            )
+        QTimer.singleShot(800, QToolTip.hideText)
+
     def _display_position(self, raw_position: str) -> str:
         """Show one coordinate per contiguous map group for every shared guide."""
         value = str(raw_position or "").strip()
@@ -681,9 +708,47 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if isinstance(source_npc, str) and source_npc.strip():
                 npc_names.append(source_npc.strip())
 
+            # Keep the standard /travel anchor independent from the opt-in
+            # Zaap shortcut. The two controls are adjacent before the action
+            # text, and only this visible position gets an icon.
+            position_key = self._position_key(position)
+            is_coordinate = bool(position) and bool(
+                re.fullmatch(r"-?\\d+,-?\\d+", position_key)
+            )
+            if is_coordinate:
+                coordinate_label = QLabel(row_widget)
+                self._set_clickable_text(
+                    coordinate_label,
+                    (
+                        f'{html.escape(prefix)}<a href="travel-copy:{position_key}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
+                        f'<b>{html.escape(position)}</b></a>'
+                    ),
+                )
+                coordinate_label.setObjectName("GuideManualPositionCopy")
+                coordinate_label.setCursor(Qt.PointingHandCursor)
+                coordinate_label.setToolTip(f"Copier /travel {position_key}")
+                row_layout.addWidget(coordinate_label, 0, Qt.AlignTop)
+                zaap_button = QToolButton(row_widget)
+                zaap_button.setObjectName("GuideManualZaapShortcut")
+                zaap_button.setIcon(_guide_symbol_icon(zaap_button, "zaap"))
+                zaap_button.setIconSize(QSize(18, 18))
+                zaap_button.setFixedSize(22, 22)
+                zaap_button.setCursor(Qt.PointingHandCursor)
+                zaap_button.setToolTip("Trajet optimisé via Zaap")
+                zaap_button.setAccessibleName(
+                    f"Trajet optimisé via Zaap vers {position}"
+                )
+                zaap_button.clicked.connect(
+                    lambda _checked=False, target=position_key:
+                    self._zaap_shortcut_clicked(target)
+                )
+                row_layout.addWidget(zaap_button, 0, Qt.AlignTop)
             line = QLabel()
             rendered_text = self._format_line_html(
-                prefix, position, text, npc_names, self._resource_names,
+                "— " if is_coordinate else prefix,
+                "" if is_coordinate else position,
+                text, npc_names, self._resource_names,
             )
             if isinstance(source_action, dict):
                 rendered_text = self._inline_source_item_images(
@@ -2667,6 +2732,48 @@ class SharedGuideManualView(GuideUltimeManualView):
         finally:
             self._follow_active_after_progress_change()
 
+    def _launch_zaap_travel_plan(self, destination: str) -> bool:
+        """Dispatch only an existing, explicitly verified Zaap plan on click.
+
+        The runtime service may supply a GuideTravelPlan from the canonical
+        GuideRoutePlanner. A coordinate alone cannot prove a Zaap is known,
+        accessible, efficient, or valid for every selected character.
+        """
+        match = re.fullmatch(r"(-?\\d+),(-?\\d+)", str(destination))
+        provider = getattr(self.service, "plan_verified_zaap_travel", None)
+        callback = getattr(self, "travel_callback", None)
+        available = getattr(self.participant_service, "available_characters", None)
+        if not (match and callable(provider) and callable(callback)
+                and callable(available)):
+            return False
+        connected = {
+            row.key for row in (available() or ())
+            if bool(getattr(row, "connected", False))
+        }
+        selected = self.selected_participant_keys()
+        # The command acts on a whole group: never quietly drop offline
+        # participants or choose another character in their place.
+        if not selected or any(key not in connected for key in selected):
+            return False
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            GuideTravelPlan, TravelMode,
+        )
+        x, y = int(match.group(1)), int(match.group(2))
+        try:
+            plan = provider((x, y), selected)
+        except (TypeError, ValueError, KeyError):
+            return False
+        if (
+            not isinstance(plan, GuideTravelPlan)
+            or plan.mode is not TravelMode.ZAAP_THEN_TRAVEL
+            or (plan.destination.x, plan.destination.y) != (x, y)
+            or set(plan.participant_keys) != set(selected)
+            or len(plan.participant_keys) != len(selected)
+        ):
+            return False
+        callback(plan.to_chat_command(), plan.participant_keys)
+        return True
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
         self._catalog_prefetch_index = None
@@ -2686,6 +2793,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 if callable(self.travel_callback)
                 else None
             ),
+            zaap_travel_callback=self._launch_zaap_travel_plan,
             show_header_title=False,
             page_validation_callback=lambda checked, sheet=card, sheet_index=index: (
                 self._page_toggled_for_participants(sheet, sheet_index, bool(checked))
