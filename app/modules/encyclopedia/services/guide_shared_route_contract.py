@@ -149,6 +149,15 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 raise GuideRouteContractError(
                     f"{label}.section: prepare action/section must match"
                 )
+            if section == "prepare":
+                # Only the structured resource/quantity survives the global
+                # preparation aggregation. Do not silently hide authored
+                # NPCs, dialogue, combats or action-specific destinations.
+                for field in ("npc", "dialogue_choice", "monsters", "coordinates"):
+                    if action.get(field) not in (None, []):
+                        raise GuideRouteContractError(
+                            f"{label}.{field}: not renderable in preparation panel"
+                        )
             if section == "prepare" and last_rank >= 0:
                 raise GuideRouteContractError(
                     f"{label}: preparation would reorder source actions"
