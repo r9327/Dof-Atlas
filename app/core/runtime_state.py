@@ -744,6 +744,18 @@ class AtlasRuntime:
                 screen_y,
             )
             return False
+        # A new physical DOWN before the previously captured native UP
+        # makes the click pair ambiguous (double press or overlapping
+        # buttons). Keep BOTH gestures native and cancel the pending replay:
+        # never clone an action whose DOWN/UP can no longer be paired safely.
+        pending = getattr(self, "_pending_physical_switch", None)
+        if isinstance(pending, tuple) and len(pending) == 7:
+            self._pending_physical_switch = None
+            self.logger.debug(
+                "Clic natif non recopié: cause=overlapping_down button=%s",
+                button,
+            )
+            return False
         if self.settings.macro_mode == "mirror":
             return self._handle_mirror_click(button, screen_x, screen_y)
         action = self.registry.switch_action_for_pressed_keys()
