@@ -112,3 +112,36 @@ Le critère utilisateur est un **ressenti proche entre 2 et 8 comptes**,
 pertes/doublons, p50/p95/p99 de bout en bout, temps de retour au maître,
 CPU/RAM et résultats visibles Unity. Le moteur séquentiel ne peut
 garantir une latence strictement identique pour 2 et 8 clients.
+
+## Continuation P0 du 03/11/2026 — latence et focus
+
+- `MirrorInputMacro` compare l'ordre et l'identité des HWND à partir de
+  l'inventaire mémoire à chaque client (coût linéaire, pas de nouvelle API).
+  Avant la **première émission**, toutes les cibles sont authentifiées par
+  Windows comme DOFUS Unity, puis chaque destinataire est revérifié juste
+  avant l'entrée. Un changement de favori, d'ordre ou de liste interrompt
+  la diffusion.
+- Les vérifications natives de processus passent théoriquement d'un coût
+  quadratique à un coût linéaire : au plus `2N+1` vérifications pour un
+  cycle clavier complet sur N fenêtres, sous le chemin nominal testé par
+  mocks. Aucun gain réel en millisecondes n'est annoncé sans bench Windows.
+- Le Miroir ne restaure ni focus ni curseur après activation refusée,
+  exception Win32 ou vol de focus après repositionnement de la souris.
+  Le dernier client n'ajoute plus de délai de changement de fenêtre inutile.
+- `SwitchClickMacro` traite également l'exception d'activation sans
+  restaurer le focus ou repositionner le curseur chez l'utilisateur.
+- Un premier correctif **isolé** de la PR #365 est porté dans
+  `app/windows/clicks.py` : si un temps de survol est demandé, il
+  intervient après le déplacement effectif du pointeur (et avant DOWN).
+  Deux tests mock du délai et de l'arrêt sont ajoutés à
+  `tests/test_organizer_sendinput.py`.
+- Tests de non-régression ajoutés sur la diffusion clavier 2/4/6/8,
+  l'ordre du roster, les cibles étrangères, l'échec d'activation, la
+  perte de focus avant molette et les exceptions Win32.
+
+**Limites non levées :** les deux branches comportent encore le
+Switch clic physique DOWN/UP propre à #365 et les hooks molette/clavier
+propres à #325. La migration des fichiers liés aux macros **n'est pas
+terminée**, et aucune suppression du diff #365 n'est effectuée ici.
+Graphify exact-SHA et Doctor local non exécutés ; tests Python, rendu
+DOFUS réel et ressenti 2 à 8 : **NOT_RUN**.
