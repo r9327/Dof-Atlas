@@ -551,6 +551,39 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 sheet.deleteLater()
                 QApplication.processEvents()
 
+    def test_source_choice_and_dungeon_keep_shared_semantic_styles(self) -> None:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+
+        source = self._source()
+        actions = source["steps"][0]["actions"]
+        actions.insert(5, {
+            "action_id": "authored-choice", "kind": "choice",
+            "text": "Sélectionner l'option B fictive",
+        })
+        actions.insert(6, {
+            "action_id": "authored-dungeon", "kind": "dungeon",
+            "text": "Entrer dans le sanctuaire fictif",
+        })
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(source)
+            service = self._service(Path(temp) / "progress.json", route)
+            sheet = SharedGuideManualCard(service, "character:1", service.cards[0], 0)
+            try:
+                special = sheet.findChildren(QLabel, "GuideManualSpecial")
+                dungeon = sheet.findChildren(QLabel, "GuideManualCombat")
+                self.assertTrue(any(
+                    "Sélectionner l'option B fictive" in label.text()
+                    for label in special
+                ))
+                self.assertTrue(any(
+                    "Entrer dans le sanctuaire fictif" in label.text()
+                    for label in dungeon
+                ))
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
     def test_source_without_preparation_never_calls_legacy_provider(self) -> None:
         # A source step with no prepare actions is a valid empty inventory.
         # Opening the shared preparation panel must not ask a legacy service
