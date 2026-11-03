@@ -61,6 +61,24 @@ class TestSharedRouteContract(unittest.TestCase):
                 [item["action_id"] for item in actions if item["kind"] != "prepare"],
             )
 
+    def test_dialogue_choice_must_be_visible_nonempty_source_text(self):
+        for invalid in (None, "", "  ", 0, False, [], {}):
+            with self.subTest(invalid=invalid):
+                source = sample()
+                source["steps"][0]["actions"][1]["dialogue_choice"] = invalid
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    r"actions\[1\]\.dialogue_choice",
+                ):
+                    project_authorized_guide(source)
+
+        source = sample()
+        choice = "  Réponse exacte : « Oui, je confirme ! »  "
+        source["steps"][0]["actions"][1]["dialogue_choice"] = choice
+        row = project_authorized_guide(source)["steps"][0]["manual_sections"]["now"][1]
+        self.assertEqual(row["source_action"]["dialogue_choice"], choice)
+        self.assertEqual(row["source_action_kind"], "talk")
+
     def test_source_actions_keep_precise_npc_dialogue_item_and_combat_fields(self):
         source = sample()
         source["steps"][0]["actions"][1]["dialogue_choice"] = "Réponse exacte"
