@@ -199,6 +199,57 @@ class TestGuideConformity(unittest.TestCase):
                     ))
                     self.assertFalse(result["certified"])
 
+    def test_mismatched_preparation_kind_and_section_block_identical_exports(self) -> None:
+        for kind, section in (
+            ("talk", "prepare"), ("combat", "prepare"),
+            ("travel", "prepare"), ("prepare", "now"),
+        ):
+            source = reference()
+            atlas = imported(source)
+            for doc in (source, atlas):
+                action = doc["guides"][0]["steps"][0]["actions"][0]
+                action["kind"], action["section"] = kind, section
+                action["items"] = [{"name": "Fictitious item", "quantity": 1}]
+                if kind == "combat":
+                    action["monsters"] = [{"name": "Fictitious monster", "quantity": 1}]
+                if kind == "travel":
+                    action["coordinates"] = [1, 2]
+            with self.subTest(kind=kind, section=section):
+                result = compare(source, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(".section")
+                    for issue in result["issues"]
+                ))
+
+    def test_identical_invalid_quest_names_and_hard_gates_block_parity(self) -> None:
+        for field, invalid in (
+            ("quest_names", [None]), ("quest_names", [7]),
+            ("quest_names", ["  "]), ("prerequisites", [None]),
+            ("prerequisites", ["unstructured"]), ("prerequisites", [{}]),
+        ):
+            source = reference()
+            atlas = imported(source)
+            source["guides"][0]["steps"][0][field] = invalid
+            atlas["guides"][0]["steps"][0][field] = invalid
+            with self.subTest(field=field, invalid=invalid):
+                result = compare(source, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and f".{field}[0]" in issue["field_path"]
+                    for issue in result["issues"]
+                ))
+        source = reference()
+        atlas = imported(source)
+        for doc in (source, atlas):
+            doc["guides"][0]["steps"][0]["quest_names"] = ["Fictitious quest"]
+            doc["guides"][0]["steps"][0]["prerequisites"] = [
+                {"unrecognized_future_requirement": True},
+            ]
+        self.assertEqual(compare(source, atlas)["status"], "PARITY_CHECK_PASS")
+
     def test_matching_preparation_without_structured_items_is_not_parity(self) -> None:
         # Other action kinds may carry an explicit prepare section; the
         # canonical adapter still requires items in that section.
@@ -224,6 +275,7 @@ class TestGuideConformity(unittest.TestCase):
         atlas = imported(original)
         for document in (original, atlas):
             action = document["guides"][0]["steps"][0]["actions"][0]
+            action["kind"] = "prepare"
             action["section"] = "prepare"
             action["items"] = [{"name": "Objet fictif", "quantity": 1}]
         result = compare(original, atlas)

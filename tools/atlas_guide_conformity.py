@@ -408,6 +408,16 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if type(quest_id) is not int or quest_id <= 0:
                         report("UNVERIFIABLE", f"{prefix}.quest_ids[{quest_idx}]",
                                "positive integer quest ID", quest_id)
+                if isinstance(step.get("quest_names", []), list):
+                    for quest_idx, quest_name in enumerate(step.get("quest_names", [])):
+                        if not isinstance(quest_name, str) or not quest_name.strip():
+                            report("UNVERIFIABLE", f"{prefix}.quest_names[{quest_idx}]",
+                                   "nonempty quest name", quest_name)
+                if isinstance(step.get("prerequisites", []), list):
+                    for gate_idx, gate in enumerate(step.get("prerequisites", [])):
+                        if not isinstance(gate, dict) or not gate:
+                            report("UNVERIFIABLE", f"{prefix}.prerequisites[{gate_idx}]",
+                                   "nonempty structured gate object", gate)
                 actions = step.get("actions")
                 if not isinstance(actions, list) or not actions:
                     report("UNVERIFIABLE",
@@ -430,10 +440,21 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                         report("UNVERIFIABLE", f"{action_path}.section",
                                "supported shared UI section", section)
                     elif section == "prepare":
+                        if kind != "prepare":
+                            report("UNVERIFIABLE", f"{action_path}.section",
+                                   "only prepare actions in the inventory panel", section)
                         if previous_rank >= 0:
                             report("UNVERIFIABLE", f"{action_path}.section",
                                    "preparation before all other visible actions",
                                    section)
+                    elif kind == "prepare":
+                        report("UNVERIFIABLE", f"{action_path}.section",
+                               "prepare action belongs in the inventory panel", section)
+                        rank = _RENDER_ORDER.index(section)
+                        if rank < previous_rank:
+                            report("UNVERIFIABLE", f"{action_path}.section",
+                                   "monotonic shared UI section order", section)
+                        previous_rank = max(previous_rank, rank)
                     else:
                         rank = _RENDER_ORDER.index(section)
                         if rank < previous_rank:

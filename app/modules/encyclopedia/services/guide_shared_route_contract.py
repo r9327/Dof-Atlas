@@ -138,6 +138,13 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             section = action.get("section", _SECTION_BY_KIND.get(kind, "now"))
             if not isinstance(section, str) or section not in _UI_SECTIONS:
                 raise GuideRouteContractError(f"{label}.section: unknown section {section!r}")
+            # The shared viewer renders "prepare" only in its global
+            # inventory panel. Do not hide a talk/travel/combat action there
+            # or silently omit an authored preparation from that panel.
+            if (section == "prepare") != (kind == "prepare"):
+                raise GuideRouteContractError(
+                    f"{label}.section: prepare action/section must match"
+                )
             if section == "prepare" and last_rank >= 0:
                 raise GuideRouteContractError(
                     f"{label}: preparation would reorder source actions"
@@ -186,6 +193,15 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         for quest_id in step.get("quest_ids", []):
             if type(quest_id) is not int or quest_id <= 0:
                 raise GuideRouteContractError(f"{prefix}.quest_ids: positive integer IDs required")
+        for name in step.get("quest_names", []):
+            _text(name, f"{prefix}.quest_names")
+        # Hard gates are structured, not rendered text. Retain every unknown
+        # recognized field verbatim, but refuse missing/empty opaque entries.
+        for gate in step.get("prerequisites", []):
+            if not isinstance(gate, dict) or not gate:
+                raise GuideRouteContractError(
+                    f"{prefix}.prerequisites: nonempty structured gate objects required"
+                )
         card = {
             "index": step_index + 1,
             "manual_source": True,

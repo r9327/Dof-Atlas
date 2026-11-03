@@ -215,6 +215,49 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "preparation would reorder"):
             project_authorized_guide(bad)
 
+    def test_preparation_cannot_hide_other_action_types_or_escape_inventory(self):
+        for kind in ("travel", "talk", "combat", "item"):
+            source = sample()
+            source["steps"][0]["actions"][0]["kind"] = kind
+            source["steps"][0]["actions"][0]["section"] = "prepare"
+            source["steps"][0]["actions"][0]["items"] = [
+                {"name": "Fictitious item", "quantity": 1},
+            ]
+            with self.subTest(kind=kind), self.assertRaisesRegex(
+                GuideRouteContractError, "prepare action/section"
+            ):
+                project_authorized_guide(source)
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            "action_id": "hidden-prep", "kind": "prepare",
+            "section": "now", "text": "Prepare fictional item",
+            "items": [{"name": "Fictitious item", "quantity": 2}],
+        })
+        with self.assertRaisesRegex(GuideRouteContractError, "prepare action/section"):
+            project_authorized_guide(source)
+
+    def test_invalid_quest_names_and_hard_gates_cannot_enter_shared_cards(self):
+        for value in (None, 7, True, "", "  ", {}):
+            source = sample()
+            source["steps"][0]["quest_names"] = [value]
+            with self.subTest(field="quest_names", value=value), self.assertRaisesRegex(
+                GuideRouteContractError, "quest_names"
+            ):
+                project_authorized_guide(source)
+        for value in (None, False, "level 100", 5, [], {}):
+            source = sample()
+            source["steps"][0]["prerequisites"] = [value]
+            with self.subTest(field="prerequisites", value=value), self.assertRaisesRegex(
+                GuideRouteContractError, "prerequisites"
+            ):
+                project_authorized_guide(source)
+        source = sample()
+        source["steps"][0]["quest_names"] = ["Fictitious quest"]
+        source["steps"][0]["prerequisites"] = [{"future": {"nested": True}}]
+        route = project_authorized_guide(source)["steps"][0]
+        self.assertEqual(route["manual_quest_names"], ["Fictitious quest"])
+        self.assertEqual(route["hard_runtime_gates"], [{"future": {"nested": True}}])
+
     def test_malformed_optional_collections_are_rejected(self):
         for field in ("quest_ids", "quest_names", "prerequisites"):
             bad = sample()
