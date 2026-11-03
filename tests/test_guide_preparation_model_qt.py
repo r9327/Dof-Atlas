@@ -264,5 +264,21 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         refreshed = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
         self.assertEqual((refreshed.value(), refreshed.maximum()), (6, 6))
 
+    def test_legacy_noncanonical_ready_key_keeps_binary_ui_without_count_editor(self):
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _PreparationNeed
+
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        legacy = _PreparationNeed(
+            item_key="legacy-fictional-key",
+            item_id=None, name="Ressource fictive",
+            category="Ressources",
+            required_by_character=(("character:1", 1),),
+        )
+        self.assertFalse(view._need_ready(legacy))
+        row = view._preparation_row(legacy)
+        self.assertIsNone(row.findChild(QSpinBox, "GuidePreparationQuantity"))
+        self.assertIsNotNone(row.findChild(QToolButton, "GuidePreparationReady"))
+
 if __name__ == "__main__":
     unittest.main()

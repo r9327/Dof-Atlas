@@ -1833,7 +1833,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             return False
         # A fully counted material preparation is ready even without the
         # historical binary checkbox. Keep old manual Ready marks readable.
-        if need.scope == "per_character" and need.required_total is not None:
+        if (need.scope == "per_character" and need.required_total is not None
+                and need.item_key == self._preparation_item_key(
+                    need.item_id, need.name
+                )):
             progress = getattr(self.service, "guide_progress", None)
             quantity_getter = getattr(progress, "preparation_quantity", None)
             if callable(quantity_getter):
@@ -1909,7 +1912,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self, need: _PreparationNeed, target: int,
     ) -> None:
         """Allocate a team total deterministically without losing individual stock."""
-        if need.scope != "per_character" or need.required_total is None:
+        if (need.scope != "per_character" or need.required_total is None
+                or need.item_key != self._preparation_item_key(
+                    need.item_id, need.name
+                )):
             return
         authorized = getattr(self.service, "can_write_progress", None)
         if callable(authorized) and not authorized():
@@ -2128,7 +2134,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         getter = getattr(progress, "preparation_quantity", None)
         batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
         if (need.scope == "per_character" and quantity is not None
-                and callable(getter) and callable(batcher)):
+                and need.item_key == self._preparation_item_key(
+                    need.item_id, need.name
+                ) and callable(getter) and callable(batcher)):
             guide = str(getattr(self.service, "progress_id", "") or "")
             acquired = sum(
                 min(getter(key, guide, need.item_key), required)
