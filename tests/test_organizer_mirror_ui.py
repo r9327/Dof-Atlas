@@ -236,6 +236,56 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             mirror_target_handles=(101, 202, 303),
         )
 
+    def test_foreign_input_never_scans_unrelated_unity_sessions(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(handles=handles)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = ""
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=999),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=AssertionError("foreign app probed")) as probe,
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          side_effect=AssertionError("foreign pointer queried")),
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, 120, 30, 40, False,
+                        )
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_click(runtime, "Left", 30, 40)
+                    )
+                runtime._mirror_gesture_targets.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+                runtime.mirror_input.run_key.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+                probe.assert_not_called()
+
+    def test_mirror_click_wrong_window_under_cursor_skips_roster_scan(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        with (
+            patch("app.windows.unity_windows.foreground_window",
+                  return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=777),
+            patch("app.windows.unity_windows.is_unity_window",
+                  side_effect=AssertionError("source should not be probed")),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  side_effect=AssertionError("identity should not be probed")),
+        ):
+            self.assertFalse(
+                AtlasRuntime._handle_mirror_click(runtime, "Left", 30, 40)
+            )
+        runtime.switch_click.run_async.assert_not_called()
+
     def test_no_favorite_foreign_focus_one_client_or_too_many_fail_closed(self):
         cases = [
             (self._runtime(primary=0), 101, 101),
