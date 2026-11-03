@@ -94,3 +94,34 @@ Qt proof is final Guide certification.
    extraction, projection, display and per-guide certification are all 100%.
 5. Preserve the two optimized existing routes and the Phase 8 RAM requirements;
    measure RAM only after the Guide is functionally complete.
+
+## P0 GIMP-019 — coordinate copy versus opt-in Zaap
+
+The shared Guide row has two independent actions. Clicking the bold `[x,y]`
+always copies `/travel x,y` to the clipboard, whether or not Organizer's
+travel callback is configured. It must never dispatch the character macro.
+
+A compact cached local Zaap pictogram sits beside the displayed coordinate.
+Only that icon tries an optimized route. On click, the shared UI asks the
+trusted current Guide service for an optional
+`plan_verified_zaap_travel((x, y), selected_character_keys)`. The result
+must be the existing `GuideTravelPlan` with `ZAAP_THEN_TRAVEL`, an exact
+matching destination, and exactly the connected selected characters. The
+existing two-command Travel macro callback is invoked **only** when those
+conditions hold. Missing route evidence, unavailable planner, unconnected
+participants, a non-Zaap/direct plan or mismatched destination always
+copies the classical `/travel x,y` instead; no fictitious Zaap is chosen.
+
+The plan provider is an **optional, explicitly trusted composition input**:
+this PR has not established any live verified Zaap/character-position
+registry for imported guides. Do not treat the Qt icon or a synthetic test
+callback as proof that an optimized route can be used in production.
+Route planning is on-demand at click time and is never run while rendering
+the Guide. The original optimized guides retain their shared renderer.
+
+Focused contract tests:
+`tests.test_guide_manual_selected_validation.ImportedSourceSharedManualUiTests`
+(clipboard-only classic click, independent icon/fallback, verified synthetic
+`GuideTravelPlan`, no planning during render). Run with Doctor
+`agent plan/check/validate` and include Windows/DOFUS interaction proof
+before marking GIMP-019 PASS. Status until then: **PENDING / NOT_RUN**.
