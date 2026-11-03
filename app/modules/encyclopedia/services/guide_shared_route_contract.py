@@ -11,6 +11,7 @@ import re
 from typing import Any
 
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
+_TRAVEL_COORDINATE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 _SECTIONS = ("now", "opportunity", "keep", "boss", "before_leave")
 _KINDS = frozenset({
     "travel", "talk", "item", "collect", "craft", "interact", "fight",
@@ -125,6 +126,16 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             names = _items(action.get("items"), f"{label}.items")
             if kind == "travel" and not position:
                 raise GuideRouteContractError(f"{label}: travel requires verified coordinates")
+            if kind == "travel":
+                # The /travel shortcut must not contradict coordinates that
+                # the authored instruction spells out. Never guess a target
+                # from prose or silently substitute a step's source position.
+                for x_text, y_text in _TRAVEL_COORDINATE.findall(text):
+                    if (len(x_text) > 6 or len(y_text) > 6
+                            or f"{int(x_text)},{int(y_text)}" != position):
+                        raise GuideRouteContractError(
+                            f"{label}.coordinates: conflicts with authored travel text"
+                        )
             if kind in {"item", "collect", "craft", "keep", "prepare"} and not names:
                 raise GuideRouteContractError(f"{label}: item action requires structured items")
             npc = action.get("npc")
