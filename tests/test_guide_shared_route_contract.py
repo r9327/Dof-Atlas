@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import ast
+from pathlib import Path
 import unittest
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
@@ -35,6 +37,52 @@ def sample() -> dict:
 
 
 class TestSharedRouteContract(unittest.TestCase):
+    def test_canonical_source_rows_have_one_unambiguous_section_owner(self):
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            "action_id": "prepare", "kind": "prepare",
+            "text": "Prepare 2 fictional resources",
+            "items": [{"name": "Fictional resource", "quantity": 2}],
+        })
+        route = project_authorized_guide(source)
+        for card in route["steps"]:
+            self.assertIs(card["manual_source"], True)
+            actions = card["manual_runtime_metadata"]["source_step"]["actions"]
+            sections = card["manual_sections"]
+            observed = [
+                row["source_action_id"]
+                for section in ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
+                for row in sections[section]
+            ]
+            self.assertEqual(observed, [item["action_id"] for item in actions])
+            self.assertEqual(len(set(observed)), len(actions))
+            self.assertEqual(
+                [row["source_action_id"] for row in card["manual_lines"]],
+                [item["action_id"] for item in actions if item["kind"] != "prepare"],
+            )
+
+    def test_shared_renderer_source_section_precedence_is_local_not_a_fork(self):
+        file = (
+            Path(__file__).resolve().parents[1]
+            / "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        )
+        tree = ast.parse(file.read_text(encoding="utf-8"))
+        widget = next(
+            node for node in tree.body if isinstance(node, ast.ClassDef)
+            and node.name == "SharedGuideManualCard"
+        )
+        initializer = next(
+            node for node in widget.body if isinstance(node, ast.FunctionDef)
+            and node.name == "__init__"
+        )
+        # Parse the actual renderer, not an invented parallel UI. This test
+        # supports the separate Qt integration tests on Windows/DOFUS.
+        rendered = ast.get_source_segment(file.read_text(encoding="utf-8"), initializer)
+        self.assertIn('source_card = card.get("manual_source") is True', rendered)
+        self.assertIn('sections = card.get("manual_sections")', rendered)
+        self.assertIn("if source_card:", rendered)
+        self.assertIn("section_provider(character_key, card)", rendered)
+
     def test_uses_existing_shared_card_schema_no_ui_fork(self):
         source = sample()
         before = copy.deepcopy(source)

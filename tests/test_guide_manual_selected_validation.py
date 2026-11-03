@@ -11,6 +11,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+from app.modules.encyclopedia.services.guide_shared_route_contract import project_authorized_guide
+from PySide6.QtWidgets import QLabel, QFrame
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from tests.test_guide_ultime_manual_ui_navigation import (
     _FakeManualUiService,
@@ -282,6 +284,194 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertEqual(self.view.route_progress_label.text(), "100 %")
         self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
         self.assertFalse(self.view.current_button.isEnabled())
+
+
+class ImportedSourceSharedManualUiTests(unittest.TestCase):
+    """Synthetic preview cards pass through the EXISTING shared Qt renderer."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    @staticmethod
+    def _source(guide_id: str = "fictional-cawotte") -> dict:
+        return {
+            "guide_id": guide_id, "title": "Fictitious guide",
+            "steps": [
+                {
+                    "source_step_id": "starting-step", "title": "Start",
+                    "coordinates": [-5, 2],
+                    "actions": [
+                        {
+                            "action_id": "prepare", "kind": "prepare",
+                            "text": "Préparer 2 Ressource fictive",
+                            "items": [{"name": "Ressource fictive", "quantity": 2}],
+                        },
+                        {
+                            "action_id": "travel", "kind": "travel",
+                            "text": "Aller en [-5,2]", "coordinates": [-5, 2],
+                        },
+                        {
+                            "action_id": "npc", "kind": "talk",
+                            "text": "Parler au PNJ fictif", "npc": "PNJ fictif",
+                        },
+                        {
+                            "action_id": "fight", "kind": "combat",
+                            "text": "Vaincre le Monstre fictif",
+                            "monsters": [{"name": "Monstre fictif", "quantity": 2}],
+                        },
+                        {
+                            "action_id": "save", "kind": "keep",
+                            "text": "Conserver Ressource fictive",
+                            "items": [{"name": "Ressource fictive", "quantity": 1}],
+                        },
+                        {
+                            "action_id": "warn", "kind": "warning",
+                            "text": "Avant de partir : vérifier le PNJ fictif",
+                        },
+                    ],
+                },
+                {
+                    "source_step_id": "ending-step", "title": "Next",
+                    "actions": [{
+                        "action_id": "next", "kind": "talk",
+                        "text": "Parler au second PNJ fictif",
+                    }],
+                },
+            ],
+        }
+
+    @staticmethod
+    def _service(progress_path: Path, route: dict) -> _SavedGuideService:
+        service = _SavedGuideService(progress_path)
+        service.cards = route["steps"]
+        service.progress_id = route["id"]
+        service.guide_id = route["id"]
+        service.guide_title = route["source_guide_metadata"]["title"]
+        # Preserve identities by source guide + source step, never page index.
+        service.page_key = lambda card, index=0: card["manual_stage_id"]
+        return service
+
+    def test_preview_preserves_source_sections_and_clickable_roles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            def forbidden_provider(*_args):
+                raise AssertionError("source sections must not be rebuilt by a legacy provider")
+            service.manual_sections_for_card = forbidden_provider
+            service.manual_lines_for_card = forbidden_provider
+            sheet = None
+            try:
+                from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+                sheet = SharedGuideManualCard(service, "character:1", service.cards[0], 0)
+                QApplication.processEvents()
+                visible = "\n".join(label.text() for label in sheet.findChildren(QLabel))
+                for expected in (
+                    "Aller en [-5,2]", "PNJ fictif", "Monstre fictif",
+                    "Conserver Ressource fictive", "Avant de partir",
+                ):
+                    self.assertIn(expected, visible)
+                self.assertIn("travel-copy:-5,2", visible)
+                self.assertIn("item-copy:Ressource%20fictive", visible)
+                self.assertNotIn("Préparer 2 Ressource fictive", visible)
+                self.assertIsNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
+                self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
+            finally:
+                if sheet is not None:
+                    sheet.close()
+                    sheet.deleteLater()
+                    QApplication.processEvents()
+
+    def test_empty_source_sections_never_fall_back_to_legacy_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            source = dict(service.cards[0])
+            source["manual_sections"] = {}
+            def forbidden_provider(*_args):
+                raise AssertionError("missing source sections cannot be replaced by legacy data")
+            service.manual_sections_for_card = forbidden_provider
+            service.manual_lines_for_card = forbidden_provider
+            from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+            sheet = SharedGuideManualCard(service, "character:1", source, 0)
+            try:
+                texts = "\n".join(label.text() for label in sheet.findChildren(QLabel))
+                self.assertNotIn("Vaincre le Monstre fictif", texts)
+                self.assertNotIn("Aller en [-5,2]", texts)
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
+    def test_existing_guides_still_use_their_original_section_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            ordinary = dict(service.cards[0])
+            ordinary.pop("manual_source", None)
+            called = []
+            def original_provider(_key, _card):
+                called.append(True)
+                return {"now": [{"kind": "action", "text": "Existing guide route line"}]}
+            service.manual_sections_for_card = original_provider
+            from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+            sheet = SharedGuideManualCard(service, "character:1", ordinary, 0)
+            try:
+                self.assertEqual(called, [True])
+                texts = "\n".join(label.text() for label in sheet.findChildren(QLabel))
+                self.assertIn("Existing guide route line", texts)
+                self.assertNotIn("Vaincre le Monstre fictif", texts)
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
+    def test_view_validation_uses_per_character_stable_source_step_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "progress.json"
+            route = project_authorized_guide(self._source())
+            service = self._service(path, route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1",))
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+            )
+            try:
+                view.show()
+                view._show_index(0)
+                QApplication.processEvents()
+                view.validation_layout.itemAt(0).widget().click()
+                QApplication.processEvents()
+                original_id = service.cards[0]["manual_stage_id"]
+                self.assertTrue(service.guide_progress.is_manual_step_completed(
+                    "character:1", route["id"], original_id,
+                ))
+                self.assertFalse(service.guide_progress.is_manual_step_completed(
+                    "character:2", route["id"], original_id,
+                ))
+                different_guide = project_authorized_guide(self._source("fictional-other"))
+                self.assertFalse(service.guide_progress.is_manual_step_completed(
+                    "character:1", different_guide["id"],
+                    different_guide["steps"][0]["manual_stage_id"],
+                ))
+                changed = self._source()
+                changed["steps"].insert(0, {
+                    "source_step_id": "inserted", "title": "Inserted",
+                    "actions": [{
+                        "action_id": "injected", "kind": "talk",
+                        "text": "Fictional inserted step",
+                    }],
+                })
+                changed_route = project_authorized_guide(changed)
+                self.assertEqual(changed_route["steps"][1]["manual_stage_id"], original_id)
+                self.assertTrue(service.guide_progress.is_manual_step_completed(
+                    "character:1", route["id"], changed_route["steps"][1]["manual_stage_id"],
+                ))
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
 
 
 if __name__ == "__main__":

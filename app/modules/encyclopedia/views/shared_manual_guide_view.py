@@ -330,29 +330,43 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             title.setWordWrap(True)
             root.addWidget(title)
 
-        section_provider = getattr(service, "manual_sections_for_card", None)
-        if callable(section_provider):
-            sections = section_provider(character_key, card)
-            # The section provider already owns line materialization. Do not call
-            # manual_lines_for_card first and build the same visible sheet twice.
+        # Imported source cards already carry the canonical ordered sections
+        # from the validated Qt-free route adapter. Re-classifying their
+        # flattened lines through a legacy service loses section semantics,
+        # and can quietly hide before-leaving or optional source actions.
+        # Existing Guide Succès/catalogue cards keep their provider path.
+        source_card = card.get("manual_source") is True
+        if source_card:
+            sections = card.get("manual_sections")
             manual_lines = []
+            # Fail closed on missing source sections: a legacy line provider
+            # must not fabricate a replacement for an imported source route.
+            if not isinstance(sections, dict):
+                sections = {}
         else:
-            line_provider = getattr(service, "manual_lines_for_card", None)
-            manual_lines = (
-                line_provider(character_key, card)
-                if callable(line_provider)
-                else card.get("manual_lines", []) or []
-            )
-            sections = {"now": manual_lines}
-        if not isinstance(sections, dict) or not any(sections.values()):
-            if not manual_lines:
+            section_provider = getattr(service, "manual_sections_for_card", None)
+            if callable(section_provider):
+                sections = section_provider(character_key, card)
+                # The section provider owns line materialization. Avoid
+                # calling manual_lines_for_card twice for the same sheet.
+                manual_lines = []
+            else:
                 line_provider = getattr(service, "manual_lines_for_card", None)
                 manual_lines = (
                     line_provider(character_key, card)
                     if callable(line_provider)
                     else card.get("manual_lines", []) or []
                 )
-            sections = {"now": manual_lines}
+                sections = {"now": manual_lines}
+            if not isinstance(sections, dict) or not any(sections.values()):
+                if not manual_lines:
+                    line_provider = getattr(service, "manual_lines_for_card", None)
+                    manual_lines = (
+                        line_provider(character_key, card)
+                        if callable(line_provider)
+                        else card.get("manual_lines", []) or []
+                    )
+                sections = {"now": manual_lines}
         sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
