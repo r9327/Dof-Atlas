@@ -621,6 +621,10 @@ class AtlasRuntime:
                 foreground in (c.handle for c in self.settings.clients)
                 and is_dofus_unity_process(foreground)
             )
+        # Never probe the entire 8-client roster for a key typed into
+        # another application or a non-favorite DOFUS window.
+        if foreground != self.settings.primary_handle:
+            return False
         snapshot = self._mirror_gesture_targets()
         if snapshot is None:
             return False
@@ -654,6 +658,13 @@ class AtlasRuntime:
                 foreground in (c.handle for c in self.settings.clients)
                 and is_dofus_unity_process(foreground)
             )
+        # A wheel gesture outside the favorite should cost no roster scans.
+        if foreground != self.settings.primary_handle:
+            return False
+        if find_known_client_from_point(
+            screen_x, screen_y, (foreground,),
+        ) != foreground:
+            return False
         snapshot = self._mirror_gesture_targets()
         if snapshot is None:
             return False
