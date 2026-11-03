@@ -515,6 +515,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     ):
                         report("UNVERIFIABLE", f"{action_path}.npc",
                                "nonempty NPC name", npc)
+                    if "dialogue_choice" in action:
+                        choice = action["dialogue_choice"]
+                        if not isinstance(choice, str) or not choice.strip():
+                            report("UNVERIFIABLE", f"{action_path}.dialogue_choice",
+                                   "nonempty authored dialogue choice", choice)
                     if action.get("coordinates") is not None and not _valid_position(
                         action["coordinates"]
                     ):
