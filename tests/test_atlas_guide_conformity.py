@@ -1007,6 +1007,32 @@ class TestGuideConformity(unittest.TestCase):
             for issue in result["issues"]
         ))
 
+    def test_matching_but_contradictory_travel_destinations_are_unverifiable(self):
+        for authored, declared in (
+            ("Aller en [13,25]", [13, 26]),
+            ("Aller en [13,26] puis [1,2]", [13, 26]),
+            ("Aller en [9999999999,1]", [13, 26]),
+        ):
+            with self.subTest(authored=authored):
+                doc = reference()
+                travel = doc["guides"][0]["steps"][1]["actions"][0]
+                travel["text"] = authored
+                travel["coordinates"] = declared
+                result = compare(doc, imported(doc))
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(result["certified"])
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(".actions[0].coordinates")
+                    for issue in result["issues"]
+                ))
+        doc = reference()
+        travel = doc["guides"][0]["steps"][1]["actions"][0]
+        travel["text"] = "Aller en [013, 026]"
+        self.assertEqual(
+            compare(doc, imported(doc))["status"], "PARITY_CHECK_PASS"
+        )
+
     def test_identical_invalid_coordinates_are_not_parity(self) -> None:
         for value in ([True, 2], [1.5, 2], [1], [10001, 0]):
             with self.subTest(value=value):
