@@ -142,6 +142,91 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "termine", count - 1, count - 1, count - 1, 101,
                 )
 
+    def test_auto_group_reports_no_eligible_recipient(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader"
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.send_chat_command") as sender,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Leader", "handle": 101}])
+        sender.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "ignore", 0, 0, 1, 101,
+        )
+
+    def test_auto_group_counts_sent_invite_when_stop_arrives_after_send(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader"
+        )
+        stopped = False
+
+        def stop_after_send(*_args, **_kwargs) -> bool:
+            nonlocal stopped
+            stopped = True
+            return True
+
+        runtime.macro_lock.should_stop.side_effect = lambda: stopped
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command",
+                  side_effect=stop_after_send),
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "interrompu", 1, 1, 1, 101,
+        )
+
+    def test_direction_with_no_clients_reports_ignored(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        runtime.switch_character.ordered_clients_from_source.return_value = []
+        with (
+            patch("app.macros.direction.foreground_window", return_value=101),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.press_key") as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement %s: envoyes=%s/%s", "ignore", 0, 0,
+        )
+
+    def test_direction_counts_completed_key_before_stop(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        stopped = False
+
+        def stop_after_key(*_args, **_kwargs):
+            nonlocal stopped
+            stopped = True
+
+        runtime.macro_lock.should_stop.side_effect = lambda: stopped
+        with (
+            patch("app.macros.direction.foreground_window", return_value=101),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.activate_window", return_value=True),
+            patch("app.macros.direction.press_key", side_effect=stop_after_key) as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement %s: envoyes=%s/%s",
+            "interrompu", 1, 2,
+        )
+
     def test_auto_group_skips_duplicate_sessions_and_sender(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
