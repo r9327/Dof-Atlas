@@ -27,7 +27,10 @@ TOOL_SPEC = {
     "id": "atlas-guide-candidate-store",
     "role": "guide_staged_candidate_storage",
     "capabilities": ["guide","generation"],
-    "modes": ["trusted_publish_api","selection_lookup","rollback_api"],
+    "modes": [
+        "trusted_publish_api", "selection_lookup",
+        "read_only_preview", "rollback_api",
+    ],
     "cost_hint": "variable",
     "side_effects": "repo_mutation_explicit",
     "structured_output": True,
