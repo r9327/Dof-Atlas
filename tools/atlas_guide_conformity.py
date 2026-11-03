@@ -446,6 +446,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                             report("UNVERIFIABLE", f"{action_path}.quest_ids",
                                    "ordered list of source-step Quest IDs", linked)
                         else:
+                            if linked and action.get("kind") == "prepare":
+                                report("UNVERIFIABLE", f"{action_path}.quest_ids",
+                                       "no Quest shortcut in preparation-only panel", linked)
                             seen_action_ids: set[int] = set()
                             for qi, qid in enumerate(linked):
                                 qpath = f"{action_path}.quest_ids[{qi}]"
