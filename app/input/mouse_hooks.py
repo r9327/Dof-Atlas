@@ -206,6 +206,18 @@ class MouseHook:
                         )
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
+                    # A DOWN blocked during replay must retain ownership of
+                    # its matching UP even if the worker ends before the user
+                    # releases the button. Otherwise an orphaned physical UP
+                    # could be delivered to Unity or another application.
+                    paired_up = {
+                        WM_LBUTTONDOWN: WM_LBUTTONUP,
+                        WM_RBUTTONDOWN: WM_RBUTTONUP,
+                        WM_MBUTTONDOWN: WM_MBUTTONUP,
+                        WM_XBUTTONDOWN: WM_XBUTTONUP,
+                    }.get(w_param)
+                    if paired_up is not None:
+                        self._consumed_releases.add(paired_up)
                     self._log_blocked_event(w_param, x, y)
                     return 1
 
