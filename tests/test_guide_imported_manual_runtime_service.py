@@ -128,6 +128,50 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         service.set_page_checked("character:2", card, 0, True)
         self.assertFalse(service.page_checked("character:2", card))
 
+    def test_prerequisite_without_guide_policy_blocks_validation_not_display(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        pending = self._runtime(route)
+        first = pending.cards[0]
+        self.assertTrue(pending.available)
+        self.assertEqual(len(pending.manual_sections_for_card("character:1", first)["now"]), 1)
+        self.assertTrue(pending.manual_order_choice_blocking("character:1", first))
+        pending.set_page_checked("character:1", first, 0, True)
+        self.assertFalse(self.progress_path.exists())
+        self.assertIn("prérequis", pending.manual_validation_block_reason())
+        self.assertFalse(pending.manual_order_choice_blocking(
+            "character:1", pending.cards[1],
+        ))
+
+    def test_qualified_per_guide_policy_is_per_character_and_fails_closed(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        authorized = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress,
+            route=route,
+            gate_evaluator=lambda key, _card: key == "character:1",
+        )
+        authorized.set_authorization_guard(lambda _id, _route: True)
+        first = authorized.cards[0]
+        self.assertFalse(authorized.manual_order_choice_blocking("character:1", first))
+        self.assertTrue(authorized.manual_order_choice_blocking("character:2", first))
+        authorized.set_page_checked("character:2", first, 0, True)
+        self.assertFalse(self.progress_path.exists())
+        authorized.set_page_checked("character:1", first, 0, True)
+        self.assertTrue(authorized.page_checked("character:1", first))
+        self.assertFalse(authorized.page_checked("character:2", first))
+        denied = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress,
+            route=route,
+            gate_evaluator=lambda *_: (_ for _ in ()).throw(ValueError("unavailable")),
+        )
+        denied.set_authorization_guard(lambda *_: True)
+        self.assertTrue(denied.manual_order_choice_blocking("character:2", denied.cards[0]))
+
     def test_source_quest_name_never_auto_completes_uncertified_action(self):
         route = _source_route()
         service = self._runtime(route)
