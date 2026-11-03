@@ -144,6 +144,7 @@ class SwitchClickMacro:
         focus_lost = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
         mirror_send_samples: list[float] = []
+        mirror_focus_samples: list[float] = []
 
         try:
             try:
@@ -236,6 +237,7 @@ class SwitchClickMacro:
                     )
                     continue
 
+                focus_started_at = perf_counter() if mirror_started_at is not None else None
                 try:
                     activated = activate_window(
                         client.handle,
@@ -253,6 +255,11 @@ class SwitchClickMacro:
                         action_label, client.handle,
                     )
                     return
+                finally:
+                    if focus_started_at is not None:
+                        mirror_focus_samples.append(
+                            (perf_counter() - focus_started_at) * 1000.0
+                        )
                 if not activated:
                     self.runtime.logger.info(
                         "%s clic ignoré: activation échec hwnd=%s",
@@ -359,6 +366,11 @@ class SwitchClickMacro:
                 from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
                 quantiles = mirror_latency_percentiles_ms(mirror_send_samples)
+                focus_quantiles = mirror_latency_percentiles_ms(mirror_focus_samples)
+                self.runtime.logger.info(
+                    "Miroir mesures focus_activation_ms=%s",
+                    focus_quantiles if focus_quantiles is not None else "NOT_MEASURED",
+                )
                 elapsed_ms = round((perf_counter() - mirror_started_at) * 1000.0, 2)
                 if quantiles is None:
                     self.runtime.logger.info(
