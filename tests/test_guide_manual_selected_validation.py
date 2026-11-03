@@ -431,6 +431,31 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 legacy_requirements[0][:3], (None, "Composant fictif", 2)
             )
 
+    def test_source_resources_skip_legacy_quest_evidence(self) -> None:
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
+
+        source = self._source()
+        source["steps"][0]["quest_ids"] = [123]
+        card = project_authorized_guide(source)["steps"][0]
+
+        def forbidden_evidence(_quest_id):
+            raise AssertionError("source card must not hydrate legacy Quest evidence")
+
+        service = SimpleNamespace(
+            quest_provider=SimpleNamespace(guide_evidence=forbidden_evidence)
+        )
+        names = GuideUltimeManualCard._clickable_resource_names(service, card)
+        self.assertIn("Ressource fictive", names)
+
+        # Non-source guides still enrich their names from Quest evidence.
+        legacy = dict(card)
+        legacy.pop("manual_source")
+        service.quest_provider.guide_evidence = lambda _quest_id: {
+            "items": [{"name": "Objet historique fictif"}]
+        }
+        names = GuideUltimeManualCard._clickable_resource_names(service, legacy)
+        self.assertIn("Objet historique fictif", names)
+
     def test_empty_source_sections_never_fall_back_to_legacy_lines(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
