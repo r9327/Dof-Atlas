@@ -258,8 +258,43 @@ class OrganizerSendInputTests(unittest.TestCase):
             addr = ctypes.addressof(mouse)
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
-        release.assert_called_once_with("Left", 0, 0)
+        # A swallowed DOWN keeps ownership of its UP. Releasing it to
+        # Unity (or dispatching physical-source replay) would split the pair.
+        release.assert_not_called()
         self.assertEqual(hook._consumed_releases, set())
+
+    def test_consumed_down_up_pair_is_not_stolen_by_native_release(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = logging.getLogger("test_native_consumed_release_order")
+        click = Mock(return_value=True)
+        release = Mock(return_value=True)
+        hook = MouseHook(
+            InputState(), SyntheticInputGuard(logger), logger, click,
+            release_callback=release,
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 37
+        with patch.object(ctypes, "windll",
+                          SimpleNamespace(user32=user32), create=True):
+            addr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            # Synthetic UP must never discharge the physical release lease.
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 37)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            event.flags = 0
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+            self.assertEqual(hook._consumed_releases, set())
+        release.assert_not_called()
+        click.assert_called_once()
 
     def test_native_release_and_mirror_wheel_callbacks_coexist(self) -> None:
         import logging
