@@ -603,6 +603,13 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Clavier : {count}/{count} fenêtres."
                 )
+                perf_logs = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and "focus_activation_ms" in str(call.args[0])
+                ]
+                self.assertEqual(len(perf_logs), 1)
+                self.assertEqual(perf_logs[0].args[-2]["n"], count)
+                self.assertEqual(perf_logs[0].args[-1]["n"], count)
 
     def test_mirror_does_not_steal_foreground_after_failed_activation(self):
         from app.macros.mirror_input import MirrorInputMacro
