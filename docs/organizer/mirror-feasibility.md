@@ -268,3 +268,52 @@ CPU/RAM, p50/p95/p99 ou succès d'interaction Unity n'est attesté.
 Rester Draft. La file bornée éventuelle des gestes durant un worker
 reste une décision structurelle bloquée jusqu'à Graphify exact-SHA et
 Doctor agent plan/check/validate.
+
+
+## P0 — Geste reçu pendant une diffusion active (03/11/2026)
+
+**Constat vérifié dans le code, pas encore reproduit sur DOFUS Unity** :
+`MouseHook._mouse_proc` bloque les événements physiques tant que
+`InputState.is_mouse_blocked()` est vrai. Ce blocage évite un clic dans
+une mauvaise fenêtre pendant les `SetForegroundWindow`/SendInput
+séquentiels, mais **peut perdre un geste du joueur**. Une file de
+relecture différée n'est pas actuellement sûre sans qualification des
+cibles, expiration et preuve que l'action a encore un sens.
+
+**Correctifs ciblés effectués dans l'architecture existante :**
+
+- Si un `DOWN` physique est bloqué pendant la diffusion, son `UP`
+  associé reste bloqué même lorsque le worker termine entre les deux.
+  Ce principe couvre boutons gauche, droit, milieu et X, y compris
+  l'arrêt d'urgence qui vide le blocage. Les `UP` injectés ne peuvent
+  pas libérer un `DOWN` physique réservé.
+- Deux `DOWN` reçus avant le `UP` attendu (même bouton ou boutons
+  différents) annulent le replay natif devenu ambigu. Les pressions
+  source restent physiques ; **aucun geste ambigu n'est recopié**.
+- Le mapping des paires `DOWN/UP` est statique : le hook ne recrée
+  pas de dictionnaire par événement `WM_MOUSEMOVE`, important lorsque
+  la souris se déplace pendant une diffusion à plusieurs clients.
+- Le hook compte **tous** les `DOWN` et crans de molette physiquement
+  bloqués, y compris ceux qui n'ont pas produit d'avertissement à cause
+  du seuil de 400 ms. Un relevé cumulatif apparaît dans les logs à
+  fréquence bornée, puis une dernière fois à l'arrêt du hook. Les
+  mouvements de souris et relâchements ne sont pas faussement comptés
+  comme de nouveaux clics. Aucune coordonnée n'entre dans cette
+  télémétrie.
+- Tests mock : appuis superposés, `UP` après disparition du blocage,
+  `UP` synthétique, Stop urgence et comptage des rafales 2/4/6/8.
+  **Tests rédigés mais NON EXÉCUTÉS ici.**
+
+**P0 restant à développer/qualifier** — restitution d'un clic sous
+saturation sans le déclencher trop tard, sur la mauvaise fenêtre ou
+deux fois. Avant de modifier la structure du dispatcher/hook ou
+d'introduire une file, le contrat `GRAPHIFY.md` impose la carte
+Graphify **au SHA exact**, l'analyse des consommateurs, un plan Doctor
+puis les tests ciblés. La carte n'était pas disponible dans cette
+session GitHub et le checkout local du dépôt n'était pas accessible :
+**pas de file de replay risquée introduite**.
+
+**Recette requise :** Windows/DOFUS Unity 2/4/6/8, rafales et holds,
+Stop au milieu, déplacement du focus vers une application tierce,
+compter actions visibles, clics/roulettes bloqués, doublons, p50/p95/p99
+du geste complet, CPU/RAM et usage du favori. **Aucun PASS revendiqué**.
