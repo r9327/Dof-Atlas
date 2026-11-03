@@ -235,7 +235,9 @@ class SwitchClickMacro:
                         action_label,
                     )
                     return
-            should_restore_preferred = bool(targets)
+            # Targets existing in the roster do not prove that any window
+            # was actually activated. Restore the favorite only after at
+            # least one target has been confirmed in the foreground.
             if physical_source_delivered and not any(
                 client.handle == context.source_hwnd for client in targets
             ):
@@ -331,6 +333,7 @@ class SwitchClickMacro:
                         action_label, client.handle,
                     )
                     return
+                should_restore_preferred = True
 
                 target = self._target_point(client.handle, context)
                 if target is None:
