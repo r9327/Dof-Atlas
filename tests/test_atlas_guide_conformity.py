@@ -147,6 +147,27 @@ class TestGuideConformity(unittest.TestCase):
             export["guides"][0]["steps"][0]["quest_ids"] = [111, 222]
         self.assertEqual(compare(source, atlas)["status"], "PARITY_CHECK_PASS")
 
+    def test_exact_action_quest_attribution_is_parity_only_when_valid(self) -> None:
+        for invalid in ([999], [True], [0], [-1], [123, 123], "123", None):
+            source = reference()
+            source["guides"][0]["steps"][0]["quest_ids"] = [123]
+            source["guides"][0]["steps"][0]["actions"][0]["quest_ids"] = invalid
+            with self.subTest(invalid=invalid):
+                report = compare(source, imported(source))
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    item["issue_code"] == "UNVERIFIABLE"
+                    and ".actions[0].quest_ids" in item["field_path"]
+                    for item in report["issues"]
+                ))
+        source = reference()
+        source["guides"][0]["steps"][0]["quest_ids"] = [123, 456]
+        source["guides"][0]["steps"][0]["actions"][0]["quest_ids"] = [456]
+        source["guides"][0]["steps"][0]["actions"][1]["quest_ids"] = []
+        result = compare(source, imported(source))
+        self.assertEqual(result["status"], "PARITY_CHECK_PASS")
+        self.assertFalse(result["certified"])
+
     def test_matching_invalid_item_ids_never_pass_conformity(self) -> None:
         for item_id in (True, -1, 0, "123", "unknown", 1.5):
             original = reference()
