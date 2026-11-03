@@ -120,7 +120,7 @@ class GuideImporterPreviewTests(unittest.TestCase):
             self.assertFalse((root / "installed_route.json").exists())
 
     def test_cli_refuses_duplicate_and_nonfinite_json_without_preview_write(self):
-        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity"):
+        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity", "overflow"):
             with self.subTest(malformed=malformed), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 source = root / "authorized.json"
@@ -136,9 +136,12 @@ class GuideImporterPreviewTests(unittest.TestCase):
                 elif malformed == "nan":
                     raw = raw.replace('"text": "Parler au PNJ X"',
                                       '"text": "Parler au PNJ X", "capture": NaN', 1)
-                else:
+                elif malformed == "infinity":
                     raw = raw.replace('"text": "Parler au PNJ X"',
                                       '"text": "Parler au PNJ X", "capture": Infinity', 1)
+                else:
+                    raw = raw.replace('"text": "Parler au PNJ X"',
+                                      '"text": "Parler au PNJ X", "capture": 1e9999', 1)
                 source.write_text(raw, encoding="utf-8")
                 with self.assertRaises(SystemExit) as raised:
                     main(["--source", str(source), "--partial", "--output", str(output)])

@@ -9,6 +9,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import re
 from collections import Counter
 from pathlib import Path
@@ -546,10 +547,17 @@ def _load_strict_json(path: Path) -> dict[str, Any]:
     def reject_nonfinite(value: str) -> Any:
         raise ValueError(f"non-finite JSON constant {value!r}")
 
+    def finite_float(raw: str) -> float:
+        value = float(raw)
+        if not math.isfinite(value):
+            raise ValueError(f"out-of-range JSON float {raw!r}")
+        return value
+
     document = json.loads(
         path.read_text(encoding="utf-8"),
         object_pairs_hook=unique_pairs,
         parse_constant=reject_nonfinite,
+        parse_float=finite_float,
     )
     if not isinstance(document, dict):
         raise ValueError("JSON root must be an object")

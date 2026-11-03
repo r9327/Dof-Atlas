@@ -729,7 +729,7 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(b, self.atlas)
 
     def test_cli_rejects_ambiguous_duplicate_and_nonfinite_json_before_writing(self) -> None:
-        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity"):
+        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity", "overflow"):
             with self.subTest(malformed=malformed), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 reference_path = root / "ref.json"
@@ -747,9 +747,12 @@ class TestGuideConformity(unittest.TestCase):
                 elif malformed == "nan":
                     raw = raw.replace('"text": "Parler au PNJ A"',
                                       '"text": "Parler au PNJ A", "capture": NaN', 1)
-                else:
+                elif malformed == "infinity":
                     raw = raw.replace('"text": "Parler au PNJ A"',
                                       '"text": "Parler au PNJ A", "capture": Infinity', 1)
+                else:
+                    raw = raw.replace('"text": "Parler au PNJ A"',
+                                      '"text": "Parler au PNJ A", "capture": 1e9999', 1)
                 after_path.write_text(raw, encoding="utf-8")
                 with self.assertRaises(SystemExit) as raised:
                     main([

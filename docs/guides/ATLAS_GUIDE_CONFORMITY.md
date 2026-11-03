@@ -400,3 +400,12 @@ rapprochement écrasait une des observations ; le rapport
 persistantes ou introduites. Les compteurs sont testés contre
 `compare(...).issue_count` avant et après, sans prétendre certifier
 un guide ou une source.
+
+### Vérification supplémentaire des flottants JSON
+
+Le parseur Python accepte par défaut aussi des nombres JSON comme `1e9999`,
+qu'il transforme en `inf` (sans déclencher le contrôle `parse_constant`).
+Les deux CLI vérifient donc également `math.isfinite` pour chaque flottant
+avec `parse_float`. Ce débordement est bloqué au même stade que les clés
+dupliquées et `NaN`, sans écrire de sortie. Les tests utilisent uniquement
+des nombres et des parcours fictifs.
