@@ -545,7 +545,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch.object(macro, "_validated_context", return_value=context),
                     patch("app.macros.switch_click.current_cursor_pos",
                           return_value=(15, 20)),
-                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.set_cursor_pos") as move,
                     patch("app.macros.switch_click.is_unity_window",
                           return_value=visible),
                     patch("app.macros.switch_click.activate_window",
@@ -554,6 +554,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 ):
                     macro._run("Left", 1, "Miroir", context)
                 send.assert_not_called()
+                move.assert_not_called()
                 if not visible:
                     focus.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
