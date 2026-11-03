@@ -410,6 +410,10 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             # An explicit empty list must suppress the legacy page-wide
             # single-quest heuristic, including for a linked travel action.
             action["quest_ids"] = []
+        # A previous untagged row names the same Quest; it must NOT
+        # consume the explicit shortcut owned by the later NPC action.
+        source["steps"][0]["actions"][1].pop("quest_ids")
+        source["steps"][0]["actions"][1]["text"] = "Aller en [-5,2] pour Quête #654"
         source["steps"][0]["actions"][2]["quest_ids"] = [654]
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(source)
@@ -424,6 +428,11 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 )
                 self.assertEqual(len(buttons), 1)
                 self.assertEqual(buttons[0].toolTip(), "Quête #654")
+                # Verify the button is attached to the exact action row,
+                # not merely present somewhere earlier on the sheet.
+                row_labels = buttons[0].parentWidget().findChildren(QLabel)
+                self.assertTrue(any("Parler au PNJ fictif" in label.text()
+                                    for label in row_labels))
                 spy = QSignalSpy(sheet.questRequested)
                 buttons[0].click()
                 self.assertEqual(spy.count(), 1)
