@@ -99,6 +99,73 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_click.run_async.return_value = True
         return runtime
 
+    def test_mirror_keyboard_and_wheel_start_from_favorite_in_another_slot(self):
+        runtime = self._runtime(primary=202, handles=(101, 202, 303))
+        runtime._running = True
+        runtime._admin_ok = True
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+        ):
+            self.assertEqual(
+                AtlasRuntime._mirror_gesture_targets(runtime),
+                (202, (202, 101, 303)),
+            )
+
+    def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=202, handles=(101, 202, 303))
+        macro = MirrorInputMacro(runtime)
+        self.assertTrue(macro._still_current(202, (202, 101, 303)))
+        self.assertFalse(macro._still_current(202, (101, 202, 303)))
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=303),
+            SimpleNamespace(handle=202),
+        )
+        self.assertFalse(macro._still_current(202, (202, 101, 303)))
+
+    def test_mirror_keyboard_dispatch_with_nonfirst_favorite_two_to_eight(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                favorite = slots[-1]
+                handles = (favorite, *slots[:-1])
+                runtime = self._runtime(primary=favorite, handles=slots)
+                timings = runtime.settings.timings
+                timings.switch_background_pre_click_ms = 0
+                timings.activate_attempts = 1
+                timings.activate_retry_ms = 0
+                timings.switch_click_down_ms = 10
+                timings.switch_client_settle_ms = 0
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                events = []
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          return_value=True) as activate,
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=list(handles)),
+                    patch("app.macros.input_tools.key_down",
+                          side_effect=lambda vk: events.append(("down", vk))),
+                    patch("app.macros.input_tools.key_up",
+                          side_effect=lambda vk: events.append(("up", vk))),
+                ):
+                    MirrorInputMacro(runtime)._run("key", 65, favorite, handles)
+                self.assertEqual(activate.call_count, count)
+                self.assertEqual(
+                    [call.args[0] for call in activate.call_args_list],
+                    list(handles),
+                )
+                self.assertEqual(events, [("down", 65), ("up", 65)] * count)
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Clavier : {count}/{count} fenêtres."
+                )
+
     def test_favorite_click_reuses_existing_sender_once(self):
         runtime = self._runtime()
         with (
