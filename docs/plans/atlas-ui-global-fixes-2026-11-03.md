@@ -2,7 +2,7 @@
 
 > **Statut : PLAN / DRAFT — aucune implémentation de cette checklist ne peut être déduite de ce document.**
 >
-> Contrat source non modifiable silencieusement : [issue #364](https://github.com/r9327/Dof-Atlas/issues/364) (**67 exigences dont 4 recettes réelles**). Les ID `ATUI-*`, `ATHM-*`, `ATCH-*`, `ATLN-*`, `ATOR-*`, `ATMC-*`, `ATZP-*`, `ATGD-*`, `ATQT-*`, `ATSC-*`, `ATNW-*`, `ATBS-*`, `ATAL-*`, `ATQA-*` doivent tous figurer dans le rapport de livraison final.
+> Contrat source non modifiable silencieusement : [issue #364](https://github.com/r9327/Dof-Atlas/issues/364) (**68 exigences dont 4 recettes réelles**). Les ID `ATUI-*`, `ATHM-*`, `ATCH-*`, `ATLN-*`, `ATOR-*`, `ATMC-*`, `ATZP-*`, `ATGD-*`, `ATQT-*`, `ATSC-*`, `ATNW-*`, `ATBS-*`, `ATAL-*`, `ATQA-*` doivent tous figurer dans le rapport de livraison final.
 
 ## Objectif
 
@@ -29,6 +29,27 @@ L'architecture existante est la source de vérité : `app/ui/unity_skin.py` (pal
 | [#306](https://github.com/r9327/Dof-Atlas/pull/306) | Catalogue/lecteur Guides | Eviter la duplication et vérifier compatibilité avec #363 avant de fusionner. |
 | [#358](https://github.com/r9327/Dof-Atlas/pull/358) | Atlas Doctor et outils | Réutiliser les outils approuvés et enregistrer leurs preuves exact-SHA. |
 
+## Correctif prioritaire Switch clic Unity — ATMC-003
+
+- **Comportement observé :** les clics classiques fonctionnent, mais les portes,
+  soleils de déplacement entre cartes, coffres et autres objets surlignés ne
+  réagissent pas au Switch clic, y compris sur la première fenêtre survolée.
+- **Cause technique identifiable dans le code :** le hook classique consommait
+  le bouton physique DOWN, puis réinjectait un clic synthétique aussi sur la
+  fenêtre source ; le bouton UP physique pouvait être bloqué pendant le replay.
+- **Correction ciblée :** sur une vraie fenêtre Unity au premier plan, laisser
+  passer le couple physique DOWN/UP, déclencher le replay des autres clients
+  uniquement depuis UP, ne jamais rejouer une seconde fois le clic source,
+  conserver l'arrêt d'urgence et les garde-fous de fenêtres. Les vitesses
+  de clic synthétique conservent un temps de survol et d'appui borné.
+- **Preuves disponibles :** code et tests de non-régression ajoutés dans la
+  branche #365, **non exécutés sur un poste Windows réel**. Tester en jeu
+  source et clients secondaires, avec clics classiques, carte, coffre, porte,
+  double-clic et interruption avant d'annoncer une réparation confirmée.
+- **Compatibilité :** ne pas fusionner aveuglément les hooks de #325 ; conserver
+  son moteur Miroir et la correspondance DOWN/UP déjà prévue pour les
+  événements consommés. Aucune modification de ses données ni de ses règles.
+
 ## Ordre de lots de développement conseillé
 
 1. **UI commune et navigation** — source du thème `app/ui/theme.py`, composants `app/ui/components.py` ; normaliser menus sur Succès, onglets, barre d'Ariane, resize, fond étoilé ; corriger Bestiaire ↔ Encyclopédie / Outils et annulation d'un chargement de quête.
@@ -51,7 +72,7 @@ L'architecture existante est la source de vérité : `app/ui/unity_skin.py` (pal
 - Avant toute restructuration/suppression, `--structural` et **Graphify du SHA exact** avec consommation prouvée. Ne pas supprimer un composant uniquement parce qu'une recherche texte ne le trouve pas.
 - Après chaque lot, Doctor `agent check <paths> --base-ref origin/main --run-tests --json` puis `agent validate`, tests ciblés, revue du diff et des effets secondaires. Captures Doctor UI pour changements visuels ; mesures p50/p95/p99 et RAM si parcours de chargement concernés.
 - Les contrôles Windows / vraie application DOFUS, la superposition sur les fenêtres, les touches, le miroir, le réseau et le Launcher ne sont pas prouvables par des tests unitaires Linux ; garder leur statut **NOT_TESTED** en attendant une recette humaine enregistrée.
-- **Draft jusqu'à fin de tous les critères**. Aucune FULL ou Phase Certification pendant le développement de cette PR ; ne pas lancer la CI des guides de #363 avant son pilote Cawotte 100 % certifié. Une fois candidat fini, rapport `ATLAS_DELIVERY_REPORT` pour les 67 IDs de #364 au SHA final, audit logique et contrôles de certification selon le protocole du dépôt. Les statuts `NOT_RUN` et `SKIPPED` ne valent jamais `PASS`.
+- **Draft jusqu'à fin de tous les critères**. Aucune FULL ou Phase Certification pendant le développement de cette PR ; ne pas lancer la CI des guides de #363 avant son pilote Cawotte 100 % certifié. Une fois candidat fini, rapport `ATLAS_DELIVERY_REPORT` pour les 68 IDs de #364 au SHA final, audit logique et contrôles de certification selon le protocole du dépôt. Les statuts `NOT_RUN` et `SKIPPED` ne valent jamais `PASS`.
 
 ## Critères de refus de fusion
 
