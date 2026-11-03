@@ -202,7 +202,11 @@ def send_screen_click(
     finally:
         if button_is_down:
             try:
-                _send_mouse_flag(up_flag)
+                if not _send_mouse_flag(up_flag):
+                    logger.warning(
+                        "Relachement souris de secours refuse: button=%s",
+                        button_name,
+                    )
             except Exception:
                 logger.exception(
                     "Relachement souris de secours impossible: button=%s",
