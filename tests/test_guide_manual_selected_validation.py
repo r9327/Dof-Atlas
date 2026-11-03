@@ -620,6 +620,9 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             legacy = dict(service.cards[0])
             legacy.pop("source_step_id")
             legacy["manual_quest_ids"] = [654]
+            # The fake service resolves automatic progress by card membership.
+            # Keep the modified legacy card in that service's card inventory.
+            service.cards[0] = legacy
             service.quest_provider = SimpleNamespace(
                 get_quest=lambda qid: SimpleNamespace(name=f"Quest {qid}")
             )
@@ -830,6 +833,7 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             service = self._service(Path(temp) / "progress.json", route)
             source = dict(service.cards[0])
             source["manual_sections"] = {}
+            service.cards[0] = source
             def forbidden_provider(*_args):
                 raise AssertionError("missing source sections cannot be replaced by legacy data")
             service.manual_sections_for_card = forbidden_provider
@@ -854,6 +858,7 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             # but are not authorized imports and may have no manual_sections.
             ordinary.pop("source_step_id")
             ordinary.pop("manual_sections")
+            service.cards[0] = ordinary
             self.assertIs(ordinary["manual_source"], True)
             called = []
             def original_provider(_key, _card):
