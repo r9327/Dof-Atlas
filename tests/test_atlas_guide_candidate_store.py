@@ -545,6 +545,26 @@ class CandidateStoreTests(unittest.TestCase):
                                restore_sha256="b" * 64)
         self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
 
+    def test_stale_publish_to_uninitialized_root_never_creates_store(self) -> None:
+        for expected in ("a" * 64, "b" * 64):
+            with self.subTest(expected=expected), self.assertRaisesRegex(
+                GuideRouteContractError, "stale candidate selection"
+            ):
+                publish_candidate(self.preview, root=self.root, expected_selected=expected)
+            self.assertFalse(self.root.exists())
+
+    def test_rollback_to_uninitialized_root_does_not_create_managed_store(self) -> None:
+        with self.assertRaisesRegex(GuideRouteContractError, "missing managed"):
+            rollback_candidate(root=self.root, expected_selected="NONE")
+        self.assertFalse(self.root.exists())
+        self.root.mkdir()
+        sentinel = self.root / "foreign-user.json"
+        sentinel.write_text('{"untouched": true}', encoding="utf-8")
+        with self.assertRaisesRegex(GuideRouteContractError, "missing managed"):
+            rollback_candidate(root=self.root, expected_selected="NONE")
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), '{"untouched": true}')
+        self.assertEqual([path.name for path in self.root.iterdir()], ["foreign-user.json"])
+
     def test_invalid_publish_cas_pointer_is_rejected_before_store_creation(self) -> None:
         for token in (None, True, "", "../outside", "ABC" * 21 + "A", "a" * 63):
             with self.subTest(pointer=token), self.assertRaisesRegex(

@@ -159,6 +159,17 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "unsafe"):
             project_authorized_guide(bad)
 
+    def test_duplicate_quest_id_is_not_silently_hidden_by_shared_quest_rows(self):
+        source = sample()
+        source["steps"][0]["quest_ids"] = [100, 100]
+        with self.assertRaisesRegex(GuideRouteContractError, "duplicate quest ID"):
+            project_authorized_guide(source)
+        source["steps"][0]["quest_ids"] = [100, 200]
+        self.assertEqual(
+            project_authorized_guide(source)["steps"][0]["manual_quest_ids"],
+            [100, 200],
+        )
+
     def test_invalid_item_id_never_enters_preparation_projection(self):
         for invalid in (True, False, -1, 0, "123", "invalid", 1.5):
             source = sample()

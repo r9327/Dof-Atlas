@@ -401,6 +401,7 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(values, list):
                         report("UNVERIFIABLE", f"{prefix}.{field}",
                                "structured list", values)
+                seen_quest_ids: set[int] = set()
                 for quest_idx, quest_id in enumerate(
                     step.get("quest_ids", []) if isinstance(step.get("quest_ids", []), list)
                     else []
@@ -408,6 +409,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if type(quest_id) is not int or quest_id <= 0:
                         report("UNVERIFIABLE", f"{prefix}.quest_ids[{quest_idx}]",
                                "positive integer quest ID", quest_id)
+                    elif quest_id in seen_quest_ids:
+                        report("UNVERIFIABLE", f"{prefix}.quest_ids[{quest_idx}]",
+                               "unique quest ID per step", quest_id)
+                    else:
+                        seen_quest_ids.add(quest_id)
                 if isinstance(step.get("quest_names", []), list):
                     for quest_idx, quest_name in enumerate(step.get("quest_names", [])):
                         if not isinstance(quest_name, str) or not quest_name.strip():

@@ -241,6 +241,29 @@ class TestSequenceGateSynthetic(unittest.TestCase):
                       decision["missing_proofs"])
         self.assertFalse(decision["may_prepare_next"])
 
+    def test_full_95_guide_synthetic_chain_cannot_unlock_a_96th(self):
+        completed = []
+        predecessor = ""
+        for index in range(95):
+            guide_id = "dofus_cawotte" if index == 0 else f"fictitious-{index:03d}"
+            completed.append(record(guide_id, predecessor=predecessor))
+            predecessor = guide_id
+        request = plan("fictitious-096", completed)
+        outcome = assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+        self.assertFalse(outcome["may_prepare_next"])
+        self.assertIn("sequence.inventory_already_complete", outcome["missing_proofs"])
+        self.assertEqual(outcome["verified_completed_count"], 0)
+        self.assertFalse(outcome["certified"])
+
+        # Even one unverified action out of an otherwise validated inventory
+        # must independently block the next guide.
+        completed.pop()
+        completed[46]["certified_actions"] -= 1
+        request = plan("fictitious-095", completed)
+        blocked = assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+        self.assertIn("completed[46].incomplete_coverage", blocked["missing_proofs"])
+        self.assertFalse(blocked["may_prepare_next"])
+
     def test_inputs_not_mutated(self):
         request = plan("synthetic-next", [record("dofus_cawotte")])
         before = copy.deepcopy(request)

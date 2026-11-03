@@ -433,6 +433,10 @@ def publish_candidate(
     _checked_pointer(expected_selected, "expected_selected")
     payload = _json_bytes(preview)
     digest = _digest(payload)
+    # An attempted CAS against a non-existent store can never succeed.
+    # Do not leave a newly managed directory behind on a predictable failure.
+    if expected_selected != _NO_SELECTION and not _safe_root(root).exists():
+        raise GuideRouteContractError("stale candidate selection; store is missing")
     with _locked(root) as store:
         old = _selection(store)
         _verify_generation(store, old)
@@ -481,6 +485,11 @@ def rollback_candidate(
     """CAS rollback of the candidate selection only, never character progress."""
     _checked_pointer(expected_selected, "expected_selected")
     _checked_pointer(restore_sha256, "restore_sha256")
+    root = _safe_root(root)
+    # Rollback is never a store initializer. Missing/foreign roots fail
+    # without creating a marker, lock, generations or selected.json.
+    if not root.is_dir() or not (root / _ROOT_MARKER).is_file():
+        raise GuideRouteContractError("missing managed candidate store for rollback")
     with _locked(root) as store:
         actual = _selection(store)
         _verify_generation(store, actual)

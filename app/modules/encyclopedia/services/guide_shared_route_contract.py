@@ -190,9 +190,13 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             value = step.get(field, [])
             if not isinstance(value, list):
                 raise GuideRouteContractError(f"{prefix}.{field}: list required")
+        seen_quest_ids: set[int] = set()
         for quest_id in step.get("quest_ids", []):
             if type(quest_id) is not int or quest_id <= 0:
                 raise GuideRouteContractError(f"{prefix}.quest_ids: positive integer IDs required")
+            if quest_id in seen_quest_ids:
+                raise GuideRouteContractError(f"{prefix}.quest_ids: duplicate quest ID {quest_id}")
+            seen_quest_ids.add(quest_id)
         for name in step.get("quest_names", []):
             _text(name, f"{prefix}.quest_names")
         # Hard gates are structured, not rendered text. Retain every unknown

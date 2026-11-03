@@ -131,6 +131,22 @@ class TestGuideConformity(unittest.TestCase):
         self.assertTrue(any("steps[B]" in x["field_path"] for x in result["issues"]))
         self.assertTrue(any("actions[talk]" in x["field_path"] for x in result["issues"]))
 
+    def test_matching_duplicate_quest_ids_cannot_claim_parity(self) -> None:
+        source = reference()
+        atlas = imported(source)
+        for export in (source, atlas):
+            export["guides"][0]["steps"][0]["quest_ids"] = [111, 111]
+        result = compare(source, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+        self.assertTrue(any(
+            issue["field_path"].endswith(".quest_ids[1]")
+            for issue in result["issues"]
+        ))
+        for export in (source, atlas):
+            export["guides"][0]["steps"][0]["quest_ids"] = [111, 222]
+        self.assertEqual(compare(source, atlas)["status"], "PARITY_CHECK_PASS")
+
     def test_matching_invalid_item_ids_never_pass_conformity(self) -> None:
         for item_id in (True, -1, 0, "123", "unknown", 1.5):
             original = reference()
