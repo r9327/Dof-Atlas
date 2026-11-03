@@ -46,7 +46,7 @@ _UNRENDERED_STEP_FIELDS = frozenset({
 # instead of being quietly buried in that opaque metadata.
 _EVIDENCE_ONLY_FIELDS = frozenset({
     "evidence_ref", "source_url", "source_hash", "source_revision",
-    "capture_id", "capture_timestamp", "author", "metadata",
+    "capture", "capture_id", "capture_timestamp", "author", "metadata",
 })
 _SUPPORTED_ACTION_FIELDS = frozenset({
     "action_id", "kind", "text", "coordinates", "items", "monsters",
