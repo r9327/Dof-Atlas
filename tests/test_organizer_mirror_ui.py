@@ -309,6 +309,41 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.input_state.end_mouse_block.assert_called_once()
 
+    def test_switch_click_focus_exception_preserves_user_cursor_and_focus(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        handles = (101, 202)
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+            for hwnd in handles
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(10, 15)),
+            patch("app.macros.switch_click.set_cursor_pos") as move,
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_click.activate_window",
+                  side_effect=RuntimeError("focus denied")),
+            patch("app.macros.switch_click.send_client_click") as send,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101, mirror_target_handles=handles,
+            )
+        send.assert_not_called()
+        move.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir interrompu : 0/2 fenêtres."
+        )
+
     def test_mirror_partial_delivery_is_not_reported_complete(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
