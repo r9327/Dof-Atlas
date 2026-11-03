@@ -199,11 +199,17 @@ class _PreparationNeed:
     required_by_character: tuple[tuple[str, int | None], ...]
     confidence_by_character: tuple[tuple[str, str], ...] = ()
     sources: tuple[str, ...] = ()
+    scope: str = "per_character"
 
     @property
     def required_total(self) -> int | None:
         values = [quantity for _key, quantity in self.required_by_character]
-        return sum(values) if all(value is not None for value in values) else None
+        if not values or any(value is None for value in values):
+            return None
+        if self.scope == "party_shared":
+            # Shared materials are acquired once, even for six participants.
+            return values[0] if len(set(values)) == 1 else None
+        return sum(values) if self.scope == "per_character" else None
 
 
 class _GuideProgressDonut(QWidget):
@@ -1787,7 +1793,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             ):
                 item_key = self._preparation_item_key(need.item_id, need.name)
                 row = aggregated.setdefault(
-                    (item_key, need.category),
+                    (item_key, need.category, need.scope),
                     {
                         "item_id": need.item_id, "name": need.name,
                         "category": need.category, "required": {},
@@ -1807,8 +1813,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                 required_by_character=tuple(sorted(row["required"].items())),
                 confidence_by_character=tuple(sorted(row["confidence"].items())),
                 sources=tuple(sorted(row["sources"])),
+                scope=scope,
             )
-            for (item_key, _category), row in sorted(
+            for (item_key, _category, scope), row in sorted(
                 aggregated.items(),
                 key=lambda item: (item[1]["category"], normalize_text(item[1]["name"])),
             )
@@ -1818,7 +1825,8 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _ready_progress_key(self, need: _PreparationNeed) -> str:
         guide_id = str(getattr(self.service, "guide_id", "guide_complet") or "guide_complet")
-        return f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+        key = f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+        return key if need.scope == "per_character" else f"{key}:{need.scope}"
 
     def _need_ready(self, need: _PreparationNeed) -> bool:
         getter = getattr(self.service, "manual_checked", None)

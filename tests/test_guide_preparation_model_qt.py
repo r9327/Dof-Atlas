@@ -225,5 +225,17 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
             ))
 
 
+    def test_party_shared_quantity_not_multiplied_by_selected_participants(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        view = self._view()
+        self.assertEqual(len(view._preparation_needs), 1)
+        need = view._preparation_needs[0]
+        self.assertEqual(need.scope, "party_shared")
+        self.assertEqual(len(need.required_by_character), 3)
+        self.assertEqual(need.required_total, 2)
+
 if __name__ == "__main__":
     unittest.main()

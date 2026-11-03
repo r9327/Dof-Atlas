@@ -448,5 +448,29 @@ class GuidePreparationModelTests(unittest.TestCase):
         self.assertEqual(category_for("Pierre d’âme parfaite"), "Pierres d'âme")
 
 
+    def test_quantity_scope_keeps_shared_and_individual_requirements_distinct(self):
+        shared = {"manual_stage_id": "a", "a_preparer": [
+            {"item_id": 123, "name": "Clef commune", "quantity": 2,
+             "consumable": True, "quantity_scope": "party_shared"},
+        ]}
+        personal = {"manual_stage_id": "b", "a_preparer": [
+            {"item_id": 123, "name": "Clef commune", "quantity": 1,
+             "consumable": True, "quantity_scope": "per_character"},
+        ]}
+        rows = aggregate_remaining(((shared, False), (personal, False)))
+        self.assertEqual(
+            {(need.scope, need.quantity) for need in rows},
+            {("party_shared", 2), ("per_character", 1)},
+        )
+
+    def test_unrecognized_quantity_scope_blocks_numeric_certainty(self):
+        card = {"manual_stage_id": "one", "a_preparer": [
+            {"item_id": 42, "name": "Objet", "quantity": 4,
+             "quantity_scope": "unknown_legacy"},
+        ]}
+        need, = aggregate_remaining(((card, False),))
+        self.assertEqual((need.scope, need.quantity, need.confidence),
+                         ("unverified", None, "scope_unverified"))
+
 if __name__ == "__main__":
     unittest.main()

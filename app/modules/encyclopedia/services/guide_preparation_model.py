@@ -143,6 +143,14 @@ def _gate_labels(raw: Any) -> Iterable[str]:
             yield from _gate_labels(value)
 
 
+def _quantity_scope(record: dict[str, Any]) -> str:
+    """An explicit common-team requirement must not be multiplied by the team."""
+    value = record.get("quantity_scope", "per_character")
+    if value in ("per_character", "party_shared"):
+        return value
+    return "unverified"
+
+
 def _consumption(record: dict[str, Any]) -> str:
     # No default: without a proven reusable/consumed status the amount across
     # multiple stages is ambiguous. Do not assume every displayed mention is use.
@@ -165,6 +173,7 @@ class PreparationClaim:
     source: str
     stage_id: str
     occurrence: str
+    scope: str = "per_character"
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,6 +186,7 @@ class PreparationNeed:
     confidence: str
     claim_count: int
     sources: tuple[str, ...]
+    scope: str = "per_character"
 
 
 def card_claims(
@@ -232,7 +242,7 @@ def card_claims(
     stage = str(card.get("manual_stage_id") or "")
     claims: list[PreparationClaim] = []
     structured_keys: set[tuple[str, int | None]] = set()
-    exact_rows: set[tuple[str, int | None, str, str]] = set()
+    exact_rows: set[tuple[str, int | None, str, str, str]] = set()
     for index, raw in enumerate(_structured_entries(card.get("a_preparer", ()) or ())):
         name = str(
             raw.get("name") or raw.get("label") or raw.get("item") or raw.get("resource") or ""
@@ -244,15 +254,17 @@ def card_claims(
         identity = item_identity(item_id, name)
         source = str(raw.get("_source_field") or "a_preparer")
         occurrence = str(raw.get("occurrence_id") or raw.get("source_step_id") or "")
+        scope = _quantity_scope(raw)
         # Without an independently identified occurrence, duplicated identical
         # source rows are display mirrors, not proof of two purchases.
-        signature = (identity, quantity, source, occurrence)
+        signature = (identity, quantity, source, occurrence, scope)
         if signature in exact_rows:
             continue
         exact_rows.add(signature)
         claims.append(PreparationClaim(
             identity, item_id, name, category_for(name, str(raw.get("category") or "")),
             quantity, _consumption(raw), source, stage, occurrence or f"structured:{index}",
+            scope,
         ))
         structured_keys.add((item_identity(None, name), quantity))
     src_sections = sections if sections is not None else card.get("manual_sections", {})
@@ -322,7 +334,7 @@ def aggregate_remaining(
         str(card.get("manual_chapter_id") or "")
         for card, complete in rows if not complete
     }
-    grouped: dict[tuple[str, str], list[PreparationClaim]] = {}
+    grouped: dict[tuple[str, str, str], list[PreparationClaim]] = {}
     for card, complete in rows:
         chapter = str(card.get("manual_chapter_id") or "")
         if complete and (not chapter or chapter not in incomplete_chapters):
@@ -331,12 +343,15 @@ def aggregate_remaining(
         for claim in card_claims(card, sections=sections):
             if complete and claim.source != "chapter_preparation":
                 continue
-            grouped.setdefault((claim.identity, claim.category), []).append(claim)
+            grouped.setdefault((claim.identity, claim.category, claim.scope), []).append(claim)
     needs = []
-    for (identity, category), group in sorted(grouped.items()):
+    for (identity, category, scope), group in sorted(grouped.items()):
         quantities = [claim.quantity for claim in group]
         usages = {claim.consumption for claim in group}
-        if None in quantities:
+        if scope == "unverified":
+            quantity = None
+            confidence = "scope_unverified"
+        elif None in quantities:
             quantity = None
             confidence = "quantity_unverified"
         elif len(group) == 1:
@@ -356,6 +371,7 @@ def aggregate_remaining(
             identity, first.item_id, first.name, category, quantity,
             confidence, len(group),
             tuple(dict.fromkeys(f"{claim.stage_id}:{claim.source}" for claim in group)),
+            scope,
         ))
     return tuple(needs)
 
