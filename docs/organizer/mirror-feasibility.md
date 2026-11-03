@@ -145,3 +145,25 @@ propres à #325. La migration des fichiers liés aux macros **n'est pas
 terminée**, et aucune suppression du diff #365 n'est effectuée ici.
 Graphify exact-SHA et Doctor local non exécutés ; tests Python, rendu
 DOFUS réel et ressenti 2 à 8 : **NOT_RUN**.
+
+## Instrumentation focus et recettes multi-comptes (03/11/2026)
+
+- Les journaux Miroir distinguent les durées `focus_activation_ms`
+  (demande d'activation d'une fenêtre) de `delivery_step_ms` (envoi
+  de l'événement sur la cible) et `worker_total_ms` (durée du worker).
+- Les percentiles p50/p95/p99 sont issus d'échantillons réels de
+  `perf_counter` pendant la session, mais **n'attestent ni du rendu du
+  jeu ni du délai complet de l'événement physique capturé par le hook**.
+- Tests simulés 2/4/6/8 fenêtres : le Miroir vérifie un roster figé,
+  authentifie les processus au départ et avant chaque destinataire ;
+  le compteur de contrôles natifs du chemin nominal clavier est borné
+  à `2N+1` pour N clients, plutôt que répété à chaque tour.
+- Une exception Win32 d'activation, un focus volé ou un refus du dernier
+  envoi ne doit pas afficher de faux succès ni réactiver la mauvaise
+  fenêtre. La molette ne se diffuse plus si le focus a été perdu après
+  déplacement du pointeur.
+
+**Preuves manquantes** : tests Python réellement exécutés, benchmark CPU/RAM
+et p50/p95/p99 sous Windows sur la même machine avec 2/4/6/8 comptes,
+réactions observées dans Unity, transfert complet puis retrait des
+7 fichiers de la PR #365, Graphify exact-SHA, audit final et certification.
