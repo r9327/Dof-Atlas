@@ -168,6 +168,25 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(result["status"], "PARITY_CHECK_PASS")
         self.assertFalse(result["certified"])
 
+    def test_preparation_quest_shortcut_is_unverifiable_even_if_both_exports_match(self):
+        source = reference()
+        step = source["guides"][0]["steps"][0]
+        step["quest_ids"] = [123]
+        action = step["actions"][0]
+        action["kind"] = "prepare"
+        action["section"] = "prepare"
+        action["items"] = [{"name": "Ressource fictive", "quantity": 2}]
+        action["quest_ids"] = [123]
+        result = compare(source, imported(source))
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertTrue(any(
+            row["issue_code"] == "UNVERIFIABLE"
+            and row["field_path"].endswith(".actions[0].quest_ids")
+            for row in result["issues"]
+        ))
+        action["quest_ids"] = []
+        self.assertEqual(compare(source, imported(source))["status"], "PARITY_CHECK_PASS")
+
     def test_matching_invalid_item_ids_never_pass_conformity(self) -> None:
         for item_id in (True, -1, 0, "123", "unknown", 1.5):
             original = reference()
