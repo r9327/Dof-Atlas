@@ -494,6 +494,37 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 sheet.deleteLater()
                 QApplication.processEvents()
 
+    def test_legacy_quest_shortcuts_still_appear_once_per_sheet(self) -> None:
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            legacy = dict(service.cards[0])
+            legacy.pop("source_step_id")
+            legacy["manual_quest_ids"] = [654]
+            service.quest_provider = SimpleNamespace(
+                get_quest=lambda qid: SimpleNamespace(name=f"Quest {qid}")
+            )
+            service.manual_sections_for_card = lambda *_args: {
+                "now": [
+                    {"kind": "action", "text": "Parler au PNJ A", "position": ""},
+                    {"kind": "action", "text": "Parler au PNJ B", "position": ""},
+                ]
+            }
+            sheet = SharedGuideManualCard(service, "character:1", legacy, 0)
+            try:
+                buttons = sheet.findChildren(
+                    QToolButton, "GuideManualQuestInlineButton"
+                )
+                self.assertEqual(len(buttons), 1)
+                self.assertEqual(buttons[0].toolTip(), "Quest 654")
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
     def test_historical_guide_card_accepts_null_runtime_metadata(self) -> None:
         from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
 
