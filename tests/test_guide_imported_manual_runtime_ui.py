@@ -139,6 +139,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         ))
         self.view.set_character_key("character:2")
         reader._show_index(0)
+        # The header intentionally describes the selected participant team,
+        # not the character merely browsing the guide.
+        self.assertEqual(reader.route_progress_label.text(), "50 %")
+        self.view.guide_participant_service.save_selected_keys(("character:2",))
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
         self.assertEqual(reader.route_progress_label.text(), "0 %")
         self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
 
