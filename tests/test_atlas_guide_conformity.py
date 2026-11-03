@@ -293,6 +293,82 @@ class TestGuideConformity(unittest.TestCase):
             for x in result["issues"]
         ))
 
+    def test_dot_segments_are_not_valid_canonical_guide_ids(self) -> None:
+        for invalid in (".", ".."):
+            for level in ("guide", "step", "action"):
+                with self.subTest(value=invalid, level=level):
+                    original = reference()
+                    atlas = imported(original)
+                    if level == "guide":
+                        original["guides"][0]["guide_id"] = invalid
+                        atlas["guides"][0]["guide_id"] = invalid
+                    elif level == "step":
+                        original["guides"][0]["steps"][0]["source_step_id"] = invalid
+                        atlas["guides"][0]["steps"][0]["source_step_id"] = invalid
+                    else:
+                        original["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
+                        atlas["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
+                    result = compare(original, atlas)
+                    self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                    self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_identical_unsupported_action_kind_is_not_parity(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        original["guides"][0]["steps"][0]["actions"][0]["kind"] = "invented"
+        atlas["guides"][0]["steps"][0]["actions"][0]["kind"] = "invented"
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertTrue(any(
+            issue["field_path"].endswith(".kind")
+            and issue["issue_code"] == "UNVERIFIABLE"
+            for issue in result["issues"]
+        ))
+
+    def test_identical_invalid_coordinates_are_not_parity(self) -> None:
+        for value in ([True, 2], [1.5, 2], [1], [10001, 0]):
+            with self.subTest(value=value):
+                original = reference()
+                atlas = imported(original)
+                original["guides"][0]["steps"][1]["actions"][0]["coordinates"] = value
+                atlas["guides"][0]["steps"][1]["actions"][0]["coordinates"] = value
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_identical_missing_travel_position_is_not_parity(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        original["guides"][0]["steps"][1]["actions"][0].pop("coordinates")
+        atlas["guides"][0]["steps"][1]["actions"][0].pop("coordinates")
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_identical_wrong_item_quantity_is_not_parity(self) -> None:
+        for invalid in (0, -1, True, "2"):
+            with self.subTest(quantity=invalid):
+                original = reference()
+                atlas = imported(original)
+                original["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = invalid
+                atlas["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = invalid
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["field_path"].endswith(".quantity")
+                    and issue["issue_code"] == "UNVERIFIABLE"
+                    for issue in result["issues"]
+                ))
+
+    def test_identical_combat_without_monsters_is_not_parity(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        original["guides"][1]["steps"][0]["actions"][0].pop("monsters")
+        atlas["guides"][1]["steps"][0]["actions"][0].pop("monsters")
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
     def test_input_unchanged_and_deterministic(self) -> None:
         a = copy.deepcopy(self.reference)
         b = copy.deepcopy(self.atlas)

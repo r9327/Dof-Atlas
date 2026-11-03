@@ -26,6 +26,24 @@ _COLLECTIONS = {"guides": "guide", "steps": "step", "actions": "action"}
 _STABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 
 
+# Independent format validation: a pair of equally malformed exports must
+# not pass just because their values are equal. Keep the supported action
+# grammar aligned with the canonical Qt-free route adapter.
+_KNOWN_ACTION_KINDS = frozenset({
+    "travel", "talk", "item", "collect", "craft", "interact", "fight",
+    "combat", "dungeon", "quest", "achievement", "choice", "warning",
+    "prepare", "keep", "optional",
+})
+_ITEM_ACTION_KINDS = frozenset({"item", "collect", "craft", "keep", "prepare"})
+
+
+def _valid_position(value: Any) -> bool:
+    return (
+        isinstance(value, (list, tuple)) and len(value) == 2
+        and all(type(x) is int and abs(x) <= 10000 for x in value)
+    )
+
+
 def _digest(payload: Any) -> str:
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -43,7 +61,7 @@ def _identifier(value: Any) -> str | None:
     result = str(value)
     # Never normalize a source ID before comparing inventories. Stripping
     # whitespace here can turn two malformed exports into a false parity PASS.
-    return result if _STABLE_ID.fullmatch(result) else None
+    return result if _STABLE_ID.fullmatch(result) and result not in {".", ".."} else None
 
 
 def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
@@ -260,6 +278,9 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(guide, dict):
                 report("UNVERIFIABLE", f"{side}.guides[{gi}]", "guide object", guide)
                 continue
+            if not isinstance(guide.get("title"), str) or not guide["title"].strip():
+                report("UNVERIFIABLE", f"{side}.guides[{gi}].title",
+                       "nonempty guide title", guide.get("title"))
             steps = guide.get("steps")
             if not isinstance(steps, list) or not steps:
                 report("UNVERIFIABLE", f"{side}.guides[{gi}].steps",
@@ -271,6 +292,16 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     report("UNVERIFIABLE", f"{side}.guides[{gi}].steps[{si}]",
                            "step object", step)
                     continue
+                prefix = f"{side}.guides[{gi}].steps[{si}]"
+                if not isinstance(step.get("title"), str) or not step["title"].strip():
+                    report("UNVERIFIABLE", f"{prefix}.title",
+                           "nonempty step title", step.get("title"))
+                if step.get("coordinates") is not None and not _valid_position(
+                    step["coordinates"]
+                ):
+                    report("UNVERIFIABLE", f"{prefix}.coordinates",
+                           "[integer x, integer y] in verified bounds",
+                           step["coordinates"])
                 actions = step.get("actions")
                 if not isinstance(actions, list) or not actions:
                     report("UNVERIFIABLE",
@@ -279,14 +310,52 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     continue
                 inspected[f"{side}_full_actions"] += len(actions)
                 for ai, action in enumerate(actions):
+                    action_path = f"{prefix}.actions[{ai}]"
                     if not isinstance(action, dict):
-                        report("UNVERIFIABLE",
-                               f"{side}.guides[{gi}].steps[{si}].actions[{ai}]",
-                               "action object", action)
-                    elif not isinstance(action.get("kind"), str) or not action["kind"]:
-                        report("UNVERIFIABLE",
-                               f"{side}.guides[{gi}].steps[{si}].actions[{ai}].kind",
-                               "nonempty action kind", action.get("kind"))
+                        report("UNVERIFIABLE", action_path, "action object", action)
+                        continue
+                    kind = action.get("kind")
+                    if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
+                        report("UNVERIFIABLE", f"{action_path}.kind",
+                               "supported action kind", kind)
+                    if action.get("coordinates") is not None and not _valid_position(
+                        action["coordinates"]
+                    ):
+                        report("UNVERIFIABLE", f"{action_path}.coordinates",
+                               "[integer x, integer y] in verified bounds",
+                               action["coordinates"])
+                    if kind == "travel" and not (
+                        _valid_position(action.get("coordinates"))
+                        or _valid_position(step.get("coordinates"))
+                    ):
+                        report("UNVERIFIABLE", f"{action_path}.coordinates",
+                               "verified travel position", action.get("coordinates"))
+                    for field in ("items", "monsters"):
+                        entries = action.get(field)
+                        if entries is None:
+                            if (field == "items" and kind in _ITEM_ACTION_KINDS) or (
+                                field == "monsters" and kind in {"fight", "combat"}
+                            ):
+                                report("UNVERIFIABLE", f"{action_path}.{field}",
+                                       "nonempty structured list", entries)
+                            continue
+                        if not isinstance(entries, list) or not entries:
+                            report("UNVERIFIABLE", f"{action_path}.{field}",
+                                   "nonempty structured list", entries)
+                            continue
+                        for item_index, item in enumerate(entries):
+                            item_path = f"{action_path}.{field}[{item_index}]"
+                            if not isinstance(item, dict):
+                                report("UNVERIFIABLE", item_path,
+                                       "structured resource or monster", item)
+                                continue
+                            name, quantity = item.get("name"), item.get("quantity")
+                            if not isinstance(name, str) or not name.strip():
+                                report("UNVERIFIABLE", f"{item_path}.name",
+                                       "nonempty name", name)
+                            if type(quantity) is not int or quantity <= 0:
+                                report("UNVERIFIABLE", f"{item_path}.quantity",
+                                       "positive integer", quantity)
 
     inventory(reference, "reference")
     inventory(atlas, "atlas")
