@@ -45,9 +45,6 @@ class SwitchClickMacro:
         screen_y: int,
         click_count: int,
         action_label: str,
-        *,
-        captured_context: SwitchClickContext | None = None,
-        physical_source_delivered: bool = False,
     ) -> bool:
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
@@ -79,21 +76,11 @@ class SwitchClickMacro:
 
         # Cette capture reste volontairement légère : aucune activation,
         # attente ou boucle n'est exécutée dans le callback du hook souris.
-        context = captured_context
-        if context is None:
-            context = self._capture_trigger_context(
-                screen_x,
-                screen_y,
-                action_label,
-            )
-        # A native source click is never inferred from the favorite/last point.
-        if physical_source_delivered and (
-            context is None or context.reason != "cursor"
-        ):
-            self.runtime.logger.warning(
-                "%s refuse: source physique non confirmee.", action_label,
-            )
-            return False
+        context = self._capture_trigger_context(
+            screen_x,
+            screen_y,
+            action_label,
+        )
         if context is None:
             self.runtime.logger.info(
                 "%s ignore: aucune fenêtre Unity source ou favorite.",
@@ -111,7 +98,6 @@ class SwitchClickMacro:
                     action_label,
                     context,
                     mouse_block_started=True,
-                    physical_source_delivered=physical_source_delivered,
                 ),
             )
         except Exception:
@@ -129,7 +115,6 @@ class SwitchClickMacro:
         action_label: str,
         context: SwitchClickContext,
         mouse_block_started: bool = False,
-        physical_source_delivered: bool = False,
     ) -> None:
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
@@ -169,15 +154,6 @@ class SwitchClickMacro:
             target_total = len(targets)
             should_restore_preferred = bool(targets)
 
-            if physical_source_delivered and not any(
-                client.handle == context.source_hwnd for client in targets
-            ):
-                self.runtime.logger.warning(
-                    "%s annule: source du clic physique absente des clients.",
-                    action_label,
-                )
-                return
-
             if not targets:
                 self.runtime.logger.info(
                     "%s ignore: aucune fenêtre Unity cible.",
@@ -188,16 +164,7 @@ class SwitchClickMacro:
             settings = self.runtime.settings
             timings = settings.timings
 
-            # The hook forwards the native UP to Unity before returning.
-            # Let that source action settle before activating another window,
-            # otherwise a door or map-exit click can lose focus mid-dispatch.
-            if physical_source_delivered and self.runtime.macro_lock.wait(60):
-                return
-
             for index, client in enumerate(targets):
-                if physical_source_delivered and client.handle == context.source_hwnd:
-                    sent_count += 1  # already delivered by Windows, not SendInput
-                    continue
                 if self.runtime.macro_lock.should_stop():
                     self.runtime.logger.info(
                         "%s stoppé avant hwnd=%s",
@@ -243,14 +210,6 @@ class SwitchClickMacro:
                 if click_count == 2:
                     double_gap_ms = max(double_gap_ms, 60)
 
-                # Unity world interactions sample the hovered target and
-                # pressed mouse state on render/update frames. A 1 ms click
-                # after an immediate cursor warp can miss both observations.
-                # Keep these bounded minimums specific to Switch clic: other
-                # fast UI actions retain their existing timings.
-                hover_settle_ms = max(50, timings.switch_background_pre_click_ms)
-                press_hold_ms = max(35, timings.switch_click_down_ms)
-
                 self.runtime.logger.debug(
                     "%s envoi clic: label=%s hwnd=%s button=%s "
                     "count=%s x=%s y=%s reason=%s",
@@ -270,9 +229,9 @@ class SwitchClickMacro:
                     target[1],
                     button,
                     click_count,
-                    press_hold_ms,
+                    timings.switch_click_down_ms,
                     double_gap_ms,
-                    hover_settle_ms,
+                    0,
                     timings.switch_background_post_up_ms,
                     self.runtime.synthetic_guard,
                     self.runtime.logger,
