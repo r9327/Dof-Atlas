@@ -37,6 +37,69 @@ def sample() -> dict:
 
 
 class TestSharedRouteContract(unittest.TestCase):
+    def test_semantic_action_fields_without_shared_reader_support_fail_closed(self):
+        blocked = {
+            "dialogue_options": [{"label": "Accepter", "target": "next"}],
+            "choices": ["Oui", "Non"],
+            "branches": [{"if": "alignment", "next": "step2"}],
+            "branching": {"choice": "B"},
+            "alternative_routes": ["route-b"],
+            "subactions": [{"action_id": "hidden"}],
+            "substeps": ["missing card"],
+            "interactions": [{"kind": "click"}],
+            "achievement_ids": [123],
+            "success_ids": [123],
+            "images": ["missing.png"],
+            "image": "portrait.png",
+            "media": [{"url": "https://example.invalid/reference.png"}],
+            "attachments": ["screenshot.png"],
+            "links": [{"url": "https://example.invalid"}],
+            "commands": ["/travel 1,2"],
+        }
+        for field, value in blocked.items():
+            with self.subTest(field=field):
+                source = sample()
+                source["steps"][0]["actions"][1][field] = value
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    r"actions\\[1\\]\\." + field + ": unsupported authored UI content",
+                ):
+                    project_authorized_guide(source)
+        # Empty optional placeholders have no lost action to display.
+        source = sample()
+        source["steps"][0]["actions"][1]["links"] = []
+        source["steps"][0]["actions"][1]["media"] = None
+        source["steps"][0]["actions"][1]["source_url"] = "https://example.invalid/proof"
+        route = project_authorized_guide(source)
+        stored = route["steps"][0]["manual_sections"]["now"][1]["source_action"]
+        self.assertEqual(stored["links"], [])
+        self.assertIsNone(stored["media"])
+        self.assertEqual(stored["source_url"], "https://example.invalid/proof")
+
+    def test_unrenderable_step_branch_or_media_does_not_hide_in_route_metadata(self):
+        for field, value in (
+            ("branches", [{"target": "hidden_step"}]),
+            ("choices", ["B"]),
+            ("alternative_routes", ["another route"]),
+            ("media", [{"src": "missing.png"}]),
+            ("links", ["https://example.invalid"]),
+        ):
+            with self.subTest(field=field):
+                source = sample()
+                source["steps"][0][field] = value
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    r"steps\\[0\\]\\." + field + ": unsupported authored UI content",
+                ):
+                    project_authorized_guide(source)
+        source = sample()
+        source["steps"][0]["media"] = []
+        source["steps"][0]["evidence_ref"] = "independent:step-A"
+        route = project_authorized_guide(source)
+        metadata = route["steps"][0]["manual_runtime_metadata"]["source_step"]
+        self.assertEqual(metadata["media"], [])
+        self.assertEqual(metadata["evidence_ref"], "independent:step-A")
+
     def test_canonical_source_rows_have_one_unambiguous_section_owner(self):
         source = sample()
         source["steps"][0]["actions"].insert(0, {
