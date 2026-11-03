@@ -325,6 +325,34 @@ class TestGuideConformity(unittest.TestCase):
             self.assertEqual(raised.exception.code, 2)
             self.assertFalse(output.parent.exists())
 
+    def test_matching_whitespace_padded_identifiers_are_unverifiable(self) -> None:
+        # Both copies used to compare as equal after an implicit .strip().
+        for level in ("guide", "step", "action"):
+            with self.subTest(level=level):
+                original = reference()
+                atlas = imported(original)
+                if level == "guide":
+                    original["guides"][0]["guide_id"] = " 2219 "
+                    atlas["guides"][0]["guide_id"] = " 2219 "
+                elif level == "step":
+                    original["guides"][0]["steps"][0]["source_step_id"] = " A "
+                    atlas["guides"][0]["steps"][0]["source_step_id"] = " A "
+                else:
+                    original["guides"][0]["steps"][0]["actions"][0]["action_id"] = " talk "
+                    atlas["guides"][0]["steps"][0]["actions"][0]["action_id"] = " talk "
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertIn("UNVERIFIABLE", result["issue_codes"])
+                self.assertFalse(result["certified"])
+
+    def test_one_sided_source_id_whitespace_never_matches(self) -> None:
+        changed = copy.deepcopy(self.atlas)
+        changed["guides"][0]["steps"][0]["source_step_id"] = " A "
+        result = compare(self.reference, changed)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+        self.assertIn("MISSING_STEP", result["issue_codes"])
+
 
 if __name__ == "__main__":
     unittest.main()

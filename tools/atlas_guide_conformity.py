@@ -37,8 +37,10 @@ def _snapshot(value: Any) -> Any:
 def _identifier(value: Any) -> str | None:
     if isinstance(value, bool) or not isinstance(value, (str, int)):
         return None
-    result = str(value).strip()
-    return result if result else None
+    result = str(value)
+    # Never normalize a source ID before comparing inventories. Stripping
+    # whitespace here can turn two malformed exports into a false parity PASS.
+    return result if result and result == result.strip() else None
 
 
 def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:

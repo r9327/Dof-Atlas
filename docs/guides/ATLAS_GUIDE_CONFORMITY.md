@@ -292,3 +292,11 @@ l'entier `1` ; deux exports également falsifiés avec `true`, `null`,
 historique qui n'a pas ce champ conserve sa compatibilité, mais cette
 comparaison ne confère ni autorisation ni certificat. Tests ajoutés et
 exécution au SHA exact encore à prouver.
+
+## Exactitude des identifiants dans le comparateur
+
+Les identifiants de guide, étape et action doivent être comparés sans trim ou
+normalisation silencieuse. Deux exports qui contiennent tous les deux un ID
+avec espaces de début/fin sont `UNVERIFIABLE` et non `PARITY_CHECK_PASS`.
+Ces vérifications protègent le comparateur hors runtime ; elles ne prouvent
+pas la conformité du lecteur Qt ni une certification de guide.
