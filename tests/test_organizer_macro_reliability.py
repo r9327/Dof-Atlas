@@ -317,6 +317,135 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
+    def test_switch_click_preserves_native_down_up_on_source(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.active_label = ""
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+            action_id="switch_click",
+            payload={"click_count": 1, "label": "Switch clique"},
+        )
+        context = SwitchClickContext(101, 25, 30, 0.2, 0.3, "cursor")
+        runtime.switch_click._capture_trigger_context.return_value = context
+        with (
+            patch("app.windows.unity_windows.find_known_client_from_point", return_value=101),
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+        ):
+            self.assertFalse(AtlasRuntime._handle_mouse_click(runtime, "Left", 150, 160))
+            runtime.switch_click.run_async.assert_not_called()
+            self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 150, 160))
+        runtime.switch_click.run_async.assert_called_once_with(
+            "Left", 150, 160, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        )
+        self.assertIsNone(runtime._pending_physical_switch)
+
+    def test_native_source_drag_is_not_replayed(self) -> None:
+        from time import monotonic
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.macro_lock.active_label = ""
+        runtime._pending_physical_switch = (
+            "Left", 20, 40, 1, "Switch clique",
+            SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor"),
+            monotonic(),
+        )
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 130, 180))
+        self.assertIsNone(runtime._pending_physical_switch)
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_native_source_stop_or_stale_click_never_replays(self) -> None:
+        from time import monotonic
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        for stopped, age in ((True, 0), (False, 5)):
+            with self.subTest(stopped=stopped, age=age):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.macro_lock.active_label = ""
+                runtime.macro_lock.should_stop.return_value = stopped
+                runtime._pending_physical_switch = (
+                    "Left", 20, 40, 1, "Switch clique",
+                    SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor"),
+                    monotonic() - age,
+                )
+                with patch("app.windows.unity_windows.foreground_window", return_value=101):
+                    self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 20, 40))
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_native_source_click_skips_source_in_secondary_replay(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+            SimpleNamespace(handle=202, display_name="target"),
+        ]
+        timings = runtime.settings.timings
+        timings.switch_background_pre_click_ms = 18
+        timings.switch_click_down_ms = 1
+        timings.input_double_gap_ms = 5
+        timings.switch_background_post_up_ms = 0
+        timings.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 32, 24, 0.5, 0.5, "cursor")
+
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch.object(macro, "_target_point", return_value=(32, 24)),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(150, 170)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.activate_window", return_value=True),
+            patch("app.macros.switch_click.foreground_window", return_value=202),
+            patch("app.macros.switch_click.send_client_click", return_value=True) as send,
+        ):
+            macro._run(
+                "Left", 1, "Switch clique", context,
+                mouse_block_started=True, physical_source_delivered=True,
+            )
+        send.assert_called_once()
+        self.assertEqual(send.call_args.args[0], 202)
+        self.assertGreaterEqual(send.call_args.args[5], 35)
+        self.assertGreaterEqual(send.call_args.args[7], 50)
+        runtime.macro_lock.wait.assert_called_once_with(60)
+
+    def test_native_source_rejects_implicit_fallback_context(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        context = SwitchClickContext(
+            101, 30, 25, 0.5, 0.5, "preferred_last_client_point",
+        )
+        self.assertFalse(SwitchClickMacro(runtime).run_async(
+            "Left", 100, 100, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        ))
+        runtime._spawn_macro.assert_not_called()
+
     def test_invalid_zaap_does_not_start_or_reserve_macro(self) -> None:
         runtime = _runtime()
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap fake"))
