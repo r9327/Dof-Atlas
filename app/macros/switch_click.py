@@ -236,19 +236,27 @@ class SwitchClickMacro:
                     )
                     continue
 
-                if not activate_window(
-                    client.handle,
-                    timings.switch_background_pre_click_ms,
-                    timings.activate_attempts,
-                    timings.activate_retry_ms,
-                    self.runtime.logger,
-                    action_label,
-                    should_stop=self.runtime.macro_lock.should_stop,
-                ):
+                try:
+                    activated = activate_window(
+                        client.handle,
+                        timings.switch_background_pre_click_ms,
+                        timings.activate_attempts,
+                        timings.activate_retry_ms,
+                        self.runtime.logger,
+                        action_label,
+                        should_stop=self.runtime.macro_lock.should_stop,
+                    )
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "%s interrompu: exception focus hwnd=%s",
+                        action_label, client.handle,
+                    )
+                    return
+                if not activated:
                     self.runtime.logger.info(
                         "%s clic ignoré: activation échec hwnd=%s",
-                        action_label,
-                        client.handle,
+                        action_label, client.handle,
                     )
                     continue
 
@@ -317,7 +325,7 @@ class SwitchClickMacro:
                 ):
                     return
         finally:
-            if original_cursor is not None:
+            if original_cursor is not None and not focus_lost:
                 try:
                     set_cursor_pos(*original_cursor)
                 except Exception:
