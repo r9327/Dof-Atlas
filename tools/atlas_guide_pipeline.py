@@ -9,12 +9,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from tools.atlas_guide_candidate_store import (
     publish_candidate, read_selected_route, read_selected_step,
+    list_selected_preview_routes,
 )
 from tools.atlas_guide_conformity import before_after, compare
 from tools.atlas_guide_importer import prepare_preview
@@ -31,6 +33,7 @@ TOOL_SPEC = {
     "modes": [
         "readonly_sequence_cli", "trusted_host_stage_api",
         "staged_readonly_preview_api", "staged_readonly_card_api",
+        "staged_readonly_preview_cli",
     ],
     "cost_hint": "variable",
     "side_effects": "repo_mutation_explicit",
@@ -226,10 +229,62 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="One Guide pipeline control-plane (read-only; no live actions)"
     )
-    parser.add_argument("--plan", type=Path, required=True,
+    parser.add_argument("--plan", type=Path,
                         help="Metadata/receipts only; no guide or source text")
-    parser.add_argument("--head-sha", required=True)
+    parser.add_argument("--head-sha")
+    parser.add_argument("--preview-root", type=Path,
+                        help="Explicit managed candidate store, read-only")
+    parser.add_argument("--expected-selected",
+                        help="Exact pinned candidate SHA-256; no default")
+    parser.add_argument("--list", action="store_true",
+                        help="Metadata only; no full guide/step text")
+    parser.add_argument("--route-id", help="Exact source_guide:<id> identity")
+    parser.add_argument("--stage-id", help="Exact source:<guide>:<step> identity")
     args = parser.parse_args(argv)
+
+    # Preserve the original sequence CLI as the default and keep previews
+    # opt-in. This existing canonical control-plane is already classified as
+    # read-only by Doctor. The mutating candidate store stays library-only.
+    if args.preview_root is not None:
+        if args.plan is not None or args.head_sha is not None:
+            parser.error("preview and sequencing modes cannot be combined")
+        if args.expected_selected is None:
+            parser.error("preview requires --expected-selected")
+        if args.list == bool(args.route_id):
+            parser.error("preview requires exactly one of --list or --route-id")
+        if args.stage_id is not None and args.route_id is None:
+            parser.error("--stage-id requires --route-id")
+        try:
+            if args.list:
+                result = list_selected_preview_routes(
+                    root=args.preview_root,
+                    expected_selected=args.expected_selected,
+                )
+            elif args.stage_id is not None:
+                result = preview_staged_step(
+                    candidate_root=args.preview_root,
+                    expected_selected=args.expected_selected,
+                    route_id=args.route_id, stage_id=args.stage_id,
+                )
+            else:
+                result = preview_staged_guide(
+                    candidate_root=args.preview_root,
+                    expected_selected=args.expected_selected,
+                    route_id=args.route_id,
+                )
+        except (OSError, ValueError, TypeError) as exc:
+            print(json.dumps({
+                "status": "PREVIEW_BLOCKED", "reason": str(exc),
+                "certified": False, "runtime_activation": False,
+            }, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True,
+                         allow_nan=False))
+        return 0
+    if (args.plan is None or args.head_sha is None
+            or args.expected_selected is not None or args.list
+            or args.route_id is not None or args.stage_id is not None):
+        parser.error("sequence requires --plan and --head-sha; no preview flags")
     try:
         doc = _load_strict_plan(args.plan)
         # Deliberately no --apply, --publish, --trust, --skip-checks or
