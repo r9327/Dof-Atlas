@@ -129,6 +129,27 @@ class TestSharedRouteContract(unittest.TestCase):
                 ):
                     project_authorized_guide(source)
 
+    def test_preparation_action_cannot_hide_an_explicit_quest_shortcut(self):
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            "action_id": "prepare", "kind": "prepare",
+            "text": "Préparer 2 ressources fictives",
+            "items": [{"name": "Ressource fictive", "quantity": 2}],
+            "quest_ids": [100],
+        })
+        with self.assertRaisesRegex(
+            GuideRouteContractError,
+            "preparation panel cannot render Quest shortcuts",
+        ):
+            project_authorized_guide(source)
+
+        # The empty list is a legitimate explicit absence, not a link.
+        source["steps"][0]["actions"][0]["quest_ids"] = []
+        card = project_authorized_guide(source)["steps"][0]
+        self.assertEqual(
+            card["manual_sections"]["prepare"][0]["source_action"]["quest_ids"], []
+        )
+
     def test_uses_existing_shared_card_schema_no_ui_fork(self):
         source = sample()
         before = copy.deepcopy(source)
