@@ -94,6 +94,27 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.view.deleteLater()
         QApplication.processEvents()
 
+    def test_missing_registry_and_untrusted_registration_never_select_source(self):
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+            )
+        with self.assertRaisesRegex(ValueError, "Mismatched"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={
+                    "source_guide:another-fictitious-guide": self.service,
+                },
+                imported_source_authorizer=lambda *_: True,
+            )
+        self.approved = True
+        self.view._imported_source_services.clear()
+        self.assertFalse(self.view.select_guide(self.service.guide_id))
+        self.assertEqual(self.view.state, self.view.CATALOG)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertFalse(self.progress_path.exists())
+
     def test_denied_source_cannot_fall_through_to_legacy_or_load_cached_route(self):
         self.assertFalse(self.view.select_guide(self.service.guide_id))
         self.assertEqual(self.view.state, self.view.CATALOG)
@@ -192,6 +213,9 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         reader = self.view.stack.currentWidget()
         self.approved = False
         self.assertFalse(self.view.select_guide(self.service.guide_id))
+        # An immediately revoked route is also hidden, not left on screen.
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertIsNone(self.view.current_guide_id)
         # Reopen attempts fail closed and never create a second Qt reader.
         self.assertIs(self.view._catalog_manual_views[self.service.guide_id], reader)
         self.view.refresh_external_progress()
