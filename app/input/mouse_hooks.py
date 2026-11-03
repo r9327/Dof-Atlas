@@ -113,6 +113,8 @@ class MouseHook:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._last_block_log = 0.0
+        self._blocked_click_count = 0
+        self._blocked_wheel_count = 0
         # A consumed DOWN must always swallow its matching physical UP.
         self._consumed_releases: set[int] = set()
 
@@ -137,6 +139,8 @@ class MouseHook:
     def stop(self) -> None:
         self._consumed_releases.clear()
         stop_message_hook(self)
+        self._blocked_click_count = 0
+        self._blocked_wheel_count = 0
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
@@ -280,11 +284,21 @@ class MouseHook:
             # A release cannot explain why a gesture was lost; it must not
             # consume the only warning slot before the next physical DOWN.
             return
+        if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN):
+            self._blocked_click_count += 1
+        elif w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
+            self._blocked_wheel_count += 1
         now = time.monotonic()
         if now - self._last_block_log < BLOCK_LOG_INTERVAL_SECONDS:
             return
         self._last_block_log = now
         label = self.input_state.mouse_block_label()
+        # Cumulative counters include all observed blocked physical gestures,
+        # not just warnings surviving the 400ms log rate limiter.
+        self.logger.info(
+            "Organizer entrées physiques bloquées: clics=%s molettes=%s",
+            self._blocked_click_count, self._blocked_wheel_count,
+        )
         event_name = {
             WM_MOUSEMOVE: "move",
             WM_LBUTTONDOWN: "left_down",
