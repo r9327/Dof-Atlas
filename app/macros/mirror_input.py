@@ -73,7 +73,12 @@ class MirrorInputMacro:
         # Native process identity is verified once for the whole roster at
         # dispatch, then for each recipient immediately before sending.
         live = tuple(c.handle for c in settings.clients)
-        return live == handles
+        if source not in live:
+            return False
+        # Favorite-first is the dispatch order, not necessarily the saved
+        # Organizer slot order. Do not invalidate a legitimate non-first star.
+        expected = (source, *(hwnd for hwnd in live if hwnd != source))
+        return expected == handles
 
     def _run(
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
