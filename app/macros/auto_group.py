@@ -89,9 +89,11 @@ class AutoGroupMacro:
                     if self.runtime.macro_lock.should_stop():
                         return
                     continue
+                # The command returned successful: retain this emission
+                # in telemetry even when Stop arrives immediately afterward.
+                sent += 1
                 if self.runtime.macro_lock.should_stop():
                     return
-                sent += 1
                 if timings.auto_group_invite_gap_ms > 0:
                     if self.runtime.macro_lock.wait(timings.auto_group_invite_gap_ms):
                         return
@@ -106,6 +108,7 @@ class AutoGroupMacro:
                     )
             state = (
                 "interrompu" if stopped or focus_lost
+                else "ignore" if not eligible
                 else "termine" if sent == eligible
                 else "partiel"
             )
