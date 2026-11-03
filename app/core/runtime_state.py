@@ -836,23 +836,38 @@ class AtlasRuntime:
         from app.macros.mirror_plan import is_dofus_unity_process
 
         try:
-            if (
-                not self._running or not self._admin_ok
-                or self.settings.macro_mode != "macro"
-                or self.macro_lock.should_stop()
-                or self.macro_lock.active_label
-                or not 0 <= monotonic() - captured_at <= 2.0
-                or foreground_window() != context.source_hwnd
-                or not is_dofus_unity_process(context.source_hwnd)
-                or (int(screen_x) - down_x) ** 2
-                   + (int(screen_y) - down_y) ** 2 > 24 ** 2
-            ):
+            reason = None
+            if not self._running or not self._admin_ok:
+                reason = "runtime_unavailable"
+            elif self.settings.macro_mode != "macro":
+                reason = "mode_changed"
+            elif self.macro_lock.should_stop():
+                reason = "emergency_stop"
+            elif self.macro_lock.active_label:
+                reason = "worker_busy"
+            elif not 0 <= monotonic() - captured_at <= 2.0:
+                reason = "expired"
+            elif (int(screen_x) - down_x) ** 2 + (int(screen_y) - down_y) ** 2 > 24 ** 2:
+                reason = "drag_or_moved"
+            elif foreground_window() != context.source_hwnd:
+                reason = "focus_changed"
+            elif not is_dofus_unity_process(context.source_hwnd):
+                reason = "source_untrusted"
+            if reason is not None:
+                self.logger.debug(
+                    "Clic natif non recopié: cause=%s button=%s",
+                    reason, button,
+                )
                 return True
-            self.switch_click.run_async(
+            if not self.switch_click.run_async(
                 button, down_x, down_y, count, label,
                 captured_context=context,
                 physical_source_delivered=True,
-            )
+            ):
+                self.logger.warning(
+                    "Clic natif non recopié: cause=dispatch_refused button=%s",
+                    button,
+                )
         except Exception:
             self.logger.exception("%s: duplication après clic physique impossible.", label)
         # Native UP must ALWAYS reach Unity, regardless of replay success.
