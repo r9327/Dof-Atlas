@@ -482,3 +482,16 @@ motifs ne peut plus marquer le mauvais diagnostic comme persistant.
 Une quantité fautive qui passe de 8 à 9 garde son statut **persistant** :
 le référentiel attendu reste 10. Deux tests synthétiques vérifient ces
 cas sans intégrer ni certifier de guide réel.
+
+### Test de capacité fictif : inventaire entier 95 / 7 705
+
+La suite stdlib couvre désormais la création d'un inventaire **entièrement
+synthétique** de 95 parcours, 7 705 étapes et 7 705 actions, avec des
+identifiants stables et une répartition 82/81 étapes. Le test confirme
+l'ordre, les totaux, le dernier `manual_stage_id` et le statut
+`PREVIEW_ONLY_NOT_CERTIFIED`. Un second test compare la totalité de la
+référence fictive puis modifie uniquement la **dernière action du dernier
+guide** pour vérifier la détection exacte et l'inventaire intégral.
+Ce test prouve un comportement sur données fictives, pas l'extraction
+ou l'exactitude des 95 guides réels ; ce n'est pas non plus un benchmark
+Windows ou un certificat de RAM.

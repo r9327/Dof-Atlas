@@ -9,6 +9,7 @@ from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import GuideRouteContractError
 from tools.atlas_guide_importer import main, prepare_preview
+from tools.atlas_guide_conformity import compare
 
 
 def valid_export() -> dict:
@@ -35,6 +36,34 @@ def valid_export() -> dict:
     }
 
 
+def synthetic_full_inventory() -> dict:
+    """Exactly 95 fictitious routes and 7,705 fictitious actions/steps."""
+    guides: list[dict] = []
+    for guide_index in range(95):
+        count = 82 if guide_index < 10 else 81
+        steps = []
+        for step_index in range(count):
+            steps.append({
+                "source_step_id": f"step-{step_index:03d}",
+                "title": f"Fictional step {guide_index + 1}/{step_index + 1}",
+                "actions": [{
+                    "action_id": "talk",
+                    "kind": "talk",
+                    "text": f"Fictional action {guide_index + 1}/{step_index + 1}",
+                }],
+            })
+        guides.append({
+            "guide_id": guide_index + 1,
+            "title": f"Synthetic route {guide_index + 1}",
+            "steps": steps,
+        })
+    return {
+        "schema_version": 1,
+        "rights_verified": True, "reference_verified": True,
+        "complete": True, "guides": guides,
+    }
+
+
 class GuideImporterPreviewTests(unittest.TestCase):
     def test_full_manifest_validates_counts_and_remains_uncertified(self):
         data = valid_export()
@@ -56,6 +85,52 @@ class GuideImporterPreviewTests(unittest.TestCase):
                     GuideRouteContractError, "non-JSON-compatible"
                 ):
                     prepare_preview(data, expected_guides=1, expected_steps=1)
+
+    def test_full_95_7705_synthetic_inventory_projects_without_loss(self):
+        source = synthetic_full_inventory()
+        result = prepare_preview(source)
+        self.assertEqual(len(source["guides"]), 95)
+        self.assertEqual(sum(len(g["steps"]) for g in source["guides"]), 7705)
+        self.assertEqual(result["guide_count"], 95)
+        self.assertEqual(result["step_count"], 7705)
+        self.assertEqual(result["action_count"], 7705)
+        self.assertEqual(len(result["routes"]), 95)
+        self.assertFalse(result["is_partial"])
+        self.assertFalse(result["certified"])
+        self.assertEqual(result["mode"], "DRY_RUN_ONLY")
+        self.assertEqual(result["status"], "PREVIEW_ONLY_NOT_CERTIFIED")
+        self.assertEqual(
+            result["routes"][-1]["steps"][-1]["manual_stage_id"],
+            "source:95:step-080",
+        )
+        self.assertEqual(
+            result["routes"][0]["steps"][0]["manual_sections"]["now"][0]["text"],
+            "Fictional action 1/1",
+        )
+
+    def test_full_95_7705_synthetic_tail_mutation_is_not_silently_accepted(self):
+        reference = synthetic_full_inventory()
+        atlas = copy.deepcopy(reference)
+        atlas.pop("rights_verified")
+        atlas.pop("reference_verified")
+        atlas.pop("complete")
+        reference_report = compare(reference, atlas)
+        self.assertEqual(reference_report["status"], "PARITY_CHECK_PASS")
+        self.assertEqual(reference_report["issue_count"], 0)
+        atlas["guides"][-1]["steps"][-1]["actions"][0]["text"] = "Wrong last action"
+        report = compare(reference, atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+        self.assertEqual(report["issue_count"], 1)
+        issue = report["issues"][0]
+        self.assertEqual(issue["guide_id"], "95")
+        self.assertEqual(issue["source_step_id"], "step-080")
+        self.assertEqual(issue["action_id"], "talk")
+        self.assertEqual(issue["issue_code"], "VALUE_MISMATCH")
+        self.assertEqual(issue["expected"], "Fictional action 95/81")
+        self.assertEqual(issue["actual"], "Wrong last action")
+        self.assertEqual(report["coverage"]["reference_full_steps"], 7705)
+        self.assertEqual(report["coverage"]["atlas_full_actions"], 7705)
+        self.assertFalse(report["certified"])
 
     def test_default_95_guides_7705_steps_blocks_incomplete_export(self):
         with self.assertRaisesRegex(GuideRouteContractError, "expected 95"):
