@@ -6,13 +6,11 @@ It preserves multiple immutable candidates and an atomic local selection pointer
 """
 from __future__ import annotations
 
-import argparse
 import copy
 import hashlib
 import json
 import math
 import os
-import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -31,7 +29,7 @@ TOOL_SPEC = {
     "capabilities": ["guide","generation"],
     "modes": [
         "trusted_publish_api", "selection_lookup",
-        "read_only_preview", "readonly_preview_cli", "rollback_api",
+        "read_only_preview", "rollback_api",
     ],
     "cost_hint": "variable",
     "side_effects": "repo_mutation_explicit",
@@ -621,65 +619,9 @@ def rollback_candidate(
             "candidate_sha256": restore_sha256, "certified": False}
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Read-only exact-SHA inspection; no route publication or file output."""
-    parser = argparse.ArgumentParser(
-        description="Inspect immutable, non-active Atlas Guide candidates"
-    )
-    parser.add_argument("--root", type=Path, required=True)
-    parser.add_argument("--expected-selected", required=True,
-                        help="SHA-256 returned by selected_candidate, never a default")
-    choice = parser.add_mutually_exclusive_group(required=True)
-    choice.add_argument("--list", action="store_true",
-                        help="List metadata only, never source action bodies")
-    choice.add_argument("--route-id",
-                        help="Inspect one exact canonical source_guide:<id> route")
-    parser.add_argument("--stage-id",
-                        help="Inspect one exact source:<guide>:<step> stage")
-    args = parser.parse_args(argv)
-    if args.stage_id is not None and not args.route_id:
-        parser.error("--stage-id requires --route-id")
-    try:
-        if args.list:
-            result = list_selected_preview_routes(
-                root=args.root, expected_selected=args.expected_selected,
-            )
-        elif args.stage_id is not None:
-            result = {
-                "status": "STAGED_PREVIEW_ONLY",
-                "candidate_sha256": args.expected_selected,
-                "stage": read_selected_step(
-                    root=args.root, expected_selected=args.expected_selected,
-                    route_id=args.route_id, stage_id=args.stage_id,
-                ),
-                "certified": False, "runtime_activation": False,
-            }
-        else:
-            result = {
-                "status": "STAGED_PREVIEW_ONLY",
-                "candidate_sha256": args.expected_selected,
-                "route": read_selected_route(
-                    root=args.root, expected_selected=args.expected_selected,
-                    route_id=args.route_id,
-                ),
-                "certified": False, "runtime_activation": False,
-            }
-    except GuideRouteContractError as exc:
-        print(json.dumps({
-            "status": "PREVIEW_BLOCKED", "reason": str(exc),
-            "certified": False, "runtime_activation": False,
-        }, ensure_ascii=False, sort_keys=True), file=sys.stderr)
-        return 2
-    print(json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False))
-    return 0
-
-
 __all__ = [
     "publish_candidate", "selected_candidate", "rollback_candidate",
     "read_selected_preview", "read_selected_route",
     "list_selected_preview_routes", "read_selected_step",
 ]
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
