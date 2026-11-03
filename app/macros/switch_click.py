@@ -405,7 +405,7 @@ class SwitchClickMacro:
                 ):
                     return
         finally:
-            if original_cursor is not None and not focus_lost:
+            if original_cursor is not None and should_restore_preferred and not focus_lost:
                 try:
                     set_cursor_pos(*original_cursor)
                 except Exception:
