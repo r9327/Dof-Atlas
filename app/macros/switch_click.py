@@ -114,6 +114,18 @@ class SwitchClickMacro:
             )
             return False
 
+        # A native DOWN/UP already reached the only registered character.
+        # Do not create a macro worker or block physical input for a no-op.
+        if (physical_source_delivered and exact_source_handle is None
+                and mirror_target_handles is None):
+            handles = tuple(client.handle for client in self.runtime.settings.clients)
+            if handles == (context.source_hwnd,):
+                self.runtime.logger.debug(
+                    "%s: source physique seule, aucune réinjection nécessaire.",
+                    action_label,
+                )
+                return True
+
         self.runtime.input_state.begin_mouse_block(action_label)
         try:
             started = self.runtime._spawn_macro(
