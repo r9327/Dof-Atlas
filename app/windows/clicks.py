@@ -163,8 +163,15 @@ def send_screen_click(
             )
 
             down_ok = _send_mouse_flag(down_flag)
-            button_is_down = down_ok
-            ok = down_ok and ok
+            if not down_ok:
+                # Never emit an unpaired mouse UP when Windows rejected
+                # the DOWN. A stray UP could land in a different window.
+                logger.warning(
+                    "Clic synthétique annulé: DOWN refusé button=%s index=%s",
+                    button_name, index + 1,
+                )
+                return False
+            button_is_down = True
 
             if down_ms > 0 and wait_ms(down_ms, should_stop):
                 return False
