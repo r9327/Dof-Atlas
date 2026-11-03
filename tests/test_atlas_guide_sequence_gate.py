@@ -146,6 +146,24 @@ class TestSequenceGateSynthetic(unittest.TestCase):
         outcome = assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
         self.assertIn("completed[0].source_to_atlas_comparison", outcome["missing_proofs"])
 
+    def test_zero_source_sha_cannot_certify_completed_guide(self):
+        request = plan("synthetic-next", [record("dofus_cawotte", source_sha=ZERO)])
+        outcome = assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+        self.assertFalse(outcome["may_prepare_next"])
+        self.assertIn("completed[0].missing_source_sha", outcome["missing_proofs"])
+
+    def test_zero_artifact_digest_is_not_a_valid_proof(self):
+        request = plan()
+        request["phase0"]["doctor"]["artifact_sha256"] = ZERO
+        outcome = assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+        self.assertFalse(outcome["may_prepare_next"])
+        self.assertIn("phase0.doctor", outcome["missing_proofs"])
+
+    def test_zero_git_sha_is_a_reserved_non_commit(self):
+        with self.assertRaisesRegex(ValueError, "head_sha"):
+            assess_next(plan(), head_sha="0" * 40,
+                        verifier=trusted_fake_verifier)
+
     def test_source_sha_and_exact_head_must_match_all_receipts(self):
         request = plan("synthetic-next", [record("dofus_cawotte")])
         request["completed"][0]["receipts"]["windows_dofus_manual_review"][

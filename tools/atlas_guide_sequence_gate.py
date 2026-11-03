@@ -16,6 +16,8 @@ from typing import Any
 
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _GIT_SHA = re.compile(r"[0-9a-f]{40}\Z")
+_ZERO_SOURCE = "0" * 64
+_ZERO_HEAD = "0" * 40
 _GUIDE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 _PILOT = "dofus_cawotte"
 _FALLBACK = "dokoko"
@@ -38,11 +40,11 @@ WitnessVerifier = Callable[[str, str, str, str], bool]
 
 
 def _sha(value: Any) -> bool:
-    return isinstance(value, str) and bool(_SHA256.fullmatch(value))
+    return isinstance(value, str) and value != _ZERO_SOURCE and bool(_SHA256.fullmatch(value))
 
 
 def _git_sha(value: Any) -> bool:
-    return isinstance(value, str) and bool(_GIT_SHA.fullmatch(value))
+    return isinstance(value, str) and value != _ZERO_HEAD and bool(_GIT_SHA.fullmatch(value))
 
 
 def _verify(
@@ -106,7 +108,7 @@ def assess_next(
     if not isinstance(plan.get("phase0"), dict):
         failures.append("phase0.missing")
     failures.extend(_gate(
-        _PHASE0, plan.get("phase0"), head_sha, "0" * 64, verifier, "phase0"
+        _PHASE0, plan.get("phase0"), head_sha, _ZERO_SOURCE, verifier, "phase0"
     ))
     seen: set[str] = set()
     prior = ""
@@ -130,7 +132,7 @@ def assess_next(
             failures.append(f"{label}.unexpected_predecessor")
         if index == 0 and guide_id == _FALLBACK and not _verify(
             "pilot.cawotte_unavailable", plan.get("fallback_evidence"),
-            head_sha, "0" * 64, verifier
+            head_sha, _ZERO_SOURCE, verifier
         ):
             failures.append("pilot.cawotte_source_unavailability_not_proven")
         if index > 0 and record.get("predecessor_id") != prior:
@@ -166,7 +168,7 @@ def assess_next(
     if next_id == _FALLBACK and not completed:
         fallback = plan.get("fallback_evidence")
         if not _verify("pilot.cawotte_unavailable", fallback, head_sha,
-                       "0" * 64, verifier):
+                       _ZERO_SOURCE, verifier):
             failures.append("pilot.cawotte_source_unavailability_not_proven")
     if not completed and next_id not in {_PILOT, _FALLBACK}:
         failures.append("pilot.cawotte_must_be_first")

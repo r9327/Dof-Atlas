@@ -352,3 +352,12 @@ exécution à un SHA donné, **pas** un guide réel ou la conformité Windows.
   restent `DUPLICATE` et sont bloquants.
 - Ces cas sont couverts par des tests synthétiques. Aucune donnée de
   guide réel, progression, route ou lecteur Windows n'est modifiée.
+
+### Empreintes réservées (séquence de certification)
+
+Un SHA tout à zéro n'est jamais une preuve valide de commit, de guide
+certifié ni d'artefact. Les vérifications refusent cette sentinelle même
+si une fonction témoin renvoie un booléen positif. La sentinelle interne
+`source_sha=00…00` reste autorisée **uniquement comme contexte de preuve
+de Phase 0** et de preuve d'indisponibilité Cawotte, où il n'existe
+volontairement aucun export de guide réel. Cela ne certifie rien par soi-même.
