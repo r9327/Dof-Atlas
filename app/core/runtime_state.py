@@ -593,7 +593,13 @@ class AtlasRuntime:
         targets = mirror_delivery_targets(
             live, live, source, source_was_consumed=True,
         )
-        return (source, targets) if len(targets) >= 2 else None
+        # The favorite may be any Organizer slot. Keyboard/wheel workers
+        # always begin with that physical source; preserve the relative
+        # order of all other clients.
+        if len(targets) < 2 or source not in targets:
+            return None
+        ordered = (source, *(hwnd for hwnd in targets if hwnd != source))
+        return source, ordered
 
     def _handle_mirror_key(self, vk_code: int, pressed: bool) -> bool:
         """Forward only short standalone keystrokes; never modifier/OS chords."""
