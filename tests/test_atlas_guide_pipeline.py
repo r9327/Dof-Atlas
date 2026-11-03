@@ -126,6 +126,68 @@ class PipelineSyntheticTests(unittest.TestCase):
                     self.assertEqual(spec["side_effects"],
                                      "repo_mutation_explicit")
 
+    def test_catalog_routes_guide_tools_without_implicit_mutations(self):
+        # Exercise the actual catalog selector in a tiny isolated repository
+        # snapshot. No Qt import, network, full source scan or guide data.
+        from tools.tool_catalog import catalog, select_tools
+
+        root = Path(__file__).resolve().parents[1]
+        paths = (
+            "tools/atlas_guide_pipeline.py",
+            "tools/atlas_guide_importer.py",
+            "tools/atlas_guide_conformity.py",
+            "tools/atlas_guide_sequence_gate.py",
+            "tools/atlas_guide_candidate_store.py",
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            scratch = Path(temp)
+            for relative in paths:
+                destination = scratch / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(
+                    (root / relative).read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+            for relative in (
+                "test_atlas_guide_pipeline.py",
+                "test_atlas_guide_importer_preview.py",
+                "test_atlas_guide_conformity.py",
+                "test_atlas_guide_sequence_gate.py",
+                "test_atlas_guide_candidate_store.py",
+            ):
+                destination = scratch / "tests" / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(
+                    "from tools.atlas_guide_pipeline import main\n",
+                    encoding="utf-8",
+                )
+            report = catalog(scratch)
+            by_path = {row["path"]: row for row in report["tools"]}
+            self.assertEqual(set(by_path), set(paths))
+            self.assertFalse(report["invalid_tool_specs"])
+            self.assertTrue(all(
+                row["tool_spec_source"] == "explicit"
+                for row in by_path.values()
+            ))
+            self.assertEqual(
+                by_path["tools/atlas_guide_pipeline.py"]["preferred_role"],
+                "guide_candidate_control_plane",
+            )
+            routed = select_tools(report, capability="guide", safe_only=True)
+            safe_paths = {row["path"] for row in routed["tools"]}
+            self.assertIn("tools/atlas_guide_pipeline.py", safe_paths)
+            self.assertIn("tools/atlas_guide_sequence_gate.py", safe_paths)
+            self.assertNotIn("tools/atlas_guide_candidate_store.py", safe_paths)
+            self.assertTrue(
+                by_path["tools/atlas_guide_sequence_gate.py"]["automation_ready"]
+            )
+            self.assertFalse(
+                by_path["tools/atlas_guide_pipeline.py"]["automation_ready"]
+            )
+            self.assertFalse(
+                by_path["tools/atlas_guide_candidate_store.py"]["automation_ready"]
+            )
+
     def test_missing_trusted_host_blocks_before_filesystem_writes(self):
         with self.assertRaisesRegex(GuidePipelineBlocked, "missing trusted evidence"):
             self._run(verifier=None)

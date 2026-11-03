@@ -433,3 +433,14 @@ et tests recommandés sont déclarés à la même source que le code.
   automatiquement ces fonctions**, ni une autorisation de publication,
   ni une validation Qt/Windows/DOFUS. L'intégration structurelle au lecteur
   reste soumise au Graphify du SHA exact et au cycle Doctor complet.
+
+### Sélection du catalogue vérifiée avec un dépôt miniature
+
+Un second test utilise l'API réelle `catalog(root)` et `select_tools()`
+sur un arbre temporaire limité aux cinq outils. Il vérifie que le
+point d'entrée `atlas_guide_pipeline` est préférentiel, que le verrou de
+séquence en lecture seule est éligible à la découverte et que les deux
+API d'écriture (pipeline et magasin) ne deviennent pas
+`automation_ready` du seul fait de leur déclaration.
+Ce test n'autorise aucune action d'écriture et ne parcourt pas tout le
+dépôt à chaque exécution ciblée.
