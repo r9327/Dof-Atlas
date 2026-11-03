@@ -443,6 +443,32 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 sheet.deleteLater()
                 QApplication.processEvents()
 
+    def test_historical_guide_card_accepts_null_runtime_metadata(self) -> None:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            historical = dict(service.cards[0])
+            historical.pop("source_step_id")
+            historical["manual_runtime_metadata"] = None
+            service.cards[0] = historical
+            service.manual_sections_for_card = lambda *_args: {
+                "now": [{
+                    "kind": "action", "text": "Action historique fictive",
+                    "position": "",
+                }],
+            }
+            sheet = SharedGuideManualCard(service, "character:1", historical, 0)
+            try:
+                text = "\\n".join(label.text() for label in sheet.findChildren(QLabel))
+                self.assertIn("Action historique fictive", text)
+                self.assertNotIn("Vaincre le Monstre fictif", text)
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
     def test_source_without_preparation_never_calls_legacy_provider(self) -> None:
         # A source step with no prepare actions is a valid empty inventory.
         # Opening the shared preparation panel must not ask a legacy service
