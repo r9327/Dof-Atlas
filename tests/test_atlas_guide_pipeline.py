@@ -83,6 +83,38 @@ class PipelineSyntheticTests(unittest.TestCase):
         args.update(kw)
         return stage_checked_candidate(**args)
 
+    def test_witness_cannot_change_attested_content_before_staging(self):
+        def mutating_host(name, digest, head, source):
+            allowed = fake_trusted_host(name, digest, head, source)
+            if name == "current.independent_reference":
+                # Every in-memory export mutates to the SAME new payload.
+                # An equality-only comparator would approve this forged
+                # replacement even though the witness saw the OLD digests.
+                for export in (self.source, self.ref, self.after):
+                    export["guides"][0]["steps"][0]["actions"][0]["text"] = (
+                        "Unattested fabricated replacement"
+                    )
+            return allowed
+
+        with self.assertRaisesRegex(
+            GuidePipelineBlocked, "changed after independent attestation"
+        ):
+            self._run(verifier=mutating_host)
+        self.assertFalse(self.folder.exists())
+
+    def test_witness_cannot_retarget_guide_after_sequence_gate(self):
+        request = synthetic_plan()
+        def mutating_host(name, digest, head, source):
+            if name == "phase0.optimized_guides_regression":
+                request["next_guide_id"] = "unauthorized-second-guide"
+            return fake_trusted_host(name, digest, head, source)
+
+        with self.assertRaisesRegex(
+            GuidePipelineBlocked, "sequencing plan changed"
+        ):
+            self._run(plan=request, verifier=mutating_host)
+        self.assertFalse(self.folder.exists())
+
     def test_stages_only_one_verified_synthetic_candidate_and_never_activates(self):
         result = self._run()
         self.assertEqual(result["status"], "STAGED_NOT_ACTIVE_NOT_CERTIFIED")

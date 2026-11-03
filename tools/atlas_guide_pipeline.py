@@ -61,7 +61,9 @@ def stage_checked_candidate(
     policy = assess_next(plan, head_sha=head_sha, verifier=verifier)
     if not policy["may_prepare_next"]:
         raise GuidePipelineBlocked("pilot/sequence gate: missing trusted evidence")
-    next_id = plan["next_guide_id"]
+    next_id = policy["next_guide_id"]
+    if plan.get("next_guide_id") != next_id:
+        raise GuidePipelineBlocked("sequencing plan changed during verification")
     if any(not isinstance(doc, dict) for doc in (
         authorized_source, independent_reference, atlas_before, atlas_after
     )):
@@ -99,6 +101,17 @@ def stage_checked_candidate(
 
     source_digest = _source_digest(authorized_source)
     reference_digest = _source_digest(independent_reference)
+
+    def _require_pinned_sources() -> None:
+        # The external witness callback is trusted to check receipts, not to
+        # rewrite the documents it just attested. Check again before staging:
+        # a late mutation must not produce a candidate with stale provenance.
+        if (_source_digest(authorized_source) != source_digest
+                or _source_digest(independent_reference) != reference_digest):
+            raise GuidePipelineBlocked(
+                "source/reference changed after independent attestation"
+            )
+
     for label, digest in (("current.source_rights", source_digest),
                           ("current.independent_reference", reference_digest)):
         try:
@@ -108,6 +121,7 @@ def stage_checked_candidate(
             trusted = False
         if not trusted:
             raise GuidePipelineBlocked(f"{label}: missing independent trusted attestation")
+    _require_pinned_sources()
     source_parity = compare(independent_reference, authorized_source)
     if source_parity["issue_count"] or source_parity["status"] != "PARITY_CHECK_PASS":
         raise GuidePipelineBlocked("source differs from independently reviewed reference")
@@ -127,6 +141,7 @@ def stage_checked_candidate(
     )
     if preview["guide_count"] != 1 or preview["step_count"] != len(steps):
         raise GuidePipelineBlocked("projection lost or duplicated steps")
+    _require_pinned_sources()
     receipt = publish_candidate(
         preview, root=candidate_root, expected_selected=expected_selected
     )
