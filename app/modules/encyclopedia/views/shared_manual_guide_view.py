@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QStyle,
     QToolButton,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -713,7 +714,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             # text, and only this visible position gets an icon.
             position_key = self._position_key(position)
             is_coordinate = bool(position) and bool(
-                re.fullmatch(r"-?\\d+,-?\\d+", position_key)
+                re.fullmatch(r"-?\d+,-?\d+", position_key)
             )
             if is_coordinate:
                 coordinate_label = QLabel(row_widget)
@@ -2739,7 +2740,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         GuideRoutePlanner. A coordinate alone cannot prove a Zaap is known,
         accessible, efficient, or valid for every selected character.
         """
-        match = re.fullmatch(r"(-?\\d+),(-?\\d+)", str(destination))
+        match = re.fullmatch(r"(-?\d+),(-?\d+)", str(destination))
         provider = getattr(self.service, "plan_verified_zaap_travel", None)
         callback = getattr(self, "travel_callback", None)
         available = getattr(self.participant_service, "available_characters", None)
