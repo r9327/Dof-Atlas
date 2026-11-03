@@ -195,5 +195,72 @@ class OrganizerSendInputTests(unittest.TestCase):
         guard.end.assert_called_once_with(120)
 
 
+    def test_physical_source_up_reaches_unity_after_replay_starts(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONUP,
+        )
+
+        state = InputState()
+        logger = logging.getLogger("test_native_switch_click")
+        calls = []
+
+        def released(button, x, y):
+            calls.append((button, x, y))
+            state.begin_mouse_block("Switch clique")
+            return True
+
+        hook = MouseHook(
+            state, SyntheticInputGuard(logger), logger,
+            Mock(return_value=False), release_callback=released,
+        )
+        mouse = MSLLHOOKSTRUCT()
+        mouse.pt.x, mouse.pt.y = 300, 240
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            addr = ctypes.addressof(mouse)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 51)
+            self.assertFalse(state.is_mouse_blocked())
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
+            self.assertEqual(calls, [("Left", 300, 240)])
+            self.assertTrue(state.is_mouse_blocked())
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, addr), 1)
+            # Synthesized releases never trigger physical replay.
+            mouse.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
+            self.assertEqual(len(calls), 1)
+
+    def test_native_release_callback_keeps_consumed_pairs_balanced(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = logging.getLogger("test_native_switch_pair")
+        click = Mock(return_value=True)
+        release = Mock(return_value=False)
+        hook = MouseHook(
+            InputState(), SyntheticInputGuard(logger), logger,
+            click, release_callback=release,
+        )
+        mouse = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 41
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            addr = ctypes.addressof(mouse)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+        release.assert_called_once_with("Left", 0, 0)
+        self.assertEqual(hook._consumed_releases, set())
+
+
 if __name__ == "__main__":
     unittest.main()
