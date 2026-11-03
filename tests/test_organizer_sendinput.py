@@ -209,5 +209,49 @@ class OrganizerSendInputTests(unittest.TestCase):
         guard.end.assert_called_once_with(120)
 
 
+    def test_physical_source_mouse_up_passes_hook_after_replay_starts(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONUP,
+        )
+
+        state = InputState()
+        logger = logging.getLogger("test_native_switch_click")
+        calls = []
+        def released(button, x, y):
+            calls.append((button, x, y))
+            state.begin_mouse_block("Switch clique")
+            return True
+
+        hook = MouseHook(
+            state, SyntheticInputGuard(logger), logger,
+            Mock(return_value=False), release_callback=released,
+        )
+        mouse = MSLLHOOKSTRUCT()
+        mouse.pt.x, mouse.pt.y = 300, 240
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            address = ctypes.addressof(mouse)
+            # Native DOWN is not swallowed on the foreground source window.
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, address), 51)
+            self.assertFalse(state.is_mouse_blocked())
+            # The release callback starts replay, but this same native UP must
+            # still reach Unity so world objects can activate.
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, address), 51)
+            self.assertEqual(calls, [("Left", 300, 240)])
+            self.assertTrue(state.is_mouse_blocked())
+            # Other physical events remain protected during synthetic replay.
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, address), 1)
+            # Synthetic output must never retrigger the physical release path.
+            mouse.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, address), 51)
+            self.assertEqual(len(calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
