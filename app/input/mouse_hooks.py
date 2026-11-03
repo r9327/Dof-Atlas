@@ -257,6 +257,10 @@ class MouseHook:
         )
 
     def _log_blocked_event(self, w_param: int, x: int, y: int) -> None:
+        # MouseMove floods the low-level hook. It must not hide a subsequent
+        # user click from the throttled diagnostic, nor spam logs at 8 clients.
+        if w_param == WM_MOUSEMOVE:
+            return
         now = time.monotonic()
         if now - self._last_block_log < BLOCK_LOG_INTERVAL_SECONDS:
             return
@@ -275,10 +279,16 @@ class MouseHook:
             WM_XBUTTONDOWN: "x_down",
             WM_XBUTTONUP: "x_up",
         }.get(int(w_param), str(int(w_param)))
-        self.logger.debug(
-            "Souris physique bloquee pendant %s: event=%s x=%s y=%s",
-            label or "macro",
-            event_name,
-            x,
-            y,
-        )
+        if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN):
+            # A blocked DOWN can represent a genuinely lost native gesture.
+            # Keep it visible at a bounded rate until the busy-event policy
+            # is validated on Windows; never claim it was replayed.
+            self.logger.warning(
+                "Clic physique non diffusé (macro occupée=%s): event=%s",
+                label or "macro", event_name,
+            )
+        else:
+            self.logger.debug(
+                "Souris physique bloquee pendant %s: event=%s x=%s y=%s",
+                label or "macro", event_name, x, y,
+            )
