@@ -195,6 +195,84 @@ class OrganizerSendInputTests(unittest.TestCase):
         guard.end.assert_called_once_with(120)
 
 
+    def test_client_click_aborts_on_focus_theft_during_hover(self) -> None:
+        focused = [202]
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "is_unity_window", return_value=True),
+            patch.object(clicks, "clamp_client_point", return_value=(10, 20)),
+            patch.object(clicks, "client_to_screen", return_value=(300, 200)),
+            patch.object(clicks, "foreground_window",
+                         side_effect=lambda: focused[0]),
+            patch.object(clicks, "set_cursor_pos",
+                         side_effect=lambda *_: focused.__setitem__(0, 999)),
+            patch.object(clicks, "wait_ms",
+                         side_effect=lambda ms, stop: stop()),
+            patch.object(clicks, "_send_mouse_flag") as sender,
+        ):
+            result = clicks.send_client_click(
+                202, 10, 20, "Left", 1, 35, 0, 50, 0, guard, Mock(),
+                should_stop=lambda: False,
+            )
+        self.assertFalse(result)
+        sender.assert_not_called()
+        guard.end.assert_called_once_with(120)
+
+    def test_client_click_respects_emergency_stop_before_cursor_move(self) -> None:
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "is_unity_window", return_value=True),
+            patch.object(clicks, "clamp_client_point", return_value=(10, 20)),
+            patch.object(clicks, "client_to_screen", return_value=(300, 200)),
+            patch.object(clicks, "foreground_window",
+                         side_effect=AssertionError("focus after stop")),
+            patch.object(clicks, "set_cursor_pos") as move,
+            patch.object(clicks, "_send_mouse_flag") as sender,
+        ):
+            result = clicks.send_client_click(
+                202, 10, 20, "Right", 1, 35, 0, 50, 0, guard, Mock(),
+                should_stop=lambda: True,
+            )
+        self.assertFalse(result)
+        move.assert_not_called()
+        sender.assert_not_called()
+        guard.end.assert_called_once_with(120)
+
+    def test_client_double_click_checks_focus_before_second_down(self) -> None:
+        focused = [202]
+        events = []
+        guard = Mock()
+        def send(flag):
+            events.append(flag)
+            if flag == clicks.MOUSEEVENTF_LEFTUP:
+                focused[0] = 999
+            return True
+
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "is_unity_window", return_value=True),
+            patch.object(clicks, "clamp_client_point", return_value=(10, 20)),
+            patch.object(clicks, "client_to_screen", return_value=(300, 200)),
+            patch.object(clicks, "foreground_window",
+                         side_effect=lambda: focused[0]),
+            patch.object(clicks, "set_cursor_pos"),
+            patch.object(clicks, "wait_ms",
+                         side_effect=lambda ms, stop: stop()),
+            patch.object(clicks, "_send_mouse_flag", side_effect=send),
+        ):
+            result = clicks.send_client_click(
+                202, 10, 20, "Left", 2, 35, 60, 50, 0, guard, Mock(),
+                should_stop=lambda: False,
+            )
+        self.assertFalse(result)
+        self.assertEqual(events, [
+            clicks.MOUSEEVENTF_LEFTDOWN,
+            clicks.MOUSEEVENTF_LEFTUP,
+        ])
+        guard.end.assert_called_once_with(120)
+
     def test_physical_source_up_reaches_unity_after_replay_starts(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
