@@ -45,6 +45,9 @@ class SwitchClickMacro:
         screen_y: int,
         click_count: int,
         action_label: str,
+        *,
+        captured_context: SwitchClickContext | None = None,
+        physical_source_delivered: bool = False,
     ) -> bool:
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
@@ -76,11 +79,21 @@ class SwitchClickMacro:
 
         # Cette capture reste volontairement légère : aucune activation,
         # attente ou boucle n'est exécutée dans le callback du hook souris.
-        context = self._capture_trigger_context(
-            screen_x,
-            screen_y,
-            action_label,
-        )
+        context = captured_context
+        if context is None:
+            context = self._capture_trigger_context(
+                screen_x,
+                screen_y,
+                action_label,
+            )
+        # A native source click is never inferred from the favorite/last point.
+        if physical_source_delivered and (
+            context is None or context.reason != "cursor"
+        ):
+            self.runtime.logger.warning(
+                "%s refuse: source physique non confirmee.", action_label,
+            )
+            return False
         if context is None:
             self.runtime.logger.info(
                 "%s ignore: aucune fenêtre Unity source ou favorite.",
@@ -98,6 +111,7 @@ class SwitchClickMacro:
                     action_label,
                     context,
                     mouse_block_started=True,
+                    physical_source_delivered=physical_source_delivered,
                 ),
             )
         except Exception:
@@ -115,6 +129,7 @@ class SwitchClickMacro:
         action_label: str,
         context: SwitchClickContext,
         mouse_block_started: bool = False,
+        physical_source_delivered: bool = False,
     ) -> None:
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
@@ -154,6 +169,15 @@ class SwitchClickMacro:
             target_total = len(targets)
             should_restore_preferred = bool(targets)
 
+            if physical_source_delivered and not any(
+                client.handle == context.source_hwnd for client in targets
+            ):
+                self.runtime.logger.warning(
+                    "%s annule: source du clic physique absente des clients.",
+                    action_label,
+                )
+                return
+
             if not targets:
                 self.runtime.logger.info(
                     "%s ignore: aucune fenêtre Unity cible.",
@@ -164,7 +188,16 @@ class SwitchClickMacro:
             settings = self.runtime.settings
             timings = settings.timings
 
+            # The hook forwards the native UP to Unity before returning.
+            # Let that source action settle before activating another window,
+            # otherwise a door or map-exit click can lose focus mid-dispatch.
+            if physical_source_delivered and self.runtime.macro_lock.wait(60):
+                return
+
             for index, client in enumerate(targets):
+                if physical_source_delivered and client.handle == context.source_hwnd:
+                    sent_count += 1  # already delivered by Windows, not SendInput
+                    continue
                 if self.runtime.macro_lock.should_stop():
                     self.runtime.logger.info(
                         "%s stoppé avant hwnd=%s",
