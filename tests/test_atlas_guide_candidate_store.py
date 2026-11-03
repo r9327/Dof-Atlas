@@ -14,6 +14,7 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
     read_selected_preview, read_selected_route, list_selected_preview_routes,
+    read_selected_step,
 )
 from tools.atlas_guide_importer import prepare_preview
 
@@ -187,6 +188,78 @@ class CandidateStoreTests(unittest.TestCase):
             len(last["steps"][0]["manual_sections"]["now"]), 1,
         )
         self.assertFalse((self.root / "data").exists())
+
+    def test_staged_card_identity_does_not_shift_when_prior_step_inserted(self):
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [{
+                "guide_id": "fictional-route", "title": "Fictional",
+                "steps": [
+                    {"source_step_id": "A", "title": "First", "actions": [
+                        {"action_id": "talk", "kind": "talk", "text": "PNJ A"},
+                    ]},
+                    {"source_step_id": "B", "title": "Second", "actions": [
+                        {"action_id": "talk", "kind": "talk", "text": "PNJ B"},
+                    ]},
+                ],
+            }],
+        }
+        preview1 = prepare_preview(source, expected_guides=1, expected_steps=2)
+        first = publish_candidate(preview1, root=self.root)
+        old_digest = first["candidate_sha256"]
+        stage_id = "source:fictional-route:B"
+        original = read_selected_step(
+            root=self.root, expected_selected=old_digest,
+            route_id="source_guide:fictional-route", stage_id=stage_id,
+        )
+        self.assertEqual(original["manual_title"], "Second")
+        self.assertEqual(original["index"], 2)
+        altered = copy.deepcopy(source)
+        altered["guides"][0]["steps"].insert(0, {
+            "source_step_id": "inserted", "title": "Inserted",
+            "actions": [{"action_id": "talk", "kind": "talk", "text": "PNJ X"}],
+        })
+        preview2 = prepare_preview(altered, expected_guides=1, expected_steps=3)
+        second = publish_candidate(
+            preview2, root=self.root, expected_selected=old_digest,
+        )
+        new_digest = second["candidate_sha256"]
+        with self.assertRaisesRegex(GuideRouteContractError, "stale"):
+            read_selected_step(
+                root=self.root, expected_selected=old_digest,
+                route_id="source_guide:fictional-route", stage_id=stage_id,
+            )
+        current = read_selected_step(
+            root=self.root, expected_selected=new_digest,
+            route_id="source_guide:fictional-route", stage_id=stage_id,
+        )
+        self.assertEqual(current["index"], 3)
+        self.assertEqual(current["manual_stage_id"], original["manual_stage_id"])
+        self.assertEqual(current["manual_title"], original["manual_title"])
+
+    def test_staged_card_requires_exact_identity_and_is_not_persistent(self):
+        receipt = publish_candidate(self.preview, root=self.root)
+        digest = receipt["candidate_sha256"]
+        for bad in ("", "a", "source:99:not-found", None, 2):
+            with self.subTest(bad=bad):
+                with self.assertRaises(GuideRouteContractError):
+                    read_selected_step(
+                        root=self.root, expected_selected=digest,
+                        route_id="source_guide:99", stage_id=bad,
+                    )
+        card = read_selected_step(
+            root=self.root, expected_selected=digest,
+            route_id="source_guide:99", stage_id="source:99:a",
+        )
+        self.assertEqual(card["manual_stage_id"], "source:99:a")
+        card["manual_sections"]["now"][0]["text"] = "CHANGED"
+        again = read_selected_step(
+            root=self.root, expected_selected=digest,
+            route_id="source_guide:99", stage_id="source:99:a",
+        )
+        self.assertNotIn("CHANGED", str(again))
+        self.assertEqual(selected_candidate(self.root), digest)
 
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
