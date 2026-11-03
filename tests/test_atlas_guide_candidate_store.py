@@ -329,6 +329,64 @@ class CandidateStoreTests(unittest.TestCase):
                 self.assertFalse(json.loads(error.getvalue())["certified"])
                 self.assertEqual(selected_candidate(self.root), digest)
 
+    def test_two_guides_with_identical_step_names_keep_progress_isolated(self):
+        from app.modules.encyclopedia.services.guide_progress_service import (
+            GuideProgressService,
+        )
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [
+                {
+                    "guide_id": guide_id, "title": f"Fictitious {guide_id}",
+                    "steps": [{
+                        "source_step_id": "same-step",
+                        "title": "Same title",
+                        "actions": [{
+                            "action_id": "same-action", "kind": "talk",
+                            "text": "Speak to a fictional NPC",
+                        }],
+                    }],
+                }
+                for guide_id in ("fictional-left", "fictional-right")
+            ],
+        }
+        preview = prepare_preview(
+            source, expected_guides=2, expected_steps=2,
+        )
+        sha = publish_candidate(preview, root=self.root)["candidate_sha256"]
+        left = read_selected_route(
+            root=self.root, expected_selected=sha,
+            route_id="source_guide:fictional-left",
+        )
+        right = read_selected_route(
+            root=self.root, expected_selected=sha,
+            route_id="source_guide:fictional-right",
+        )
+        lkey = left["steps"][0]["manual_stage_id"]
+        rkey = right["steps"][0]["manual_stage_id"]
+        self.assertNotEqual(lkey, rkey)
+        self.assertEqual(lkey, "source:fictional-left:same-step")
+        self.assertEqual(rkey, "source:fictional-right:same-step")
+        progress = GuideProgressService(Path(self.temp.name) / "fake_progress.json")
+        progress.set_manual_step_completed(
+            "character:1", left["id"], lkey, True,
+        )
+        self.assertTrue(progress.is_manual_step_completed(
+            "character:1", left["id"], lkey,
+        ))
+        self.assertFalse(progress.is_manual_step_completed(
+            "character:1", right["id"], rkey,
+        ))
+        self.assertFalse(progress.is_manual_step_completed(
+            "character:2", left["id"], lkey,
+        ))
+        reloaded = GuideProgressService(Path(self.temp.name) / "fake_progress.json")
+        self.assertFalse(reloaded.is_manual_step_completed(
+            "character:1", right["id"], rkey,
+        ))
+        self.assertEqual(selected_candidate(self.root), sha)
+
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         second = publish_candidate(
