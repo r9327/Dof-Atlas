@@ -567,6 +567,29 @@ def read_selected_route(
     return copy.deepcopy(matches[0])
 
 
+def read_selected_step(
+    *, root: Path, expected_selected: str,
+    route_id: str, stage_id: str,
+) -> dict[str, Any]:
+    """Return one pinned canonical card by *stable source* ID, never index.
+
+    Only explicit offline preview tooling should call this function. A
+    reordered or inserted source step preserves its identity, while missing
+    or ambiguous stage IDs fail rather than showing the wrong instruction.
+    """
+    if not isinstance(stage_id, str) or not stage_id.startswith("source:"):
+        raise GuideRouteContractError("explicit canonical source stage ID required")
+    route = read_selected_route(
+        root=root, expected_selected=expected_selected, route_id=route_id,
+    )
+    matches = [
+        card for card in route["steps"] if card.get("manual_stage_id") == stage_id
+    ]
+    if len(matches) != 1:
+        raise GuideRouteContractError("unknown or ambiguous staged preview step")
+    return copy.deepcopy(matches[0])
+
+
 def rollback_candidate(
     *,
     root: Path,
@@ -599,5 +622,5 @@ def rollback_candidate(
 __all__ = [
     "publish_candidate", "selected_candidate", "rollback_candidate",
     "read_selected_preview", "read_selected_route",
-    "list_selected_preview_routes",
+    "list_selected_preview_routes", "read_selected_step",
 ]
