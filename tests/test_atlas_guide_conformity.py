@@ -57,6 +57,72 @@ class TestGuideConformity(unittest.TestCase):
     def _codes(self, actual: dict) -> list[str]:
         return [x["issue_code"] for x in compare(self.reference, actual)["issues"]]
 
+    def test_identical_unrenderable_action_branches_and_media_never_pass_parity(self):
+        unrenderable = {
+            "dialogue_options": ["Accepter", "Refuser"],
+            "choices": ["B"],
+            "branches": [{"condition": "level", "next": "later"}],
+            "alternative_routes": ["other"],
+            "subactions": [{"action_id": "hidden"}],
+            "interactions": [{"kind": "choice"}],
+            "achievement_ids": [123],
+            "success_ids": [456],
+            "media": [{"url": "https://example.invalid/guide.png"}],
+            "images": ["guide.png"],
+            "attachments": ["captured.png"],
+            "links": ["https://example.invalid/action"],
+            "commands": ["/travel 4,8"],
+        }
+        for field, content in unrenderable.items():
+            with self.subTest(field=field):
+                source = reference()
+                source["guides"][0]["steps"][0]["actions"][0][field] = content
+                actual = imported(source)
+                report = compare(source, actual)
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(report["certified"])
+                expected_path = f".actions[0].{field}"
+                matches = [
+                    issue for issue in report["issues"]
+                    if issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(expected_path)
+                ]
+                self.assertTrue(matches, f"missing independent witness for {field}")
+                self.assertTrue(any(issue["actual"] == content for issue in matches))
+        # A source provenance URL is a reference, not a second gameplay action.
+        source = reference()
+        source["guides"][0]["steps"][0]["actions"][0]["source_url"] = (
+            "https://example.invalid/provenance"
+        )
+        self.assertEqual(
+            compare(source, imported(source))["status"], "PARITY_CHECK_PASS"
+        )
+
+    def test_identical_unrenderable_step_branches_or_media_never_pass_parity(self):
+        for field, content in (
+            ("branches", [{"target": "hidden"}]),
+            ("choices", ["A", "B"]),
+            ("alternative_routes", ["pathB"]),
+            ("media", [{"src": "portrait.png"}]),
+            ("links", ["https://example.invalid/hidden"]),
+        ):
+            with self.subTest(field=field):
+                source = reference()
+                source["guides"][0]["steps"][0][field] = content
+                report = compare(source, imported(source))
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(report["certified"])
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(f".steps[0].{field}")
+                    for issue in report["issues"]
+                ))
+        source = reference()
+        source["guides"][0]["steps"][0]["media"] = []
+        self.assertEqual(
+            compare(source, imported(source))["status"], "PARITY_CHECK_PASS"
+        )
+
     def test_library_matching_nonfinite_metadata_is_never_parity(self) -> None:
         for invalid in (float("nan"), float("inf"), float("-inf")):
             with self.subTest(value=repr(invalid)):
