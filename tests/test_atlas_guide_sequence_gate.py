@@ -195,6 +195,34 @@ class TestSequenceGateSynthetic(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 assess_next(plan(), head_sha=bad)
 
+    def test_boolean_schema_version_never_unlocks_phase_zero(self):
+        request = plan()
+        request["schema_version"] = True
+        with self.assertRaisesRegex(ValueError, "unsupported sequencing plan"):
+            assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+
+    def test_invalid_next_guide_id_is_not_eligible_for_review(self):
+        for bad in ("", " ", "..", "../other", "malformed/id", "x" * 121):
+            with self.subTest(next_id=bad), self.assertRaisesRegex(ValueError, "invalid guide"):
+                assess_next(plan(next_id=bad), head_sha=HEAD,
+                            verifier=trusted_fake_verifier)
+
+    def test_invalid_completed_guide_identity_blocks_the_chain(self):
+        for bad in (" ", "..", "../fictitious", "x" * 121):
+            with self.subTest(guide_id=bad):
+                decision = assess_next(plan("synthetic-next", [record(bad)]),
+                                       head_sha=HEAD, verifier=trusted_fake_verifier)
+                self.assertIn("completed[0].duplicate_or_invalid_id",
+                              decision["missing_proofs"])
+
+    def test_first_completed_guide_cannot_claim_a_foreign_predecessor(self):
+        old = record("dofus_cawotte", predecessor="not-a-real-predecessor")
+        decision = assess_next(plan("synthetic-next", [old]), head_sha=HEAD,
+                               verifier=trusted_fake_verifier)
+        self.assertIn("completed[0].unexpected_predecessor",
+                      decision["missing_proofs"])
+        self.assertFalse(decision["may_prepare_next"])
+
     def test_inputs_not_mutated(self):
         request = plan("synthetic-next", [record("dofus_cawotte")])
         before = copy.deepcopy(request)

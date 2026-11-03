@@ -16,6 +16,7 @@ from typing import Any
 
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _GIT_SHA = re.compile(r"[0-9a-f]{40}\Z")
+_GUIDE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 _PILOT = "dofus_cawotte"
 _FALLBACK = "dokoko"
 _PHASE0 = (
@@ -93,12 +94,14 @@ def assess_next(
     """
     if not _git_sha(head_sha):
         raise ValueError("head_sha must be the exact 40-character Git commit SHA")
-    if not isinstance(plan, Mapping) or plan.get("schema_version") != 1:
+    if (not isinstance(plan, Mapping) or type(plan.get("schema_version")) is not int
+            or plan["schema_version"] != 1):
         raise ValueError("unsupported sequencing plan")
     failures: list[str] = []
     next_id = plan.get("next_guide_id")
     completed = plan.get("completed", [])
-    if not isinstance(next_id, str) or not next_id or not isinstance(completed, list):
+    if (not isinstance(next_id, str) or not _GUIDE_ID.fullmatch(next_id)
+            or not isinstance(completed, list)):
         raise ValueError("invalid guide sequencing request")
     if not isinstance(plan.get("phase0"), dict):
         failures.append("phase0.missing")
@@ -116,12 +119,15 @@ def assess_next(
             continue
         guide_id = record.get("guide_id")
         source_sha = record.get("source_sha")
-        if not isinstance(guide_id, str) or not guide_id or guide_id in seen:
+        if (not isinstance(guide_id, str) or not _GUIDE_ID.fullmatch(guide_id)
+                or guide_id in seen):
             failures.append(f"{label}.duplicate_or_invalid_id")
         else:
             seen.add(guide_id)
         if index == 0 and guide_id not in {_PILOT, _FALLBACK}:
             failures.append(f"{label}.pilot_must_be_first")
+        if index == 0 and record.get("predecessor_id", "") not in ("", None):
+            failures.append(f"{label}.unexpected_predecessor")
         if index == 0 and guide_id == _FALLBACK and not _verify(
             "pilot.cawotte_unavailable", plan.get("fallback_evidence"),
             head_sha, "0" * 64, verifier

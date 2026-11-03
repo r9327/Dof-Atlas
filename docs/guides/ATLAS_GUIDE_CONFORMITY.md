@@ -266,3 +266,15 @@ coïncidence de données ne constitue toujours pas une preuve
 d'authenticité de la source ou de validation UI réelle ; les
 attestations indépendantes, Doctor/Graphify et Windows restent
 obligatoires, et aucun guide réel n'est traité en phase 0.
+
+## Phase 0 — contrôle supplémentaire des références (3 novembre 2026)
+
+- Le gate de séquence refuse les versions de schéma booléennes, identifiants
+  de guide non canoniques et un prédécesseur fictif sur le premier parcours.
+- Le magasin hors runtime valide les références compare-and-swap et rollback
+  **avant toute création/écriture de répertoire**, et refuse une sélection
+  symbolique pendante au lieu de l'interpréter comme `NONE`.
+- Des tests synthétiques négatifs ciblent chacun de ces scénarios. Leur présence
+  dans le dépôt ne constitue **pas** une exécution : Doctor, Graphify exact-SHA,
+  tests Python, Windows/DOFUS et bench restent `NOT_RUN` tant qu'un vrai
+  checkout vérifié ne les a pas exécutés. Aucun guide réel n'est préparé.

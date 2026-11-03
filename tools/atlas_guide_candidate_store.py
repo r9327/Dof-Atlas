@@ -286,19 +286,26 @@ def _locked(root: Path) -> Iterator[Path]:
         lock.rmdir()
 
 
+def _checked_pointer(value: Any, label: str) -> str:
+    if not isinstance(value, str) or (value != _NO_SELECTION and (
+        len(value) != 64 or any(x not in "0123456789abcdef" for x in value)
+    )):
+        raise GuideRouteContractError(f"invalid {label}: SHA-256 or NONE required")
+    return value
+
+
 def _selection(root: Path) -> str:
     path = root / _SELECTED
+    # A dangling symlink reports exists() == False; it is NOT an empty store.
+    if path.is_symlink():
+        raise GuideRouteContractError("symlinked candidate selection")
     if not path.exists():
         return _NO_SELECTION
     doc = _read_json(path)
     value = doc.get("candidate_sha256")
     if doc.get("format") != _FORMAT or doc.get("runtime_activation") is not False:
         raise GuideRouteContractError("invalid selection marker")
-    if not isinstance(value, str) or (value != _NO_SELECTION and (
-        len(value) != 64 or any(x not in "0123456789abcdef" for x in value)
-    )):
-        raise GuideRouteContractError("invalid selection digest")
-    return value
+    return _checked_pointer(value, "selection")
 
 
 def _candidate_file(root: Path, digest: str) -> Path:
@@ -332,8 +339,7 @@ def publish_candidate(
     or explicitly NONE when initializing. A stale selection fails closed.
     """
     _validate_candidate(preview)
-    if not isinstance(expected_selected, str):
-        raise GuideRouteContractError("expected_selected must be a digest or NONE")
+    _checked_pointer(expected_selected, "expected_selected")
     payload = _json_bytes(preview)
     digest = _digest(payload)
     with _locked(root) as store:
@@ -382,6 +388,8 @@ def rollback_candidate(
     restore_sha256: str = _NO_SELECTION,
 ) -> dict[str, Any]:
     """CAS rollback of the candidate selection only, never character progress."""
+    _checked_pointer(expected_selected, "expected_selected")
+    _checked_pointer(restore_sha256, "restore_sha256")
     with _locked(root) as store:
         actual = _selection(store)
         _verify_generation(store, actual)

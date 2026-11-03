@@ -368,6 +368,44 @@ class CandidateStoreTests(unittest.TestCase):
                                restore_sha256="b" * 64)
         self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
 
+    def test_invalid_publish_cas_pointer_is_rejected_before_store_creation(self) -> None:
+        for token in (None, True, "", "../outside", "ABC" * 21 + "A", "a" * 63):
+            with self.subTest(pointer=token), self.assertRaisesRegex(
+                GuideRouteContractError, "expected_selected"
+            ):
+                publish_candidate(self.preview, root=self.root, expected_selected=token)
+            self.assertFalse(self.root.exists())
+
+    def test_invalid_rollback_pointers_never_change_selection(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        for token in (None, True, "", "../outside", "A" * 64, "a" * 63):
+            with self.subTest(pointer=token):
+                with self.assertRaisesRegex(GuideRouteContractError, "restore_sha256"):
+                    rollback_candidate(root=self.root,
+                                       expected_selected=first["candidate_sha256"],
+                                       restore_sha256=token)
+                with self.assertRaisesRegex(GuideRouteContractError, "expected_selected"):
+                    rollback_candidate(root=self.root, expected_selected=token)
+                self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
+
+    def test_dangling_selection_symlink_cannot_be_taken_as_none(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        selected = self.root / "selected.json"
+        selected.unlink()
+        try:
+            selected.symlink_to(self.root / "nonexistent-outside-pointer.json")
+        except OSError:
+            self.skipTest("Windows symlinks unavailable to this test user")
+        with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+            selected_candidate(self.root)
+        with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+            publish_candidate(self.preview, root=self.root,
+                              expected_selected=first["candidate_sha256"])
+        with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+            rollback_candidate(root=self.root,
+                               expected_selected=first["candidate_sha256"])
+        self.assertTrue(selected.is_symlink())
+
     def test_boolean_schema_version_does_not_enter_candidate_store(self) -> None:
         malformed = copy.deepcopy(self.preview)
         malformed["schema_version"] = True
