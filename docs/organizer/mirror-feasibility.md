@@ -224,3 +224,47 @@ Graphify exacte et des tests Windows/Unity avant changement de structure.
 **Preuves :** commits GitHub et code relu, mais Doctor
 `agent plan/check/validate`, Graphify, tests Python et essais sur PC
 DOFUS 2/4/6/8 **NOT_RUN** faute de checkout complet. PR Draft.
+
+
+## Correction des faux événements synthétiques et des releases — 03/11/2026
+
+**Constat code** : le hook souris traitait aussi les événements physiques
+survenant durant une temporisation résiduelle après `SyntheticInputGuard`
+comme s'ils étaient synthétiques. Un clic ou cran de molette très rapide,
+effectué une fois le worker terminé, pouvait donc ne pas être diffusé.
+Windows fournit dans `MSLLHOOKSTRUCT.flags` l'indicateur documenté
+`LLMHF_INJECTED` et Atlas marque ses propres `SendInput` dans
+`dwExtraInfo` (`ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO`).
+
+**Nouveau comportement ciblé** :
+- Un `DOWN` ou cran de molette réellement **physique** reçu après la fin
+  du blocage de souris peut atteindre le callback même si une ancienne
+  fenêtre temporelle de garde synthétique est encore active.
+- Les événements réellement injectés, identifiés par le flag Windows
+  ou le marqueur Atlas, sont toujours exclus de la duplication.
+- `InputState.is_mouse_blocked()` demeure prioritaire pendant un worker
+  actif. **Les gestes physiques sous ce blocage peuvent encore être perdus** :
+  ce correctif ne revendique ni replay sous saturation, ni file d'attente.
+- Le moteur ne génère plus de `UP` souris ou clavier isolé après un
+  `DOWN` refusé par Windows. Si un bouton synthétique déjà pressé
+  n'a pas pu être relâché, une seconde tentative a lieu ; l'échec de
+  cette tentative est enregistré explicitement.
+- Échec de diffusion clavier/molette ou vol de focus pendant le survol :
+  aucun retour forcé au favori, ni repositionnement du curseur sans
+  fenêtre cible validée. Les replays natifs annulés émettent une cause
+  bornée (`expired`, `emergency_stop`, `worker_busy`,
+  `drag_or_moved`, `focus_changed`, `source_untrusted`,
+  `mode_changed`, `dispatch_refused`).
+
+**Scénarios mock ajoutés** : second clic physique dans la fenêtre
+résiduelle synthétique, clic réellement injecté avec flag/marqueur,
+blocage réel actif, refus de DOWN ou UP (premier/second clic),
+relâchement clavier même sous Stop, source native et glisser-déposer,
+annulation de replay et diagnostic, vol de focus pendant le survol.
+
+**Validation Windows/Unity non exécutée** : ces tests sont ajoutés au
+dépôt mais n'ont pas été exécutés ici. Aucun résultat de performance
+CPU/RAM, p50/p95/p99 ou succès d'interaction Unity n'est attesté.
+Rester Draft. La file bornée éventuelle des gestes durant un worker
+reste une décision structurelle bloquée jusqu'à Graphify exact-SHA et
+Doctor agent plan/check/validate.
