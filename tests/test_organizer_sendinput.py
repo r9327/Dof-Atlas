@@ -516,6 +516,59 @@ class OrganizerSendInputTests(unittest.TestCase):
         release.assert_not_called()
         click.assert_called_once()
 
+    def test_busy_input_counters_include_events_hidden_by_warning_throttle(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MouseHook, WM_LBUTTONDOWN, WM_MOUSEWHEEL, WM_MOUSEMOVE,
+            WM_LBUTTONUP, WM_RBUTTONDOWN,
+        )
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                logger = Mock()
+                hook = MouseHook(
+                    InputState(), SyntheticInputGuard(logger), logger, Mock(),
+                )
+                with patch("app.input.mouse_hooks.time.monotonic",
+                           return_value=1.0):
+                    for _ in range(count):
+                        hook._log_blocked_event(WM_LBUTTONDOWN, 12, 15)
+                        hook._log_blocked_event(WM_MOUSEWHEEL, 12, 15)
+                        hook._log_blocked_event(WM_MOUSEMOVE, 12, 15)
+                        hook._log_blocked_event(WM_LBUTTONUP, 12, 15)
+                self.assertEqual(hook._blocked_click_count, count)
+                self.assertEqual(hook._blocked_wheel_count, count)
+                self.assertEqual(logger.info.call_count, 1)
+                logger.info.assert_called_once_with(
+                    "Organizer entrées physiques bloquées: clics=%s molettes=%s",
+                    1, 0,
+                )
+                with patch("app.input.mouse_hooks.time.monotonic",
+                           return_value=1.5):
+                    hook._log_blocked_event(WM_RBUTTONDOWN, 12, 15)
+                self.assertEqual(hook._blocked_click_count, count + 1)
+                logger.info.assert_called_with(
+                    "Organizer entrées physiques bloquées: clics=%s molettes=%s",
+                    count + 1, count,
+                )
+
+    def test_busy_input_telemetry_resets_on_mouse_hook_stop(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_LBUTTONDOWN, WM_MOUSEWHEEL
+
+        logger = Mock()
+        hook = MouseHook(InputState(), SyntheticInputGuard(logger), logger, Mock())
+        with patch("app.input.mouse_hooks.time.monotonic", return_value=1.0):
+            hook._log_blocked_event(WM_LBUTTONDOWN, 10, 20)
+            hook._log_blocked_event(WM_MOUSEWHEEL, 10, 20)
+        self.assertEqual((hook._blocked_click_count, hook._blocked_wheel_count),
+                         (1, 1))
+        with patch("app.input.mouse_hooks.stop_message_hook") as stop_hook:
+            hook.stop()
+        stop_hook.assert_called_once_with(hook)
+        self.assertEqual((hook._blocked_click_count, hook._blocked_wheel_count),
+                         (0, 0))
+
     def test_busy_native_click_warning_not_hidden_by_mouse_move_flood(self) -> None:
         from app.input.input_state import InputState, SyntheticInputGuard
         from app.input.mouse_hooks import (
