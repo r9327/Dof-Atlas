@@ -256,6 +256,13 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertTrue(all(0 <= value <= 2 for value in values))
         updated = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
         self.assertEqual((updated.value(), updated.maximum()), (5, 6))
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+        updated.setValue(6)
+        updated.editingFinished.emit()
+        QApplication.processEvents()
+        self.assertTrue(view._need_ready(view._preparation_needs[0]))
+        refreshed = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((refreshed.value(), refreshed.maximum()), (6, 6))
 
 if __name__ == "__main__":
     unittest.main()

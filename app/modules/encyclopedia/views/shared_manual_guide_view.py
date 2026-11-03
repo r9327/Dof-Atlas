@@ -1829,8 +1829,22 @@ class SharedGuideManualView(GuideUltimeManualView):
         return key if need.scope == "per_character" else f"{key}:{need.scope}"
 
     def _need_ready(self, need: _PreparationNeed) -> bool:
+        if not need.required_by_character:
+            return False
+        # A fully counted material preparation is ready even without the
+        # historical binary checkbox. Keep old manual Ready marks readable.
+        if need.scope == "per_character" and need.required_total is not None:
+            progress = getattr(self.service, "guide_progress", None)
+            quantity_getter = getattr(progress, "preparation_quantity", None)
+            if callable(quantity_getter):
+                guide = str(getattr(self.service, "progress_id", "") or "")
+                if all(
+                    quantity_getter(character_key, guide, need.item_key) >= required
+                    for character_key, required in need.required_by_character
+                ):
+                    return True
         getter = getattr(self.service, "manual_checked", None)
-        if not callable(getter) or not need.required_by_character:
+        if not callable(getter):
             return False
         key = self._ready_progress_key(need)
         return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
