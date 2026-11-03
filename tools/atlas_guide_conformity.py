@@ -85,6 +85,18 @@ _UNRENDERED_STEP_FIELDS = frozenset({
     "choices", "branches", "branching", "alternative_routes",
     "images", "image", "media", "attachments", "links",
 })
+_EVIDENCE_ONLY_FIELDS = frozenset({
+    "evidence_ref", "source_url", "source_hash", "source_revision",
+    "capture_id", "capture_timestamp", "author", "metadata",
+})
+_SUPPORTED_ACTION_FIELDS = frozenset({
+    "action_id", "kind", "text", "coordinates", "items", "monsters",
+    "npc", "dialogue_choice", "section", "quest_ids",
+}) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_ACTION_FIELDS
+_SUPPORTED_STEP_FIELDS = frozenset({
+    "source_step_id", "title", "coordinates", "actions",
+    "quest_ids", "quest_names", "prerequisites",
+}) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_STEP_FIELDS
 _TRAVEL_COORDINATE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 
@@ -410,6 +422,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                            "step object", step)
                     continue
                 prefix = f"{side}.guides[{gi}].steps[{si}]"
+                for field in sorted(step.keys() - _SUPPORTED_STEP_FIELDS):
+                    if step[field] not in (None, [], {}, ""):
+                        report("UNVERIFIABLE", f"{prefix}.{field}",
+                               "unknown authored step field without shared UI mapping",
+                               step[field])
                 for field in sorted(_UNRENDERED_STEP_FIELDS & step.keys()):
                     if step[field] not in (None, [], {}, ""):
                         report("UNVERIFIABLE", f"{prefix}.{field}",
@@ -495,6 +512,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
                         report("UNVERIFIABLE", f"{action_path}.kind",
                                "supported action kind", kind)
+                    for field in sorted(action.keys() - _SUPPORTED_ACTION_FIELDS):
+                        if action[field] not in (None, [], {}, ""):
+                            report("UNVERIFIABLE", f"{action_path}.{field}",
+                                   "unknown authored action field without shared UI mapping",
+                                   action[field])
                     for field in sorted(_UNRENDERED_ACTION_FIELDS & action.keys()):
                         if action[field] not in (None, [], {}, ""):
                             report("UNVERIFIABLE", f"{action_path}.{field}",
