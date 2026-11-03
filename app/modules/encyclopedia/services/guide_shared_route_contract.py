@@ -28,6 +28,14 @@ _UNRENDERED_ACTION_FIELDS = frozenset({
     "alternative_routes", "subactions", "substeps", "interactions",
     "achievement_ids", "success_ids", "images", "image", "media",
     "attachments", "links", "commands",
+    "conditions", "validation", "validation_rule", "completion_rule",
+    "required_level", "required_class", "required_alignment", "required_order",
+    "prerequisites", "objectives", "dungeon_successes", "challenges",
+})
+_UNRENDERED_ENTRY_FIELDS = frozenset({
+    "choices", "condition", "conditions", "location", "equip", "consume",
+    "buy", "collect", "craft_recipe", "drop", "success_ids",
+    "achievement_ids", "challenges", "media", "links", "actions",
 })
 _UNRENDERED_STEP_FIELDS = frozenset({
     "choices", "branches", "branching", "alternative_routes",
@@ -75,6 +83,11 @@ def _items(raw: Any, label: str) -> tuple[str, ...]:
     for index, value in enumerate(raw):
         if not isinstance(value, dict):
             raise GuideRouteContractError(f"{label}[{index}]: item object required")
+        for field in sorted(_UNRENDERED_ENTRY_FIELDS & value.keys()):
+            if value[field] not in (None, [], {}, ""):
+                raise GuideRouteContractError(
+                    f"{label}[{index}].{field}: unsupported authored UI content"
+                )
         name = _text(value.get("name"), f"{label}[{index}].name")
         quantity = value.get("quantity")
         if type(quantity) is not int or quantity <= 0:
