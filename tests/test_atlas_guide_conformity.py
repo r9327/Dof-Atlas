@@ -336,11 +336,17 @@ class TestGuideConformity(unittest.TestCase):
         self.assertTrue(all(x["changed"] for x in positions))
         # "invalid" -> [1] fixes the scalar/list TYPE_MISMATCH,
         # while both independent semantic coordinate failures persist.
+        # The single-element list also introduces an explicit missing
+        # coordinate[1], which must never disappear from the audit.
         self.assertEqual(
             [issue["issue_code"] for issue in delta["resolved"]],
             ["TYPE_MISMATCH"],
         )
-        self.assertFalse(delta["introduced"])
+        self.assertEqual(
+            [(issue["issue_code"], issue["field_path"])
+             for issue in delta["introduced"]],
+            [("MISSING_FIELD", ".guides[2219].steps[B].actions[move].coordinates[1]")],
+        )
 
     def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
         old = copy.deepcopy(self.atlas)
