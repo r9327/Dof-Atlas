@@ -349,6 +349,61 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         self.assertIsNone(runtime._pending_physical_switch)
 
+    def test_native_overlapping_downs_cancel_replay_without_swallowing_either(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        for second_button in ("Left", "Right"):
+            with self.subTest(second_button=second_button):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.macro_lock.active_label = ""
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+                ]
+                runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+                    action_id="switch_click",
+                    payload={"click_count": 1, "label": "Switch clique"},
+                )
+                context = SwitchClickContext(101, 25, 30, 0.2, 0.3, "cursor")
+                runtime.switch_click._capture_trigger_context.return_value = context
+                with (
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=101),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                ):
+                    # The first DOWN passes naturally to the favorite.
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(runtime, "Left", 150, 160)
+                    )
+                    self.assertIsInstance(runtime._pending_physical_switch, tuple)
+                    # Another DOWN cannot overwrite the owner of the
+                    # first physical click's future UP.
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(
+                            runtime, second_button, 152, 160,
+                        )
+                    )
+                    self.assertIsNone(runtime._pending_physical_switch)
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_release(runtime, "Left", 150, 160)
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_release(
+                            runtime, second_button, 152, 160,
+                        )
+                    )
+                runtime.switch_click.run_async.assert_not_called()
+                runtime.logger.debug.assert_any_call(
+                    "Clic natif non recopié: cause=overlapping_down button=%s",
+                    second_button,
+                )
+
     def test_native_source_release_without_valid_pending_state_passes_through(self) -> None:
         from app.core.runtime_state import AtlasRuntime
 
