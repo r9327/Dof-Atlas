@@ -120,6 +120,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # Stage 0 contains no real imported guides. Execute a bounded selection
+      # of the same shared Qt reader against fictitious route cards so Draft
+      # Windows evidence covers import semantics without opening a real guide,
+      # full certification or any release/benchmark workflow.
+      - name: Verify staged source cards in canonical Qt reader (synthetic only)
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_staged_candidate_previews_through_existing_shared_reader `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_reordered_staged_route_keeps_per_character_progress_identity `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_preview_preserves_source_sections_and_clickable_roles `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_source_action_quest_shortcut_is_exact_not_guessed `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_imported_quest_shortcuts_follow_actions_across_sections `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_source_choice_and_dungeon_keep_shared_semantic_styles `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_imported_source_preparation_uses_own_sections_with_selected_character `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_source_npc_uses_explicit_name_color_in_action_and_details `
+            tests.test_guide_manual_selected_validation.GuideManualSelectedValidationTests.test_view_validation_uses_per_character_stable_source_step_identity
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run one session for the union of selected scenarios
         run: python -X faulthandler -m tools.atlas_doctor_lib.doctor_ui_ci run --candidate-sha "$env:CANDIDATE_SHA"
       - name: Upload unified UI evidence including failures
