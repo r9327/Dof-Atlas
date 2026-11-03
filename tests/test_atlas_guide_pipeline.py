@@ -9,7 +9,9 @@ import unittest
 from pathlib import Path
 
 from tools.atlas_guide_candidate_store import selected_candidate
-from tools.atlas_guide_pipeline import GuidePipelineBlocked, main, stage_checked_candidate
+from tools.atlas_guide_pipeline import (
+    GuidePipelineBlocked, main, stage_checked_candidate, preview_staged_guide,
+)
 from tools.atlas_guide_sequence_gate import _PER_GUIDE, _PHASE0, assess_next
 
 HEAD = "a" * 40
@@ -82,6 +84,53 @@ class PipelineSyntheticTests(unittest.TestCase):
         }
         args.update(kw)
         return stage_checked_candidate(**args)
+
+    def test_pipeline_pinned_preview_exposes_shared_card_contract_only(self):
+        staged = self._run()
+        receipt = preview_staged_guide(
+            candidate_root=self.folder,
+            expected_selected=staged["candidate_sha256"],
+            route_id=f"source_guide:{PILOT}",
+        )
+        self.assertEqual(receipt["status"], "STAGED_PREVIEW_ONLY")
+        self.assertFalse(receipt["certified"])
+        self.assertFalse(receipt["runtime_activation"])
+        route = receipt["route"]
+        self.assertEqual(route["source_compliance"], "NOT_CERTIFIED")
+        self.assertEqual(route["route_model"], "authored_step_actions")
+        self.assertEqual(route["id"], f"source_guide:{PILOT}")
+        self.assertEqual(route["steps"][0]["manual_stage_id"],
+                         f"source:{PILOT}:fabricated-test-id")
+        self.assertEqual(route["steps"][0]["manual_sections"]["now"][0]["text"],
+                         "Fictional NPC test action")
+        self.assertEqual(selected_candidate(self.folder), staged["candidate_sha256"])
+        self.assertFalse((self.folder / "data").exists())
+
+    def test_pipeline_preview_requires_existing_exact_selection(self):
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            GuideRouteContractError,
+        )
+
+        with self.assertRaises(GuideRouteContractError):
+            preview_staged_guide(
+                candidate_root=self.folder, expected_selected="a" * 64,
+                route_id=f"source_guide:{PILOT}",
+            )
+        self.assertFalse(self.folder.exists())
+        staged = self._run()
+        for selection, route_id in (
+            ("NONE", f"source_guide:{PILOT}"),
+            ("b" * 64, f"source_guide:{PILOT}"),
+            (staged["candidate_sha256"], "source_guide:unverified"),
+        ):
+            with self.subTest(selection=selection, route_id=route_id):
+                with self.assertRaises(GuideRouteContractError):
+                    preview_staged_guide(
+                        candidate_root=self.folder,
+                        expected_selected=selection,
+                        route_id=route_id,
+                    )
+        self.assertEqual(selected_candidate(self.folder), staged["candidate_sha256"])
 
     def test_95_sequential_synthetic_stagings_are_isolated_and_never_active(self):
         # Complete-capacity exercise: 95 entirely fabricated single-step
