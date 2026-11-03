@@ -443,6 +443,57 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 sheet.deleteLater()
                 QApplication.processEvents()
 
+    def test_imported_quest_shortcuts_follow_actions_across_sections(self) -> None:
+        from PySide6.QtTest import QSignalSpy
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+
+        source = self._source()
+        step = source["steps"][0]
+        step["quest_ids"] = [654]
+        # Repeated links are meaningful: each points at a distinct authored
+        # action, including the keep and before-leaving sections.
+        for action_index in (2, 5, 6):
+            step["actions"][action_index]["quest_ids"] = [654]
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(source)
+            service = self._service(Path(temp) / "progress.json", route)
+            service.quest_provider = SimpleNamespace(get_quest=lambda _qid: None)
+            sheet = SharedGuideManualCard(
+                service, "character:1", service.cards[0], 0
+            )
+            try:
+                buttons = sheet.findChildren(
+                    QToolButton, "GuideManualQuestInlineButton"
+                )
+                self.assertEqual(len(buttons), 3)
+                seen_sections = set()
+                for button in buttons:
+                    self.assertEqual(button.toolTip(), "Quête #654")
+                    parent_text = " ".join(
+                        label.text() for label in
+                        button.parentWidget().findChildren(QLabel)
+                    )
+                    for expected in (
+                        "Parler au PNJ fictif",
+                        "Conserver Ressource fictive",
+                        "Avant de partir",
+                    ):
+                        if expected in parent_text:
+                            seen_sections.add(expected)
+                    spy = QSignalSpy(sheet.questRequested)
+                    button.click()
+                    self.assertEqual(spy.count(), 1)
+                    self.assertEqual(int(spy.at(0)[0]), 654)
+                self.assertEqual(
+                    seen_sections,
+                    {"Parler au PNJ fictif", "Conserver Ressource fictive", "Avant de partir"},
+                )
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
     def test_historical_guide_card_accepts_null_runtime_metadata(self) -> None:
         from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
 
