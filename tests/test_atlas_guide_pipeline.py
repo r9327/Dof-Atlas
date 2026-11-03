@@ -10,7 +10,8 @@ from pathlib import Path
 
 from tools.atlas_guide_candidate_store import selected_candidate
 from tools.atlas_guide_pipeline import (
-    GuidePipelineBlocked, main, stage_checked_candidate, preview_staged_guide,
+    GuidePipelineBlocked, main, stage_checked_candidate,
+    preview_staged_guide, preview_staged_step,
 )
 from tools.atlas_guide_sequence_gate import _PER_GUIDE, _PHASE0, assess_next
 
@@ -131,6 +132,52 @@ class PipelineSyntheticTests(unittest.TestCase):
                         route_id=route_id,
                     )
         self.assertEqual(selected_candidate(self.folder), staged["candidate_sha256"])
+
+    def test_pipeline_can_preview_one_stable_card_without_publishing(self):
+        staged = self._run()
+        digest = staged["candidate_sha256"]
+        route_id = f"source_guide:{PILOT}"
+        stage_id = f"source:{PILOT}:fabricated-test-id"
+        result = preview_staged_step(
+            candidate_root=self.folder, expected_selected=digest,
+            route_id=route_id, stage_id=stage_id,
+        )
+        self.assertEqual(result["status"], "STAGED_PREVIEW_ONLY")
+        self.assertFalse(result["certified"])
+        self.assertFalse(result["runtime_activation"])
+        self.assertEqual(result["route_id"], route_id)
+        self.assertEqual(result["stage_id"], stage_id)
+        self.assertEqual(result["card"]["manual_stage_id"], stage_id)
+        self.assertEqual(
+            result["card"]["manual_sections"]["now"][0]["source_action_id"],
+            "fictional-action",
+        )
+        result["card"]["manual_title"] = "TAMPERED BY PREVIEW CLIENT"
+        again = preview_staged_step(
+            candidate_root=self.folder, expected_selected=digest,
+            route_id=route_id, stage_id=stage_id,
+        )
+        self.assertEqual(again["card"]["manual_title"], "Fictitious step")
+        self.assertEqual(selected_candidate(self.folder), digest)
+
+    def test_pipeline_card_preview_fails_closed_on_wrong_route_or_stage(self):
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            GuideRouteContractError,
+        )
+        staged = self._run()
+        digest = staged["candidate_sha256"]
+        for route_id, stage_id in (
+            (f"source_guide:{PILOT}", f"source:{PILOT}:missing"),
+            ("source_guide:missing", f"source:{PILOT}:fabricated-test-id"),
+            ("invalid", f"source:{PILOT}:fabricated-test-id"),
+        ):
+            with self.subTest(route=route_id, stage=stage_id):
+                with self.assertRaises(GuideRouteContractError):
+                    preview_staged_step(
+                        candidate_root=self.folder, expected_selected=digest,
+                        route_id=route_id, stage_id=stage_id,
+                    )
+        self.assertEqual(selected_candidate(self.folder), digest)
 
     def test_95_sequential_synthetic_stagings_are_isolated_and_never_active(self):
         # Complete-capacity exercise: 95 entirely fabricated single-step
