@@ -63,9 +63,12 @@ class MirrorInputMacro:
             or handles[0] != source
         ):
             return False
-        # Reject roster drift between hook and worker, not merely stale HWNDs.
-        live = tuple(c.handle for c in settings.clients if is_dofus_unity_process(c.handle))
-        return set(live) == set(handles) and len(live) == len(handles) and source in live
+        # This check runs for every recipient: compare the in-memory roster
+        # without re-querying every Windows process O(n²) per gesture.
+        # Native process identity is verified once for the whole roster at
+        # dispatch, then for each recipient immediately before sending.
+        live = tuple(c.handle for c in settings.clients)
+        return live == handles
 
     def _run(
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
@@ -77,6 +80,7 @@ class MirrorInputMacro:
         send_samples_ms: list[float] = []
         cursor = None
         focus_lost = False
+        roster_verified = False
         if kind == "wheel":
             try:
                 cursor = current_cursor_pos()
@@ -88,6 +92,13 @@ class MirrorInputMacro:
             if not self._still_current(source, handles):
                 runtime.logger.warning("Miroir %s annulé: favori ou sessions modifiés.", kind)
                 return
+            # Fail closed before the first emission if ANY configured HWND
+            # has become an unrelated process. Avoid partial delivery caused
+            # by a foreign/stale handle discovered halfway through a gesture.
+            if not all(is_dofus_unity_process(hwnd) for hwnd in handles):
+                runtime.logger.warning("Miroir %s annulé: roster non DOFUS.", kind)
+                return
+            roster_verified = True
             for index, hwnd in enumerate(handles):
                 if runtime.macro_lock.should_stop() or not self._still_current(source, handles):
                     break
@@ -164,8 +175,10 @@ class MirrorInputMacro:
                     runtime.logger.exception("Miroir molette: restauration curseur impossible.")
             # A changed favorite must not be activated as a side effect of
             # aborting the original gesture (same policy as mouse clicks).
-            if (not focus_lost and not runtime.macro_lock.should_stop()
-                    and self._still_current(source, handles)):
+            if (roster_verified and not focus_lost
+                    and not runtime.macro_lock.should_stop()
+                    and self._still_current(source, handles)
+                    and is_dofus_unity_process(source)):
                 try:
                     runtime.switch_character.restore_preferred_client("Miroir " + kind)
                 except Exception:
