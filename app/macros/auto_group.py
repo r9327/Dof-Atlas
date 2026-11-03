@@ -43,6 +43,7 @@ class AutoGroupMacro:
         sender_key = normalize_key(sender_name)
         sent = 0
         eligible = 0
+        seen_recipients: set[str] = set()
         focus_lost = False
         try:
             for entry in invite_entries:
@@ -58,9 +59,15 @@ class AutoGroupMacro:
                 if handle > 0 and handle == sender.handle:
                     self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
                     continue
-                if normalize_key(name) == sender_key:
+                recipient_key = normalize_key(name)
+                if recipient_key == sender_key:
                     self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
                     continue
+                # Duplicated session rows must never send repeated invitations.
+                if recipient_key in seen_recipients:
+                    self.runtime.logger.debug("Auto groupe ignore doublon: %s", name)
+                    continue
+                seen_recipients.add(recipient_key)
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
                 # another window if focus was stolen after activation.
