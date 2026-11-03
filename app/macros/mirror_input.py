@@ -76,6 +76,7 @@ class MirrorInputMacro:
         delivered = 0
         send_samples_ms: list[float] = []
         cursor = None
+        focus_lost = False
         if kind == "wheel":
             try:
                 cursor = current_cursor_pos()
@@ -87,7 +88,7 @@ class MirrorInputMacro:
             if not self._still_current(source, handles):
                 runtime.logger.warning("Miroir %s annulé: favori ou sessions modifiés.", kind)
                 return
-            for hwnd in handles:
+            for index, hwnd in enumerate(handles):
                 if runtime.macro_lock.should_stop() or not self._still_current(source, handles):
                     break
                 if not is_dofus_unity_process(hwnd):
@@ -98,8 +99,15 @@ class MirrorInputMacro:
                     timings.activate_attempts, timings.activate_retry_ms,
                     runtime.logger, "Miroir " + kind,
                     should_stop=runtime.macro_lock.should_stop,
-                ) or foreground_window() != hwnd:
+                ):
+                    # Do not force the previous favorite back when the user
+                    # may have intentionally switched to another application.
+                    focus_lost = True
                     runtime.logger.warning("Miroir %s: activation non confirmée hwnd=%s.", kind, hwnd)
+                    break
+                if foreground_window() != hwnd:
+                    focus_lost = True
+                    runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
                     break
                 if runtime.macro_lock.should_stop():
                     break
@@ -124,6 +132,15 @@ class MirrorInputMacro:
                         runtime.synthetic_guard.begin(200)
                         try:
                             set_cursor_pos(*screen)
+                            # Cursor motion can activate a different window on
+                            # some desktop configurations. Verify again before
+                            # dispatching the physical wheel gesture.
+                            if foreground_window() != hwnd:
+                                focus_lost = True
+                                runtime.logger.warning(
+                                    "Miroir molette: focus volé après déplacement hwnd=%s.", hwnd,
+                                )
+                                break
                             if not send_screen_wheel(delta, horizontal=horizontal):
                                 runtime.logger.warning("Miroir molette: SendInput refusé.")
                                 break
@@ -134,18 +151,21 @@ class MirrorInputMacro:
                 except Exception:
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)
                     break
-                if runtime.macro_lock.wait(max(0, timings.switch_client_settle_ms)):
+                # The final recipient does not need a client-switch gap.
+                if (index < len(handles) - 1
+                        and runtime.macro_lock.wait(max(0, timings.switch_client_settle_ms))):
                     break
         finally:
             runtime.input_state.end_mouse_block()
-            if cursor is not None:
+            if cursor is not None and not focus_lost:
                 try:
                     set_cursor_pos(*cursor)
                 except Exception:
                     runtime.logger.exception("Miroir molette: restauration curseur impossible.")
             # A changed favorite must not be activated as a side effect of
             # aborting the original gesture (same policy as mouse clicks).
-            if not runtime.macro_lock.should_stop() and self._still_current(source, handles):
+            if (not focus_lost and not runtime.macro_lock.should_stop()
+                    and self._still_current(source, handles)):
                 try:
                     runtime.switch_character.restore_preferred_client("Miroir " + kind)
                 except Exception:
