@@ -11,6 +11,7 @@ from app.windows.timing import wait_ms
 from app.windows.unity_windows import (
     clamp_client_point,
     client_to_screen,
+    foreground_window,
     is_unity_window,
 )
 
@@ -235,6 +236,20 @@ def send_client_click(
             hwnd,
         )
         return False
+    # The focus can be stolen during Unity's hover-settle delay after the
+    # cursor moves. A callback checked only before the move is not enough:
+    # keep each DOWN (including the second click) bound to its original HWND.
+    def should_abort() -> bool:
+        if should_stop is not None and should_stop():
+            return True
+        if foreground_window() != hwnd:
+            logger.warning(
+                "Clic synthétique annulé: focus modifié avant entrée hwnd=%s",
+                hwnd,
+            )
+            return True
+        return False
+
     return send_screen_click(
         point[0],
         point[1],
@@ -246,7 +261,7 @@ def send_client_click(
         post_up_ms,
         synthetic_guard,
         logger,
-        should_stop=should_stop,
+        should_stop=should_abort,
     )
 
 
