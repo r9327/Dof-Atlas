@@ -76,9 +76,10 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
     if preview.get("status") != "PREVIEW_ONLY_NOT_CERTIFIED" or preview.get("certified") is not False:
         raise GuideRouteContractError("candidate must remain NOT_CERTIFIED")
     source_hash = preview.get("source_sha256")
-    if not isinstance(source_hash, str) or len(source_hash) != 64 or any(
-        char not in "0123456789abcdef" for char in source_hash
-    ):
+    if (not isinstance(source_hash, str) or source_hash == "0" * 64
+            or len(source_hash) != 64 or any(
+                char not in "0123456789abcdef" for char in source_hash
+            )):
         raise GuideRouteContractError("missing source SHA-256")
     routes = preview.get("routes")
     if not isinstance(routes, list) or not routes:
@@ -227,10 +228,16 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
     )
     if preview["action_count"] != action_count:
         raise GuideRouteContractError("candidate action coverage mismatch")
-    if preview.get("is_partial") is not True:
-        if preview.get("guide_count") != preview.get("expected_guide_count"):
+    if preview["is_partial"]:
+        if (preview["guide_count"] > preview["expected_guide_count"]
+                or preview["step_count"] > preview["expected_step_count"]):
+            raise GuideRouteContractError(
+                "partial candidate exceeds the declared guide/step limits"
+            )
+    else:
+        if preview["guide_count"] != preview["expected_guide_count"]:
             raise GuideRouteContractError("incomplete full guide inventory")
-        if preview.get("step_count") != preview.get("expected_step_count"):
+        if preview["step_count"] != preview["expected_step_count"]:
             raise GuideRouteContractError("incomplete full step inventory")
 
 
@@ -350,7 +357,8 @@ def _locked(root: Path) -> Iterator[Path]:
 
 def _checked_pointer(value: Any, label: str) -> str:
     if not isinstance(value, str) or (value != _NO_SELECTION and (
-        len(value) != 64 or any(x not in "0123456789abcdef" for x in value)
+        value == "0" * 64 or len(value) != 64
+        or any(x not in "0123456789abcdef" for x in value)
     )):
         raise GuideRouteContractError(f"invalid {label}: SHA-256 or NONE required")
     return value

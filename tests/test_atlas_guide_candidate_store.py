@@ -194,6 +194,64 @@ class CandidateStoreTests(unittest.TestCase):
                 ):
                     selected_candidate(self.root)
 
+    def test_partial_candidate_must_obey_both_declared_limits(self) -> None:
+        # An API caller can mutate preview metadata without using importer CLI.
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": False,
+            "guides": [
+                {"guide_id": str(i), "title": f"Fictional guide {i}",
+                 "steps": [{
+                     "source_step_id": "one", "title": "Fictional stage",
+                     "actions": [{"action_id": "talk", "kind": "talk",
+                                  "text": "Synthetic action"}],
+                 }]}
+                for i in (1, 2)
+            ],
+        }
+        partial = prepare_preview(
+            source, expected_guides=3, expected_steps=3, partial=True
+        )
+        for field in ("expected_guide_count", "expected_step_count"):
+            forged = copy.deepcopy(partial)
+            forged[field] = 1
+            with self.subTest(field=field), self.assertRaisesRegex(
+                GuideRouteContractError, "partial candidate exceeds"
+            ):
+                publish_candidate(forged, root=self.root)
+            self.assertFalse(self.root.exists())
+        accepted = publish_candidate(partial, root=self.root)
+        self.assertEqual(selected_candidate(self.root), accepted["candidate_sha256"])
+        self.assertFalse(accepted["certified"])
+
+    def test_all_zero_digests_never_count_as_source_or_selection(self) -> None:
+        forged = copy.deepcopy(self.preview)
+        forged["source_sha256"] = "0" * 64
+        with self.assertRaisesRegex(GuideRouteContractError, "source SHA-256"):
+            publish_candidate(forged, root=self.root)
+        self.assertFalse(self.root.exists())
+
+        original = publish_candidate(self.preview, root=self.root)
+        digest = original["candidate_sha256"]
+        with self.assertRaisesRegex(GuideRouteContractError, "restore_sha256"):
+            rollback_candidate(
+                root=self.root, expected_selected=digest,
+                restore_sha256="0" * 64,
+            )
+        self.assertEqual(selected_candidate(self.root), digest)
+
+        selection = self.root / "selected.json"
+        prior = selection.read_text(encoding="utf-8")
+        selection.write_text(json.dumps({
+            "format": "atlas-guide-candidate-store/v1",
+            "candidate_sha256": "0" * 64,
+            "runtime_activation": False,
+        }), encoding="utf-8")
+        with self.assertRaisesRegex(GuideRouteContractError, "selection"):
+            selected_candidate(self.root)
+        selection.write_text(prior, encoding="utf-8")
+        self.assertEqual(selected_candidate(self.root), digest)
+
     def test_incomplete_or_fake_certificate_is_rejected(self) -> None:
         for field, value in (("certified", True), ("mode", "APPLY"),
                              ("guide_count", 123), ("status", "CERTIFIED")):
