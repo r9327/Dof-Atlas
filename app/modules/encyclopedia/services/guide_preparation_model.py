@@ -13,6 +13,8 @@ import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from app.core.entity_identity import canonical_entity_key
+
 _COMPACT_DECODE_LIMIT = 4 * 1024 * 1024
 _COMPACT_PREPARATION_FIELDS = (
     "preparation", "a_preparer", "resource_plan", "resources",
@@ -58,7 +60,10 @@ def normalized_name(text: str) -> str:
 
 
 def item_identity(item_id: int | None, name: str) -> str:
-    return f"item:{item_id}" if item_id is not None else f"name:{normalized_name(name)}"
+    return (
+        canonical_entity_key("item", item_id) if item_id is not None
+        else f"name:{normalized_name(name)}"
+    )
 
 
 def _positive_int(value: Any) -> int | None:
