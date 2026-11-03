@@ -549,8 +549,13 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 # Verify the button is attached to the exact action row,
                 # not merely present somewhere earlier on the sheet.
                 row_labels = buttons[0].parentWidget().findChildren(QLabel)
-                self.assertTrue(any("Parler au PNJ fictif" in label.text()
-                                    for label in row_labels))
+                # The real Guide renderer inserts colored HTML spans around
+                # PNJ names; compare visible text, not raw QLabel rich text.
+                rendered = unescape(re.sub(
+                    r"<[^>]+>", "",
+                    " ".join(label.text() for label in row_labels),
+                ))
+                self.assertIn("Parler au PNJ fictif", rendered)
                 spy = QSignalSpy(sheet.questRequested)
                 buttons[0].click()
                 self.assertEqual(spy.count(), 1)
@@ -588,10 +593,13 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 seen_sections = set()
                 for button in buttons:
                     self.assertEqual(button.toolTip(), "Quête #654")
-                    parent_text = " ".join(
-                        label.text() for label in
-                        button.parentWidget().findChildren(QLabel)
-                    )
+                    parent_text = unescape(re.sub(
+                        r"<[^>]+>", "",
+                        " ".join(
+                            label.text() for label in
+                            button.parentWidget().findChildren(QLabel)
+                        ),
+                    ))
                     for expected in (
                         "Parler au PNJ fictif",
                         "Conserver Ressource fictive",
