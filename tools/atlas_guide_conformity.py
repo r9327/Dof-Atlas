@@ -350,6 +350,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                "independent source and rights evidence", "not verified")
     if reference.get("complete") is not True:
         report("UNVERIFIABLE", "reference.complete", True, reference.get("complete"))
+    # Atlas exports may omit source-only provenance claims. Explicit false
+    # declarations must not be silently discarded by the parity comparison.
+    for flag in ("complete", "rights_verified", "reference_verified"):
+        if flag in atlas and atlas[flag] is not True:
+            report("UNVERIFIABLE", f"atlas.{flag}", True, atlas[flag])
     if not isinstance(reference.get("guides"), list) or not reference["guides"]:
         report("UNVERIFIABLE", "reference.guides", "nonempty complete guide inventory",
                reference.get("guides"))
@@ -435,6 +440,18 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                             report("UNVERIFIABLE", f"{action_path}.section",
                                    "monotonic shared UI section order", section)
                         previous_rank = max(previous_rank, rank)
+                    # The canonical shared UI places section=prepare in its
+                    # dedicated item panel. A pair of identical non-item
+                    # actions in that section is not renderable as preparation.
+                    if section == "prepare" and (
+                        not isinstance(action.get("items"), list)
+                        or not action["items"]
+                    ):
+                        report(
+                            "UNVERIFIABLE", f"{action_path}.items",
+                            "nonempty structured preparation items",
+                            action.get("items"),
+                        )
                     text = action.get("text")
                     if not isinstance(text, str) or not text.strip():
                         report("UNVERIFIABLE", f"{action_path}.text",

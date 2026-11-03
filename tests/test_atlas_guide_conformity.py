@@ -158,6 +158,54 @@ class TestGuideConformity(unittest.TestCase):
         self.assertIn("DUPLICATE", self._codes(self.atlas))
         self.assertIn("EXTRA_ACTION", self._codes(self.atlas))
 
+    def test_atlas_explicit_false_provenance_cannot_pass_parity(self) -> None:
+        # Historical Atlas exports legitimately omit these input-only flags.
+        self.assertEqual(compare(self.reference, self.atlas)["status"], "PARITY_CHECK_PASS")
+        for field in ("complete", "rights_verified", "reference_verified"):
+            for false_value in (False, None, 0, "false"):
+                atlas = copy.deepcopy(self.atlas)
+                atlas[field] = false_value
+                with self.subTest(field=field, value=false_value):
+                    result = compare(self.reference, atlas)
+                    self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                    self.assertTrue(any(
+                        row["issue_code"] == "UNVERIFIABLE"
+                        and row["field_path"] == f"atlas.{field}"
+                        for row in result["issues"]
+                    ))
+                    self.assertFalse(result["certified"])
+
+    def test_matching_preparation_without_structured_items_is_not_parity(self) -> None:
+        # Other action kinds may carry an explicit prepare section; the
+        # canonical adapter still requires items in that section.
+        for bad_items in (None, [], "ressource"):
+            original = reference()
+            atlas = imported(original)
+            for document in (original, atlas):
+                action = document["guides"][0]["steps"][0]["actions"][0]
+                action["section"] = "prepare"
+                if bad_items is not None:
+                    action["items"] = bad_items
+            with self.subTest(items=bad_items):
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    row["issue_code"] == "UNVERIFIABLE"
+                    and row["field_path"].endswith(".actions[0].items")
+                    for row in result["issues"]
+                ))
+
+    def test_preparation_with_items_remains_valid_for_explicit_section(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        for document in (original, atlas):
+            action = document["guides"][0]["steps"][0]["actions"][0]
+            action["section"] = "prepare"
+            action["items"] = [{"name": "Objet fictif", "quantity": 1}]
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_PASS")
+        self.assertEqual(result["issue_count"], 0)
+
     def test_reference_without_provenance_never_passes(self) -> None:
         self.reference["rights_verified"] = False
         result = compare(self.reference, self.atlas)
