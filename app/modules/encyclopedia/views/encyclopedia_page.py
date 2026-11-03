@@ -257,6 +257,9 @@ class EncyclopediaPage(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("EncyclopediaTabs")
+        # Stable per-label tab widths even when the containing page is resized
+        # between Bestiary and Encyclopedia navigation.
+        self.tabs.tabBar().setExpanding(False)
         self.tabs.tabBar().setProperty("guideActive", False)
         root.addWidget(self.tabs, 1)
 

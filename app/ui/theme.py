@@ -305,7 +305,7 @@ QTabWidget#EncyclopediaTabs::pane {
 
 QTabWidget#EncyclopediaTabs QTabBar::tab {
     background: @PANEL;
-    border: 1px solid @BORDER;
+    border: 2px solid @BORDER;
     border-bottom-color: @BORDER_SOFT;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
@@ -317,7 +317,7 @@ QTabWidget#EncyclopediaTabs QTabBar::tab {
 }
 
 QTabWidget#EncyclopediaTabs QTabBar::tab:selected {
-    background: #101E2F;
+    background: @PANEL_2;
     border-color: @GREEN;
     border-bottom: 2px solid @GREEN;
     color: @TEXT;

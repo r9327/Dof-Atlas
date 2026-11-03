@@ -153,10 +153,12 @@ def unity_skin_stylesheet() -> str:
         "border: 1px solid #475F89; }",
         "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
         "color: #F1F6FB; border: 1px solid #475F89; }",
-        "QTabBar::tab { background: rgba(25, 38, 75, 0.93); "
-        "color: #D9EAF2; border: 1px solid #475F89; }",
-        "QTabBar::tab:hover { background: #2C3C69; }",
-        "QTabBar::tab:selected { color: #F1F6FB; background: #344978; }",
+        f"QTabBar::tab {{ background: rgba(25, 38, 75, 0.93); "
+        f"color: {UNITY_PALETTE['TEXT_SOFT']}; "
+        f"border: 2px solid {UNITY_PALETTE['BORDER']}; }}",
+        f"QTabBar::tab:hover {{ background: {UNITY_PALETTE['PANEL_HOVER']}; }}",
+        f"QTabBar::tab:selected {{ color: {UNITY_PALETTE['TEXT']}; "
+        f"background: {UNITY_PALETTE['PANEL_ACTIVE']}; }}",
         "QToolTip { background: #192657; color: #F1F6FB; "
         "border: 1px solid #7B9BC8; padding: 4px; }",
         "QProgressBar { background: rgba(21, 32, 59, 0.85); "
@@ -270,8 +272,18 @@ def unity_skin_stylesheet() -> str:
         ))
     selected_tab = _sprite_url("Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png")
     if selected_tab:
+        # Keep the same border box for selected and unselected tabs. A 6px
+        # selected-only sprite border makes the tab bar jump on navigation.
+        # Encyclopedia has a more specific QSS selector, so it must be
+        # included explicitly rather than relying on the generic rule.
         rules.append(
-            'QTabBar::tab:selected { border: 6px solid transparent;'
+            "QTabBar::tab, QTabWidget#EncyclopediaTabs QTabBar::tab { "
+            "border: 6px solid transparent; }"
+        )
+        rules.append(
+            "QTabBar::tab:selected, "
+            "QTabWidget#EncyclopediaTabs QTabBar::tab:selected { "
+            "border: 6px solid transparent;"
             f' border-image: url("{selected_tab}") 6 6 6 6 stretch stretch; }}'
         )
     # Keep keyboard focus visible even when the button has a border-image.
