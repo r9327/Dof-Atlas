@@ -114,7 +114,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
 
     def test_auto_group_two_four_eight_targets_no_duplicates(self) -> None:
-        for count in (2, 4, 8):
+        for count in (2, 4, 6, 8):
             with self.subTest(count=count):
                 runtime = _runtime()
                 runtime.settings.timings.auto_group_invite_gap_ms = 0
@@ -281,7 +281,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
 
     def test_direction_two_four_eight_windows_delivered_once(self) -> None:
-        for count in (2, 4, 8):
+        for count in (2, 4, 6, 8):
             with self.subTest(count=count):
                 runtime = _runtime()
                 runtime.settings.client_by_handle.return_value = object()
