@@ -461,6 +461,77 @@ class OrganizerSendInputTests(unittest.TestCase):
         )
         self.assertEqual(logger.warning.call_count, 2)
 
+    def test_physical_click_and_wheel_survive_residual_synthetic_time_guard(self) -> None:
+        import logging
+        from app.input.input_state import (
+            ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO, InputState, SyntheticInputGuard,
+        )
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEWHEEL,
+        )
+
+        logger = logging.getLogger("test_native_event_after_sendinput")
+        guard = SyntheticInputGuard(logger)
+        guard.begin(10000)
+        click = Mock(return_value=True)
+        wheel = Mock(return_value=True)
+        hook = MouseHook(
+            InputState(), guard, logger, click, wheel_callback=wheel,
+        )
+        mouse = MSLLHOOKSTRUCT()
+        mouse.pt.x = 15
+        mouse.pt.y = 20
+        mouse.mouseData = 120 << 16
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 37
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            addr = ctypes.addressof(mouse)
+            # The temporal guard is active, but Win32 identifies these
+            # events as PHYSICAL. Do not silently miss a fast second gesture.
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, addr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+            wheel.assert_called_once_with(120, 15, 20, False)
+            click.assert_called_once_with("Left", 15, 20)
+            # Actually injected events still never enter user callbacks.
+            mouse.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, addr), 37)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 37)
+            mouse.flags = 0
+            mouse.dwExtraInfo = ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 37)
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, addr), 37)
+        click.assert_called_once()
+        wheel.assert_called_once()
+        guard.reset()
+
+    def test_actual_mouse_block_still_rejects_physical_clicks(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN,
+        )
+
+        logger = logging.getLogger("test_mirror_block_stays_active")
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        click = Mock(return_value=True)
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, click)
+        mouse = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 37
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            self.assertEqual(
+                hook._mouse_proc(0, WM_LBUTTONDOWN, ctypes.addressof(mouse)), 1,
+            )
+        click.assert_not_called()
+        state.end_mouse_block()
+
     def test_native_release_and_mirror_wheel_callbacks_coexist(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
