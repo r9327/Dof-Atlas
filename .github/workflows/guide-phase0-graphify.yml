@@ -4,9 +4,8 @@ name: Guides Phase 0 - exact SHA Graphify evidence
 # certification gate. Only changing this bridge triggers the reusable existing
 # Graphify / Doctor workflow; ordinary guide edits never trigger full graphing.
 on:
-  push:
-    branches:
-      - feat/atlas-guide-importer-pr337-20261102
+  pull_request:
+    types: [synchronize]
     paths:
       - .github/workflows/guide-phase0-graphify.yml
 
