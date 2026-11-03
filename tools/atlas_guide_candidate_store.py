@@ -403,9 +403,10 @@ def _candidate_file(root: Path, digest: str) -> Path:
     return root / "generations" / (digest + ".json")
 
 
-def _verify_generation(root: Path, digest: str) -> None:
+def _verify_generation(root: Path, digest: str) -> dict[str, Any] | None:
+    """Validate and return the document parsed from the *hashed* bytes once."""
     if digest == _NO_SELECTION:
-        return
+        return None
     path = _candidate_file(root, digest)
     if path.is_symlink() or path.parent.is_symlink():
         raise GuideRouteContractError("symlinked candidate generation")
@@ -415,7 +416,9 @@ def _verify_generation(root: Path, digest: str) -> None:
         raise GuideRouteContractError(f"missing candidate generation: {digest}") from exc
     if _digest(payload) != digest:
         raise GuideRouteContractError(f"candidate generation SHA mismatch: {digest}")
-    _validate_candidate(_read_json(path, verified_payload=payload))
+    preview = _read_json(path, verified_payload=payload)
+    _validate_candidate(preview)
+    return preview
 
 
 def publish_candidate(
