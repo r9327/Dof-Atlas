@@ -262,6 +262,47 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             ZaapMacro(runtime)._run("/zaap -5,12")
         runtime.switch_character.restore_preferred_client.assert_not_called()
 
+    def test_direction_reports_partial_when_client_activation_fails(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        with (
+            patch("app.macros.direction.foreground_window", return_value=101),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.activate_window", side_effect=[True, False]),
+            patch("app.macros.direction.press_key") as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_called_once()
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement: activation echec hwnd=%s", 202,
+        )
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement %s: envoyes=%s/%s", "partiel", 1, 2,
+        )
+
+    def test_direction_two_four_eight_windows_delivered_once(self) -> None:
+        for count in (2, 4, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                handles = list(range(101, 101 + count))
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd) for hwnd in handles
+                ]
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=[handles[0], *handles]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.activate_window", return_value=True),
+                    patch("app.macros.direction.press_key") as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(press.call_count, count)
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "termine", count, count,
+                )
+
     def test_direction_restores_favorite_on_input_exception(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
