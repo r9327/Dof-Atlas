@@ -469,6 +469,36 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertGreaterEqual(send.call_args.args[7], 50)
         runtime.macro_lock.wait.assert_called_once_with(60)
 
+    def test_native_single_client_bypasses_worker_and_mouse_block(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        runtime.settings.clients = [SimpleNamespace(handle=101)]
+        context = SwitchClickContext(101, 32, 24, 0.5, 0.5, "cursor")
+        self.assertTrue(SwitchClickMacro(runtime).run_async(
+            "Left", 100, 200, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        ))
+        runtime._spawn_macro.assert_not_called()
+        runtime.input_state.begin_mouse_block.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_native_two_client_click_still_uses_single_macro_worker(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime._spawn_macro.return_value = True
+        context = SwitchClickContext(101, 32, 24, 0.5, 0.5, "cursor")
+        self.assertTrue(SwitchClickMacro(runtime).run_async(
+            "Left", 100, 200, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        ))
+        runtime._spawn_macro.assert_called_once()
+        runtime.input_state.begin_mouse_block.assert_called_once_with("Switch clique")
+
     def test_single_client_native_click_never_reinjects_or_steals_focus(self) -> None:
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
 
