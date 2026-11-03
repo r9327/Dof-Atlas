@@ -398,6 +398,34 @@ class OrganizerSendInputTests(unittest.TestCase):
         )
         self.assertEqual(logger.debug.call_count, 0)
 
+    def test_busy_mouse_up_cannot_hide_next_down_warning(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MouseHook, WM_LBUTTONUP, WM_RBUTTONUP,
+            WM_LBUTTONDOWN, WM_MOUSEWHEEL,
+        )
+
+        logger = Mock()
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        with patch("app.input.mouse_hooks.time.monotonic",
+                   side_effect=[1.0, 1.5]):
+            for _ in range(100):
+                hook._log_blocked_event(WM_LBUTTONUP, 10, 20)
+                hook._log_blocked_event(WM_RBUTTONUP, 10, 20)
+            hook._log_blocked_event(WM_LBUTTONDOWN, 10, 20)
+            hook._log_blocked_event(WM_MOUSEWHEEL, 10, 20)
+        logger.warning.assert_any_call(
+            "Clic physique non diffusé (macro occupée=%s): event=%s",
+            "Miroir", "left_down",
+        )
+        logger.warning.assert_any_call(
+            "Molette physique non diffusée (macro occupée=%s): event=%s",
+            "Miroir", "wheel",
+        )
+        self.assertEqual(logger.warning.call_count, 2)
+
     def test_native_release_and_mirror_wheel_callbacks_coexist(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
