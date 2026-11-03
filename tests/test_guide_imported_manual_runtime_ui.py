@@ -142,6 +142,26 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(reader.route_progress_label.text(), "0 %")
         self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
 
+    def test_revocation_between_render_and_click_blocks_atomic_team_write(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        reader._show_index(0)
+        QApplication.processEvents()
+        button = reader.validation_layout.itemAt(0).widget()
+        self.assertTrue(button.isEnabled())
+        # A trusted release can be revoked after this button was rendered.
+        self.approved = False
+        button.click()
+        QApplication.processEvents()
+        self.assertFalse(self.progress_path.exists())
+        self.assertFalse(self.service.page_checked("character:1", self.service.cards[0]))
+        refreshed = reader.validation_layout.itemAt(0).widget()
+        self.assertFalse(refreshed.isEnabled())
+        self.assertIn("non autorisé", refreshed.toolTip())
+        self.service.set_page_checked("character:1", self.service.cards[0], 0, True)
+        self.assertFalse(self.progress_path.exists())
+
     def test_revoked_authorization_blocks_reopen_and_exits_on_refresh(self):
         self.approved = True
         self.assertTrue(self.view.select_guide(self.service.guide_id))
