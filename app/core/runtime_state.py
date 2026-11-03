@@ -607,15 +607,24 @@ class AtlasRuntime:
 
         if not pressed:
             return False
+        if (not self._running or not self._admin_ok
+                or self.settings.macro_mode != "mirror"):
+            return False
+        foreground = foreground_window()
+        if self.macro_lock.active_label:
+            # During a replay, avoid enumerating and probing EVERY Unity
+            # process on each physical key repeat. Only an authenticated
+            # tracked foreground client may have its event suppressed.
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            return (
+                foreground in (c.handle for c in self.settings.clients)
+                and is_dofus_unity_process(foreground)
+            )
         snapshot = self._mirror_gesture_targets()
         if snapshot is None:
             return False
         source, targets = snapshot
-        foreground = foreground_window()
-        if self.macro_lock.active_label:
-            # During a sequential replay another tracked client may have
-            # focus. Suppress accidental keystrokes into that client only.
-            return foreground in targets
         if foreground != source:
             return False
         try:
@@ -632,13 +641,23 @@ class AtlasRuntime:
             foreground_window, screen_to_client,
         )
 
+        if (not self._running or not self._admin_ok
+                or self.settings.macro_mode != "mirror"):
+            return False
+        foreground = foreground_window()
+        if self.macro_lock.active_label:
+            # Wheel ticks can arrive rapidly; do not run a full 2–8 HWND
+            # enumeration just to reject one busy native gesture.
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            return (
+                foreground in (c.handle for c in self.settings.clients)
+                and is_dofus_unity_process(foreground)
+            )
         snapshot = self._mirror_gesture_targets()
         if snapshot is None:
             return False
         source, targets = snapshot
-        foreground = foreground_window()
-        if self.macro_lock.active_label:
-            return foreground in targets
         if foreground != source:
             return False
         if find_known_client_from_point(screen_x, screen_y, (source,)) != source:
