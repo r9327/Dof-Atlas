@@ -71,6 +71,44 @@ class TestGuideConformity(unittest.TestCase):
         self.assertTrue(any("guides[2220]" in issue["field_path"] for issue in result["issues"]))
         self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
 
+    def test_missing_whole_guide_enumerates_its_steps_and_actions(self) -> None:
+        self.atlas["guides"].pop()
+        report = compare(self.reference, self.atlas)
+        paths = {(entry["issue_code"], entry["field_path"]) for entry in report["issues"]}
+        self.assertIn(("MISSING_GUIDE", ".guides[2220]"), paths)
+        self.assertIn(("MISSING_STEP", ".guides[2220].steps[one]"), paths)
+        self.assertIn(("MISSING_ACTION", ".guides[2220].steps[one].actions[fight]"), paths)
+        action = next(entry for entry in report["issues"]
+                      if entry["issue_code"] == "MISSING_ACTION")
+        self.assertEqual(action["guide_id"], "2220")
+        self.assertEqual(action["source_step_id"], "one")
+        self.assertEqual(action["action_id"], "fight")
+        self.assertEqual(action["expected"]["monsters"][0]["quantity"], 3)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
+    def test_missing_whole_step_enumerates_its_actions(self) -> None:
+        self.atlas["guides"][0]["steps"].pop()
+        report = compare(self.reference, self.atlas)
+        codes = [entry["issue_code"] for entry in report["issues"]]
+        self.assertIn("MISSING_STEP", codes)
+        self.assertIn("MISSING_ACTION", codes)
+        self.assertTrue(any(
+            entry["source_step_id"] == "B" and entry["action_id"] == "move"
+            for entry in report["issues"] if entry["issue_code"] == "MISSING_ACTION"
+        ))
+
+    def test_extra_whole_step_enumerates_its_actions(self) -> None:
+        self.atlas["guides"][0]["steps"].append({
+            "source_step_id": "invented", "title": "Fictitious step",
+            "actions": [{"action_id": "invented_action", "kind": "talk", "npc": "Fiction"}],
+        })
+        report = compare(self.reference, self.atlas)
+        paths = {(entry["issue_code"], entry["field_path"]) for entry in report["issues"]}
+        self.assertIn(("EXTRA_STEP", ".guides[2219].steps[invented]"), paths)
+        self.assertIn(("EXTRA_ACTION",
+                       ".guides[2219].steps[invented].actions[invented_action]"), paths)
+        self.assertFalse(report["certified"])
+
     def test_missing_step_and_action(self) -> None:
         self.atlas["guides"][0]["steps"].pop()
         self.atlas["guides"][0]["steps"][0]["actions"].pop(0)
@@ -307,7 +345,11 @@ class TestGuideConformity(unittest.TestCase):
             self.assertFalse(after_report["certified"])
             self.assertEqual(after_report["issue_count"], 0)
             delta = json.loads((root / "results" / "before_after.json").read_text())
-            self.assertEqual(len(delta["resolved"]), 1)
+            self.assertEqual(len(delta["resolved"]), 2)
+            self.assertEqual(
+                {entry["issue_code"] for entry in delta["resolved"]},
+                {"MISSING_STEP", "MISSING_ACTION"},
+            )
 
     def test_cli_rejects_case_variant_protected_report_directory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

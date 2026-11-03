@@ -148,6 +148,49 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
         else:
             inspected["reference_actions"] += len(lhs)
             inspected["atlas_actions"] += len(rhs)
+        # When an entire guide or step is absent, comparing only shared
+        # parent IDs hides its missing individual steps/actions. Enumerate
+        # descendants without duplicating their subtrees in every issue.
+        def report_descendants(
+            document: dict[str, Any], parent_path: str, parent_kind: str,
+            missing: bool, evidence: str | None,
+        ) -> None:
+            if parent_kind == "guide":
+                field, child_kind = "steps", "step"
+            elif parent_kind == "step":
+                field, child_kind = "actions", "action"
+            else:
+                return
+            children = document.get(field)
+            if not isinstance(children, list):
+                return  # The independent inventory reports malformed lists.
+            child_key = _ID_KEYS[child_kind]
+            for child in children:
+                if not isinstance(child, dict):
+                    continue
+                child_id = _identifier(child.get(child_key))
+                if child_id is None:
+                    continue  # The independent inventory/ID checks reject it.
+                child_path = f"{parent_path}.{field}[{child_id}]"
+                previous_id = context[child_key]
+                context[child_key] = child_id
+                child_evidence = child.get("evidence_ref", evidence)
+                # Emit each source object exactly once, not a quadratic copy
+                # of all its descendants under both guide and step issues.
+                summary = {
+                    key: value for key, value in child.items()
+                    if key not in {"steps", "actions"}
+                }
+                report(
+                    ("MISSING_" if missing else "EXTRA_") + child_kind.upper(),
+                    child_path,
+                    summary if missing else None,
+                    None if missing else summary,
+                    child_evidence if missing else evidence,
+                )
+                report_descendants(child, child_path, child_kind, missing, child_evidence)
+                context[child_key] = previous_id
+
         target = _ID_KEYS[kind]
         for identifier in lhs_order:
             if identifier not in rhs:
@@ -156,6 +199,8 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                 report("MISSING_" + kind.upper(), f"{path}[{identifier}]",
                        {"id": identifier, "title": lhs[identifier].get("title")},
                        None, lhs[identifier].get("evidence_ref", parent_evidence))
+                report_descendants(lhs[identifier], f"{path}[{identifier}]", kind, True,
+                                   lhs[identifier].get("evidence_ref", parent_evidence))
                 context[target] = previous_id
         for identifier in rhs_order:
             if identifier not in lhs:
@@ -163,6 +208,8 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                 context[target] = identifier
                 report("EXTRA_" + kind.upper(), f"{path}[{identifier}]", None,
                        {"id": identifier, "title": rhs[identifier].get("title")}, parent_evidence)
+                report_descendants(rhs[identifier], f"{path}[{identifier}]", kind, False,
+                                   parent_evidence)
                 context[target] = previous_id
         shared_lhs = [x for x in lhs_order if x in rhs]
         shared_rhs = [x for x in rhs_order if x in lhs]
