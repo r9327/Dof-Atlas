@@ -652,6 +652,32 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, #inputField:focus, #comboField
     border-color: @GREEN;
 }
 
+/* One popup contract for all native dropdowns (including Successes). */
+QComboBox:hover {
+    border-color: @BORDER_STRONG;
+}
+
+QComboBox:disabled {
+    background: @PANEL;
+    border-color: @BORDER_SOFT;
+    color: @TEXT_DISABLED;
+}
+
+QComboBox::drop-down {
+    border: none;
+    border-left: 1px solid @BORDER_SOFT;
+    width: @CONTROL_HEIGHT_COMPACT;
+}
+
+QComboBox QAbstractItemView {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    outline: none;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+
 QSpinBox#QuantitySpinBox {
     padding-left: @SPACE_MD;
     padding-right: 30px;

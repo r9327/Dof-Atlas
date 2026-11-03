@@ -47,6 +47,22 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIs(calls[0][1], overrides)
         self.assertIs(calls[1][1], overrides)
 
+    def test_dropdown_popup_and_disabled_states_share_unity_tokens(self) -> None:
+        overrides = {
+            "PANEL_ACTIVE": "#123ABC",
+            "TEXT_DISABLED": "#ABC123",
+            "BORDER_STRONG": "#234BCD",
+        }
+        style = theme.atlas_stylesheet(overrides)
+        popup = style.split("QComboBox QAbstractItemView {", 1)[1].split("}", 1)[0]
+        disabled = style.split("QComboBox:disabled {", 1)[1].split("}", 1)[0]
+        hover = style.split("QComboBox:hover {", 1)[1].split("}", 1)[0]
+        self.assertIn("selection-background-color: #123ABC;", popup)
+        self.assertIn("selection-color: " + theme.PALETTE["TEXT"] + ";", popup)
+        self.assertIn("color: #ABC123;", disabled)
+        self.assertIn("border-color: #234BCD;", hover)
+        self.assertIn("QComboBox::drop-down {", style)
+
     def test_atlas_stylesheet_reuses_cached_static_template(self) -> None:
         calls: list[tuple[str, object]] = []
 
