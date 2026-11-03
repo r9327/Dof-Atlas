@@ -184,10 +184,16 @@ class MouseHook:
                     or extra_info == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
 
-                # A native source DOWN that was not intercepted must keep its
-                # matching UP. The release callback may start a replay worker,
-                # which will block subsequent mouse events; never swallow the
-                # UP that completes the user's real click in Unity.
+                # A swallowed DOWN owns its matching physical UP. Never run
+                # native-release callbacks for that pair: an UP without its
+                # corresponding DOWN can activate an unrelated Unity target.
+                if not atlas_synthetic and w_param in self._consumed_releases:
+                    self._consumed_releases.discard(int(w_param))
+                    return 1
+
+                # A native source DOWN that was NOT swallowed must keep its
+                # matching UP, even when the release callback starts a replay
+                # worker which blocks subsequent mouse events.
                 if (
                     not atlas_synthetic
                     and w_param in (WM_LBUTTONUP, WM_RBUTTONUP)
@@ -198,12 +204,6 @@ class MouseHook:
                         return ctypes.windll.user32.CallNextHookEx(
                             self._hook, n_code, w_param, l_param,
                         )
-
-                # The worker may finish before the user releases the button.
-                # Suppress that paired UP even after the general block ends.
-                if not atlas_synthetic and w_param in self._consumed_releases:
-                    self._consumed_releases.discard(int(w_param))
-                    return 1
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
                     self._log_blocked_event(w_param, x, y)
