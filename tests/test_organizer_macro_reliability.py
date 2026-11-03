@@ -469,6 +469,36 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertGreaterEqual(send.call_args.args[7], 50)
         runtime.macro_lock.wait.assert_called_once_with(60)
 
+    def test_single_client_native_click_never_reinjects_or_steals_focus(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 32, 24, 0.5, 0.5, "cursor")
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(1, 2)),
+            patch("app.macros.switch_click.set_cursor_pos") as move,
+            patch("app.macros.switch_click.activate_window") as activate,
+            patch("app.macros.switch_click.send_client_click") as send,
+        ):
+            macro._run(
+                "Left", 1, "Switch clique", context,
+                mouse_block_started=True, physical_source_delivered=True,
+            )
+        activate.assert_not_called()
+        send.assert_not_called()
+        runtime.macro_lock.wait.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+        # Worker still owns a cursor snapshot in this test; restoration is
+        # the existing cleanup contract, not an injected click.
+        move.assert_called_once_with(1, 2)
+
     def test_native_source_rejects_implicit_fallback_context(self) -> None:
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
 
