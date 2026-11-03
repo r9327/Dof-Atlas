@@ -61,6 +61,40 @@ class TestSharedRouteContract(unittest.TestCase):
                 [item["action_id"] for item in actions if item["kind"] != "prepare"],
             )
 
+    def test_travel_source_and_displayed_coordinates_must_agree(self):
+        for travel_xy, step_xy, text in (
+            ([-11, 7], [-12, 7], "Aller en [-12,7]"),
+            (None, [0, 0], "Aller en [-12,7]"),
+            ([-12, 7], [-12, 7], "Aller en [-12,7] puis [3,4]"),
+            ([-12, 7], [-12, 7], "Aller en [99999999999,4]"),
+        ):
+            with self.subTest(travel_xy=travel_xy, step_xy=step_xy, text=text):
+                doc = sample()
+                doc["steps"][0]["coordinates"] = step_xy
+                action = doc["steps"][0]["actions"][0]
+                action["text"] = text
+                if travel_xy is None:
+                    action.pop("coordinates", None)
+                else:
+                    action["coordinates"] = travel_xy
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    "coordinates: conflicts with authored travel text",
+                ):
+                    project_authorized_guide(doc)
+
+        doc = sample()
+        doc["steps"][0]["actions"][0]["text"] = "Aller en [-012, 007]"
+        self.assertEqual(
+            project_authorized_guide(doc)["steps"][0]["manual_sections"]["now"][0]["position"],
+            "[-12,7]",
+        )
+        doc["steps"][0]["actions"][0]["text"] = "Se déplacer avec le zaap indiqué"
+        self.assertEqual(
+            project_authorized_guide(doc)["steps"][0]["manual_sections"]["now"][0]["position"],
+            "[-12,7]",
+        )
+
     def test_dialogue_choice_must_be_visible_nonempty_source_text(self):
         for invalid in (None, "", "  ", 0, False, [], {}):
             with self.subTest(invalid=invalid):
