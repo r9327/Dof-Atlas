@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import re
+from urllib.parse import quote
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -57,15 +59,37 @@ def _preparation_icon_roots() -> tuple[Path, ...]:
                             for directory in root.iterdir() if directory.is_dir())
 
 
+@lru_cache(maxsize=512)
+def _guide_entity_icon_path(kind: str, game_id: int) -> Path | None:
+    """Resolve only packaged, typed game IDs; never fetch a remote image."""
+    from app.core.entity_identity import canonical_entity_key
+
+    try:
+        identity = canonical_entity_key(kind, game_id)
+    except ValueError:
+        return None
+    entity_kind, canonical_id = identity.split(":", 1)
+    if entity_kind == "item":
+        folders = _preparation_icon_roots()
+    elif entity_kind == "profession":
+        folders = (DATA_DIR / "images" / "misc" / "jobs",)
+    elif entity_kind in {"monster", "boss", "dungeon", "npc", "quest", "achievement"}:
+        # Optional shipped directories are treated as absent, never fabricated.
+        folders = (DATA_DIR / "images" / f"{entity_kind}s",)
+    else:
+        return None
+    for folder in folders:
+        path = folder / f"{canonical_id}.png"
+        if path.is_file():
+            return path
+    return None
+
+
 @lru_cache(maxsize=1024)
 def _preparation_icon_path(item_id: int) -> Path | None:
     # The canonical images are grouped by type, not in one flat directory.
     # No eager image decode or full filesystem index at app startup.
-    for folder in _preparation_icon_roots():
-        candidate = folder / f"{item_id}.png"
-        if candidate.is_file():
-            return candidate
-    return None
+    return _guide_entity_icon_path("item", item_id)
 
 
 _COMBAT_STOP_WORDS = {
@@ -528,6 +552,36 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._last_route_position_key = key
         return value
 
+    @staticmethod
+    def _inline_source_item_images(rendered: str, source_action: Any) -> str:
+        """Decorate verified source item links with existing local item images.
+
+        Only an explicit numeric item ID and a matching already-clickable name
+        qualify. Missing artwork keeps the exact text/link unchanged; never
+        infer an ID from prose or place image URLs from imported source data.
+        """
+        if not isinstance(source_action, dict):
+            return rendered
+        items = source_action.get("items")
+        if not isinstance(items, list):
+            return rendered
+        for item in items[:6]:
+            if not isinstance(item, dict):
+                continue
+            item_id, name = item.get("item_id"), item.get("name")
+            if type(item_id) is not int or item_id <= 0 or not isinstance(name, str):
+                continue
+            href = html.escape(f"item-copy:{quote(name, safe='')}", quote=True)
+            anchor = f'<a href="{href}"'
+            if anchor not in rendered:
+                continue
+            path = _guide_entity_icon_path("item", item_id)
+            if path is None:
+                continue
+            icon = f'<img src="{html.escape(path.as_uri(), quote=True)}" width="16" height="16" alt="" /> '
+            rendered = rendered.replace(anchor, icon + anchor, 1)
+        return rendered
+
     def _add_line_section(
         self,
         root: QVBoxLayout,
@@ -626,16 +680,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 npc_names.append(source_npc.strip())
 
             line = QLabel()
-            self._set_clickable_text(
-                line,
-                self._format_line_html(
-                    prefix,
-                    position,
-                    text,
-                    npc_names,
-                    self._resource_names,
-                ),
+            rendered_text = self._format_line_html(
+                prefix, position, text, npc_names, self._resource_names,
             )
+            if isinstance(source_action, dict):
+                rendered_text = self._inline_source_item_images(
+                    rendered_text, source_action,
+                )
+            self._set_clickable_text(line, rendered_text)
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
                 line.setStyleSheet(

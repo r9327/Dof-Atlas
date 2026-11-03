@@ -332,5 +332,44 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         ), 1)
         self.assertFalse(view._need_ready(view._preparation_needs[0]))
 
+    def test_local_typed_item_image_is_inline_and_keeps_copy_link(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualCard, _guide_entity_icon_path,
+        )
+        from app.core.entity_identity import canonical_entity_key
+
+        with tempfile.TemporaryDirectory() as folder:
+            image = Path(folder) / "123.png"
+            image.write_bytes(b"not-decoded-by-this-contract")
+            source = {"items": [{"item_id": 123, "name": "Poudre fictive", "quantity": 2}]}
+            original = '<a href="item-copy:Poudre%20fictive" style="color:green">Poudre fictive</a>'
+            with patch("app.modules.encyclopedia.views.shared_manual_guide_view._guide_entity_icon_path",
+                       return_value=image) as resolver:
+                decorated = SharedGuideManualCard._inline_source_item_images(original, source)
+            self.assertIn('<img src="file:', decorated)
+            self.assertIn(image.as_uri(), decorated)
+            self.assertIn(original, decorated)
+            resolver.assert_called_once_with("item", 123)
+            self.assertEqual(canonical_entity_key("object", 123), "item:123")
+
+    def test_inline_image_missing_or_unverified_id_never_changes_source_text(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualCard,
+        )
+        rendered = '<a href="item-copy:Poudre%20fictive">Poudre fictive</a>'
+        with patch("app.modules.encyclopedia.views.shared_manual_guide_view._guide_entity_icon_path",
+                   return_value=None):
+            self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+                rendered, {"items": [{"item_id": 123, "name": "Poudre fictive"}]}
+            ), rendered)
+        self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+            rendered, {"items": [{"item_id": "123", "name": "Poudre fictive"}]}
+        ), rendered)
+        self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+            rendered, {"items": [{"item_id": 123, "name": "Autre objet"}]}
+        ), rendered)
+
 if __name__ == "__main__":
     unittest.main()
