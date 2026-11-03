@@ -572,7 +572,7 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 special = sheet.findChildren(QLabel, "GuideManualSpecial")
                 dungeon = sheet.findChildren(QLabel, "GuideManualCombat")
                 self.assertTrue(any(
-                    "Sélectionner l'option B fictive" in label.text()
+                    "Sélectionner l'option B fictive" in unescape(label.text())
                     for label in special
                 ))
                 self.assertTrue(any(
