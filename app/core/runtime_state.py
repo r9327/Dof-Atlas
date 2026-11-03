@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from time import monotonic
 from dataclasses import dataclass
 from logging import Logger
 from typing import Callable
@@ -107,6 +108,7 @@ class AtlasRuntime:
         self._macro_init_lock = threading.RLock()
         self._switch_character = None
         self._switch_click = None
+        self._pending_physical_switch = None
         self._mirror_input = None
         self._direction = None
         self._travel = None
@@ -118,7 +120,9 @@ class AtlasRuntime:
         )
         self.mouse_hook = ManagedMouseHook(
             self.input_state, self.synthetic_guard, self.logger,
-            self._handle_mouse_click, wheel_callback=self._handle_mirror_wheel,
+            self._handle_mouse_click,
+            wheel_callback=self._handle_mirror_wheel,
+            release_callback=self._handle_mouse_release,
         )
         self.last_client_point = LastClientPoint()
         self.active_client_handle = 0
@@ -489,6 +493,7 @@ class AtlasRuntime:
 
     def emergency_stop(self, reason: str = "stop urgence") -> None:
         self.macro_lock.request_stop(reason)
+        self._pending_physical_switch = None
         self.input_state.reset_armed()
         self.input_state.clear_mouse_block()
         self.synthetic_guard.reset()
@@ -721,6 +726,31 @@ class AtlasRuntime:
             self.logger.debug("Payload switch invalide: action=%s payload=%s", action.action_id, action.payload)
             click_count = 1
         action_label = str(action.payload.get("label", "Switch clique"))
+        # Unity world targets can require the native DOWN/UP pair on the
+        # foreground source. Keep that pair intact for a simple click and
+        # replay only the other clients after physical release.
+        if click_count == 1 and str(button).casefold() in {"left", "right"}:
+            from app.windows.unity_windows import (
+                find_known_client_from_point, foreground_window,
+            )
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            source = find_known_client_from_point(
+                screen_x, screen_y,
+                (client.handle for client in self.settings.clients),
+            )
+            if (source and foreground_window() == source
+                    and is_dofus_unity_process(int(source))):
+                context = self.switch_click._capture_trigger_context(
+                    screen_x, screen_y, action_label,
+                )
+                if (context is not None and context.reason == "cursor"
+                        and context.source_hwnd == source):
+                    self._pending_physical_switch = (
+                        button, screen_x, screen_y, click_count,
+                        action_label, context, monotonic(),
+                    )
+                    return False
         try:
             started = self.switch_click.run_async(
                 button,
@@ -743,4 +773,41 @@ class AtlasRuntime:
                 action_label,
             )
             return False
+        return True
+
+    def _handle_mouse_release(self, button: str, screen_x: int, screen_y: int) -> bool:
+        """Finish one native foreground click, then replay to other clients.
+
+        True asks the hook to FORWARD the real UP even when the asynchronous
+        replay begins blocking later gestures. It does not claim replay worked.
+        """
+        pending = getattr(self, "_pending_physical_switch", None)
+        if pending is None or str(pending[0]).casefold() != str(button).casefold():
+            return False
+        self._pending_physical_switch = None
+        (_button, down_x, down_y, count, label, context, captured_at) = pending
+        from app.windows.unity_windows import foreground_window
+        from app.macros.mirror_plan import is_dofus_unity_process
+
+        try:
+            if (
+                not self._running or not self._admin_ok
+                or self.settings.macro_mode != "macro"
+                or self.macro_lock.should_stop()
+                or self.macro_lock.active_label
+                or not 0 <= monotonic() - captured_at <= 2.0
+                or foreground_window() != context.source_hwnd
+                or not is_dofus_unity_process(context.source_hwnd)
+                or (int(screen_x) - down_x) ** 2
+                   + (int(screen_y) - down_y) ** 2 > 24 ** 2
+            ):
+                return True
+            self.switch_click.run_async(
+                button, down_x, down_y, count, label,
+                captured_context=context,
+                physical_source_delivered=True,
+            )
+        except Exception:
+            self.logger.exception("%s: duplication après clic physique impossible.", label)
+        # Native UP must ALWAYS reach Unity, regardless of replay success.
         return True
