@@ -51,6 +51,11 @@ class MirrorInputMacro:
         )
 
     def _still_current(self, source: int, handles: tuple[int, ...]) -> bool:
+        """Cheap roster check; native DOFUS identity is validated separately.
+
+        Do not treat True as authorization to send input. The worker must
+        verify all processes at preflight and the recipient before each send.
+        """
         settings = self.runtime.settings
         if settings.macro_mode != "mirror" or settings.primary_handle != source:
             return False
