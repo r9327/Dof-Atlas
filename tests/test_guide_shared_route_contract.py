@@ -223,6 +223,10 @@ class TestSharedRouteContract(unittest.TestCase):
             source["steps"][0]["actions"][0]["items"] = [
                 {"name": "Fictitious item", "quantity": 1},
             ]
+            if kind == "combat":
+                source["steps"][0]["actions"][0]["monsters"] = [
+                    {"name": "Fictitious monster", "quantity": 1},
+                ]
             with self.subTest(kind=kind), self.assertRaisesRegex(
                 GuideRouteContractError, "prepare action/section"
             ):

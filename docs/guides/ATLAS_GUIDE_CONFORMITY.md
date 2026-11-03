@@ -525,3 +525,24 @@ Les sorties explicites hors du dépôt restent autorisées sous réserve des
 contrôles existants (dossiers sensibles, symlinks, existence et conflits).
 Les tests de sécurité utilisent uniquement des parcours synthétiques et
 ne prouvent pas une activation ni une certification Windows/DOFUS.
+
+### Lot de cohérence des actions et d'attestations figées (3 novembre 2026)
+
+Les cartes source interdisent désormais qu'une action `travel`, `talk`,
+`combat` ou `item` soit cachée dans le panneau exclusivement destiné aux
+préparatifs. Inversement, une action `prepare` ne peut quitter ce panneau.
+L'adaptateur et le comparateur indépendant appliquent cette règle, et
+refusent les noms de quête vides/non textuels et les prérequis qui ne sont
+pas des objets structurés non vides. Les champs métiers inconnus de ces
+objets sont conservés sans interprétation inventée.
+
+`stage_checked_candidate` exige que l'identifiant du prochain guide
+soit celui vérifié par le gate séquentiel, et fige les empreintes de la
+source, de la référence indépendante et des exports Atlas AVANT/APRÈS.
+Une mutation de ces documents par un hôte de vérification, ou durant la
+préparation, bloque le stockage. Ces empreintes sont des protections
+contre les mutations involontaires, **pas** des certificats de source.
+
+Tests ciblés : uniquement fixtures fictives, jamais de guide réel.
+Le contrôle Graphify exact-SHA, la boucle `doctor agent plan/check/validate`,
+la recette UI/Windows/DOFUS et la certification de Phase restent à faire.
