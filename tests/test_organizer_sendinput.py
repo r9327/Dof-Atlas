@@ -586,6 +586,25 @@ class OrganizerSendInputTests(unittest.TestCase):
                     count + 1, count,
                 )
 
+    def test_stop_preserves_native_release_lease_until_hook_is_removed(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_LBUTTONUP
+
+        logger = Mock()
+        hook = MouseHook(InputState(), SyntheticInputGuard(logger), logger, Mock())
+        hook._consumed_releases.add(WM_LBUTTONUP)
+        observed = []
+        with patch(
+            "app.input.mouse_hooks.stop_message_hook",
+            side_effect=lambda current: observed.append(
+                set(current._consumed_releases)
+            ),
+        ):
+            hook.stop()
+        self.assertEqual(observed, [{WM_LBUTTONUP}])
+        self.assertEqual(hook._consumed_releases, set())
+        self.assertEqual(hook._last_block_log, 0.0)
+
     def test_busy_input_telemetry_resets_on_mouse_hook_stop(self) -> None:
         from app.input.input_state import InputState, SyntheticInputGuard
         from app.input.mouse_hooks import MouseHook, WM_LBUTTONDOWN, WM_MOUSEWHEEL
