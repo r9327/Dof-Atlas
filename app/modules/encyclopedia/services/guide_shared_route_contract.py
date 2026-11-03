@@ -197,6 +197,24 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             if quest_id in seen_quest_ids:
                 raise GuideRouteContractError(f"{prefix}.quest_ids: duplicate quest ID {quest_id}")
             seen_quest_ids.add(quest_id)
+        # A source action can own a precise Quest shortcut. It may only
+        # reference IDs explicitly declared on its containing source step;
+        # neither the reader nor an external catalog may invent that link.
+        for action_index, action in enumerate(actions):
+            if "quest_ids" not in action:
+                continue
+            linked = action["quest_ids"]
+            label = f"{prefix}.actions[{action_index}].quest_ids"
+            if not isinstance(linked, list):
+                raise GuideRouteContractError(f"{label}: list required")
+            if any(type(qid) is not int or qid <= 0 for qid in linked):
+                raise GuideRouteContractError(f"{label}: positive integer IDs required")
+            if len(linked) != len(set(linked)):
+                raise GuideRouteContractError(f"{label}: duplicate quest ID")
+            if any(qid not in seen_quest_ids for qid in linked):
+                raise GuideRouteContractError(
+                    f"{label}: quest ID must be declared in step.quest_ids"
+                )
         for name in step.get("quest_names", []):
             _text(name, f"{prefix}.quest_names")
         # Hard gates are structured, not rendered text. Retain every unknown
