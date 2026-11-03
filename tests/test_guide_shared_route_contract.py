@@ -77,6 +77,68 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertIsNone(stored["media"])
         self.assertEqual(stored["source_url"], "https://example.invalid/proof")
 
+    def test_hidden_guide_specific_action_gates_require_real_validation_contract(self):
+        # The generic button must not certify a source action whose own
+        # completion/condition logic has not been wired into its guide.
+        for field, value in (
+            ("conditions", [{"alignment": "bonta"}]),
+            ("validation", {"kind": "quest_completed"}),
+            ("validation_rule", {"flag": "npc_answer"}),
+            ("completion_rule", {"boss": "Monstre fictif"}),
+            ("required_level", 200),
+            ("required_class", "feca"),
+            ("required_alignment", "bonta"),
+            ("required_order", "ordre_2"),
+            ("prerequisites", [{"quest_id": 123}]),
+            ("objectives", [{"kill": "Monstre fictif"}]),
+            ("dungeon_successes", ["Premier", "Nomade"]),
+            ("challenges", ["Premier"]),
+        ):
+            with self.subTest(field=field):
+                source = sample()
+                source["steps"][0]["actions"][1][field] = value
+                with self.assertRaises(GuideRouteContractError) as blocked:
+                    project_authorized_guide(source)
+                self.assertIn(
+                    f"actions[1].{field}: unsupported authored UI content",
+                    str(blocked.exception),
+                )
+
+    def test_nested_resources_and_monsters_with_hidden_actions_are_blocked(self):
+        for collection, action_index in (("items", 2), ("monsters", 3)):
+            for field, value in (
+                ("choices", ["A", "B"]),
+                ("condition", {"quest": "test"}),
+                ("location", [-5, 2]),
+                ("equip", True),
+                ("consume", True),
+                ("buy", True),
+                ("collect", True),
+                ("craft_recipe", {"item": "Ressource fictive"}),
+                ("drop", {"rate": 0.5}),
+                ("success_ids", [123]),
+                ("challenges", ["Premier"]),
+                ("media", ["image.png"]),
+                ("links", ["https://example.invalid"]),
+                ("actions", [{"kind": "talk"}]),
+            ):
+                with self.subTest(collection=collection, field=field):
+                    source = sample()
+                    source["steps"][0]["actions"][action_index][collection][0][field] = value
+                    with self.assertRaises(GuideRouteContractError) as blocked:
+                        project_authorized_guide(source)
+                    self.assertIn(
+                        f"actions[{action_index}].{collection}[0].{field}: unsupported authored UI content",
+                        str(blocked.exception),
+                    )
+        source = sample()
+        source["steps"][0]["actions"][2]["items"][0]["links"] = []
+        source["steps"][0]["actions"][3]["monsters"][0]["media"] = None
+        route = project_authorized_guide(source)
+        step_actions = route["steps"][0]["manual_runtime_metadata"]["source_step"]["actions"]
+        self.assertEqual(step_actions[2]["items"][0]["links"], [])
+        self.assertIsNone(step_actions[3]["monsters"][0]["media"])
+
     def test_unrenderable_step_branch_or_media_does_not_hide_in_route_metadata(self):
         for field, value in (
             ("branches", [{"target": "hidden_step"}]),
