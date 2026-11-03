@@ -152,5 +152,62 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_unity_hover_settle_follows_pointer_move_before_mouse_down(self) -> None:
+        events: list[tuple[str, int]] = []
+        guard = Mock()
+        logger = Mock()
+
+        def move(x: int, y: int) -> None:
+            self.assertEqual((x, y), (320, 240))
+            events.append(("move", x))
+
+        def pause(ms: int, _should_stop) -> bool:
+            events.append(("hover", ms))
+            return False
+
+        def send(flag: int) -> bool:
+            events.append(("input", flag))
+            return True
+
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos", side_effect=move),
+            patch.object(clicks, "wait_ms", side_effect=pause),
+            patch.object(clicks, "_send_mouse_flag", side_effect=send),
+        ):
+            delivered = clicks.send_screen_click(
+                320, 240, "Left", 1, 40, 0, 45, 0,
+                guard, logger,
+            )
+
+        self.assertTrue(delivered)
+        self.assertEqual(events, [
+            ("move", 320),
+            ("hover", 45),
+            ("input", clicks.MOUSEEVENTF_LEFTDOWN),
+            ("hover", 40),
+            ("input", clicks.MOUSEEVENTF_LEFTUP),
+        ])
+        guard.begin.assert_called_once()
+        guard.end.assert_called_once_with(120)
+
+    def test_unity_hover_stop_prevents_mouse_down_after_cursor_move(self) -> None:
+        events: list[str] = []
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos", side_effect=lambda *_: events.append("move")),
+            patch.object(clicks, "wait_ms", side_effect=lambda *_: events.append("stop") or True),
+            patch.object(clicks, "_send_mouse_flag", side_effect=AssertionError("clicked after stop")),
+        ):
+            delivered = clicks.send_screen_click(
+                320, 240, "Left", 1, 40, 0, 45, 0,
+                guard, Mock(), should_stop=lambda: False,
+            )
+        self.assertFalse(delivered)
+        self.assertEqual(events, ["move", "stop"])
+        guard.end.assert_called_once_with(120)
+
+
 if __name__ == "__main__":
     unittest.main()
