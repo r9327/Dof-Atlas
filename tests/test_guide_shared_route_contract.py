@@ -192,7 +192,10 @@ class TestSharedRouteContract(unittest.TestCase):
         bad["steps"][0]["actions"].append({
             "action_id": "late-prepare", "kind": "prepare",
             "text": "Préparer ensuite un objet",
+            "items": [{"name": "Ressource vérifiée", "quantity": 2}],
         })
+        # With valid resource data, this must be blocked for ordering, not
+        # incidentally rejected earlier as a malformed item action.
         with self.assertRaisesRegex(GuideRouteContractError, "preparation would reorder"):
             project_authorized_guide(bad)
 
