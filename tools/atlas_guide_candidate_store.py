@@ -190,18 +190,23 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                 if items is not None:
                     if not isinstance(items, list) or any(not isinstance(i, dict) for i in items):
                         raise GuideRouteContractError("invalid original source items")
-                    for item in items:
+                    for item_index, item in enumerate(items):
                         name = item.get("name")
                         if not isinstance(name, str) or not name:
                             raise GuideRouteContractError("invalid source resource")
                         if name not in resource_names:
                             resource_names.append(name)
                         if section == "prepare":
-                            preparation.append({
+                            entry = {
                                 "name": name, "quantity": item.get("quantity"),
                                 "item_id": item.get("item_id"),
                                 "source_action_id": str(action.get("action_id")),
-                            })
+                                "occurrence_id": f"{action.get('action_id')}:{item_index}",
+                            }
+                            for optional_field in ("consumption", "quantity_scope"):
+                                if optional_field in item:
+                                    entry[optional_field] = item[optional_field]
+                            preparation.append(entry)
             if step.get("manual_resource_names") != resource_names:
                 raise GuideRouteContractError("resource copy links missing from UI")
             if step.get("a_preparer") != preparation:

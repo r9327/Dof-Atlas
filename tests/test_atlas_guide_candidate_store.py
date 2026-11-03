@@ -1077,5 +1077,42 @@ class CandidateStoreTests(unittest.TestCase):
         self.assertFalse(forbidden.parent.exists())
 
 
+    def test_source_quantity_scope_round_trip_is_verified_in_candidate(self) -> None:
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [{
+                "guide_id": 99, "title": "Guide fictif",
+                "steps": [{
+                    "source_step_id": "step-1", "title": "Préparation",
+                    "actions": [{
+                        "action_id": "prepare-1", "kind": "prepare",
+                        "text": "Préparer deux poudres",
+                        "items": [{
+                            "name": "Poudre fictive", "item_id": 123, "quantity": 2,
+                            "consumption": "consumable",
+                            "quantity_scope": "party_shared",
+                        }],
+                    }, {
+                        "action_id": "talk-2", "kind": "talk",
+                        "text": "Parler à un PNJ fictif",
+                    }],
+                }],
+            }],
+        }
+        preview = prepare_preview(source, expected_guides=1, expected_steps=1)
+        self.assertEqual(
+            preview["routes"][0]["steps"][0]["a_preparer"][0]["quantity_scope"],
+            "party_shared",
+        )
+        result = publish_candidate(preview, root=self.root)
+        self.assertEqual(result["status"], "CANDIDATE_STORED_NOT_ACTIVE")
+        altered = copy.deepcopy(preview)
+        altered["routes"][0]["steps"][0]["a_preparer"][0]["quantity_scope"] = "per_character"
+        with self.assertRaisesRegex(
+            GuideRouteContractError, "preparation panel differs from source items"
+        ):
+            publish_candidate(altered, root=self.root)
+
 if __name__ == "__main__":
     unittest.main()
