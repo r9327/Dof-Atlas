@@ -19,17 +19,18 @@ def reference() -> dict:
                  {"source_step_id": "A", "title": "Étape A", "evidence_ref": "approved:A",
                   "actions": [
                       {"action_id": "talk", "kind": "talk", "npc": "PNJ A",
-                       "dialogue_choice": "B"},
-                      {"action_id": "get", "kind": "item",
+                       "text": "Parler au PNJ A", "dialogue_choice": "B"},
+                      {"action_id": "get", "kind": "item", "text": "Prendre la ressource",
                        "items": [{"name": "Ressource", "quantity": 10}]},
                   ]},
                  {"source_step_id": "B", "title": "Étape B",
                   "actions": [{"action_id": "move", "kind": "travel",
-                               "coordinates": [13, 26]}]},
+                               "text": "Se déplacer", "coordinates": [13, 26]}]},
              ]},
             {"guide_id": 2220, "title": "Route beta",
              "steps": [{"source_step_id": "one", "title": "Départ",
                         "actions": [{"action_id": "fight", "kind": "combat",
+                                     "text": "Combattre le monstre",
                                      "monsters": [{"name": "Monstre", "quantity": 3}]}]}]},
         ],
     }
@@ -355,6 +356,38 @@ class TestGuideConformity(unittest.TestCase):
         result = compare(original, atlas)
         self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
         self.assertIn("UNVERIFIABLE", result["issue_codes"])
+
+    def test_identical_missing_action_text_cannot_pass(self) -> None:
+        for bad in (None, "", "   ", True):
+            with self.subTest(value=bad):
+                original = reference()
+                atlas = imported(original)
+                for data in (original, atlas):
+                    action = data["guides"][0]["steps"][0]["actions"][0]
+                    if bad is None:
+                        action.pop("text")
+                    else:
+                        action["text"] = bad
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(".text")
+                    for issue in result["issues"]
+                ))
+
+    def test_identical_invalid_npc_name_cannot_pass(self) -> None:
+        original = reference()
+        atlas = imported(original)
+        for data in (original, atlas):
+            data["guides"][0]["steps"][0]["actions"][0]["npc"] = " "
+        result = compare(original, atlas)
+        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+        self.assertTrue(any(
+            issue["issue_code"] == "UNVERIFIABLE"
+            and issue["field_path"].endswith(".npc")
+            for issue in result["issues"]
+        ))
 
     def test_identical_unsupported_action_kind_is_not_parity(self) -> None:
         original = reference()

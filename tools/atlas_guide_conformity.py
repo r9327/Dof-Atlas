@@ -326,6 +326,16 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
                         report("UNVERIFIABLE", f"{action_path}.kind",
                                "supported action kind", kind)
+                    text = action.get("text")
+                    if not isinstance(text, str) or not text.strip():
+                        report("UNVERIFIABLE", f"{action_path}.text",
+                               "nonempty action text", text)
+                    npc = action.get("npc")
+                    if npc is not None and (
+                        not isinstance(npc, str) or not npc.strip()
+                    ):
+                        report("UNVERIFIABLE", f"{action_path}.npc",
+                               "nonempty NPC name", npc)
                     if action.get("coordinates") is not None and not _valid_position(
                         action["coordinates"]
                     ):
