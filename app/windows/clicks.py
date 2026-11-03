@@ -137,10 +137,13 @@ def send_screen_click(
     button_is_down = False
     synthetic_guard.begin(guard_duration_ms)
     try:
+        # Unity evaluates mouse-over targets after the pointer has moved.
+        # A delay before SetCursorPos does not give interactive world objects
+        # (doors, map exits, chests) a frame to update their hovered target.
+        set_cursor_pos(int(screen_x), int(screen_y))
         if pre_click_ms > 0 and wait_ms(pre_click_ms, should_stop):
             return False
 
-        set_cursor_pos(int(screen_x), int(screen_y))
         ok = True
 
         for index in range(click_total):
