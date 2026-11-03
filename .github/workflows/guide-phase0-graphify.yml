@@ -15,4 +15,5 @@ permissions:
 jobs:
   existing-graphify-doctor:
     name: Existing Graphify and Doctor architecture evidence
+    if: github.ref == 'refs/heads/feat/atlas-guide-importer-pr337-20261102'
     uses: ./.github/workflows/graphify-map.yml
