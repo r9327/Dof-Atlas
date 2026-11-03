@@ -501,7 +501,9 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 self.assertIn("travel-copy:-5,2", rich)
                 self.assertIn("item-copy:Ressource%20fictive", rich)
                 self.assertNotIn("Préparer 2 Ressource fictive", visible)
-                self.assertIsNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
+                # The fixture has an authored before-leaving warning and a
+                # keep-resource row: both sections must remain visible.
+                self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
                 self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
                 self.assertTrue(sheet.findChildren(QLabel, "GuideManualSourceActionDetail"))
                 # Check source evidence is retained alongside visible values.
