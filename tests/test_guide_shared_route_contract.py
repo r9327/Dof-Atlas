@@ -64,6 +64,12 @@ class TestSharedRouteContract(unittest.TestCase):
         source["steps"][0]["actions"][1]["metadata"] = {
             "capture": "fictional provenance",
         }
+        # Existing capture metadata is provenance and may legitimately
+        # contain route-shaped key names. None becomes another gameplay row.
+        source["steps"][0]["actions"][1]["capture"] = {
+            "actions": [{"event": "fictional screenshot"}],
+            "steps": [{"note": "not a route step"}],
+        }
         route = project_authorized_guide(source)
         raw = route["steps"][0]["manual_runtime_metadata"]["source_step"]
         self.assertEqual(raw, source["steps"][0])
