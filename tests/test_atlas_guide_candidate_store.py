@@ -16,9 +16,10 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
     read_selected_preview, read_selected_route, list_selected_preview_routes,
-    read_selected_step, main,
+    read_selected_step,
 )
 from tools.atlas_guide_importer import prepare_preview
+from tools.atlas_guide_pipeline import main
 
 
 def candidate(*, step_title: str = "Départ") -> dict:
@@ -279,7 +280,7 @@ class CandidateStoreTests(unittest.TestCase):
                 buffer = StringIO()
                 with redirect_stdout(buffer):
                     code = main([
-                        "--root", str(self.root),
+                        "--preview-root", str(self.root),
                         "--expected-selected", digest,
                         *args,
                     ])
@@ -305,7 +306,7 @@ class CandidateStoreTests(unittest.TestCase):
         buffer = StringIO()
         with redirect_stdout(StringIO()), redirect_stderr(buffer):
             code = main([
-                "--root", str(self.root),
+                "--preview-root", str(self.root),
                 "--expected-selected", "a" * 64, "--list",
             ])
         self.assertEqual(code, 2)
@@ -323,7 +324,7 @@ class CandidateStoreTests(unittest.TestCase):
             with self.subTest(options=options):
                 output, error = StringIO(), StringIO()
                 with redirect_stdout(output), redirect_stderr(error):
-                    code = main(["--root", str(self.root), *options])
+                    code = main(["--preview-root", str(self.root), *options])
                 self.assertEqual(code, 2)
                 self.assertFalse(output.getvalue())
                 self.assertFalse(json.loads(error.getvalue())["certified"])
