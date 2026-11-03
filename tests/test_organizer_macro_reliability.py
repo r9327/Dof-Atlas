@@ -349,6 +349,42 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         self.assertIsNone(runtime._pending_physical_switch)
 
+    def test_native_source_release_without_valid_pending_state_passes_through(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = _runtime()
+        for pending in (None, "invalid", (), ("Left",)):
+            with self.subTest(pending=pending):
+                runtime._pending_physical_switch = pending
+                self.assertFalse(
+                    AtlasRuntime._handle_mouse_release(runtime, "Left", 150, 160)
+                )
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_double_click_remains_existing_synthetic_sequence(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.active_label = ""
+        runtime.settings.macro_mode = "macro"
+        runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+            action_id="double_click",
+            payload={"click_count": 2, "label": "Switch double clic"},
+        )
+        runtime.switch_click.run_async.return_value = True
+        self.assertTrue(
+            AtlasRuntime._handle_mouse_click(runtime, "Left", 150, 160)
+        )
+        runtime.switch_click.run_async.assert_called_once_with(
+            "Left", 150, 160, 2, "Switch double clic",
+        )
+        # Never start a separate native-source UP replay for double-click.
+        self.assertFalse(
+            AtlasRuntime._handle_mouse_release(runtime, "Left", 150, 160)
+        )
+
     def test_native_source_drag_is_not_replayed(self) -> None:
         from time import monotonic
         from app.core.runtime_state import AtlasRuntime
